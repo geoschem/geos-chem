@@ -50,7 +50,7 @@
       USE DRYDEP_MOD                         ! For dry deposition
       USE WETSCAV_MOD                        ! For wet deposition
 
-#if   defined( APM )
+#if defined( APM )
       ! Modules from GeosApm directory
       USE APM_DRIV_MOD, ONLY : IFTEMPOUT
       USE APM_DRIV_MOD, ONLY : TEMPOUT
@@ -60,7 +60,7 @@
       USE APM_INIT_MOD, ONLY : IFRADF
 #endif
       
-#if   defined( TOMAS )
+#if defined( TOMAS )
       USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 #endif
 
@@ -4222,7 +4222,7 @@
 
          ENDDO
 
-#if   defined( APM )
+#if defined( APM )
       !-----------------------------------
       ! Output TEMPOUT for APM (G. Luo)
       !-----------------------------------

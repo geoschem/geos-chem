@@ -559,6 +559,18 @@ ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
+# APM radiative transfer model settings
+#------------------------------------------------------------------------------
+
+# %%%%% RRTMG %%%%%
+APM_NEEDED           :=0
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(APM)" =~ $(REGEXP) ]] && echo true),true)
+  APM_NEEDED         :=1
+  USER_DEFS          += -DAPM
+endif
+
+#------------------------------------------------------------------------------
 # Met field settings
 #------------------------------------------------------------------------------
 
@@ -972,6 +984,11 @@ endif
 # Append library for RRTMG, if necessary
 ifeq ($(RRTMG_NEEDED),1)
   LINK               :=$(LINK) -lrad
+endif
+
+# Append library for RRTMG, if necessary
+ifeq ($(APM_NEEDED),1)
+  LINK               :=$(LINK) -lApm
 endif
 
 # Create linker command to create the GEOS-Chem executable
@@ -1490,6 +1507,7 @@ export NCL
 export NC_LINK_CMD
 export HPC
 export PRECISION
+export APM_NEEDED
 export RRTMG_NEEDED
 export RRTMG_CLEAN
 export RRTMG_NO_CLEAN

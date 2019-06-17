@@ -20,7 +20,8 @@
       IMPLICIT NONE
       PRIVATE
 !
-#if defined ( APM )
+#if defined( APM )
+      ! NOTE: This should really go into State_CHM!! (bmy, 6/17/19)
       REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: PSO4_SO2APM2(:,:,:)
 #endif
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -2008,7 +2009,7 @@
       ! NOTE: treat H2SO4 as an aerosol for wetdep in TOMAS
       !-----------------------------------------------------------------
       ELSE IF ( SpcInfo%MP_SizeResAer .or. SpcInfo%MP_SizeResNum ) THEN
-#if defined ( APM )
+#if defined( APM )
          ! Washout is a kinetic process
          KIN      = .TRUE.
 
@@ -2485,7 +2486,7 @@
       ENDIF
 
       END FUNCTION WASHFRAC_HNO3
-#if defined (APM)
+#if defined( APM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -5603,7 +5604,8 @@
       id_SO4   = Ind_('SO4'  )
       id_H2O2  = Ind_('H2O2' )
 
-#if defined ( APM )
+#if defined( APM )
+      ! NOTE: This should really go into State_Chm! (bmy, 6/17/19)
       ALLOCATE( PSO4_SO2APM2( IIPAR, JJPAR, LLPAR ), STAT=RC )
       CALL GC_CheckVar( 'wetscav_mod.F:PSO4_SO2APM2', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN

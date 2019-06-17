@@ -132,7 +132,7 @@ CONTAINS
 #if defined( USE_TEND )  
     USE TENDENCIES_MOD   
 #endif                   
-#if   defined( APM )
+#if defined( APM )
     USE APM_INIT_MOD,    ONLY : APMIDS
     USE APM_DRIV_MOD,    ONLY : PSO4GAS
     USE APM_DRIV_MOD,    ONLY : AERONUM
@@ -590,8 +590,8 @@ CONTAINS
              !-----------------------------------------
              IF ( LSSALT ) THEN
 
-#if   !defined( NO_ISORROPIA )
-#if   defined( APM )
+#if !defined( NO_ISORROPIA )
+#if defined( APM )
                 ! DO ISOROPIAII in apm_driv_mod.F
 #else
                 ! ISORROPIA takes Na+, Cl- into account
@@ -609,7 +609,7 @@ CONTAINS
 
              ELSE
 
-#if   defined( APM )
+#if defined( APM )
                 WRITE(*,*)'Warning: APM does not want to use DO_RPMARES'
                 STOP
 #endif
@@ -652,7 +652,7 @@ CONTAINS
              ENDIF
           ENDIF
  
-#if   defined( APM )
+#if defined( APM )
           !--------------------------------------------
           ! Do APM aerosol microphysics
           !--------------------------------------------
@@ -738,8 +738,8 @@ CONTAINS
           IF ( LSULF ) THEN
              IF ( LSSALT ) THEN
 
-#if   !defined( NO_ISORROPIA )
-#if   defined( APM )
+#if !defined( NO_ISORROPIA )
+#if defined( APM )
                 ! DO ISOROPIAII in apm_driv_mod.F
 #else
                 ! ISORROPIA takes Na+, Cl- into account
@@ -757,7 +757,7 @@ CONTAINS
 
              ELSE
 
-#if   defined( APM )
+#if defined( APM )
                 WRITE(*,*)'Warning: APM does not want to use DO_RPMARES'
                 STOP
 #endif

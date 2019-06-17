@@ -24,7 +24,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEMDUST      
-#if   defined( TOMAS )
+#if defined( TOMAS )
       PUBLIC  :: SETTLEDUST
 #endif
       PUBLIC  :: RDUST_ONLINE
@@ -36,7 +36,7 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: DRY_SETTLING
-#if   defined( APM )
+#if defined( APM )
       PRIVATE :: DRY_SETTLINGBIN
 #endif
 !
@@ -129,7 +129,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
-#if   defined( APM )
+#if defined( APM )
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
       USE APM_INIT_MOD,       ONLY : APMIDS
@@ -190,7 +190,7 @@
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg
       CHARACTER(LEN=255) :: ThisLoc
-#if   defined( APM )
+#if defined( APM )
       INTEGER       :: I,J,N,IDDST
       REAL(fp)      :: A_M2, E_DST, DTSRCE
       REAL(fp), POINTER :: Spc(:,:,:,:)
@@ -235,7 +235,7 @@
          FIRST = .FALSE.
       ENDIF
 
-#if   defined( APM )
+#if defined( APM )
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State
       ! object
       ! (mpayer, 12/6/12)
@@ -350,7 +350,7 @@
          CALL DRY_SETTLING( am_I_Root,  Input_Opt, State_Met, State_Chm,
      &                      State_Diag, id_DAL1,   id_DAL4,   RC       )
 
-#if defined ( APM )
+#if defined( APM )
          ! Call APM size-resolved settling algorithm
          CALL DRY_SETTLINGBIN( am_I_Root, Input_Opt, State_Met,
      &                         State_Chm, RC )
@@ -1087,7 +1087,7 @@
       TC      => NULL()
 
       END SUBROUTINE DRY_SETTLING
-#if   defined( APM )
+#if defined( APM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

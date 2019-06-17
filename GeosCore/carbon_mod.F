@@ -30,7 +30,7 @@
       PUBLIC :: EMISSCARBON
       PUBLIC :: CLEANUP_CARBON
       PUBLIC :: INIT_CARBON
-#if   defined( APM )
+#ifdef APM
       PRIVATE :: BCDRY_SETTLINGBIN
       PRIVATE :: OCDRY_SETTLINGBIN
 #endif
@@ -377,7 +377,7 @@
       INTEGER :: id_LISOPOH, id_LISOPNO3
       INTEGER :: id_SOAS,    id_SOAP
 
-#if   defined( APM )
+#if defined( APM )
       REAL*8, ALLOCATABLE :: BCCONVNEW(:,:,:)
       REAL*8, ALLOCATABLE :: OCCONVNEW(:,:,:)
       REAL(fp), SAVE, ALLOCATABLE :: EBCEMISS(:,:,:,:)
@@ -420,7 +420,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if   defined( APM )
+#if defined( APM )
       USE APM_INIT_MOD,       ONLY : APMIDS
       USE APM_INIT_MOD,       ONLY : NBCOC,CEMITBCOC1
       USE HCO_DIAGN_MOD
@@ -520,7 +520,7 @@
       LOGICAL            :: aIR
       CHARACTER(LEN=255) :: LOC = 'CHEMCARBON (carbon_mod.F)'
 
-#if   defined( APM )
+#if defined( APM )
       TYPE(DiagnCont), POINTER :: DiagnCnt
       INTEGER            :: FLAG,I,J,N,IDCARBON
       REAL(fp)           :: A_M2, E_CARBON, DTSRCE
@@ -668,7 +668,7 @@
          ENDIF
       ENDIF
 
-#if   defined( APM )
+#if defined( APM )
 
       CALL BCDRY_SETTLINGBIN( am_I_Root, Input_Opt, State_Met,
      &                        State_Chm, RC )
@@ -1533,7 +1533,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
-#if   defined( APM )
+#if defined( APM )
       USE APM_INIT_MOD,       ONLY : APMIDS
       USE APM_INIT_MOD,       ONLY : NGCOND,NSO4,NSEA,NBCOC
       USE APM_INIT_MOD,       ONLY : NCTSO4,NCTBC,NCTOC,NCTDST,NCTSEA
@@ -1749,7 +1749,7 @@
       ! Debug
       Integer           :: IIDebug, JJDebug
 
-#if   defined( APM )
+#if defined( APM )
       INTEGER           :: IFINORG
       INTEGER           :: NTEMP
 #endif
@@ -1881,7 +1881,7 @@
 !$OMP+PRIVATE( MPRODUCT, MSOA_OLD, VALUE, UPPER, LOWER, MNEW, TOL  )
 !$OMP+PRIVATE( ORG_AER,  ORG_GAS,  KOM,   MPOC                     )
 !$OMP+PRIVATE( KRO2NO,   KRO2HO2,  JSV                             )  
-#if   defined( APM )
+#if defined( APM )
 !$OMP+PRIVATE( N, NTEMP)
 #endif
       DO L = 1, LLCHEM
@@ -1920,7 +1920,7 @@
          ! ALPHA is a module variable now (ccc, 2/2/10)
          ! semivolpoa2: emit POA into semivolatiles here (hotp 2/27/09)
          ! add RO2+NO,HO2 rate constants (hotp 5/7/10)
-#if defined ( APM )
+#if defined( APM )
          CALL CHEM_NVOC( I,          J,         L,
      &                   KO3,        KOH,       KNO3,
      &                   GM0,        KRO2NO,    KRO2HO2,
@@ -1994,7 +1994,7 @@
          !
          ! (Colette Heald, 12/3/09)
          !-----------------------------------------------------------
-#if      defined( APM )
+#if defined( APM )
          MPOC = FAC *
      &    SUM(Spc(I,J,L,APMIDS%id_OCBIN1:(APMIDS%id_OCBIN1+NBCOC-1)))
 
@@ -8302,7 +8302,7 @@ ccc
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
       POAEMISS = 0e+0_fp
 
-#if   defined( APM )
+#if defined( APM )
       ALLOCATE( BCCONVNEW( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONVNEW' )
       BCCONVNEW = 0d0
@@ -8498,7 +8498,7 @@ ccc
       IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
       IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
-#if   defined( APM )
+#if defined( APM )
       IF ( ALLOCATED( BCCONVNEW ) ) DEALLOCATE( BCCONVNEW )
       IF ( ALLOCATED( OCCONVNEW ) ) DEALLOCATE( OCCONVNEW )
       IF ( ALLOCATED( EBCEMISS      ) ) DEALLOCATE( EBCEMISS      )
@@ -8529,7 +8529,7 @@ ccc
 
       END SUBROUTINE CLEANUP_CARBON
 
-#if   defined( APM )
+#if defined( APM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -9233,6 +9233,7 @@ ccc
       NULLIFY( Spc )
 
       END SUBROUTINE BCDRY_SETTLINGBIN
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

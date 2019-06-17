@@ -26,7 +26,7 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS: 
 !
-#if   defined( APM )
+#if defined( APM )
       PRIVATE :: WET_SETTLINGBIN
 #endif
       PUBLIC :: CHEMSULFATE       
@@ -254,11 +254,11 @@
       REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
       REAL(fp),  ALLOCATABLE :: COSZM(:,:)
 
-#if   defined( APM )
+#if defined( APM )
       REAL(fp),  ALLOCATABLE :: PSO4_SO2APM(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SO2SEA(:,:,:)
 #endif
-#if   defined( TOMAS )
+#if defined( TOMAS )
       !---------------------------------------------------------------
       ! For TOMAS microphysics: Define PSO4_SO2aq array
       !---------------------------------------------------------------
@@ -346,7 +346,7 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if   defined( APM )
+#if defined( APM )
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
       USE APM_DRIV_MOD,       ONLY : EMITNH3,EMITSO2
 #endif
@@ -449,7 +449,7 @@
 
       ! Pointers
       REAL(fp),        POINTER :: Spc(:,:,:,:)
-#if   defined( APM )
+#if defined( APM )
       INTEGER           :: IDNH3,IDSO2
       REAL(fp)          :: A_M2
 #endif
@@ -552,7 +552,7 @@
          TS_EMIS = HcoState%TS_EMIS
       ENDIF
 
-#if   defined( APM )
+#if defined( APM )
       IDNH3 = HCO_GetHcoID( 'NH3', HcoState )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -602,11 +602,11 @@
       PNITs      = 0e+0_fp
       PSO4_dust  = 0e+0_fp     ! tdf 04/17/08
       PNIT_dust  = 0e+0_fp     ! tdf 04/17/08
-#if   defined( APM )
+#if defined( APM )
       PSO4_SO2APM = 0d0
       PSO4_SO2SEA = 0d0
 #endif
-#if   defined( TOMAS )
+#if defined( TOMAS )
       PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
 #endif
                   
@@ -2595,7 +2595,7 @@
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD05
 #endif
-#if   defined( APM )
+#if defined( APM )
       USE APM_DRIV_MOD,       ONLY : PSO4GAS
       USE APM_DRIV_MOD,       ONLY : XO3
 #endif
@@ -2901,7 +2901,7 @@
             HOBr0  = 0.e+0_fp
          ENDIF
          O3     = GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
-#if defined ( APM )
+#if defined( APM )
          XO3(I,J,L)= O3
 #endif
 
@@ -3849,13 +3849,13 @@
          ! Production of sulfate on sea salt
          PSO4_ss (I,J,L) = PSO4F
 
-#if   defined( APM )
+#if defined( APM )
          PSO4_SO2APM(I,J,L) = L2S + L3S + L4S + L5S + SR
          PSO4_SO2APM(I,J,L) = MAX(0.d0,PSO4_SO2APM(I,J,L))
          PSO4_SO2SEA(I,J,L) = PSO4E + PSO4F
          PSO4_SO2SEA(I,J,L) = MAX(0.d0,PSO4_SO2SEA(I,J,L))
 #endif
-#if   defined( TOMAS )
+#if defined( TOMAS )
          PSO4_SO2AQ(I,J,L) = L2S + L3S + SR ! For TOMAS microphysics
 #endif
 
@@ -6452,7 +6452,7 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Met_Mod,  ONLY : MetState
-#if   defined( APM )
+#if defined( APM )
       USE APM_INIT_MOD,       ONLY : APMIDS
       USE APM_INIT_MOD,       ONLY : NGCOND,   NSO4,      NSEA
       USE APM_INIT_MOD,       ONLY : NCTSO4,NCTBC,NCTOC,NCTDST,NCTSEA
@@ -6549,7 +6549,7 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
-#if   defined( APM )
+#if defined( APM )
       REAL*8            :: MASS0, MASS, PMASS
       REAL*8            :: RKTs, E_RKTs, DTCHEM
 #endif
@@ -6567,7 +6567,7 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP    = Input_Opt%LDSTUP
 
-#if defined ( APM )
+#if defined( APM )
       ! Call APM size-resolved drydep algorithm
       CALL WET_SETTLINGBIN( am_I_Root, Input_Opt, State_Met,
      &                      State_Chm, RC )
@@ -6671,7 +6671,7 @@
          Spc(I,J,L,id_SO4s) = SO4s
 
 !APM_GanLuo+
-#if      defined( APM )
+#if defined( APM )
          IF(NSO4>=1)THEN
             DO N=1,NSO4
             ! Updated SO4 (gas phase) [v/v]
@@ -6738,7 +6738,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined ( APM )
+#if defined( APM )
       PSO4_SO2APM2 = 0.D0
 #endif
 
@@ -8290,7 +8290,7 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       SOx_SCALE = 0e+0_fp
 
-#if   defined( APM )
+#if  defined( APM )
       ! Allocate for APM microphysics
       ALLOCATE( PSO4_SO2APM( IIPAR, JJPAR, LLPAR ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO4_SO2APM', 0, RC )
@@ -8465,7 +8465,7 @@
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
       IF ( ALLOCATED( PSO4_SO2   ) ) DEALLOCATE( PSO4_SO2   )
-#if   defined( APM )
+#if defined( APM )
       IF ( ALLOCATED( PSO4_SO2APM ) ) DEALLOCATE( PSO4_SO2APM )
       IF ( ALLOCATED( PSO4_SO2SEA ) ) DEALLOCATE( PSO4_SO2SEA )
 #endif
@@ -8496,7 +8496,7 @@
 
       END SUBROUTINE CLEANUP_SULFATE
 !EOC
-#if   defined( APM )
+#if defined( APM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

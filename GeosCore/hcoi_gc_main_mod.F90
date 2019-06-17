@@ -3813,7 +3813,7 @@ CONTAINS
    USE State_Met_Mod,      ONLY : MetState
    USE TIME_MOD,           ONLY : EXPAND_DATE
    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if defined ( APM )
+#if defined( APM )
    USE APM_INIT_MOD,       ONLY : APMIDS
 #endif
 
@@ -4114,7 +4114,7 @@ CONTAINS
          ENDDO
 !$OMP END PARALLEL DO
 
-#if defined ( APM )
+#if defined( APM )
            WRITE(*,*)'APM run does not find '// TRIM( SpcInfo%Name ),N
            IF(SpcInfo%Name(1:9)=='APMSPBIN2')THEN
 !$OMP PARALLEL DO                                                       &

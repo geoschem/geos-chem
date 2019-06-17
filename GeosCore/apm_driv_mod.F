@@ -1,4 +1,4 @@
-#if defined ( APM )
+#if defined( APM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -533,6 +533,7 @@
       CHARACTER(LEN=15)        :: SCASI
       REAL*8                   :: TSO4COAT,DNH3MAX
       REAL*8                   :: TH2O,TINORG   !Yu+ 6/1/11
+!NOTE: FlexGrid will probably break this (bmy, 6/17/19)
 #if   defined( GRID2x25 )
       REAL,SAVE                :: SEABIRDEM(144,91,2)
       REAL                     :: BIRDNH3(144,91)

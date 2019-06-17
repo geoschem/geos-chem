@@ -24,7 +24,7 @@
       USE ERROR_MOD                             ! Error handling routines
       USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
-#if   defined( TOMAS )
+#if defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
       USE PhysConstants                         ! Physical constants
@@ -870,7 +870,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Diag_Mod,     ONLY : DgnState
-#if defined ( APM )
+#if defined( APM )
       USE APM_INIT_MOD, ONLY : APMIDS
       USE APM_INIT_MOD, ONLY : RDRY, RSALT, RDST, DENDST
       USE APM_DRIV_MOD, ONLY : GFTOT3D, DENWET3D, MWSIZE3D
@@ -1582,7 +1582,7 @@
 
 #endif
 
-#if defined ( APM )
+#if defined( APM )
                   IF(SpcInfo%Name(1:8)=='APMSPBIN')THEN
                     DIAM = RDRY(SpcId-APMIDS%id_SO4BIN1+1)*
      &                     GFTOT3D(I,J,1,1)*2.D0

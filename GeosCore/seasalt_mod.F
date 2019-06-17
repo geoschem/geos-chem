@@ -35,7 +35,7 @@
       PRIVATE :: WET_SETTLING
       PRIVATE :: CHEM_MOPO
       PRIVATE :: CHEM_MOPI
-#if   defined( APM )
+#if defined( APM )
       PRIVATE :: WET_SETTLINGBIN
 #endif
 !
@@ -123,7 +123,7 @@
       INTEGER,  PARAMETER   :: NSALT    = 2
       INTEGER,  PARAMETER   :: NR_MAX   = 200
       REAL(fp), PARAMETER   :: SMALLNUM = 1e-20_fp
-#if   defined( APM )
+#if defined( APM )
       INTEGER,  PARAMETER   :: NSALTBIN = 20
 #endif
 !
@@ -177,7 +177,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
-#if   defined( APM )
+#if defined( APM )
 !APM_GanLuo+
       USE APM_INIT_MOD,       ONLY : APMIDS
 #endif
@@ -300,7 +300,7 @@
 
       ENDIF
 
-#if   defined( APM )
+#if defined( APM )
       ! Sea salt emissions for extra APM bins
       CALL SRCSALTBIN( 
      &     Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1))
@@ -1476,7 +1476,7 @@
       END SUBROUTINE SRCSALT30
 !EOC
 #endif
-#if   defined( APM )
+#if defined( APM )
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
