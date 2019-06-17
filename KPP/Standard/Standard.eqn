@@ -845,7 +845,7 @@ O1D + HCFC22 = 0.280O + 0.280HCFC22 +
 O1D + CFC11 = 0.120O + 0.120CFC11 +
  0.880ClO + 1.760Cl :                        GCARR(2.30E-10, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
 O1D + CFC12 = 0.140O + 0.140CFC12 +
- 0.860ClO + 1.720Cl :                        GCARR(1.40E-10, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
+ 0.860ClO + 0.860Cl :                        GCARR(1.40E-10, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
 O1D + H1211 = 0.360O + 0.360H1211 +
  0.310BrO + 0.310Cl + 0.330Br + 0.330ClO :   GCARR(1.50E-10, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
 O1D + H1301 = 0.590O + 0.590H1301 +
@@ -1331,8 +1331,8 @@ CFC114 + hv = 2.000Cl :                      PHOTOL(40);     {2014/02/03; Eastha
 CFC115 + hv = Cl :                           PHOTOL(41);     {2014/02/03; Eastham2014; SDE}
 HCFC123 + hv = 2.000Cl :                     PHOTOL(47);     {2014/02/03; Eastham2014; SDE}
 HCFC141b + hv = 2.000Cl :                    PHOTOL(48);     {2014/02/03; Eastham2014; SDE}
-HCFC142b + hv = 2.000Cl :                    PHOTOL(49);     {2014/02/03; Eastham2014; SDE}
-HCFC22 + hv = 2.000Cl :                      PHOTOL(46);     {2014/02/03; Eastham2014; SDE}
+HCFC142b + hv = Cl :                         PHOTOL(49);     {2014/02/03; Eastham2014; SDE}
+HCFC22 + hv = Cl :                           PHOTOL(46);     {2014/02/03; Eastham2014; SDE}
 H1301 + hv = Br :                            PHOTOL(53);     {2014/02/03; Eastham2014; SDE}
 H1211 + hv = Cl + Br :                       PHOTOL(51);     {2014/02/03; Eastham2014; SDE}
 H2402 + hv = 2.000Br :                       PHOTOL(54);     {2014/02/03; Eastham2014; SDE}

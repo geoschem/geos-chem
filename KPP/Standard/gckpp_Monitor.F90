@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Tue May 21 15:14:49 2019
-! Working directory    : /n/home05/msulprizio/GC/Code.12.4.0/KPP/Standard
+! Time                 : Mon Jun 17 13:38:05 2019
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -432,7 +432,7 @@ MODULE gckpp_Monitor
      '   CHBr3 + O1D --> 0.32 CHBr3 + 0.68 BrO + 1.36 Br + 0.32 O                                         ', & ! index 305
      '  HCFC22 + O1D --> 0.17 LOx + 0.28 HCFC22 + 0.17 Cl + 0.28 O + 0.55 ClO                             ', & ! index 306
      '   CFC11 + O1D --> 0.12 CFC11 + 1.76 Cl + 0.12 O + 0.88 ClO                                         ', & ! index 307
-     '   CFC12 + O1D --> 0.14 CFC12 + 1.72 Cl + 0.14 O + 0.86 ClO                                         ', & ! index 308
+     '   CFC12 + O1D --> 0.14 CFC12 + 0.86 Cl + 0.14 O + 0.86 ClO                                         ', & ! index 308
      '   H1211 + O1D --> 0.36 H1211 + 0.31 BrO + 0.33 Br + 0.31 Cl + 0.36 O + 0.33 ClO                    ', & ! index 309
      '   H1301 + O1D --> 0.59 H1301 + 0.41 BrO + 0.59 O                                                   ', & ! index 310
      'HCFC141b + O1D --> 0.31 HCFC141b + 0.69 Cl + 0.31 O + 0.69 ClO                                      ', & ! index 311
@@ -822,8 +822,8 @@ MODULE gckpp_Monitor
      '        CFC115 --> Cl                                                                               ', & ! index 683
      '       HCFC123 --> 2 Cl                                                                             ', & ! index 684
      '      HCFC141b --> 2 Cl                                                                             ', & ! index 685
-     '      HCFC142b --> 2 Cl                                                                             ', & ! index 686
-     '        HCFC22 --> 2 Cl                                                                             ', & ! index 687
+     '      HCFC142b --> Cl                                                                               ', & ! index 686
+     '        HCFC22 --> Cl                                                                               ', & ! index 687
      '         H1301 --> Br                                                                               ', & ! index 688
      '         H1211 --> Br + Cl                                                                          ', & ! index 689
      '         H2402 --> 2 Br                                                                             ' /)
