@@ -133,6 +133,12 @@ CONTAINS
 #if defined( USE_TEND )  
     USE TENDENCIES_MOD   
 #endif                   
+#if defined( APM )
+    USE APM_INIT_MOD,    ONLY : APMIDS
+    USE APM_DRIV_MOD,    ONLY : PSO4GAS
+    USE APM_DRIV_MOD,    ONLY : AERONUM
+    USE APM_DRIV_MOD,    ONLY : APM_DRIV
+#endif
 #if defined( TOMAS )     
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif                   
@@ -291,6 +297,12 @@ CONTAINS
     LOGICAL            :: LNLPBL
     LOGICAL            :: LUCX
     REAL(fp)           :: DT_Chem
+#if defined( APM )
+    INTEGER            :: I,J,L
+    REAL*8             :: CONCTMPSO4(State_Grid%NX,                         &
+                                     State_Grid%NY,                         &
+                                     State_Grid%NZ)
+#endif
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -413,6 +425,32 @@ CONTAINS
              ENDIF
           ENDIF
 
+#if defined( APM )
+          ! Save SO4 concentration before chemistry
+          !$OMP PARALLEL DO                  &
+          !$OMP DEFAULT( SHARED            ) &
+          !$OMP PRIVATE( I, J, L           ) &
+          !$OMP SCHEDULE( DYNAMIC )
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NZ
+             CONCTMPSO4(I,J,L) = State_Chm%Species(I,J,L,APMIDS%id_SO4)
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+
+          CALL AERONUM( am_I_Root,  Input_Opt,  State_Chm,                   &
+                        State_Diag, State_Grid, State_Met, RC               )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "ChemSulfate"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+#endif
+
           !---------------------------
           ! Call gas-phase chemistry
           !---------------------------
@@ -469,6 +507,27 @@ CONTAINS
 #endif
 
           ENDIF
+
+#if defined( APM )
+          ! Obtain SO4 production after chemistry
+          !$OMP PARALLEL DO                  &
+          !$OMP DEFAULT( SHARED            ) &
+          !$OMP PRIVATE( I, J, L           ) &
+          !$OMP SCHEDULE( DYNAMIC )
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+            IF(State_Chm%Species(I,J,L,APMIDS%id_SO4)>CONCTMPSO4(I,J,L))THEN
+              PSO4GAS(I,J,L) = State_Chm%Species(I,J,L,APMIDS%id_SO4) -&
+                               CONCTMPSO4(I,J,L)
+            ELSE
+              PSO4GAS(I,J,L) = 0.D0
+            ENDIF
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+#endif
 
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
@@ -545,10 +604,11 @@ CONTAINS
              !-----------------------------------------
              IF ( LSSALT ) THEN
 
-#if   !defined( NO_ISORROPIA )
+#if !defined( NO_ISORROPIA )
+#if !defined( APM )
                 ! ISORROPIA takes Na+, Cl- into account
-                CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,       &
-                                     State_Diag, State_Grid, State_Met, RC   )
+                CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,      &
+                                     State_Diag, State_Grid, State_Met, RC  )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
@@ -557,8 +617,14 @@ CONTAINS
                    RETURN
                 ENDIF
 #endif
+#endif
 
              ELSE
+
+#if defined( APM )
+                WRITE(*,*)'Warning: APM does not want to use DO_RPMARES'
+                STOP
+#endif
 
                 ! RPMARES does not take Na+, Cl- into account
                 CALL Do_RPMARES( am_I_Root,  Input_Opt, State_Chm,           &
@@ -598,6 +664,21 @@ CONTAINS
              ENDIF
           ENDIF
  
+#if defined( APM )
+          !--------------------------------------------
+          ! Do APM aerosol microphysics
+          !--------------------------------------------
+          CALL APM_DRIV( am_I_Root,  Input_Opt,  State_Chm,                  &
+                         State_Diag, State_Grid, State_Met, RC              )
+                  
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in routine "APM_DRIV"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+#endif
+
 #if   defined( TOMAS )
           !--------------------------------------------
           ! Do TOMAS aerosol microphysics and dry dep
@@ -677,10 +758,12 @@ CONTAINS
           IF ( LSULF ) THEN
              IF ( LSSALT ) THEN
 
-#if   !defined( NO_ISORROPIA )
+#if !defined( NO_ISORROPIA )
+#if !defined( APM )
                 ! ISORROPIA takes Na+, Cl- into account
-                CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,       &
-                                     State_Diag, State_Grid, State_Met, RC   )
+                CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,      &
+                                     State_Diag, State_Grid, State_Met, RC  )
+#endif
 #endif
 
                 ! Trap potential errors
@@ -691,6 +774,11 @@ CONTAINS
                 ENDIF
 
              ELSE
+
+#if defined( APM )
+                WRITE(*,*)'Warning: APM does not want to use DO_RPMARES'
+                STOP
+#endif
 
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)

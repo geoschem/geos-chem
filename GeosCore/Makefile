@@ -176,6 +176,7 @@
 
 # Directories
 ROOT    :=..
+GAPM    :=$(ROOT)/APM
 BIN     :=$(ROOT)/bin
 BPCH    :=$(ROOT)/GeosBpch
 DOC     :=$(ROOT)/doc
@@ -272,6 +273,7 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libhemco
 	@$(MAKE) libiso
 	@$(MAKE) librad
+	@$(MAKE) libapm
 	@$(MAKE) libcore
 
 libcore: $(OBJECTS)                                # Build code in GeosCore/
@@ -280,6 +282,10 @@ ifeq ($(EXE_NEEDED),0)
 	mv $(LIBRARY) $(LIB) # ...build a libGeosCore.a for use instead
 endif
 
+libapm:
+ifeq ($(APM_NEEDED),1)
+	@$(MAKE) -C $(GAPM) lib
+endif
 
 libgigc:
 ifeq ($(wildcard $(FVDIR)/fvdycore.install),)
@@ -366,6 +372,7 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(KPP)   realclean
 	@$(MAKE) -C $(NCDF)  clean
 	@$(MAKE) -C $(RAD)   clean
+	@$(MAKE) -C $(GAPM)  clean
 	@$(MAKE) -C $(UTIL)  clean
 	@$(MAKE) docclean
 ifeq ($(HPC),yes)
@@ -476,7 +483,7 @@ chemistry_mod.o             : chemistry_mod.F90                              \
                               c2h6_mod.o              carbon_mod.o           \
                               dust_mod.o              drydep_mod.o           \
                               global_ch4_mod.o        mercury_mod.o          \
-                              pops_mod.o                                     \
+                              pops_mod.o              apm_driv_mod.o         \
                               rpmares_mod.o           RnPbBe_mod.o           \
                               seasalt_mod.o           strat_chem_mod.o       \
                               sulfate_mod.o           tagged_co_mod.o        \
@@ -540,7 +547,8 @@ diag3.o                     : diag3.F                                        \
                               diag42_mod.o            diag53_mod.o           \
                               diag56_mod.o            depo_mercury_mod.o     \
                               drydep_mod.o            hco_interface_mod.o    \
-                              tomas_mod.o             wetscav_mod.o
+                              apm_driv_mod.o          wetscav_mod.o          \
+                              tomas_mod.o             
 
 diag20_mod.o                : diag20_mod.F
 
@@ -583,14 +591,15 @@ diag_oh_mod.o               : diag_oh_mod.F
 diagnostics_mod.o           : diagnostics_mod.F90
 
 drydep_mod.o                : drydep_mod.F                                   \
-                              dao_mod.o                                      \
+                              dao_mod.o               apm_driv_mod.o         \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
                               hco_interface_mod.o     diagnostics_mod.o
 
 dust_mod.o                  : dust_mod.F                                     \
                               diag_mod.o              drydep_mod.o           \
-                              hco_interface_mod.o     tomas_mod.o             
+                              apm_driv_mod.o          tomas_mod.o            \
+                              hco_interface_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
                               bromocarb_mod.o         carbon_mod.o           \
@@ -720,7 +729,7 @@ main.o                      : main.F                                         \
                                                       uvalbedo_mod.o         \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
-                              mixing_mod.o                                   \
+                              mixing_mod.o            apm_driv_mod.o         \
                               wetscav_mod.o           diag_mod.o             \
                               rrtmg_rad_transfer_mod.o                       \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
@@ -801,7 +810,8 @@ rpmares_mod.o               : rpmares_mod.F                                  \
 seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           tomas_mod.o            \
-                              hco_interface_mod.o     vdiff_pre_mod.o
+                              apm_driv_mod.o          vdiff_pre_mod.o        \
+                              hco_interface_mod.o     
 
 set_global_ch4_mod.o        : set_global_ch4_mod.F90                         \
                               pbl_mix_mod.o
@@ -817,12 +827,11 @@ strat_chem_mod.o            : strat_chem_mod.F90                             \
 sulfate_mod.o               : sulfate_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o            dust_mod.o             \
-                              get_ndep_mod.o                                 \
+                              get_ndep_mod.o          apm_driv_mod.o         \
                               pbl_mix_mod.o           wetscav_mod.o          \
                               ucx_mod.o               uvalbedo_mod.o         \
                               vdiff_pre_mod.o         wetscav_mod.o          \
-                              hco_interface_mod.o                            \
-                              tomas_mod.o
+                              hco_interface_mod.o     tomas_mod.o
 
 tagged_co_mod.o             : tagged_co_mod.F                                \
                               pbl_mix_mod.o           hco_interface_mod.o    \
@@ -879,7 +888,18 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               tendencies_mod.o        hco_interface_mod.o    \
-                              tomas_mod.o             diagnostics_mod.o
+                              apm_driv_mod.o          diagnostics_mod.o      \
+                              tomas_mod.o             
+
+###############################################################################
+###                                                                         ###
+###  Dependencies of files specific to the APM microphysics simulation      ###
+###                                                                         ###
+###############################################################################
+apm_driv_mod.o              : apm_driv_mod.F                                 \
+                              dao_mod.o                                      \
+                              pbl_mix_mod.o                                  \
+                              isorropiaII_mod.o
 
 ###############################################################################
 ###                                                                         ###
