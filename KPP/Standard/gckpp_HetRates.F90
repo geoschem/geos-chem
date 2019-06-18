@@ -6001,7 +6001,7 @@ MODULE GCKPP_HETRATES
       IF ( CLDFR.le.0.0e+0_fp ) CLDFr = 1.0e-32_fp
 
       ! Quick test - is there any cloud?
-      IF (((QL.le.0.0e+0_fp).and.(QL.le.0.0e+0_fp)).or.(CLDF(I,J,L).le.0.0e+0_fp)) THEN
+      IF (((QL.le.0.0e+0_fp).and.(QI.le.0.0e+0_fp)).or.(CLDF(I,J,L).le.0.0e+0_fp)) THEN
          rLiq = xCldR_Cont
          ALiq = 0.0e+0_fp
          VLiq = 0.0e+0_fp
