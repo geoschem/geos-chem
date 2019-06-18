@@ -890,17 +890,13 @@
             ENDIF
   
             ! Do for all sources 
-            DO I = 1, 3
+            DO I = 1, 2
                SELECT CASE ( I )
                   CASE ( 1 ) 
                      CATEGORY = TRIM(SpcName)//'-ANTH'
                      SRCNAME  = 'ANTHRO'
                      Levs     = State_Grid%NZ
                   CASE ( 2 ) 
-                     CATEGORY = TRIM(SpcName)//'-BIOF'
-                     SRCNAME  = 'BIOFUEL'
-                     Levs     = 1
-                  CASE ( 3 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOB'
                      SRCNAME  = 'BIOMASS'
                      Levs     = 1
@@ -1696,14 +1692,6 @@
      &           UNIT, id_SO2, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
-         !%%%%% Biofuel SO2 %%%%%
-         DiagnName = 'AD13_SO2_BIOFUEL'
-         CATEGORY  = 'SO2-BIOF'
-         FACTOR    = S_SO2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
-
          !%%%%% Volcano SO2 (eruptive) %%%%%
          DiagnName = 'AD13_SO2_VOLCANO_ERUPT'
          CATEGORY  = 'SO2-EV-$'
@@ -1743,14 +1731,6 @@
      &                   FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
-         !%%%%% Biofuel SO4 %%%%%
-         DiagnName = 'AD13_SO4_BIOFUEL'
-         CATEGORY  = 'SO4-BIOF'
-         FACTOR    = S_SO4
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO4, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
-
          !--------------------------------------------------------------
          ! NH3 diagnostics
          !--------------------------------------------------------------
@@ -1779,14 +1759,6 @@
          FACTOR    = SECONDS
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
      &          UNIT, id_NH3, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
-
-         !%%%%% Biofuel NH3 %%%%%
-         DiagnName = 'AD13_NH3_BIOFUEL'
-         CATEGORY  = 'NH3-BIOF'
-         FACTOR    = 1.0e+0_fp
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_NH3, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    
@@ -2876,7 +2848,7 @@
                CASE( 2 )
                   DiagnName = 'BIOMASS_CO'
                CASE( 3 )
-                  DiagnName = 'BIOFUEL_CO'
+                  CYCLE        ! Biofuel emissions are lumped with anthro
                CASE( 4 ) 
                   CYCLE        ! CO from methanol doesn't seem to be defined!?
                CASE ( 5 )
@@ -2886,8 +2858,7 @@
 
                ! Tagged CO: Anthro sectors, USA
                CASE( 7 )
-                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_US'
-                  Levs      = State_Grid%NZ
+                  CYCLE        ! Biofuel emissions are lumped with anthro
                CASE( 8 ) 
                   DiagnName = 'AIRCRAFT_TAGCO_US'
                   Levs      = State_Grid%NZ
@@ -2896,8 +2867,7 @@
 
                ! Tagged CO: Anthro sectors, Europe
                CASE( 10 )
-                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_EUR'
-                  Levs      = State_Grid%NZ
+                  CYCLE        ! Biofuel emissions are lumped with anthro
                CASE( 11 )
                   DiagnName = 'AIRCRAFT_TAGCO_EUR'
                   Levs      = State_Grid%NZ
@@ -2906,8 +2876,7 @@
 
                ! Tagged CO: Anthro sectors, Asia
                CASE( 13 )
-                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
-                  Levs      = State_Grid%NZ
+                  CYCLE        ! Biofuel emissions are lumped with anthro
                CASE( 14 )
                   DiagnName = 'AIRCRAFT_TAGCO_ASIA'
                   Levs      = State_Grid%NZ
@@ -2916,8 +2885,7 @@
 
                ! Tagged CO: Anthro sectors, rest of world
                CASE( 16 )
-                  DiagnName = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
-                  Levs      = State_Grid%NZ
+                  CYCLE        ! Biofuel emissions are lumped with anthro
                CASE( 17 )
                   DiagnName = 'AIRCRAFT_TAGCO_OTHER'
                   Levs      = State_Grid%NZ
@@ -3130,13 +3098,6 @@
      &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
-         !%%%%% Biofuel NO %%%%%
-         DiagnName = 'BIOFUEL_NO' 
-         CATEGORY  = 'NO-BIOF'
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-
          !%%%%% Fertilizer NO %%%%%
          DiagnName = 'EmisNO_Fert' 
          CATEGORY  = 'NO-FERT'
@@ -3195,251 +3156,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
-!
-!******************************************************************************
-!  ND34: Biofuel burning diagnostic 
-!
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  HEMCO LUMPS MOST BIOFUELS IN WITH THE ANTHROPOGENICS.  THUS, MANY  %%% 
-!  %%%  OF THE BIOFUEL DIAGNOSTICS ARE NOW ZERO.  IT'S BETTER TO COMPARE   %%%
-!  %%%  SUM OF ANTHROPOGENIC + BIOFUEL EMISSIONS. (bmy, 8/15/14)           %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!   #  : Field : Description         : Units            : Scale factor
-!  --------------------------------------------------------------------------
-!  (1  ) NOx   : NOx                 : molec NOx /cm2/s : SCALESRCE
-!  (4  ) CO    : CO                  : molec CO  /cm2/s : SCALESRCE
-!  (5  ) ALK4  : Alkanes(>C4)        : atoms C   /cm2/s : SCALESRCE
-!  (9  ) ACET  : Acetone             : atoms C   /cm2/s : SCALESRCE
-!  (10 ) MEK   : Metyl Ethyl Ketone  : atoms C   /cm2/s : SCALESRCE
-!  (11 ) ALD2  : Acetaldehyde        : atoms C   /cm2/s : SCALESRCE
-!  (18 ) PRPE  : Alkenes(>=C3)       : atoms C   /cm2/s : SCALESRCE
-!  (19 ) C3H8  : Propane             : atoms C   /cm2/s : SCALESRCE
-!  (20 ) CH2O  : Formaldehyde        : molec CH2O/cm2/s : SCALESRCE
-!  (26 ) SO2   : SO2                 : molec SO2 /cm2/s : SCALESRCE
-!  (30 ) NH3   : NH3                 : molec NH3 /cm2/s : SCALESRCE
-!  (116) BENZ  : Benzene             : atoms C   /cm2/s : SCALESRCE
-!  (117) TOLU  : Toluene             : atoms C   /cm2/s : SCALESRCE
-!  (118) XYLE  : Xylene              : atoms C   /cm2/s : SCALESRCE
-!  (126) EOH   : Ethanol             : atoms C   /cm2/s : SCALESRCE
-!
-!  NOTES:
-!  (1) Use the F90 intrinsic "ANY" function to make sure that N 
-!       corresponds to actual biofuel burning tracers (bmy, 3/15/01)
-!  (3) Now write biofuel burning tracers to the punch file in the same order 
-!       as they are listed in "diag.dat". (bmy, 4/17/01)
-!  (4) Use BFTRACE and NBFTRACE to get the right index for AD34. 
-!      (ccc, 12/8/2008)
-!  (5) HEMCO now tracks biofuel diagnostics.  RETRO biofuels are lumped into
-!       anthropogenic emissions, so several of these entries will be zero.
-!******************************************************************************
-!
-      IF ( ND34 > 0 ) THEN
-
-         ! Diagnostic category for BPCH output
-         CATEGORY = 'BIOFSRCE'
-
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%% NOTE: FACTOR is the multiplication factor that converts
-         !%%% kg/m2/s (as tracked by HEMCO) to either molec/cm2/s. 
-         !%%% (bmy, 8/14/14)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         
-         !%%%%% NO %%%%%
-         IF ( id_NO > 0 ) THEN
-            DiagnName = 'BIOFUEL_NO'
-            UNIT     = 'molec/cm2/s'
-            N         = id_NO
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% CO %%%%%
-         IF ( id_CO > 0 ) THEN
-            DiagnName = 'BIOFUEL_CO'
-            UNIT      = 'molec/cm2/s'
-            N         = id_CO
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% ALK4 %%%%%
-         IF ( id_ALK4 > 0 ) THEN
-            DiagnName = 'BIOFUEL_ALK4'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_ALK4
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% ACET %%%%%
-         IF ( id_ACET > 0 ) THEN
-            DiagnName = 'BIOFUEL_ACET'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_ACET
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% MEK %%%%%
-         IF ( id_MEK > 0 ) THEN
-            DiagnName = 'BIOFUEL_MEK'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_MEK
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% ALD2 %%%%%
-         IF ( id_ALD2 > 0 ) THEN 
-            DiagnName = 'BIOFUEL_ALD2'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_ALD2
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% PRPE %%%%%
-         IF ( id_PRPE > 0 ) THEN
-            DiagnName = 'BIOFUEL_PRPE'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_PRPE
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% C3H8 %%%%%
-         IF ( id_C3H8 > 0 ) THEN
-            DiagnName = 'BIOFUEL_C3H8'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_C3H8
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% CH2O %%%%%
-         IF ( id_CH2O > 0 ) THEN
-            DiagnName = 'BIOFUEL_CH2O'
-            UNIT      = 'molec/cm2/s'
-            N         = id_CH2O
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% C2H6 %%%%%
-         IF ( id_C2H6 > 0 ) THEN
-            DiagnName = 'BIOFUEL_C2H6'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_C2H6
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% SO2 %%%%%
-         IF ( id_SO2 > 0 ) THEN
-            DiagnName = 'BIOFUEL_SO2'
-            UNIT      = 'molec/cm2/s'
-            N         = id_SO2
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% NH3 %%%%%
-         IF ( id_NH3 > 0 ) THEN
-            DiagnName = 'BIOFUEL_NH3'
-            UNIT      = 'molec/cm2/s'
-            N         = id_NH3
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% BENZ %%%%%
-         IF ( id_BENZ > 0 ) THEN
-            DiagnName = 'BIOFUEL_BENZ'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_BENZ
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% TOLU %%%%%
-         IF ( id_TOLU > 0 ) THEN
-            DiagnName = 'BIOFUEL_TOLU'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_TOLU
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% XYLE %%%%%
-         IF ( id_XYLE > 0 ) THEN
-            DiagnName = 'BIOFUEL_XYLE'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_XYLE
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         !%%%%% EOH %%%%%
-         IF ( id_EOH > 0 ) THEN
-            DiagnName = 'BIOFUEL_EOH'
-            UNIT      = 'atoms C/cm2/s'
-            N         = id_EOH
-            SpcInfo => State_Chm%SpcData(N)%Info
-            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
-            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR,RC )
-            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDIF
-
-         ! Free pointer
-         SpcInfo => NULL()
-      ENDIF
 !
 !******************************************************************************
 !  ND35: Tracer concentration at 500 mb 
