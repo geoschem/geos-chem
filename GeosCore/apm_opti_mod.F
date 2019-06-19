@@ -874,10 +874,10 @@
         ENDIF
 
         IF(Y.LT.DC3LW(1)) THEN
-           WRITE(86,12) Y, DC3LW(1), DC3LW(1)
+!           WRITE(86,12) Y, DC3LW(1), DC3LW(1)
            Y =DC3LW(1)
         ELSEIF(Y.GT.DC3LW(MDCLW)) THEN
-           WRITE(86,13) Y, DC3LW(MDCLW), DC3LW(MDCLW)
+!           WRITE(86,13) Y, DC3LW(MDCLW), DC3LW(MDCLW)
            Y =DC3LW(MDCLW)
         ENDIF
 
@@ -1040,12 +1040,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       CLOSE(88)
-!test      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data/OPTAB20110318/'
-!test      YPATH1 = TRIM(DATA_DIR_1x1)//'/APM_data/OPTAB20110418/'
-!      YPATH = TRIM(DATA_DIR_1x1)
-!      YPATH1 = TRIM(DATA_DIR_1x1)
-!      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data/OPTAB20110725/'   !for CCCMa WL
-      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data/OPTAB20120823/'    !for RRTMG WL
+      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data_201906/OPTAB20120823/'    !for RRTMG WL
 
       IF(ITABLE.EQ.1)THEN      !no core
        MDC = MDC1
@@ -1284,10 +1279,7 @@
       ENDIF
 
       CLOSE(88)
-!test      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data/OPTAB20110318/'
-      YPATH1 = TRIM(DATA_DIR_1x1)//'/APM_data/OPTAB20110418/'
-!      YPATH = TRIM(DATA_DIR_1x1)
-!      YPATH1 = TRIM(DATA_DIR_1x1)
+      YPATH1 = TRIM(DATA_DIR_1x1)//'/APM_data_201906/OPTAB20110418/'
 
       IF(ITABLE.EQ.1)THEN      !no core
 !       MDC = MDC1

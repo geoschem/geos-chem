@@ -865,11 +865,9 @@
         CHARACTER*999 YPATH
 
         DATA_DIR_1x1= DATA_DIR_1x1a
-!        YPATH = TRIM(DATA_DIR_1x1)//'APM_data/TIMN_TROP201606/'
-!        YPATH = TRIM(DATA_DIR_1x1)//'APM_data/TIMN_TROP201702/'
-        YPATH = TRIM(DATA_DIR_1x1)//'APM_data/TIMN_TROP201706/'
+        YPATH = TRIM(DATA_DIR_1x1)//'APM_data_201906/TIMN_TROP201706/'
 !        YPATH = './'
-        WRITE(6,*)"Read 6-D IMN look-up tables @ ", YPATH
+        WRITE(6,*)"Read 6-D IMN look-up tables @ ", TRIM(YPATH)
 
         open(31,file=TRIM(YPATH)//'TIMN_J6D.txt',form='formatted')
         open(33,file=TRIM(YPATH)//'TIMN_Rstar4D.txt',form='formatted')

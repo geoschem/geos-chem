@@ -69,8 +69,9 @@
 !
 !Yu+ put MODIS_ALB under APM_data for now
 !Ma+ add flexiblity for different year
-      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data/MODIS_ALB/'//NYEAR//'/'
-      print*,'YPATH',YPATH
+      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data_201906/MODIS_ALB/'//
+     &        NYEAR//'/'
+      print*,'YPATH',TRIM(YPATH)
       ! Now prefix the data directory
       IF(II.EQ.72.and.JJ.EQ.46)THEN
          FILENAME = 'modis_surface_albedo_4x5_'//NYEAR//NDAY

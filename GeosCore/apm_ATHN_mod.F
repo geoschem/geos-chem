@@ -292,7 +292,7 @@
         REAL*8  :: C11,D11,S11,ratio
         
         DATA_DIR_1x1= DATA_DIR_1x1a
-        YPATH = TRIM(DATA_DIR_1x1)//'/APM_data/ATHN20150328/'
+        YPATH = TRIM(DATA_DIR_1x1)//'/APM_data_201906/ATHN20150328/'
 
         WRITE(6,*)"Read ATHN look-up tables"
 
