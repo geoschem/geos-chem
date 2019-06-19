@@ -585,7 +585,7 @@
       REAL*8  :: DRN, YY
 
       CHARACTER*999 YPATH
-      YPATH = TRIM(DATA_DIR_1x1)//'/APM_201011/YCK140609/'
+      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data_201906/YCK140609/'
       WRITE(6,*)"Read coagulation kernel look-up tables"
 
       open(41,file=TRIM(YPATH)//'Yu_CK_1R1.txt',form='formatted')

@@ -400,7 +400,7 @@
       CHARACTER*999 YPATH
 
       DATA_DIR_1x1= DATA_DIR_1x1a
-      YPATH = TRIM(DATA_DIR_1x1)//'/APM_201011/IMN_LT/'
+      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data_201906/IMN_LT/'
       WRITE(6,*)"Read IMN look-up tables"
       
       open(31,file=TRIM(YPATH)//'Yu_IMN_J5D.txt',form='formatted')
@@ -646,9 +646,9 @@
 
       WRITE(6,*)"Read in the ionization rate lookup table"
       DATA_DIR_1x1= DATA_DIR_1x1a
-      YPATH = TRIM(DATA_DIR_1x1)//'/APM_201011/'
+      YPATH = TRIM(DATA_DIR_1x1)//'/APM_data_201906/APMTABLES/'
       CLOSE(30)
-      WRITE(6,*)"YPATH: ",YPATH
+      WRITE(6,*)"YPATH: ",TRIM(YPATH)
       IF(IY.EQ.1) THEN
        OPEN(30,file=TRIM(YPATH)//'YIONRATE1996.txt',status='old')
        WRITE(6,*) "READ YIONRATE1996.txt"
@@ -969,7 +969,7 @@
        IF(FIRST) THEN
          close(100)
          OPEN(100,
-     & FILE=TRIM(DATA_DIR_1x1a)//'/APM_data/Phi_mon.txt')
+     & FILE=TRIM(DATA_DIR_1x1a)//'/APM_data_201906/Phi_mon.txt')
          do j=1,55
             read(100,*)(cosmic(i,j),i=1,14)
          enddo

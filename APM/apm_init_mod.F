@@ -447,8 +447,7 @@
          WRITE(6,*)"NUCLEATION SCHEME INDEX IFNUCL =", IFNUCL
 !         IF(IFNUCL.EQ.1.or.IFNUCL.EQ.2) CALL READJIMN(DATA_DIR_1x1)
          IF(IFNUCL.EQ.1.or.IFNUCL.EQ.2) CALL READJTIMN(DATA_DIR_1x1)
-!         IF(IFATHN.GE.1) CALL READJATHN(DATA_DIR_1x1)
-         CALL READJATHN(DATA_DIR_1x1)
+         IF(IFATHN.GE.1) CALL READJATHN(DATA_DIR_1x1)
 
 !OPT+
       IF(IFOPT.EQ.1) THEN
@@ -470,10 +469,7 @@
          CLOSE(49)
 
          OPEN(49,file=TRIM(DATA_DIR_1x1)//
-!     &       '/APM_data/FSVOOA_Ccrit1.dat'
-!     &       '/APM_data/FOOAaging.dat'
-!     &       '/APM_data/FOOAagingMHC9.dat'
-     &       '/APM_data/FSOGagMHC9DHDC.dat'
+     &       '/APM_data_201906/FSOGagMHC9DHDC.dat'
      &          ,status='old')
 !         WRITE(6,*)"READ in FOOAaging.dat"
          WRITE(6,*)"READ in FSOGagMHC9DHDC.dat"
@@ -834,9 +830,8 @@
 !
 !Yu+ 6/2/11 read from file
       CLOSE(99)
-!      OPEN(99,file=TRIM(DATA_DIR_1x1)//'/YU-NUCL-TABLES/HGFSEASALT.txt')
       OPEN(99,file=TRIM(DATA_DIR_1x1)//
-     &              '/YU-NUCL-TABLES/TangHGFSEASALT.txt')
+     &            '/APM_data_201906/APMTABLES/HGFSEASALT.txt')
 
       DO J=1,99
          READ(99,102)IRH, YGFSALT
@@ -926,7 +921,6 @@
 
 !------------------------------------------------------------------------------
       ! Coefficient for coagulation partition
-      WRITE(71,*)"SULFATE: Coefficient for coagulation partition"
       DO J=1,NMAX
          DO K=1, J
             VJK = VDRY(J) + VDRY(K)
@@ -942,7 +936,6 @@
                   COAGPAR(j,k,i+1) = 1.- COAGPAR(j,k,i)
                   COAGPAR(k,j,i) = COAGPAR(j,k,i)
                   COAGPAR(k,j,i+1) = COAGPAR(j,k,i+1)
-                  WRITE(71,100)K,J,I,COAGPAR(k,j,i),COAGPAR(k,j,i+1)
                 ENDIF
               ENDDO
               ENDIF
@@ -1056,7 +1049,6 @@
       WRITE(6,*)"IACTSS1=",IACTSS1,"IACTSS2=",IACTSS2,"IACTSS3=",IACTSS3
 !------------------------------------------------------------------------------
       ! Coefficient for coagulation partition
-      WRITE(71,*)"SEA SALT: Coefficient for coagulation partition"
       DO J=1,NMAX
          DO K=1, J
             VJK = VSALT(J) + VSALT(K)
@@ -1073,7 +1065,6 @@
 
                   COAGPARSS(k,j,i) = COAGPARSS(j,k,i)
                   COAGPARSS(k,j,i+1) = COAGPARSS(j,k,i+1)
-                  WRITE(71,100)K,J,I,COAGPARSS(k,j,i),COAGPARSS(k,j,i+1)
                 ENDIF
               ENDDO
               ENDIF
@@ -1157,7 +1148,6 @@
 !------------------------------------------------------------------------------
 !      ! Coefficient for coagulation partition
 !                 --- Deal with this later
-!      WRITE(71,*)"DST: Coefficient for coagulation partition"
 !      DO J=1,NMAX
 !         DO K=1, J
 !            VJK = VDST(J) + VDST(K)
@@ -1174,7 +1164,6 @@
 !
 !                  COAGPARSS(k,j,i) = COAGPARSS(j,k,i)
 !                  COAGPARSS(k,j,i+1) = COAGPARSS(j,k,i+1)
-!                  WRITE(71,100)K,J,I,COAGPARSS(k,j,i),COAGPARSS(k,j,i+1)
 !                ENDIF
 !              ENDDO
 !              ENDIF
@@ -1257,7 +1246,6 @@
 !------------------------------------------------------------------------------
 !      ! Coefficient for coagulation partition
 !                 --- Deal with this later
-!      WRITE(71,*)"DST: Coefficient for coagulation partition"
 !      DO J=1,NMAX
 !         DO K=1, J
 !            VJK = VDST(J) + VDST(K)
@@ -1274,7 +1262,6 @@
 !
 !                  COAGPARSS(k,j,i) = COAGPARSS(j,k,i)
 !                  COAGPARSS(k,j,i+1) = COAGPARSS(j,k,i+1)
-!                  WRITE(71,100)K,J,I,COAGPARSS(k,j,i),COAGPARSS(k,j,i+1)
 !                ENDIF
 !              ENDDO
 !              ENDIF
@@ -1357,7 +1344,6 @@
 
 !------------------------------------------------------------------------------
       ! Coefficient for coagulation partition
-      WRITE(71,*)"BCOC: Coefficient for coagulation partition"
       DO J=1,NMAX
          DO K=1, J
             VJK = VBCOC(J) + VBCOC(K)
@@ -1374,7 +1360,6 @@
 
                   COAGPBCOC(k,j,i) = COAGPBCOC(j,k,i)
                   COAGPBCOC(k,j,i+1) = COAGPBCOC(j,k,i+1)
-                  WRITE(71,100)K,J,I,COAGPBCOC(k,j,i),COAGPBCOC(k,j,i+1)
                 ENDIF
               ENDDO
               ENDIF
@@ -1804,8 +1789,8 @@
 ! of T,k (hygroscopicity parameter)
 !
       CLOSE(211)
-!      OPEN(211,file=TRIM(DATA_DIR_1x1)//'/APM_201011/DACTS.txt'
-      OPEN(211,file=TRIM(DATA_DIR_1x1)//'/APM_201011/DACTS_50S.txt',
+      OPEN(211,file=TRIM(DATA_DIR_1x1)//
+     &             '/APM_data_201906/APMTABLES/DACTS_50S.txt',
      &         status='old')
 
       DO I=1, 15

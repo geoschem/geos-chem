@@ -366,7 +366,7 @@
       USE GC_GRID_MOD,  ONLY : GET_XMID,  GET_YMID
 
       USE APM_PHYS_MOD, ONLY : APM_PHYS
-      USE APM_INIT_MOD, ONLY : IFNUCL,IFAG,IFCOATBC,NUCLAMINE
+      USE APM_INIT_MOD, ONLY : IFNUCL,IFAG,IFCOATBC,NUCLAMINE,IFATHN
       USE APM_INIT_MOD, ONLY : IFOPT  !Yu + OPT switch
       USE APM_INIT_MOD, ONLY : IFRADF  !Yu + RADF switch
       USE APM_INIT_MOD, ONLY : IFDOISRP
@@ -552,9 +552,6 @@
 
 !GanLuo+ local time satellite outputs
       CALL GET_LOCAL_TIME
-
-      !write(104,*)maxval(SO2toSO4),minval(SO2toSO4)
-      !flush(104)
 
       ! Point to Spc
       Spc => State_Chm%Species
@@ -1194,6 +1191,7 @@
 ! Consider diurnal variation in emissions
         NH3EMIT = NH3EMIT * (1.+0.7*SCOS)
 
+        IF(IFATHN>0)THEN
         DO ITYP = 1, 3
          CAMINE(ITYP)=Spc(I,J,L,APMIDS%id_AMINE-1+ITYP)/(VOL*
      &   State_Chm%SpcData(APMIDS%id_NH3)%Info%emMW_g*1.d-3*
@@ -1217,6 +1215,7 @@
         ELSE
 !           XAMINE = 0.
            XAMINE = CAMINE(2)  !JATHN calculated anyway, switch in phy to include or not
+        ENDIF
         ENDIF
 
         IF(IFAG.EQ.1) THEN
@@ -1474,6 +1473,7 @@
         OXRATE(2) = 6.49d-11
         OXRATE(3) = 3.58d-11
 
+        IF(IFATHN>0)THEN
         DO ITYP = 1, 3
          XSINK =  ACS + XOH*OXRATE(ITYP)     ! oxid rate for DMA
 
@@ -1507,6 +1507,7 @@
          WETDEP(I,J,L,1+ITYP)=WETDEP(I,J,L,1+ITYP)*14./MWAMINE(ITYP)
      &     *8.64d4/DT
         ENDDO
+        ENDIF
 
 ! DRYDEP and WETDEP for NH3
         DRYDEP(I,J,L,1)=DRYDEP(I,J,L,1)*14.d-3*State_Met%AD(I,J,L)   !AD -- kg dry air/box
@@ -1597,19 +1598,6 @@
           Spc(I,J,L,APMIDS%id_CTSEA+1) = MSALTLV * VOL   !kg
         ENDIF
 
-        IF(I==56.AND.J==40.AND.L<=3)THEN
-          WRITE(105,'(50e12.3)')REAL(L),
-     &    SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+19)))/VOL,
-     &    SUM(XM1D((NSO4+1):(NSO4+20)))
-          FLUSH(105)
-        ENDIF
-        IF(I==56.AND.J==39.AND.L<=3)THEN
-          WRITE(106,'(50e12.3)')REAL(L),
-     &    SUM(Spc(I,J,L,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+19)))/VOL,
-     &    SUM(XM1D((NSO4+1):(NSO4+20)))
-          FLUSH(106)
-        ENDIF
-
         DO N=1,NSEA        ! sea salt
           SIZENUM=APMIDS%id_SEABIN1+N-1
           Spc(I,J,L,SIZENUM)=XM1D(NSO4+N)*VOL  !kg
@@ -1683,11 +1671,6 @@
 
          YRCLDL = 0.7*gamma(pgam+4.)/gamma(pgam+3.)/
      &            lamc*1.e6
-
-!Luo         write(105,*)YRCLDL,
-!Luo     &    ((3.*YCLDLIQ/(4.*3.14*1.d6* YCDN))**(1./3.)*1.d6)
-!Luo         flush(105)
-!Luo         YRCLDL=(3.*YCLDLIQ/(4.*3.14*1.d6* YCDN))**(1./3.)*1.d6  ! in um
 
          else
            !YRCLDL=(3.*YCLDLIQ/(4.*3.14*1.d6* YCDN))**(1./3.)*1.d6
@@ -2278,28 +2261,6 @@
       KMIN = GET_MINUTE()
 
       XX0 = SUM(EMITNH3(:,:,:))*14./17.*8.64d4 ! NH3 emission -- kg N/day
-      WRITE(2001,105)KYEAR,KMON,KDAY,KHOUR,KMIN,
-     &  XX0,SUM(CONDEP(:,:,:,1))+SUM(OXIDAT(:,:,:,1))+
-     & SUM(UPTAKE(:,:,:,1))+SUM(DRYDEP(:,:,:,1))+SUM(WETDEP(:,:,:,1)),
-     &  XX0*ERATIO(1),SUM(CONDEP(:,:,:,2))+SUM(OXIDAT(:,:,:,2))+
-     & SUM(UPTAKE(:,:,:,2))+SUM(DRYDEP(:,:,:,2))+SUM(WETDEP(:,:,:,2)),
-     &  XX0*ERATIO(2),SUM(CONDEP(:,:,:,3))+SUM(OXIDAT(:,:,:,3))+
-     & SUM(UPTAKE(:,:,:,3))+SUM(DRYDEP(:,:,:,3))+SUM(WETDEP(:,:,:,3)),
-     &  XX0*ERATIO(3),SUM(CONDEP(:,:,:,4))+SUM(OXIDAT(:,:,:,4))+
-     & SUM(UPTAKE(:,:,:,4))+SUM(DRYDEP(:,:,:,4))+SUM(WETDEP(:,:,:,4)),
-     &  SUM(CONDEP(:,:,:,1)),SUM(CONDEP(:,:,:,2)),
-     &  SUM(CONDEP(:,:,:,3)),SUM(CONDEP(:,:,:,4)),
-     &  SUM(OXIDAT(:,:,:,1)),SUM(OXIDAT(:,:,:,2)),
-     &  SUM(OXIDAT(:,:,:,3)),SUM(OXIDAT(:,:,:,4)),
-     &  SUM(UPTAKE(:,:,:,1)),SUM(UPTAKE(:,:,:,2)),
-     &  SUM(UPTAKE(:,:,:,3)),SUM(UPTAKE(:,:,:,4)),
-     &  SUM(DRYDEP(:,:,:,1)),SUM(DRYDEP(:,:,:,2)),
-     &  SUM(DRYDEP(:,:,:,3)),SUM(DRYDEP(:,:,:,4)),
-     &  SUM(WETDEP(:,:,:,1)),SUM(WETDEP(:,:,:,2)),
-     &  SUM(WETDEP(:,:,:,3)),SUM(WETDEP(:,:,:,4)),
-     &  SUM(Spc(:,:,:,APMIDS%id_NH3)),SUM(Spc(:,:,:,APMIDS%id_AMINE)),
-     &  SUM(Spc(:,:,:,APMIDS%id_AMINE+1)),
-     &  SUM(Spc(:,:,:,APMIDS%id_AMINE+2))
 
         CONDEP = 0.
         OXIDAT = 0.
@@ -2350,38 +2311,6 @@
 !         FLUSH(110)
 !      ENDDO
 
-!      WRITE(104,'(20E12.2)')
-!     & REAL(30.d0*SUM(TEMPOUT(:,:,1:30,54))/SIZE(TEMPOUT(:,:,1:30,54))),
-!     & REAL(30.d0*SUM(TEMPOUT(:,:,1:30,55))/SIZE(TEMPOUT(:,:,1:30,55))),
-!     & REAL(30.d0*SUM(TEMPOUT(:,:,1:30,56))/SIZE(TEMPOUT(:,:,1:30,56))),
-!     & REAL(MAXVAL(TEMPOUT(:,:,1:30,54))),
-!     & REAL(MAXVAL(TEMPOUT(:,:,1:30,55))),
-!     & REAL(MAXVAL(TEMPOUT(:,:,1:30,56)))
-!      FLUSH(104)
-#if   defined( GRID2x25 )
-       WRITE(104,'(50f12.3)')
-     &   REAL(SUM(TCOD3D(:,16:76,1:38,4))/
-     &        SIZE(TCOD3D(:,16:76,1,9))),
-     &   REAL(SUM(TCOD3D(:,16:76,1:38,8))/
-     &        SIZE(TCOD3D(:,16:76,1,9))),
-     &   REAL(SUM(TCOD3D(:,44:48,1:38,4))/
-     &        SIZE(TCOD3D(:,44:48,1,9))),
-     &   REAL(SUM(TCOD3D(:,44:48,1:38,8))/
-     &        SIZE(TCOD3D(:,44:48,1,9)))
-       FLUSH(104)
-#endif
-#if   defined( GRID4x5 )
-       WRITE(104,'(50f12.3)')
-     &   REAL(SUM(TCOD3D(:,8:39,1:38,4))/
-     &        SIZE(TCOD3D(:,8:39,1,9))),
-     &   REAL(SUM(TCOD3D(:,8:39,1:38,8))/
-     &        SIZE(TCOD3D(:,8:39,1,9))),
-     &   REAL(SUM(TCOD3D(:,22:25,1:38,4))/
-     &        SIZE(TCOD3D(:,22:25,1,9))),
-     &   REAL(SUM(TCOD3D(:,22:25,1:38,8))/
-     &        SIZE(TCOD3D(:,22:25,1,9)))
-       FLUSH(104)
-#endif
 #if   defined( GRID2x25 ) || defined( GRID4x5 )
       IF(IFATOM>0.5)THEN
 
