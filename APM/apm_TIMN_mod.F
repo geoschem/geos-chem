@@ -3,8 +3,8 @@
       MODULE APM_TIMN_MOD
 !
 !******************************************************************************
-!  Module APM_NUCL_MOD contains variables and routines for computing 
-!  nucleation rates and ionization rates. (fyu,9/28/08)
+!  Module APM_TIMN_MOD contains variables and routines for computing 
+!  ternary IMN rates. (fyu,2018)
 !
 !  Module Variables:
 !  ============================================================================
@@ -14,21 +14,22 @@
 !  (3 ) MRH  : NUMBER OF POINTS IN RELATIVE HUMIDITY DIMENSION
 !  (4 ) MQ   : NUMBER OF POINTS IN IONIZATION RATE DIMENSION
 !  (5 ) MS   : NUMBER OF POINTS IN SURFACE AREA DIMENSION
+!  (6 ) MB   : NUMBER OF POINTS IN [NH3] DIMENSION
 !  Arrays 
-!  (6 ) C   : VALUES AT POINTS IN H2SO4 CONCENTRATION DIMENSION
-!  (7 ) T   : VALUES AT POINTS IN TEMPERATURE DIMENSION
-!  (8 ) RH  : VALUES AT POINTS IN RELATIVE HUMIDITY DIMENSION
-!  (9 ) Q   : VALUES AT POINTS IN IONIZATION RATE DIMENSION
-!  (10) S   : VALUES AT POINTS IN SURFACE AREA DIMENSION
+!  (1 ) C   : VALUES AT POINTS IN H2SO4 CONCENTRATION DIMENSION
+!  (2 ) T   : VALUES AT POINTS IN TEMPERATURE DIMENSION
+!  (3 ) RH  : VALUES AT POINTS IN RELATIVE HUMIDITY DIMENSION
+!  (4 ) Q   : VALUES AT POINTS IN IONIZATION RATE DIMENSION
+!  (5 ) S   : VALUES AT POINTS IN SURFACE AREA DIMENSION
+!  (6 ) S   : VALUES AT POINTS IN [NH3] DIMENSION
 !
-!  (11) XJTIMN : ION-MEDIATED NUCLEATION RATES (cm-3s-1) AT ALL POINTS IN 5-D SPACE
-!               IMN RATES REDUCE TO BINARY HOMOGENEOUS NUCLEATION RATE WHEN Q=0
-!  (12) XRSTAR : CRITICAL RADIUS (nm) AT ALL POINTS IN 5-DIMENSION SPACE
+!  (11) XJTIMN : ION-MEDIATED NUCLEATION RATES (cm-3s-1) AT ALL POINTS IN 6-D SPACE
+!  (12) XRSTAR : CRITICAL RADIUS (nm) AT ALL POINTS IN 6-DIMENSION SPACE
 !
 !  Module Routines:
 !  ============================================================================
-!  (1 ) YUJTIMN     : INTERPOLAION SCHEME TO FIND JTIMN FROM LOOKUP TABLE
-!  (2 ) READJTIMN   : READ IN THE IMN LOOKUP TABLE 
+!  (1 ) YUJTIMN1     : INTERPOLAION SCHEME TO FIND JTIMN FROM LOOKUP TABLE
+!  (2 ) READJTIMN   : READ IN THE TIMN LOOKUP TABLE 
 !
 !  NOTES:
 !  (1 ) .... 
@@ -48,7 +49,6 @@
 !      PUBLIC :: 
 
       ! ... and these routines
-      PUBLIC :: YUJTIMN
       PUBLIC :: YUJTIMN1
       PUBLIC :: READJTIMN
       !=================================================================
@@ -73,298 +73,6 @@
       !=================================================================
       CONTAINS
 
-! *****************************************************************************
-! IMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIMNIM
-! *****************************************************************************
-	SUBROUTINE YUJTIMN(X0,Y0,Z0,U0,V0,W0,XJ0,XR0)
-!
-! This subroutine is to calculate rates and critical cluster properties of
-! ion-mediated nucleation (IMN) and kinetic binary homogeneous nucleation (KBHN) 
-! from lookup tables using multiple-variable interpolation scheme. 
-!
-! Here the IMN lookup table reported in Yu (JGR,2010) and BHN lookup table 
-! reported in Yu (JGR, 2008) have been integrated. YUJTIMN gives KBHN rates
-! when the ionization rate is set to 0. The integrated lookup table has a size
-! of ~ 170 MB and is designed for 3-D application. For quick application and 
-! comparison, one can obtain nucleation rates under specified conditions using 
-! an online nucleation rate calculator @ 
-! http://www.albany.edu/~yfq/YuOnLineNucleation.html.
-!
-! The present lookup table should cover almost all the possible conditions in 
-! the troposphere relevant to atmospheric nucleation. The range and resolution 
-! in each parameter space can be extended in the future if needed.
-!
-! Written by 
-! Fangqun Yu
-! Atmospheric Sciences Research Center
-! State University of New York at Albany
-! E-mail: yfq@asrc.cestm.albany.edu; fangqun.yu@asrc.albany.edu
-!
-! Original code writted in 2006. Significnat update in 2008 and 2010. Contact
-! Yu for future update or if you have questions.
-!
-! IMN lookup table reference: 
-! 1. Yu, F., Ion-mediated nucleation in the atmosphere: Key controlling 
-!      parameters, implications, and look-up table, J. Geophy. Res., 115, 
-!      D03206, doi:10.1029/2009JD012630, 2010.
-!
-! IMN model references: 
-! 2. Yu, F., From molecular clusters to nanoparticles: Second-generation 
-!      ion-mediated nucleation model, Atmos. Chem. Phys., 6, 5193-5211, 2006.
-! 3. Yu, F., and R. P. Turco, Ultrafine aerosol formation via ion-mediated 
-!      nucleation, Geophys. Res. Lett., 27, 883-886, 2000.
-!
-! KBHN lookup table reference:
-! 4. Yu, F., Updated H2SO4-H2O binary homogeneous nucleation rate look-up 
-!      tables, J. Geophy. Res.,113, D24201, doi:10.1029/2008JD010527, 2008.
-!
-! KBHN model references:
-! 5. Yu, F., Improved quasi-unary nucleation model for binary H2SO4-H2O 
-!      homogeneous nucleation, J. Chem. Phys., 127, 054301, 2007.
-! 6. Yu, F., Quasi-unary homogeneous nucleation of H2SO4-H2O, J. Chem. 
-!      Phys., 122, 074501, 2005.
-!
-! INPUT (valid value range):
-! X0 = [H2SO4] in #/cm3  (5E5-5E8,5E9)
-! Y0 = RH in % (0.5-99.5)
-! Z0 = T (in K) (190-301)
-! U0 = Q = ionization rate (ion-pairs/cm3s) (0, 2-22.8,100)
-! V0 = S = surface area (um2/cm3) (1, 10-1000)
-! W0 = B = NH3 in #/cm3  (1E5,1E8-1E11,1E12)
-!
-! OUTPUT:
-! XJ0: Nucleation rate (#/cm3s)
-! XR0: Radius of critical cluster (nm)
-!
-        REAL*8  :: X0,Y0,Z0,U0,V0,W0,XJ0,XR0
-        REAL*8  :: X,Y,Z,U,V,W
-        REAL*8  :: VOL,VOL4,FRACT,FRACT4
-        REAL*8  :: dx1,dx2,dy1,dy2,dz1,dz2,du1,du2,dv1,dv2,dw1,dw2
-        REAL*8  :: dx,dy,dz,du,dv,dw
-        REAL*8  :: XDH,XDT,X1,X2,Y1,Y2,XJ1,XJ2,YJ
-
-        INTEGER :: IC1,IC2,JRH1,JRH2,KT1,KT2,IQ1,IQ2,IS1,IS2,IB1,IB2
-        INTEGER :: IC, JRH, KT, IQ, IS,IB
-!
-! to avoid the input values to be changed due to out of the range reset
-!
-        X = X0
-        Y = Y0
-        Z = Z0
-        U = U0
-        V = V0
-        W = W0
-!
-! The present lookup table should cover almost all the possible conditions in 
-! the troposphere relevant to atmospheric nucleation. The range and resolution 
-! in each parameter space can be extended in the future if needed.
-! If the inputed values are out of the lookup table valid ranges, set them to 
-! boundary values for now. Care should be taken if your inputted values are 
-! frequently out of the specified ranges.
-! 
-        IF(U.LE.1.E-20) U=1.E-20    ! i.e., binary homogeneous nucleation 
-!
-        IF(X.LT.C(1)) THEN
-!           WRITE(86,10) X, C(1), C(1)
-           X = C(1)
-        ELSEIF(X.GT.C(MC)) THEN
-!           WRITE(86,11) X, C(MC), C(MC)
-           X =C(MC)
-        ENDIF
-
-        IF(Y.LT.RH(1)) THEN
-!           WRITE(86,12) Y, RH(1), RH(1)
-           Y =RH(1) 
-        ELSEIF(Y.GT.RH(MRH)) THEN
-!           WRITE(86,13) Y, RH(MRH), RH(MRH)
-           Y =RH(MRH)
-        ENDIF
-
-        IF(Z.LT.T(1)) THEN
-!           WRITE(86,14) Z, T(1), T(1)
-           Z =T(1)
-        ELSEIF(Z.GT.T(MT)) THEN
-!           WRITE(86,15) Z, T(MT), T(MT)
-           Z =T(MT)
-        ENDIF
-
-        IF(U.LT.Q(1)) THEN
-!           WRITE(86,16) U, Q(1), Q(1)
-           U =Q(1)
-        ELSEIF(U.GT.Q(MQ)) THEN
-!           WRITE(86,17) U, Q(MQ), Q(MQ)
-           U =Q(MQ)
-        ENDIF
-
-!        IF(V.LT.S(1)) THEN
-!!           WRITE(86,18) V, S(1), S(1)
-!           V =S(1)
-!        ELSEIF(V.GT.S(MS)) THEN
-!!           WRITE(86,19) V, S(MS), S(MS)
-!           V =S(MS)
-!        ENDIF
-
-        IF(W.LT.B(1)) THEN
-!           WRITE(86,20) W, B(1), B(1)
-           W =B(1)
-        ELSEIF(W.GT.B(MB)) THEN
-!           WRITE(86,21) W, B(MB), B(MB)
-           W =B(MB)
-        ENDIF
-
-
- 10     FORMAT("IMN WARNING: INPUTED [H2SO4]=",ES9.2,"<",ES9.2,
-     &     " set it to ",ES9.2)
- 11     FORMAT("IMN WARNING: INPUTED [H2SO4]=",ES9.2,">",ES9.2,
-     &     " set it to ",ES9.2)
- 12     FORMAT("IMN WARNING: INPUTED RH =",F5.1,"% <",F5.1,
-     &     "% set it to ",F5.1,"%")
- 13     FORMAT("IMN WARNING: INPUTED RH =",F5.1,"% >",F5.1,
-     &     "% set it to ",F5.1,"%")
- 14     FORMAT("IMN WARNING: INPUTED T =",F6.1,"K <",F6.1,
-     &     "K set it to ",F6.1,"K")
- 15     FORMAT("IMN WARNING: INPUTED T =",F6.1,"K >",F6.1,
-     &     "K set it to ",F6.1,"K")
- 16     FORMAT("IMN WARNING: INPUTED Q =",F6.1," <",F6.1,
-     &     " ion-pair/cm3s set it to ",F6.1)
- 17     FORMAT("IMN WARNING: INPUTED Q =",F6.1," >",F6.1,
-     &     " ion-pair/cm3s set it to ",F6.1)
- 18     FORMAT("IMN WARNING: INPUTED S =",F6.1," <",F6.1,
-     &     " um2/cm3 set it to ",F6.1)
- 19     FORMAT("IMN WARNING: INPUTED S =",F6.1," >",F6.1,
-     &     " um2/cm3 set it to ",F6.1)
- 20     FORMAT("IMN WARNING: INPUTED [NH3]=",ES9.2,"<",ES9.2,
-     &     " set it to ",ES9.2)
- 21     FORMAT("IMN WARNING: INPUTED [NH3]=",ES9.2,">",ES9.2,
-     &     " set it to ",ES9.2)
-
-        IC1 =MAX0(INT(1.+10.*LOG10(X/5.E5)),1)
-        IC2 = MIN0(IC1 + 1,MC)
-        IF(IC2.EQ.MC) IC1=MC-1
-        
-        XDH = 4.
-        IF(Y.LT.RH(2)) THEN
-           JRH1 = 1.
-        ELSE
-         JRH1 = MAX0(INT((Y-RH(2))/XDH+2.),2)
-        ENDIF
-        JRH2 = MIN0(JRH1 + 1,MRH)
-        IF(JRH2.EQ.MRH) JRH1=MRH-1
-
-        XDT = 3.0
-        KT1 = MAX0(INT((Z-190.0)/XDT)+1,1)
-        KT2 = MIN0(KT1 + 1,MT)
-        IF(KT2.EQ.MT) KT1=MT-1
-!
-        
-        IF(U.LT.Q(2)) THEN
-          IQ1 =1.
-        ELSE
-          IQ1 = MAX0(INT(2.+LOG10(U/Q(2))/LOG10(1.5)),2)
-        ENDIF
-        IQ2 = MIN0(IQ1 + 1,MQ)
-        IF(IQ2.EQ.MQ) IQ1=MQ-1
-!
-!        IF(V.LT.10.0) THEN
-!          IS1 =1.
-!        ELSE
-!          IS1 = MAX0(INT(2.+5.*LOG10(V/10.)),2)
-!        ENDIF
-!        IS2 = MIN0(IS1 + 1,MS)
-!        IF(IS2.EQ.MS) IS1=MS-1
-
-        IF(W.LT.B(2)) THEN
-          IB1 =1.
-        ELSE
-          IB1 = MAX0(INT(2.+10.*LOG10(W/B(2))),2)
-        ENDIF
-        IB2 = MIN0(IB1 + 1,MB)
-        IF(IB2.EQ.MB) IB1=MB-1
-!
-	dx1 = LOG10(X/C(IC1))   ! logJ log[H2SO4] interpolation
-	dx2 = LOG10(C(IC2)/X)
-	dy1 = LOG10(Y/RH(JRH1))
-	dy2 = LOG10(RH(JRH2)/Y)
-	dz1 = Z-T(KT1)
-	dz2 = T(KT2)-Z
-
-        du1 = U - Q(IQ1)
-        du2 = Q(IQ2) - U
-!        dv1 = V- S(IS1)
-!        dv2 = S(IS2) - V
-        dw1 = LOG10(W/B(IB1))   ! logJ log[H2SO4] interpolation
-        dw2 = LOG10(B(IB2)/W)
-!
-        XJ1 = 0.  
-        XJ2 = 0.
-        XR0 = 0.
-!
-        VOL = (dx1+dx2)*(dy1+dy2)*(dz1+dz2)*(du1+du2)*(dw1+dw2)
-        VOL4 = (dx1+dx2)*(dy1+dy2)*(dz1+dz2)*(dw1+dw2)
-
-        DO KT = KT1,KT2
-          IF(KT.EQ.KT1) THEN
-            dz = dz2
-	  ELSE
-            dz = dz1
-          ENDIF
-      	  DO JRH = JRH1,JRH2
-            IF(JRH.EQ.JRH1) THEN
-              dy = dy2
-	    ELSE
-              dy = dy1
-            ENDIF
-            DO IC = IC1,IC2
-              IF(IC.EQ.IC1) THEN
-                dx = dx2
-	      ELSE
-                dx = dx1
-              ENDIF
- 	      DO IB =IB1, IB2
-                IF(IB.EQ.IB1) THEN
-                  dw = dw2
-	        ELSE
-                  dw = dw1
-                ENDIF
-
-                FRACT4 = dx*dy*dz*dw/VOL4
-                XR0 = XR0 + FRACT4*XRSTAR(IC,JRH,KT,IB)
-
-	        DO IQ =IQ1, IQ2
-                  IF(IQ.EQ.IQ1) THEN
-                    du = du2
-	          ELSE
-                    du = du1
-                  ENDIF
-                  FRACT = dx*dy*dz*du*dw/VOL 
-                  XJ1 = XJ1 + FRACT*XJTIMN(IC,JRH,KT,IQ,1,IB)
-                  XJ2 = XJ2 + FRACT*XJTIMN(IC,JRH,KT,IQ,2,IB)
-!                WRITE(6,30)IC,JRH,KT,IQ,IB,
-!     &           10.**XJTIMN(IC,JRH,KT,IQ,1,IB), 
-!     &           10.**XJTIMN(IC,JRH,KT,IQ,2,IB), FRACT
-	        ENDDO
-	      ENDDO
-            ENDDO
-	  ENDDO
-	ENDDO
-
-!
-! Log10J -->J
-         XJ1 = 10.**XJ1
-         XJ2 = 10.**XJ2
-! Inetrpolate to get J at inputed S
-      X1 = S(1)
-      Y1 = XJ1
-      X2 = S(2)
-      Y2 = XJ2
-      YJ = Y1*(Y2/Y1)**((X1-V)/(X1-X2))
-      XJ0 = YJ
-!      WRITE(6,40)X1,X2,V,Y1,Y2,YJ
-!
- 30    FORMAT(I3, I3, I3, I3, I3, 10(1PE10.3))
- 40    FORMAT(10(1PE10.3))
-
-       END SUBROUTINE YUJTIMN
 !------------------------------------------------------------------------------
 
       SUBROUTINE YUJTIMN1(X0,Y0,Z0,U0,V0,W0,XJBH,XJBIM,XJTH,XJTIM,

@@ -1411,9 +1411,11 @@
      &         Spc(I,J,L,APMIDS%id_ISOA3)+Spc(I,J,L,APMIDS%id_ASOA1)+
      &         Spc(I,J,L,APMIDS%id_ASOA2)+Spc(I,J,L,APMIDS%id_ASOA3))
      &        *60.d9/(92.d0*VOL)
+             IF(IFAG.EQ.1) THEN
              TEMPOUT1(56)=TEMPOUT1(56)+
      &        (Spc(I,J,L,APMIDS%id_POA1)+Spc(I,J,L,APMIDS%id_POA2)+
      &         Spc(I,J,L,APMIDS%id_OPOA1)+Spc(I,J,L,APMIDS%id_OPOA2))*1.d9/VOL
+             ENDIF
 
              TEMPOUT1(59)=State_Met%PHIS(I,J)+
      &           SUM(State_Met%BXHEIGHT(I,J,1:L))
@@ -5674,7 +5676,7 @@
       ALLOCATE( MWSIZE3D(NX,NY,NZ,3), STAT=RC )
       CALL GC_CheckVar( 'apm_driv_mod.F%MWSIZE3D', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
-      MWSIZE3D = 1.D0
+      MWSIZE3D = 1.D-6
 
       ALLOCATE( SO2toSO4( NX, NY, NZ ), STAT=RC )
       CALL GC_CheckVar( 'apm_driv_mod.F%SO2toSO4', 0, RC )

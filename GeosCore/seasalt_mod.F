@@ -230,6 +230,9 @@
       ! Scalars
       LOGICAL           :: prtDebug
 
+#if   defined( APM )
+      REAL(fp)          :: SEASALTS(IIPAR,JJPAR,LLPAR,NSALTBIN)
+#endif
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
@@ -304,9 +307,12 @@
       !----------------------------------------
       ! Sea salt emissions for extra APM bins
       !----------------------------------------
-      CALL SRCSALTBIN( 
-     &     Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1))
-     &   , State_Grid, State_Met )
+      SEASALTS = 
+     &  Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1))
+      CALL SRCSALTBIN( SEASALTS, State_Grid, State_Met )
+      Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)) = 
+     &  SEASALTS
+
       IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
 
       !----------------------------------------
