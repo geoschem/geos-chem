@@ -657,12 +657,6 @@ ifeq ($(shell [[ "$(TOMAS12)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DTOMAS -DTOMAS12
 endif
 
-# %%%%% APM %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(APM)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DAPM
-endif
-
 #------------------------------------------------------------------------------
 # Special chemistry settings
 #------------------------------------------------------------------------------
