@@ -874,10 +874,10 @@
         ENDIF
 
         IF(Y.LT.DC3LW(1)) THEN
-!           WRITE(86,12) Y, DC3LW(1), DC3LW(1)
+           WRITE(86,12) Y, DC3LW(1), DC3LW(1)
            Y =DC3LW(1)
         ELSEIF(Y.GT.DC3LW(MDCLW)) THEN
-!           WRITE(86,13) Y, DC3LW(MDCLW), DC3LW(MDCLW)
+           WRITE(86,13) Y, DC3LW(MDCLW), DC3LW(MDCLW)
            Y =DC3LW(MDCLW)
         ENDIF
 
@@ -1180,7 +1180,7 @@
          IF(ITABLE.EQ.1) DSb=DS1(IDS)
          IF(ITABLE.EQ.2) DSb=DS2(IDS)
          IF(ITABLE.EQ.3) DSb=DS3(IDS)
-         YTEMP = abs(DSa-DSb)/DSa  !double check
+         YTEMP = abs(DSa-DSb)/max(1.d-30,DSa)  !double check
          IF(IDS.GT.1) THEN
          IF(YTEMP.GT.0.01) THEN
           WRITE(6,*)"STOP: NEED to check DS",DSa,DSb
