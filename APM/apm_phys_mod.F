@@ -78,16 +78,8 @@
       USE APM_INIT_MOD, ONLY : V1LVSOG,V1ACID
       USE APM_INIT_MOD, ONLY : RDST,DENDST,VDST
       USE APM_INIT_MOD, ONLY : ONEPI
-      USE APM_NUCL_MOD, ONLY : YUJIMN
-      USE APM_TIMN_MOD, ONLY : YUJTIMN
       USE APM_TIMN_MOD, ONLY : YUJTIMN1
       USE APM_ATHN_MOD, ONLY : YUJATHN
-
-      USE APM_NUCL_MOD, ONLY : BHN_VEHKAMAKI
-      USE APM_NUCL_MOD, ONLY : BHN_KULMALA98
-      USE APM_NUCL_MOD, ONLY : LovejoyIN
-      USE APM_NUCL_MOD, ONLY : terpara77
-      USE APM_NUCL_MOD, ONLY : PORGANIC
 
       USE APM_COAG_MOD, ONLY : APM_COAG,APM_COAGSCAV
       USE APM_GROW_MOD, ONLY : APM_GROW,APM_MOVEBIN
@@ -1316,6 +1308,7 @@
       YJAVE = 1.D-30
       YYJAVE = 1.D-30
       YJATHNAVE = 1.D-30
+      YJATHN = 1.D-30
       YJAVE_BH = 1.D-30
       YJAVE_BIM = 1.D-30
       YJAVE_TH = 1.D-30
@@ -1346,158 +1339,24 @@
  80      CONTINUE
 ! Nucl   
          IF(IFNUCL.EQ.1) THEN   ! IMN
-!          TK1 =TK + DTTEST
-!            CALL YUJIMN(CACID,RH,TK,XQ,XS,YJ,YRSTAR)
-!            CALL YUJIMN(CACID,RH,TK1,XQ,XS,YJ,YRSTAR)
-!          CALL YUJTIMN(CACID,RH,TK,XQ,XS,XNH3,YJ,YRSTAR)
-
             CALL YUJTIMN1(CACID,RH,TK,XQ,XS,XNH3,XJBH,XJBIM,XJTH,XJTIM,
      &                    RBH,RBIM,RTH,RTIM)
             YJ = XJTIM
 
-            IF(XJBIM.GT.(1.1*XJTIM)) THEN
-              WRITE(6,100) CACID,RH,TK,XQ,XS,XNH3,XJBH,XJBIM,XJTH,XJTIM,
-     &                    RBH,RBIM,RTH,RTIM
-            ENDIF
-
-            CALL JCLOUD(TK,CACID,XNH3,XQ,XN0,XJBN,XJBI,XJTN,XJTI)
-
-!Below organic nucl for output only (for now)
-            IF(CHOM.GT.5.d5) THEN
-              YJOM = 3.27E-21*CACID*CACID*CHOM
-              CALL PORGANIC(XQ,TCS,CHOM,XJN,XJI)
-              YRATIO = exp(-19296.6*(1./278.0 - 1./TK))
-              IF(YRATIO.GT.10.) YRATIO= 10.
-              YJPON = YRATIO*XJN
-              YJPOI = YRATIO*XJI
-              YJOM = YRATIO*YJOM
-            ELSE
-              YJOM = 1.d-30
-              YJPON = 1.d-30
-              YJPOI = 1.d-30
-            ENDIF
-            IF(XDMA.GT.0.1) THEN
-!             CALL YUJATHN(CACID,RH,TK,XDMA,YJATHN)
-             CALL YUJATHN(CACID,RH,TK,XDMA,XS,YJATHN)
-            ELSE
-             YJATHN=1.d-30
-            ENDIF
-          
-          IF(IFATHN.GE.1) THEN
-              YJ = YJ + YJATHN   !Add on top of JIMN
-          ENDIF
-          IF(IFNUCLORG.EQ.1) THEN
-              YJ = YJ + YJOM + YJPON + YJPOI   !Add on top of JIMN
-          ENDIF
 
           YYJ = YJ
-!Do not set limit in order to compare with other nucl scheme
-!          IF((YYJ*DT*10.).GT.(CACID/10.)) THEN  !set an upper limit
-!!          WRITE(6,99)II,JJ,LL,CACID,RH,TK,XQ,XS,XNH3,YJ,CACID/(DT*100.)
-!           YYJ= CACID/(DT*100.)
-!           IF(XJTH.GT.YYJ) XJTH=YYJ
-!           IF(XJBH.GT.YYJ) XJBH=YYJ
-!           IF(XJBIM.GT.YYJ) XJBIM=YYJ
-!           IF(YJATHN.GT.YYJ) YJATHN=YYJ
-!          ENDIF
           YJ = YYJ
           
-         ELSEIF(IFNUCL.EQ.2) THEN   ! KBHN (XQ=1.E-20)
-!            CALL YUJIMN(CACID,RH,TK,XQ,XS,YJ,YRSTAR)
+         ELSEIF(IFNUCL.EQ.2) THEN   ! KBHN (XQ=1.E-20, XNH3=0)
             XQ=1.E-20
-            CALL YUJTIMN(CACID,RH,TK,XQ,XS,XNH3,YJ,YRSTAR)
+            XNH3=1.E-20
+            CALL YUJTIMN1(CACID,RH,TK,XQ,XS,XNH3,XJBH,XJBIM,XJTH,XJTIM,
+     &                    RBH,RBIM,RTH,RTIM)
             YYJ = YJ
-!            IF(IFATHN.GE.1) THEN
-!              CALL YUJATHN(CACID,RH,TK,XDMA,YJATHN)
-!              IF(IFATHN.EQ.1) YJ = YJ + YJATHN
-!            ENDIF
          ELSEIF(IFNUCL.EQ.3) THEN  !empirical activation nucl
             YJ = 3.5E-7 * CACID   !
          ELSEIF(IFNUCL.EQ.4) THEN  !empirical kinetic nucl
             YJ = 5.5E-14 * CACID * CACID   !
-         ELSEIF(IFNUCL.EQ.5) THEN   ! BHN based on BHN_VEHKAMAKI02
-            YRHF = RH/100.   !RH inputed to BHN_VEHKAMAKI should be in fraction (<1)
-            CALL BHN_VEHKAMAKI(TK,YRHF,CACID,YJ,YAMOLF,YNTOT,YRSTAR)
-! BHN_VEHKAMAKI may give unphysically high J (at low T) which is
-! kinetically incorrect. Put an upper limi: Nucleated particles
-! (containing ~ 10 H2SO4 molecules) can only consume upto 10% of CACID.
-            IF((YJ*DT*10.).GT.(CACID/10.)) YJ= CACID/(DT*100.)
-
-         ELSEIF(IFNUCL.EQ.6) THEN  ! Lovejoy IIN
-! It appears the parameterization gives unphysical high nucleation rate
-! at high T and low [H2SO4]
-!           IF(TK.LT.290.and.CACID.GT.1.E6) THEN
-           IF((TK.LT.290.and.TK.GT.270.and.CACID.GT.1.E6) 
-     &               .or.TK.LE.270.) THEN
-            CALL LovejoyIN(CACID,TK,RH,XQ,XS,YJ,YISTAR, 
-     &                                         YNWSTAR,YRSTAR)
-            IF((YJ*DT*10.).GT.(CACID/10.)) THEN
-              YJ= CACID/(DT*100.)
-!              WRITE(6,99)II,JJ,LL,CACID,TK,RH,XQ,XS,YJ,YISTAR
-            ENDIF
-           ELSE
-              YJ= 1.E-20
-           ENDIF
-         ELSEIF(IFNUCL.EQ.7) THEN  !simple activation para. for BL and BHN for above BL
-            IF(YSIGMA.GE.0.9) THEN
-             YJ = 3.5E-7 * CACID   !
-            ELSE
-             YRHF = RH/100.   !RH inputed to BHN_VEHKAMAKI should be in fraction (<1)
-             CALL BHN_VEHKAMAKI(TK,YRHF,CACID,YJ,YAMOLF,YNTOT,YRSTAR)
-             IF((YJ*DT*10.).GT.(CACID/10.)) YJ= CACID/(DT*100.)
-            ENDIF
-         ELSEIF(IFNUCL.EQ.8) THEN   ! BHN based on BHN_KULMALA98
-            YRHF = RH/100.   !RH inputed to BHN_ should be in fraction (<1)
-            CALL BHN_KULMALA98(TK,YRHF,CACID,YJ)
-! BHN_KULMALA98 may give unphysically high J (at low T) which is
-! kinetically incorrect. Put an upper limi: Nucleated particles
-! (containing ~ 10 H2SO4 molecules) can only consume upto 10% of CACID.
-            IF((YJ*DT*10.).GT.(CACID/10.)) YJ= CACID/(DT*100.)
-         ELSEIF(IFNUCL.EQ.9) THEN  !J= K[H2SO4][CLVSOG], k=7.5E-14
-             YJ = 7.5E-14 * CACID*CLVSOG   !
-         ELSEIF(IFNUCL.EQ.10) THEN   ! THN of Napari2002
-            YRHF = RH/100.   !RH inputed to THN_ should be in fraction (<1)
-            CALL BHN_KULMALA98(TK,YRHF,CACID,YJ)
-            CALL terpara77(TK,YRHF,CACID,CNH3,YJ)
-            IF((YJ*DT*10.).GT.(CACID/10.)) YJ= CACID/(DT*100.)
-         ELSEIF(IFNUCL.EQ.11) THEN  !J= k1[H2SO4]^2 +k2[H2SO4][CLVSOG]+k3[CLVSOG]^2 (Paasonen et al., ACP, 2010)
-            YJ = 1.4E-14*CACID*CACID + 2.6E-14*CACID*CLVSOG 
-     &             + 3.7E-16*CLVSOG*CLVSOG
-         ELSEIF(IFNUCL.EQ.12) THEN   !J=J = Km[H2SO4]^2[BioOxOrg] with Km=3.27E-21 cm^6s^-1
-                                     !  (Francesco Riccobono et al., Science, 2014)
-             YJ = 3.27E-21*CACID*CACID*CLVSOG
-         ELSEIF(IFNUCL.EQ.13) THEN   !same as 12 except use LVSOG from a-pinene
-            YJ = 3.27E-21*CACID*CACID*CHOM
-         ELSEIF(IFNUCL.EQ.14) THEN   !same as 13 except T dependence
-            YJ = 3.27E-21*CACID*CACID*CHOM
-            YRATIO = exp(-19296.6*(1./278.0 - 1./TK))
-            IF(YRATIO.GT.10.) YRATIO= 10.
-            YJ = YRATIO*YJ
-         ELSEIF(IFNUCL.EQ.15) THEN   !same as 13 except add pure biogenic nucl
-            YRHF = RH/100.   !RH inputed to BHN_ should be in fraction (<1)
-            CALL BHN_KULMALA98(TK,YRHF,CACID,YJ)
-            IF((YJ*DT*10.).GT.(CACID/10.)) YJ= CACID/(DT*100.)
-            YJBHN = YJ
-            YYJ = YJBHN+3.27E-21*CACID*CACID*CHOM
-            CALL PORGANIC(XQ,TCS,CHOM,XJN,XJI)
-            YJ = YYJ+XJN+XJI
-         ELSEIF(IFNUCL.EQ.16) THEN   !same as 15 except T dependence
-            YRHF = RH/100.   !RH inputed to BHN_ should be in fraction (<1)
-            CALL BHN_KULMALA98(TK,YRHF,CACID,YJ)
-            IF((YJ*DT*10.).GT.(CACID/10.)) YJ= CACID/(DT*100.)
-            YJBHN = YJ
-            YYJ = 3.27E-21*CACID*CACID*CHOM
-            CALL PORGANIC(XQ,TCS,CHOM,XJN,XJI)
-            YRATIO = exp(-19296.6*(1./278.0 - 1./TK))
-            IF(YRATIO.GT.10.) YRATIO= 10.
-            YYJ = YRATIO*YYJ + YJBHN
-            YJ = YYJ+YRATIO*(XJN+XJI)
-         ELSEIF(IFNUCL.EQ.17) THEN   ! Dunne et al, 2016
-            CALL JCLOUD(TK,CACID,XNH3,XQ,XN0,XJBN,XJBI,XJTN,XJTI)
-            YYJ = XJBN
-            YJATHN = XJTN+XJTI
-            YJ = XJBN+XJBI+XJTN+XJTI
-
          ELSE
             write(6,*)"STOP at apm_phys_mod.f: Check IFNUCL value"
             stop
@@ -1529,14 +1388,14 @@
          YJAVE_TH = YJAVE_TH + XJTH*DTNGC/DT
          YJAVE_TIM = YJAVE_TIM + XJTIM*DTNGC/DT
 
-         YJAVE_OM = YJAVE_OM + YJOM*DTNGC/DT
-         YJAVE_PON = YJAVE_PON + YJPON*DTNGC/DT
-         YJAVE_POI = YJAVE_POI + YJPOI*DTNGC/DT
+         !YJAVE_OM = YJAVE_OM + YJOM*DTNGC/DT
+         !YJAVE_PON = YJAVE_PON + YJPON*DTNGC/DT
+         !YJAVE_POI = YJAVE_POI + YJPOI*DTNGC/DT
 
-         YJAVE_BN = YJAVE_BN + XJBN*DTNGC/DT
-         YJAVE_BI = YJAVE_BI + XJBI*DTNGC/DT
-         YJAVE_TN = YJAVE_TN + XJTN*DTNGC/DT
-         YJAVE_TI = YJAVE_TI + XJTI*DTNGC/DT
+         !YJAVE_BN = YJAVE_BN + XJBN*DTNGC/DT
+         !YJAVE_BI = YJAVE_BI + XJBI*DTNGC/DT
+         !YJAVE_TN = YJAVE_TN + XJTN*DTNGC/DT
+         !YJAVE_TI = YJAVE_TI + XJTI*DTNGC/DT
 
          XN(1) = XN(1) + YJ*DTNGC
          DVJ = YJ * DTNGC * VDRY(1)*1.E6   ! cm3/cm3

@@ -1427,9 +1427,11 @@
      &         Spc(I,J,L,APMIDS%id_ISOA3)+Spc(I,J,L,APMIDS%id_ASOA1)+
      &         Spc(I,J,L,APMIDS%id_ASOA2)+Spc(I,J,L,APMIDS%id_ASOA3))
      &        *60.d9/(92.d0*VOL)
+             IF(IFAG.EQ.1) THEN
              TEMPOUT1(56)=TEMPOUT1(56)+
      &        (Spc(I,J,L,APMIDS%id_POA1)+Spc(I,J,L,APMIDS%id_POA2)+
      &         Spc(I,J,L,APMIDS%id_OPOA1)+Spc(I,J,L,APMIDS%id_OPOA2))*1.d9/VOL
+             ENDIF
 
              TEMPOUT1(59)=State_Met%PHIS(I,J)+
      &           SUM(State_Met%BXHEIGHT(I,J,1:L))
@@ -5497,7 +5499,7 @@
 
       ALLOCATE( MWSIZE3D(IIPAR,JJPAR,LLPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWSIZE3D' )
-      MWSIZE3D = 1.D0
+      MWSIZE3D = 1.D-6
 
       ALLOCATE( SO2toSO4( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2toSO4' )

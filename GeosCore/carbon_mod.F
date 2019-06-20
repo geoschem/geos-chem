@@ -733,10 +733,6 @@
          E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L)
      &             *A_M2*DTSRCE
 
-         IF(I==60.AND.J==33.AND.L==1)THEN
-           WRITE(109,*)'BCPO',E_CARBON,EMITRATE(I,J)
-           FLUSH(109)
-         ENDIF
          EBCEMISS(I,J,L,1) = E_CARBON* EMITRATE(I,J)
          EBCEMISS(I,J,L,2) = E_CARBON*(1.D0-EMITRATE(I,J))
 
@@ -767,10 +763,6 @@
          E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L)
      &             *A_M2*DTSRCE
 
-         IF(I==60.AND.J==33.AND.L==1)THEN
-           WRITE(109,*)'BCPI',E_CARBON,EMITRATE(I,J)
-           FLUSH(109)
-         ENDIF
          EBCEMISS(I,J,L,1) = EBCEMISS(I,J,L,1)+
      &                       E_CARBON* EMITRATE(I,J)
          EBCEMISS(I,J,L,2) = EBCEMISS(I,J,L,2)+
