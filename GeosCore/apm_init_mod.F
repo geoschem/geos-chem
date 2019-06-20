@@ -1547,8 +1547,8 @@
 !         WRITE(29,100)REDGE(I+1)*2.E6,1.E-20
  100     FORMAT(10(1PE10.3))
       ENDDO
-      FLUSH(28)
-      FLUSH(29)
+      !FLUSH(28)
+      !FLUSH(29)
 
       END SUBROUTINE SALTEMIT 
 !EOC
@@ -1729,10 +1729,10 @@
 !     &            2.E6*(REDGE(I+1)-REDGE(I)),
 !     &             2.E6*REDGE(I),2.E6*REDGE(I+1),YVRAT(I)**(1./3.)
       ENDDO
-      FLUSH(21)
-      FLUSH(22)
-      FLUSH(23)
-      FLUSH(24)
+      !FLUSH(21)
+      !FLUSH(22)
+      !FLUSH(23)
+      !FLUSH(24)
 
       END SUBROUTINE SULF_EMIT
 !EOC
