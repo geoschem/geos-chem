@@ -3400,7 +3400,7 @@ CONTAINS
                 CASE( 'CO'   )
                    HcoId        =  GetHemcoId( 'CO', HcoState, LOC, RC )
                    DiagnName_AN = 'ANTHROPOGENIC_CO'
-                   DiagnName_AC = ¯'AIRCRAFT_CO'
+                   DiagnName_AC = 'AIRCRAFT_CO'
                    DiagnName_SH = 'SHIP_CO'
                 CASE( 'COus' )                 
                    HcoId        =  GetHemcoId( 'COus', HcoState, LOC, RC )
