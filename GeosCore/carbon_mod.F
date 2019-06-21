@@ -313,11 +313,6 @@
       REAL(fp), ALLOCATABLE, TARGET :: OCPI_ANTH_BULK(:,:)
       REAL(fp), ALLOCATABLE, TARGET :: OCPO_ANTH_BULK(:,:)
 
-      REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOF_BULK(:,:)
-
       REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOB_BULK(:,:)
       REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOB_BULK(:,:)
       REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOB_BULK(:,:)
@@ -4898,7 +4893,7 @@ ccc
 !
 ! !DESCRIPTION: Function SCALECARB split the carbonaceous emission from each
 !  source into the TOMAS aerosol size bins using different mass distribution
-!  for fossil fuel and biomass burning+biofuel.  The mass size distributions
+!  for fossil fuel and biomass burning.  The mass size distributions
 ! are different for EC and OC. (win, 9/4/07)
 !\\
 !\\
@@ -4926,8 +4921,7 @@ ccc
       REAL(fp) :: tomasdist(State_Grid%NX, State_Grid%NY, IBINS)
 !
 ! !REMARKS:
-!    STYPE (source type): 1 = Fossil fule
-!                         2 = Biofuel
+!    STYPE (source type): 1 = Fossil fuel
 !                         3 = Biomass burning
 !    CTYPE (carbon type): 1 = EC 
 !                         2 = OC
@@ -5028,16 +5022,16 @@ ccc
 ! !REMARKS:
 ! SVOC emissions are expected to be fully calculated by HEMCO, i.e. its
 ! emissions need be specified in the HEMCO configuration file. In the original
-! code, the emissions were calculated by scaling anthropogenic, biofuel and
+! code, the emissions were calculated by scaling anthropogenic and
 ! biomass burning OC emissions. The same behavior can be achieved in HEMCO
 ! by assigning the desired SVOC species name to the given source type, e.g.:
 !
 ! 0 BOND\_ANTH\_POG1 Bond\_fossil.nc OC 2000/1-12/1/0 C xy kg/m2/s POG1 74 1 1
 !
-! All POG1 emissions (anthropogenic + biofuel + biomass burning) will go into
+! All POG1 emissions (anthropogenic + biomass burning) will go into
 ! POAEMISS(:,:,:,1) and all POG2 emissions will go into POAEMISS(:,:,:,2). SVOC
 ! emissions are assigned to POG1 and POG2 in HEMCO using a ratio of 0.49:0.51.
-! We no longer separate anthropogenic from biofuel and biomass burning since
+! We no longer separate anthropogenic from biomass burning since
 ! this appears to have been done only for debugging purposes. Routine CHEM_NVOC
 ! handles passing POAEMISS to the two gas-phase semivolatile species in the
 ! GM0 array.
@@ -5384,44 +5378,6 @@ ccc
 
       !end 3d emis
 
-      ! ---------other EMISSIONS IN 2d---------------------------------
-      DgnName = 'BCPI_BF'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPI_BIOF_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      DgnName = 'BCPO_BF'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         BCPO_BIOF_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      DgnName = 'OCPI_BF'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
-            IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         OCPI_BIOF_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
-      DgnName = 'OCPO_BF'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
-     & Ptr2D=Ptr2D )
-            IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         OCPO_BIOF_BULK = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
-
       DgnName = 'BCPI_BB'
       CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
@@ -5483,24 +5439,10 @@ ccc
       ENDIF
       
       !2d emis
-      BCPI_BIOF_BULK = BCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPO_BIOF_BULK = BCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-      OCPI_BIOF_BULK = OCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-      OCPO_BIOF_BULK = OCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-
       BCPI_BIOB_BULK = BCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
       BCPO_BIOB_BULK = BCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPI_BIOB_BULK = OCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
       OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
-
-      !2d biofuel
-      BCBF(:,:,:,1) = SCALECARB( State_Grid, BCPI_BIOF_BULK(:,:), 2, 1 ) 
-      BCBF(:,:,:,2) = SCALECARB( State_Grid, BCPO_BIOF_BULK(:,:), 2, 1 ) 
-      OCBF(:,:,:,1) = SCALECARB( State_Grid, OCPI_BIOF_BULK(:,:), 2, 2 )
-     &                * OC2OM
- 
-      OCBF(:,:,:,2) = SCALECARB( State_Grid, OCPO_BIOF_BULK(:,:), 2, 2 )
-     &                * OC2OM
 
       !2d bioburn
       IF ( ASSOCIATED(FIRE_NUM) ) THEN
@@ -8437,14 +8379,6 @@ ccc
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_ANTH_BULK' )
       BCPO_ANTH_BULK = 0e+0_fp
 
-      ALLOCATE( BCPI_BIOF_BULK( State_Grid%NX, State_Grid%NY ), STAT=AS)
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOF_BULK' )
-      BCPI_BIOF_BULK = 0e+0_fp
-
-      ALLOCATE( BCPO_BIOF_BULK( State_Grid%NX, State_Grid%NY ), STAT=AS)
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOF_BULK' )
-      BCPO_BIOF_BULK = 0e+0_fp
-
       ALLOCATE( BCPI_BIOB_BULK( State_Grid%NX, State_Grid%NY ), STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOB_BULK' )
       BCPI_BIOB_BULK = 0e+0_fp
@@ -8461,14 +8395,6 @@ ccc
       ALLOCATE( OCPO_ANTH_BULK( State_Grid%NX, State_Grid%NY ), STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_ANTH_BULK' )
       OCPO_ANTH_BULK = 0e+0_fp
-
-      ALLOCATE( OCPI_BIOF_BULK( State_Grid%NX, State_Grid%NY ), STAT=AS)
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOF_BULK' )
-      OCPI_BIOF_BULK = 0e+0_fp
-
-      ALLOCATE( OCPO_BIOF_BULK( State_Grid%NX, State_Grid%NY ), STAT=AS)
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOF_BULK' )
-      OCPO_BIOF_BULK = 0e+0_fp
 
       ALLOCATE( OCPI_BIOB_BULK( State_Grid%NX, State_Grid%NY ), STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOB_BULK' )
@@ -8606,14 +8532,10 @@ ccc
       IF ( ALLOCATED( OCBB           )) DEALLOCATE( OCBB          )
       IF ( ALLOCATED( BCPI_ANTH_BULK )) DEALLOCATE( BCPI_ANTH_BULK)
       IF ( ALLOCATED( BCPO_ANTH_BULK )) DEALLOCATE( BCPO_ANTH_BULK)
-      IF ( ALLOCATED( BCPI_BIOF_BULK )) DEALLOCATE( BCPI_BIOF_BULK)
-      IF ( ALLOCATED( BCPO_BIOF_BULK )) DEALLOCATE( BCPO_BIOF_BULK)
       IF ( ALLOCATED( BCPI_BIOB_BULK )) DEALLOCATE( BCPI_BIOB_BULK)
       IF ( ALLOCATED( BCPO_BIOB_BULK )) DEALLOCATE( BCPO_BIOB_BULK)
       IF ( ALLOCATED( OCPI_ANTH_BULK )) DEALLOCATE( OCPI_ANTH_BULK)
       IF ( ALLOCATED( OCPO_ANTH_BULK )) DEALLOCATE( OCPO_ANTH_BULK)
-      IF ( ALLOCATED( OCPI_BIOF_BULK )) DEALLOCATE( OCPI_BIOF_BULK)
-      IF ( ALLOCATED( OCPO_BIOF_BULK )) DEALLOCATE( OCPO_BIOF_BULK)
       IF ( ALLOCATED( OCPI_BIOB_BULK )) DEALLOCATE( OCPI_BIOB_BULK)
       IF ( ALLOCATED( OCPO_BIOB_BULK )) DEALLOCATE( OCPO_BIOB_BULK)
       IF ( ALLOCATED( TERP_ORGC      )) DEALLOCATE( TERP_ORGC     )
