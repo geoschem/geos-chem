@@ -705,8 +705,7 @@
       CALL Init_APM3D( am_I_Root, Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in routine "Init_APM3D"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
+         CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 #endif
 
