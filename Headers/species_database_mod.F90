@@ -4589,6 +4589,14 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
+             ! Enforce minimum dry deposition velocity (Vd) for APMH2SO4.
+             ! Gan Luo says that we can use the same values as for SO4
+             ! (cf. Mian Chin's GOCART model), because H2SO4 drydep
+             ! is similar to SO4. (bmy, 6/24/19)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /)
+
              FullName      = 'APM Sulfuric acid'
              Formula       = 'APMH2SO4'
              MW_g          = 98.0_fp
@@ -4613,6 +4621,14 @@ CONTAINS
 
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Enforce minimum dry deposition velocity (Vd) for APMHLVSOG.
+             ! Gan Luo says that we can use the same values as for SO4
+             ! (cf. Mian Chin's GOCART model), because LVSOG drydep
+             ! is similar to SO4. (bmy, 6/24/19)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /)
 
              FullName      = 'APM LV secondary org. gas'
              Formula       = 'APMLVSOG'
