@@ -231,7 +231,8 @@
       LOGICAL           :: prtDebug
 
 #if   defined( APM )
-      REAL(fp)          :: SEASALTS(IIPAR,JJPAR,LLPAR,NSALTBIN)
+      REAL(fp)          :: SEASALTS(State_Grid%NX,State_Grid%NY,
+     &                              State_Grid%NZ,NSALTBIN      )
 #endif
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
