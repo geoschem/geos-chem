@@ -3378,6 +3378,8 @@
 !  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
 !                              now the default.
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  25 Jun 2017 - A. Wong     - Add the option of inclduing CO2 effect on drydep
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3427,6 +3429,30 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_OPt%LWETD
 
+      ! Turn on CO2 effect on drydep?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_EFFECT', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%CO2_EFFECT
+      
+      ! CO2 level at simulation
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_LEVEL', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%CO2_LEVEL
+
+      ! Reference CO2 level
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_REF', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%CO2_REF
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -3460,7 +3486,18 @@
       ELSE
          Input_Opt%PBL_DRYDEP = .TRUE.
       ENDIF 
-
+      
+      ! If CO2 effect on RS in turned on, calculate the scaling factor 
+      ! on Rs based on Franks et al. (2013) (ayhwong, 6/25/2019)
+      
+      If (Input_Opt%CO2_EFFECT) THEN
+         Input_Opt%RS_SCALE = Input_Opt%CO2_LEVEL / Input_Opt%CO2_REF * 
+     &                       (Input_Opt%CO2_LEVEL + 80.0_fp) * 
+     &                       (Input_Opt%CO2_REF - 40.0_fp) /
+     &                       (Input_Opt%CO2_LEVEL - 40.0_fp) / 
+     &                       (Input_Opt%CO2_REF + 80.0_fp)
+      ENDIF
+     
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3473,10 +3510,20 @@
      &                        Input_Opt%PBL_DRYDEP
          WRITE( 6, 100     ) 'Turn on wet deposition?     : ', 
      &                        Input_Opt%LWETD
+         WRITE( 6, 100     ) 'Turn on CO2 effect?         : ', 
+     &                        Input_Opt%CO2_EFFECT
+         WRITE( 6, 110     ) 'CO2 level                   : ', 
+     &                        Input_Opt%CO2_LEVEL         
+         WRITE( 6, 110     ) 'CO2 reference level         : ', 
+     &                        Input_Opt%CO2_REF         
+         WRITE( 6, 110     ) 'RIX scaling factor          : ', 
+     &                        Input_Opt%RS_SCALE
+
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
+ 110  FORMAT( A, f6.2 )
 
       END SUBROUTINE READ_DEPOSITION_MENU
 !EOC

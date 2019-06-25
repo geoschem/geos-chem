@@ -233,7 +233,11 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LDRYD
      LOGICAL                     :: LWETD
      REAL(fp)                    :: WETD_CONV_SCAL
-     LOGICAL                     :: PBL_DRYDEP      
+     LOGICAL                     :: PBL_DRYDEP   
+     LOGICAL                     :: CO2_EFFECT
+     REAL(fp)                    :: CO2_LEVEL, CO2_REF
+     REAL(fp)                    :: RS_SCALE
+   
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -704,6 +708,7 @@ CONTAINS
 !  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
 !  08 Mar 2018 - R. Yantosca - Bug fix, remove reference to TINDEX here
 !  06 Nov 2018 - R. Yantosca - Add error trapping for allocation statements
+!  25 Jun 2019 - A. Wong     - Add CO2_LEVEL, CO2_REF, CO2_EFFECT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -994,6 +999,10 @@ CONTAINS
     Input_Opt%LWETD                  = .FALSE.
     Input_Opt%WETD_CONV_SCAL         = 1.0_fp 
     Input_Opt%PBL_DRYDEP             = .FALSE.
+    Input_Opt%CO2_LEVEL              = 390.0_fp
+    Input_Opt%CO2_REF                = 390.0_fp
+    Input_Opt%CO2_EFFECT             = .FALSE.
+    Input_Opt%RS_SCALE               = 1.0_fp
 
     !----------------------------------------
     ! GAMAP_MENU fields
