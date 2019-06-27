@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Tue May 21 15:18:52 2019
-! Working directory    : /n/home05/msulprizio/GC/Code.12.4.0/KPP/SOA_SVPOA
+! Time                 : Thu Jun 27 12:00:03 2019
+! Working directory    : /local/msulprizio/Code.Dev/KPP/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -1131,6 +1131,10 @@ SUBROUTINE Update_RCONST ( )
   RCONST(646) = (PHOTOL(111))
   RCONST(647) = (PHOTOL(112))
   RCONST(648) = (PHOTOL(113))
+  RCONST(649) = (PHOTOL(130))
+  RCONST(650) = (PHOTOL(131))
+  RCONST(651) = (PHOTOL(132))
+  RCONST(652) = (PHOTOL(133))
       
 END SUBROUTINE Update_RCONST
 
@@ -1253,6 +1257,10 @@ SUBROUTINE Update_PHOTO ( )
   RCONST(646) = (PHOTOL(111))
   RCONST(647) = (PHOTOL(112))
   RCONST(648) = (PHOTOL(113))
+  RCONST(649) = (PHOTOL(130))
+  RCONST(650) = (PHOTOL(131))
+  RCONST(651) = (PHOTOL(132))
+  RCONST(652) = (PHOTOL(133))
       
 END SUBROUTINE Update_PHOTO
 

@@ -2038,6 +2038,46 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%BCAE_2
 
+      ! Photoylse nitrate aerosol? (TMS, 23/08/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT
+
+      ! scalar for JHNO3 for photoylsing NITs aerosol (TMS, 23/08/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT_JNITs', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT_JNITs
+
+      ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT_JNIT', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT_JNIT
+
+      ! Fraction for JNITS/NIT channel A (HNO2) for NITs photoylsis (TMS, 10/10/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'JNITChanA', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%JNITChanA
+
+      ! Fraction for JNITs/NIT channel B (NO2) for NITs photoylsis (TMS, 10/10/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'JNITChanB', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%JNITChanB
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2071,6 +2111,7 @@
          Input_Opt%LSVPOA       = .FALSE.
          Input_Opt%LOMOC        = .FALSE.
          Input_Opt%LBCAE        = .FALSE.
+         Input_Opt%hvAerNIT     = .FALSE.
       ENDIF
 
       ! Return success
@@ -2131,6 +2172,16 @@
      &                        Input_Opt%BCAE_1
          WRITE( 6, 105     ) 'Hydrophobic BC AE factor    : ',
      &                        Input_Opt%BCAE_2
+         WRITE( 6, 100     ) 'Photolyse nitrate aerosol?  : ',
+     &                        Input_Opt%hvAerNIT
+         WRITE( 6, 105     ) 'JNITs scaling of JHNO3      : ',
+     &                        Input_Opt%hvAerNIT_JNITs
+         WRITE( 6, 105     ) 'JNIT scaling of JHNO3       : ',
+     &                        Input_Opt%hvAerNIT_JNIT
+         WRITE( 6, 105     ) 'JNIT(s) channel A (HONO)    : ',
+     &                        Input_Opt%JNITChanA
+         WRITE( 6, 105     ) 'JNIT(s) channel B (NO2)     : ',
+     &                        Input_Opt%JNITChanB
       ENDIF
 
  100  FORMAT( A, L5     )

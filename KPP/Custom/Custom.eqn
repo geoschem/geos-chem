@@ -75,6 +75,7 @@ MJE : Mat Evans;               mat.evans@york.ac.uk
 MPS : Melissa Sulprizio;       mpayer@seas.harvard.edu
 MSL : Mike Long;               mlong@seas.harvard.edu
 QJC : Qianjie Chen;            chenqjie@uw.edu
+PK  : Prasad Kasibhatla;       psk9@duke.edu
 RHS : Rebecca Schwantes;       rschwant@caltech.edu
 SAS : Sarah Safieddine;        sarahsaf@mit.edu
 SDE : Sebastian Eastham;       seastham@seas.harvard.edu
@@ -97,6 +98,7 @@ REFERENCES (alphabetical order)
 * Goliff2013:   Goliff et al., Atmos. Environ., doi:10.1016/j.atmosenv.2012.11.038, 2013.
 * Jacobs2014:   Jacobs et al., Atmos. Chem. Phys., doi:10.5194/acp-14-8933-2014, 2014.
 * Jenkin2015:   Jenkin et al., Atmos. Chem. Phys., doi:10.5194/acp-15-11433-2015, 2015.
+* Kasibhatla2018: Kasibhatla et al., Atmos. Chem. Phys., doi:10.5194/acp-18-11185-2018, 2018
 * JPL 10-6:     JPL Publication 10-6, https://jpldataeval.jpl.nasa.gov/previous_evaluations.html, 2011.
 * JPL 15-10:    JPL Publication 15-10, https://jpldataeval.jpl.nasa.gov, 2015.
 * Lee2014:      Lee et al., J. Phys. Chem. A, doi:10.1021/jp4107603, 2014.
@@ -308,6 +310,8 @@ MVKOO      = IGNORE; {Criegee intermediate}
 N          = IGNORE; {N; Atomic nitrogen}
 N2O        = IGNORE; {N2O; Nitrous oxide}
 N2O5       = IGNORE; {N2O5; Dinitrogen pentoxide}
+NITs       = IGNORE; {NITs; Inorganic nitrates on surface of sea salt}
+NIT        = IGNORE; {NITs; Inorganic nitrates}
 NMAO3      = IGNORE; {CH2=C(CH3)C(O)OO; Non-isoprene peroxyacyl from MVK and MACR}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
@@ -1376,3 +1380,7 @@ ISN1 + hv = NO2 + HO2 + 0.500GLYC +
 MONITS + hv = MEK + NO2 :                    PHOTOL(111);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
 MONITU + hv = RCHO + NO2 :                   PHOTOL(112);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
 HONIT + hv = HAC + NO2 :                     PHOTOL(113);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
+NITs + hv = HNO2 :                           PHOTOL(130);    {2018/07/19; Kasibhatla2018; PK, TMS}
+NITs + hv = NO2 :                            PHOTOL(131);    {2018/07/19; Kasibhatla2018; PK, TMS}
+NIT + hv = HNO2 :                            PHOTOL(132);    {2018/07/19; Kasibhatla2018; PK, TMS}
+NIT + hv = NO2 :                             PHOTOL(133);    {2018/07/19; Kasibhatla2018; PK, TMS}
