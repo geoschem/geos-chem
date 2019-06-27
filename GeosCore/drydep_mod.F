@@ -91,7 +91,11 @@
 !  (16) Karl, T., Harley, P., Emmons, L., Thornton, B., Guenther, A., Basu, C.,
 !        Turnipseed, A., and Jardine, K.: Efficient Atmospheric Cleansing of
 !        Oxidized Organic Trace Gases by Vegetation, Science, 330, 816-819,
-!        10.1126/science.1192534, 2010. 
+!        10.1126/science.1192534, 2010.
+!  (17) Jaeglé, L., Shah, V.,et al (2018). Nitrogen oxides emissions, chemistry,
+!        deposition,and export over the Northeast United States during the
+!        WINTER aircraft campaign. J Geophys Res: Atmospheres, 123.
+!        https://doi.org/10.1029/2018JD029133
 !
 ! !REVISION HISTORY:
 !  27 Jan 2003 - R. Yantosca - Moved standalone routines into this module
@@ -1052,6 +1056,10 @@
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of arrays
 !                              from (MAXIJ) to (IIPAR,JJPAR); Also remove NPTS
 !                              input argument
+!  23 Oct 2018 - V. Shah     - Set HNO3 bulk surface resistance to 1 s/m;
+!                              Limit increases in Rc at low temperature to a
+!                              factor of 2. (Jaegle et al 2018)
+!
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
 !   * We now suppress dry deposition over aerodynamically smooth     ***
@@ -1365,23 +1373,36 @@
             IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.e+0_f8 ) THEN
                RLU(LDT) = 1.e+6_f8
             ELSE
-               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
+               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT)
+               ! Additional resistance at low temperatures.
+               ! Limit increase to a factor of 2.
+               ! V. Shah 23 Oct 18
+               ! Ref Jaegle et al. 2018
+               RLU(LDT) = MIN( RLU(LDT) + RT, 2.e+0_f8 * RLU(LDT) )
             ENDIF
 !** The following are the remaining resistances for the Wesely
 !** resistance-in-series model for a surface canopy
-!** (see Atmos. Environ. paper, Fig.1).  
+!** (see Atmos. Environ. paper, Fig.1).
             RAC(LDT)  = MAX(DBLE(IRAC(II)), 1.e+0_f8)
             IF (RAC(LDT)  .GE. 9999.e+0_f8) RAC(LDT)  = 1.e+12_f8
-            RGSS(LDT) = MAX(DBLE(IRGSS(II)) + RT ,1.e+0_f8)
+            RGSS(LDT) = MAX(DBLE(IRGSS(II)), 1.e+0_f8)
+            ! Additional resistance at low temperatures.
+            ! Limit increase of RGSS, RGSO, RCLS, & RCLO to a factor of 2.
+            ! V. Shah 23 Oct 18
+            ! Ref Jaegle et al. 2018
+            RGSS(LDT) = MIN( RGSS(LDT) + RT, 2.e+0_f8 * RGSS(LDT) )
             IF (RGSS(LDT) .GE. 9999.e+0_f8) RGSS(LDT) = 1.e12_f8
-            RGSO(LDT) = MAX(DBLE(IRGSO(II)) + RT ,1.e+0_f8) 
+            RGSO(LDT) = MAX(DBLE(IRGSO(II)) ,1.e+0_f8)
+            RGSO(LDT) = MIN( RGSO(LDT) + RT, 2.e+0_f8 * RGSO(LDT) )
             IF (RGSO(LDT) .GE. 9999.e+0_f8) RGSO(LDT) = 1.e+12_f8
-            RCLS(LDT) = DBLE(IRCLS(II)) + RT           
+            RCLS(LDT) = DBLE(IRCLS(II))
+            RCLS(LDT) = MIN( RCLS(LDT) + RT, 2.e+0_f8 * RCLS(LDT) )
             IF (RCLS(LDT) .GE. 9999.e+0_f8) RCLS(LDT) = 1.e+12_f8
-            RCLO(LDT) = DBLE(IRCLO(II)) + RT          
+            RCLO(LDT) = DBLE(IRCLO(II))
+            RCLO(LDT) = MIN( RCLO(LDT) + RT, 2.e+0_f8 * RCLO(LDT) )
             IF (RCLO(LDT) .GE. 9999.e+0_f8) RCLO(LDT) = 1.e+12_f8
 !***************************************************************************
-!*                                 
+!*
 !*    Adjust stomatal resistances for insolation and temperature:  
 !*
 !*     Temperature adjustment is from Wesely [1989], equation (3).
@@ -1640,11 +1661,17 @@
             IF (.NOT.LDEP(K)) GOTO 190
             DO 180 LDT = 1, IREG(I,J)
                IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
-               RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT), 
+               RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT),
      &                        9999.e+0_f8))
+              ! Set Rc for strong acids (HNO3,HCl,HBr) to 1 s/m
+              ! V. Shah (23 Oct 18)
+              ! Ref. Jaegle et al. 2018, cf. Erisman,van Pul,Ayers 1994
+              IF ( HSTAR(K) .gt. 1.e+10_f8 ) THEN
+                  RSURFC(K,LDT)= 1.e+0_f8
+              ENDIF
  180        CONTINUE
  190     CONTINUE
-!*                                 
+!*
 !*    Loop through the different landuse types present in the grid square     
 !*           
          DO 500 LDT = 1, IREG(I,J)
