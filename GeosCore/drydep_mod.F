@@ -193,6 +193,7 @@
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  01 Dec 2018 - H.P. Lin    - Move DEPSAV to State_Chm%DryDepSav
+!  25 Jun 2019 - A. Wong     - Add CO2 effect on stomatal resistance (RIX)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1424,6 +1425,13 @@
             ENDIF
             
             RIX = RIX*GFACT*GFACI
+            
+            ! Apply scaling factor to RIX when CO2 effect is turned on
+            ! (ayhwong, 6/25/19)
+            IF (Input_Opt%CO2_EFFECT) THEN
+               RIX = RIX*Input_Opt%RS_SCALE
+            ENDIF
+
  150        CONTINUE
 !*                                 
 !*    Compute aerodynamic resistance to lower elements in lower part           
