@@ -1555,15 +1555,29 @@
                   !%%% TOMAS SIMULATIONS %%%
                   !-------------------------------
 
-                  ! Get current aerosol diameter and density
-                  ! NOTE: In TOMAS the aerosol diameter and density
-                  ! evolves with time.  We have to save these in the 
-                  ! DIAM and DEN variables so that we can hold these
-                  ! PRIVATE for the parallel loop.
-                  BIN  = NTRAIND(K) - id_NK1 + 1
-                  DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
-                  DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
+                  IF ( TRIM(SpcInfo%Name) == 'DST1' .or.
+     &                 TRIM(SpcInfo%Name) == 'DST2' .or.
+     &                 TRIM(SpcInfo%Name) == 'DST3' .or.
+     &                 TRIM(SpcInfo%Name) == 'DST4' ) THEN
 
+                     ! Particle diameter, convert [m] -> [um]
+                     DIAM  = A_RADI(K) * 2.e+0_f8 
+
+                     ! Particle density [kg/m3]
+                     DEN   = A_DEN(K)
+
+                  ELSE
+
+                     ! Get current aerosol diameter and density
+                     ! NOTE: In TOMAS the aerosol diameter and density
+                     ! evolves with time.  We have to save these in the 
+                     ! DIAM and DEN variables so that we can hold these
+                     ! PRIVATE for the parallel loop.
+                     BIN  = NTRAIND(K) - id_NK1 + 1
+                     DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
+                     DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
+
+                  ENDIF
 #else
                   !-------------------------------
                   !%%% NON-TOMAS SIMULATIONS %%%
