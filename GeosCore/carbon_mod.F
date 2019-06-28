@@ -374,7 +374,6 @@
 #if defined( APM )
       REAL*8, ALLOCATABLE :: BCCONVNEW(:,:,:)
       REAL*8, ALLOCATABLE :: OCCONVNEW(:,:,:)
-      REAL(fp), SAVE, ALLOCATABLE :: EBCEMISS(:,:,:,:)
 #endif
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -674,44 +673,58 @@
       CALL OCDRY_SETTLINGBIN( am_I_Root,  Input_Opt,  State_Chm,
      &                        State_Diag, State_Grid, State_Met, RC )
 
-      IF((id_BCPO+id_BCPI)>2)THEN
-        ! Get diagnostics from HEMCO
-        DiagnCnt => NULL()
-        CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
-     &                  FLAG,  RC, cName='AD07_BCPO_BIOFUEL',
-     &                  AutoFill=1,
-     &                  COL=HcoState%Diagn%HcoDiagnIDManual )
-        EMITRATE(:,:) = DiagnCnt%Arr2D%Val(:,:)
+      IF ( ( id_BCPO+id_BCPI ) > 2 )THEN
 
+        ! Get biomass BCPO diagnostics from HEMCO
         DiagnCnt => NULL()
         CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
      &                  FLAG,  RC, cName='BIOMASS_BCPO',
      &                  AutoFill=1,
      &                  COL=HcoState%Diagn%HcoDiagnIDManual )
-        EMITRATE(:,:) = EMITRATE(:,:)+DiagnCnt%Arr2D%Val(:,:)
 
+
+        ! Add into EMITRATE array (or set to zero if not found)
+        IF ( FLAG == HCO_SUCCESS ) THEN
+           EMITRATE = DiagnCnt%Arr2D%Val
+        ELSE
+           IF ( am_I_Root ) THEN
+              WRITE( 6, ' (a)' )'APM not found BIOMASS_BCPO'
+           ENDIF
+           EMITRATE = 0.D0
+        ENDIF
+
+        ! Get anthropogenic BCPO diagnostics from HEMCO
         DiagnCnt => NULL()
         CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
-     &                  FLAG,  RC, cName='AD07_BCPO_ANTHRO',
+     &                  FLAG,  RC, cName='ANTHROPOGENIC_BCPO',
      &                  AutoFill=1,
      &                  COL=HcoState%Diagn%HcoDiagnIDManual )
-        EMITRATE(:,:) = EMITRATE(:,:)+SUM(DiagnCnt%Arr3D%Val(:,:,:),3)
 
 
+        IF ( FLAG==HCO_SUCCESS ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J, I )
-      DO J = 1, State_Grid%NY
-      DO I = 1, State_Grid%NX
-         IF(EMITRATE(I,J)>0.D0)THEN
-           EMITRATE(I,J)=1.D0-
-     &       SUM(DiagnCnt%Arr3D%Val(I,J,:))/EMITRATE(I,J)
-         ELSE
-           EMITRATE(I,J)=0.D0
-         ENDIF
-      ENDDO
-      ENDDO
+           DO J = 1, State_Grid%NY
+           DO I = 1, State_Grid%NX
+              EMITRATE(I,J) = EMITRATE(I,J) +
+     &             SUM(DiagnCnt%Arr3D%Val(I,J,1:State_Grid%NZ))
+
+              IF( EMITRATE(I,J) > 0.D0)THEN
+                 EMITRATE(I,J) = 1.D0-
+     &                SUM(DiagnCnt%Arr3D%Val(I,J,:))/EMITRATE(I,J)
+              ELSE
+                 EMITRATE(I,J) = 0.D0
+              ENDIF
+           ENDDO
+           ENDDO
 !$OMP END PARALLEL DO
+        ELSE
+           IF ( am_I_Root ) THEN
+              WRITE( 6, '(a)' ) 'APM not found ANTHROPOGENIC_BCPO'
+           ENDIF
+           EMITRATE = 0.D0
+        ENDIF
 
       ! Emission timestep
       DTSRCE = HcoState%TS_EMIS
@@ -720,26 +733,23 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( L, J, I, A_M2, E_CARBON, N )
+      DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
          A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
 
-      DO L = 1, State_Grid%NZ
          ! Get emissions [kg/m2/s] and convert to [kg/box]
          E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L)
      &             *A_M2*DTSRCE
 
-         EBCEMISS(I,J,L,1) = E_CARBON* EMITRATE(I,J)
-         EBCEMISS(I,J,L,2) = E_CARBON*(1.D0-EMITRATE(I,J))
-
-         DO N=1,NBCOC
-           Spc(I,J,L,APMIDS%id_BCBIN1+N-1)=
-     &     Spc(I,J,L,APMIDS%id_BCBIN1+N-1)+
-     &     E_CARBON*(
-     &      (1.D0-EMITRATE(I,J))*CEMITBCOC1(N,1)+
-     &      EMITRATE(I,J)*CEMITBCOC1(N,2))
+         DO N = 1, NBCOC
+            Spc(I,J,L,APMIDS%id_BCBIN1+N-1)=
+     &           Spc(I,J,L,APMIDS%id_BCBIN1+N-1)+
+     &           E_CARBON*(
+     &           (1.D0-EMITRATE(I,J))*CEMITBCOC1(N,1)+
+     &           EMITRATE(I,J)*CEMITBCOC1(N,2))
          ENDDO
       ENDDO
       ENDDO
@@ -750,25 +760,128 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( L, J, I, A_M2, E_CARBON, N )
+      DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
          A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
 
-      DO L = 1, State_Grid%NZ
          ! Get emissions [kg/m2/s] and convert to [kg/box]
          E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L)
      &             *A_M2*DTSRCE
 
-         EBCEMISS(I,J,L,1) = EBCEMISS(I,J,L,1)+
-     &                       E_CARBON* EMITRATE(I,J)
-         EBCEMISS(I,J,L,2) = EBCEMISS(I,J,L,2)+
-     &                       E_CARBON*(1.D0-EMITRATE(I,J))
+         DO N = 1, NBCOC
+            Spc(I,J,L,APMIDS%id_BCBIN1+N-1)=
+     &           Spc(I,J,L,APMIDS%id_BCBIN1+N-1)+
+     &           E_CARBON*(
+     &           (1.D0-EMITRATE(I,J))*CEMITBCOC1(N,1)+
+     &           EMITRATE(I,J)*CEMITBCOC1(N,2))
+         ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
+!GanLuo add OCs
+      IF ( ( id_OCPO + id_OCPI ) > 2 ) THEN
+        ! Get diagnostics from HEMCO
+        DiagnCnt => NULL()
+        CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
+     &                  FLAG,  RC, cName='BIOMASS_OCPO',
+     &                  AutoFill=1,
+     &                  COL=HcoState%Diagn%HcoDiagnIDManual )
+
+        ! Add biomass OCPO diagnostic to EMITRATE (if it's found)
+        IF ( FLAG==HCO_SUCCESS ) THEN
+           EMITRATE = DiagnCnt%Arr2D%Val
+        ELSE
+           IF ( am_I_Root ) THEN
+              WRITE( 6, '(a)' )'APM not found BIOMASS_OCPO'
+           ENDIF
+          EMITRATE = 0.0d0
+        ENDIF
+
+        DiagnCnt => NULL()
+        CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DiagnCnt,
+     &                  FLAG,  RC, cName='ANTHROPOGENIC_OCPO',
+     &                  AutoFill=1,
+     &                  COL=HcoState%Diagn%HcoDiagnIDManual )
+
+        ! Add anthropogenic OCPO diagnostic to EMITRATE (if it's found)
+        IF(FLAG==HCO_SUCCESS)THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, I )
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+             EMITRATE(I,J) = EMITRATE(I,J) +
+     &           SUM(DiagnCnt%Arr3D%Val(I,J,1:State_Grid%NZ))
+             IF(EMITRATE(I,J)>0.D0)THEN
+               EMITRATE(I,J)=1.D0-
+     &             SUM(DiagnCnt%Arr3D%Val(I,J,:))/EMITRATE(I,J)
+             ELSE
+               EMITRATE(I,J)=0.D0
+             ENDIF
+          ENDDO
+          ENDDO
+!$OMP END PARALLEL DO
+        ELSE
+           IF ( am_I_Root ) THEN
+              WRITE( 6, '(a)' )'APM not found ANTHROPOGENIC_OCPO'
+           ENDIF
+           EMITRATE = 0.D0
+        ENDIF
+
+      ! Emission timestep
+      DTSRCE = HcoState%TS_EMIS
+
+      IDCARBON   = HCO_GetHcoID( 'OCPO',   HcoState )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( L, J, I, A_M2, E_CARBON, N )
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         ! Grid box surface area [m2]
+         A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
+
+         ! Get emissions [kg/m2/s] and convert to [kg/box]
+         E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L)
+     &             *A_M2*DTSRCE
 
          DO N=1,NBCOC
-           Spc(I,J,L,APMIDS%id_BCBIN1+N-1)=
-     &     Spc(I,J,L,APMIDS%id_BCBIN1+N-1)+
+           Spc(I,J,L,APMIDS%id_OCBIN1+N-1)=
+     &     Spc(I,J,L,APMIDS%id_OCBIN1+N-1)+
+     &     E_CARBON*(
+     &      (1.D0-EMITRATE(I,J))*CEMITBCOC1(N,1)+
+     &      EMITRATE(I,J)*CEMITBCOC1(N,2))
+         ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      IDCARBON   = HCO_GetHcoID( 'OCPI',   HcoState )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( L, J, I, A_M2, E_CARBON, N )
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         ! Grid box surface area [m2]
+         A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
+
+         ! Get emissions [kg/m2/s] and convert to [kg/box]
+         E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L)
+     &             *A_M2*DTSRCE
+
+         DO N=1,NBCOC
+           Spc(I,J,L,APMIDS%id_OCBIN1+N-1)=
+     &     Spc(I,J,L,APMIDS%id_OCBIN1+N-1)+
      &     E_CARBON*(
      &      (1.D0-EMITRATE(I,J))*CEMITBCOC1(N,1)+
      &      EMITRATE(I,J)*CEMITBCOC1(N,2))
@@ -8335,11 +8448,6 @@ ccc
      &                     State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONVNEW' )
       OCCONVNEW = 0d0
-      ALLOCATE( EBCEMISS( State_Grid%NX, 
-     &                    State_Grid%NY, 
-     &                    State_Grid%NZ, 2 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EBCEMISS' )
-      EBCEMISS = 0e+0_fp
 #endif
       ! JKODROS
 #if defined( TOMAS )
@@ -8521,7 +8629,6 @@ ccc
 #if defined( APM )
       IF ( ALLOCATED( BCCONVNEW ) ) DEALLOCATE( BCCONVNEW )
       IF ( ALLOCATED( OCCONVNEW ) ) DEALLOCATE( OCCONVNEW )
-      IF ( ALLOCATED( EBCEMISS      ) ) DEALLOCATE( EBCEMISS      )
 #endif
 #if defined ( TOMAS )
       IF ( ALLOCATED( BCFF           )) DEALLOCATE( BCFF          )

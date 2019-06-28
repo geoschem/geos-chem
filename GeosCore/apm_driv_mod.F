@@ -1903,11 +1903,22 @@
        TEMPOUT1(NTEMPOUT1-4)=NH3EMIT
      &     *8.64d4/XAREA ! NH3 emission -- kg N/km2-day
 
-       TEMPOUT1(NTEMPOUT1-3)=YAMINEEMIT(2)*14./MWAMINE(2)   !kg-N/box-sec (DMA)
+!-------------------------------------------------------------------------------
+! Prior to 6/28/19:
+! Comment out problematic code.  Gan Luo says that we can set all of these
+! to zero, because we do not simulate amines at this point.
+! (bmy, 6/28/19)
+!       TEMPOUT1(NTEMPOUT1-3)=YAMINEEMIT(2)*14./MWAMINE(2)   !kg-N/box-sec (DMA)
+!!       TEMPOUT1(NTEMPOUT1-3)=CNH3
+!       TEMPOUT1(NTEMPOUT1-2)=CAMINE(1)
+!       TEMPOUT1(NTEMPOUT1-1)=CAMINE(2)
+!       TEMPOUT1(NTEMPOUT1)  =CAMINE(3)
+!------------------------------------------------------------------------------
+       TEMPOUT1(NTEMPOUT1-3)=0.0d0
 !       TEMPOUT1(NTEMPOUT1-3)=CNH3
-       TEMPOUT1(NTEMPOUT1-2)=CAMINE(1)
-       TEMPOUT1(NTEMPOUT1-1)=CAMINE(2)
-       TEMPOUT1(NTEMPOUT1)  =CAMINE(3)
+       TEMPOUT1(NTEMPOUT1-2)=0.0d0
+       TEMPOUT1(NTEMPOUT1-1)=0.0d0
+       TEMPOUT1(NTEMPOUT1)  =0.0d0
 
 !       TEMPOUT1(NTEMPOUT1-5) = YCDN*YCLDLIQ*YCLDF !cloud liq weighted CDN
 !       TEMPOUT1(NTEMPOUT1-4) = YRCLDL*YCLDLIQ*YCLDF !cloud liq weighted RCLDL
