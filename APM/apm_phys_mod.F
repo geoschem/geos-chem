@@ -1082,6 +1082,8 @@
        zfv(5) = 0.
        zfv(6) = vh2o/vtotal
  
+
+
        MBIN = NDSTB - 2
        DO I = 1, MBIN
         XDCORE(I)=RDST(NDSTB-MBIN+I)*2.E6   ! RSALT in m, XDCORE in um
@@ -1115,6 +1117,10 @@
       IF(YCS(ITYPE).GT.1.D-5) THEN
        VRATIO = RRATIOWETBC**3.
        IF(IFCOAT.EQ.0.) VRATIO = 1.
+!-----------------------------------------------------------------------------
+!BMY KLUDGE:  Add this here to avoid floating point exception! (bmy, 6/28/19)
+       zfv_sp = zfv
+!-----------------------------------------------------------------------------
 
        zfv(1) = 1./VRATIO
        zfv(2) = ZFV_SP(2)*(1.-1./VRATIO)  !assume coated SP has same composition as SP for now
@@ -1153,6 +1159,10 @@
        VRATIO = RRATIOWETOC**3.
 
        IF(IFCOAT.EQ.0.) VRATIO = 1.
+!-----------------------------------------------------------------------------
+!BMY KLUDGE: Add this here to avoid floating point exception! (bmy, 6/28/19)
+       zfv_sp = zfv
+!-----------------------------------------------------------------------------
 
        zfv(1) = 1./VRATIO
        zfv(2) = ZFV_SP(2)*(1.-1./VRATIO)  !assume coated SP has same composition as SP for now
