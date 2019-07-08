@@ -384,6 +384,12 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ProdSO4fromO3s             
      LOGICAL :: Archive_LossHNO3onSeaSalt          
 
+     ! O3 and HNO3 at a given height above the surface
+     REAL(f4),  POINTER :: O3concAtHT1AboveSfc(:,:)
+     REAL(f4),  POINTER :: HNO3concAtHT1AboveSfc(:,:)
+     LOGICAL :: Archive_O3concAtHT1AboveSfc
+     LOGICAL :: Archive_HNO3concAtHT1AboveSfc
+
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
@@ -720,7 +726,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=5  )     :: TmpWL
+    CHARACTER(LEN=5  )     :: TmpWL,    TmpHt
     CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
     CHARACTER(LEN=255)     :: arrayID,  diagID
 
@@ -741,6 +747,7 @@ CONTAINS
     ThisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
     Found     = .FALSE.
     TmpWL     = ''
+    TmpHT     = '10m'  ! Initialize here for now, get from input menu later
 
     ! Save shadow variables from Input_Opt
     Is_UCX    = Input_Opt%LUCX
@@ -1079,6 +1086,12 @@ CONTAINS
     State_Diag%Archive_ProdSO4fromSRHOBr           = .FALSE.
     State_Diag%Archive_ProdSO4fromO3s              = .FALSE.
     State_Diag%Archive_LossHNO3onSeaSalt           = .FALSE. 
+
+    ! O3 and HNO3 at a given height above the surface
+    State_Diag%O3concAtHT1AboveSfc                 => NULL()
+    State_Diag%HNO3concAtHT1AboveSfc               => NULL()
+    State_Diag%Archive_O3concAtHT1AboveSfc         = .FALSE.
+    State_Diag%Archive_HNO3concAtHT1AboveSfc       = .FALSE.
 
     ! Rn-Pb-Be simulation diagnostics
     State_Diag%PbFromRnDecay                       => NULL()
@@ -2978,6 +2991,26 @@ CONTAINS
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+ 
+       !--------------------------------------------------------------------
+       ! HNO3 concentration at user-defined height above surface
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%HNO3concAtHT1AboveSfc'
+       diagID  = 'HNO3concAt' // TRIM( TmpHt ) // 'AboveSfc'
+       CALL Check_DiagList( am_I_Root, Diag_List,                            &
+                           'HNO3concAtHT1AboveSfc', Found, RC               )
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%HNO3concAtHT1AboveSfc( IM, JM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%HNO3concAtHT1AboveSfc = 0.0_f4
+          State_Diag%Archive_HNO3concAtHT1AboveSfc = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%HNO3concAtHT1AboveSfc,         &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
 #endif
 
     ELSE
@@ -2991,7 +3024,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 26
+       DO N = 1, 27
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -3047,6 +3080,8 @@ CONTAINS
                 diagID = 'BetaNO'
              CASE( 26 )
                 diagID = 'TotalBiogenicOA'
+             CASE( 27 )
+                diagID = 'HNO3concAtHT1AboveSfc'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -3062,6 +3097,62 @@ CONTAINS
           ENDIF
        ENDDO
 
+    ENDIF
+
+    !=======================================================================
+    ! The following diagnostic quantities are only relevant for:
+    !
+    ! ALL FULL-CHEMISTRY SIMULATIONS
+    ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
+    !
+    ! and THE TAGGED O3 SPECIALTY SIMULATION
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! O3 concentration at user-defined height above surface
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ConcO3atHT1AboveSfc'
+       diagID  = 'ConcO3at' // TRIM( TmpHt ) // 'AboveSfc'
+       CALL Check_DiagList( am_I_Root, Diag_List,                            &
+                           'O3concAtHT1AboveSfc', Found, RC                 )
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%O3concAtHT1AboveSfc( IM, JM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%O3concAtHT1AboveSfc = 0.0_f4
+          State_Diag%Archive_O3concAtHT1AboveSfc = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%O3concAtHT1AboveSfc,           &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! full-chemistry simulations.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       diagID  = 'ConcO3atHT1AboveSfc'
+
+       ! Exit if any of the above are in the diagnostic list
+       ! Force an exact string match to avoid namespace confusion
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                            Found,     RC,        exact=.TRUE. )
+       IF ( Found ) THEN
+          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for full-chemistry '  // &
+                      'or tagged O3 simulations.' 
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
@@ -8004,7 +8095,21 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%ReactiveGaseousHg', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%ReactiveGaseousHg => NULL()
-   ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%HNO3concAtHT1AboveSfc ) ) THEN
+       DEALLOCATE( State_Diag%HNO3concAtHT1AboveSfc, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%HNO3concAtHT1AboveSfc', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%HNO3concAtHT1AboveSfc => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%O3concAtHT1AboveSfc ) ) THEN
+       DEALLOCATE( State_Diag%O3concAtHT1AboveSfc, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%O3concAtHT1AboveSfc', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%O3concAtHT1AboveSfc => NULL()
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
@@ -8089,7 +8194,7 @@ CONTAINS
     LOGICAL            :: isVLoc,  isTagged, isType
 
     ! Strings
-    CHARACTER(LEN=5  ) :: TmpWL
+    CHARACTER(LEN=5  ) :: TmpWL,   TmpHt
     CHARACTER(LEN=255) :: ThisLoc, Name_AllCaps
     CHARACTER(LEN=512) :: ErrMsg
 
@@ -8103,6 +8208,7 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   =  &
          ' -> at Get_Metadata_State_Diag (in Headers/state_diag_mod.F90)'
+    TmpHt     = '10m'  ! testing
 
     ! Optional arguments present?
     isDesc    = PRESENT( Desc    )
@@ -9428,7 +9534,21 @@ CONTAINS
        IF ( isUnits   ) Units = 'pptv'
        IF ( isRank    ) Rank  =  3
 
-    ELSE
+    ELSE IF ( TRIM(Name_AllCaps) == 'HNO3CONCAT'   //                        &
+                                     TRIM( TmpHt ) //'ABOVESFC' )  THEN
+       IF ( isDesc    ) Desc  = 'HNO3 concentration at ' // TRIM( TmpHt ) // &
+                                ' above the surface'
+       IF ( isUnits   ) Units = 'mol mol-1 dry'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'O3CONCAT'   //                          &
+                                     TRIM( TmpHt ) //'ABOVESFC' )  THEN
+       IF ( isDesc    ) Desc  = 'O3 concentration at ' // TRIM( TmpHt ) //   &
+                                ' above the surface'
+       IF ( isUnits   ) Units = 'mol mol-1 dry'
+       IF ( isRank    ) Rank  =  2
+
+   ELSE
        
        !--------------------------------------------------------------------
        ! Could not find metadata, so exit with error message
