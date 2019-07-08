@@ -33,7 +33,7 @@ MODULE Diagnostics_mod
 ! !PRIVATE MEMBER FUNCTIONS
 !
   PRIVATE :: Set_SpcConc_Diagnostic
-!
+  PRIVATE :: Set_SpcConc_Diags_VVDry
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -118,52 +118,37 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at Set_Diagnostics_EndofTimestep ' // ModLoc
 
-    !-----------------------------------------------------------------------
-    ! Set species concentration for restart in units of mol/mol dry air
-    !-----------------------------------------------------------------------
-    IF ( State_Diag%Archive_SpeciesRst ) THEN
-       CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesRst',                &
-                                    State_Diag%SpeciesRst,                  &
-                                    Input_Opt,  State_Chm,                  &
-                                    State_Grid, State_Met, RC              )
+! NOTE: If you need to change SpeciesConc from "v/v dry" to other units,
+! then uncomment this subroutine call.  Also comment out where SpeciesConc
+! gets updated in routine Set_SpcConc_Diags_VVDry below.
+!    !-----------------------------------------------------------------------
+!    ! Set species concentration diagnostic in units specified in state_diag_mod
+!    !-----------------------------------------------------------------------
+!    IF ( State_Diag%Archive_SpeciesConc ) THEN
+!       CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesConc',                &
+!                                    State_Diag%SpeciesConc,                  &
+!                                    Input_Opt,  State_Chm,                   &
+!                                    State_Grid, State_Met,  RC              )
+!
+!       ! Trap potential errors
+!       IF ( RC /= GC_SUCCESS ) THEN
+!          ErrMsg = 'Error encountered setting species concentration diagnostic'
+!          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+!       ENDIF
+!    ENDIF
 
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered setting species concentration diagnostic'
-          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
-       ENDIF
-    ENDIF
+    !-----------------------------------------------------------------------
+    ! Set species concentration for diagnostics in units of
+    ! v/v dry air = mol/mol dry air
+    !-----------------------------------------------------------------------
+    CALL Set_SpcConc_Diags_VVDry( am_I_Root,  Input_Opt,  State_Chm,          &
+                                  State_Diag, State_Grid, State_Met, RC      )
 
-    !-----------------------------------------------------------------------
-    ! Set species concentration for BC files in units of mol/mol dry air
-    !-----------------------------------------------------------------------
-    IF ( State_Diag%Archive_SpeciesBC ) THEN
-       CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesBC',                 &
-                                    State_Diag%SpeciesBC,                   &
-                                    Input_Opt,  State_Chm,                  &
-                                    State_Grid, State_Met,  RC             )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered setting species concentration diagnostic'
-          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
-       ENDIF
-    ENDIF
-    
-    !-----------------------------------------------------------------------
-    ! Set species concentration diagnostic in units specified in state_diag_mod
-    !-----------------------------------------------------------------------
-    IF ( State_Diag%Archive_SpeciesConc ) THEN
-       CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesConc',                &
-                                    State_Diag%SpeciesConc,                  &
-                                    Input_Opt,  State_Chm,                   &
-                                    State_Grid, State_Met,  RC              )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered setting species concentration diagnostic'
-          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
-       ENDIF
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered setting species concentration diagnostic'
+       CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -432,6 +417,146 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Set_SpcConc_Diagnostic
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_SpcConc_Diags_VVDry
+!
+! !DESCRIPTION: Subroutine Set_SpcConc\_DiagVVDry sets several species
+!  concentration diagnostic arrays stored in State_Diag to the instantaneous
+!  State_Chm%Species values (in units of "v/v, dry air").
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_SpcConc_Diags_VVDry( am_I_Root,  Input_Opt,  State_Chm,     &
+                                      State_Diag, State_Grid, State_Met, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Met_Mod,  ONLY : MetState
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid   ! Grid State object
+    TYPE(MetState),   INTENT(IN)    :: State_Met    ! Meteorology State obj
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm    ! Chemistry State object
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag   ! Diagnsotics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC           ! Success or failure?
+!
+! !REMARKS:
+!  This subroutine was written so as to minimize the number of unit
+!  conversions that occur per call (which happens once per timestep).
+!  Units  are now converted to and from "v/v dry air" only once per call.
+!  The prior algorithm, which used routine Set_SpcConc_Diagnostic,
+!  was converting units 2 or 3 times per call, which can make run times
+!  substantially longer.
+!
+!  The State_Diag%SpeciesConc diagnostic has units of "mol mol-1 dry",
+!  which is equivalent to "v/v dry".  Therefore, we can include the
+!  State_Diag%SpeciesConc diagnostic in this routine.  But if you change
+!  the units of State_Diag%SpeciesConc, you should instead comment it out
+!  below and call routine Set_SpcConc_Diagnostic instead.  This will
+!  ensure that State_Diag%SpeciesConc will get set to the proper units.
+!
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
+    LOGICAL            :: Found
+    INTEGER            :: I, J, L, N
+
+    !====================================================================
+    ! Set_SpcConc_Diags_VVDry begins here!
+    !====================================================================
+
+    ! Assume success
+    RC      =  GC_SUCCESS
+    Found   = .FALSE.
+    ThisLoc = ' -> Set_SpcConc_Diagnostics ' // ModLoc
+
+    ! We a ssume all diagnostics are already in [v/v dry]
+    ! This will allow us to minimize unit conversions
+    Units   = 'v/v dry'
+
+    ! Convert State_Chm%Species unit to [v/v dry]
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt,         State_Chm,        &
+                            State_Grid, State_Met,         Units,            &
+                            RC,         OrigUnit=OrigUnit                   )
+
+    ! Error handling
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error converting species units for archiving diagnostics #1'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Copy species concentrations to diagnostic array [v/v dry]
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( I, J, L, N )
+    DO N = 1, State_Chm%nSpecies
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Boundary conditions for nested grid [v/v dry]
+       IF ( State_Diag%Archive_SpeciesBC ) THEN
+          State_Diag%SpeciesBC(I,J,L,N) = State_Chm%Species(I,J,L,N)
+       ENDIF
+
+       ! Species concentrations diagnostic [v/v dry]
+       ! NOTE: If you change the units of SpeciesConc in state_diag_mod.F90,
+       ! then comment this IF block out and then also uncomment the IF block
+       ! in the main routine above where Set_SpcConc_Diagnostic is called.
+       IF ( State_Diag%Archive_SpeciesConc ) THEN
+          State_Diag%SpeciesConc(I,J,L,N) = State_Chm%Species(I,J,L,N)
+       ENDIF
+
+       ! Species concentrations for restart file [v/v dry]
+       IF ( State_Diag%Archive_SpeciesRst ) THEN
+          State_Diag%SpeciesRst(I,J,L,N) = State_Chm%Species(I,J,L,N)
+       ENDIF
+
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Convert State_Chm%Species back to original unit
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,                &
+                            State_Grid, State_Met, OrigUnit,  RC            )
+
+    ! Error handling
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error converting species units for archiving diagnostics #2'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Set_SpcConc_Diags_VVDry
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
