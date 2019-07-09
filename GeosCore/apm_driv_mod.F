@@ -1,4 +1,4 @@
-#if defined ( APM )
+#if defined( APM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -15,9 +15,8 @@
 !
       MODULE APM_DRIV_MOD
 
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp, f4, f8)
-      USE PhysConstants                    ! Physical constants
-!      USE CMN_SIZE_MOD             ! Size parameters
+      USE PRECISION_MOD
+      USE PhysConstants
 !
 ! !USES:
 !
@@ -42,7 +41,8 @@
       REAL*4,  ALLOCATABLE, PUBLIC :: RH3DAPM(:,:,:,:,:)
       REAL*4,  ALLOCATABLE, PUBLIC :: PBLH2DAPM(:,:,:,:)
 
-      REAL*8,  ALLOCATABLE, PUBLIC :: EMITNH3(:,:,:),EMITSO2(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: EMITNH3(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: EMITSO2(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: DRYDEP(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: WETDEP(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: CONDEP(:,:,:,:)
@@ -57,17 +57,15 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: BCLIFE(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: OCLIFE(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: TEMPOUT(:,:,:,:)
-
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPGF(:,:,:)  !Yu+ 6/1/11
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAONH3(:,:,:)  !Yu+ 6/1/11
-      REAL*8,  ALLOCATABLE, PUBLIC :: YCOD3D(:,:,:)  !Yu+ 7/12/12
-      REAL*8,  ALLOCATABLE, PUBLIC :: TCOD3D(:,:,:,:)  !Yu+ 7/12/12
-      REAL*8,  ALLOCATABLE, PUBLIC :: YHTRC3D(:,:,:)  !Yu+ 10/16/13
-      REAL*8,  ALLOCATABLE, PUBLIC :: YHTR3D(:,:,:)  !Yu+ 10/16/13
-      REAL*8,  ALLOCATABLE, PUBLIC :: YHTRC03D(:,:,:)  !Yu+ 10/16/13
-      REAL*8,  ALLOCATABLE, PUBLIC :: YHTR03D(:,:,:)  !Yu+ 10/16/13
-
-      REAL*8,  ALLOCATABLE, PUBLIC :: YUV(:,:,:,:)  !Yu+ 2/21/14
+      REAL*8,  ALLOCATABLE, PUBLIC :: SPGF(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TAONH3(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: YCOD3D(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TCOD3D(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: YHTRC3D(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: YHTR3D(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: YHTRC03D(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: YHTR03D(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: YUV(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: AERAREA(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: AERDRYR(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: GAMMAPM(:,:,:,:)
@@ -94,16 +92,17 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC                       :: APM_DRIV
-      PUBLIC                       :: AERONUM
-      PUBLIC                       :: INIT_APM3D
-      PUBLIC                       :: CLEANUP_APM3D
-      PUBLIC                       :: APM_RADFOUT
+      PUBLIC  :: APM_DRIV
+      PUBLIC  :: AERONUM
+      PUBLIC  :: INIT_APM3D
+      PUBLIC  :: CLEANUP_APM3D
+      PUBLIC  :: APM_RADFOUT
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE                      :: APM3DQGEOS
-      PRIVATE                      :: GET_OH
+      PRIVATE :: APM_RADFDRIV
+      PRIVATE :: APM3DQGEOS
+      PRIVATE :: GET_OH
 !
 ! !REMARKS:
 !  The APM model was designed and developed for implementation into GEOS-Chem 
@@ -189,45 +188,6 @@
       REAL*8,        ALLOCATABLE :: MASSISRP(:,:,:,:)
       REAL*8,        ALLOCATABLE :: MASSMESA(:,:,:,:)
 
-! Add opt arrays for radf calculation (yfq, 2011).
-#if   defined( GRID2x25 )
-      INTEGER, PARAMETER :: IIPAR=144, JJPAR=91
-#endif
-
-#if   defined( GRID4x5 )
-      INTEGER, PARAMETER :: IIPAR=72, JJPAR=46
-#endif
-
-#if defined( GRID025x03125 )
-#if defined( NESTED_CH )
-      INTEGER, PARAMETER :: IIPAR=225, JJPAR=161
-#endif
-#if defined( NESTED_NA )
-      INTEGER, PARAMETER :: IIPAR=225, JJPAR=202
-#endif
-#if defined( NESTED_EU )
-      INTEGER, PARAMETER :: IIPAR=177, JJPAR=115
-#endif
-#endif
-
-#if defined( GRID05x0666 )
-#if defined( NESTED_CH )
-      INTEGER, PARAMETER :: IIPAR=121, JJPAR=133
-#endif
-#if defined( NESTED_NA )
-      INTEGER, PARAMETER :: IIPAR=151, JJPAR=121
-#endif
-#if defined( NESTED_EU )
-      INTEGER, PARAMETER :: IIPAR=121, JJPAR=81
-#endif
-#endif
-
-#if   defined( GRIDREDUCED )
-      INTEGER, PARAMETER :: LLPAR=47
-#else
-      INTEGER, PARAMETER :: LLPAR=72
-#endif
-!OPT+
 !      INTEGER, PARAMETER :: MWL=5   ! 0.3, 0.55, 0.94, 1.785, 3.19 um
       INTEGER, PARAMETER :: MWL=16   ! 
 !      DATA YWLS/0.23,0.30,0.39,0.50,0.53,0.55,0.70,1.01,
@@ -263,58 +223,66 @@
 
       REAL*8,        ALLOCATABLE :: ZBABS3D(:,:,:,:)
 
-
 ! for output
 !      INTEGER, PARAMETER :: NBS = 4   !CCCMa
-      INTEGER, PARAMETER :: NBS = 14   !rrtmg
-      INTEGER, PARAMETER :: NBL = 9
-      INTEGER   :: NWLS(NBS)
-      REAL,SAVE :: ALBDRR(IIPAR,JJPAR,NBS)   
-
-      REAL,SAVE :: ZTCST(IIPAR,JJPAR,NTYP),ZTCSB(IIPAR,JJPAR,NTYP)
-      REAL,SAVE :: ZTFST(IIPAR,JJPAR,NTYP),ZTFSB(IIPAR,JJPAR,NTYP)
-      REAL,SAVE :: ZTFSA(IIPAR,JJPAR,NTYP)
-      REAL,SAVE :: ZTCLT(IIPAR,JJPAR,NTYP),ZTCLB(IIPAR,JJPAR,NTYP)
-      REAL,SAVE :: ZTFUL(IIPAR,JJPAR,NTYP),ZTFDL(IIPAR,JJPAR,NTYP)
-      REAL,SAVE :: ZTFLA(IIPAR,JJPAR,NTYP)
-      REAL,SAVE :: ZTAOD(IIPAR,JJPAR,NTYP)
-
-      REAL,SAVE :: ZCLDF(IIPAR,JJPAR)
-      REAL,SAVE :: ZALB(IIPAR,JJPAR)
-      REAL,SAVE :: ZMALB(IIPAR,JJPAR,NBS)
-      REAL,SAVE :: ZCST(IIPAR,JJPAR),ZCSB(IIPAR,JJPAR),ZFST(IIPAR,JJPAR)
-      REAL,SAVE :: ZCLD(IIPAR,JJPAR),ZCLD0(IIPAR,JJPAR)
-      REAL,SAVE :: ZFSB(IIPAR,JJPAR),ZFSA(IIPAR,JJPAR)
-!      REAL,SAVE :: ZCLT(IIPAR,JJPAR),ZCLB(IIPAR,JJPAR),ZFUL(IIPAR,JJPAR)
-!      REAL,SAVE :: ZFDL(IIPAR,JJPAR),ZFLA(IIPAR,JJPAR)
-
-      REAL,SAVE :: ZAOD(IIPAR,JJPAR)
-      REAL,SAVE :: ZCOD(IIPAR,JJPAR)
-      REAL,SAVE :: ZCODGC(IIPAR,JJPAR)
-      REAL,SAVE :: ZAODOUT1(IIPAR,JJPAR)
-      REAL,SAVE :: ZAODOUT3(IIPAR,JJPAR)
-
-      REAL,SAVE :: ZAOD25(IIPAR,JJPAR),ZAOD50(IIPAR,JJPAR)
-      REAL,SAVE :: ZAOD75(IIPAR,JJPAR)
-
-      INTEGER,SAVE :: NAOD25(IIPAR,JJPAR),NAOD50(IIPAR,JJPAR)
-      INTEGER,SAVE :: NAOD75(IIPAR,JJPAR)
-
-      REAL,SAVE :: ZVIS(IIPAR,JJPAR)  ! visibility
-      REAL,SAVE :: THAZ(IIPAR,JJPAR)  ! time having haze
-      REAL,SAVE :: TFOG(IIPAR,JJPAR)  ! time having haze
-
-      REAL,SAVE :: ZAAOD(IIPAR,JJPAR)
-      REAL,SAVE :: ZAAODOUT1(IIPAR,JJPAR)
-      REAL,SAVE :: ZAAODOUT3(IIPAR,JJPAR)
-      REAL,SAVE :: ZABS(IIPAR,JJPAR)
-      REAL,SAVE :: ZWCL(IIPAR,JJPAR),ZWCI(IIPAR,JJPAR)
-
-      REAL,SAVE :: AOD(IIPAR,JJPAR), AAOD(IIPAR,JJPAR)   !Yu+ 6/2/11
-      REAL,SAVE :: AODOUT1(IIPAR,JJPAR), AAODOUT1(IIPAR,JJPAR)   !Yu+ 6/2/11
-      REAL,SAVE :: AODOUT3(IIPAR,JJPAR), AAODOUT3(IIPAR,JJPAR)   !Yu+ 6/2/11
-
-      REAL :: CODGC(IIPAR,JJPAR), TAOD(IIPAR,JJPAR,NTYP)
+      INTEGER, PARAMETER    :: NBS = 14   !rrtmg
+      INTEGER, PARAMETER    :: NBL = 9
+      INTEGER               :: NWLS(NBS)
+      REAL,    ALLOCATABLE  :: ALBDRR(:,:,:)   
+      REAL,    ALLOCATABLE  :: ZTCST(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTCSB(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTFST(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTFSB(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTFSA(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTCLT(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTCLB(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTFUL(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTFDL(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTFLA(:,:,:)
+      REAL,    ALLOCATABLE  :: ZTAOD(:,:,:)
+      REAL,    ALLOCATABLE  :: ZCLDF(:,:)
+      REAL,    ALLOCATABLE  :: ZALB(:,:)
+      REAL,    ALLOCATABLE  :: ZMALB(:,:,:)
+      REAL,    ALLOCATABLE  :: ZCST(:,:)
+      REAL,    ALLOCATABLE  :: ZCSB(:,:)
+      REAL,    ALLOCATABLE  :: ZFST(:,:)
+      REAL,    ALLOCATABLE  :: ZCLD(:,:)
+      REAL,    ALLOCATABLE  :: ZCLD0(:,:)
+      REAL,    ALLOCATABLE  :: ZFSB(:,:)
+      REAL,    ALLOCATABLE  :: ZFSA(:,:)
+      REAL,    ALLOCATABLE  :: ZCLT(:,:)
+      REAL,    ALLOCATABLE  :: ZCLB(:,:)
+      REAL,    ALLOCATABLE  :: ZFUL(:,:)
+      REAL,    ALLOCATABLE  :: ZFDL(:,:)
+      REAL,    ALLOCATABLE  :: ZFLA(:,:)
+      REAL,    ALLOCATABLE  :: ZAOD(:,:)
+      REAL,    ALLOCATABLE  :: ZCOD(:,:)
+      REAL,    ALLOCATABLE  :: ZCODGC(:,:)
+      REAL,    ALLOCATABLE  :: ZAODOUT1(:,:)
+      REAL,    ALLOCATABLE  :: ZAODOUT3(:,:)
+      REAL,    ALLOCATABLE  :: ZAOD25(:,:)
+      REAL,    ALLOCATABLE  :: ZAOD50(:,:)
+      REAL,    ALLOCATABLE  :: ZAOD75(:,:)
+      INTEGER, ALLOCATABLE  :: NAOD25(:,:)
+      INTEGER, ALLOCATABLE  :: NAOD50(:,:)
+      INTEGER, ALLOCATABLE  :: NAOD75(:,:)
+      REAL,    ALLOCATABLE  :: ZVIS(:,:)
+      REAL,    ALLOCATABLE  :: THAZ(:,:)
+      REAL,    ALLOCATABLE  :: TFOG(:,:)
+      REAL,    ALLOCATABLE  :: ZAAOD(:,:)
+      REAL,    ALLOCATABLE  :: ZAAODOUT1(:,:)
+      REAL,    ALLOCATABLE  :: ZAAODOUT3(:,:)
+      REAL,    ALLOCATABLE  :: ZABS(:,:)
+      REAL,    ALLOCATABLE  :: ZWCL(:,:)
+      REAL,    ALLOCATABLE  :: ZWCI(:,:)
+      REAL,    ALLOCATABLE  :: AOD(:,:)
+      REAL,    ALLOCATABLE  ::  AAOD(:,:)
+      REAL,    ALLOCATABLE  :: AODOUT1(:,:)
+      REAL,    ALLOCATABLE  :: AAODOUT1(:,:)  
+      REAL,    ALLOCATABLE  :: AODOUT3(:,:)
+      REAL,    ALLOCATABLE  :: AAODOUT3(:,:)
+      REAL,    ALLOCATABLE  :: CODGC(:,:)
+      REAL,    ALLOCATABLE  :: TAOD(:,:,:)
 
 !      DATA YWLS/ 0.34,0.38,0.443,0.469,0.5,0.554,0.645,0.675, 
 !     &  0.865,0.94,1.02,1.24,1.64,1.785,2.13,3.19/ ! um
@@ -330,7 +298,7 @@
       REAL(fp),  PARAMETER   :: XNUMOL_OH   = 6.022e+23_fp / 17e-3_fp
       REAL(fp),  PARAMETER   :: CM3PERM3    = 1.e6_fp
 !Yu for output
-      REAL(f4), POINTER     :: OH(:,:,:)  => NULL()
+      REAL(f4),  POINTER     :: OH(:,:,:)  => NULL()
 
       CONTAINS
 !EOC
@@ -347,7 +315,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APM_DRIV( am_I_Root, Input_Opt, State_Met, State_Chm )
+      SUBROUTINE APM_DRIV( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -363,7 +332,6 @@
       USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
       USE TIME_MOD,     ONLY : GET_DAY,GET_HOUR,GET_MINUTE
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,GET_PBL_TOP_M
-      USE GC_GRID_MOD,  ONLY : GET_XMID,  GET_YMID
 
       USE APM_PHYS_MOD, ONLY : APM_PHYS
       USE APM_INIT_MOD, ONLY : IFNUCL,IFAG,IFCOATBC,NUCLAMINE,IFATHN
@@ -383,11 +351,14 @@
       use rrtmg_sw_init, only: rrtmg_sw_ini
       use rrtmg_sw_GCAPM, only : cldprop_swapm
 
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE State_Met_Mod, ONLY : MetState
-      USE State_Chm_Mod, ONLY : ChmState
-      USE State_Chm_Mod, ONLY : Ind_
-      USE TIME_MOD,           ONLY : GET_LOCALTIME
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_LOCALTIME
 
       USE CMN_SIZE_MOD             ! Size parameters
       use parkind, only : im => kind_im, rb => kind_rb
@@ -399,13 +370,17 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      real(kind=8), parameter :: cpdair = 1.004e3  ! Specific heat capacity of dry air
-                                                       ! at constant pressure at 273 K (J kg-1 K-1)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+! 
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
@@ -417,6 +392,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !DEFINED PARAMETERS:
+!
+      real(kind=8), parameter :: cpdair = 1.004e3  ! Specific heat capacity 
+                                                   ! of dry air at constant 
+                                                   ! pressure at 273 K 
+                                                   ! (J kg-1 K-1)
 !
 ! !LOCAL VARIABLES:
 !
@@ -474,16 +456,16 @@
       REAL*8  :: PRESS0, YSIGMA
       REAL*8  :: ACS,XAMINE,SCOS,LOCALTIME
       REAL*8  :: dumc, dumnc, pgam, lamc
-      REAL(kind=8)  :: CCLD(LLPAR)    !!! CLOUD COVER
-      REAL(kind=8)  :: CLDLIQ(LLPAR)    !!! CLOUD LIQUID WATER CONTENT 
-      REAL(kind=8)  :: CLDICE(LLPAR)    !!! CLOUD ICE WATER CONTENT 
-      REAL(kind=8)  :: REL(LLPAR)
-      REAL(kind=8)  :: REI(LLPAR)
-      REAL(kind=8)  :: taucloud(LLPAR,29)
-      REAL(kind=8)  :: taucloudl(LLPAR,29)
-      REAL(kind=8)  :: taucloudi(LLPAR,29)
-      REAL(kind=8)  :: ssacloudl(LLPAR,29)
-      REAL(kind=8)  :: ssacloudi(LLPAR,29)
+      REAL(kind=8)  :: CCLD(State_Grid%NZ)    !!! CLOUD COVER
+      REAL(kind=8)  :: CLDLIQ(State_Grid%NZ)    !!! CLOUD LIQUID WATER CONTENT 
+      REAL(kind=8)  :: CLDICE(State_Grid%NZ)    !!! CLOUD ICE WATER CONTENT 
+      REAL(kind=8)  :: REL(State_Grid%NZ)
+      REAL(kind=8)  :: REI(State_Grid%NZ)
+      REAL(kind=8)  :: taucloud(State_Grid%NZ,29)
+      REAL(kind=8)  :: taucloudl(State_Grid%NZ,29)
+      REAL(kind=8)  :: taucloudi(State_Grid%NZ,29)
+      REAL(kind=8)  :: ssacloudl(State_Grid%NZ,29)
+      REAL(kind=8)  :: ssacloudi(State_Grid%NZ,29)
 
       REAL*8  :: ERATIO(3)      ! ratio of NH3 emission to amine emission
       REAL*8  :: MWAMINE(3)
@@ -533,24 +515,23 @@
       CHARACTER(LEN=15)        :: SCASI
       REAL*8                   :: TSO4COAT,DNH3MAX
       REAL*8                   :: TH2O,TINORG   !Yu+ 6/1/11
-#if   defined( GRID2x25 )
-      REAL,SAVE                :: SEABIRDEM(144,91,2)
-      REAL                     :: BIRDNH3(144,91)
-#else
-      REAL,SAVE                :: SEABIRDEM(72,46,2)
-      REAL                     :: BIRDNH3(72,46)
-#endif
+!--------------------------------------------------------------------------
+! These do not appear to be used anymore (bmy, 6/18/19)
+!      REAL,SAVE                :: SEABIRDEM(State_Grid%NX,
+!     &                                      State_Grid%NY,2)
+!      REAL                     :: BIRDNH3(State_Grid%NX,
+!     &                                    State_Grid%NY)
+!--------------------------------------------------------------------------
 
-#if   defined( GRID2x25 ) || defined( GRID4x5 )
+      ! NOTE: We have removed GRID2x25, GRID4x5 switches (bmy, 6/18/19)
       INTEGER,SAVE :: ATOMGRID(2,400),GRIDNUM
       INTEGER :: RECID,ATOMGRIDIN(2),fileinfo
       CHARACTER(LEN=12) :: ATOMDATE
-#endif
 
       WRITE(6,*)'    - APM calculation '
 
 !GanLuo+ local time satellite outputs
-      CALL GET_LOCAL_TIME
+      CALL GET_LOCAL_TIME( State_Grid )
 
       ! Point to Spc
       Spc => State_Chm%Species
@@ -560,13 +541,14 @@
       DTAPM = DT  !s
 
       ! Compute diurnal scaling for OH
-      CALL OHNO3TIME
+      CALL OHNO3TIME( State_Grid )
 
 ! Calculate 3-D ionization rate
       IF(IFQANN.EQ.1) THEN
          IF(FIRST) THEN   ! only calculate Q once 
           WRITE(6,*)"CALCULATE 3-D ANNUAL MEAN IONIZATION RATES"
-          CALL APM3DQGEOS( am_I_Root, Input_Opt, State_Met, IY)
+          CALL APM3DQGEOS( am_I_Root,  Input_Opt,
+     &                     State_Grid, State_Met, IY)
           FIRST = .FALSE.
          ENDIF
 ! APM2+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -575,7 +557,7 @@
 !          IY = 1   ! Solar min, max Q
 !          IY = -1   ! Solar max, min Q
           WRITE(6,*)"CALCULATE 3-D IONIZATION RATES", IY
-          CALL APM3DQ(IY, State_Met, Input_Opt)
+          CALL APM3DQ( IY, Input_Opt, State_Grid, State_Met )
           FIRST = .FALSE.
          ENDIF
 ! APM2+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -584,34 +566,36 @@
 ! TEMPOUT
       IF(FIRST1)THEN
         IF(IFATOM>0.5)THEN
-#if     defined( GRID2x25 )
-          ATOMGRID=-999
-          GRIDNUM=0
-          CLOSE(100)
-          OPEN(100,FILE='flightAtom-geos225.txt')
-          DO
-            READ(100,*,IOSTAT=fileinfo)(ATOMGRIDIN(I),I=1,2)
-            if(fileinfo<0)exit
-            GRIDNUM=GRIDNUM+1
-            ATOMGRID(:,GRIDNUM)=ATOMGRIDIN
-          ENDDO
-          write(*,*)'ATOM2x2.5 outputs=',GRIDNUM
-#elif     defined( GRID4x5 )
-          ATOMGRID=-999
-          GRIDNUM=0
-          CLOSE(100)
-          OPEN(100,FILE='flightAtom-geos45.txt')
-          DO
-            READ(100,*,IOSTAT=fileinfo)(ATOMGRIDIN(I),I=1,2)
-            if(fileinfo<0)exit
-            GRIDNUM=GRIDNUM+1
-            ATOMGRID(:,GRIDNUM)=ATOMGRIDIN
-          ENDDO
-          write(*,*)'ATOM4x5 outputs=',GRIDNUM
-#else
-          WRITE(*,*)'Can only run ATom with 2x2.5 or 4x5'
-          STOP
-#endif
+
+          IF ( State_Grid%NX == 144 .and. State_Grid%NY == 91 ) THEN
+             ATOMGRID=-999
+             GRIDNUM=0
+             CLOSE(100)
+             OPEN(100,FILE='flightAtom-geos225.txt')
+             DO
+                READ(100,*,IOSTAT=fileinfo)(ATOMGRIDIN(I),I=1,2)
+                if(fileinfo<0)exit
+                GRIDNUM=GRIDNUM+1
+                ATOMGRID(:,GRIDNUM)=ATOMGRIDIN
+             ENDDO
+             write(*,*)'ATOM2x2.5 outputs=',GRIDNUM
+             
+          ELSE IF ( State_Grid%NX == 72 .and. State_Grid%NY == 41 ) THEN
+             ATOMGRID=-999
+             GRIDNUM=0
+             CLOSE(100)
+             OPEN(100,FILE='flightAtom-geos45.txt')
+             DO
+                READ(100,*,IOSTAT=fileinfo)(ATOMGRIDIN(I),I=1,2)
+                if(fileinfo<0)exit
+                GRIDNUM=GRIDNUM+1
+                ATOMGRID(:,GRIDNUM)=ATOMGRIDIN
+             ENDDO
+             write(*,*)'ATOM4x5 outputs=',GRIDNUM
+          ELSE
+             WRITE(*,*)'Can only run ATom with 2x2.5 or 4x5'
+             STOP
+          ENDIF
         ENDIF
 
         CALL  READCK6DTABLE
@@ -622,10 +606,10 @@
 ! init FCLOUD
         FCLOUD=0.D0
         DO N=26,NSO4
-        DO L=1,LLPAR
-        DO J=1,JJPAR
-        DO I=1,IIPAR
-          FCLOUD(I,J,L,N)=1/15.D0
+        DO L=1,State_Grid%NZ
+        DO J=1,State_Grid%NY
+        DO I=1,State_Grid%NX
+           FCLOUD(I,J,L,N)=1/15.D0
         ENDDO
         ENDDO
         ENDDO
@@ -634,23 +618,23 @@
 ! APM2+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! Get  (I, J) of selected sites
         IF(IFSITE.EQ.1) THEN
-         CALL YSITESIJ_GL            ! global sites
+         CALL YSITESIJ_GL( State_Grid )             ! global sites
         ELSEIF(IFSITE.EQ.7.or.IFSITE.EQ.73) THEN
-         CALL YSITESIJ_GL1           ! global sites 1
+         CALL YSITESIJ_GL1( State_Grid )            ! global sites 1
         ELSEIF(IFSITE.EQ.9) THEN
-         CALL YSITESIJ_BACCHUS           ! for CCN intercomparison
+         CALL YSITESIJ_BACCHUS( State_Grid )        ! for CCN intercomparison
         ELSEIF(IFSITE.EQ.2) THEN
-         CALL YSITESIJ_EU         ! nest EU sites
+         CALL YSITESIJ_EU( State_Grid )              ! nest EU sites
         ELSEIF(IFSITE.EQ.3) THEN
-         CALL YSITESIJ_AC            ! global AEROCOM sites
+         CALL YSITESIJ_AC( State_Grid )             ! global AEROCOM sites
         ELSEIF(IFSITE.EQ.4) THEN
-         CALL YSITESIJ_CH         ! nest CH east asia sites
+         CALL YSITESIJ_CH( State_Grid )             ! nest CH east asia sites
         ELSEIF(IFSITE.EQ.41) THEN
-         CALL YSITESIJ_CH1         ! nest CH east asia sites
+         CALL YSITESIJ_CH1( State_Grid )           ! nest CH east asia sites
         ELSEIF(IFSITE.EQ.5) THEN
-         CALL YSITESIJ_NA         ! nest NA sites
+         CALL YSITESIJ_NA( State_Grid )             ! nest NA sites
         ELSEIF(IFSITE.EQ.6) THEN
-         CALL YSITESIJ_AOD_CN         ! AOD_CN sites
+         CALL YSITESIJ_AOD_CN( State_Grid )         ! AOD_CN sites
         ENDIF
 ! APM2+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -658,7 +642,8 @@
         IFTEMPOUT=.TRUE.
         IF(IFTEMPOUT)THEN
          NTEMPOUT=NTEMPOUT1 !number of species you want to output
-         ALLOCATE( TEMPOUT( IIPAR, JJPAR, LLPAR, NTEMPOUT ) )
+         ALLOCATE( TEMPOUT( State_Grid%NX, State_Grid%NY, 
+     &                      State_Grid%NZ, NTEMPOUT       ) )
          TEMPOUT = 0d0
          NPOUTSTEPS = 0
          FIRST1=.FALSE.
@@ -696,13 +681,13 @@
 !Luo#if   defined( GRID4x5 )
 !Luo        OPEN(121,FILE='geosdata/GEOS_4x5/MODISIER/'//
 !Luo     &      'MODG45IER'//YEAROUT//MONOUT//'.bin',
-!Luo     &       ACCESS='DIRECT',FORM='UNFORMATTED',RECL=IIPAR*JJPAR)
+!Luo     &       ACCESS='DIRECT',FORM='UNFORMATTED',RECL=State_Grid%NX*State_Grid%NY)
 !Luo        READ(121,REC=1)RCLDI2D
 !Luo#endif
 !Luo#if   defined( GRID2x25 )
 !Luo        OPEN(121,FILE='geosdata/GEOS_2x2.5/MODISIER/'//
 !Luo     &      'MODG45IER'//YEAROUT//MONOUT//'.bin',
-!Luo     &       ACCESS='DIRECT',FORM='UNFORMATTED',RECL=IIPAR*JJPAR)
+!Luo     &       ACCESS='DIRECT',FORM='UNFORMATTED',RECL=State_Grid%NX*State_Grid%NY)
 !Luo        READ(121,REC=1)RCLDI2D
 !Luo#endif
 
@@ -720,9 +705,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          UPTAKE(I,J,L,1)=Spc(I,J,L,APMIDS%id_NH3)
          SPGF(I,J,L) = 1.d0
          MASSISRP(I,J,L,1)=Spc(I,J,L,APMIDS%id_NH3)
@@ -750,9 +735,9 @@
 !$OMP+PRIVATE( TSO4COAT ,DNH3MAX            )
 !$OMP+PRIVATE( TH2O, XM,VRATIO)
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Temperature [K]
          TEMPI = MAX(235.D0,State_Met%T(I,J,L))
@@ -907,9 +892,9 @@
 !******* MESA *******
       if(IFDOISRP==0.or.IFDOISRP==2.or.IFDOISRP==3)then
 
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
         if((Spc(I,J,L,APMIDS%id_NH3)+
      &      Spc(I,J,L,APMIDS%id_NH4)+
@@ -1030,9 +1015,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,    J,      L)
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
         Spc(I,J,L,APMIDS%id_NH3)=MASSISRP(I,J,L,1)
         Spc(I,J,L,APMIDS%id_NH4)=MASSISRP(I,J,L,2)
 
@@ -1048,9 +1033,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,    J,      L)
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
         Spc(I,J,L,APMIDS%id_NH3)=MASSMESA(I,J,L,1)
         Spc(I,J,L,APMIDS%id_NH4)=MASSMESA(I,J,L,2)
 
@@ -1106,19 +1091,19 @@
 !$OMP+PRIVATE( taucloud, taucloudl, taucloudi, ssacloudl, ssacloudi )
 !!$OMP+PRIVATE( nuci, onihf, oniimm, onidep, onimey)
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
        
        YF = 0.
        YC = 1.
        PRESS0 = GET_PEDGE(I,J,1) * 1.d2    ! surafce P in Pa
 
        ! Local time: 0-23.999
-       LOCALTIME = GET_LOCALTIME(I,J,1)
+       LOCALTIME = GET_LOCALTIME( I, J, 1, State_Grid )
 
        SCOS   = COS((LOCALTIME/12.-1.)*3.1415926)
 
-       DO L = 1, LLPAR
+       DO L = 1, State_Grid%NZ
         PRESS = GET_PCENTER(I,J,L) * 1.d2 ! P at level center [Pa]
         YSIGMA = PRESS/PRESS0
         TK    = State_Met%T(I,J,L) ! Temperature [K]
@@ -1918,11 +1903,22 @@
        TEMPOUT1(NTEMPOUT1-4)=NH3EMIT
      &     *8.64d4/XAREA ! NH3 emission -- kg N/km2-day
 
-       TEMPOUT1(NTEMPOUT1-3)=YAMINEEMIT(2)*14./MWAMINE(2)   !kg-N/box-sec (DMA)
+!-------------------------------------------------------------------------------
+! Prior to 6/28/19:
+! Comment out problematic code.  Gan Luo says that we can set all of these
+! to zero, because we do not simulate amines at this point.
+! (bmy, 6/28/19)
+!       TEMPOUT1(NTEMPOUT1-3)=YAMINEEMIT(2)*14./MWAMINE(2)   !kg-N/box-sec (DMA)
+!!       TEMPOUT1(NTEMPOUT1-3)=CNH3
+!       TEMPOUT1(NTEMPOUT1-2)=CAMINE(1)
+!       TEMPOUT1(NTEMPOUT1-1)=CAMINE(2)
+!       TEMPOUT1(NTEMPOUT1)  =CAMINE(3)
+!------------------------------------------------------------------------------
+       TEMPOUT1(NTEMPOUT1-3)=0.0d0
 !       TEMPOUT1(NTEMPOUT1-3)=CNH3
-       TEMPOUT1(NTEMPOUT1-2)=CAMINE(1)
-       TEMPOUT1(NTEMPOUT1-1)=CAMINE(2)
-       TEMPOUT1(NTEMPOUT1)  =CAMINE(3)
+       TEMPOUT1(NTEMPOUT1-2)=0.0d0
+       TEMPOUT1(NTEMPOUT1-1)=0.0d0
+       TEMPOUT1(NTEMPOUT1)  =0.0d0
 
 !       TEMPOUT1(NTEMPOUT1-5) = YCDN*YCLDLIQ*YCLDF !cloud liq weighted CDN
 !       TEMPOUT1(NTEMPOUT1-4) = YRCLDL*YCLDLIQ*YCLDF !cloud liq weighted RCLDL
@@ -2183,7 +2179,7 @@
 
        ENDDO
 
-       call cldprop_swapm(LLPAR, CCLD, CLDICE, CLDLIQ, REI, REL,
+       call cldprop_swapm(State_Grid%NZ, CCLD, CLDICE, CLDLIQ, REI, REL,
      &                    taucloud, taucloudl, taucloudi,
      &                    ssacloudl, ssacloudi)
 
@@ -2203,14 +2199,17 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      write(*,*)'LuoSSA',sum(TCOD3D(:,:,:,1))/size(TCOD3D(:,:,:,1)),
-     &                   sum(TCOD3D(:,:,:,5))/size(TCOD3D(:,:,:,5))
+!GL      write(*,*)'LuoSSA',sum(TCOD3D(:,:,:,1))/size(TCOD3D(:,:,:,1)),
+!GL     &                   sum(TCOD3D(:,:,:,5))/size(TCOD3D(:,:,:,5))
 
 !
 ! radf calculation
 
-
-      IF(IFRADF.EQ.1) CALL APM_RADFDRIV( State_Met, State_Chm )
+      ! Now need to pass State objects 
+      IF(IFRADF.EQ.1) THEN
+         CALL APM_RADFDRIV( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, State_Met, RC )
+      ENDIF
 
 !APM2+IFSITE++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       IF(IFSITE.GT.0) THEN
@@ -2274,8 +2273,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
         IF(MODISOUT(I,J,5)>0.D0)THEN
           TEMPOUT(I,J,1,NTEMPOUT1-10)=TEMPOUT(I,J,1,NTEMPOUT1-10)
      &                               +MODISOUT(I,J,1)/MODISOUT(I,J,5)
@@ -2370,9 +2369,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
         IF(SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1)))
      &    >1.d-30)THEN
           MWSIZE3D(I,J,L,1)=MWSIZE3D(I,J,L,1)/
@@ -2405,8 +2404,6 @@
       END SUBROUTINE APM_DRIV
 !EOC
 !
-
-
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -2425,44 +2422,55 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APM_RADFDRIV( State_Met, State_Chm )
+      SUBROUTINE APM_RADFDRIV( am_I_Root,  Input_Opt,  State_Chm,
+     &                         State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE APM_INIT_MOD, ONLY : IFSITE,SITEOUT2D
       USE APM_INIT_MOD, ONLY : IFALBMODIS 
-      USE DAO_MOD,      ONLY : IS_WATER             !
-      USE DAO_MOD,      ONLY : IS_ICE               !
-      USE DAO_MOD,      ONLY : IS_LAND              !
-      USE TIME_MOD,     ONLY : GET_DAY_OF_YEAR      !
+      USE DAO_MOD,      ONLY : IS_WATER
+      USE DAO_MOD,      ONLY : IS_ICE
+      USE DAO_MOD,      ONLY : IS_LAND
+      USE TIME_MOD,     ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
       USE TIME_MOD,     ONLY : GET_DAY,GET_HOUR,GET_MINUTE
-      USE TIME_MOD,     ONLY : GET_NHMS             !
+      USE TIME_MOD,     ONLY : GET_NHMS
       USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
       USE TIME_MOD,     ONLY : GET_LOCALTIME
-
-
-      USE APM_ALB_MOD,  ONLY : APM_ALB              ! get surface albedo from MODIS      
-      USE APM_RADF_MOD, ONLY : APM_RADF             ! radiation
-      USE PRESSURE_MOD, ONLY : GET_PEDGE            !
+      USE APM_ALB_MOD,  ONLY : APM_ALB         ! get surface albedo from MODIS
+      USE APM_RADF_MOD, ONLY : APM_RADF        ! radiation
+      USE PRESSURE_MOD, ONLY : GET_PEDGE       !
       USE PRESSURE_MOD, ONLY : GET_PCENTER
 
       use rrtmg_sw_GCAPM, only : rrtmg_sw
       use parkind, only : im => kind_im, rb => kind_rb
 
-      USE State_Met_Mod, ONLY : MetState
-      USE State_Chm_Mod, ONLY : ChmState
+      USE ErrCode_Mod                    
+      Use Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      Use State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!     
 ! !REVISION HISTORY: 
 !  2-6/2011 - X. Ma & F. Yu, SUNY-Albany
 !  8/2012 - F. Yu, SUNY-Albany
@@ -2504,36 +2512,36 @@
 !      REAL  :: CLDT            !!! COLUMN CLOUD COVER
       REAL(kind=rb)  :: PSURF, TSURF
 
-      REAL(kind=rb)  :: AIRD(LLPAR)    
-      REAL(kind=rb)  :: P1D (LLPAR)
-      REAL(kind=rb)  :: PE1D (0:LLPAR)
-      REAL(kind=rb)  :: PDP (LLPAR)
-      REAL(kind=rb)  :: T1D (LLPAR)
-      REAL(kind=rb)  :: TE1D (0:LLPAR)
-      REAL(kind=rb)  :: WKL (mxmol,LLPAR)
-      REAL(kind=rb)  :: COLDRY(LLPAR)    !!! dry air column density (mol/cm2)
-      REAL(kind=rb)  :: CCLD(LLPAR)    !!! CLOUD COVER
-      REAL(kind=rb)  :: CLDLIQ(LLPAR)    !!! CLOUD LIQUID WATER CONTENT 
-      REAL(kind=rb)  :: CLDICE(LLPAR)    !!! CLOUD ICE WATER CONTENT 
-      REAL(kind=rb)  :: REL(LLPAR)
-      REAL(kind=rb)  :: REI(LLPAR)
+      REAL(kind=rb)  :: AIRD(State_Grid%NZ)    
+      REAL(kind=rb)  :: P1D (State_Grid%NZ)
+      REAL(kind=rb)  :: PE1D (0:State_Grid%NZ)
+      REAL(kind=rb)  :: PDP (State_Grid%NZ)
+      REAL(kind=rb)  :: T1D (State_Grid%NZ)
+      REAL(kind=rb)  :: TE1D (0:State_Grid%NZ)
+      REAL(kind=rb)  :: WKL (mxmol,State_Grid%NZ)
+      REAL(kind=rb)  :: COLDRY(State_Grid%NZ)    !!! dry air column density (mol/cm2)
+      REAL(kind=rb)  :: CCLD(State_Grid%NZ)    !!! CLOUD COVER
+      REAL(kind=rb)  :: CLDLIQ(State_Grid%NZ)    !!! CLOUD LIQUID WATER CONTENT 
+      REAL(kind=rb)  :: CLDICE(State_Grid%NZ)    !!! CLOUD ICE WATER CONTENT 
+      REAL(kind=rb)  :: REL(State_Grid%NZ)
+      REAL(kind=rb)  :: REI(State_Grid%NZ)
 
-      REAL  :: YCOD(LLPAR)
+      REAL  :: YCOD(State_Grid%NZ)
 
-      REAL  :: MALB(IIPAR,JJPAR,KWL)   
+      REAL  :: MALB(State_Grid%NX,State_Grid%NY,KWL)   
 
-      REAL(kind=rb)  :: TEXT  (LLPAR,NBS,NTYP)
-      REAL(kind=rb)  :: TOMGA (LLPAR,NBS,NTYP)
-      REAL(kind=rb)  :: TG    (LLPAR,NBS,NTYP)
-      REAL(kind=rb)  :: TABS  (LLPAR,NBL,NTYP)
+      REAL(kind=rb)  :: TEXT  (State_Grid%NZ,NBS,NTYP)
+      REAL(kind=rb)  :: TOMGA (State_Grid%NZ,NBS,NTYP)
+      REAL(kind=rb)  :: TG    (State_Grid%NZ,NBS,NTYP)
+      REAL(kind=rb)  :: TABS  (State_Grid%NZ,NBL,NTYP)
 
-      REAL(kind=rb)  :: EXT  (LLPAR,NBS)
-      REAL(kind=rb)  :: OMGA (LLPAR,NBS)
-      REAL(kind=rb)  :: G    (LLPAR,NBS)
-      REAL(kind=rb)  :: ABSA (LLPAR,NBL)
+      REAL(kind=rb)  :: EXT  (State_Grid%NZ,NBS)
+      REAL(kind=rb)  :: OMGA (State_Grid%NZ,NBS)
+      REAL(kind=rb)  :: G    (State_Grid%NZ,NBS)
+      REAL(kind=rb)  :: ABSA (State_Grid%NZ,NBL)
 
-      REAL(kind=rb)  :: YHTRC(LLPAR),YHTR(LLPAR)    !heating profiles
-      REAL(kind=rb)  :: YHTRC0(LLPAR),YHTR0(LLPAR)
+      REAL(kind=rb)  :: YHTRC(State_Grid%NZ),YHTR(State_Grid%NZ)    !heating profiles
+      REAL(kind=rb)  :: YHTRC0(State_Grid%NZ),YHTR0(State_Grid%NZ)
 
       REAL(kind=rb)  :: SALB(NBS)              
 
@@ -2542,11 +2550,11 @@
       REAL(kind=rb)  :: CST,CSB,FST,FSB,FSA
       REAL(kind=rb)  :: CST0,CSB0,FST0,FSB0,FSA0
 
-      REAL  :: THRS(LLPAR,NTYP),THRL(LLPAR,NTYP)
+      REAL  :: THRS(State_Grid%NZ,NTYP),THRL(State_Grid%NZ,NTYP)
       REAL  :: TCLT(NTYP),TCLB(NTYP),TFUL(NTYP),TFDL(NTYP),TFLA(NTYP)
 
-      REAL  :: HRS  (LLPAR),HRL  (LLPAR)
-      REAL  :: HRS0 (LLPAR),HRL0 (LLPAR)
+      REAL  :: HRS  (State_Grid%NZ),HRL  (State_Grid%NZ)
+      REAL  :: HRS0 (State_Grid%NZ),HRL0 (State_Grid%NZ)
       REAL  :: CLT,CLB,FUL,FDL,FLA
       REAL  :: CLT0,CLB0,FUL0,FDL0,FLA0
       REAL  :: WCL, WCI
@@ -2569,6 +2577,9 @@
       INTEGER :: IDO3                 !
       INTEGER :: id_O3                ! O3 in g.mol ??
       INTEGER :: id_CO                ! 
+
+      RC = GC_SUCCESS
+
       ! Point to Spc
       Spc => State_Chm%Species
 
@@ -2580,7 +2591,9 @@
         WRITE(6,*)"KOUT2=",KOUT2, YWLS(KOUT2)
         WRITE(6,*)"KOUT3=",KOUT3, YWLS(KOUT3)
 
-        CALL APM_RADFOUT
+        ! Need to pass state objects here (bmy, 6/18/19)
+        CALL APM_RADFOUT( am_I_Root,  Input_Opt,  State_Chm,
+     &                    State_Grid, State_Met, RC )
 
         AFLAG=0
         DO i=1,366
@@ -2609,8 +2622,9 @@
         IF(IFALBMODIS.EQ.1) THEN
          WRITE(6,*)"NEED TO READ SURFACE ALBEDO DATA WHEN RESTART"
          IF(AFLAG(DAY_YR) == 1 .and. KHOUR == 0) THEN  
-          CALL APM_ALB(DAY_YR,KYEAR,IIPAR,JJPAR,KWL,MALB) 
-          CALL GETALBDRR(IIPAR,JJPAR,MALB,State_Met)
+          CALL APM_ALB(DAY_YR,KYEAR,State_Grid%NX,
+     &                 State_Grid%NY,KWL,MALB) 
+          CALL GETALBDRR(State_Grid%NX,State_Grid%NY,MALB,State_Met)
          ENDIF
          IF(AFLAG(DAY_YR) == 0) THEN
           MINIMUM = 366 
@@ -2625,8 +2639,9 @@
           ENDDO 
           print*,'READ DATA FROM THIS DAY',DAY_READ
           IF( KHOUR == 0) THEN
-           CALL APM_ALB(DAY_READ,KYEAR,IIPAR,JJPAR,KWL,MALB)
-           CALL GETALBDRR(IIPAR,JJPAR,MALB,State_Met)
+           CALL APM_ALB(DAY_READ,KYEAR,State_Grid%NX,
+     &                  State_Grid%NY,KWL,MALB)
+           CALL GETALBDRR(State_Grid%NX,State_Grid%NY,MALB,State_Met)
           ENDIF
          ENDIF
         ENDIF
@@ -2636,8 +2651,8 @@
        IF(IFALBMODIS.EQ.1) THEN
 ! read data every 8 days
         IF(AFLAG(DAY_YR) == 1 .and. KHOUR == 0) THEN
-         CALL APM_ALB(DAY_YR,KYEAR,IIPAR,JJPAR,KWL,MALB)
-         CALL GETALBDRR(IIPAR,JJPAR,MALB,State_Met)
+         CALL APM_ALB(DAY_YR,KYEAR,State_Grid%NX,State_Grid%NY,KWL,MALB)
+         CALL GETALBDRR(State_Grid%NX,State_Grid%NY,MALB,State_Met)
         ENDIF 
        ELSE
         DO IWL=1,NBS
@@ -2670,8 +2685,8 @@
 !$OMP+PRIVATE( YCOD )
 !$OMP+SCHEDULE( DYNAMIC )
 !
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
 ! Initialize parameters for 1-column rad calculation
       AOD(I,J)  =1.d-20
@@ -2685,7 +2700,7 @@
 
 !
 ! Optical properties: RRTMG need AOD instead of ext, now EXT is layer AOD
-      DO L = 1, LLPAR
+      DO L = 1, State_Grid%NZ
         DO IWL = 1, NBS
            EXT(L,IWL) =ZBEXT3D(I,J,L,NWLS(IWL))*
      &                 State_Met%BXHEIGHT(I,J,L)*100.
@@ -2780,7 +2795,7 @@
         ZABS(I,J)= ZABS(I,J)+ State_Met%BXHEIGHT(I,J,L)*100.*
      &             ZBABS3D(I,J,L,6)  !LW, 1150 nm
 
-      ENDDO   ! L=1,LLPAR
+      ENDDO   ! L=1,State_Grid%NZ
 
 ! visibility
 ! mean bext L1_L3 (H<387 m)
@@ -2803,7 +2818,7 @@
       ENDIF
 
 ! Profiles for RF
-      IJLOOP = ( (J-1) * IIPAR ) + I
+      IJLOOP = ( (J-1) * State_Grid%NX ) + I
       SCOS   = State_Met%SUNCOS(I,J)
 
       PE1D(0) = GET_PEDGE(I,J,1)        ! P surface   [MB]
@@ -2815,12 +2830,12 @@
       ENDDO
 
 !      IF(I.EQ.60.and.J.EQ.33) THEN
-!       WRITE(1002,99)DAY_YR,KHOUR,LLPAR,SCOS,
+!       WRITE(1002,99)DAY_YR,KHOUR,State_Grid%NZ,SCOS,
 !     &       AOD(I,J),State_Met%CLDFRC(I,J),(SALB(IWL),IWL=1,NBS)
 ! 99    FORMAT(I4,I3,I3,F9.3,100(1PE9.2))
 !      ENDIF
 
-      DO L=1, LLPAR
+      DO L=1, State_Grid%NZ
         AIRD(L)= State_Met%AIRDEN(I,J,L)*XNUMOL_AIR*
      &           State_Met%BXHEIGHT(I,J,L)*1.d-4 !box column air mole #/cm2
                                                 ! AIRDEN unit: kg/m3
@@ -2830,7 +2845,7 @@
         PDP(L) = PE1D(L-1)-PE1D(L)
 
         T1D(L)= State_Met%T(I,J,L)     ! Temperature center [K]
-        IF(L.EQ.LLPAR) THEN
+        IF(L.EQ.State_Grid%NZ) THEN
          TE1D(L) = State_Met%T(I,J,L) + 
      &        0.5*(State_Met%T(I,J,L)-State_Met%T(I,J,L-1))
         ELSE
@@ -2883,27 +2898,27 @@
       ENDDO
 
 !      IF(I.EQ.60.and.J.EQ.33) THEN
-!        WRITE(1002,101) (P1D(L),L=1,LLPAR)
-!        WRITE(1002,101) (PE1D(L),L=0,LLPAR)
-!        WRITE(1002,101) (PDP(L),L=1,LLPAR)
-!        WRITE(1002,101) (T1D(L),L=1,LLPAR)
-!        WRITE(1002,101) (TE1D(L),L=0,LLPAR)
+!        WRITE(1002,101) (P1D(L),L=1,State_Grid%NZ)
+!        WRITE(1002,101) (PE1D(L),L=0,State_Grid%NZ)
+!        WRITE(1002,101) (PDP(L),L=1,State_Grid%NZ)
+!        WRITE(1002,101) (T1D(L),L=1,State_Grid%NZ)
+!        WRITE(1002,101) (TE1D(L),L=0,State_Grid%NZ)
 !
 !        DO N = 1, mxmol
-!         WRITE(1002,101) (WKL(N,L),L=1,LLPAR)   
+!         WRITE(1002,101) (WKL(N,L),L=1,State_Grid%NZ)   
 !        ENDDO
-!        WRITE(1002,101) (COLDRY(L),L=1,LLPAR)
+!        WRITE(1002,101) (COLDRY(L),L=1,State_Grid%NZ)
 !
-!        WRITE(1002,101) (CCLD(L),L=1,LLPAR)
-!        WRITE(1002,101) (CLDLIQ(L),L=1,LLPAR)
-!        WRITE(1002,101) (CLDICE(L),L=1,LLPAR)
-!        WRITE(1002,101) (REL(L),L=1,LLPAR)
-!        WRITE(1002,101) (REI(L),L=1,LLPAR)
+!        WRITE(1002,101) (CCLD(L),L=1,State_Grid%NZ)
+!        WRITE(1002,101) (CLDLIQ(L),L=1,State_Grid%NZ)
+!        WRITE(1002,101) (CLDICE(L),L=1,State_Grid%NZ)
+!        WRITE(1002,101) (REL(L),L=1,State_Grid%NZ)
+!        WRITE(1002,101) (REI(L),L=1,State_Grid%NZ)
 !
 !        DO IWL=1,NBS
-!         WRITE(1002,101) (EXT(L,IWL),L=1,LLPAR)   !layer AOD
-!         WRITE(1002,101) (OMGA(L,IWL),L=1,LLPAR)
-!         WRITE(1002,101) (G(L,IWL),L=1,LLPAR)
+!         WRITE(1002,101) (EXT(L,IWL),L=1,State_Grid%NZ)   !layer AOD
+!         WRITE(1002,101) (OMGA(L,IWL),L=1,State_Grid%NZ)
+!         WRITE(1002,101) (G(L,IWL),L=1,State_Grid%NZ)
 !        ENDDO
 !      ENDIF
  101  FORMAT(100(1PE9.2))
@@ -2911,7 +2926,7 @@
 
 !
       IF(SCOS.GT.0.) THEN
-       CALL rrtmg_sw(I,J,2,icld,LLPAR,DAY_YR, SCOS,
+       CALL rrtmg_sw(I,J,2,icld,State_Grid%NZ,DAY_YR, SCOS,
      &        PDP,P1D,T1D,PE1D,TE1D,TSURF,COLDRY, WKL,
      &        CCLD, CLDICE, CLDLIQ, REI, REL,
      &        SALB,EXT, OMGA, G,
@@ -2955,7 +2970,7 @@
   
 ! Each aerosol type
 !      DO ITYP = 1,NTYP
-!         CALL APM_RADF(J,I,LLPAR,LEV,NBS,NBL,
+!         CALL APM_RADF(J,I,State_Grid%NZ,LEV,NBS,NBL,
 !     1              IAE2,TEXT(:,:,ITYP),TOMGA(:,:,ITYP),TG(:,:,ITYP),
 !     +              TABS(:,:,ITYP),
 !     2              GT,SALB,SCOS,T1D,H2O,O3,P1D,AIRD,
@@ -2977,7 +2992,7 @@
        
 !
 ! Total
-!      CALL APM_RADF(J,I,LLPAR,LEV,NBS,NBL,
+!      CALL APM_RADF(J,I,State_Grid%NZ,LEV,NBS,NBL,
 !     1              IAE1,EXT,OMGA,G,ABSA,
 !     2              GT,SALB,SCOS,T1D,H2O,O3,P1D,AIRD,
 !     3              CCLD,CLDLIQ,CLDICE,RCLDL,YCOD,
@@ -2988,7 +3003,7 @@
 !      print*,'ALBEDO,GT',IAE0,I,J,ALBEDO,GT,SCOS
 
 ! No aerosol
-!      CALL APM_RADF(J,I,LLPAR,LEV,NBS,NBL,
+!      CALL APM_RADF(J,I,State_Grid%NZ,LEV,NBS,NBL,
 !     1              IAE0,EXT0,OMGA0,G0,ABSA0,
 !     2              GT,SALB,SCOS,T1D,H2O,O3,P1D,AIRD,
 !     3              CCLD,CLDLIQ,CLDICE,RCLDL,YCOD,
@@ -3060,7 +3075,7 @@
           write(1001,*) i,j
 !          DO ITYP=1,NTYP
 !           write(1001,*) ITYP,TCST(ITYP),CST0
-!           DO L=1,LLPAR
+!           DO L=1,State_Grid%NZ
 !            write(1001,*) L,TEXT(L,1,ITYP),TOMGA(L,1,ITYP),TG(L,1,ITYP)
 !           write(1001,*) L,TEXT(L,2,ITYP),TOMGA(L,2,ITYP),TG(L,2,ITYP)
 !            write(1001,*) L,TEXT(L,3,ITYP),TOMGA(L,3,ITYP),TG(L,3,ITYP)
@@ -3139,17 +3154,16 @@
       FLUSH(1001)
 
       ! Clear the pointer
-      NULLIFY( Spc )
+      Spc => NULL()
 
       END SUBROUTINE APM_RADFDRIV
-
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: apm_radf
+! !IROUTINE: apm_radfout
 !
 ! !DESCRIPTION: Subroutine APM\_RADFOUT is the for radf output 
 !
@@ -3159,15 +3173,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APM_RADFOUT
+      SUBROUTINE APM_RADFOUT( am_I_Root,  Input_Opt, State_Chm,
+     &                        State_Grid, State_Met, RC         )
 !
 ! !USES:
 !
-      USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
-      USE TIME_MOD,     ONLY : GET_DAY,GET_HOUR,GET_MINUTE
-      USE GC_GRID_MOD,     ONLY : GET_AREA_M2
-
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
+      USE TIME_MOD,       ONLY : GET_DAY,  GET_HOUR,  GET_MINUTE
+      USE CMN_SIZE_MOD
+      USE ErrCode_Mod                    
+      Use Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  2-6/2011 - X. Ma & F. Yu, SUNY-Albany
 !EOP
@@ -3176,23 +3210,29 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,J,ITYP,IWL,RECID
+      INTEGER          :: I,J,ITYP,IWL,RECID
 
-      INTEGER :: KYEAR,KMON,KDAY,KHOUR,KMIN
+      INTEGER          :: KYEAR,KMON,KDAY,KHOUR,KMIN
 
       LOGICAL, SAVE    :: FIRST = .TRUE.
 
-      REAL*8  ::  XCOUNT
-      REAL*8  ::  ZFSTAVE,ZCSTAVE,TAREA,YAREA
-      REAL*8  ::  ZCLDAVE,ZCLD0AVE
-      REAL*8  ::  ZFULAVE     ! longwave TOA
-      REAL*8  ::  ZFSAAVE, ZTFSTAVE(NTYP)
-      REAL :: FAOD25(IIPAR,JJPAR),FAOD50(IIPAR,JJPAR)  !fraction of time with CLDFR<25%, 50%, 75%
-      REAL :: FAOD75(IIPAR,JJPAR)
-      REAL :: ZAEEXT(IIPAR,JJPAR),ZAEABS(IIPAR,JJPAR)
-      REAL :: ZAEEXTOUT3(IIPAR,JJPAR),ZAEABSOUT3(IIPAR,JJPAR)
+      REAL*8           :: XCOUNT
+      REAL*8           :: ZFSTAVE,ZCSTAVE,TAREA,YAREA
+      REAL*8           :: ZCLDAVE,ZCLD0AVE
+      REAL*8           :: ZFULAVE     ! longwave TOA
+      REAL*8           :: ZFSAAVE, ZTFSTAVE(NTYP)
+      ! fraction of time w/ CLDFR<25%, 50%, 75%
+      REAL             :: FAOD25(State_Grid%NX,State_Grid%NY) 
+      REAL             :: FAOD50(State_Grid%NX,State_Grid%NY)  
+      REAL             :: FAOD75(State_Grid%NX,State_Grid%NY)
+      REAL             :: ZAEEXT(State_Grid%NX,State_Grid%NY)
+      REAL             :: ZAEABS(State_Grid%NX,State_Grid%NY)
+      REAL             :: ZAEEXTOUT3(State_Grid%NX,State_Grid%NY)
+      REAL             :: ZAEABSOUT3(State_Grid%NX,State_Grid%NY)
       CHARACTER(LEN=6) :: YYYYMM='200001'
 
+      ! Initialize
+      RC = GC_SUCCESS
 !
       WRITE(6,*)'    - APM RADFOUT  '
 
@@ -3305,101 +3345,109 @@
         CLOSE(895)
 
         OPEN(686,FILE='radf/radf'//YYYYMM//'CLT.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(687,FILE='radf/radf'//YYYYMM//'CLB.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(688,FILE='radf/radf'//YYYYMM//'FUL.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(689,FILE='radf/radf'//YYYYMM//'FDL.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(690,FILE='radf/radf'//YYYYMM//'FLA.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(785,FILE='radf/radf'//YYYYMM//'TAOD.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(786,FILE='radf/radf'//YYYYMM//'TCST.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(787,FILE='radf/radf'//YYYYMM//'TCSB.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(788,FILE='radf/radf'//YYYYMM//'TFST.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(789,FILE='radf/radf'//YYYYMM//'TFSA.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(790,FILE='radf/radf'//YYYYMM//'TFSB.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(883,FILE='radf/radf'//YYYYMM//'CLDF.out',ACCESS='DIRECT', ! cloud cover
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(884,FILE='radf/radf'//YYYYMM//'MALB.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(885,FILE='radf/radf'//YYYYMM//'ALB.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(886,FILE='radf/radf'//YYYYMM//'CST.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(887,FILE='radf/radf'//YYYYMM//'CSB.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(888,FILE='radf/radf'//YYYYMM//'FST.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(588,FILE='radf/radf'//YYYYMM//'CLD.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(589,FILE='radf/radf'//YYYYMM//'CLD0.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(889,FILE='radf/radf'//YYYYMM//'FSA.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(890,FILE='radf/radf'//YYYYMM//'AOD.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(590,FILE='radf/radf'//YYYYMM//'COD.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(591,FILE='radf/radf'//YYYYMM//'CODGC.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(891,FILE='radf/radf'//YYYYMM//'AAOD.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(892,FILE='radf/radf'//YYYYMM//'ABS.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(893,FILE='radf/radf'//YYYYMM//'FSB.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(894,FILE='radf/radf'//YYYYMM//'WCL.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(895,FILE='radf/radf'//YYYYMM//'WCI.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(896,FILE='radf/radf'//YYYYMM//'AODOUT1.out',
-     &             ACCESS='DIRECT',FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &           ACCESS='DIRECT',FORM='UNFORMATTED', 
+     &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(897,FILE='radf/radf'//YYYYMM//'AAODOUT1.out',
-     &             ACCESS='DIRECT',FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &           ACCESS='DIRECT',FORM='UNFORMATTED',
+     &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(898,FILE='radf/radf'//YYYYMM//'AEextOUT1.out',
-     &             ACCESS='DIRECT',FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &           ACCESS='DIRECT',FORM='UNFORMATTED',
+     &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(899,FILE='radf/radf'//YYYYMM//'AEabsOUT1.out',
-     &             ACCESS='DIRECT',FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &           ACCESS='DIRECT',FORM='UNFORMATTED', 
+     &           RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(796,FILE='radf/radf'//YYYYMM//'AODOUT3.out',
-     &             ACCESS='DIRECT',FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &           ACCESS='DIRECT',FORM='UNFORMATTED',
+     &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(797,FILE='radf/radf'//YYYYMM//'AAODOUT3.out',
-     &             ACCESS='DIRECT',FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &           ACCESS='DIRECT',FORM='UNFORMATTED',
+     &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(798,FILE='radf/radf'//YYYYMM//'AEextOUT3.out',
-     &             ACCESS='DIRECT',FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &           ACCESS='DIRECT',FORM='UNFORMATTED',
+     &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(799,FILE='radf/radf'//YYYYMM//'AEabsOUT3.out',
-     &             ACCESS='DIRECT',FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &           ACCESS='DIRECT',FORM='UNFORMATTED', 
+     &           RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(811,FILE='radf/radf'//YYYYMM//'AOD25.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(812,FILE='radf/radf'//YYYYMM//'AOD50.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(813,FILE='radf/radf'//YYYYMM//'AOD75.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(814,FILE='radf/radf'//YYYYMM//'FAOD25.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(815,FILE='radf/radf'//YYYYMM//'FAOD50.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(816,FILE='radf/radf'//YYYYMM//'FAOD75.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(821,FILE='radf/radf'//YYYYMM//'VIS.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(822,FILE='radf/radf'//YYYYMM//'HAZE.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
         OPEN(823,FILE='radf/radf'//YYYYMM//'FOG.out',ACCESS='DIRECT',
-     &             FORM='UNFORMATTED', RECL=IIPAR*JJPAR)
+     &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
 
 !      WRITE(1000,105) KYEAR,KMON,KDAY,KHOUR,KMIN
       WRITE(1001,105) KYEAR,KMON,KDAY,KHOUR,KMIN
@@ -3418,20 +3466,20 @@
        WRITE(993,*)KYEAR, KMON-1
        WRITE(994,*)KYEAR, KMON-1
        WRITE(995,*)KYEAR, KMON-1
-       DO I = 1, IIPAR
-         WRITE(985,981)(ZCST(I,J)/XCOUNT,J=1,JJPAR)
-!         WRITE(987,981)(ZCSB(I,J)/XCOUNT,J=1,JJPAR)
-         WRITE(987,981)(ZCLD(I,J)/XCOUNT,J=1,JJPAR)
-         WRITE(988,981)(ZFST(I,J)/XCOUNT,J=1,JJPAR)
-         WRITE(989,981)(ZAOD(I,J)/XCOUNT,J=1,JJPAR)
-!         WRITE(992,981)(ZABS(I,J)/XCOUNT,J=1,JJPAR)
-!         WRITE(991,981)(ZFUL(I,J)/XCOUNT,J=1,JJPAR)
-!         WRITE(993,981)(ZFDL(I,J)/XCOUNT,J=1,JJPAR)
-!         WRITE(994,981)(ZCLT(I,J)/XCOUNT,J=1,JJPAR)
-!         WRITE(995,981)(ZCLB(I,J)/XCOUNT,J=1,JJPAR)
+       DO I = 1, State_Grid%NX
+         WRITE(985,981)(ZCST(I,J)/XCOUNT,J=1,State_Grid%NY)
+!         WRITE(987,981)(ZCSB(I,J)/XCOUNT,J=1,State_Grid%NY)
+         WRITE(987,981)(ZCLD(I,J)/XCOUNT,J=1,State_Grid%NY)
+         WRITE(988,981)(ZFST(I,J)/XCOUNT,J=1,State_Grid%NY)
+         WRITE(989,981)(ZAOD(I,J)/XCOUNT,J=1,State_Grid%NY)
+!         WRITE(992,981)(ZABS(I,J)/XCOUNT,J=1,State_Grid%NY)
+!         WRITE(991,981)(ZFUL(I,J)/XCOUNT,J=1,State_Grid%NY)
+!         WRITE(993,981)(ZFDL(I,J)/XCOUNT,J=1,State_Grid%NY)
+!         WRITE(994,981)(ZCLT(I,J)/XCOUNT,J=1,State_Grid%NY)
+!         WRITE(995,981)(ZCLB(I,J)/XCOUNT,J=1,State_Grid%NY)
 
 
-         DO J=1,JJPAR
+         DO J=1,State_Grid%NY
             FAOD25(I,J)= float(NAOD25(I,J))/XCOUNT
             FAOD50(I,J)= float(NAOD50(I,J))/XCOUNT
             FAOD75(I,J)= float(NAOD75(I,J))/XCOUNT
@@ -3478,14 +3526,14 @@
 
        ZMALB(:,:,:)=ZMALB(:,:,:)/XCOUNT
 
-       DO I = 1, IIPAR
-         WRITE(991,981)(ZAOD25(I,J),J=1,JJPAR)
-         WRITE(992,981)(ZAOD75(I,J),J=1,JJPAR)
-         WRITE(993,981)(ZVIS(I,J),J=1,JJPAR)
-         WRITE(994,981)(THAZ(I,J),J=1,JJPAR)
-         WRITE(995,981)(TFOG(I,J),J=1,JJPAR)
+       DO I = 1, State_Grid%NX
+         WRITE(991,981)(ZAOD25(I,J),J=1,State_Grid%NY)
+         WRITE(992,981)(ZAOD75(I,J),J=1,State_Grid%NY)
+         WRITE(993,981)(ZVIS(I,J),J=1,State_Grid%NY)
+         WRITE(994,981)(THAZ(I,J),J=1,State_Grid%NY)
+         WRITE(995,981)(TFOG(I,J),J=1,State_Grid%NY)
 
-         DO J=1,JJPAR
+         DO J=1,State_Grid%NY
           ZAEEXT(I,J)=-LOG10(ZAOD(I,J)/ZAODOUT1(I,J))
      &                         /LOG10(YWLS(KOUT2)/YWLS(KOUT1))            !WL(KOUT1)_WL(KOUT2) Angstrom Exponent
           ZAEABS(I,J)=-LOG10(ZAAOD(I,J)/ZAAODOUT1(I,J))
@@ -3495,10 +3543,10 @@
           ZAEABSOUT3(I,J)=-LOG10(ZAAOD(I,J)/ZAAODOUT3(I,J))
      &                         /LOG10(YWLS(KOUT2)/YWLS(KOUT3))            !WL(KOUT3)_WL(KOUT2) Angstrom Exponent
          ENDDO
-         WRITE(996,981)(ZAODOUT1(I,J),J=1,JJPAR)
-         WRITE(997,981)(ZAAODOUT1(I,J),J=1,JJPAR)
-         WRITE(998,981)(ZAEEXT(I,J),J=1,JJPAR)
-         WRITE(999,981)(ZAEABS(I,J),J=1,JJPAR)
+         WRITE(996,981)(ZAODOUT1(I,J),J=1,State_Grid%NY)
+         WRITE(997,981)(ZAAODOUT1(I,J),J=1,State_Grid%NY)
+         WRITE(998,981)(ZAEEXT(I,J),J=1,State_Grid%NY)
+         WRITE(999,981)(ZAEABS(I,J),J=1,State_Grid%NY)
        ENDDO
 
 !       WRITE(686,REC=1)ZCLT
@@ -3560,12 +3608,12 @@
        WRITE(1084,*)KYEAR, KMON-1
        WRITE(1085,*)KYEAR, KMON-1
 
-       DO I = 1, IIPAR
-         WRITE(1081,981)(ZTCST(I,J,1)/XCOUNT,J=1,JJPAR)
-         WRITE(1082,981)(ZTCST(I,J,2)/XCOUNT,J=1,JJPAR)
-         WRITE(1083,981)(ZTCST(I,J,3)/XCOUNT,J=1,JJPAR)
-         WRITE(1084,981)(ZTCST(I,J,4)/XCOUNT,J=1,JJPAR)
-         WRITE(1085,981)(ZTCST(I,J,5)/XCOUNT,J=1,JJPAR)
+       DO I = 1, State_Grid%NX
+         WRITE(1081,981)(ZTCST(I,J,1)/XCOUNT,J=1,State_Grid%NY)
+         WRITE(1082,981)(ZTCST(I,J,2)/XCOUNT,J=1,State_Grid%NY)
+         WRITE(1083,981)(ZTCST(I,J,3)/XCOUNT,J=1,State_Grid%NY)
+         WRITE(1084,981)(ZTCST(I,J,4)/XCOUNT,J=1,State_Grid%NY)
+         WRITE(1085,981)(ZTCST(I,J,5)/XCOUNT,J=1,State_Grid%NY)
        ENDDO
 
        ZTAOD(:,:,:)=ZTAOD(:,:,:)/XCOUNT
@@ -3598,9 +3646,9 @@
 
        ZTFSTAVE = 0.
        TAREA = 0.
-       DO J = 1, JJPAR
-          YAREA = GET_AREA_M2( 1, J, 1 )
-          DO I = 1, IIPAR
+       DO J = 1, State_Grid%NY
+          YAREA = State_Grid%AREA_M2(1,J)
+          DO I = 1, State_Grid%NX
              ZFSTAVE = ZFSTAVE + ZFST(I,J)*YAREA
              ZCSTAVE = ZCSTAVE + ZCST(I,J)*YAREA
              ZCLDAVE = ZCLDAVE + ZCLD(I,J)*YAREA
@@ -3700,28 +3748,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERONUM( am_I_Root, Input_Opt, State_Met, State_Chm )
+      SUBROUTINE AERONUM( am_I_Root,  Input_Opt,  State_Chm, 
+     &                    State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-      USE APM_INIT_MOD, ONLY : APMIDS
-      USE APM_INIT_MOD, ONLY : NGCOND
-      USE APM_INIT_MOD, ONLY : NSO4
-      USE APM_INIT_MOD, ONLY : VDRY
-      USE APM_INIT_MOD, ONLY : DENSULF
-
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE State_Met_Mod, ONLY : MetState
-      USE State_Chm_Mod, ONLY : ChmState
-
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE APM_INIT_MOD,   ONLY : APMIDS
+      USE APM_INIT_MOD,   ONLY : NGCOND
+      USE APM_INIT_MOD,   ONLY : NSO4
+      USE APM_INIT_MOD,   ONLY : VDRY
+      USE APM_INIT_MOD,   ONLY : DENSULF
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REVISION HISTORY: 
 !  28 Aug 2008 - F. Yu       - Initial version  
@@ -3741,24 +3799,25 @@
       REAL*8, POINTER :: Spc(:,:,:,:)
 !
 !******************************************************************************
+
+      ! Initialize
+      RC = GC_SUCCESS
+
       ! Point to Spc
       Spc => State_Chm%Species
 
       XN4D = 0.D0
 
 !$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-!$OMP+PRIVATE( SIZENUM )
-!$OMP+PRIVATE( XMATEMP )
-!$OMP+SCHEDULE( DYNAMIC )
-
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!$OMP+DEFAULT( SHARED                       )
+!$OMP+SCHEDULE( DYNAMIC                     )
+!$OMP+PRIVATE( I, J, L, N, SIZENUM, XMATEMP )
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Should we put the N loop on the outside?
-         DO N=1,NSO4
+         DO N = 1, NSO4
             SIZENUM =APMIDS%id_SO4BIN1+N-1 !Luodebug
             XMATEMP=Spc(I,J,L,SIZENUM) / State_Met%AIRVOL(I,J,L)
             XMATEMP= MAX( 1.d-40, XMATEMP)
@@ -3768,11 +3827,10 @@
       ENDDO
       ENDDO
       ENDDO
-
 !$OMP END PARALLEL DO
 
       ! Clear the pointer
-      NULLIFY( Spc )
+      Spc => NULL()
 
       END SUBROUTINE AERONUM
 !EOC
@@ -3788,27 +3846,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE APM3DQGEOS(am_I_Root, Input_Opt, State_Met, IY)
+      SUBROUTINE APM3DQGEOS( am_I_Root,  Input_Opt,
+     &                       State_Grid, State_Met, IY )
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : IS_WATER
-      USE DAO_MOD,            ONLY : IS_ICE
-      USE GC_GRID_MOD,           ONLY : GET_XMID
-      USE GC_GRID_MOD,           ONLY : GET_YMID
-      USE PRESSURE_MOD,       ONLY : GET_PCENTER
-      USE PRESSURE_MOD,       ONLY : GET_PEDGE
-      USE APM_NUCL_MOD,       ONLY : IONRATE0
-
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE State_Met_Mod, ONLY : MetState
-
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE DAO_MOD,        ONLY : IS_WATER
+      USE DAO_MOD,        ONLY : IS_ICE
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE APM_NUCL_MOD,   ONLY : IONRATE0
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -3825,25 +3881,25 @@
       INTEGER :: ISURF, I, J, L
       REAL*8  :: XLON,XLAT,YPR,YQ,YPSURF
 
-      DO J = 1, JJPAR
-        DO I = 1, IIPAR
-
-          YPSURF = GET_PEDGE(I,J,1)  !surface P in mb
-          IF( IS_WATER( I, J, State_Met ) .or.
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+            
+         YPSURF = GET_PEDGE(I,J,1) !surface P in mb
+         IF( IS_WATER( I, J, State_Met ) .or.
      &        IS_ICE  ( I, J, State_Met )) THEN
-             ISURF = 0
-          ELSE
-             ISURF = 1
-          ENDIF
-          DO L = 1, LLPAR
-             XLON = GET_XMID( I, J, L  )  ! Grid box longitude [degrees]
-             XLAT = GET_YMID( I, J, L  )  ! Grid box latitude center [degree]
-           YPR =  GET_PCENTER(I,J,L)   ! in mb
-           CALL IONRATE0((Input_Opt%CHEM_INPUTS_DIR),
-     &          IY,ISURF,YPSURF,XLON,XLAT,YPR,YQ)
-           XQ3D(I,J,L)= YQ
-          ENDDO
-        ENDDO
+            ISURF = 0
+         ELSE
+            ISURF = 1
+         ENDIF
+         DO L = 1, State_Grid%NZ
+            XLON = State_Grid%XMid( I, J ) ! Grid box longitude [degrees]
+            XLAT = State_Grid%YMid( I, J ) ! Grid box latitude center [degree]
+            YPR =  GET_PCENTER(I,J,L)      ! in mb
+            CALL IONRATE0((Input_Opt%CHEM_INPUTS_DIR),
+     &           IY,ISURF,YPSURF,XLON,XLAT,YPR,YQ)
+            XQ3D(I,J,L)= YQ
+         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE APM3DQGEOS
@@ -3853,22 +3909,22 @@
 
 ! APM2+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-      subroutine APM3DQ(IY, State_Met, Input_Opt)
+      subroutine APM3DQ( IY, Input_Opt, State_Grid, State_Met )
 
-      USE GC_GRID_MOD, ONLY : GET_XMID,  GET_YMID
-      USE DAO_MOD,  ONLY : IS_WATER, IS_ICE
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE TIME_MOD,      ONLY : GET_YEAR,   GET_MONTH
-      USE APM_NUCL_MOD, ONLY : IONRATE
-      USE State_Met_Mod, ONLY : MetState
-      USE Input_Opt_Mod, ONLY : OptInput
-
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE DAO_MOD,        ONLY : IS_WATER,   IS_ICE
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+      USE TIME_MOD,       ONLY : GET_YEAR,   GET_MONTH
+      USE APM_NUCL_MOD,   ONLY : IONRATE
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 
       INTEGER   :: ISURF, I, J, L, IY, IYEAR, IMONTH
       REAL*8    :: XLON,XLAT,YPR,YQ
@@ -3880,31 +3936,39 @@
 
       write(6,*)"GCR IONIZATION: YEAR =", IYEAR, "Month = ",IMONTH
 
-      DO J = 1, JJPAR
-        XLAT= GET_YMID( 1, J, 1 )  ! Grid box latitude center [degree]
-        DO I = 1, IIPAR
-          XLON = GET_XMID( I, J, 1 )  !Grid box longitude [degrees]
+      DO J = 1, State_Grid%NY
+         XLAT = State_Grid%YMID(1,J) ! Grid box latitude center [degree]
+         DO I = 1, State_Grid%NX
+            XLON = State_Grid%XMID(I,J) !Grid box longitude [degrees]
             IF( IS_WATER( I, J, State_Met ) .or.
-     &          IS_ICE  ( I, J, State_Met )) THEN
-             ISURF = 0
+     &           IS_ICE  ( I, J, State_Met )) THEN
+               ISURF = 0
             ELSE
-             ISURF = 1
+               ISURF = 1
             ENDIF
-            DO L = 1, LLPAR
-             YPR =  GET_PCENTER(I,J,L)   ! in mb
-             CALL IONRATE((Input_Opt%CHEM_INPUTS_DIR),
-     &                    ISURF,XLON,XLAT,YPR,IYEAR,IMONTH,YQ)
-             XQ3D(I,J,L)= YQ
+            DO L = 1, State_Grid%NZ
+               YPR =  GET_PCENTER(I,J,L) ! in mb
+               CALL IONRATE((Input_Opt%CHEM_INPUTS_DIR),
+     &              ISURF,XLON,XLAT,YPR,IYEAR,IMONTH,YQ)
+               XQ3D(I,J,L)= YQ
             ENDDO
-        ENDDO
+         ENDDO
       ENDDO
 
       end subroutine APM3DQ
 
 !------------------------------------------------------------------------------
 
-      subroutine  YSITESIJ_GL
+      subroutine  YSITESIJ_GL( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
       INTEGER, PARAMETER  :: MS   = 47
       REAL*8         :: ZLAT(MS),ZLON(MS), YLAT, XLON
@@ -3991,7 +4055,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4027,9 +4091,17 @@
       end subroutine YSITESIJ_GL
 !------------------------------------------------------------------------------
 
-      subroutine  YSITESIJ_GL1
+      subroutine  YSITESIJ_GL1( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
       USE APM_INIT_MOD, ONLY : IFSITE
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
       INTEGER, PARAMETER  :: MS   = 58
       REAL*8         :: ZLAT(MS),ZLON(MS), YLAT, XLON
@@ -4147,7 +4219,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4187,9 +4259,17 @@
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 
-      subroutine  YSITESIJ_AC
-! AEROCOM supersites
+      subroutine  YSITESIJ_AC( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
+      USE APM_INIT_MOD, ONLY : IFSITE
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
       INTEGER, PARAMETER  :: MS   = 47
       REAL*8         :: ZLAT(MS),ZLON(MS), YLAT, XLON
@@ -4275,7 +4355,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4302,8 +4382,17 @@
 !------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
-      subroutine  YSITESIJ_BACCHUS
+      subroutine  YSITESIJ_BACCHUS( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
+      USE APM_INIT_MOD, ONLY : IFSITE
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
 !      INTEGER, PARAMETER  :: MS   = 25
       INTEGER, PARAMETER  :: MS   = 18
@@ -4351,7 +4440,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4384,8 +4473,17 @@
       end subroutine YSITESIJ_BACCHUS
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
-      subroutine  YSITESIJ_EU
+      subroutine  YSITESIJ_EU( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
+      USE APM_INIT_MOD, ONLY : IFSITE
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
 !      INTEGER, PARAMETER  :: MS   = 25
       INTEGER, PARAMETER  :: MS   = 24
@@ -4469,7 +4567,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4503,8 +4601,17 @@
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 
-      subroutine  YSITESIJ_CH
+      subroutine  YSITESIJ_CH( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
+      USE APM_INIT_MOD, ONLY : IFSITE
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
       INTEGER, PARAMETER  :: MS   = 32
       REAL*8         :: ZLAT(MS),ZLON(MS), YLAT, XLON
@@ -4572,7 +4679,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4609,8 +4716,17 @@
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 
-      subroutine  YSITESIJ_CH1
+      subroutine  YSITESIJ_CH1( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
+      USE APM_INIT_MOD, ONLY : IFSITE
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
       INTEGER, PARAMETER  :: MS   = 38
       REAL*8         :: ZLAT(MS),ZLON(MS), YLAT, XLON
@@ -4688,7 +4804,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4725,8 +4841,17 @@
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 
-      subroutine  YSITESIJ_NA
+      subroutine  YSITESIJ_NA( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
+      USE APM_INIT_MOD, ONLY : IFSITE
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
       INTEGER, PARAMETER  :: MS   = 31
       REAL*8         :: ZLAT(MS),ZLON(MS), YLAT, XLON
@@ -4796,7 +4921,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4825,8 +4950,17 @@
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 
-      subroutine  YSITESIJ_AOD_CN
+      subroutine  YSITESIJ_AOD_CN( State_Grid )
+!
+! !USES:
+!
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,IFSITEOUT
+      USE APM_INIT_MOD, ONLY : IFSITE
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
       INTEGER, PARAMETER  :: MS   = 100
       REAL*8         :: ZLAT(MS),ZLON(MS), YLAT, XLON
@@ -4875,7 +5009,7 @@
       DO NSITE = 1, MSITE
          YLAT = ZLAT(NSITE)
          XLON = ZLON(NSITE)
-         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+         CALL SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
          ISITES(NSITE) = ISITE
          JSITES(NSITE) = JSITE
       ENDDO
@@ -4903,51 +5037,61 @@
       end subroutine YSITESIJ_AOD_CN
 !------------------------------------------------------------------------------
 
-      subroutine SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE)
+      subroutine SITEIJ(NSITE,XLON, YLAT,ISITE,JSITE,State_Grid)
 !
 ! Find I, J index for specific site
 ! F. YU, 05/2009
-      USE GC_GRID_MOD, ONLY : GET_XEDGE,  GET_YEDGE
-      USE GC_GRID_MOD, ONLY : GET_XMID,  GET_YMID
+!
+! !USES:
+!
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN)  :: NSITE
+      REAL*8,         INTENT(IN)  :: YLAT, XLON
+      TYPE(GrdState), INTENT(IN)  :: State_Grid
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: ISITE, JSITE
+!
+! !LOCAL VARIABLES
+!
+      INTEGER :: I, J, IX, JY, L
+      REAL*8  :: XEDGE1, XEDGE2, DLON1, YEDGE1, YEDGE2, DLAT1
 
-      USE CMN_SIZE_MOD             ! Size parameters
-
-      REAL*8    :: YLAT, XLON
-      REAL*8    :: XEDGE1, XEDGE2, DLON1, YEDGE1, YEDGE2, DLAT1
-      INTEGER   :: ISITE, JSITE,NSITE
-      INTEGER   :: I, J, IX, JY, L
-      XEDGE1 = GET_XEDGE(2,1,1)
-      XEDGE2 = GET_XEDGE(3,1,1)
-      DLON1 = XEDGE2 - XEDGE1
-      YEDGE1 = GET_YEDGE(1,2,1)
-      YEDGE2 = GET_YEDGE(1,3,1)
-      DLAT1 = YEDGE2 - YEDGE1
+      XEDGE1 = State_Grid%XEDGE(2,1)
+      XEDGE2 = State_Grid%XEDGE(3,1)
+      DLON1  = State_Grid%DX
+      YEDGE1 = State_Grid%YEDGE(1,2)
+      YEDGE2 = State_Grid%YEDGE(1,3)
+      DLAT1  = State_Grid%DY
 
       ISITE = INT((XLON-XEDGE1)/DLON1)+2
       JSITE = INT((YLAT-YEDGE1)/DLAT1)+2
-      IF(ISITE.LT.1.or.ISITE.GT.IIPAR.or.JSITE.LT.1   
-     &   .or.JSITE.GT.JJPAR) THEN
+      IF(ISITE.LT.1.or.ISITE.GT.State_Grid%NX.or.JSITE.LT.1   
+     &   .or.JSITE.GT.State_Grid%NY) THEN
         WRITE(6,*)"SITE location out of nested boundary"
         IF(ISITE.LT.1) ISITE = 1
-        IF(ISITE.GT.IIPAR) ISITE = IIPAR
+        IF(ISITE.GT.State_Grid%NX) ISITE = State_Grid%NX
         IF(JSITE.LT.1) JSITE = 1
-        IF(JSITE.GT.JJPAR) JSITE = JJPAR
+        IF(JSITE.GT.State_Grid%NY) JSITE = State_Grid%NY
       ENDIF
 !      WRITE(900+NSITE,520)ISITE, JSITE, XLON, YLAT,
       WRITE(6,520)ISITE, JSITE, XLON, YLAT,
-     &            GET_XEDGE(ISITE, JSITE, 1),
-     &            GET_XMID (ISITE, JSITE, 1),
-     &            GET_YEDGE(ISITE, JSITE, 1),
-     &            GET_YMID (ISITE, JSITE, 1)
+     &            State_Grid%XEDGE(ISITE, JSITE),
+     &            State_Grid%XMID (ISITE, JSITE),
+     &            State_Grid%YEDGE(ISITE, JSITE),
+     &            State_Grid%YMID (ISITE, JSITE)
  520  format(I4,I4,6F9.3, 10(1PE9.2))
 
-       RETURN
-       END
+       END SUBROUTINE SITEIJ
 !
 ! APM2+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_LOCAL_TIME
+      SUBROUTINE GET_LOCAL_TIME( State_Grid )
 !
 !******************************************************************************
 !  Subroutine GET_LOCAL_TIME computes the local time and returns an array
@@ -4968,11 +5112,15 @@
 !        the beginning of previous time step. (ccc, 8/11/09)
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_LOCALTIME
-      USE TIME_MOD, ONLY : GET_TS_DYN
-
-      USE CMN_SIZE_MOD
+! !USES:
+!
+      USE TIME_MOD,       ONLY : GET_LOCALTIME
+      USE TIME_MOD,       ONLY : GET_TS_DYN
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! ! INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 
       ! Local variables
       INTEGER :: I
@@ -4985,10 +5133,10 @@
       TS_DYN = TS_DYN / 60e+0_fp
 
       GOOD = 0
-      DO I = 1, IIPAR
+      DO I = 1, State_Grid%NX
 
          ! Get local time
-         LT = GET_LOCALTIME( I, 1, 1 ) - TS_DYN
+         LT = GET_LOCALTIME( I, 1, 1, State_Grid ) - TS_DYN
          IF ( LT < 0  ) LT = LT + 24e+0_fp
 
          ! GOOD indicates which boxes have local times between HR1 and HR2
@@ -5128,14 +5276,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHNO3TIME
+      SUBROUTINE OHNO3TIME( State_Grid )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE TIME_MOD,       ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 !
 ! !REVISION HISTORY: 
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
@@ -5149,7 +5301,7 @@
 !        the COSZM array. (rjp, bmy, 3/30/04)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
-!                              from (MAXIJ) to (IIPAR,JJPAR)
+!                              from (MAXIJ) to (State_Grid%NX,State_Grid%NY)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5160,7 +5312,7 @@
       INTEGER             :: I, J, L, N, NT, NDYSTEP
       REAL(fp)            :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)            :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)            :: SUNTMP(IIPAR,JJPAR)
+      REAL(fp)            :: SUNTMP(State_Grid%NX,State_Grid%NY)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -5203,14 +5355,14 @@
             SUNTMP = 0e+0_fp
 
             ! Loop over surface grid boxes
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( I, J, 1 )
+               YMID_R = State_Grid%YMID_R(I,J)
 
                TIMLOC = real(LHR0) + real(NT)/3600.0 + 
-     &                  GET_XMID( I, J, 1 )/15.0
+     &                  State_Grid%XMID(I,J)/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -5356,10 +5508,6 @@
 
       end subroutine GETALBDRR
 !------------------------------------------------------------------------------
-
-
-
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -5373,15 +5521,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_APM3D
+      SUBROUTINE INIT_APM3D( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-      USE APM_INIT_MOD,ONLY : NSO4 , NSEA, NDSTB
-      use module_mosaic_therm, only : load_mosaic_parameters
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,       ONLY : OptInput
+      USE State_Grid_Mod,      ONLY : GrdState
+      USE APM_Init_Mod,        ONLY : NSO4, NSEA, NDSTB
+      USE Module_Mosaic_Therm, ONLY : Load_Mosaic_Parameters
+!
+! !INPUT PARAMETERS:
+!    
+      LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root core?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid State objectg
+!
+! ! OUTPUT PARAMETERS:
+!     
+      INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  28 Aug 2008 - F. Yu       - Initial version  
@@ -5392,223 +5550,611 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
+      INTEGER :: NX, NY, NZ
 
       !=================================================================
       ! INIT_AEROSOL begins here!
       !=================================================================
-      ALLOCATE( T3DAPM(IIPAR,JJPAR,20,24,6), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T3DAPM' )
+      NX = State_Grid%NX
+      NY = State_Grid%NY
+      NZ = State_Grid%NZ
+
+      ALLOCATE( T3DAPM(NX,NY,20,24,6), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%T3DAPM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       T3DAPM = 0e0
 
-      ALLOCATE( RH3DAPM(IIPAR,JJPAR,20,24,6), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH3DAPM' )
+      ALLOCATE( RH3DAPM(NX,NY,20,24,6), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%RH3DAPM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       RH3DAPM = 0e0
 
-      ALLOCATE( PBLH2DAPM(IIPAR,JJPAR,24,6), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBLH2DAPM' )
+      ALLOCATE( PBLH2DAPM(NX,NY,24,6), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%PBLH2DAPM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PBLH2DAPM = 0e0
 
-      ALLOCATE( EMITNH3(IIPAR,JJPAR,LLPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMITNH3' )
+      ALLOCATE( EMITNH3(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%EMITNH3', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EMITNH3 = 0d0
 
-      ALLOCATE( EMITSO2(IIPAR,JJPAR,LLPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMITSO2' )
+      ALLOCATE( EMITSO2(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%EMITSO2', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EMITSO2 = 0d0
 
-      ALLOCATE( DRYDEP(IIPAR,JJPAR,LLPAR,4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DRYDEP' )
+      ALLOCATE( DRYDEP(NX,NY,NZ,4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%DRYDEP', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       DRYDEP = 0d0
 
-      ALLOCATE( WETDEP(IIPAR,JJPAR,LLPAR,4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WETDEP' )
+      ALLOCATE( WETDEP(NX,NY,NZ,4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%WETDEP', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       WETDEP = 0d0
-      ALLOCATE( CONDEP(IIPAR,JJPAR,LLPAR,4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CONDEP' )
+
+      ALLOCATE( CONDEP(NX,NY,NZ,4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%CONDEP', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       CONDEP = 0d0
 
-      ALLOCATE( UPTAKE(IIPAR,JJPAR,LLPAR,4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPTAKE' )
+      ALLOCATE( UPTAKE(NX,NY,NZ,4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%UPTAKE', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       UPTAKE = 0d0
 
-      ALLOCATE( OXIDAT(IIPAR,JJPAR,LLPAR,4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OXIDAT' )
+      ALLOCATE( OXIDAT(NX,NY,NZ,4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%OXIDAT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       OXIDAT = 0d0
 
-      ALLOCATE( FCLOUD(IIPAR,JJPAR,LLPAR,NSO4+4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FCLOUD' )
+      ALLOCATE( FCLOUD(NX,NY,NZ,NSO4+4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%FCLOUD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       FCLOUD = 0d0
 
-      ALLOCATE( AERAREA(IIPAR,JJPAR,LLPAR,NSO4+NSEA+NDSTB+4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERAREA' )
+      ALLOCATE( AERAREA(NX,NY,NZ,NSO4+NSEA+NDSTB+4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%AERAREA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       AERAREA = 0d0
 
-      ALLOCATE( AERDRYR(IIPAR,JJPAR,LLPAR,NSO4+NSEA+NDSTB+4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERDRYR' )
+      ALLOCATE( AERDRYR(NX,NY,NZ,NSO4+NSEA+NDSTB+4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%AERDRYR', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       AERDRYR = 0d0
 
-      ALLOCATE( GAMMAPM(IIPAR,JJPAR,LLPAR,NTYP), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAMMAPM' )
+      ALLOCATE( GAMMAPM(NX,NY,NZ,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%GAMMAPM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       GAMMAPM = 0d0
 
-      ALLOCATE( XN4D(IIPAR,JJPAR,LLPAR,NSO4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'XN4D' )
+      ALLOCATE( XN4D(NX,NY,NZ,NSO4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%XN4D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       XN4D = 0d0
 
-      ALLOCATE( XQ3D(IIPAR,JJPAR,LLPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'XQ3D' )
+      ALLOCATE( XQ3D(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%XQ3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       XQ3D = 0d0
 
-      ALLOCATE( RCLDL3D(IIPAR,JJPAR,LLPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RCLDL3D' )
+      ALLOCATE( RCLDL3D(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%RCLDL3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       RCLDL3D = 0d0
 
-      ALLOCATE( CDN3D(IIPAR,JJPAR,LLPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CDN3D' )
+      ALLOCATE( CDN3D(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%CDN3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       CDN3D = 0d0
 
-      ALLOCATE( RCLDI3D(IIPAR,JJPAR,LLPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RCLDI3D' )
+      ALLOCATE( RCLDI3D(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%RCLDI3D', 0, RC ) 
+      IF ( RC /= GC_SUCCESS ) RETURN
       RCLDI3D = 0d0
 
-      ALLOCATE( RCLDI2D(IIPAR,JJPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RCLDL2D' )
+      ALLOCATE( RCLDI2D(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%RCLDL2D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       RCLDI2D = 0d0
 
-      ALLOCATE( IN3D(IIPAR,JJPAR,LLPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CDN3D' )
+      ALLOCATE( IN3D(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%CDN3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       IN3D = 0d0
 
-      ALLOCATE( MASSISRP(IIPAR,JJPAR,LLPAR,4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSISRP' )
+      ALLOCATE( MASSISRP(NX,NY,NZ,4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%MASSISRP', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       MASSISRP = 0d0
 
-      ALLOCATE( MASSMESA(IIPAR,JJPAR,LLPAR,4), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSMESA' )
+      ALLOCATE( MASSMESA(NX,NY,NZ,4), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%MASSMESA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       MASSMESA = 0d0
 
-      ALLOCATE( GFTOT3D(IIPAR,JJPAR,LLPAR,3), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GFTOT3D' )
+      ALLOCATE( GFTOT3D(NX,NY,NZ,3), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%GFTOT3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       GFTOT3D = 1d0
 
-      ALLOCATE( DENWET3D(IIPAR,JJPAR,LLPAR,2), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DENWET3D' )
+      ALLOCATE( DENWET3D(NX,NY,NZ,2), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%DENWET3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       DENWET3D = 2d0
 
-      ALLOCATE( MWSIZE3D(IIPAR,JJPAR,LLPAR,3), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWSIZE3D' )
+      ALLOCATE( MWSIZE3D(NX,NY,NZ,3), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%MWSIZE3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       MWSIZE3D = 1.D-6
 
-      ALLOCATE( SO2toSO4( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2toSO4' )
+      ALLOCATE( SO2toSO4( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%SO2toSO4', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SO2toSO4 = 0d0
 
-      ALLOCATE( NCOAG3D(IIPAR,JJPAR,LLPAR,2), STAT=AS )
+      ALLOCATE( NCOAG3D(NX,NY,NZ,2), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%NCOAG3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       NCOAG3D = 0d0
 
-      ALLOCATE( IACT1(IIPAR,JJPAR,LLPAR), STAT=AS )
+      ALLOCATE( IACT1(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%IACT1', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       IACT1 = 15
 
-      ALLOCATE( IACT2(IIPAR,JJPAR,LLPAR), STAT=AS )
+      ALLOCATE( IACT2(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%IACT2', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       IACT2 = 15
 
-      ALLOCATE( IACT3(IIPAR,JJPAR,LLPAR), STAT=AS )
+      ALLOCATE( IACT3(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%IACT3', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       IACT3 = 15
 
-      ALLOCATE( PSO4GAS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( PSO4GAS( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%PSO4GAS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PSO4GAS = 0.d0
 
-      ALLOCATE( XO3( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( XO3( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%XO3', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       XO3 = 0.d0
 
-      ALLOCATE( PLVSOG( IIPAR, JJPAR, LLPAR, 5 ), STAT=AS )
+      ALLOCATE( PLVSOG( NX, NY, NZ, 5 ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%PLVSOG', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PLVSOG = 0d0
 
-      ALLOCATE( BCLIFE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( BCLIFE( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%BCLIFE', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PLVSOG = 0d0
 
-      ALLOCATE( OCLIFE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( OCLIFE( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%OCLIFE', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       PLVSOG = 0d0
 
-      ALLOCATE( IFOUTIJ( IIPAR, JJPAR ) )
+      ALLOCATE( IFOUTIJ( NX, NY ) )
+      CALL GC_CheckVar( 'apm_driv_mod.F%IFOUTIJ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       IFOUTIJ = 0
 
-      ALLOCATE( SITEID( IIPAR, JJPAR) )
+      ALLOCATE( SITEID( NX, NY) )
+      CALL GC_CheckVar( 'apm_driv_mod.F%SITEID', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SITEID = 0
+
 !Yu+ seasalt SST correction 10/15/2011
-      ALLOCATE( FSST( IIPAR, JJPAR) )    
+      ALLOCATE( FSST( NX, NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%FSST', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       FSST = 1.d0
 
 !Yu+ 6/1/11
-      ALLOCATE( SPGF( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( SPGF( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%SPGF', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SPGF = 1.d0
-      ALLOCATE( TAONH3( IIPAR, JJPAR, LLPAR ), STAT=AS )
+
+      ALLOCATE( TAONH3( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%TAONH3', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       TAONH3 = 1.d0
 
-      ALLOCATE( YCOD3D( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( YCOD3D( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YCOD3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YCOD3D = 0.d0
 
-      ALLOCATE( TCOD3D( IIPAR, JJPAR, LLPAR, 9 ), STAT=AS )
+      ALLOCATE( TCOD3D( NX, NY, NZ, 9 ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%TCOD3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       TCOD3D = 0.d0
       TCOD3D(:,:,:,9) = 1.d-3
 
-      ALLOCATE( YHTRC3D( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( YHTRC3D( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YHTRC3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YHTRC3D = 0.d0
 
-      ALLOCATE( YHTR3D( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( YHTR3D( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YHTR3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YHTR3D = 0.d0
 
-      ALLOCATE( YHTRC03D( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( YHTRC03D( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YHTRC03D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YHTRC03D = 0.d0
 
-      ALLOCATE( YHTR03D( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( YHTR03D( NX, NY, NZ ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YHTR03D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YHTR03D = 0.d0
 
-      ALLOCATE( ZBEXT3D(IIPAR,JJPAR,LLPAR,MWL), STAT=AS )
+      ALLOCATE( ZBEXT3D(NX,NY,NZ,MWL), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZBEXT3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       ZBEXT3D = 0.d0
 
-      ALLOCATE( ZW3D(IIPAR,JJPAR,LLPAR,MWL), STAT=AS )
+      ALLOCATE( ZW3D(NX,NY,NZ,MWL), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZW3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       ZW3D= 0.d0
-      ALLOCATE( ZG3D(IIPAR,JJPAR,LLPAR,MWL), STAT=AS )
+
+      ALLOCATE( ZG3D(NX,NY,NZ,MWL), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZG3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       ZG3D= 1.d0
-      ALLOCATE( YBEXT3D(IIPAR,JJPAR,LLPAR,NTYP,MWL), STAT=AS )
+
+      ALLOCATE( YBEXT3D(NX,NY,NZ,NTYP,MWL), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YBEXT3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YBEXT3D= 0.d0
-      ALLOCATE( XBEXT1k3D(IIPAR,JJPAR,LLPAR,12), STAT=AS )
+
+      ALLOCATE( XBEXT1k3D(NX,NY,NZ,12), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%XBEXT1K3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       XBEXT1k3D= 0.d0
-      ALLOCATE( YW3D(IIPAR,JJPAR,LLPAR,NTYP,MWL), STAT=AS )
+
+      ALLOCATE( YW3D(NX,NY,NZ,NTYP,MWL), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YW3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YW3D= 0.d0
-      ALLOCATE( YG3D(IIPAR,JJPAR,LLPAR,NTYP,MWL), STAT=AS )
+
+      ALLOCATE( YG3D(NX,NY,NZ,NTYP,MWL), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YG3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YG3D= 1.d0
-      ALLOCATE( ZBABS3D(IIPAR,JJPAR,LLPAR,NWL), STAT=AS )
+
+      ALLOCATE( ZBABS3D(NX,NY,NZ,NWL), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZBABS3D', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       ZBABS3D= 0.d0
-      ALLOCATE( YUV(IIPAR,JJPAR,LLPAR,9), STAT=AS )
+
+      ALLOCATE( YUV(NX,NY,NZ,9), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%YUV', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       YUV= 0.d0
 
       ! Array denoting where LT is between HR1 and HR2
-      ALLOCATE( GOOD( IIPAR ), STAT=AS )
+      ALLOCATE( GOOD( NX ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%GOOD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       GOOD = 0
-      ALLOCATE( CODOUT(IIPAR,JJPAR,LLPAR,10), STAT=AS )
+
+      ALLOCATE( CODOUT(NX,NY,NZ,10), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%CODOUT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       CODOUT= 0.d0
-      ALLOCATE( CODOUTNUM(IIPAR,JJPAR,LLPAR), STAT=AS )
+
+      ALLOCATE( CODOUTNUM(NX,NY,NZ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%CODOUTNUM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       CODOUTNUM= 0.d0
 
-      ALLOCATE( MODISOUT(IIPAR,JJPAR,6), STAT=AS )
+      ALLOCATE( MODISOUT(NX,NY,6), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%MODISOUT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       MODISOUT= 0.d0
 
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
+      ALLOCATE( TCOSZ( NX, NY ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%TCOSZ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0e+0_fp
 
-      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
+      ALLOCATE( TTDAY( NX, NY ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%TTDAY', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       TTDAY = 0e+0_fp
  
-      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
+      ALLOCATE( COSZM( NX, NY ), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%COSZM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       COSZM = 0e+0_fp
 
-      call load_mosaic_parameters		! sets up indices and other stuff once per simulation
+      ALLOCATE( ALBDRR(NX,NY,NBS), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ALBDRR', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ALBDRR = 0.0D0
+
+      ALLOCATE( ZTCST(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZTCST', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZTCST = 0.0D0
+
+      ALLOCATE( ZTCSB(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZTCSB', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZTCSB = 0.0D0
+
+      ALLOCATE( ZTFST(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZTFST', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZTFST = 0.0D0
+
+      !ALLOCATE( YG3D, STAT=RC )
+      !CALL GC_CheckVar( 'apm_driv_mod.F%YG3D', 0, RC )
+      !IF ( RC /= GC_SUCCESS ) RETURN
+      !YG3D = 0.0D0
+
+      ALLOCATE( ZTFSA(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZTFSA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZTFSA = 0.0D0
+
+      ALLOCATE( ZTCLT(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZTCLT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZTCLT = 0.0D0
+
+      ALLOCATE( ZTCLB(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZTCLB', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZTCLB = 0.0D0
+
+      ALLOCATE( ZTFUL(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ALBDRR = 0.0D0
+
+      ALLOCATE( ZTFDL(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ALBDRR = 0.0D0
+
+      ALLOCATE( ZTFLA(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZTFLA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZTFLA = 0.0D0
+
+      ALLOCATE( ZTAOD(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZTAOD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZTAOD = 0.0D0
+
+      ALLOCATE( ZCLDF(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZCLDF', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZCLDF = 0.0D0
+
+      ALLOCATE( ZALB(NX,NY), STAT=RC ) 
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZALB', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZALB = 0.0D0
+
+      ALLOCATE( ZMALB(NX,NY,NBS), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZMALB', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZMALB = 0.0D0
+
+      ALLOCATE( ZCST(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZCST', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZCST = 0.0D0
+
+      ALLOCATE( ZCSB(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZCSB', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZCSB = 0.0D0
+
+      ALLOCATE( ZFST(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZFST', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZFST = 0.0D0
+
+      ALLOCATE( ZCLD(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZCLD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZCLD = 0.0D0
+
+      ALLOCATE( ZCLD0(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZCLD0', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZCLD0 = 0.0D0
+
+      ALLOCATE( ZFSB(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZFSB', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZFSB = 0.0D0
+
+      ALLOCATE( ZFSA(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZFSA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZFSA = 0.0D0
+
+!      ALLOCATE( ZCLT(NX,NY), STAT=RC )
+!      CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+!      IF ( RC /= GC_SUCCESS ) RETURN
+!      ALBDRR = 0.0D0
+
+!      ALLOCATE( ZCLB(NX,NY), STAT=RC )
+!      CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+!      IF ( RC /= GC_SUCCESS ) RETURN
+!      ALBDRR = 0.0D0
+
+!      ALLOCATE( ZFUL(NX,NY), STAT=RC )
+!      CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+!      IF ( RC /= GC_SUCCESS ) RETURN
+!      ALBDRR = 0.0D0
+
+!      ALLOCATE( ZFDL(NX,NY), STAT=RC )
+!      CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+!      IF ( RC /= GC_SUCCESS ) RETURN
+!      ALBDRR = 0.0D0
+
+!      ALLOCATE( ZFLA(NX,NY), STAT=RC )
+!      CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+!      IF ( RC /= GC_SUCCESS ) RETURN
+!      ALBDRR = 0.0D0
+
+      ALLOCATE( ZAOD(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAOD = 0.0D0
+
+      ALLOCATE( ZCOD(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZCOD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZCOD = 0.0D0
+
+      ALLOCATE( ZCODGC(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZCODGC', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZCODGC = 0.0D0
+
+      ALLOCATE( ZAODOUT1(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZADOUT1', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAODOUT1 = 0.0D0
+
+      ALLOCATE( ZAODOUT3(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZAODOUT3', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAODOUT3 = 0.0D0
+
+      ALLOCATE( ZAOD25(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD25', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAOD25 = 0.0D0
+
+      ALLOCATE( ZAOD50(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD50', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAOD50 = 0.0D0
+
+      ALLOCATE( ZAOD75(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD75', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAOD75 = 0.0D0
+
+      ALLOCATE( NAOD25(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%NAOD25', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      NAOD25 = 0.0D0
+
+      ALLOCATE( NAOD50(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%NAOD50', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      NAOD50 = 0.0D0
+
+      ALLOCATE( NAOD75(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%NAOD75', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      NAOD75 = 0.0D0
+
+      ALLOCATE( ZVIS(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZVIS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZVIS = 0.0D0
+
+      ALLOCATE( THAZ(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%THAZ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      THAZ = 0.0D0
+
+      ALLOCATE( TFOG(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%TFOG', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      TFOG = 0.0D0
+
+      ALLOCATE( ZAAOD(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZAAOD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAAOD = 0.0D0
+
+      ALLOCATE( ZAAODOUT1(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZAAODOUT1', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAAODOUT1 = 0.0D0
+
+      ALLOCATE( ZAAODOUT3(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZAAODOUT3', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZAAODOUT3 = 0.0D0
+
+      ALLOCATE( ZABS(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZABS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZABS = 0.0D0
+
+      ALLOCATE( ZWCL(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZWCL', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZWCL = 0.0D0
+
+      ALLOCATE( ZWCI(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%ZWCI', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZWCI = 0.0D0
+
+      ALLOCATE( AOD(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%AOD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      AOD = 0.0D0
+
+      ALLOCATE( AAOD(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%AAOD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      AAOD = 0.0D0
+
+      ALLOCATE( AODOUT1(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%AODOUT1', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      AODOUT1 = 0.0D0
+
+      ALLOCATE( AAODOUT1(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%AAODOUT1', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      AAODOUT1 = 0.0D0
+
+      ALLOCATE( AODOUT3(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ALBDRR = 0.0D0
+
+      ALLOCATE( AAODOUT3(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%AAODOUT3', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      AAODOUT3 = 0.0D0
+
+      ALLOCATE( CODGC(NX,NY), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%CODGC', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      CODGC = 0.0D0
+
+      ALLOCATE( TAOD(NX,NY,NTYP), STAT=RC )
+      CALL GC_CheckVar( 'apm_driv_mod.F%TAOD', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      TAOD = 0.0D0
+
+      ! sets up indices and other stuff once per simulation
+      CALL load_mosaic_parameters()
 
       END SUBROUTINE INIT_APM3D
 !EOC
@@ -5624,7 +6170,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_APM3D
+      SUBROUTINE CLEANUP_APM3D( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root core?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  28 Aug 2008 - F. Yu       - Initial version  
@@ -5635,68 +6195,713 @@
       !=================================================================
       ! CLEANUP_APM3D begins here!
       !=================================================================
-      IF ( ALLOCATED( T3DAPM      ) ) DEALLOCATE( T3DAPM      )
-      IF ( ALLOCATED( RH3DAPM     ) ) DEALLOCATE( RH3DAPM     )
-      IF ( ALLOCATED( PBLH2DAPM   ) ) DEALLOCATE( PBLH2DAPM   )
-      IF ( ALLOCATED( EMITNH3     ) ) DEALLOCATE( EMITNH3     )
-      IF ( ALLOCATED( EMITSO2     ) ) DEALLOCATE( EMITSO2     )
-      IF ( ALLOCATED( DRYDEP      ) ) DEALLOCATE( DRYDEP      )
-      IF ( ALLOCATED( WETDEP      ) ) DEALLOCATE( WETDEP      )
-      IF ( ALLOCATED( CONDEP      ) ) DEALLOCATE( CONDEP      )
-      IF ( ALLOCATED( UPTAKE      ) ) DEALLOCATE( UPTAKE      )
-      IF ( ALLOCATED( OXIDAT      ) ) DEALLOCATE( OXIDAT      )
-      IF ( ALLOCATED( FCLOUD      ) ) DEALLOCATE( FCLOUD      )
-      IF ( ALLOCATED( XN4D        ) ) DEALLOCATE( XN4D        )
-      IF ( ALLOCATED( XQ3D        ) ) DEALLOCATE( XQ3D        )
-      IF ( ALLOCATED( RCLDL3D     ) ) DEALLOCATE( RCLDL3D     )
-      IF ( ALLOCATED( CDN3D       ) ) DEALLOCATE( CDN3D       )
-      IF ( ALLOCATED( GFTOT3D     ) ) DEALLOCATE( GFTOT3D     )
-      IF ( ALLOCATED( DENWET3D    ) ) DEALLOCATE( DENWET3D    )
-      IF ( ALLOCATED( MWSIZE3D    ) ) DEALLOCATE( MWSIZE3D    )
-      IF ( ALLOCATED( SO2toSO4    ) ) DEALLOCATE( SO2toSO4    )
-      IF ( ALLOCATED( NCOAG3D     ) ) DEALLOCATE( NCOAG3D     )
-      IF ( ALLOCATED( IACT1       ) ) DEALLOCATE( IACT1       )
-      IF ( ALLOCATED( IACT2       ) ) DEALLOCATE( IACT2       )
-      IF ( ALLOCATED( IACT3       ) ) DEALLOCATE( IACT3       )
-      IF ( ALLOCATED( PSO4GAS     ) ) DEALLOCATE( PSO4GAS     )  
-      IF ( ALLOCATED( XO3     ) ) DEALLOCATE( XO3     )  
-      IF ( ALLOCATED( PLVSOG      ) ) DEALLOCATE( PLVSOG      ) 
-      IF ( ALLOCATED( BCLIFE      ) ) DEALLOCATE( BCLIFE      ) 
-      IF ( ALLOCATED( OCLIFE      ) ) DEALLOCATE( OCLIFE      ) 
-      IF ( ALLOCATED( TEMPOUT     ) ) DEALLOCATE( TEMPOUT     )
-      IF ( ALLOCATED( IFOUTIJ     ) ) DEALLOCATE( IFOUTIJ     )
-      IF ( ALLOCATED( SITEID      ) ) DEALLOCATE( SITEID      )
-      IF ( ALLOCATED( SPGF        ) ) DEALLOCATE( SPGF        )   !Yu+ 6/1/11
-      IF ( ALLOCATED( TAONH3      ) ) DEALLOCATE( TAONH3      )   !Yu+ 7/9/16
-      IF ( ALLOCATED( YCOD3D      ) ) DEALLOCATE( YCOD3D      )   !Yu+ 7/12/12
-      IF ( ALLOCATED( TCOD3D      ) ) DEALLOCATE( TCOD3D      )   !Yu+ 7/12/12
-      IF ( ALLOCATED( YHTRC3D     ) ) DEALLOCATE( YHTRC3D     )   !Yu+ 10/16/13
-      IF ( ALLOCATED( YHTR3D      ) ) DEALLOCATE( YHTR3D      )   !Yu+ 10/16/13
-      IF ( ALLOCATED( YHTRC03D    ) ) DEALLOCATE( YHTRC03D    )   !Yu+ 10/16/13
-      IF ( ALLOCATED( YHTR03D     ) ) DEALLOCATE( YHTR03D     )   !Yu+ 10/16/13
-      IF ( ALLOCATED( FSST        ) ) DEALLOCATE( FSST        )   !Yu+ seasalt SST
+      IF ( ALLOCATED( T3DAPM ) ) THEN
+         DEALLOCATE( T3DAPM, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%T3DAPM', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( RH3DAPM ) ) THEN
+         DEALLOCATE( RH3DAPM, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%RH3DAPM', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
 
-      IF ( ALLOCATED( ZBEXT3D     ) ) DEALLOCATE( ZBEXT3D     )   
-      IF ( ALLOCATED( ZW3D        ) ) DEALLOCATE( ZW3D        )   
-      IF ( ALLOCATED( ZG3D        ) ) DEALLOCATE( ZG3D        )   
-      IF ( ALLOCATED( YBEXT3D     ) ) DEALLOCATE( YBEXT3D     )   
-      IF ( ALLOCATED( XBEXT1k3D   ) ) DEALLOCATE( XBEXT1k3D   )   
-      IF ( ALLOCATED( YW3D        ) ) DEALLOCATE( YW3D        )   
-      IF ( ALLOCATED( YG3D        ) ) DEALLOCATE( YG3D        )   
-      IF ( ALLOCATED( ZBABS3D     ) ) DEALLOCATE( ZBABS3D     )   
-      IF ( ALLOCATED( YUV         ) ) DEALLOCATE( YUV         )   
-      IF ( ALLOCATED( GOOD        ) ) DEALLOCATE( GOOD        )
-      IF ( ALLOCATED( CODOUT      ) ) DEALLOCATE( CODOUT      )
-      IF ( ALLOCATED( CODOUTNUM   ) ) DEALLOCATE( CODOUTNUM   )
-      IF ( ALLOCATED( MASSISRP    ) ) DEALLOCATE( MASSISRP    )
-      IF ( ALLOCATED( MASSMESA    ) ) DEALLOCATE( MASSMESA    )
-      IF ( ALLOCATED( MODISOUT    ) ) DEALLOCATE( MODISOUT    )
-      IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
-      IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )          
-      IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )
-      IF ( ALLOCATED( AERAREA    ) ) DEALLOCATE( AERAREA    )
-      IF ( ALLOCATED( AERDRYR    ) ) DEALLOCATE( AERDRYR    )
-      IF ( ALLOCATED( GAMMAPM    ) ) DEALLOCATE( GAMMAPM    )
+      IF ( ALLOCATED( PBLH2DAPM ) ) THEN
+         DEALLOCATE( PBLH2DAPM, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%PBLH2DAPM', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( EMITNH3 ) ) THEN
+         DEALLOCATE( EMITNH3, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%EMITNH3', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( EMITSO2 ) ) THEN
+         DEALLOCATE( EMITSO2, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%EMITSO2', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( DRYDEP ) ) THEN
+         DEALLOCATE( DRYDEP, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%DRYDEP', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( WETDEP ) ) THEN
+         DEALLOCATE( WETDEP, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%WETDEP', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( CONDEP ) ) THEN
+         DEALLOCATE( CONDEP, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%CONDEP', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( UPTAKE ) ) THEN
+         DEALLOCATE( UPTAKE, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%UPTAKE', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( OXIDAT ) )  THEN
+         DEALLOCATE( OXIDAT, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%OXIDAT', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( FCLOUD ) ) THEN
+         DEALLOCATE( FCLOUD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%FCLOUD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( AERAREA ) ) THEN
+         DEALLOCATE( AERAREA, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%AERAREA', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( AERDRYR) ) THEN
+         DEALLOCATE( AERDRYR, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%AERDRYR', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( GAMMAPM ) ) THEN
+         DEALLOCATE( GAMMAPM, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%GAMMAPM', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( XN4D ) ) THEN
+         DEALLOCATE( XN4D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%XN4D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( XQ3D ) ) THEN
+         DEALLOCATE( XQ3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%XQ3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( RCLDL3D) ) THEN
+         DEALLOCATE( RCLDL3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%RCLDL3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( CDN3D) ) THEN
+         DEALLOCATE( CDN3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%CDN3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( RCLDI3D ) ) THEN
+         DEALLOCATE( RCLDI3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%RCLDI3D', 2, RC ) 
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( RCLDI2D ) ) THEN
+         DEALLOCATE( RCLDI2D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%RCLDL2D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( IN3D ) ) THEN
+         DEALLOCATE( IN3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%CDN3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( MASSISRP ) ) THEN
+         DEALLOCATE( MASSISRP, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%MASSISRP', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( MASSMESA ) ) THEN
+         DEALLOCATE( MASSMESA, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%MASSMESA', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( GFTOT3D ) ) THEN
+         DEALLOCATE( GFTOT3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%GFTOT3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( DENWET3D ) ) THEN
+         DEALLOCATE( DENWET3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%DENWET3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( MWSIZE3D ) ) THEN
+         DEALLOCATE( MWSIZE3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%MWSIZE3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( SO2toSO4 ) ) THEN
+         DEALLOCATE( SO2toSO4, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%SO2toSO4', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+ 
+      IF ( ALLOCATED( NCOAG3D ) ) THEN
+         DEALLOCATE( NCOAG3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%NCOAG3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( IACT1 ) ) THEN
+         DEALLOCATE( IACT1, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%IACT1', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( IACT2 ) ) THEN
+         DEALLOCATE( IACT2, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%IACT2', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( IACT3 ) ) THEN
+         DEALLOCATE( IACT3, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%IACT3', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( PSO4GAS) ) THEN
+         DEALLOCATE( PSO4GAS, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%PSO4GAS', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( XO3 ) ) THEN
+         DEALLOCATE( XO3, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%XO3', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( PLVSOG) ) THEN
+         DEALLOCATE( PLVSOG, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%PLVSOG', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( BCLIFE ) ) THEN
+         DEALLOCATE( BCLIFE, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%BCLIFE', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( OCLIFE ) ) THEN
+         DEALLOCATE( OCLIFE, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%OCLIFE', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( IFOUTIJ ) ) THEN
+         DEALLOCATE( IFOUTIJ, STAT=Rc )
+         CALL GC_CheckVar( 'apm_driv_mod.F%IFOUTIJ', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( SITEID ) ) THEN
+         DEALLOCATE( SITEID, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%SITEID', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( FSST ) ) THEN
+         DEALLOCATE( FSST, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%FSST', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( SPGF ) ) THEN
+         DEALLOCATE( SPGF, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%SPGF', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( TAONH3 ) ) THEN
+         DEALLOCATE( TAONH3, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%TAONH3', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( YCOD3D ) ) THEN
+         DEALLOCATE( YCOD3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YCOD3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( TCOD3D ) ) THEN
+         DEALLOCATE( TCOD3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%TCOD3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( YHTRC3D ) ) THEN
+         DEALLOCATE( YHTRC3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YHTRC3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( YHTR3D ) ) THEN
+         DEALLOCATE( YHTR3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YHTR3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( YHTRC03D ) ) THEN
+         DEALLOCATE( YHTRC03D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YHTRC03D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( YHTR03D ) ) THEN
+         DEALLOCATE( YHTR03D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YHTR03D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZBEXT3D ) ) THEN
+         DEALLOCATE( ZBEXT3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZBEXT3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZW3D ) ) THEN
+         DEALLOCATE( ZW3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZW3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZG3D ) ) THEN
+         DEALLOCATE( ZG3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZG3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( YBEXT3D ) ) THEN
+         DEALLOCATE( YBEXT3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YBEXT3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( XBEXT1k3D ) ) THEN
+         DEALLOCATE( XBEXT1k3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%XBEXT1K3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( YW3D ) ) THEN
+         DEALLOCATE( YW3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YW3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( YG3D ) ) THEN
+         DEALLOCATE( YG3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YG3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZBABS3D ) ) THEN
+         DEALLOCATE( ZBABS3D, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZBABS3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( YUV ) ) THEN
+         DEALLOCATE( YUV, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YUV', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( GOOD ) ) THEN
+         DEALLOCATE( GOOD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%GOOD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( CODOUT ) )  THEN
+         DEALLOCATE( CODOUT, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%CODOUT', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( CODOUTNUM ) ) THEN
+         DEALLOCATE( CODOUTNUM, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%CODOUTNUM', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( MODISOUT) ) THEN
+         DEALLOCATE( MODISOUT, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%MODISOUT', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( TCOSZ) ) THEN
+         DEALLOCATE( TCOSZ, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%TCOSZ', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( TTDAY) ) THEN
+         DEALLOCATE( TTDAY, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%TTDAY', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+    
+      IF ( ALLOCATED( COSZM) ) THEN
+         DEALLOCATE( COSZM, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%COSZM', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ALBDRR ) ) THEN
+         DEALLOCATE( ALBDRR, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ALBDRR', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTCST ) ) THEN
+         DEALLOCATE( ZTCST, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTCST', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTCSB ) ) THEN
+         DEALLOCATE( ZTCSB, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTCSB', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+
+      IF ( ALLOCATED( ZTFST ) ) THEN
+         DEALLOCATE( ZTFST, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTFST', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+     
+      IF ( ALLOCATED( ZTFSB ) ) THEN
+         DEALLOCATE( ZTFSB, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%YG3D', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTFSA ) ) THEN
+         DEALLOCATE( ZTFSA, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTFSA', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTCLT ) ) THEN
+         DEALLOCATE( ZTCLT, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTCLT', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTCLB ) ) THEN
+         DEALLOCATE( ZTCLB, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTCLB', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTFUL ) ) THEN
+         DEALLOCATE( ZTFUL, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTFUL', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTFDL  ) ) THEN
+         DEALLOCATE( ZTFDL, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTFDL', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTFLA ) ) THEN
+         DEALLOCATE( ZTFLA, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTFLA', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZTAOD ) ) THEN
+         DEALLOCATE( ZTAOD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZTAOD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCLDF ) ) THEN
+         DEALLOCATE( ZCLDF, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZCLDF', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZALB ) ) THEN
+         DEALLOCATE( ZALB, STAT=RC ) 
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZALB', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZMALB ) ) THEN
+         DEALLOCATE( ZMALB, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZMALB', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCST ) ) THEN
+         DEALLOCATE( ZCST, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZCST', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCSB ) ) THEN
+         DEALLOCATE( ZCSB, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZCSB', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZFST ) ) THEN
+         DEALLOCATE( ZFST, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZFST', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCLD ) ) THEN
+         DEALLOCATE( ZCLD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZCLD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCLD0) ) THEN
+         DEALLOCATE( ZCLD0, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZCLD0', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZFSB ) ) THEN
+         DEALLOCATE( ZFSB, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZFSB', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZFSA ) ) THEN
+         DEALLOCATE( ZFSA, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZFSA', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCLT ) ) THEN
+         DEALLOCATE( ZCLT, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCLB) ) THEN
+         DEALLOCATE( ZCLB, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZFUL ) ) THEN
+         DEALLOCATE( ZFUL, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZFDL ) ) THEN
+         DEALLOCATE( ZFDL, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZFLA ) ) THEN
+         DEALLOCATE( ZFLA, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAOD) ) THEN
+         DEALLOCATE( ZAOD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCOD ) ) THEN
+         DEALLOCATE( ZCOD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZCOD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZCODGC ) ) THEN
+         DEALLOCATE( ZCODGC, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZCODGC', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAODOUT1 ) ) THEN
+         DEALLOCATE( ZAODOUT1, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZADOUT1', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAODOUT3 ) ) THEN
+         DEALLOCATE( ZAODOUT3, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZAODOUT3', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAOD25 ) ) THEN
+         DEALLOCATE( ZAOD25, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD25', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAOD50 ) ) THEN
+         DEALLOCATE( ZAOD50, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD50', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAOD75 ) ) THEN
+         DEALLOCATE( ZAOD75, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD75', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( NAOD25 ) ) THEN
+         DEALLOCATE( NAOD25, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%NAOD25', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( NAOD50 ) ) THEN
+         DEALLOCATE( NAOD50, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%NAOD50', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( NAOD75 ) ) THEN
+         DEALLOCATE( NAOD75, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%NAOD75', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZVIS) ) THEN
+         DEALLOCATE( ZVIS, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZVIS', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( THAZ ) ) THEN
+         DEALLOCATE( THAZ, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%THAZ', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( TFOG ) ) THEN
+         DEALLOCATE( TFOG, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%TFOG', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAAOD ) ) THEN
+         DEALLOCATE( ZAAOD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZAAOD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAAODOUT1 ) ) THEN
+         DEALLOCATE( ZAAODOUT1, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZAAODOUT1', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZAAODOUT3 ) ) THEN
+         DEALLOCATE( ZAAODOUT3, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZAAODOUT3', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZABS ) ) THEN
+         DEALLOCATE( ZABS, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZABS', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZWCL ) ) THEN
+         DEALLOCATE( ZWCL, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZWCL', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( ZWCI ) ) THEN
+         DEALLOCATE( ZWCI, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%ZWCI', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( AOD ) ) THEN
+         DEALLOCATE( AOD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%AOD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( AAOD ) ) THEN
+         DEALLOCATE( AAOD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%AAOD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( AODOUT1 ) ) THEN
+         DEALLOCATE( AODOUT1, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%AODOUT1', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( AAODOUT1 ) ) THEN
+         DEALLOCATE( AAODOUT1, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%AAODOUT1', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( AODOUT3 ) ) THEN
+         DEALLOCATE( AODOUT3, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( AAODOUT3 ) ) THEN
+         DEALLOCATE( AAODOUT3, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%AAODOUT3', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( CODGC ) ) THEN
+         DEALLOCATE( CODGC, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%CODGC', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
+   
+      IF ( ALLOCATED( TAOD) ) THEN
+         DEALLOCATE( TAOD, STAT=RC )
+         CALL GC_CheckVar( 'apm_driv_mod.F%TAOD', 2, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+      ENDIF
 
       END SUBROUTINE CLEANUP_APM3D
 !EOC
