@@ -24,7 +24,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEMDUST      
-#if   defined( TOMAS )
+#if defined( TOMAS )
       PUBLIC  :: SETTLEDUST
 #endif
       PUBLIC  :: RDUST_ONLINE
@@ -41,6 +41,9 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: DRY_SETTLING
+#if defined( APM )
+      PRIVATE :: DRY_SETTLINGBIN
+#endif
 !
 !  !REVISION HISTORY:
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -133,6 +136,11 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Diag_Mod,     ONLY : DgnState
+#if defined( APM )
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+      USE APM_INIT_MOD,       ONLY : APMIDS
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -190,6 +198,11 @@
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg
       CHARACTER(LEN=255) :: ThisLoc
+#if defined( APM )
+      INTEGER       :: I,J,N,IDDST
+      REAL(fp)      :: A_M2, E_DST, DTSRCE
+      REAL(fp), POINTER :: Spc(:,:,:,:)
+#endif
 
       !=================================================================
       ! CHEMDUST begins here!
@@ -230,6 +243,86 @@
          FIRST = .FALSE.
       ENDIF
 
+#if defined( APM )
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State
+      ! object
+      ! (mpayer, 12/6/12)
+      Spc => State_Chm%Species
+
+      ! Emission timestep
+      DTSRCE = HcoState%TS_EMIS
+
+      IDDST   = HCO_GetHcoID( 'DST1',   HcoState )-1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( N, J, I, A_M2, E_DST )
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         ! Grid box surface area [m2]
+         A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
+
+         DO N=1,HcoState%nDust
+            ! Get emissions [kg/m2/s] and convert to [kg/box]
+            E_DST = HcoState%Spc(IDDST+N)%Emis%Val(I,J,1)
+     &             *A_M2*DTSRCE
+
+            Spc(I,J,1,APMIDS%id_DSTBIN1)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1)
+     &         +E_DST*1.5083735055071434d-006
+            Spc(I,J,1,APMIDS%id_DSTBIN1+1)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+1)
+     &         +E_DST*4.7465319694587000d-005
+            Spc(I,J,1,APMIDS%id_DSTBIN1+2)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+2)
+     &         +E_DST*6.5459286253814980d-004
+            Spc(I,J,1,APMIDS%id_DSTBIN1+3)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+3)
+     &         +E_DST*3.6946414378027244d-003
+            Spc(I,J,1,APMIDS%id_DSTBIN1+4)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+4)
+     &         +E_DST*8.0323357006383631d-003
+            Spc(I,J,1,APMIDS%id_DSTBIN1+5)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+5)
+     &         +E_DST*1.5922384531190468d-002
+            Spc(I,J,1,APMIDS%id_DSTBIN1+6)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+6)
+     &         +E_DST*3.7324808601695736d-002
+            Spc(I,J,1,APMIDS%id_DSTBIN1+7)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+7)
+     &         +E_DST*0.1144517534356116
+            Spc(I,J,1,APMIDS%id_DSTBIN1+8)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+8)
+     &         +E_DST*0.1880182758312848
+            Spc(I,J,1,APMIDS%id_DSTBIN1+9)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+9)
+     &         +E_DST*0.2448371224641443
+            Spc(I,J,1,APMIDS%id_DSTBIN1+10)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+10)
+     &         +E_DST*0.1452025570524453
+            Spc(I,J,1,APMIDS%id_DSTBIN1+11)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+11)
+     &         +E_DST*0.1954553759504486
+            Spc(I,J,1,APMIDS%id_DSTBIN1+12)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+12)
+     &         +E_DST*4.0358202390254526d-002
+            Spc(I,J,1,APMIDS%id_DSTBIN1+13)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+13)
+     &         +E_DST*5.2032641469382107d-003
+            Spc(I,J,1,APMIDS%id_DSTBIN1+14)=
+     &      Spc(I,J,1,APMIDS%id_DSTBIN1+14)
+     &         +E_DST*7.2351157743278424d-004
+         ENDDO
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointer
+      Spc => NULL()
+
+#endif
       !=================================================================
       ! Do dust settling & deposition
       !=================================================================
@@ -266,6 +359,12 @@
          CALL DRY_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
      &                      State_Diag, State_Grid, State_Met,
      &                      id_DAL1,    id_DAL4,    RC       )
+
+#if defined( APM )
+         ! Call APM size-resolved settling algorithm
+         CALL DRY_SETTLINGBIN( am_I_Root,  Input_Opt,  State_Chm,
+     &                         State_Diag, State_Grid, State_Met, RC )
+#endif
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN 
@@ -1004,6 +1103,259 @@
       TC      => NULL()
 
       END SUBROUTINE DRY_SETTLING
+#if defined( APM )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dry_settlingbin
+!
+! !DESCRIPTION: Subroutine DRY\_SETTLINGBIN computes the dry settling of 
+!  aerosol tracers. Modified for APM simulation. (G. Luo)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DRY_SETTLINGBIN( am_I_Root,  Input_Opt,  State_Chm,
+     &                            State_Diag, State_Grid, State_Met, RC)
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE PhysConstants
+      USE APM_INIT_MOD,   ONLY : APMIDS
+      USE APM_INIT_MOD,   ONLY : NCTDST,NDSTB
+      USE APM_INIT_MOD,   ONLY : RDST, DENDST
+
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)   :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Now pass Spc via the State_Chm object
+!  17 Oct 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables
+      INTEGER               :: I, J, L, N, K
+      INTEGER               :: IDTEMP
+      REAL*8                :: DT_SETTL, DELZ,  DELZ1
+      REAL*8                :: REFF,     DEN,   CONST   
+      REAL*8                :: NUM,      LAMDA, FLUX
+      REAL*8                :: AREA_CM2, TC0(State_Grid%NZ)
+      REAL*8                :: TOT1,     TOT2
+
+      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
+      REAL*8                :: P 
+
+      ! Diameter of aerosol [um]
+      REAL*8                :: Dp
+
+      ! Pressure * DP
+      REAL*8                :: PDp 
+
+      ! Temperature (K)    
+      REAL*8                :: TEMP        
+
+      ! Slip correction factor
+      REAL*8                :: Slip        
+
+      ! Viscosity of air (Pa s)
+      REAL*8                :: Visc   
+
+      ! Settling velocity of particle (m/s)
+      REAL*8                :: VTS(State_Grid%NZ)
+      REAL*8                :: MASS(State_Grid%NZ)
+      REAL*8                :: OLD(State_Grid%NZ,NCTDST)
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER       :: Spc(:,:,:,:)
+
+      !=================================================================
+      ! DRY_SETTLINGBIN begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+
+      ! Point to Spc
+      Spc => State_Chm%species
+
+      ! Aerosol settling timestep [s]
+      DT_SETTL = GET_TS_CHEM()
+
+      IDTEMP = APMIDS%id_DSTBIN1+NDSTB-1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, K, DEN, REFF, DP )
+!$OMP+PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )
+!$OMP+PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         DO L = 1, State_Grid%NZ
+            MASS(L) = SUM(Spc(I,J,L,APMIDS%id_DSTBIN1:IDTEMP))
+            DO K = 1, NCTDST
+               OLD(L,K) = Spc(I,J,L,(APMIDS%id_CTDST+K-1))
+               Spc(I,J,L,(APMIDS%id_CTDST+K-1)) = 0.D0
+            ENDDO
+         ENDDO
+
+         ! Loop over aerosol bins
+         DO N = 1, NDSTB
+            DO L = 1, State_Grid%NZ
+               TC0(L) = Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1))
+
+               IF(TC0(L)>1.D-30)THEN
+                  ! Initialize
+                  DEN   = DENDST(N)*1.d3
+                  REFF  = RDST(N)
+                  DP    = 2D0 * REFF * 1.D6 ! Dp [um] = particle diameter
+                  CONST = 2D0 * DEN * REFF**2 * g0 / 9D0
+
+                  ! Get P [kPa], T [K], and P*DP
+                  P    = GET_PCENTER(I,J,L) * 0.1d0
+                  TEMP = State_Met%T(I,J,L)
+                  PDP  = P * DP
+
+                  ! Slip correction factor as function of (P*dp)
+                  SLIP = 1d0 + 
+     &                 ( 15.60d0 + 7.0d0 * EXP(-0.059d0*PDP) ) / PDP
+
+                  ! Viscosity [Pa s] of air as a function of temp (K)
+                  VISC = 1.458d-6 * (TEMP)**(1.5d0) / ( TEMP + 110.4d0 )
+
+                  ! Settling velocity [m/s]
+                  VTS(L) = CONST * SLIP / VISC
+               ELSE
+                  VTS(L) = 0.D0
+               ENDIF
+
+            ENDDO
+
+            ! Method is to solve bidiagonal matrix 
+            ! which is implicit and first order accurate in Z
+            L = State_Grid%NZ
+            IF(MASS(L)>1.D-30)THEN
+              DELZ = State_Met%BXHEIGHT(I,J,L)
+
+              Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1)) =
+     &        Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1)) /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+
+              DO K = 1, NCTDST
+                Spc(I,J,L,(APMIDS%id_CTDST+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTDST+K-1))+
+     &          OLD(L,K)*TC0(L)/MASS(L) /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+              ENDDO
+            ENDIF
+
+            DO L = State_Grid%NZ-1, 1, -1
+            IF((MASS(L)*MASS(L+1))>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1)) = 1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1))
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * TC0(L+1) )
+
+              DO K = 1, NCTDST
+                Spc(I,J,L,(APMIDS%id_CTDST+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTDST+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (OLD(L,K)*TC0(L)/MASS(L)
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * OLD(L+1,K)*TC0(L+1)/MASS(L+1) )
+              ENDDO
+            ELSE IF(MASS(L)>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1)) = 1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1))
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * TC0(L+1) )
+
+              DO K = 1, NCTDST
+                Spc(I,J,L,(APMIDS%id_CTDST+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTDST+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * OLD(L,K)*TC0(L)/MASS(L)
+              ENDDO
+            ELSE IF(MASS(L+1)>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1)) = 1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1))
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * TC0(L+1) )
+
+              DO K = 1, NCTDST
+                Spc(I,J,L,(APMIDS%id_CTDST+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTDST+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * DT_SETTL * VTS(L+1) / DELZ1
+     &          * OLD(L+1,K)*TC0(L+1)/MASS(L+1)
+              ENDDO
+            ENDIF
+
+            ENDDO
+
+         ENDDO
+
+         DO L = 1, State_Grid%NZ
+            DO K = 1, NCTDST
+               Spc(I,J,L,(APMIDS%id_CTDST+K-1)) =
+     &            MAX(1.d-30,Spc(I,J,L,(APMIDS%id_CTDST+K-1)))
+            ENDDO
+         ENDDO
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Clear the pointer
+      Spc => NULL()
+
+      END SUBROUTINE DRY_SETTLINGBIN
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

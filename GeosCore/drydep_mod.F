@@ -23,7 +23,7 @@
 #endif
       USE ERROR_MOD                             ! Error handling routines
       USE PBL_MIX_MOD                           ! Boundary layer quantities
-#if   defined( TOMAS )
+#if defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
       USE PhysConstants                         ! Physical constants
@@ -874,6 +874,11 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
+#if defined( APM )
+      USE APM_INIT_MOD,       ONLY : APMIDS
+      USE APM_INIT_MOD,       ONLY : RDRY, RSALT, RDST, DENDST
+      USE APM_DRIV_MOD,       ONLY : GFTOT3D, DENWET3D, MWSIZE3D
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1604,6 +1609,35 @@
                   ! Particle density [kg/m3]
                   DEN   = A_DEN(K)             
 
+#endif
+
+#if defined( APM )
+                  IF(SpcInfo%Name(1:8)=='APMSPBIN')THEN
+                    DIAM = RDRY(SpcId-APMIDS%id_SO4BIN1+1)*
+     &                     GFTOT3D(I,J,1,1)*2.D0
+                    DEN = DENWET3D(I,J,1,1)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:9)=='APMSEABIN')THEN
+                    DIAM = RSALT(SpcId-APMIDS%id_SEABIN1+1)*
+     &                     GFTOT3D(I,J,1,2)*2.D0
+                    DEN = DENWET3D(I,J,1,2)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:9)=='APMDSTBIN')THEN
+                    DIAM = RDST(SpcId-APMIDS%id_DSTBIN1+1)*2.D0
+                    DEN = DENDST(SpcId-APMIDS%id_DSTBIN1+1)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:8)=='APMLVSOA')THEN
+                    DIAM = MWSIZE3D(I,J,1,1)*2.D0
+                    DEN = DENWET3D(I,J,1,1)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:8)=='APMCTSEA')THEN
+                    DIAM = MWSIZE3D(I,J,1,2)*2.D0
+                    DEN = DENWET3D(I,J,1,2)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:8)=='APMCTDST')THEN
+                    DIAM = MWSIZE3D(I,J,1,3)*2.D0
+                    DEN = DENDST(12)*1.D3
+                  ENDIF
 #endif
 
                   ! [Zhang et al., 2001]
@@ -4179,7 +4213,7 @@
       ! This is necessary for integrating GEOS-Chem with a variable
       ! domain model like WRF-GC, where multiple instances of GEOS-Chem
       ! run in the same CPU. (hplin, 2/16/2019)
-      IF ( ALLOCATED( A_DEN ) ) RETURN
+      !GanLuoIF ( ALLOCATED( A_DEN ) ) RETURN
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species

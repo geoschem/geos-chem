@@ -140,6 +140,15 @@
       USE RRTMG_LW_Init,          ONLY : RRTMG_LW_Ini
       USE RRTMG_SW_Init,          ONLY : RRTMG_SW_Ini
 #endif
+#if defined( APM )
+      ! For APM aerosol microphysics simulation, 
+      ! see apm_driv_mod.f for more information
+      USE APM_INIT_MOD,      ONLY : APM_NTRACERS
+      USE APM_INIT_MOD,      ONLY : APM_INIT
+      USE APM_INIT_MOD,      ONLY : CLEANUP_APMARRAYS
+      USE APM_DRIV_MOD,      ONLY : INIT_APM3D
+      USE APM_DRIV_MOD,      ONLY : CLEANUP_APM3D
+#endif
 
       IMPLICIT NONE
 !
@@ -681,6 +690,23 @@
       ! Settings
       iCld  = 0
       iSeed = 10
+#endif
+
+#if defined( APM )
+      !-----------------------------------------------------------------
+      ! Initializations for the APM aerosol microphysics package
+      !-----------------------------------------------------------------
+
+      ! Initialize APM related variables, arrays
+      CALL APM_NTRACERS( State_Chm )
+
+      CALL APM_INIT(Input_Opt%CHEM_INPUTS_DIR)
+
+      CALL Init_APM3D( am_I_Root, Input_Opt, State_Grid, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in routine "Init_APM3D"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 #endif
 
 #if defined( BPCH_DIAG )
@@ -2551,6 +2577,12 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup Diag_List' )
+
+#if defined( APM )
+      ! Clean up arrays for APM microphysics, etc.
+      CALL CLEANUP_APMARRAYS()
+      CALL CLEANUP_APM3D( am_I_Root, Input_Opt, RC )
+#endif
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
