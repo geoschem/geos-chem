@@ -1538,15 +1538,6 @@
             ! When not in the arctic and LOCEANCOEF is true, use Kd_part 
             ! and k_ox_dark from Song et al. ACP 2015, otherwise use ocean 
             ! coefficients from Soerensen et al. EST 2010 ! sjs,08/12/2015
-#if defined ( LINUX_PGI )
-            IF ( Y >= 70.0e+0_fpp ) THEN
-               Kd_part = 31622.776601684
-            ELSE IF ( LOCEANCOEF ) THEN
-               Kd_part = 15848.93192461
-            ELSE
-               Kd_part = 316227.76601684
-            ENDIF
-#else
             IF ( Y >= 70.0e+0_fpp ) THEN
                Kd_part = 10e+0_fpp**(4.5e+0_fpp)
             ELSE IF ( LOCEANCOEF ) THEN
@@ -1554,7 +1545,6 @@
             ELSE
                Kd_part = 10e+0_fpp**(5.5e+0_fpp)
             ENDIF
-#endif
 
             Frac_Hg2    = 1 / ( 1 + Kd_part * SPM * 1e-9_fpp)
 

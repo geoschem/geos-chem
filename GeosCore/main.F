@@ -1013,11 +1013,6 @@
       !=================================================================
       DO N_STEP = 1, N_DYN_STEPS
     
-#if defined( LINUX_PGI )
-         ! Flush the buffer each timestep so we get output
-         CALL Flush( 6 )
-#endif
-
          ! Compute & print time quantities at start of dyn step
          CALL Set_Current_Time()
          CALL Print_Current_Time()
@@ -2687,9 +2682,7 @@
       !-----------------------------------------------------------------
       ! Print compiler
       !-----------------------------------------------------------------
-#if defined( LINUX_PGI )
-      WRITE( 6, 120 ) 'PGI compiler (aka pgfortran)'
-#elif defined( LINUX_IFORT )
+#if defined( LINUX_IFORT )
       WRITE( 6, 120  ) 'Intel Fortran Compiler (aka ifort)'
 #elif defined( LINUX_GFORTRAN )
       WRITE( 6, 120 ) 'GNU Fortran compiler (aka gfortran)'

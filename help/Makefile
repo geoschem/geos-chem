@@ -22,22 +22,7 @@
 # SHELL      Specifies the shell for "make" to use (usually SHELL=/bin/sh)
 #
 # !REVISION HISTORY: 
-#  21 Sep 2009 - R. Yantosca - Initial version
-#  24 Sep 2009 - R. Yantosca - Added info about NONUMA option for PGI
-#  24 Sep 2009 - R. Yantosca - Now list rosenbrock as default solver
-#  19 Nov 2009 - R. Yantosca - Updated comments
-#  23 Nov 2009 - R. Yantosca - Updated comments
-#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
-#  21 Dec 2009 - R. Yantosca - Added info about HDF5 option
-#  25 Jan 2010 - R. Yantosca - Added info about TOMAS option
-#  10 Mar 2010 - C. Carouge  - Remove info about TOMAS option. Keep info
-#                              about tomas target.
-#  26 Aug 2011 - R. Yantosca - Added info about APM targets
-#  26 Aug 2011 - R. Yantosca - Add info about the PRECISE=no option
-#  11 May 2012 - R. Yantosca - Updated to include info about new make options
-#  08 Apr 2015 - M. Sulprizio- Updated to include make options added in v10-01
-#  29 May 2015 - R. Yantosca - Updated help screen for v10-01 CHEM options
-#  05 Dec 2016 - R. Yantosca - Updated for v11-01
+#  See the Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -116,14 +101,11 @@ help:
 	@echo 'OMP=no          Turns off OpenMP parallelization'
 	@echo '                --> Default: OMP=y'
 	@echo ''
-	@echo 'NONUMA=yes      Turns on -mp=nonuma option (pgi only)'
-	@echo '                --> Default: OMP=n'
-	@echo ''
 	@echo 'IPO=yes         Turns on optmization options -ipo -static (ifort only)'
 	@echo '                --> Default: IPO=n'
 	@echo ''
 	@echo 'OPT=___         Specifies the optimization level'
-	@echo '                --> Defaults OPT=-O2 (ifort and pgi)'
+	@echo '                --> Defaults OPT=-O2 (ifort)'
 	@echo '                             OPT=-O3 (gfortran)'
 	@echo ''
 	@echo 'M_ARCH=___      Specifies the CPU architecture (gfortran only)'
