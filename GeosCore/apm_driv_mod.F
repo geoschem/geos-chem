@@ -1087,7 +1087,6 @@
 !$OMP+PRIVATE( dumc, dumnc, pgam, lamc)
 !$OMP+PRIVATE( CCLD,CLDLIQ,CLDICE )
 !$OMP+PRIVATE( REL,REI)
-!$OMP+PRIVATE( MODISOUT)
 !$OMP+PRIVATE( taucloud, taucloudl, taucloudi, ssacloudl, ssacloudi )
 !!$OMP+PRIVATE( nuci, onihf, oniimm, onidep, onimey)
 !$OMP+SCHEDULE( DYNAMIC )
