@@ -3898,7 +3898,7 @@ CONTAINS
     ELSE
        ! Use offline biogenic emissions
        ExtNr = 0
-       Cat   = CATEGORY_NATURAL
+       Cat   = CATEGORY_BIOGENIC
     ENDIF
 
 #if ! defined ( TOMAS )
@@ -4244,7 +4244,7 @@ CONTAINS
     ELSE
        ! Use offline biogenic emissions
        ExtNr = 0
-       Cat   = CATEGORY_NATURAL
+       Cat   = CATEGORY_BIOGENIC
     ENDIF
 
        !%%% For ND46 diagnostic %%%
@@ -4453,7 +4453,7 @@ CONTAINS
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &
                              ExtNr     = ExtNr,             &
-                             Cat       = CATEGORY_BIOGENIC, &
+                             Cat       = CATEGORY_NATURAL,  &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
@@ -4480,7 +4480,7 @@ CONTAINS
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &
                              ExtNr     = ExtNr,             &
-                             Cat       = CATEGORY_BIOGENIC, &
+                             Cat       = CATEGORY_NATURAL,  &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
