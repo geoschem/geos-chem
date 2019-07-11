@@ -64,6 +64,7 @@ MODULE State_Chm_Mod
      INTEGER                    :: nAdvect              ! # advected species
      INTEGER                    :: nAero                ! # of Aerosol Types
      INTEGER                    :: nDryDep              ! # drydep species
+     INTEGER                    :: nDryAlt              ! # dryalt species
      INTEGER                    :: nGasSpc              ! # gas phase species
      INTEGER                    :: nHygGrth             ! # hygroscopic growth
      INTEGER                    :: nKppVar              ! # KPP variable species
@@ -80,6 +81,7 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species IDs
      INTEGER,           POINTER :: Map_Aero   (:      ) ! Aerosol species IDs
      INTEGER,           POINTER :: Map_DryDep (:      ) ! Drydep species IDs
+     INTEGER,           POINTER :: Map_DryAlt (:      ) ! Dryalt species IDs
      INTEGER,           POINTER :: Map_GasSpc (:      ) ! Gas species IDs
      INTEGER,           POINTER :: Map_HygGrth(:      ) ! HygGrth species IDs
      INTEGER,           POINTER :: Map_KppVar (:      ) ! Kpp variable spc IDs
@@ -396,6 +398,7 @@ CONTAINS
     State_Chm%nSpecies      =  0
     State_Chm%nAdvect       =  0
     State_Chm%nAero         =  0
+    State_Chm%nDryAlt       =  0
     State_Chm%nDryDep       =  0
     State_Chm%nGasSpc       =  0
     State_Chm%nHygGrth      =  0
@@ -411,6 +414,7 @@ CONTAINS
     ! Mapping vectors for subsetting each type of species
     State_Chm%Map_Advect    => NULL()
     State_Chm%Map_Aero      => NULL()
+    State_Chm%Map_DryAlt    => NULL()
     State_Chm%Map_DryDep    => NULL()
     State_Chm%Map_GasSpc    => NULL() 
     State_Chm%Map_HygGrth   => NULL()
@@ -542,12 +546,12 @@ CONTAINS
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and 
     ! HgP species (these are zero unless the Hg simulation is used).
     CALL Spc_GetNumSpecies( State_Chm%nAdvect,  State_Chm%nAero,            &
-                            State_Chm%nDryDep,  State_Chm%nGasSpc,          &
-                            State_Chm%nHygGrth, State_Chm%nKppVar,          &
-                            State_Chm%nKppFix,  State_Chm%nKppSpc,          &
-                            State_Chm%nPhotol,  State_Chm%nWetDep,          &
-                            N_Hg0_CATS,         N_Hg2_CATS,                 &
-                            N_HgP_CATS                                     )
+                            State_Chm%nDryAlt,  State_Chm%nDryDep,          &
+                            State_Chm%nGasSpc,  State_Chm%nHygGrth,         &
+                            State_Chm%nKppVar,  State_Chm%nKppFix,          &
+                            State_Chm%nKppSpc,  State_Chm%nPhotol,          &
+                            State_Chm%nWetDep,  N_Hg0_CATS,                 &
+                            N_Hg2_CATS,         N_HgP_CATS                 )
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,
@@ -607,6 +611,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%Map_Aero', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_Aero = 0
+    ENDIF
+
+    IF (  State_Chm%nDryAlt > 0 ) THEN
+       ALLOCATE( State_Chm%Map_DryAlt( State_Chm%nDryAlt ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_DryAlt', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_DryAlt = 0
     ENDIF
 
     IF (  State_Chm%nDryDep > 0 ) THEN
@@ -726,6 +737,14 @@ CONTAINS
        IF ( ThisSpc%Is_Aero ) THEN
           C                     = ThisSpc%AeroId
           State_Chm%Map_Aero(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for DRYDEP SPECIES TO SAVE AT A GIVEN ALTITUDE
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_DryAlt ) THEN
+          C                       = ThisSpc%DryAltId
+          State_Chm%Map_DryAlt(C) = ThisSpc%ModelId
        ENDIF
 
        !--------------------------------------------------------------------

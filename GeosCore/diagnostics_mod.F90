@@ -485,7 +485,7 @@ CONTAINS
 !
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
     LOGICAL            :: Found
-    INTEGER            :: I, J, L, N
+    INTEGER            :: I, J, L, N, D
 
     !====================================================================
     ! Set_SpcConc_Diags_VVDry begins here!
@@ -512,7 +512,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Copy species concentrations to diagnostic array [v/v dry]
+    !=======================================================================
+    ! Copy species concentrations to diagnostic arrays [v/v dry]
+    !=======================================================================
     !$OMP PARALLEL DO           &
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N )
@@ -544,6 +546,37 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    !=======================================================================
+    ! Copy species concentrations to diagnostic arrays [v/v dry]
+    !=======================================================================
+    IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+
+       ! Loop over the number of drydep species that we wish
+       ! to save at a user-specified altitude above the surface
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( I, J, N, D )
+       DO D = 1, State_Chm%nDryAlt
+
+          ! GEOS-Chem species index
+          N = State_Chm%Map_DryAlt(D)
+
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+             State_Diag%SpeciesConcALT1(I,J,S) = State_Chm%Species(I,J,1,N)
+
+             ! NOTE: Need to implement this
+             !CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
+             !IF (CONV .lt. 0) CONV = 1.0
+             !Q(X,Y,1)= CONV *TMPO3*1E9
+
+          ENDDO
+          ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+    ENDIF
 
     ! Convert State_Chm%Species back to original unit
     CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,                &

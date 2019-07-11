@@ -80,10 +80,11 @@ MODULE DiagList_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5), PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
-  CHARACTER(LEN=2), PUBLIC  :: RadFlux(12)   ! Names of RRTMG flux outputs
-  INTEGER,          PUBLIC  :: nRadFlux      ! # of selected RRTMG flux outputs
-  LOGICAL,          PUBLIC  :: IsFullChem    ! Is this a fullchem simulation?
+  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)     ! Wavelengths in radiation menu
+  CHARACTER(LEN=2),  PUBLIC  :: RadFlux(12)  ! Names of RRTMG flux outputs
+  INTEGER,           PUBLIC  :: nRadFlux     ! # of selected RRTMG flux outputs
+  LOGICAL,           PUBLIC  :: IsFullChem   ! Is this a fullchem simulation?
+  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc  ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
   ! Derived type for Collections List
@@ -251,6 +252,13 @@ CONTAINS
           IsFullChem = ( TRIM( ADJUSTL( SubStrs(2) ) ) == '3' )
        ENDIF
 
+       ! Find the altitude above thes surface for O3, HNO3 diagnostics
+       IF ( INDEX( Line, 'Diag alt above sfc [m]' ) > 0 ) THEN
+          CALL StrSplit( Line, ':', SubStrs, N )
+          AltAboveSfc = TRIM( ADJUSTL( SubStrs(2) ) ) // 'm'
+          found       = .TRUE.
+       ENDIF
+
        ! Update wavelength(s) with string in file
        IF ( INDEX( Line, 'AOD Wavelength' ) > 0 ) THEN
           I = INDEX( Line, ':' )
@@ -261,13 +269,14 @@ CONTAINS
           ENDDO
 
           ! Exit the search
-          EXIT
+          IF ( found ) EXIT
        ENDIF
     ENDDO
     
     ! Close the file
     CLOSE( fId )
-    
+    found = .FALSE.
+
     !=======================================================================
     ! Read data from the HISTORY.rc configuration file
     !=======================================================================
@@ -695,7 +704,7 @@ CONTAINS
        IF ( IWLMAX > 0 ) THEN
           IWLMAXLOC = MAXLOC(IWL)
           registryIDprefix = registryID(1:IWL(IWLMAXLOC(1))-1) // &
-                             TRIM(RadWL(IWLMAXLOC(1))) // 'nm'
+                             TRIM(RadWL(IWLMAXLOC(1))) // 'NM'
           I = INDEX( TRIM(registryID), '_' )
           IF ( I > 0 ) THEN
              registryID = TRIM(registryIDprefix) // registryID(I:)
@@ -711,7 +720,7 @@ CONTAINS
        IF ( IWLMAX > 0 ) THEN
           IWLMAXLOC = MAXLOC(IWL(:))
           metadataID = metadataID(1:IWL(IWLMAXLOC(1))-1) //  &
-                       TRIM(RadWL(IWLMAXLOC(1))) // 'nm'
+                       TRIM(RadWL(IWLMAXLOC(1))) // 'NM'
        ENDIF
 
        ! Special handling for the RRTMG diagnostic flux outputs
@@ -749,6 +758,23 @@ CONTAINS
              nRadFlux    = 11
 
           ENDIF
+       ENDIF
+
+       ! Special handling for diagnostics at a specific height
+       ! (e.g. rename O3CONCATALT --> O3CONCAT10M)
+       IWL(1) = INDEX( TRIM(registryID), 'ALT1' )
+       IF ( IWL(1) > 0 ) THEN
+          registryIDprefix = registryID(1:IWL(1)-1) // TRIM( AltAboveSfc )
+          I = INDEX( TRIM(registryID), '_' )
+          IF ( I > 0 ) THEN
+             registryID = TRIM(registryIDprefix) // registryID(I:)
+          ELSE
+             registryID = registryIDprefix
+          ENDIF
+       ENDIF
+       IWL(2) = INDEX( TRIM(metadataID), 'ALT1' )
+       IF ( IWL(2) > 0 ) THEN
+          metadataID = metadataID(1:IWL(2)-1) // TRIM( AltAboveSfc )
        ENDIF
 
        !====================================================================

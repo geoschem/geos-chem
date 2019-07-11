@@ -3878,6 +3878,14 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%CO2_REF
 
+      ! Reference CO2 level
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'RA_Alt_Above_Sfc', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%RA_Alt_Above_Sfc
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
       IF ( RC /= GC_SUCCESS ) THEN

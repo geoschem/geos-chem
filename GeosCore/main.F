@@ -187,125 +187,8 @@
 !     - horizontal and vertical resolution
 !     - modification history
 !
-! !REVISION HISTORY: 
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
-!  19 Aug 2010 - R. Yantosca - Now call MERRA met field reader routines
-!  02 Feb 2011 - S. Kim      - Call Compute_OD after wet deposition
-!  05 Oct 2011 - R. Yantosca - Now get SUNCOS30 array from routine COSSZA
-!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
-!                              cos(SZA) at the midpt of the chemistry timestep
-!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
-!  06 Feb 2012 - R. Yantosca - Reorganize USE statements for clarity
-!  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
-!  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
-!                              READ_INITIAL_MET_FIELDS and READ_MET_FIELDS
-!  07 Feb 2012 - M. Payer    - Replace call to COSSZA with GET_COSINE_SZA
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  06 Mar 2012 - R. Yantosca - Now call READ_TOMS every month (this was
-!                              formerly done within routine "fast_j.F")
-!  06 Mar 2012 - R. Yantosca - Add subroutine GET_OVERHEAD_O3_FOR_FASTJ
-!                              which calls COMPUTE_OVERHEAD_O3 (in toms_mod.F)
-!                              to pre-compute the overhead O3 columsn for
-!                              FAST-J photolysis.  This removes code from
-!                              "set_prof.F" to facilitate the GI model.
-!  19 Mar 2012 - R. Yantosca - Now call routines from olson_landmap_mod.F90
-!                              to read the Olson land map data
-!  04 Apr 2012 - R. Yantosca - Now call updated LAI routines from new module
-!                              modis_lai_mod.F90.  Retire routine RDLAI.
-!  05 Apr 2012 - R. Yantosca - Removed reference to LXTRA, it's obsolete
-!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
-!  11 Apr 2012 - R. Yantosca - Now call INIT_MODIS_LAI (in modis_lai_mod.F90)
-!                              here so that we don't have to call it from 
-!                              megan_mod.F and mercury_mod.F separately.
-!  17 Apr 2012 - R. Yantosca - Need to set the mapping variable to NULL()
-!  10 Jun 2012 - L. Murray   - Remove references to UPBDFLX_MOD.F
-!  31 Jul 2012 - R. Yantosca - Now pass am_I_Root variable to lower-level
-!                              routines in order to allow PRINT and WRITE
-!                              statements to execute on the root CPU.  This
-!                              is needed for compatibility w/ the GEOS-5 GCM.
-!  13 Aug 2012 - R. Yantosca - Now call FILL_CHEM_STATE_IDs to populate
-!                              the CHEM_STATE object ID and name fields
-!  18 Oct 2012 - R. Yantosca - Rename LOCAL_MET object to State_Met
-!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE object to State_Chm
-!  18 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC arguments to routines
-!                              ALLOCATE_ALL, INIT_ALL when using -DDEVEL
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
-!  25 Oct 2012 - R. Yantosca - Define logical doDebugPrt for ND70 output
-!  25 Oct 2012 - R. Yantosca - Add descriptive comments for DEVEL #ifdefs
-!  25 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
-!  01 Nov 2012 - R. Yantosca - Now read soil NOx restart file
-!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
-!  08 Nov 2012 - R. Yantosca - Now pass Input_Opt as an arg to DO_CHEMISTRY
-!  01 Nov 2012 - R. Yantosca - Now read soil NOx restart file
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!                              to various subroutines
-!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  15 Nov 2012 - R. Yantosca - Bring Input_Opt out of the DEVEL tags
-!  26 Feb 2013 - R. Yantosca - Add placeholder tag for Input_Opt%MAX_DEP
-!  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to routine
-!                              DO_PBL_MIX_2 (for non-local PBL mixing)
-!  15 Mar 2013 - R. Yantosca - Now set Input_Opt%LINOZ_N* fields here
-!  26 Mar 2013 - S.D. Eastham- Added initialization of rare tracers
-!  29 Mar 2013 - R. Yantosca - Bring code out of DEVEL blocks
-!  30 May 2013 - R. Yantosca - Now pass Input_Opt object to STDRUN routine
-!  03 Jun 2013 - R. Yanosca - Use routines from updated mercury_mod.F
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  23 Oct 2013 - R. Yantosca - Now pass am_I_root, Input_Opt, RC to INIT_DAO
-!  13 Dec 2013 - M. Sulprizio- Now set USE_O3_FROM_MET logical flag during
-!                              initialization stage
-!  11 Apr 2014 - R. Yantosca - Now remove call to INIT_GLOBAL_CH4; this is
-!                              now done from routine GIGC_Init_Extra
-!  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY 
-!  19 May 2014 - C. Keller   - Added HEMCO
-!  23 Jun 2014 - R. Yantosca - Removed references to unix_cmds_mod.F
-!  23 Jun 2014 - R. Yantosca - Removed references to directory_mod.F
-!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
-!  15 Jul 2014 - R. Yantosca - Now reference grid_mod.F90, regrid_a2a_mod.F90
-!  15 Jul 2014 - R. Yantosca - Now call Init_Map_A2A to store shadow variables
-!                              within regrid_a2a_mod.F90.  This helps to 
-!                              break dependencies for the HEMCO implementation.
-!  25 Jul 2014 - R. Yantosca - Remove reference to commsoil_mod.F90
-!  22 Aug 2014 - R. Yantosca - Now save areas [m2] in State_Met%AREA_M2
-!  15 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  06 Jan 2015 - R. Yantosca - Added two-way coupled simulation options
-!  17 Feb 2015 - E. Lundgren - Remove STT and TCVV pointers
-!  25 Feb 2015 - E. Lundgren - Remove MAKE-RH call since now in AIRQNT
-!  16 Mar 2015 - E. Lundgren - Change tracer main units from kg to kg/kg
-!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
-!  31 Mar 2015 - E. Lundgren - Move post-transport AIRQNT call to transport_mod 
-!  16 Apr 2015 - R. Yantosca - Remove call to INIT_DAO; it's obsolete
-!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
-!  03 Sep 2015 - R. Yantosca - Now call SETUP_WETSCAV instead of INIT_WETSCAV
-!  25 Jan 2016 - R. Yantosca - Call LINE_BUFFER to force PGI compiler to flush
-!                               STDOUT (unit=6) output to disk during a run
-!  03 Feb 2016 - E. Lundgren - Use routine MAKE_RESTART_FILES for all GC rsts
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  02 May 2016 - R. Yantosca - Now pass Input_Opt to cleanup_gigc_state_chm
-!  18 May 2016 - M. Sulprizio- Remove call to INIT_COMODE; it's obsolete
-!  06 Jun 2016 - M. Sulprizio- Remove call to FILL_CHEM_STATE_IDs; this routine
-!                              was made obsolete by the species database
-!  22 Jun 2016 - R. Yantosca - Add error checks to prevent calling UCX routines
-!                              when we are running specialty simulations
-!  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  16 Jun 2017 - M. Sulprizio- Add call for GOSAT CH4 observation operator
-!  17 Aug 2017 - M. Sulprizio- Add call for TCCON CH4 observation operator
-!  23 Aug 2017 - R. Yantosca - Now add at timer for the History component
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
-!  30 Aug 2017 - R. Yantosca - Move the HISTORY UPDATE block before call to
-!                               SET_CURRENT_TIME, for clarity
-!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
-!                              now the default.
-!  14 Sep 2017 - M. Sulprizio- Remove setting of USE_O3_FROM_MET. This is now
-!                              set in the chemistry menu of input.geos.
-!  22 Jan 2018 - R. Yantosca - Attach error traps after every routine w/ RC
-!  26 Oct 2018 - M. Sulprizio- Remove routines READ_INITIAL_MET_FIELDS and
-!                              READ_MET_FIELDS. Met fields are now obtained from
-!                              HEMCO in hcoi_gc_main_mod.F90.
-!  08 Nov 2018 - R. Yantosca - Update the initializations for RRTMG
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -406,10 +289,6 @@
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
-
-      ! Tell PGI compiler to line-buffer STDOUT, so that we can pipe the 
-      ! screen output to a log file and see the results while GC is running.
-      CALL LINE_BUFFER( 6 )
 
 #if defined( TOMAS )
       !(sfarina, 6/19/2013) It may seem strange, but this welcome message

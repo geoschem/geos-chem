@@ -36,6 +36,8 @@ MODULE Species_Mod
   !=========================================================================
   INTEGER, PRIVATE :: AdvectCount  = 0  ! Counter of advected species
   INTEGER, PRIVATE :: AeroCount    = 0  ! Counter of aerosol species
+  INTEGER, PRIVATE :: DryAltCount  = 0  ! Counter of dry-dep species to save
+                                        !  at a user-defined altitude
   INTEGER, PRIVATE :: DryDepCount  = 0  ! Counter of dry-deposited species
   INTEGER, PRIVATE :: GasSpcCount  = 0  ! Counter of gas-phase species
   INTEGER, PRIVATE :: HygGrthCount = 0  ! Counter of hygroscopic growth spc
@@ -65,6 +67,7 @@ MODULE Species_Mod
      INTEGER            :: ModelID          ! Model species ID
      INTEGER            :: AdvectID         ! Advection index
      INTEGER            :: AeroID           ! Aerosol species index
+     INTEGER            :: DryAltId         ! Dry dep species at altitude ID
      INTEGER            :: DryDepID         ! Dry deposition index
      INTEGER            :: GasSpcID         ! Gas-phase species index
      INTEGER            :: HygGrthID        ! Hygroscopic growth species index
@@ -83,6 +86,8 @@ MODULE Species_Mod
      ! Logical switches
      LOGICAL            :: Is_Advected      ! Is it advected?
      LOGICAL            :: Is_Aero          ! Is it an aerosol species?
+     LOGICAL            :: Is_DryAlt        ! Is it a dry-dep species that we
+                                            !  want to save at a given altitude?
      LOGICAL            :: Is_DryDep        ! Is it dry-deposited?
      LOGICAL            :: Is_Gas           ! Is it a gas?  If not, aerosol.
      LOGICAL            :: Is_HygroGrowth   ! Does it have hygroscropic growth?
@@ -438,22 +443,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Create( am_I_Root,      ThisSpc,       ModelID,        &
-                         DryDepID,       Name,          FullName,       &
-                         Formula,                                       &
-                         MW_g,           EmMW_g,        MolecRatio,     &
-                         BackgroundVV,   Henry_K0,      Henry_CR,       &
-                         Henry_PKA,      Density,       Radius,         &
-                         DD_AeroDryDep,  DD_DustDryDep, DD_DvzAerSnow,  &
-                         DD_DvzMinVal,   DD_F0,         DD_KOA,         &
-                         DD_HStar_Old,   MP_SizeResAer, MP_SizeResNum,  &
-                         WD_RetFactor,   WD_LiqAndGas,  WD_ConvFacI2G,  &
-                         WD_AerScavEff,  WD_KcScaleFac, WD_RainoutEff,  &
-                         WD_CoarseAer,   Is_Advected,                   &
-                         Is_Drydep,      Is_Gas,        Is_HygroGrowth, &
-                         Is_Photolysis,  Is_Wetdep,     Is_InRestart,   &
-                         Is_Hg0,         Is_Hg2,        Is_HgP,         &
-                         KppSpcId,       KppVarId,      KppFixId,      RC )
+  SUBROUTINE Spc_Create( am_I_Root,      ThisSpc,       ModelID,             &
+                         DryDepID,       Name,          FullName,            &
+                         Formula,                                            &
+                         MW_g,           EmMW_g,        MolecRatio,          &
+                         BackgroundVV,   Henry_K0,      Henry_CR,            &
+                         Henry_PKA,      Density,       Radius,              &
+                         DD_AeroDryDep,  DD_DustDryDep, DD_DvzAerSnow,       &
+                         DD_DvzMinVal,   DD_F0,         DD_KOA,              &
+                         DD_HStar_Old,   MP_SizeResAer, MP_SizeResNum,       &
+                         WD_RetFactor,   WD_LiqAndGas,  WD_ConvFacI2G,       &
+                         WD_AerScavEff,  WD_KcScaleFac, WD_RainoutEff,       &
+                         WD_CoarseAer,   Is_Advected,   Is_DryAlt,           &
+                         Is_Drydep,      Is_Gas,        Is_HygroGrowth,      &
+                         Is_Photolysis,  Is_Wetdep,     Is_InRestart,        &
+                         Is_Hg0,         Is_Hg2,        Is_HgP,              &
+                         KppSpcId,       KppVarId,      KppFixId,            &
+                         RC                                                 )
 !
 ! !USES:
 !
@@ -506,6 +512,8 @@ CONTAINS
     REAL(fp),         OPTIONAL    :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL,          OPTIONAL    :: WD_CoarseAer     ! Coarse aerosol?
     LOGICAL,          OPTIONAL    :: Is_Advected      ! Is it advected?
+    LOGICAL,          OPTIONAL    :: Is_DryAlt        ! Is it a drydep species
+                                                      !  to save at a given alt?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
     LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_HygroGrowth   ! Is hygroscopic growth?
@@ -877,6 +885,27 @@ CONTAINS
     ELSE
        ThisSpc%Is_Drydep       = .FALSE.
        ThisSpc%DryDepID        = MISSING_INT
+    ENDIF
+
+
+    !---------------------------------------------------------------------
+    ! Is it a drydep species that we want to save at a given altitude
+    ! above the surface?  
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_DryAlt ) ) THEN
+       ThisSpc%Is_DryAlt = Is_DryAlt
+
+       ! Update count & index
+       IF ( Is_DryAlt ) THEN
+          DryAltCount      = DryAltCount + 1
+          ThisSpc%DryAltID = DryAltCount
+       ELSE
+          ThisSpc%Is_DryAlt = .FALSE.
+          ThisSpc%DryAltID  = MISSING_INT
+       ENDIF
+    ELSE
+       ThisSpc%Is_DryAlt = .FALSE.
+       ThisSpc%DryAltID  = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
@@ -1364,15 +1393,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAero,   nDryDep, nGasSpc,  &
-                                nHygGrth, nKppVar, nKppFix, nKppSpc,  &
-                                nPhotol,  nWetDep,                      &
-                                nHg0Cats, nHg2Cats, nHgPCats          )
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAero,    nDryAlt, nDryDep,        &
+                                nGasSpc,  nHygGrth, nKppVar, nKppFix,        &
+                                nKppSpc,  nPhotol,  nWetDep, nHg0Cats,       &
+                                nHg2Cats, nHgPCats                          )
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: nAdvect     ! # of advected species
     INTEGER, INTENT(OUT) :: nAero       ! # of aerosol species 
+    INTEGER, INTENT(OUT) :: nDryAlt     ! # of dry-dep species to save at a
+                                        !  user-defined altitude above sfc.
     INTEGER, INTENT(OUT) :: nDryDep     ! # of dry-deposited species
     INTEGER, INTENT(OUT) :: nGasSpc     ! # of gas-phase species
     INTEGER, INTENT(OUT) :: nHygGrth    ! # of species with hygroscopic growth
@@ -1399,6 +1430,7 @@ CONTAINS
     ! Return module variables
     nAdvect  = AdvectCount
     nAero    = AeroCount
+    nDryAlt  = DryAltCount
     nDryDep  = DryDepCount
     nGasSpc  = GasSpcCount
     nHygGrth = HygGrthCount
