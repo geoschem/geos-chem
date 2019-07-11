@@ -564,7 +564,7 @@ CONTAINS
 
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             State_Diag%SpeciesConcALT1(I,J,S) = State_Chm%Species(I,J,1,N)
+             State_Diag%SpeciesConcALT1(I,J,D) = State_Chm%Species(I,J,1,N)
 
              ! NOTE: Need to implement this
              !CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
