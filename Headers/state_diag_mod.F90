@@ -643,13 +643,7 @@ MODULE State_Diag_Mod
 !
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  22 Sep 2017 - E. Lundgren - Fill in content to allocate State_Diag; add 
-!                              subroutines to get metadata and interface to
-!                              register fields
-!  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Diag and Print_State_Diag
-!  05 Oct 2017 - R. Yantosca - Add separate drydep fields for chem & mixing
-!  06 Oct 2017 - R. Yantosca - Declare SpeciesConc as an 8-byte real field
-!  02 Nov 2017 - R. Yantosca - Update wetdep and convection diagnostic names
+!  See the subsequent Git history with the gitk browser!
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -713,10 +707,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  22 Sep 2017 - E. Lundgren - Fill in content
-!  06 Oct 2017 - R. Yantosca - State_Diag%SpeciesConc is now an 8-byte real
-!  11 Oct 2017 - R. Yantosca - Bug fix: nAdvect is now defined properly  
-!  23 Oct 2018 - R. Yantosca - Now can handle tagged mercury species
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6535,8 +6526,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  05 Oct 2017 - R. Yantosca - Now put error trapping on deallocations
-!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify all pointer fields
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8209,9 +8199,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  06 Oct 2017 - R. Yantosca - State_Diag%SpeciesConc is now an 8-byte real
-!  01 Nov 2017 - R. Yantosca - Now get To_UpperCase from charpak_mod.F90
-!  02 Nov 2017 - R. Yantosca - Update metadata to be consistent w/ arrays
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9643,7 +9631,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  16 Nov 2017 - E. Lundgren - Initial version
-!  23 Oct 2018 - R. Yantosca - Add tags for Hg0, Hg2, HgP species
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9761,10 +9749,10 @@ CONTAINS
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
-       CASE( 'DRY'  )
-          D = State_Chm%Map_DryDep(N)
        CASE( 'DRYALT'  )
           D = State_Chm%Map_DryAlt(N)
+       CASE( 'DRY'  )
+          D = State_Chm%Map_DryDep(N)
        CASE( 'GAS'  )
           D = State_Chm%Map_GasSpc(N)
        !------------------------------------------------------
@@ -9902,6 +9890,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  24 Jan 2018 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9994,6 +9983,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10171,6 +10161,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10358,6 +10349,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10512,6 +10504,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10699,6 +10692,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10857,6 +10851,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Nov 2018 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
