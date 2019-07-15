@@ -347,7 +347,8 @@ CONTAINS
        !====================================================================
        ! Skip collection section if not in collection name list
        !====================================================================
-       IF ( INDEX( Line, '.template' ) .gt. 0 ) THEN
+       IF ( INDEX( Line, '.template' ) .gt. 0 .or. &
+            INDEX( Line, '.filename' ) .gt. 0 ) THEN
 
           ! Check if collection was uncommented in the COLLECTIONS section
           CALL CStrip( Line, KeepSpaces=.TRUE. )
