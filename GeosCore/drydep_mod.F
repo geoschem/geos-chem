@@ -805,12 +805,12 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      TEMPK1 = TEMPK!+2.0
+      TEMPK1 = 289!TEMPK!+2.0
       !=================================================================
       ! OCEANO3 begins here!
       !=================================================================
       
-      USTARWater = 0.0345_f8*USTAR
+      USTARWater = 0.01!0.0345_f8*USTAR
     
       IF (Input_Opt%IodideNETCDF .EQ. .FALSE.) THEN
          IF (Input_Opt%IodideScheme .EQ. 'MACDO') THEN
@@ -820,7 +820,8 @@
          ENDIF
       ELSE
          !print*, 'Iodide', Iodide_Conc(I,J)*1.0E-9_f8
-         Iodide = State_Met%Iodide_Conc(I,J,GET_MONTH())*1.0E-9_f8
+         !Iodide = State_Met%Iodide_Conc(I,J,GET_MONTH())*1.0E-9_f8
+         Iodide = 106*1.0E-9_f8
       ENDIF
      
       IF (Input_Opt%ReactCoeff .EQ. 'MAGI') THEN
@@ -1861,6 +1862,7 @@
      &                    O3_DIAGS,I,J,Input_Opt,State_Met)
 !     now convert to the new rc value(s) can probably tidy this up a bit
                      alpha = 10.0_f8**(-0.25-0.013*(
+!     &                    289-273.16_f8))
      &                    State_Met%TSKIN(I,J)-273.16_f8))
                      RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw(0))
                      O3_DIAGS(I,J,5) = W10(I,J)
