@@ -380,11 +380,13 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_LossHNO3onSeaSalt          
 
      ! O3 and HNO3 at a given height above the surface
-     REAL(f4),  POINTER :: DryDepRaALT1(:,:)
-     REAL(f4),  POINTER :: DryDepZLALT1(:,:)
-     REAL(f8),  POINTER :: SpeciesConcALT1(:,:,:)
+     REAL(f4),  POINTER :: DryDepRaALT1    (:,:  )
+     REAL(f4),  POINTER :: DryDepZLALT1    (:,:  )
+     REAL(f4),  POINTER :: DryDepVelForALT1(:,:,:)
+     REAL(f8),  POINTER :: SpeciesConcALT1 (:,:,:)
      LOGICAL :: Archive_DryDepRaALT1
      LOGICAL :: Archive_DryDepZLALT1
+     LOGICAL :: Archive_DryDepVelForALT1
      LOGICAL :: Archive_SpeciesConcALT1
      LOGICAL :: Archive_ConcAboveSfc
 
@@ -1080,9 +1082,11 @@ CONTAINS
     ! O3 and HNO3 at a given height above the surface
     State_Diag%DryDepRaALT1                        => NULL()
     State_Diag%DryDepZLALT1                        => NULL()
+    State_Diag%DryDepVelForALT1                    => NULL()
     State_Diag%SpeciesConcALT1                     => NULL()
     State_Diag%Archive_DryDepRaALT1                = .FALSE.
     State_Diag%Archive_DryDepZLALT1                = .FALSE.
+    State_Diag%Archive_DryDepVelForALT1            = .FALSE.
     State_Diag%Archive_SpeciesConcALT1             = .FALSE.
 
     ! Rn-Pb-Be simulation diagnostics
@@ -1803,44 +1807,6 @@ CONTAINS
        State_Diag%DryDepVel = 0.0_f4
        State_Diag%Archive_DryDepVel = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel,     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Dry deposition resistance RA at user-defined altitude above surface
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepRaALT1'
-    diagID  = 'DryDepRa' // TRIM( TmpHT )
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepRaALT1', Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepRaALT1( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepRaALT1 = 0.0_f4
-       State_Diag%Archive_DryDepRaALT1 = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
-                                State_Diag%DryDepRaALT1,                     &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Dry deposition z/L at a user-defined altitude above the surface
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%DryDepZLALT1'
-    diagID  = 'DryDepZL' // TRIM( TmpHt )
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepZLALT1', Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepZLALT1( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepZLALT1 = 0.0_f4
-       State_Diag%Archive_DryDepZLALT1 = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
-                                State_Diag%DryDepZLALT1,                     &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -3115,51 +3081,138 @@ CONTAINS
     !
     ! and THE TAGGED O3 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+    IF ( Input_Opt%LDRYD ) THEN
 
        !--------------------------------------------------------------------
-       ! O3 concentration at user-defined height above surface
+       ! Dry deposition resistance RA at user-defined altitude above sfc
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%SpeciesConcALT1'
-       diagID  = 'SpeciesConc' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List, 'SpeciesConcALT1', Found, RC )
+       arrayID = 'State_Diag%DryDepRaALT1'
+       diagID  = 'DryDepRa' // TRIM( TmpHT )
+       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepRaALT1', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%SpeciesConcALT1( IM, JM, nDryAlt ), STAT=RC )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%DryDepRaALT1( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%SpeciesConcALT1 = 0.0_f4
-          State_Diag%Archive_SpeciesConcALT1 = .TRUE.
+          State_Diag%DryDepRaALT1 = 0.0_f4
+          State_Diag%Archive_DryDepRaALT1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%SpeciesConcALT1,               &
+                                   State_Diag%DryDepRaALT1,                  &
+                                   State_Chm, State_Diag, RC                   )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Dry deposition velocity for species that are requested
+       ! at a user-defined altitude above the surface
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%DryDepVelForALT1'
+       diagID  = 'DryDepVelFor' // TRIM( TmpHt )
+       CALL Check_DiagList( am_I_Root, Diag_List,                            &
+                            'DryDepVelForALT1', Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%DryDepVelForALT1( IM, JM, nDryAlt ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%DryDepVelForALT1 = 0.0_f4
+          State_Diag%Archive_DryDepVelForALT1 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%DryDepVelForALT1,              &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Dry deposition z/L at a user-defined altitude above the surface
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%DryDepZLALT1'
+       diagID  = 'DryDepZL' // TRIM( TmpHt )
+       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepZLALT1', Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%DryDepZLALT1( IM, JM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%DryDepZLALT1 = 0.0_f4
+          State_Diag%Archive_DryDepZLALT1 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%DryDepZLALT1,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Species concentration at user-defined height above surface
+       !--------------------------------------------------------------------
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+          arrayID = 'State_Diag%SpeciesConcALT1'
+          diagID  = 'SpeciesConc' // TRIM( TmpHt )
+          CALL Check_DiagList( am_I_Root, Diag_List,                         &
+                               'SpeciesConcALT1', Found, RC                 )
+          IF ( Found ) THEN
+             IF (am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+             ALLOCATE( State_Diag%SpeciesConcALT1(IM,JM,nDryAlt), STAT=RC )
+             CALL GC_CheckVar( arrayID, 0, RC )
+             IF ( RC /= GC_SUCCESS ) RETURN
+             State_Diag%SpeciesConcALT1 = 0.0_f4
+             State_Diag%Archive_SpeciesConcALT1 = .TRUE.
+             CALL Register_DiagField( am_I_Root, diagID,                     &
+                                     State_Diag%SpeciesConcALT1,             &
+                                   State_Chm, State_Diag, RC                )
+             IF ( RC /= GC_SUCCESS ) RETURN
+          ENDIF
+
+       ELSE
+
+          ! Halt with an error message if any of the following quantities
+          ! have been requested as diagnostics in simulations other than
+          ! full-chemistry simulations or the tagged O3 simulation.
+          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, but '   // &
+                   'this is only appropriate for the  full-chemistry '    // &
+                   'simulations or the tagged O3 simulation.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+
        ENDIF
 
     ELSE
 
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
-       ! have been requested as diagnostics in simulations other than
-       ! full-chemistry simulations.
+       ! have been requested as diagnostics in simulations with
+       ! dry-deposition turned off.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       diagID  = 'SpeciesConcALT1'
+       DO N = 1, 4
 
-       ! Exit if any of the above are in the diagnostic list
-       ! Force an exact string match to avoid namespace confusion
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                            Found,     RC,        exact=.TRUE. )
-       IF ( Found ) THEN
-          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
-                      'but this is only appropriate for full-chemistry '  // &
-                      'or tagged O3 simulations.' 
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+          ! Select the diagnostic ID
+          SELECT CASE( N )
+             CASE( 1  )
+                diagID = 'DryDepRaALT1'
+             CASE( 2  )
+                diagID = 'DryDepVelForALT1'
+             CASE( 3  )
+                diagID = 'DryDepZLALT1'
+             CASE( 4 )
+                diagID = 'SpeciesConcALT1'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE. )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for simulations  '    // &
+                      'that have dry deposition turned on.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
     ENDIF
 
     !=======================================================================
@@ -5592,7 +5645,6 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-
        !-------------------------------------------------------------------
        ! Vegetation Hg0 emissions
        !-------------------------------------------------------------------
@@ -6474,9 +6526,10 @@ CONTAINS
 
 
      State_Diag%Archive_ConcAboveSfc =                                       &
-                                  ( State_Diag%Archive_SpeciesConcALT1  .or. & 
-                                    State_Diag%Archive_DryDepRaALT1     .or. &
-                                    State_Diag%Archive_DryDepZLALT1         )
+                                  ( State_Diag%Archive_SpeciesConcALT1 .and. &
+                                    State_Diag%Archive_DryDepRaALT1    .and. &
+                                    State_Diag%Archive_DryDepZLALT1    .and. &
+                                    State_Diag%Archive_DryDepVelForALT1     )
      
     !=======================================================================
     ! Set arrays used to calculate budget diagnostics, if needed
@@ -7848,7 +7901,6 @@ CONTAINS
        State_Diag%EmisHg0ocean => NULL()
     ENDIF
 
-
     IF ( ASSOCIATED( State_Diag%EmisHg0soil ) ) THEN
        DEALLOCATE( State_Diag%EmisHg0soil, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg0soil', 2, RC )
@@ -8114,6 +8166,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%DryDepRaALT1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepRaALT1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepVelForALT1 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepVelForALT1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepVelForALT1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVelForALT1 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%DryDepZLALT1 ) ) THEN
@@ -9555,10 +9614,20 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA'                          // &
                                        TRIM( TmpHt_AllCaps ) )  THEN
-       IF ( isDesc    ) Desc  = 'Dry deposition aerodynamic resistance at '  &
-                              // TRIM( TmpHt ) // ' above the surface'
+       IF ( isDesc    ) Desc  = 'Dry deposition aerodynamic resistance '  // &
+                                'at ' // TRIM( TmpHt )                    // &
+                                 ' above the surface'
        IF ( isUnits   ) Units = 's cm-1'
        IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVELFOR'                      // &
+                                       TRIM( TmpHt_AllCaps ) )  THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity for speecies '   // &
+                                'are requested at ' // TRIM( TmpHt )      // &
+                                ' above the surface'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRYALT'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPZL'                          // &
                                        TRIM( TmpHt_AllCaps ) ) THEN

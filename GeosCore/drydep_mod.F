@@ -434,7 +434,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I,   J,   L,   D,   N, NDVZ
+      INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A
       REAL(f8)           :: DVZ, THIK
       CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
@@ -513,7 +513,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
+!$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, A )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -536,6 +536,10 @@
 
             ! Get info about this species from the database
             SpcInfo => State_Chm%SpcData(N)%Info
+
+            ! Get the "DryAltID" index, that is used to archive species
+            ! concentrations at a user-defined altitude above the surface
+            A       =  SpcInfo%DryAltID
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
@@ -641,18 +645,20 @@
             IF ( ND44 > 0 ) THEN 
                ! Drydep velocity [cm/s]
                AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
-
-!------------------------------------------------------------------------------
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!               ! Instantaneous drydep velocity for ND49 [cm/s]
-!               AD44b(I,J,D)  = DVZ
-!------------------------------------------------------------------------------
             ENDIF
 #endif
 
             ! Archive dry dep velocity [cm/s]
             IF ( State_Diag%Archive_DryDepVel ) THEN
                State_Diag%DryDepVel(I,J,D) = DVZ
+            ENDIF
+
+            ! Archive dry dep velocity [cm/s] only for those species
+            ! that are requested at a given altitude (e.g. 10m)
+            IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
+               IF ( A > 0 ) THEN
+                  State_Diag%DryDepVelForALT1(I,J,A) = DVZ
+               ENDIF
             ENDIF
 
             ! Free pointer

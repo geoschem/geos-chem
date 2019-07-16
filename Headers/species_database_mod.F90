@@ -598,6 +598,7 @@ CONTAINS
     WD_AerScavEff    = MISSING
     WD_KcScaleFac(:) = MISSING
     WD_RainOutEff(:) = MISSING
+    Is_DryAlt        = .FALSE.
     Is_Drydep        = .FALSE.
     Is_Gas           = .FALSE.
     Is_HygroGrowth   = .FALSE.

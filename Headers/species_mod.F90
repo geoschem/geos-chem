@@ -876,7 +876,6 @@ CONTAINS
        ThisSpc%AeroID = MISSING_INT
     ENDIF
 
-
     !---------------------------------------------------------------------
     ! Is it an aerosol with hygroscopic growth?
     !---------------------------------------------------------------------

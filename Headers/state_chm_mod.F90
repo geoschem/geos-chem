@@ -199,7 +199,7 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Fields for dry deposition
      !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Dry deposition frequencies [s-1]
+     REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Drydep freq [s-1]
 
      !----------------------------------------------------------------------
      ! Fields for Linoz stratospheric ozone algorithm
@@ -218,7 +218,7 @@ MODULE State_Chm_Mod
 !                                                                             
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Initial version, based on "gc_type2_mod.F90"
-!  See the Git history with the gitk browser!
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,7 +278,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Renamed from gc_type2_mod.F90
-!  See the Git history with the Gitk browser!
+!  See the subsequent Git history with the Gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1505,13 +1505,13 @@ CONTAINS
        ! Non-reducible Hg snowpack on land
        !--------------------------------------------------------------------
        chmID = 'SnowHgLandStored'
-       ALLOCATE( State_Chm%SnowHgLandStored(IM, JM, State_Chm%N_Hg_CATS ), &
+       ALLOCATE( State_Chm%SnowHgLandStored(IM, JM, State_Chm%N_Hg_CATS ),   &
                  STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SnowHgLandStored = 0.0_fp
        CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgLandStored, &
-                               State_Chm, RC                             )
+                               State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1530,8 +1530,8 @@ CONTAINS
         CALL GC_CheckVar( 'State_Chm%DryDepSav', 0, RC )    
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%DryDepSav = 0.0_fp
-        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepSav,   &
-                                State_Chm, RC                            )
+        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepSav,       &
+                                State_Chm, RC                               )
         CALL GC_CheckVar( 'State_Chm%DryDepSav', 1, RC )    
         IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1541,7 +1541,8 @@ CONTAINS
     !------------------------------------------------------------------
     IF ( Input_Opt%LLINOZ .AND. Input_Opt%LINOZ_NFIELDS > 0 ) THEN
         chmID = 'TLSTT'
-        ALLOCATE( State_Chm%TLSTT( IM, JM, LM, Input_Opt%LINOZ_NFIELDS ) , STAT=RC )
+        ALLOCATE( State_Chm%TLSTT( IM, JM, LM, Input_Opt%LINOZ_NFIELDS ),    &
+                  STAT=RC )
         CALL GC_CheckVar( 'State_Chm%TLSTT', 0, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%TLSTT = 0.0_fp

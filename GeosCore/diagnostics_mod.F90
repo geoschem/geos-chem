@@ -483,9 +483,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
+    ! Scalars
     LOGICAL            :: Found
-    INTEGER            :: I, J, L, N, D
+    INTEGER            :: D, I, J, L, N
+    REAL(fp)           :: TmpVal, Conv
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
 
     !====================================================================
     ! Set_SpcConc_Diags_VVDry begins here!
@@ -548,29 +552,71 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     !=======================================================================
-    ! Copy species concentrations to diagnostic arrays [v/v dry]
+    ! Diagnostic for correcting species concentrations from the height
+    ! of the lowest model level to the surface.
+    !
+    ! Use this diagnostic to correct species concentration values from
+    ! (typically for O3 or HNO3) from the lowest model layer, ~60m,
+    ! to the surface.
+    !
+    !    C(Zc) = [ 1 - Ra(Z1,Zc) * Vd(Z1) ] * C(Z1)
+    !
+    ! where
+    !    Ra(Z1,ZC) is the aerodynamic resistance between Z1 and ZC,
+    !
+    !    Vd(Z1) is the ozone deposition velocity at Z1, and
+    !
+    !    C(Z1) is the ozone concentration at Z1.
+    !
+    ! Ra(Z1,Zc) is calculated to the lowest model level in drydep_mod.F.
+    ! We recalculate Ra using Z1 using a value specified in input.geos;
+    ! usually 10m, which is the height of the CASTNET measurement for O3.
+    ! This new Ra is stored in State_Diag%DryDepRaALT1.
+    !
+    ! References:
+    ! (1) Travis, K.R., et al, "Resolving vertical ozone vertical gradients
+    !      in air quality models, Atmos. Chem. Phys. Disc., 2017.
+    ! (2) Zhang, L.,et al, "Nitrogen deposition to the United States:
+    !      distribution, sources, and processes" Atmos. Chem. Phys.,
+    !      12, 4,539-4,4554, 2012.
     !=======================================================================
     IF ( State_Diag%Archive_ConcAboveSfc ) THEN
 
        ! Loop over the number of drydep species that we wish
        ! to save at a user-specified altitude above the surface
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( I, J, N, D )
+       !$OMP PARALLEL DO                         &
+       !$OMP DEFAULT( SHARED                   ) &
+       !$OMP PRIVATE( D, N, I, J, TmpVal, Conv )
        DO D = 1, State_Chm%nDryAlt
 
-          ! GEOS-Chem species index
+          ! Get the corresponding species index and drydep index
           N = State_Chm%Map_DryAlt(D)
 
+          ! Loop over surface locations
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             State_Diag%SpeciesConcALT1(I,J,D) = State_Chm%Species(I,J,1,N)
 
-             ! NOTE: Need to implement this
-             !CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
-             !IF (CONV .lt. 0) CONV = 1.0
-             !Q(X,Y,1)= CONV *TMPO3*1E9
+             !NOTE: ASK IF THIS APPLIES
+             ! Only archive into the diagnostic if the
+             ! Monin-Obhukov similarity applies
+             !IF ( State_Diag%DryDepZLALT1(I,J) <= 1.0_fp ) THEN
 
+                ! Species concentration [v/v dry]
+                TmpVal = State_Chm%Species(I,J,1,N)
+
+                ! Conversion factor used to translate from
+                ! lowest model layer (~60m) to the surface
+                Conv = ( 1.0_fp                                              &
+                     -   ( State_Diag%DryDepRaALT1(I,J) / 100.0_fp )         &
+                     *   State_Diag%DryDepVelForALT1(I,J,D)                 )
+
+                ! Do not let CONV go negative
+                IF ( Conv < 0.0_fp ) Conv = 1.0_fp
+
+                ! Save concentration at the user-defined altitude
+                ! as defined in input.geos (usually 10m).
+                State_Diag%SpeciesConcALT1(I,J,D) = TmpVal * Conv
+             !ENDIF
           ENDDO
           ENDDO
        ENDDO
