@@ -36,6 +36,8 @@ MODULE Species_Mod
   !=========================================================================
   INTEGER, PRIVATE :: AdvectCount  = 0  ! Counter of advected species
   INTEGER, PRIVATE :: AeroCount    = 0  ! Counter of aerosol species
+  INTEGER, PRIVATE :: DryAltCount  = 0  ! Counter of dry-dep species to save
+                                        !  at a user-defined altitude
   INTEGER, PRIVATE :: DryDepCount  = 0  ! Counter of dry-deposited species
   INTEGER, PRIVATE :: GasSpcCount  = 0  ! Counter of gas-phase species
   INTEGER, PRIVATE :: HygGrthCount = 0  ! Counter of hygroscopic growth spc
@@ -65,6 +67,7 @@ MODULE Species_Mod
      INTEGER            :: ModelID          ! Model species ID
      INTEGER            :: AdvectID         ! Advection index
      INTEGER            :: AeroID           ! Aerosol species index
+     INTEGER            :: DryAltId         ! Dry dep species at altitude ID
      INTEGER            :: DryDepID         ! Dry deposition index
      INTEGER            :: GasSpcID         ! Gas-phase species index
      INTEGER            :: HygGrthID        ! Hygroscopic growth species index
@@ -83,6 +86,8 @@ MODULE Species_Mod
      ! Logical switches
      LOGICAL            :: Is_Advected      ! Is it advected?
      LOGICAL            :: Is_Aero          ! Is it an aerosol species?
+     LOGICAL            :: Is_DryAlt        ! Is it a dry-dep species that we
+                                            !  want to save at a given altitude?
      LOGICAL            :: Is_DryDep        ! Is it dry-deposited?
      LOGICAL            :: Is_Gas           ! Is it a gas?  If not, aerosol.
      LOGICAL            :: Is_HygroGrowth   ! Does it have hygroscropic growth?
@@ -186,41 +191,7 @@ MODULE Species_Mod
 !                                                                             
 ! !REVISION HISTORY:
 !  28 Feb 2014 - C. Keller   - Initial version
-!  22 Jul 2015 - R. Yantosca - Updated and cleaned up a bit 
-!  18 Aug 2015 - R. Yantosca - Added indices for drydep, wetdep, transport
-!  18 Aug 2015 - R. Yantosca - Added missing value parameters
-!  31 Aug 2015 - R. Yantosca - Add AdvectId
-!  24 Sep 2015 - R. Yantosca - Make WD_RainoutEff a 3-element vector:
-!                              (1) T < 237K; (2) 237K < T < 258 K (3) T > 258K
-!  24 Sep 2015 - R. Yantosca - Rename WD_ConvFactor to WD_ConvFacI2G
-!  25 Sep 2015 - R. Yantosca - Rename WD_SizeResAer to MP_SizeResAer
-!  25 Sep 2015 - R. Yantosca - Add MP_SizeResBin for microphysics size bins
-!  30 Sep 2015 - R. Yantosca - Renamed DD_A_Density to Density
-!  30 Sep 2015 - R. Yantosca - Renamed DD_A_Radius to Radius
-!  30 Sep 2015 - R. Yantosca - Added WD_Is_HNO3 and WD_Is_SO2 fields to flag
-!                              special cases of HNO3 and SO2 wet deposition
-!  01 Oct 2015 - R. Yantosca - Add field DD_DvzMinVal
-!  16 Oct 2015 - E. Lundgren - Add WD_Is_H2SO4 field to flag special case of
-!                              H2SO4 wet deposition for microphysics
-!  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP species
-!  04 May 2016 - R. Yantosca - Added fast name lookup via hashing
-!  09 May 2016 - R. Yantosca - Add Is_Kpp, KppVarId, KppFixId to type Species
-!  21 Jun 2016 - M. Sulprizio- Add Is_Photolysis, Is_ActiveChem, and
-!                              Is_FixedChem to type Species
-!  25 Jul 2016 - E. Lundgren - Add Is_InRestart to track which species are 
-!                              read in versus set to default background values
-!  02 Aug 2016 - M. Sulprizio- Remove function Get_KPPIndx, it is not used. 
-!                              KppSpcId is set in species_database_mod.F90 where
-!                              KppVarId and KppFixId are set.
-!  04 Aug 2016 - R. Yantosca - Add parameter MISSING_MW = -1.0
-!  10 Aug 2016 - E. Lundgren - Add BackgroundVV field for default background 
-!                              and missing background concentration param [v/v]
-!  31 Oct 2017 - R. Yantosca - Move Str2Hash, To_UpperCase to species_mod.F90
-!  16 Nov 2017 - E. Lundgren - Add Is_HygroGrowth for cloud diagnostics
-!  27 Nov 2017 - E. Lundgren - Complete implementation for gas, aerosol, and 
-!                              photolysis species categories (id and count)
-!  08 Nov 2018 - E. Lundgren - Do not use neg MW missing value if using GEOS-5
-!  04 Feb 2019 - C. Keller   - GEOS-5 now also uses 1.0 as missing MW.
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -255,7 +226,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  22 Jul 2015 - R. Yantosca - Cosmetic changes
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -322,16 +293,10 @@ CONTAINS
 !  is about the longest species name for GEOS-Chem.  We can modify this
 !  if need be.
 !
-! !REVISION HISTORY: 
-!  09 Oct 2012 - M. Long     - Initial version, based on gc_esmf_utils_mod.F90
-!  22 Jul 2015 - R. Yantosca - Cosmetic changes
-!  04 May 2016 - R. Yantosca - Now use hash comparison, it's faster
-!  04 May 2016 - R. Yantosca - Renamed to Spc_GetIndx
-!  05 May 2016 - R. Yantosca - The NAME argument is now of variable length 
-!  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
-!  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
-!                              computes a hash from an input string of 14 chars
-!EOP!EOP
+! !REVISION HISTORY:
+!  09 Oct 2012 - M. Long - Initial version, based on gc_esmf_utils_mod.F90! 
+!  See the subsequent Git history with the gitk browser!
+!EOP!
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -387,9 +352,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  22 Jul 2015 - R. Yantosca - Cosmetic changes
-!  08 Oct 2015 - R. Yantosca - Bug fix, make sure the size of SpecDb
-!                              is zero before deallocating each element
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -438,22 +401,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Create( am_I_Root,      ThisSpc,       ModelID,        &
-                         DryDepID,       Name,          FullName,       &
-                         Formula,                                       &
-                         MW_g,           EmMW_g,        MolecRatio,     &
-                         BackgroundVV,   Henry_K0,      Henry_CR,       &
-                         Henry_PKA,      Density,       Radius,         &
-                         DD_AeroDryDep,  DD_DustDryDep, DD_DvzAerSnow,  &
-                         DD_DvzMinVal,   DD_F0,         DD_KOA,         &
-                         DD_HStar_Old,   MP_SizeResAer, MP_SizeResNum,  &
-                         WD_RetFactor,   WD_LiqAndGas,  WD_ConvFacI2G,  &
-                         WD_AerScavEff,  WD_KcScaleFac, WD_RainoutEff,  &
-                         WD_CoarseAer,   Is_Advected,                   &
-                         Is_Drydep,      Is_Gas,        Is_HygroGrowth, &
-                         Is_Photolysis,  Is_Wetdep,     Is_InRestart,   &
-                         Is_Hg0,         Is_Hg2,        Is_HgP,         &
-                         KppSpcId,       KppVarId,      KppFixId,      RC )
+  SUBROUTINE Spc_Create( am_I_Root,      ThisSpc,       ModelID,             &
+                         DryDepID,       Name,          FullName,            &
+                         Formula,                                            &
+                         MW_g,           EmMW_g,        MolecRatio,          &
+                         BackgroundVV,   Henry_K0,      Henry_CR,            &
+                         Henry_PKA,      Density,       Radius,              &
+                         DD_AeroDryDep,  DD_DustDryDep, DD_DvzAerSnow,       &
+                         DD_DvzMinVal,   DD_F0,         DD_KOA,              &
+                         DD_HStar_Old,   MP_SizeResAer, MP_SizeResNum,       &
+                         WD_RetFactor,   WD_LiqAndGas,  WD_ConvFacI2G,       &
+                         WD_AerScavEff,  WD_KcScaleFac, WD_RainoutEff,       &
+                         WD_CoarseAer,   Is_Advected,   Is_DryAlt,           &
+                         Is_Drydep,      Is_Gas,        Is_HygroGrowth,      &
+                         Is_Photolysis,  Is_Wetdep,     Is_InRestart,        &
+                         Is_Hg0,         Is_Hg2,        Is_HgP,              &
+                         KppSpcId,       KppVarId,      KppFixId,            &
+                         RC                                                 )
 !
 ! !USES:
 !
@@ -506,6 +470,8 @@ CONTAINS
     REAL(fp),         OPTIONAL    :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL,          OPTIONAL    :: WD_CoarseAer     ! Coarse aerosol?
     LOGICAL,          OPTIONAL    :: Is_Advected      ! Is it advected?
+    LOGICAL,          OPTIONAL    :: Is_DryAlt        ! Is it a drydep species
+                                                      !  to save at a given alt?
     LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
     LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL,          OPTIONAL    :: Is_HygroGrowth   ! Is hygroscopic growth?
@@ -542,29 +508,8 @@ CONTAINS
 !  (11) If Is_Wetdep = T, this will automatically update WetDepId.
 !
 ! !REVISION HISTORY: 
-!  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  22 Jul 2015 - R. Yantosca - Added RetFactor and drydep parameters
-!  31 Aug 2015 - R. Yantosca - Now also compute AdvectId
-!  04 Sep 2015 - R. Yantosca - Add arguments WD_RainoutEff, WD_CoarseAer,
-!                              and WD_SizeResAer
-!  24 Sep 2015 - R. Yantosca - Added WD_KcScaleFac argument
-!  22 Apr 2016 - R. Yantosca - Added Is_Hg0, Is_Hg2, Is_HgP
-!  04 May 2016 - R. Yantosca - Now construct hash value from short name
-!  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
-!  21 Jun 2016 - M. Sulprizio- Add optional argument Is_Photolysis. Also set
-!                              Is_ActiveChem and Is_Fixed Chem according to
-!                              KppVarId and KPPFixId.
-!  06 Jul 2016 - R. Yantosca - Add more error checks to avoid uninit'd fields
-!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN and MMN for
-!                              DryDepCount. Family tracers have been eliminated.
-!  25 Jul 2016 - E. Lundgren - Add optional argument Is_InRestart
-!  02 Aug 2016 - M. Sulprizio- Add optional argument KppSpcId
-!  04 Aug 2016 - R. Yantosca - Now set missing molecular weights to -1, 
-!                              which seems to avoid numerical roundoff
-!  10 Aug 2016 - E. Lundgren - Add default background concentration argument
-!  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
-!                              computes a hash from an input string of 14 chars
-!  27 Nov 2017 - E. Lundgren - Add additional species categories
+!!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
+!   See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -879,6 +824,27 @@ CONTAINS
        ThisSpc%DryDepID        = MISSING_INT
     ENDIF
 
+
+    !---------------------------------------------------------------------
+    ! Is it a drydep species that we want to save at a given altitude
+    ! above the surface?  
+    !---------------------------------------------------------------------
+    IF ( PRESENT( Is_DryAlt ) ) THEN
+       ThisSpc%Is_DryAlt = Is_DryAlt
+
+       ! Update count & index
+       IF ( Is_DryAlt ) THEN
+          DryAltCount      = DryAltCount + 1
+          ThisSpc%DryAltID = DryAltCount
+       ELSE
+          ThisSpc%Is_DryAlt = .FALSE.
+          ThisSpc%DryAltID  = MISSING_INT
+       ENDIF
+    ELSE
+       ThisSpc%Is_DryAlt = .FALSE.
+       ThisSpc%DryAltID  = MISSING_INT
+    ENDIF
+
     !---------------------------------------------------------------------
     ! Is it a gas?  (If FALSE, then it's an aerosol)
     !---------------------------------------------------------------------
@@ -909,7 +875,6 @@ CONTAINS
     ELSE
        ThisSpc%AeroID = MISSING_INT
     ENDIF
-
 
     !---------------------------------------------------------------------
     ! Is it an aerosol with hygroscopic growth?
@@ -1160,7 +1125,6 @@ CONTAINS
 
     ENDIF
 
-
   END SUBROUTINE Spc_Create
 !EOC
 !------------------------------------------------------------------------------
@@ -1192,6 +1156,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  27 Jul 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1364,15 +1329,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAero,   nDryDep, nGasSpc,  &
-                                nHygGrth, nKppVar, nKppFix, nKppSpc,  &
-                                nPhotol,  nWetDep,                      &
-                                nHg0Cats, nHg2Cats, nHgPCats          )
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAero,    nDryAlt, nDryDep,        &
+                                nGasSpc,  nHygGrth, nKppVar, nKppFix,        &
+                                nKppSpc,  nPhotol,  nWetDep, nHg0Cats,       &
+                                nHg2Cats, nHgPCats                          )
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: nAdvect     ! # of advected species
     INTEGER, INTENT(OUT) :: nAero       ! # of aerosol species 
+    INTEGER, INTENT(OUT) :: nDryAlt     ! # of dry-dep species to save at a
+                                        !  user-defined altitude above sfc.
     INTEGER, INTENT(OUT) :: nDryDep     ! # of dry-deposited species
     INTEGER, INTENT(OUT) :: nGasSpc     ! # of gas-phase species
     INTEGER, INTENT(OUT) :: nHygGrth    ! # of species with hygroscopic growth
@@ -1387,11 +1354,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  02 Sep 2015 - R. Yantosca - Initial version
-!  25 Apr 2016 - R. Yantosca - Also return the # of Hg0, Hg2, HgP categories
-!  18 May 2016 - R. Yantosca - Also return the # of KPP chemical species
-!  27 Nov 2017 - E. Lundgren - Add additional species categories for aerosol,
-!                              gas, hygroscopic growth, active KPP, fixed KPP, 
-!                              and photolysis species
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1399,6 +1362,7 @@ CONTAINS
     ! Return module variables
     nAdvect  = AdvectCount
     nAero    = AeroCount
+    nDryAlt  = DryAltCount
     nDryDep  = DryDepCount
     nGasSpc  = GasSpcCount
     nHygGrth = HygGrthCount

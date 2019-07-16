@@ -124,12 +124,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_DryDep   
      LOGICAL :: Archive_DryDepVel
 
-     ! Waiting for inputs on new resistance diagnostics
-     !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
-     !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
-     !REAL(f4),  POINTER :: DryDepRst_RC    (:,:,:  ) ! Total drydep resistance
-     !REAL(f4),  POINTER :: DryDepRst_RI    (:,:    ) ! Stomatal resistance
-
+     ! Drydep resistances and related quantities
 #if defined( MODEL_GEOS )
      ! GEOS-5 only
      REAL(f4),  POINTER :: DryDepRa2m      (:,:    ) ! Aerodyn resistance @2m 
@@ -383,6 +378,17 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ProdSO4fromSRHOBr          
      LOGICAL :: Archive_ProdSO4fromO3s             
      LOGICAL :: Archive_LossHNO3onSeaSalt          
+
+     ! O3 and HNO3 at a given height above the surface
+     REAL(f4),  POINTER :: DryDepRaALT1    (:,:  )
+     REAL(f4),  POINTER :: DryDepZLALT1    (:,:  )
+     REAL(f4),  POINTER :: DryDepVelForALT1(:,:,:)
+     REAL(f8),  POINTER :: SpeciesConcALT1 (:,:,:)
+     LOGICAL :: Archive_DryDepRaALT1
+     LOGICAL :: Archive_DryDepZLALT1
+     LOGICAL :: Archive_DryDepVelForALT1
+     LOGICAL :: Archive_SpeciesConcALT1
+     LOGICAL :: Archive_ConcAboveSfc
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -639,13 +645,7 @@ MODULE State_Diag_Mod
 !
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  22 Sep 2017 - E. Lundgren - Fill in content to allocate State_Diag; add 
-!                              subroutines to get metadata and interface to
-!                              register fields
-!  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Diag and Print_State_Diag
-!  05 Oct 2017 - R. Yantosca - Add separate drydep fields for chem & mixing
-!  06 Oct 2017 - R. Yantosca - Declare SpeciesConc as an 8-byte real field
-!  02 Nov 2017 - R. Yantosca - Update wetdep and convection diagnostic names
+!  See the subsequent Git history with the gitk browser!
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -709,10 +709,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  22 Sep 2017 - E. Lundgren - Fill in content
-!  06 Oct 2017 - R. Yantosca - State_Diag%SpeciesConc is now an 8-byte real
-!  11 Oct 2017 - R. Yantosca - Bug fix: nAdvect is now defined properly  
-!  23 Oct 2018 - R. Yantosca - Now can handle tagged mercury species
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -721,6 +718,7 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=5  )     :: TmpWL
+    CHARACTER(LEN=10 )     :: TmpHt
     CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
     CHARACTER(LEN=255)     :: arrayID,  diagID
 
@@ -728,7 +726,7 @@ CONTAINS
     INTEGER                :: N,        IM,      JM,      LM
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
-    INTEGER                :: nHygGrth, nRad
+    INTEGER                :: nHygGrth, nRad,    nDryAlt
     LOGICAL                :: EOF,      Found,   Found2
 
     !=======================================================================
@@ -741,6 +739,7 @@ CONTAINS
     ThisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
     Found     = .FALSE.
     TmpWL     = ''
+    TmpHt     = AltAboveSfc
 
     ! Save shadow variables from Input_Opt
     Is_UCX    = Input_Opt%LUCX
@@ -753,6 +752,7 @@ CONTAINS
     ! Number of species per category
     nSpecies  = State_Chm%nSpecies
     nAdvect   = State_Chm%nAdvect
+    nDryAlt   = State_Chm%nDryAlt
     nDryDep   = State_Chm%nDryDep
     nHygGrth  = State_Chm%nHygGrth
     nKppSpc   = State_Chm%nKppSpc
@@ -831,7 +831,6 @@ CONTAINS
     State_Diag%Archive_DryDepChm                   = .FALSE.
     State_Diag%Archive_DryDepMix                   = .FALSE.
     State_Diag%Archive_DryDepVel                   = .FALSE.
-
 #if defined( MODEL_GEOS )
     State_Diag%DryDepRa2m                          => NULL()
     State_Diag%DryDepRa10m                         => NULL()
@@ -1079,6 +1078,16 @@ CONTAINS
     State_Diag%Archive_ProdSO4fromSRHOBr           = .FALSE.
     State_Diag%Archive_ProdSO4fromO3s              = .FALSE.
     State_Diag%Archive_LossHNO3onSeaSalt           = .FALSE. 
+
+    ! O3 and HNO3 at a given height above the surface
+    State_Diag%DryDepRaALT1                        => NULL()
+    State_Diag%DryDepZLALT1                        => NULL()
+    State_Diag%DryDepVelForALT1                    => NULL()
+    State_Diag%SpeciesConcALT1                     => NULL()
+    State_Diag%Archive_DryDepRaALT1                = .FALSE.
+    State_Diag%Archive_DryDepZLALT1                = .FALSE.
+    State_Diag%Archive_DryDepVelForALT1            = .FALSE.
+    State_Diag%Archive_SpeciesConcALT1             = .FALSE.
 
     ! Rn-Pb-Be simulation diagnostics
     State_Diag%PbFromRnDecay                       => NULL()
@@ -3062,6 +3071,148 @@ CONTAINS
           ENDIF
        ENDDO
 
+    ENDIF
+
+    !=======================================================================
+    ! The following diagnostic quantities are only relevant for:
+    !
+    ! ALL FULL-CHEMISTRY SIMULATIONS
+    ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
+    !
+    ! and THE TAGGED O3 SPECIALTY SIMULATION
+    !=======================================================================
+    IF ( Input_Opt%LDRYD ) THEN
+
+       !--------------------------------------------------------------------
+       ! Dry deposition resistance RA at user-defined altitude above sfc
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%DryDepRaALT1'
+       diagID  = 'DryDepRa' // TRIM( TmpHT )
+       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepRaALT1', Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%DryDepRaALT1( IM, JM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%DryDepRaALT1 = 0.0_f4
+          State_Diag%Archive_DryDepRaALT1 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%DryDepRaALT1,                  &
+                                   State_Chm, State_Diag, RC                   )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Dry deposition velocity for species that are requested
+       ! at a user-defined altitude above the surface
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%DryDepVelForALT1'
+       diagID  = 'DryDepVelFor' // TRIM( TmpHt )
+       CALL Check_DiagList( am_I_Root, Diag_List,                            &
+                            'DryDepVelForALT1', Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%DryDepVelForALT1( IM, JM, nDryAlt ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%DryDepVelForALT1 = 0.0_f4
+          State_Diag%Archive_DryDepVelForALT1 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%DryDepVelForALT1,              &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Dry deposition z/L at a user-defined altitude above the surface
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%DryDepZLALT1'
+       diagID  = 'DryDepZL' // TRIM( TmpHt )
+       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepZLALT1', Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%DryDepZLALT1( IM, JM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%DryDepZLALT1 = 0.0_f4
+          State_Diag%Archive_DryDepZLALT1 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%DryDepZLALT1,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Species concentration at user-defined height above surface
+       !--------------------------------------------------------------------
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+          arrayID = 'State_Diag%SpeciesConcALT1'
+          diagID  = 'SpeciesConc' // TRIM( TmpHt )
+          CALL Check_DiagList( am_I_Root, Diag_List,                         &
+                               'SpeciesConcALT1', Found, RC                 )
+          IF ( Found ) THEN
+             IF (am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+             ALLOCATE( State_Diag%SpeciesConcALT1(IM,JM,nDryAlt), STAT=RC )
+             CALL GC_CheckVar( arrayID, 0, RC )
+             IF ( RC /= GC_SUCCESS ) RETURN
+             State_Diag%SpeciesConcALT1 = 0.0_f4
+             State_Diag%Archive_SpeciesConcALT1 = .TRUE.
+             CALL Register_DiagField( am_I_Root, diagID,                     &
+                                     State_Diag%SpeciesConcALT1,             &
+                                   State_Chm, State_Diag, RC                )
+             IF ( RC /= GC_SUCCESS ) RETURN
+          ENDIF
+
+       ELSE
+
+          ! Halt with an error message if any of the following quantities
+          ! have been requested as diagnostics in simulations other than
+          ! full-chemistry simulations or the tagged O3 simulation.
+          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, but '   // &
+                   'this is only appropriate for the  full-chemistry '    // &
+                   'simulations or the tagged O3 simulation.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+
+       ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations with
+       ! dry-deposition turned off.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 4
+
+          ! Select the diagnostic ID
+          SELECT CASE( N )
+             CASE( 1  )
+                diagID = 'DryDepRaALT1'
+             CASE( 2  )
+                diagID = 'DryDepVelForALT1'
+             CASE( 3  )
+                diagID = 'DryDepZLALT1'
+             CASE( 4 )
+                diagID = 'SpeciesConcALT1'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE. )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for simulations  '    // &
+                      'that have dry deposition turned on.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
     ENDIF
 
     !=======================================================================
@@ -5494,7 +5645,6 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-
        !-------------------------------------------------------------------
        ! Vegetation Hg0 emissions
        !-------------------------------------------------------------------
@@ -6312,47 +6462,47 @@ CONTAINS
     ! Set high-level logicals for diagnostics
     !=======================================================================
     State_Diag%Archive_Budget =  &
-            (   State_Diag%Archive_BudgetEmisDryDepFull    .or.    &
-                State_Diag%Archive_BudgetEmisDryDepTrop    .or.    &
-                State_Diag%Archive_BudgetEmisDryDepPBL     .or.    &
-                State_Diag%Archive_BudgetTransportFull     .or.    &
-                State_Diag%Archive_BudgetTransportTrop     .or.    &
-                State_Diag%Archive_BudgetTransportPBL      .or.    &
-                State_Diag%Archive_BudgetMixingFull        .or.    &
-                State_Diag%Archive_BudgetMixingTrop        .or.    &
-                State_Diag%Archive_BudgetMixingPBL         .or.    &
-                State_Diag%Archive_BudgetConvectionFull    .or.    &
-                State_Diag%Archive_BudgetConvectionTrop    .or.    &
-                State_Diag%Archive_BudgetConvectionPBL     .or.    &
-                State_Diag%Archive_BudgetChemistryFull     .or.    &
-                State_Diag%Archive_BudgetChemistryTrop     .or.    &
-                State_Diag%Archive_BudgetChemistryPBL      .or.    &
-                State_Diag%Archive_BudgetWetDepFull        .or.    &
-                State_Diag%Archive_BudgetWetDepTrop        .or.    &
-                State_Diag%Archive_BudgetWetDepPBL                  )
+                           ( State_Diag%Archive_BudgetEmisDryDepFull    .or. &
+                             State_Diag%Archive_BudgetEmisDryDepTrop    .or. &
+                             State_Diag%Archive_BudgetEmisDryDepPBL     .or. &
+                             State_Diag%Archive_BudgetTransportFull     .or. &
+                             State_Diag%Archive_BudgetTransportTrop     .or. &
+                             State_Diag%Archive_BudgetTransportPBL      .or. &
+                             State_Diag%Archive_BudgetMixingFull        .or. &
+                             State_Diag%Archive_BudgetMixingTrop        .or. &
+                             State_Diag%Archive_BudgetMixingPBL         .or. &
+                             State_Diag%Archive_BudgetConvectionFull    .or. &
+                             State_Diag%Archive_BudgetConvectionTrop    .or. &
+                             State_Diag%Archive_BudgetConvectionPBL     .or. &
+                             State_Diag%Archive_BudgetChemistryFull     .or. &
+                             State_Diag%Archive_BudgetChemistryTrop     .or. &
+                             State_Diag%Archive_BudgetChemistryPBL      .or. &
+                             State_Diag%Archive_BudgetWetDepFull        .or. &
+                             State_Diag%Archive_BudgetWetDepTrop        .or. &
+                             State_Diag%Archive_BudgetWetDepPBL             )
                                                                      
-    State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA    .or.    &
-                                   State_Diag%Archive_AerMassBC      .or.    &
-                                   State_Diag%Archive_AerMassINDIOL  .or.    &
-                                   State_Diag%Archive_AerMassISN1OA  .or.    &
-                                   State_Diag%Archive_AerMassISOA    .or.    &
-                                   State_Diag%Archive_AerMassLVOCOA  .or.    &
-                                   State_Diag%Archive_AerMassNH4     .or.    &
-                                   State_Diag%Archive_AerMassNIT     .or.    &
-                                   State_Diag%Archive_AerMassOPOA    .or.    &
-                                   State_Diag%Archive_AerMassPOA     .or.    &
-                                   State_Diag%Archive_AerMassSAL     .or.    &
-                                   State_Diag%Archive_AerMassSO4     .or.    &
-                                   State_Diag%Archive_AerMassSOAGX   .or.    &
-                                   State_Diag%Archive_AerMassSOAIE   .or.    &
-                                   State_Diag%Archive_AerMassSOAME   .or.    &
-                                   State_Diag%Archive_AerMassSOAMG   .or.    &
-                                   State_Diag%Archive_AerMassTSOA    .or.    &
-                                   State_Diag%Archive_BetaNO         .or.    &
-                                   State_Diag%Archive_PM25           .or.    &
-                                   State_Diag%Archive_TotalOA        .or.    &
-                                   State_Diag%Archive_TotalOC        .or.    &
-                                   State_Diag%Archive_TotalBiogenicOA         )
+    State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA       .or. &
+                                   State_Diag%Archive_AerMassBC         .or. &
+                                   State_Diag%Archive_AerMassINDIOL     .or. &
+                                   State_Diag%Archive_AerMassISN1OA     .or. &
+                                   State_Diag%Archive_AerMassISOA       .or. &
+                                   State_Diag%Archive_AerMassLVOCOA     .or. &
+                                   State_Diag%Archive_AerMassNH4        .or. &
+                                   State_Diag%Archive_AerMassNIT        .or. &
+                                   State_Diag%Archive_AerMassOPOA       .or. &
+                                   State_Diag%Archive_AerMassPOA        .or. &
+                                   State_Diag%Archive_AerMassSAL        .or. &
+                                   State_Diag%Archive_AerMassSO4        .or. &
+                                   State_Diag%Archive_AerMassSOAGX      .or. &
+                                   State_Diag%Archive_AerMassSOAIE      .or. &
+                                   State_Diag%Archive_AerMassSOAME      .or. &
+                                   State_Diag%Archive_AerMassSOAMG      .or. &
+                                   State_Diag%Archive_AerMassTSOA       .or. &
+                                   State_Diag%Archive_BetaNO            .or. &
+                                   State_Diag%Archive_PM25              .or. &
+                                   State_Diag%Archive_TotalOA           .or. &
+                                   State_Diag%Archive_TotalOC           .or. &
+                                   State_Diag%Archive_TotalBiogenicOA       )
 
      State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1           .or. &
                                  State_Diag%Archive_AODHygWL2           .or. &
@@ -6363,17 +6513,24 @@ CONTAINS
                                  State_Diag%Archive_AODDust             .or. &
                                  State_Diag%Archive_AODDustWL1          .or. &
                                  State_Diag%Archive_AODDustWL2          .or. &
-                                 State_Diag%Archive_AODDustWL3        )
+                                 State_Diag%Archive_AODDustWL3              )
 
-     State_Diag%Archive_AODStrat = ( State_Diag%Archive_AODSLAWL1    .or. &
-                                     State_Diag%Archive_AODSLAWL2    .or. &
-                                     State_Diag%Archive_AODSLAWL3    .or. &     
-                                     State_Diag%Archive_AODPSCWL1    .or. &  
-                                     State_Diag%Archive_AODPSCWL2    .or. &  
-                                     State_Diag%Archive_AODPSCWL3    .or. &  
-                                     State_Diag%Archive_AerNumDenSLA .or. &  
-                                     State_Diag%Archive_AerNumDenPSC       ) 
+     State_Diag%Archive_AODStrat = ( State_Diag%Archive_AODSLAWL1       .or. &
+                                     State_Diag%Archive_AODSLAWL2       .or. &
+                                     State_Diag%Archive_AODSLAWL3       .or. &
+                                     State_Diag%Archive_AODPSCWL1       .or. &  
+                                     State_Diag%Archive_AODPSCWL2       .or. &  
+                                     State_Diag%Archive_AODPSCWL3       .or. &  
+                                     State_Diag%Archive_AerNumDenSLA    .or. &  
+                                     State_Diag%Archive_AerNumDenPSC        ) 
 
+
+     State_Diag%Archive_ConcAboveSfc =                                       &
+                                  ( State_Diag%Archive_SpeciesConcALT1 .and. &
+                                    State_Diag%Archive_DryDepRaALT1    .and. &
+                                    State_Diag%Archive_DryDepZLALT1    .and. &
+                                    State_Diag%Archive_DryDepVelForALT1     )
+     
     !=======================================================================
     ! Set arrays used to calculate budget diagnostics, if needed
     !=======================================================================
@@ -6422,8 +6579,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  05 Oct 2017 - R. Yantosca - Now put error trapping on deallocations
-!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify all pointer fields
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7745,7 +7901,6 @@ CONTAINS
        State_Diag%EmisHg0ocean => NULL()
     ENDIF
 
-
     IF ( ASSOCIATED( State_Diag%EmisHg0soil ) ) THEN
        DEALLOCATE( State_Diag%EmisHg0soil, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg0soil', 2, RC )
@@ -8004,7 +8159,35 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%ReactiveGaseousHg', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%ReactiveGaseousHg => NULL()
-   ENDIF
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepRaALT1 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepRaALT1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepRaALT1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepRaALT1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepVelForALT1 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepVelForALT1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepVelForALT1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVelForALT1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepZLALT1 ) ) THEN
+       DEALLOCATE( State_Diag%DryDepZLALT1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepZLALT1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepZLALT1 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%SpeciesConcALT1 ) ) THEN
+       DEALLOCATE( State_Diag%SpeciesConcALT1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%SpeciesConcALT1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesConcALT1 => NULL()
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
@@ -8075,9 +8258,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  06 Oct 2017 - R. Yantosca - State_Diag%SpeciesConc is now an 8-byte real
-!  01 Nov 2017 - R. Yantosca - Now get To_UpperCase from charpak_mod.F90
-!  02 Nov 2017 - R. Yantosca - Update metadata to be consistent w/ arrays
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8090,6 +8271,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=5  ) :: TmpWL
+    CHARACTER(LEN=10 ) :: TmpHt,   TmpHt_AllCaps
     CHARACTER(LEN=255) :: ThisLoc, Name_AllCaps
     CHARACTER(LEN=512) :: ErrMsg
 
@@ -8101,6 +8283,7 @@ CONTAINS
     RC        =  GC_SUCCESS
     Found     = .TRUE.
     ErrMsg    = ''
+    TmpHt     = AltAboveSfc
     ThisLoc   =  &
          ' -> at Get_Metadata_State_Diag (in Headers/state_diag_mod.F90)'
 
@@ -8122,8 +8305,9 @@ CONTAINS
     IF ( isVLoc   ) VLoc   = VLocationCenter ! Assume vertically centered
     IF ( isTagged ) TagID  = '' 
 
-    ! Convert name to uppercase
-    Name_AllCaps = To_Uppercase( TRIM( metadataID ) )
+    ! Convert to uppercase
+    Name_AllCaps  = To_Uppercase( TRIM( metadataID ) )
+    TmpHt_AllCaps = To_Uppercase( TRIM( TmpHt      ) )
 
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
@@ -9428,7 +9612,40 @@ CONTAINS
        IF ( isUnits   ) Units = 'pptv'
        IF ( isRank    ) Rank  =  3
 
-    ELSE
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA'                          // &
+                                       TRIM( TmpHt_AllCaps ) )  THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition aerodynamic resistance '  // &
+                                'at ' // TRIM( TmpHt )                    // &
+                                 ' above the surface'
+       IF ( isUnits   ) Units = 's cm-1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVELFOR'                      // &
+                                       TRIM( TmpHt_AllCaps ) )  THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition velocity for speecies '   // &
+                                'are requested at ' // TRIM( TmpHt )      // &
+                                ' above the surface'
+       IF ( isUnits   ) Units = 'cm s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRYALT'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPZL'                          // &
+                                       TRIM( TmpHt_AllCaps ) ) THEN
+       IF ( isDesc    ) Desc  = 'Dry deposition ratio of z/L at '         // &
+                                 TRIM( TmpHt ) // ' above the surface'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONC'                       // &
+                                       TRIM( TmpHt_AllCaps ) )  THEN
+       IF ( isDesc    ) Desc  = TRIM( TmpHt_AllCaps ) // ' above the '    // &
+                                'surface, dry mixing ratio of species'
+       IF ( isUnits   ) Units = 'mol mol-1 dry'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'DRYALT'
+       IF ( isType    ) Type  = KINDVAL_F8
+
+   ELSE
        
        !--------------------------------------------------------------------
        ! Could not find metadata, so exit with error message
@@ -9483,7 +9700,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  16 Nov 2017 - E. Lundgren - Initial version
-!  23 Oct 2018 - R. Yantosca - Add tags for Hg0, Hg2, HgP species
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9530,8 +9747,10 @@ CONTAINS
           numTags = State_Chm%nAdvect
        CASE( 'AER'     )
           numTags = State_Chm%nAero
-       CASE( 'DRY'               )
+       CASE( 'DRY'     )
           numTags = State_Chm%nDryDep
+       CASE( 'DRYALT'  )
+          numTags = State_Chm%nDryAlt
        CASE( 'DUSTBIN' )
           numTags = NDUST
        CASE( 'FIX'     )
@@ -9599,6 +9818,8 @@ CONTAINS
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
+       CASE( 'DRYALT'  )
+          D = State_Chm%Map_DryAlt(N)
        CASE( 'DRY'  )
           D = State_Chm%Map_DryDep(N)
        CASE( 'GAS'  )
@@ -9722,6 +9943,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Charpak_Mod, ONLY : To_Uppercase
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -9737,6 +9959,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  24 Jan 2018 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9775,8 +9998,21 @@ CONTAINS
           OutName = OutNamePrefix
        ENDIF
     ENDIF
+    
+    ! For now, quick'n'dirty approach for species at altitude above surface
+    IWL(1) = INDEX( To_Uppercase(TRIM(InName)), 'ALT1' )
+    IF ( IWL(1) > 0 ) THEN
+       OutNamePrefix = InName(1:IWL(1)-1) // TRIM( AltAboveSfc ) 
+       I = INDEX( TRIM(InName), '_' )
+       IF ( I > 0 ) THEN
+          OutName = TRIM(OutNamePrefix) // InName(I:)
+       ELSE
+          OutName = OutNamePrefix
+       ENDIF
+    ENDIF
 
     ! No other instances yet of names set from input parameters
+
 
   END SUBROUTINE Get_NameInfo
 !EOC
@@ -9816,6 +10052,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9993,6 +10230,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10180,6 +10418,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10334,6 +10573,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10521,6 +10761,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10679,6 +10920,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Nov 2018 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -434,7 +434,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I,   J,   L,   D,   N, NDVZ
+      INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A
       REAL(f8)           :: DVZ, THIK
       CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
@@ -513,7 +513,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
+!$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, A )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -536,6 +536,10 @@
 
             ! Get info about this species from the database
             SpcInfo => State_Chm%SpcData(N)%Info
+
+            ! Get the "DryAltID" index, that is used to archive species
+            ! concentrations at a user-defined altitude above the surface
+            A       =  SpcInfo%DryAltID
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
@@ -641,18 +645,20 @@
             IF ( ND44 > 0 ) THEN 
                ! Drydep velocity [cm/s]
                AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
-
-!------------------------------------------------------------------------------
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!               ! Instantaneous drydep velocity for ND49 [cm/s]
-!               AD44b(I,J,D)  = DVZ
-!------------------------------------------------------------------------------
             ENDIF
 #endif
 
             ! Archive dry dep velocity [cm/s]
             IF ( State_Diag%Archive_DryDepVel ) THEN
                State_Diag%DryDepVel(I,J,D) = DVZ
+            ENDIF
+
+            ! Archive dry dep velocity [cm/s] only for those species
+            ! that are requested at a given altitude (e.g. 10m)
+            IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
+               IF ( A > 0 ) THEN
+                  State_Diag%DryDepVelForALT1(I,J,A) = DVZ
+               ENDIF
             ENDIF
 
             ! Free pointer
@@ -1095,51 +1101,52 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f8)  RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE),
-     1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
-     2        RSURFC(NUMDEP,NTYPE)       
+      REAL(f8) :: RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE)
+      REAL(f8) :: RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE)
+      REAL(f8) :: RSURFC(NUMDEP,NTYPE)       
                                    
-      REAL(f8)  C1X(NUMDEP),VD(NUMDEP),VK(NUMDEP)              
-      REAL(f8)  ZO(State_Grid%NX,State_Grid%NY)           
+      REAL(f8) :: C1X(NUMDEP),VD(NUMDEP),VK(NUMDEP)              
+      REAL(f8) :: ZO(State_Grid%NX,State_Grid%NY)           
 
-!      LOGICAL LDEP(MAXDEP)
-      LOGICAL LDEP(NUMDEP)
-      LOGICAL LRGERA(State_Grid%NX,State_Grid%NY)
+      LOGICAL  :: LDEP(NUMDEP)
+      LOGICAL  :: LRGERA(State_Grid%NX,State_Grid%NY)
 
-      REAL(f8)  VDS
-      REAL(f8)  CZ,C1,RT,XNU,RAD0,RIX,GFACT,GFACI
-      REAL(f8)  RDC,RLUXX,RGSX,RCL,DTMP1,DTMP2,DTMP3,DTMP4
-      REAL(f8)  CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
-      REAL(f8)  RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
-      REAL(f8)  XMWH2O,DAIR,TEMPK,TEMPC
-      REAL(f8)  RAKT,DUMMY2KT, DUMMY4KT, Z0OBKKT ! for corrected O3, krt,11/2017
-      INTEGER IOLSON,II,IW
-      INTEGER K,LDT
-      REAL(f8)  RCLX,RIXX    !,BIOFIT
+      REAL(f8) :: VDS
+      REAL(f8) :: CZ,C1,RT,XNU,RAD0,RIX,GFACT,GFACI
+      REAL(f8) :: RDC,RLUXX,RGSX,RCL,DTMP1,DTMP2,DTMP3,DTMP4
+      REAL(f8) :: CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
+      REAL(f8) :: RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
+      REAL(f8) :: XMWH2O,DAIR,TEMPK,TEMPC
+      INTEGER  :: IOLSON,II,IW
+      INTEGER  :: K,LDT
+      REAL(f8) :: RCLX,RIXX    !,BIOFIT
+
+      ! for corr O3, krt,11/2017
+      REAL(f8) :: RA_Alt, DUMMY2_Alt, DUMMY4_Alt, Z0OBK_Alt 
 
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
-      INTEGER  BIN
-      REAL(f8)   SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
-      REAL(f8)   SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
+      INTEGER  :: BIN
+      REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
+      REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
 #endif
 
       ! Logical for snow and sea ice
-      LOGICAL LSNOW(State_Grid%NX,State_Grid%NY)
+      LOGICAL  ::LSNOW(State_Grid%NX,State_Grid%NY)
 
       ! Loop indices (bmy, 3/29/12)
-      INTEGER :: I, J
+      INTEGER  :: I, J
 
       ! Size of DRYCOEFF (ckeller, 05/19/14)
-      INTEGER :: NN
+      INTEGER  :: NN
 
       ! Added these to pass particle density & number to DUST_SFCRSII
       ! so as to avoid parallelization errors with TOMAS (bmy, 1/31/14)
-      REAL(f8)  :: DIAM, DEN
+      REAL(f8) :: DIAM, DEN
 
       ! Logical switch for POPS in order to use octanol-air partitioning instead
       ! of Henry's Law for scaling of cuticular resitances (clf, 1/3/2011)
-      LOGICAL :: IS_POPS
+      LOGICAL  :: IS_POPS
 
       ! Pointers to fields in State_Met
       INTEGER,  POINTER :: IREG(:,:)
@@ -1273,27 +1280,33 @@
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( CZ,     TEMPK,  TEMPC,  K,      VD             )
-!$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
-!$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
-!$OMP+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
-!$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
-!$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
-!$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
-!$OMP+PRIVATE( Z0OBKKT,RAKT,   DUMMY2KT,       DUMMY4KT       )
-!$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
-!$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
+!$OMP+PRIVATE( CZ,      TEMPK,   TEMPC,   K,      VD                )
+!$OMP+PRIVATE( LDT,     RSURFC,  C1,      XNU,    RT,      IOLSON   )
+!$OMP+PRIVATE( II,      RI,      RLU,     RAC,    RGSS,    RGSO     )
+!$OMP+PRIVATE( RCLS,    RCLO,    RAD0,    RIX,    GFACT,   GFACI    )
+!$OMP+PRIVATE( RDC,     XMWH2O,  RIXX,    RLUXX,  RGSX,    RCLX     )
+!$OMP+PRIVATE( DTMP1,   DTMP2,   DTMP3,   DTMP4,  VDS,     CZH      )
+!$OMP+PRIVATE( CKUSTR,  REYNO,   CORR1,   CORR2,  Z0OBK,   RA       )
+!$OMP+PRIVATE( Z0OBK_Alt, RA_Alt,DUMMY2_Alt,      DUMMY4_Alt        )
+!$OMP+PRIVATE( DUMMY1,  DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB       )
+!$OMP+PRIVATE( C1X,     VK,      I,       J,      IW                )
+!$OMP+PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP )
 #if defined( MODEL_GEOS )
-!$OMP+PRIVATE( RA2M,   Z0OBK2M, RA10M, Z0OBK10M               )
+!$OMP+PRIVATE( RA2M,    Z0OBK2M, RA10M, Z0OBK10M                    )
 #endif
 #if defined( TOMAS )
-!$OMP+PRIVATE( BIN                                            )
+!$OMP+PRIVATE( BIN                                                  )
 #endif
-!$OMP+PRIVATE( SpcId,  SpcInfo                                )
+!$OMP+PRIVATE( SpcId,  SpcInfo                                      )
 
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
+
+         ! Initialize
+         Z0OBK_Alt  = 0.0_f8
+         DUMMY2_Alt = 0.0_f8
+         DUMMY4_Alt = 0.0_f8
+         RA_Alt     = 0.0_f8
 
 !** CZ is Altitude (m) at which deposition velocity is computed
          CZ = CZ1(I,J)
@@ -1819,16 +1832,18 @@
 
             ! Define Z0OBK
             Z0OBK = ZO(I,J)/OBK(I,J) 
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!            ! Set CASTNET height at 10m (krt, 11/2017)
 #if defined( MODEL_GEOS )
             Z0OBK2M  = MAX(Z0OBK,  2e+0_fp/OBK(I,J) )
             Z0OBK10M = MAX(Z0OBK, 10e+0_fp/OBK(I,J) )
-#else
-!            Z0OBKKT = 10e+0_fp/OBK(I,J)
 #endif
-!==============================================================================
+            !--------------------------------------------------------
+            ! Z0OBK_Alt is Z0OBK for a user-specified height above 
+            ! the surface.  This is required for diagnostics.
+            ! (krt, bmy, 7/10/19).
+            !--------------------------------------------------------
+            IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+               Z0OBK_Alt = Input_Opt%RA_Alt_Above_Sfc / OBK(I,J)
+            ENDIF
 
             LRGERA(I,J) = .FALSE.
             ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -1881,11 +1896,10 @@
 !*                                 
                IF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .LT. -1.e+0_f8)THEN
 !*... unstable condition; set RA to zero. (first implemented in V. 3.2)
-                  RA    = 0.e+0_f8
+                  RA     = 0.e+0_f8
 #if defined( MODEL_GEOS )
-                  !RAKT  = 0.e+0_f8
-                  RA2M  = 0.e+0_f8
-                  RA10M = 0.e+0_f8
+                  RA2M   = 0.e+0_f8
+                  RA10M  = 0.e+0_f8
 #endif
 
 !*... error trap: prevent CORR1 or Z0OBK from being zero or close to
@@ -1893,7 +1907,6 @@
                ELSEIF ( ABS(CORR1)<=SMALL .OR. ABS(Z0OBK)<=SMALL ) THEN
                   RA = 0.e+0_f8
 #if defined( MODEL_GEOS )
-                  !RAKT  = 0.e+0_f8
                   RA2M  = 0.e+0_f8
                   RA10M = 0.e+0_f8
 #endif
@@ -1908,11 +1921,6 @@
                   RA = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * 
      &                 LOG(DUMMY3/DUMMY4)
 #if defined( MODEL_GEOS )
-!*... correct ozone to 10m for diagnostic (krt, 11/2017)
-                  !DUMMY2KT=(1.e+0_f8 - 9e+0_f8*Z0OBKKT)**0.5e+0_f8
-                  !DUMMY4KT=ABS((DUMMY2KT-1.e+0_f8)/(DUMMY2KT+1.e+0_f8))
-                  !RAKT = 0.74e+0_f8* (1.e+0_f8/CKUSTR) *
-     &            !     LOG(DUMMY3/DUMMY4KT)
                   ! 2M
                   DUMMY1 = (1.e+0_f8 - 9e+0_f8*Z0OBK2M)**0.5e+0_f8
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
@@ -1923,14 +1931,13 @@
                   RA10M  = 0.74e+0_f8* (1.e+0_f8/CKUSTR) *
      &                     LOG(DUMMY3/DUMMY4)
 #endif                       
-          
+
                ELSEIF((CORR1.GT.0.0e+0_f8).AND.(.NOT.LRGERA(I,J)))
      &          THEN
 !*...moderately stable conditions (z/zMO <1); compute Ra as described above
                   RA = (1e+0_f8/CKUSTR) * 
      &            (.74e+0_f8*LOG(CORR1/Z0OBK) + 4.7e+0_f8*(CORR1-Z0OBK))
 #if defined( MODEL_GEOS )
-     &            !(.74_f8*LOG(CORR1/Z0OBKKT)+4.7_f8*(CORR1-Z0OBKKT))
                   RA2M = (1e+0_f8/CKUSTR) *
      &            (0.74_f8*LOG(Z0OBK2M/Z0OBK)+4.7_f8*(Z0OBK2M-Z0OBK))
                   RA10M = (1e+0_f8/CKUSTR) *
@@ -1939,11 +1946,10 @@
 
                ELSEIF(LRGERA(I,J)) THEN
 !*... very stable conditions
-                  RA    = 1.e+04_f8
+                  RA     = 1.e+04_f8
 #if defined( MODEL_GEOS )
-                  !RAKT = 1.e+04_f8
-                  RA2M  = 1.e+04_f8
-                  RA10M = 1.e+04_f8
+                  RA2M   = 1.e+04_f8
+                  RA10M  = 1.e+04_f8
 #endif
                ENDIF
 !* check that RA is positive; if RA is negative (as occasionally
@@ -1960,15 +1966,6 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!!*... correct ozone to 10m for diagnostic (krt, 11/2017)
-!                  DUMMY2KT = (1.D0 - 15.e+0_f8*Z0OBKKT)**0.5e+0_f8
-!                  DUMMY4KT = ABS((DUMMY2KT - 1.e+0_f8)/
-!     &                 (DUMMY2KT + 1.e+0_f8))
-!                  RAKT = 1.e+0_f8 * (1.e+0_f8/CKUSTR) *
-!     &                 LOG(DUMMY3/DUMMY4KT)
-!==============================================================================
 #if defined( MODEL_GEOS )
                   ! 2M
                   DUMMY1 = (1.D0 - 15.e+0_f8*Z0OBK2M)**0.5e+0_f8
@@ -1979,6 +1976,17 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   RA10M= 1.e+0_f8 * (1.e+0_f8/CKUSTR)*LOG(DUMMY3/DUMMY4)
 #endif
+                  !----------------------------------------------------
+                  ! Compute RA at user-defined altitude above surface
+                  ! (krt, bmy, 7/10/19)
+                  !----------------------------------------------------
+                  IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+                     DUMMY2_Alt = SQRT( 1.0_f8 - 15.0_f8 * Z0OBK_Alt )
+                     DUMMY4_Alt = ABS( ( DUMMY2_Alt - 1.0_f8 )
+     &                          /      ( DUMMY2_Alt + 1.0_f8 ) )
+                     RA_Alt     = ( 1.0_f8 / CKUSTR )
+     &                          * LOG( DUMMY3 / DUMMY4_Alt )
+                  ENDIF
 
                ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
      &          THEN
@@ -1986,75 +1994,89 @@
                   !coef_b=5.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!                  RAKT = (1D0/CKUSTR) *
-!     &          (1.e+0_f8*LOG(CORR1/Z0OBKKT) + 5.e+0_f8*(CORR1-Z0OBKKT))
-!==============================================================================
 #if defined( MODEL_GEOS )
                   RA2M = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(Z0OBK2M/Z0OBK)+5.e+0_f8*(Z0OBK2M-Z0OBK))
                   RA10M = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(Z0OBK10M/Z0OBK)+5.e+0_f8*(Z0OBK10M-Z0OBK))
 #endif
+                  !----------------------------------------------------
+                  ! Compute RA at user-defined altitude above surface
+                  ! for diagnostic output (krt, bmy, 7/10/19)
+                  !----------------------------------------------------
+                  IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+                     RA_Alt = ( 1.0_fp / CKUSTR ) 
+     &                      * ( 1.0_f8 * LOG( CORR1 / Z0OBK_Alt ) 
+     &                                 + 5.0_f8 * ( CORR1 - Z0OBK_Alt ))
+                  ENDIF
 
                ELSE ! CORR1 .GT. 1.0D0
                   !coef_a=5e+0_f8
                   !coef_b=1.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!                  RAKT = (1D0/CKUSTR) *
-!     &          (5.e+0_f8*LOG(CORR1/Z0OBKKT) +1.e+0_f8*(CORR1-Z0OBKKT))
-!==============================================================================
 #if defined( MODEL_GEOS )
                   RA2M = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(Z0OBK2M/Z0OBK)+1.e+0_f8*(Z0OBK2M-Z0OBK))
                   RA10M = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(Z0OBK10M/z0OBK)+1.e+0_f8*(Z0OBK10M-Z0OBK))
 #endif
-
+                  !----------------------------------------------------
+                  ! Compute RA at user-defined altitude above surface
+                  ! for diagnostic output (krt, bmy, 7/10/19)
+                  !----------------------------------------------------
+                  IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+                     RA_Alt = ( 1.0_f8 / CKUSTR ) 
+     &                      * ( 5.0_f8 * LOG( CORR1 / Z0OBK_Alt ) 
+     &                                 + 1.0_f8 *( CORR1 - Z0OBK_Alt ) )
+                  ENDIF
                ENDIF
 
             ENDIF
 
             RA   = MIN(RA,1.e+4_f8)
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!            RAKT = MIN(RAKT,1.e+4_f8)
-!==============================================================================
 #if defined( MODEL_GEOS )
             RA2M   = MIN(RA2M,  1.e+4_f8)
             RA10M  = MIN(RA10M, 1.e+4_f8)
 #endif
-
             ! If RA is < 0, set RA = 0 (bmy, 11/12/99)
             IF (RA .LT. 0.e+0_f8) THEN
                WRITE (6,1001) I,J,RA,CZ,ZO(I,J),OBK(I,J)  
                RA = 0.0e+0_f8
             ENDIF
-
 #if defined( MODEL_GEOS )
             ! Adjust 2M Ra if needed
             IF ( RA2M  < 0.e+0_f8 ) RA2M  = 0.e+0_f8
             IF ( RA10M < 0.e+0_f8 ) RA10M = 0.e+0_f8
-#endif
+#endif            
+            !----------------------------------------------------
+            ! Compute RA at user-defined altitude above surface
+            ! for diagnostic output (krt, bmy, 7/10/19)
+            !----------------------------------------------------
+            IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+               RA_Alt = MIN( RA_Alt, 1.0e+4_f8 )
 
-!==============================================================================
-!#if defined ( BPCH_DIAG )
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!            IF (RAKT .LT. 0.e+0_f8) THEN
-!               WRITE (6,1001) I,J,RAKT,CZ,ZO(I,J),OBK(I,J)  
-!               RAKT = 0.0e+0_f8
-!            ENDIF
-!            ! Store Ra for diagnostic
-!            AD_RA(I,J) = RAKT
-!            ! Store z/L to determine if M/O theory applies
-!            AD_ZL(I,J) = CZ1(I,J)/OBK(I,J)
-!#endif
-!==============================================================================
-            
+               ! Make sure RA_Alt is not negative
+               IF ( RA_Alt <  0.0_f8 ) THEN
+                  IF ( am_I_Root ) THEN 
+                     WRITE (6,1001) I,J, RA_Alt, CZ, ZO(I,J) ,OBK(I,J)  
+                  ENDIF
+                  RA_Alt = 0.0_f8
+               ENDIF
+
+               ! Store drydep resistance RA at user-defined
+               ! altitude above surface into State_Diag
+               IF ( State_Diag%Archive_DryDepRaALT1 ) THEN
+                  State_Diag%DryDepRaALT1(I,J) = RA_Alt
+               ENDIF
+
+               ! Also store z/L in order to determine if the
+               ! Monin-Obhukov theory applies
+               IF ( State_Diag%Archive_DryDepZLALT1 ) THEN
+                  State_Diag%DryDepZLALT1(I,J) = CZ1(I,J) / OBK(I,J)
+               ENDIF
+            ENDIF
+
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             2I4,4(1X,E12.5))
 !* Get total resistance for deposition - loop over species.

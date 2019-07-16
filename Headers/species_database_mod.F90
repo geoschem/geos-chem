@@ -221,6 +221,8 @@ CONTAINS
     REAL(fp)               :: WD_KcScaleFac(3) ! Factor to multiply Kc
     REAL(fp)               :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL                :: WD_CoarseAer     ! Coarse aerosol?
+    LOGICAL                :: Is_DryAlt        ! Is it a drydep species that
+                                               !  to save at a given alt?
     LOGICAL                :: Is_Drydep        ! Is it dry deposited?
     LOGICAL                :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL                :: Is_HygroGrowth   ! Is hygroscopic growth?
@@ -303,6 +305,7 @@ CONTAINS
                       oWD_KcScaleFac  = WD_KcScaleFac,                       &
                       oWD_RainoutEff  = WD_RainoutEff,                       &
                       oWD_CoarseAer   = WD_CoarseAer,                        &
+                      oIs_DryAlt      = Is_DryAlt,                           &
                       oIs_Drydep      = Is_Drydep,                           & 
                       oIs_Gas         = Is_Gas,                              &
                       oIs_HygroGrowth = Is_HygroGrowth,                      &
@@ -363,6 +366,7 @@ CONTAINS
                         WD_RainoutEff  = WD_RainoutEff,                      &
                         WD_CoarseAer   = WD_CoarseAer,                       &
                         Is_Advected    = Is_Advected,                        & 
+                        Is_DryAlt      = Is_DryAlt,                          &
                         Is_Drydep      = Is_Drydep,                          & 
                         Is_Gas         = Is_Gas,                             &
                         Is_HygroGrowth = Is_HygroGrowth,                     &
@@ -410,22 +414,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,       &
-                       KppSpcId,        oFullName,      oFormula,        &
-                       oMW_g,           oEmMW_g,        oMolecRatio,     &
-                       oBackgroundVV,   oHenry_K0,      oHenry_CR,       &
-                       oHenry_PKA,      oDensity,       oRadius,         &
-                       oDD_AeroDryDep,  oDD_DustDryDep, oDD_DvzAerSnow,  &
-                       oDD_DvzMinVal,   oDD_F0,         oDD_KOA,         &
-                       oDD_HStar_Old,   oMP_SizeResAer, oMP_SizeResNum,  &
-                       oWD_RetFactor,   oWD_LiqAndGas,  oWD_ConvFacI2G,  &
-                       oWD_AerScavEff,  oWD_KcScaleFac, oWD_RainoutEff,  &
-                       oWD_CoarseAer,                                    &
-                       oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth, &
-                       oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,   &
-                       oIs_Hg0,         oIs_Hg2,        oIs_HgP,         &
-                       oDiagName,       Found,          Underscores,     &
-                       RC )
+  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,           &
+                       KppSpcId,        oFullName,      oFormula,            &
+                       oMW_g,           oEmMW_g,        oMolecRatio,         &
+                       oBackgroundVV,   oHenry_K0,      oHenry_CR,           &
+                       oHenry_PKA,      oDensity,       oRadius,             &
+                       oDD_AeroDryDep,  oDD_DustDryDep, oDD_DvzAerSnow,      &
+                       oDD_DvzMinVal,   oDD_F0,         oDD_KOA,             &
+                       oDD_HStar_Old,   oMP_SizeResAer, oMP_SizeResNum,      &
+                       oWD_RetFactor,   oWD_LiqAndGas,  oWD_ConvFacI2G,      &
+                       oWD_AerScavEff,  oWD_KcScaleFac, oWD_RainoutEff,      &
+                       oWD_CoarseAer,   oIs_DryAlt,                          &
+                       oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth,     &
+                       oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,       &
+                       oIs_Hg0,         oIs_Hg2,        oIs_HgP,             &
+                       oDiagName,       Found,          Underscores,         &
+                       RC                                                   )
 !
 ! !USES:
 !
@@ -472,6 +476,7 @@ CONTAINS
                                                            !  rate in F_AEROSOL
     REAL(fp),INTENT(OUT), OPTIONAL    :: oWD_RainoutEff(3) ! Rainout efficiency
     LOGICAL, INTENT(OUT), OPTIONAL    :: oWD_CoarseAer     ! Coarse aerosol?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_DryAlt        ! Is it a DryAlt species?
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Drydep        ! Is it dry deposited?
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_HygroGrowth   ! Is hygroscopic growth?
@@ -531,6 +536,8 @@ CONTAINS
     REAL(fp)            :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL             :: WD_CoarseAer     ! Coarse aerosol?
     LOGICAL             :: Is_Advected      ! Is it advected?
+    LOGICAL             :: Is_DryAlt        ! Is it a drydep species that
+                                            !  we want to save at a given alt?
     LOGICAL             :: Is_Drydep        ! Is it dry deposited?
     LOGICAL             :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL             :: Is_HygroGrowth   ! Is hygroscopic growth?
@@ -591,6 +598,7 @@ CONTAINS
     WD_AerScavEff    = MISSING
     WD_KcScaleFac(:) = MISSING
     WD_RainOutEff(:) = MISSING
+    Is_DryAlt        = .FALSE.
     Is_Drydep        = .FALSE.
     Is_Gas           = .FALSE.
     Is_HygroGrowth   = .FALSE.
@@ -1674,6 +1682,7 @@ CONTAINS
              MW_g          = 63.0_fp
              BackgroundVV  = 4.0e-15_fp
              Is_Gas        = T
+             Is_DryAlt     = T
              Is_Drydep     = T
              Is_Wetdep     = T
              Is_Photolysis = T
@@ -2689,6 +2698,7 @@ CONTAINS
              Formula       = 'O3'
              MW_g          = 48.0_fp
              Is_Gas        = T
+             Is_DryAlt     = T
              Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
@@ -5865,6 +5875,7 @@ CONTAINS
     IF ( PRESENT( oWD_AerScavEff  ) ) oWD_AerScavEff    = WD_AerScavEff
     IF ( PRESENT( oWD_KcScaleFac  ) ) oWD_KcScaleFac(:) = WD_KcScaleFac(:)
     IF ( PRESENT( oWD_RainoutEff  ) ) oWD_RainoutEff(:) = WD_RainoutEff(:)
+    IF ( PRESENT( oIs_DryAlt      ) ) oIs_DryAlt        = Is_DryAlt
     IF ( PRESENT( oIs_DryDep      ) ) oIs_DryDep        = Is_DryDep
     IF ( PRESENT( oIs_Gas         ) ) oIs_Gas           = Is_Gas
     IF ( PRESENT( oIs_HygroGrowth ) ) oIs_HygroGrowth   = Is_HygroGrowth

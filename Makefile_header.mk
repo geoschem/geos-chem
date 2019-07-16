@@ -22,7 +22,6 @@
 #                                                                             .
 # Variable   Description
 # --------   -----------
-# CC         Contains the default C compilation commands (for PGI only)
 # F90        Contains the Fortran compilation commands
 # FREEFORM   Contains the command to force F90 "free format" compilation
 # LD         Contains the command to link to libraries & make executable
@@ -54,163 +53,7 @@
 # the user's input, and will make errors less likely.
 #
 # !REVISION HISTORY: 
-#  16 Sep 2009 - R. Yantosca - Initial version
-#  22 Sep 2009 - R. Yantosca - Bug fix, added -I$(HDR) to F90 compilation lines
-#  24 Sep 2009 - R. Yantosca - added NONUMA option for PGI compiler
-#  07 Oct 2009 - R. Yantosca - Replaced .SUFFIXES section w/ pattern rules
-#  19 Nov 2009 - R. Yantosca - Now use OMP variable to determine whether to
-#                              turn on OpenMP parallelization options 
-#  23 Nov 2009 - R. Yantosca - Now use -module $(MOD) instead of -I$(MOD) to 
-#                              specify the directory for *.mod files on both
-#                              IFORT and PGI compilers.
-#  23 Nov 2009 - R. Yantosca - Now use -moddir=$(MOD) and -M$(MOD) instead of
-#                              -I$(MOD) to specify the directory for *.mod 
-#                              files on the SunStudio compiler.
-#  23 Nov 2009 - R. Yantosca - Change DEBUG to allow for new version of 
-#                              Totalview which doesn't choke when debugging
-#                              parallel code (Totalview 8.6.1-1)
-#  02 Dec 2009 - R. Yantosca - Added SUN32 switch for building 32-bit 
-#                              executbable on the SunStudio compiler
-#  11 Dec 2009 - R. Yantosca - Now define SHELL here and export to other 
-#                              Makefiles, so as to have a single place where
-#                              the Unix shell name is defined.
-#  21 Dec 2009 - R. Yantosca - Add H5I and H5L variables to specify the
-#                              HDF5 library and include paths.  Also set
-#                              the default to not link to the HDF5 libraries.
-#  21 Dec 2009 - R. Yantosca - Now pass LINK back to the outside world, so
-#                              that the Makefile that builds the executable
-#                              can reference it.
-#  19 Jan 2010 - R. Yantosca - Minor fix, add -m64 if SUN32 is not defined.
-#  25 Jan 2010 - R. Yantosca - Now add -DTOMAS to FFLAGS if necessary
-#  28 Jan 2010 - C. Carouge  - Add -lIsorropia to LINK, for ISORROPIA II
-#  16 Feb 2011 - R. Yantosca - Now add -DAPM to FFLAGS if necessary
-#  25 Aug 2011 - R. Yantosca - Add "-fp-model source" to FFLAGS for IFORT 
-#                              compiler.  This will prevent aggressive 
-#                              optimizations from changing numerical results.
-#  25 Aug 2011 - R. Yantosca - Add -CU (check for uninit'd variables) to 
-#                              FFLAGS when using IFORT w/ the DEBUG option.
-#  26 Aug 2011 - R. Yantosca - Allow for deactivation of the "-fp-model source"
-#                              option by using the PRECISE=no env variable
-#  24 Jan 2012 - R. Yantosca - If NETCDF=yes, GEOS-Chem will link and include
-#                              to the netCDF dir paths that are specified
-#  24 Jan 2012 - R. Yantosca - Now use := for makefile assignment statements
-#  10 Feb 2012 - R. Yantosca - When compiling with NETCDF=yes or HDF5=yes,
-#                              we must also add the flags -mcmodel=medium 
-#                              -i-dynamic to FFLAGS in order to avoid memory 
-#                              errors (for IFORT only)
-#  10 Feb 2012 - R. Yantosca - Remove -CU from the DEBUG option (IFORT only)
-#  19 Mar 2012 - R. Yantosca - Add optional NO_ISO switch, which will turn off
-#                              the ISORROPIA ATE package for testing
-#  05 Apr 2012 - R. Yantosca - Now assume netCDF is always used
-#  05 Apr 2012 - R. Yantosca - Change BL_INC_NETCDF to INC_NETCDF
-#  05 Apr 2012 - R. Yantosca - Change BL_INC_HDF5   to INC_HDF5
-#  05 Apr 2012 - R. Yantosca - Change BL_LIB_NETCDF to LIB_NETCDF
-#  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
-#  30 Apr 2012 - R. Yantosca - Add NETCDF3=[yes|no] makefile option
-#  30 Apr 2012 - R. Yantosca - Use separate netCDF link and include paths
-#                              for netCDF3 and for netCDF4
-#  30 Apr 2012 - R. Yantosca - Also add -mcmodel=medium flag for PGI compiler
-#  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
-#                              for netCDF etc w/ nf-config and nc-config.
-#  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
-#  17 Aug 2012 - R. Yantosca - Now add RRTMG=yes option for RRTMG rad transfer
-#  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
-#  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
-#  17 Apr 2013 - R. Yantosca - Add switch to set -DKPP_SOLVE_ALWAYS, which 
-#                              will force KPP to get past nonconvergences
-#  25 Feb 2013 - S. Farina   - Add flag for TOMAS40
-#  22 Apr 2013 - R. Yantosca - TOMAS40=yes option now sets -DTOMAS -DTOMAS40
-#  28 Apr 2013 - S. Farina   - Add flags for TOMAS15 and TOMAS12
-#  13 Aug 2013 - R. Yantosca - Removed "define.h"; now set all GEOS-Chem
-#                              user options via the Make command
-#  14 Aug 2013 - R. Yantosca - Now use regular expressions to test the
-#                              validity of command-line inputs
-#  21 Aug 2013 - R. Yantosca - Improved error checking for command line inputs
-#  26 Aug 2013 - R. Yantosca - Add -debug all as an IFORT debugging option
-#  16 Sep 2013 - R. Yantosca - Now set GIGC Cpp switches first.  This allows
-#                              us to skip the GRID setting if we are using
-#                              EXTERNAL_GRID=yes or EXTERNAL_FORCING=yes.
-#  18 Sep 2013 - M. Long     - Add edits for HPC Grid-Indpendent GEOS-Chem
-#  26 Sep 2013 - R. Yantosca - MET=geosfp now sets Cpp switch w/ -DGEOS_FP
-#  07 Nov 2013 - R. Yantosca - NEST=se to now sets CPP switch w/ -DNESTED_SE
-#  08 Nov 2013 - R. Yantosca - Add FPEX flag to avoid conflicting with the
-#                              ESMF/MAPL environment variable FPE
-#  24 Feb 2014 - R. Yantosca - Add UCX=yes flag for invoking UCX strat chem
-#  18 Mar 2014 - R. Yantosca - Now add TAU_PROF=y flag to invoke TAU profiler
-#  19 Mar 2014 - R. Yantosca - Move library link commands after the sections
-#                              that set the C-preprocessor switches
-#  19 Mar 2014 - R. Yantosca - Restore GTMM compilation funcitonality
-#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
-#  20 Mar 2014 - R. Yantosca - Bug fix: "+= -DDEBUG" instead of ":= -DDEBUG"
-#  09 Jul 2014 - R. Yantosca - Now don't require MET or GRID if target is
-#                              srcdoc, utildoc, gtmmdoc, makedoc, or hemcodoc
-#  21 Jul 2014 - R. Yantosca - Update build sequence
-#  03 Oct 2014 - R. Yantosca - Now turn on NO_REDUCED=y for hpc target
-#  03 Oct 2014 - R. Yantosca - Now compatible with netCDF 4.1.1 or 4.2+
-#  17 Oct 2014 - R. Yantosca - Don't require MET or GRID to remove ESMF etc.
-#  05 Nov 2014 - R. Yantosca - Will compile w/ 8-byte precision by default
-#  14 Nov 2014 - R. Yantosca - Further updates for hpc compilation
-#  21 Nov 2014 - R. Yantosca - Add special compilation command for ISORROPIA
-#  21 Nov 2014 - R. Yantosca - Add cosmetic changes and indentation 
-#  06 Jan 2015 - R. Yantosca - Add two-way nesting options from Y. Y. Yan
-#  09 Jan 2015 - M. Sulprizio- Now properly link to the RRTMG directory
-#  13 Jan 2015 - R. Yantosca - Add fix for GEOS-Chem-Libraries library path
-#  08 Apr 2015 - R. Yantosca - Bug fix: set RRTMG=yes if it passes the regexp
-#  10 Apr 2015 - R. Yantosca - Export RRTMG_NEEDED var to be used elsewhere
-#  10 Apr 2015 - R. Yantosca - Bug fix: -l rad should be -lrad in link var
-#  12 May 2015 - R. Yantosca - Bug fix for PGI compiler: remove extra "-"
-#                              in front of $(NC_INC_CMD) in the PGI section
-#  12 May 2015 - R. Yantosca - Now use GC_BIN, GC_INCLUDE to point to the
-#                              netCDF library paths and GC_F_BIN, GC_F_INCLUDE
-#                              to point to netCDF-Fortran library paths.
-#                              (In some cases, these are the same).
-#  20 May 2015 - R. Yantosca - Test if GC_F_BIN and GC_F_INCLUDE are defined
-#                              as env variables before trying to use them.
-#  29 May 2015 - R. Yantosca - Now set KPP_CHEM for KPP.  We can't redefine
-#                              the CHEM variable because it is an env var.
-#  04 Jun 2015 - R. Yantosca - Now use RRTMG_NO_CLEAN=y or RRTMG_NOCLEAN=y to 
-#                              removing RRTMG objects, modules, and libraries.
-#  04 Jun 2015 - R. Yantosca - Bug fix: don't turn on UCX except for CHEM=UCX
-#  15 Jun 2015 - R. Yantosca - Now define the HEMCO standalone link command
-#                              separately from the GEOS-Chem link command
-#  07 Jul 2015 - M. Sulprizio- Add option for CHEM=SOA_SVPOA
-#  17 Jul 2015 - E. Lundgren - Remove BSTATIC option when picking pgi options 
-#                              for debug run or regular run 
-#  30 Jul 2015 - M. Yannetti - Added TIMERS.
-#  03 Aug 2015 - M. Sulprizio- NEST=cu to now sets CPP switch w/ -DNESTED_CU for
-#                              custom nested grids
-#  11 Aug 2015 - R. Yantosca - Add MERRA2 as a met field option
-#  24 Aug 2015 - R. Yantosca - Bug fix: Add missing | when testing USER_DEFS
-#  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target that
-#                              replaces the RRTMG_CLEAN variabe
-#  10 Feb 2016 - E. Lundgren - Add BPCH restart file input and output switches
-#  11 Feb 2016 - E. Lundgren - Change BPCH to BPCH_DIAG, NETCDF to NC_DIAG
-#  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
-#  19 Jul 2016 - R. Yantosca - Add more flags for enabling experimental code
-#  20 Sep 2016 - M. Sulprizio- Remove NEST=se option. This grid was never fully
-#                              implemented.
-#  12 Dec 2016 - R. Yantosca - Allow gfortran etc. to compile with TAU_PROF=y
-#  13 Dec 2016 - R. Yantosca - Add GPROF=y to compile for GNU profiler gprof
-#  01 Mar 2017 - R. Yantosca - Bug fix: Make sure NO_REDUCED=no works
-#  01 Mar 2017 - R. Yantosca - Set -DNC_HAS_COMPRESSION if the netCDF library
-#                              can write compressed data to disk
-#  07 Mar 2017 - R. Yantosca - Replace makefile variable COMPILER with
-#                              COMPILER_FAMILY; also works if FC=mpif90
-#  08 May 2017 - R. Yantosca - Add minor fixes to avoid Perl bareword errors
-#  23 May 2017 - R. Yantosca - use -dumpversion to get the Gfortran version #
-#  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
-#  03 Jan 2018 - M. Sulprizio- Remove UCX flag. We now solely use Input_Opt%LUCX
-#                              throughout GEOS-Chem.
-#  07 Aug 2018 - R. Yantosca - For now, don't compile TOMAS/ APM when NC_DIAG=y
-#  21 Aug 2018 - R. Yantosca - Simplify testing for netCDF-Fortran 
-#  23 Aug 2018 - H.P. Lin    - Add NO_EXE=y to inhibit "geos" executable build
-#                              and build libGeosCore.a instead for coupled
-#                              models driving GEOS-Chem externally (by calling
-#                              its libraries)
-#  28 Aug 2018 - M. Sulprizio- Export EXE_NEEDED to be used in GeosCore/Makefile
-#  06 Jan 2019 - M. Sulprizio- Remove Met, Grid, and Nest options. They are now
-#                              specified in input.geos as part of FlexGrid
-#  20 Feb 2019 - M. Sulprizio- Remove NC_DIAG switch, it should always be used
+#  See the Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -225,7 +68,7 @@
 SHELL                :=/bin/bash
 
 # Error message for bad COMPILER input
-ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortran, pgfortran|pgi|pgf90, or mpifort|mpif90.  Check the FC environment variable in your .bashrc or .cshrc file."
+ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortran, or mpifort|mpif90.  Check the FC environment variable in your .bashrc or .cshrc file."
 
 # Error message for unknown compiler/OS combintation
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
@@ -335,13 +178,6 @@ ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DLINUX_GFORTRAN
 endif
 
-# %%%%% Test if PGI Fortran compiler is selected  %%%%%
-REGEXP               :=(^[Pp][Gg])
-ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILER_FAMILY    :=PGI
-  USER_DEFS          += -DLINUX_PGI
-endif
-
 # Is this GCHP?
 ifeq ($(IS_HPC),1)
   COMPILE_CMD        :=mpifort
@@ -350,7 +186,7 @@ else
 endif
 
 # %%%%% ERROR CHECK!  Make sure our compiler selection is valid! %%%%%
-REGEXP               :=((-DLINUX_)?IFORT|PGI|GFORTRAN)
+REGEXP               :=((-DLINUX_)?IFORT|GFORTRAN)
 ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
   $(error $(ERR_CMPLR))
 endif
@@ -1026,7 +862,6 @@ ifeq ($(COMPILER_FAMILY),GNU)
   endif
 
   # Set the standard compiler variables
-  CC                 :=
   F90                :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
   F90ISO             :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
   LD                 :=$(COMPILE_CMD) $(FFLAGS)
@@ -1153,7 +988,6 @@ ifeq ($(COMPILER_FAMILY),Intel)
   endif
 
   # Set the standard compiler variables
-  CC                 :=
   F90                :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
   F90ISO             :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
   LD                 :=$(COMPILE_CMD) $(FFLAGS)
@@ -1162,112 +996,6 @@ ifeq ($(COMPILER_FAMILY),Intel)
   #ifneq ($(HPC),yes)
     R8               := -r8
   #endif
-
-endif
-
-###############################################################################
-###                                                                         ###
-###  Define settings for the PORTLAND GROUP COMPILER (aka "pgfortran")      ###
-###                                                                         ###
-###############################################################################
-
-ifeq ($(COMPILER_FAMILY),PGI) 
-
-  # Base set of compiler flags
-  FFLAGS             :=-Kieee -byteswapio -Mpreprocess -m64
-
-  # Default optimization level for all routines (-fast)
-  ifndef OPT
-    OPT              :=-O2
-   endif
-
-  # Pick compiler options for debug run or regular run 
-  REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -g -O0
-    TRACEBACK        :=yes
-    USER_DEFS        += -DDEBUG
-  else
-    FFLAGS           += $(OPT)
-  endif
-
-  # Add options for medium memory model.  This is to prevent G-C from 
-  # running out of memory at hi-res, especially when using netCDF I/O.
-  FFLAGS             += -mcmodel=medium
-
-  # Turn on OpenMP parallelization
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -mp
-  endif
-
-  # Add option for suppressing PGI non-uniform memory access (numa) library 
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(NONUMA)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -mp=nonuma
-  endif
-
-  # Add option for "array out of bounds" checking
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(BOUNDS)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -Mbounds
-  endif
-
-  # Also add traceback option
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(TRACEBACK)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -traceback
-  endif
-
-  # Compile for use with the GNU profiler (gprof), if necessary
-  ifeq ($(IS_GPROF),1) 
-    FFLAGS           += -pg
-  endif
-
-  # Turn on checking for floating-point exceptions
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(FPE)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -Ktrap=fp
-  endif
-
-  # Switch to add detailed compiler prinotut
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(INFO)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -Minfo
-  endif
-
-  # Add flexible precision declaration
-  ifeq ($(PRECISION),8)
-    USER_DEFS        += -DUSE_REAL8
-  endif
-
-  # Add timers declaration
-  ifeq ($(TIMERS),1)
-    USER_DEFS        += -DUSE_TIMERS
-  endif
-
-  # Append the user options in USER_DEFS to FFLAGS
-  FFLAGS             += $(USER_DEFS)
-
-  # Include options (i.e. for finding *.h, *.mod files)
-  INCLUDE            := -module $(MOD) $(NC_INC_CMD)
-
-  # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
-  # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
-  INCLUDE_ISO        :=$(INCLUDE)
-
-  # Append the ESMF/MAPL/FVDYCORE include commands
-  ifeq ($(IS_HPC),1)
-   INCLUDE           += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
-  endif
-
-  # Set the standard compiler variables
-  CC             :=gcc
-  F90            :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE)
-  F90ISO         :=$(COMPILE_CMD) $(FFLAGS) $(INCLUDE_ISO)
-  LD             :=$(COMPILE_CMD) $(FFLAGS)
-  FREEFORM       := -Mfree
-  R8             := -Mextend -r8
 
 endif
 
@@ -1286,8 +1014,6 @@ endif
 	$(F90) -c $(FREEFORM) $<
 %.o : %.F90
 	$(F90) -c $(FREEFORM) $<
-%.o : %.c
-	$(CC) -c $*.c
 
 ###############################################################################
 ###                                                                         ###
@@ -1295,7 +1021,6 @@ endif
 ###                                                                         ###
 ##############################6#################################################
 
-export CC
 export F90
 export F90ISO
 export FREEFORM
@@ -1333,7 +1058,6 @@ export IS_GNU_8
 #	@@echo "DEBUG            : $(DEBUG)"
 #	@@echo "BOUNDS           : $(BOUNDS)"
 #	@@echo "F90              : $(F90)"
-#	@@echo "CC               : $(CC)"
 #	@@echo "INCLUDE          : $(INCLUDE)"
 #	@@echo "LINK             : $(LINK)"
 #	@@echo "USER_DEFS        : $(USER_DEFS)"

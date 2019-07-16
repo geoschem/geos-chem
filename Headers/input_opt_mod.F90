@@ -132,6 +132,7 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: hvAerNIT_JNITs
      REAL(fp)                    :: JNITChanA
      REAL(fp)                    :: JNITChanB
+
      !----------------------------------------
      ! EMISSIONS MENU fields
      !----------------------------------------
@@ -244,6 +245,7 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: CO2_LEVEL
      REAL(fp)                    :: CO2_REF
      REAL(fp)                    :: RS_SCALE
+     INTEGER                     :: RA_Alt_Above_Sfc
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -531,83 +533,7 @@ MODULE Input_Opt_Mod
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  01 Nov 2012 - R. Yantosca - Initial version, based on logical_mod.F
-!                              newer Olson 2001 land map & drydep inputs
-!  07 Nov 2012 - R. Yantosca - Added Input_Opt%ITS_A_*_SIM fields
-!  08 Nov 2012 - R. Yantosca - Added APM MENU fields
-!  09 Nov 2012 - R. Yantosca - Added LD* variables for diagnostic levels
-!  28 Nov 2012 - R. Yantosca - Add USE_OLSON_2001 logical flag
-!  22 May 2013 - M. Payer    - Add GAMMA_HO2 variable for chemistry menu
-!  26 Feb 2013 - M. Long     - Add extra fields from input.geos
-!  26 Feb 2013 - M. Long     - Bug fix: timesteps are now INTEGER, not LOGICAL
-!  28 Feb 2013 - R. Yantosca - Add haveImpRst field for GEOS-5 GCM interface
-!  08 Mar 2013 - R. Yantosca - Add myCpu field to pass CPU # to GEOS-Chem
-!  15 Mar 2013 - R. Yantosca - Add fields for LINOZ strat chemistry
-!  27 Mar 2013 - R. Yantosca - Add extra fields for tagged CO2
-!  27 Mar 2013 - R. Yantosca - Add extra fields for tagged EDGAR
-!  29 Mar 2013 - R. Yantosca - Add DO_DIAG_WRITE field (to shut diags in MPI)
-!  22 Jul 2013 - M. Sulprizio- Add extra fields for RCP emissions
-!  31 Jul 2013 - M. Sulprizio- Add extra field for AEIC aircraft emissions and
-!                              remove LAIRNOX field
-!  13 Aug 2013 - M. Sulprizio- Add extra fields for semivolatile POA (H. Pye)
-!  22 Aug 2013 - R. Yantosca - Add fields for soil NOx & species restart files
-!  17 Sep 2013 - M. Sulprizio- Add LDSTUP flag for acid uptake on dust aerosols
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57_DIR to GEOS_FP_DIR
-!  03 Oct 2013 - M. Sulprizio- Removed obsolete LMFCT for flux correction
-!  03 Oct 2013 - M. Sulprizio- Removed obsolete LAVHRRLAI and LMODISLAI
-!  13 Dec 2013 - M. Sulprizio- Add USE_O3_FROM_MET logical flag
-!  16 Apr 2014 - M. Sulprizio- Add field for PSC restart file
-!  23 Jun 2014 - R. Yantosca - Add POP_EMISDIR field for POPs simlulation
-!  25 Jun 2014 - R. Yantosca - Now add Input_Opt%SIM_TYPE field
-!  29 Sep 2014 - R. Yantosca - Now add Input_Opt%N_DUST_BINS field
-!  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  03 Dec 2014 - M. Sulprizio- Add fields for Radiation Menu
-!  16 Dec 2014 - R. Yantosca - Removed JLOP, JLOP_PREV; these are in State_Chm
-!  01 Apr 2015 - R. Yantosca - Add extra nested-grid fields
-!  09 Apr 2015 - M. Sulprizio- Removed fields for NAPEMISS, POAEMISSSCALE,
-!                              and PST_RST_FILE. These options are now handled
-!                              by HEMCO.
-!  11 Aug 2015 - R. Yantosca - Add MERRA2_DIR field to OptInput
-!  26 Jan 2016 - E. Lundgren - Add fields for netcdf diagnostics
-!  04 Feb 2016 - C. Keller   - Add LINITSPEC. Used in ESMF to initialize species
-!                              concentrations from globchem.dat.
-!  04 Feb 2016 - M. Sulprizio- Add Hg_CAT and Hg_CAT_FULL arrays for tagged Hg
-!                              simulations
-!  27 Apr 2016 - R. Yantosca - Remove Hg_Cat, Hg_Cat_Full fields
-!  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
-!                              TRACER_COEFF
-!  31 May 2016 - E. Lundgren - Remove TRACER_MW_KG, TRACER_MW_G, and XNUMOL
-!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
-!                              compatible with the FlexChem implementation
-!  13 Jul 2016 - R. Yantosca - Remove some unused drydep fields
-!  16 Aug 2016 - M. Sulprizio- Rename from gigc_input_opt_mod.F90 to
-!                              input_opt_mod.F90. The "gigc" nomenclature is
-!                              no longer used.
-!  29 Aug 2016 - M. Sulprizio- Rename N_TRACERS to N_ADVECT and TRACER_NAME to
-!                              AdvectSpc_Name to reflect that we now refer to
-!                              tracers as advected species
-!  20 Sep 2016 - R. Yantosca - LND51_HDF and LND51b_HDF are now declared
-!                              as LOGICAL, not INTEGER.  This chokes Gfortran.
-!  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
-!  16 Jun 2017 - M. Sulprizio- Remove switches for CH4 emissions since these
-!                              are now handled by HEMCO
-!  12 Jul 2017 - R. Yantosca - Add Input_Opt%HistoryInputFile field
-!  13 Jul 2017 - E. Lundgren - Add passive species variables
-!  24 Aug 2017 - M. Sulprizio- Remove obsolete options: GCAP_DIR, GEOS_4_DIR,
-!                              GEOS_5_DIR, MERRA_DIR, TEMP_DIR, LUNZIP, LWAIT
-!  13 Sep 2017 - M. Sulprizio- Remove USE_OLSON_2001. Olson 2001 is now the
-!                              default.
-!  14 Sep 2017 - M. Sulprizio- Add USE_ONLINE_O3 and USE_TOMS_O3 to options for
-!                              overhead O3 in chemistry menu
-!  02 Nov 2017 - R. Yantosca - Bug fix: LBIOFUEL should be LOGICAL
-!  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
-!  29 Dec 2017 - C. Keller   - Added LLSTRAT. Used in gc_environment_mod.F90
-!  29 Dec 2017 - C. Keller   - Added AlwaysSetH2O.
-!  04 Apr 2018 - E. Lundgren - Remove MAX_PASV; use # from input.geos instead
-!  30 Aug 2018 - C. Keller   - Remove LLSTRAT. Only used in GEOS-5, obtained
-!                              from gridded comp module directly.
-!  15 Oct 2018 - E. Lundgren - Remove LFUTURECFC; no longer needed with ucx_mod updates
-!  11 Nov 2018 - M. Sulprizio- Move fields for grid menu to state_grid_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -988,6 +914,7 @@ CONTAINS
     Input_Opt%CO2_REF                = 390.0_fp
     Input_Opt%CO2_EFFECT             = .FALSE.
     Input_Opt%RS_SCALE               = 1.0_fp
+    Input_Opt%RA_Alt_Above_Sfc       = 10       ! default height
 
     !----------------------------------------
     ! GAMAP_MENU fields
