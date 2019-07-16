@@ -84,10 +84,10 @@
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG )
       USE State_Chm_Mod,      ONLY : Ind_
-      USE AEROSOL_MOD,        ONLY : BCPI, BCPO, OCPI, OCPO, OCPISOA
+      USE AEROSOL_MOD,        ONLY : BCPI, BCPO, OCPI, OCPO
       USE AEROSOL_MOD,        ONLY : SALA, SALC, SOILDUST
       USE AEROSOL_MOD,        ONLY : SO4,  NH4,  NIT
-      USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
+      USE AEROSOL_MOD,        ONLY : TSOA, ASOA, OPOA
       USE AEROSOL_MOD,        ONLY : PM25
       USE AEROSOL_MOD,        ONLY : SOAGX,  SOAMG, ISOAAQ
       USE AEROSOL_MOD,        ONLY : OCFPOA, OCFOPOA
@@ -244,12 +244,10 @@
          AD42(I,J,L,1) = AD42(I,J,L,1) + TSOA(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
-         ! ISOA [ug/m3]
-         ! (isoprene SOA)
+         ! Isoprene SOA [ug/m3]
+         ! (mechanistic isoprene SOA)
          !--------------------------------------------------------------
-         ! Semivolatile isoprene OA + mechanistic isoprene OA
-         AD42(I,J,L,2) = AD42(I,J,L,2) +
-     &                   ( ISOA(I,J,L) + ISOAAQ(I,J,L) ) * FACTOR
+         AD42(I,J,L,2) = AD42(I,J,L,2) + ISOAAQ(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
          ! ASOA [ug/m3]
@@ -276,7 +274,7 @@
          ! Sum of all organic aerosol [ug/m3]
          !-----------------------------------------------------------
          AD42(I,J,L,6) = AD42(I,J,L,6) +
-     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
+     &                   ( TSOA(I,J,L) + ASOA(I,J,L) +
      &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) +
      &                     ISOAAQ(I,J,L) ) * FACTOR
 
@@ -286,14 +284,14 @@
          IF ( IS_POA ) THEN
             IF ( OCFOPOA(I,J) > 0 .and. OCFPOA(I,J) > 0 ) THEN
                AD42(I,J,L,7) = AD42(I,J,L,7) +
-     &                     ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
+     &                     ( ( TSOA(I,J,L) + ASOA(I,J,L) +
      &                         OCPI(I,J,L) + OPOA(I,J,L) )/OCFOPOA(I,J)+
      &                         OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
             ENDIF
          ELSE
             IF ( OCFOPOA(I,J) > 0 ) THEN
                AD42(I,J,L,7) = AD42(I,J,L,7)  +
-     &                     ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
+     &                     ( ( TSOA(I,J,L) + ASOA(I,J,L) +
      &                         OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
      &                       / OCFOPOA(I,J) ) * FACTOR
             ENDIF
@@ -326,8 +324,7 @@
          ! Sum of biogenic aerosol [ug/m3]
          !--------------------------------------------------------------
          AD42(I,J,L,8) = AD42(I,J,L,8) +
-     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ISOAAQ(I,J,L) ) *
-     &                   FACTOR
+     &                   ( TSOA(I,J,L) + ISOAAQ(I,J,L) ) * FACTOR
           
          !--------------------------------------------------------------
          ! NO branching ratio [dimless]

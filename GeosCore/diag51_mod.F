@@ -521,7 +521,6 @@
       INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
       INTEGER, SAVE     :: id_IPMN,     id_SOAIE,  id_SOAME
       INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA, id_ISN1OA
-      INTEGER, SAVE     :: id_ISOA1,    id_ISOA2,  id_ISOA3
       INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
       INTEGER, SAVE     :: id_BCPI,     id_BCPO,   id_OH
 
@@ -579,9 +578,6 @@
          id_INDIOL  = Ind_('INDIOL' )
          id_LVOCOA  = Ind_('LVOCOA' )
          id_ISN1OA  = Ind_('ISN1OA' )
-         id_ISOA1   = Ind_('ISOA1'  )
-         id_ISOA2   = Ind_('ISOA2'  )
-         id_ISOA3   = Ind_('ISOA3'  )
          id_SO4     = Ind_('SO4'    )
          id_NH4     = Ind_('NH4'    )
          id_NIT     = Ind_('NIT'    )
@@ -1215,28 +1211,6 @@
                ! ISOP+NO3 aerosols (ug/m3)
                IF ( id_ISN1OA > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_ISN1OA)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
-               !---------------------------------
-               ! Reversible partitioning scheme
-               !---------------------------------
-
-               ! ISOA1 (ug/m3)
-               IF ( id_ISOA1 > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_ISOA1)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
-               ! ISOA2 (ug/m3)
-               IF ( id_ISOA2 > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_ISOA2)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
-               ! ISOA3 (ug/m3)
-               IF ( id_ISOA3 > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_ISOA3)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                ENDIF
 
