@@ -381,11 +381,11 @@ MODULE State_Diag_Mod
 
      ! O3 and HNO3 at a given height above the surface
      REAL(f4),  POINTER :: DryDepRaALT1    (:,:  )
-     REAL(f4),  POINTER :: DryDepZLALT1    (:,:  )
+     REAL(f8),  POINTER :: DryDepZLfrac    (:,:  )
      REAL(f4),  POINTER :: DryDepVelForALT1(:,:,:)
      REAL(f8),  POINTER :: SpeciesConcALT1 (:,:,:)
      LOGICAL :: Archive_DryDepRaALT1
-     LOGICAL :: Archive_DryDepZLALT1
+     LOGICAL :: Archive_DryDepZLfrac
      LOGICAL :: Archive_DryDepVelForALT1
      LOGICAL :: Archive_SpeciesConcALT1
      LOGICAL :: Archive_ConcAboveSfc
@@ -656,6 +656,7 @@ MODULE State_Diag_Mod
      MODULE PROCEDURE Register_DiagField_R4_2D
      MODULE PROCEDURE Register_DiagField_R4_3D
      MODULE PROCEDURE Register_DiagField_R4_4D
+     MODULE PROCEDURE Register_DiagField_R8_2D
      MODULE PROCEDURE Register_DiagField_R8_3D
      MODULE PROCEDURE Register_DiagField_R8_4D
   END INTERFACE Register_DiagField
@@ -1081,11 +1082,11 @@ CONTAINS
 
     ! O3 and HNO3 at a given height above the surface
     State_Diag%DryDepRaALT1                        => NULL()
-    State_Diag%DryDepZLALT1                        => NULL()
+    State_Diag%DryDepZLfrac                        => NULL()
     State_Diag%DryDepVelForALT1                    => NULL()
     State_Diag%SpeciesConcALT1                     => NULL()
     State_Diag%Archive_DryDepRaALT1                = .FALSE.
-    State_Diag%Archive_DryDepZLALT1                = .FALSE.
+    State_Diag%Archive_DryDepZLfrac                = .FALSE.
     State_Diag%Archive_DryDepVelForALT1            = .FALSE.
     State_Diag%Archive_SpeciesConcALT1             = .FALSE.
 
@@ -3126,18 +3127,18 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Dry deposition z/L at a user-defined altitude above the surface
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%DryDepZLALT1'
-       diagID  = 'DryDepZL' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepZLALT1', Found, RC )
+       arrayID = 'State_Diag%DryDepZLfrac'
+       diagID  = 'DryDepZLfrac'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagId, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%DryDepZLALT1( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%DryDepZLfrac( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%DryDepZLALT1 = 0.0_f4
-          State_Diag%Archive_DryDepZLALT1 = .TRUE.
+          State_Diag%DryDepZLfrac = 0.0_f8
+          State_Diag%Archive_DryDepZLfrac = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%DryDepZLALT1,                  &
+                                   State_Diag%DryDepZLfrac,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3196,7 +3197,7 @@ CONTAINS
              CASE( 2  )
                 diagID = 'DryDepVelForALT1'
              CASE( 3  )
-                diagID = 'DryDepZLALT1'
+                diagID = 'DryDepZLfrac'
              CASE( 4 )
                 diagID = 'SpeciesConcALT1'
           END SELECT
@@ -6526,10 +6527,10 @@ CONTAINS
 
 
      State_Diag%Archive_ConcAboveSfc =                                       &
-                                  ( State_Diag%Archive_SpeciesConcALT1 .and. &
-                                    State_Diag%Archive_DryDepRaALT1    .and. &
-                                    State_Diag%Archive_DryDepZLALT1    .and. &
-                                    State_Diag%Archive_DryDepVelForALT1     )
+                                 ( State_Diag%Archive_SpeciesConcALT1  .and. &
+                                   State_Diag%Archive_DryDepRaALT1     .and. &
+                                   State_Diag%Archive_DryDepZLfrac     .and. &
+                                   State_Diag%Archive_DryDepVelForALT1     )
      
     !=======================================================================
     ! Set arrays used to calculate budget diagnostics, if needed
@@ -8175,11 +8176,11 @@ CONTAINS
        State_Diag%DryDepVelForALT1 => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%DryDepZLALT1 ) ) THEN
-       DEALLOCATE( State_Diag%DryDepZLALT1, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepZLALT1', 2, RC )
+    IF ( ASSOCIATED( State_Diag%DryDepZLfrac ) ) THEN
+       DEALLOCATE( State_Diag%DryDepZLfrac, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%DryDepZLfrac', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepZLALT1 => NULL()
+       State_Diag%DryDepZLfrac => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%SpeciesConcALT1 ) ) THEN
@@ -9629,12 +9630,12 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRYALT'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPZL'                          // &
-                                       TRIM( TmpHt_AllCaps ) ) THEN
-       IF ( isDesc    ) Desc  = 'Dry deposition ratio of z/L at '         // &
-                                 TRIM( TmpHt ) // ' above the surface'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPZLFRAC' ) THEN
+       IF ( isDesc    ) Desc  = 'Fraction of the time that z/L <= 1 '     // &
+                                ' in dry deposition'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 2
+       IF ( isType    ) Type  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONC'                       // &
                                        TRIM( TmpHt_AllCaps ) )  THEN
@@ -10536,6 +10537,184 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE Register_DiagField_R4_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_DiagField_R8_2D
+!
+! !DESCRIPTION: Registers a 2-dimensional, 4-byte real field of State\_Diag,
+!  so that we can include it in the netCDF diagnostic output archive.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_DiagField_R8_2D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Chm, State_Diag, RC            )
+!
+! !USES:
+!
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
+    REAL(f8),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+    TYPE(DgnState),    INTENT(IN)    :: State_Diag      ! Obj for diag state
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!   
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: diagName, diagDesc
+    INTEGER                :: N, nTags, rank, type, vloc
+    LOGICAL                :: found
+
+    !-----------------------------------------------------------------------
+    ! Initialize
+    !-----------------------------------------------------------------------
+    RC = GC_SUCCESS
+    ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Diag%'
+
+    !-----------------------------------------------------------------------
+    ! Get metadata for this diagnostic
+    !-----------------------------------------------------------------------
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+                                  desc=desc,   units=units, rank=rank,       &
+                                  type=type,   vloc=vloc,   tagId=tagId     )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Diag"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------   
+    ! Check that metadata dimensions consistent with data pointer
+    !-----------------------------------------------------------------------
+    IF ( ( ( tagId == '' ) .AND. ( rank /= 2 ) )  &
+         .OR. ( ( tagId /= '' ) .AND. ( rank /= 1 ) ) ) THEN
+       ErrMsg = 'Data dims and metadata rank do not match for '           // &
+                TRIM( metadataID )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+          
+    !-----------------------------------------------------------------------   
+    ! Special handling if there are tags (wildcard)
+    !-----------------------------------------------------------------------   
+    IF ( tagId /= '' ) THEN
+
+       ! Get number of tags
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
+                         nTags=nTags )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
+                ' get nTags!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       
+       ! Check that number of tags is consistent with array size
+       IF ( nTags /=  SIZE(Ptr2Data,2) ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; number of tags is inconsistent with array size'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Register each tagged name as a separate diagnostic
+       DO N = 1, nTags   
+
+          ! Get the tag name
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                            N=N, tagName=tagName )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId ) //            &
+                      ' where tagID is ' // TRIM( tagID      ) //            &
+                      '; Abnormal exit from routine "Get_TagInfo"!'       
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          ! Add taginfo to diagnostic name and description
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc      ) // ' '  // TRIM( tagName )
+
+          ! Add field to registry
+          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+                                  Registry     = State_Diag%Registry,        &
+                                  State        = State_Diag%State,           &
+                                  Variable     = diagName,                   &
+                                  Description  = diagDesc,                   &
+                                  Units        = units,                      &
+                                  Data1d_8     = Ptr2Data(:,N),              &
+                                  RC           = RC                         )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Registry_AddField"!'   
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+    !-----------------------------------------------------------------------   
+    ! If not tied to species then simply add the single field
+    !-----------------------------------------------------------------------   
+    ELSE
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Diag%Registry,           &
+                               State        = State_Diag%State,              &
+                               Variable     = MetadataID,                    &
+                               Description  = desc,                          &
+                               Units        = units,                         &
+                               Data2d_8     = Ptr2Data,                      &
+                               RC           = RC                            )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                  ' where diagnostics is not tied to species; '           // &
+                  '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ENDIF
+
+  END SUBROUTINE Register_DiagField_R8_2D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

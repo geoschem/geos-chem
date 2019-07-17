@@ -596,10 +596,9 @@ CONTAINS
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
-             !NOTE: ASK IF THIS APPLIES
-             ! Only archive into the diagnostic if the
-             ! Monin-Obhukov similarity applies
-             !IF ( State_Diag%DryDepZLALT1(I,J) <= 1.0_fp ) THEN
+             ! Only archive into the diagnostic if the M-O similarity applies
+             ! (i.e. if the DryDepZLfrac diagnostic is not zero)
+             IF ( State_Diag%DryDepZLfrac(I,J) > 0.0_f8 ) THEN
 
                 ! Species concentration [v/v dry]
                 TmpVal = State_Chm%Species(I,J,1,N)
@@ -616,7 +615,7 @@ CONTAINS
                 ! Save concentration at the user-defined altitude
                 ! as defined in input.geos (usually 10m).
                 State_Diag%SpeciesConcALT1(I,J,D) = TmpVal * Conv
-             !ENDIF
+             ENDIF
           ENDDO
           ENDDO
        ENDDO

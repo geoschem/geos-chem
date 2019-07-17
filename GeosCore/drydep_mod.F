@@ -2064,16 +2064,29 @@
                   RA_Alt = 0.0_f8
                ENDIF
 
+               !--------------------------------------------------------
+               ! HISTORY (aka netCDF diagnostics)
+               !
                ! Store drydep resistance RA at user-defined
                ! altitude above surface into State_Diag
+               !--------------------------------------------------------
                IF ( State_Diag%Archive_DryDepRaALT1 ) THEN
                   State_Diag%DryDepRaALT1(I,J) = RA_Alt
                ENDIF
 
-               ! Also store z/L in order to determine if the
-               ! Monin-Obhukov theory applies
-               IF ( State_Diag%Archive_DryDepZLALT1 ) THEN
-                  State_Diag%DryDepZLALT1(I,J) = CZ1(I,J) / OBK(I,J)
+               !--------------------------------------------------------
+               ! HISTORY (aka netCDF diagnostics)
+               !
+               ! Also keep track of the number of times that z/L <= 1
+               ! (i.e. if Monin-Obhukov theory applies) so that we can
+               ! properly handle time-averaging in post-processing.
+               !--------------------------------------------------------
+               IF ( State_Diag%Archive_DryDepZLfrac ) THEN
+                  IF ( ( CZ1(I,J) / OBK(I,J) ) > 1.0_fp ) THEN
+                     State_Diag%DryDepZLfrac(I,J) = 0.0_f8
+                  ELSE
+                     State_Diag%DryDepZLfrac(I,J) = 1.0_f8
+                  ENDIF
                ENDIF
             ENDIF
 
