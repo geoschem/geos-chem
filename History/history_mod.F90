@@ -561,6 +561,7 @@ CONTAINS
 
     ! Arrays
     REAL(f8)                     :: Subset(2)
+    INTEGER                      :: Levels(200)
     CHARACTER(LEN=255)           :: Subs1(255)
     CHARACTER(LEN=255)           :: Subs2(255)
     CHARACTER(LEN=255)           :: SubStrs(255)
@@ -601,6 +602,8 @@ CONTAINS
     hhmmss         =  Input_Opt%NhmsB
     yyyymmdd_end   =  Input_Opt%NymdE
     hhmmss_end     =  Input_Opt%NhmsE
+    Subset         =  UNDEFINED_DBL
+    Levels         =  UNDEFINED_INT
 
     ! Compute the YMD and HMS intervals for collections specified with "End",
     ! such as for restart files.  NOTE: This algorithm should work with most
@@ -946,7 +949,8 @@ CONTAINS
                 ENDDO
              ELSE
                 ErrMsg = 'Subsets must be specified as: lonmin, lonmax!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                 RETURN
              ENDIF
              
@@ -998,7 +1002,8 @@ CONTAINS
                 ENDDO
              ELSE
                 ErrMsg = 'Subsets must be specified as: latMin, latMax!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                 RETURN
              ENDIF
              
@@ -1041,16 +1046,37 @@ CONTAINS
              CollectionLevels(C) = Subs1(2)
 
              ! Then split by spaces and convert to INTEGER
+             ! Also compute the min and max level
              CALL StrSplit( CollectionLevels(C), " ", Subs2, nSubs2 )
-             IF ( nSubs2 == 2 ) THEN
+             IF ( nSubs2 <= SIZE( Levels ) ) THEN
                 DO N = 1, nSubs2
-                   READ( Subs2(N), '(i10)' ) CollectionLevelInd(N,C)
+                   READ( Subs2(N), '(i10)' ) Levels(N)
+                   IF ( Levels(N) < 0 ) THEN
+                      ErrMsg = TRIM( CollectionName(C) ) // '.levels '    // &
+                               'must not have any negative values!'
+                      WRITE( ErrorLine, 250 ) LineNum
+                      CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                      RETURN
+                   ENDIF
                 ENDDO
              ELSE
-                ErrMsg = 'Levels must be specified as levMin levMax!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                ErrMsg = 'Too many levels specified for collection "'     // &
+                          TRIM( CollectionName(C) ) // '" Must be <= 200.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                 RETURN
              ENDIF
+
+             ! Of all the levels that are specified, store the min and max
+             ! in the CollectionLevelInd array.  We will save out all of
+             ! the levels between the min and max.
+             ! NOTE: GCHP HISTORY can archive out individual levels, but
+             ! this is trickier to implement in GC "Classic".  It is easier
+             ! to point to a contiguous array subslice, so we will just
+             ! archive everything between the min and max level for the
+             ! time being. (bmy, 7/18/19)
+             CollectionLevelInd(1,C) = MINVAL( Levels(1:nSubs2) )
+             CollectionLevelInd(2,C) = MAXVAL( Levels(1:nSubs2) )
           ENDIF
        ENDIF
 
@@ -1724,7 +1750,8 @@ CONTAINS
              print*, '     -> Y0 Y1  ', ((CollectionSubsetInd(N,C)), N=3,4)
           ENDIF
           IF ( CollectionLevels(C) /= UNDEFINED_STR ) THEN
-             print*, '  -> Z0 Z1        ', ((CollectionLevelInd(N,C)), N=1,2)
+             print*, '  -> Levels    ' , TRIM( CollectionLevels(C) )
+             print*, '     -> Z0 Z1  ', ((CollectionLevelInd(N,C)), N=1,2)
           ENDIF
 
           ! Trap error if the collection frequency is undefined
@@ -3298,6 +3325,24 @@ CONTAINS
         DEALLOCATE( CollectionSubsetInd, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
            ErrMsg = 'Could not deallocate "CollectionSubsetInd"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionLevels ) ) THEN
+        DEALLOCATE( CollectionLevels, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionLevels"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionLevelInd ) ) THEN
+        DEALLOCATE( CollectionLevelInd, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionLevelInd"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF
