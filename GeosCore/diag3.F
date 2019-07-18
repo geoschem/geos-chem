@@ -379,7 +379,7 @@
       INTEGER, SAVE            :: id_DST1,  id_DST2,  id_DST3,  id_DST4
       INTEGER, SAVE            :: id_DAL1,  id_DAL2,  id_DAL3,  id_DAL4
       INTEGER, SAVE            :: id_BCPI,  id_OCPI,  id_POA1,  id_MTPA
-      INTEGER, SAVE            :: id_LIMO,  id_MTPO,  id_TSOA1, id_ISOA1
+      INTEGER, SAVE            :: id_LIMO,  id_MTPO,  id_TSOA1
       INTEGER, SAVE            :: id_ASOA1, id_OPOA1, id_OPOG1
       INTEGER, SAVE            :: id_SALA,  id_SALC,  id_MOPO    
       INTEGER, SAVE            :: id_MOPI,  id_DMS,   id_SO2,   id_SO4
@@ -468,7 +468,6 @@
          id_LIMO      = Ind_('LIMO'    )
          id_MTPO      = Ind_('MTPO'    )
          id_TSOA1     = Ind_('TSOA1'   )
-         id_ISOA1     = Ind_('ISOA1'   )
          id_ASOA1     = Ind_('ASOA1'   )
          id_OPOA1     = Ind_('OPOA1'   )
          id_OPOG1     = Ind_('OPOG1'   )
@@ -1400,7 +1399,7 @@
                IF     ( N == 1 ) THEN
                   NN = id_TSOA1
                ELSEIF ( N == 2 ) THEN
-                  NN = id_ISOA1
+                  ! Nothing
                ELSEIF ( N == 3 ) THEN
                   NN = id_ASOA1
                ELSEIF ( N == 4 ) THEN

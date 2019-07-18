@@ -243,7 +243,6 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AerMassBC       (:,:,:  ) ! Black carbon [ug/m3]
      REAL(f4),  POINTER :: AerMassINDIOL   (:,:,:  ) ! INDIOL [ug/m3]
      REAL(f4),  POINTER :: AerMassISN1OA   (:,:,:  ) ! ISN1OA [ug/m3]
-     REAL(f4),  POINTER :: AerMassISOA     (:,:,:  ) ! ISOA [ug/m3]
      REAL(f4),  POINTER :: AerMassLVOCOA   (:,:,:  ) ! LVOCOA [ug/m3]
      REAL(f4),  POINTER :: AerMassNH4      (:,:,:  ) ! Nitrate [ug/m3]
      REAL(f4),  POINTER :: AerMassNIT      (:,:,:  ) ! NIT [ug/m3]
@@ -266,7 +265,6 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_AerMassBC       
      LOGICAL :: Archive_AerMassINDIOL   
      LOGICAL :: Archive_AerMassISN1OA   
-     LOGICAL :: Archive_AerMassISOA     
      LOGICAL :: Archive_AerMassLVOCOA   
      LOGICAL :: Archive_AerMassNH4      
      LOGICAL :: Archive_AerMassNIT      
@@ -947,7 +945,6 @@ CONTAINS
     State_Diag%AerMassBC                           => NULL()
     State_Diag%AerMassINDIOL                       => NULL()
     State_Diag%AerMassISN1OA                       => NULL()
-    State_Diag%AerMassISOA                         => NULL()
     State_Diag%AerMassLVOCOA                       => NULL()
     State_Diag%AerMassNH4                          => NULL()
     State_Diag%AerMassNIT                          => NULL()
@@ -970,7 +967,6 @@ CONTAINS
     State_Diag%Archive_AerMassBC                   = .FALSE.
     State_Diag%Archive_AerMassINDIOL               = .FALSE.
     State_Diag%Archive_AerMassISN1OA               = .FALSE.
-    State_Diag%Archive_AerMassISOA                 = .FALSE.
     State_Diag%Archive_AerMassLVOCOA               = .FALSE.
     State_Diag%Archive_AerMassNH4                  = .FALSE.
     State_Diag%Archive_AerMassNIT                  = .FALSE.
@@ -2723,25 +2719,6 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
-       ! Aerosol mass of ISOA (Isoprene SOA) [ug/m3]
-       !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassISOA'
-       diagID  = 'AerMassISOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassISOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassISOA = 0.0_f4
-          State_Diag%Archive_AerMassISOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%AerMassISOA,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
        ! Aerosol mass of LVOCOA [kg/m3]
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassLVOCOA'
@@ -3001,7 +2978,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 26
+       DO N = 1, 25
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -3036,26 +3013,24 @@ CONTAINS
              CASE( 15 )
                 diagID = 'AerMassISN1OA'
              CASE( 16 )
-                diagID = 'AerMassISOA'
-             CASE( 17 )
                 diagID = 'AerMassLVOCOA'
-             CASE( 18 )
+             CASE( 17 )
                 diagID = 'AerMassOPOA'
-             CASE( 19 )
+             CASE( 18 )
                 diagID = 'AerMassPOA'
-             CASE( 20 )
+             CASE( 19 )
                 diagID = 'AerMassSOAGX'
-             CASE( 21 )
+             CASE( 20 )
                 diagID = 'AerMassSOAIE'
-             CASE( 22 )
+             CASE( 21 )
                 diagID = 'AerMassSOAME'
-             CASE( 23 )
+             CASE( 22 )
                 diagID = 'AerMassSOAMG'
-             CASE( 24 )
+             CASE( 23 )
                 diagID = 'AerMassTSOA'
-             CASE( 25 )
+             CASE( 24 )
                 diagID = 'BetaNO'
-             CASE( 26 )
+             CASE( 25 )
                 diagID = 'TotalBiogenicOA'
           END SELECT
 
@@ -6478,7 +6453,6 @@ CONTAINS
                                    State_Diag%Archive_AerMassBC         .or. &
                                    State_Diag%Archive_AerMassINDIOL     .or. &
                                    State_Diag%Archive_AerMassISN1OA     .or. &
-                                   State_Diag%Archive_AerMassISOA       .or. &
                                    State_Diag%Archive_AerMassLVOCOA     .or. &
                                    State_Diag%Archive_AerMassNH4        .or. &
                                    State_Diag%Archive_AerMassNIT        .or. &
@@ -7442,13 +7416,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%AerMassISN1OAL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AerMassISN1OA => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassISOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassISOA, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassISOA', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassISOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassLVOCOA ) ) THEN
@@ -9132,11 +9099,6 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSISN1OA' ) THEN
        IF ( isDesc    ) Desc  = 'Mass of aerosol-phase 2nd generation hydroxynitrates formed from ISOP+NO3 reaction pathway'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSISOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Mass of aerosol products of isoprene oxidation'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 

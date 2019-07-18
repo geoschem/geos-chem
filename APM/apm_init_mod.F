@@ -139,10 +139,6 @@
       INTEGER :: id_TSOA2, id_TSOG2
       INTEGER :: id_TSOA3, id_TSOG3
       INTEGER :: id_TSOA0, id_TSOG0
-      ! isoprene products
-      INTEGER :: id_ISOA1, id_ISOG1
-      INTEGER :: id_ISOA2, id_ISOG2
-      INTEGER :: id_ISOA3, id_ISOG3
       ! semivolpoa: add POA (hotp 2/26/09)
       INTEGER :: id_POA1,id_POA2
       INTEGER :: id_POG1, id_POG2
@@ -690,12 +686,6 @@
       APMIDS%id_TSOG3 = Ind_('TSOG3')
       APMIDS%id_TSOA0 = Ind_('TSOA0')
       APMIDS%id_TSOG0 = Ind_('TSOG0')
-      APMIDS%id_ISOA1 = Ind_('ISOA1')
-      APMIDS%id_ISOG1 = Ind_('ISOG1')
-      APMIDS%id_ISOA2 = Ind_('ISOA2')
-      APMIDS%id_ISOG2 = Ind_('ISOG2')
-      APMIDS%id_ISOA3 = Ind_('ISOA3')
-      APMIDS%id_ISOG3 = Ind_('ISOG3')
       APMIDS%id_POA1 = Ind_('POA1')
       APMIDS%id_POA2 = Ind_('POA2')
       APMIDS%id_POG1 = Ind_('POG1')

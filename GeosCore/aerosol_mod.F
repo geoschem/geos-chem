@@ -48,7 +48,6 @@
       ! SLA         : Stratospheric liquid aerosol       [kg/m3]
       ! SPA         : Stratospheric particulate aerosol  [kg/m3]
       ! TSOA        : Terpene SOA                        [kg/m3]
-      ! ISOA        : Isoprene SOA (VBS scheme)          [kg/m3]
       ! ASOA        : Aromatic + IVOC SOA                [kg/m3]
       ! OPOA        : Aerosol product of SVOC oxidation  [kg/m3]
       ! SOAGX       : SOA product of GLYX                [kg/m3]
@@ -75,7 +74,6 @@
       REAL(fp), ALLOCATABLE, PUBLIC :: SLA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: SPA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: TSOA(:,:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: ISOA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ASOA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: OPOA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: SOAGX(:,:,:)
@@ -166,10 +164,9 @@
       INTEGER :: id_BCPI,  id_BCPO,  id_DST1,  id_DST2
       INTEGER :: id_DST3,  id_DST4,  id_NH4,   id_NIT  
       INTEGER :: id_OCPO,  id_OCPI,  id_SALA,  id_SALC 
-      INTEGER :: id_SO4,   id_SO4s
-      INTEGER :: id_NITs,  id_POA1,  id_POA2,  id_OPOA1
-      INTEGER :: id_OPOA2, id_TSOA1, id_TSOA2, id_TSOA3 
-      INTEGER :: id_TSOA0, id_ISOA1, id_ISOA2, id_ISOA3
+      INTEGER :: id_SO4,   id_SO4s,  id_NITs
+      INTEGER :: id_POA1,  id_POA2,  id_OPOA1, id_OPOA2
+      INTEGER :: id_TSOA1, id_TSOA2, id_TSOA3, id_TSOA0
       INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
       INTEGER :: id_DUST1, id_SOAS
       INTEGER :: id_SOAGX, id_SOAMG
@@ -294,6 +291,7 @@
 !  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  05 Jan 2018 - M. Sulprizio- Use simple SOA by default in calculation of PM2.5
 !                              and OCPISOA (used in hetchem and AOD)
+!  15 Jul 2019 - M. Sulprizio- Remove ISOA and use ISOAAQ instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,7 +325,7 @@
       LOGICAL             :: IS_OCPO,  IS_OCPI,  IS_BC
       LOGICAL             :: IS_SO4,   IS_NH4,   IS_NIT
       LOGICAL             :: IS_SAL,   IS_DST
-      LOGICAL             :: IS_TSOA,  IS_ISOA,  IS_ASOA
+      LOGICAL             :: IS_TSOA,  IS_ASOA
       LOGICAL             :: IS_POA,   IS_OPOA
       LOGICAL             :: IS_SOAGX, IS_SOAMG
       LOGICAL             :: Is_SimpleSOA
@@ -383,8 +381,6 @@
       IS_SAL     = ( id_SALA  > 0 .AND. id_SALC  > 0 )
       IS_TSOA    = ( id_TSOA1 > 0 .AND. id_TSOA2 > 0 
      &         .AND. id_TSOA3 > 0 .AND. id_TSOA0 > 0 )
-      IS_ISOA    = ( id_ISOA1 > 0 .AND. id_ISOA2 > 0 
-     &         .AND. id_ISOA3 > 0)
       IS_ASOA    = ( id_ASOAN > 0 .AND. id_ASOA1 > 0 
      &         .AND. id_ASOA2 > 0 .AND. id_ASOA3 > 0 )
       IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
@@ -846,13 +842,6 @@
      &                       + Spc(I,J,L,id_TSOA0) ) / AIRVOL(I,J,L) 
             ENDIF
 
-            ! ISOA (isoprene SOA) [kg/m3]
-            IF ( IS_ISOA ) THEN
-               ISOA(I,J,L) = ( Spc(I,J,L,id_ISOA1)
-     &                       + Spc(I,J,L,id_ISOA2)
-     &                       + Spc(I,J,L,id_ISOA3) ) / AIRVOL(I,J,L) 
-            ENDIF
-
             ! ASOA (benz, tolu, xyle, + NAP/IVOC SOA) [kg/m3]
             IF ( IS_ASOA ) THEN
                ASOA(I,J,L) = ( Spc(I,J,L,id_ASOAN)
@@ -956,9 +945,6 @@
      &                       + Spc(I,J,L,id_TSOA2)
      &                       + Spc(I,J,L,id_TSOA3)
      &                       + Spc(I,J,L,id_TSOA0)
-     &                       + Spc(I,J,L,id_ISOA1)
-     &                       + Spc(I,J,L,id_ISOA2)
-     &                       + Spc(I,J,L,id_ISOA3) 
      &                       + Spc(I,J,L,id_ASOAN) 
      &                       + Spc(I,J,L,id_ASOA1)
      &                       + Spc(I,J,L,id_ASOA2)
@@ -1052,7 +1038,6 @@
          ELSEIF ( Is_ComplexSOA ) THEN
             PM25(I,J,L) = PM25(I,J,L)
      &                  + TSOA(I,J,L)    * ORG_GROWTH
-     &                  + ISOA(I,J,L)    * ORG_GROWTH
      &                  + ASOA(I,J,L)    * ORG_GROWTH
      &                  + ISOAAQ(I,J,L)  * ORG_GROWTH    ! Includes SOAGX+SOAMG
 
@@ -1116,7 +1101,6 @@
          ! PM2.5 SOA      
          IF ( State_Diag%Archive_PM25soa ) THEN
             State_Diag%PM25soa(I,J,L) = ( TSOA(I,J,L)   * ORG_GROWTH
-     &                                +   ISOA(I,J,L)   * ORG_GROWTH
      &                                +   ASOA(I,J,L)   * ORG_GROWTH
      &                                +   SOAS(I,J,L)   * ORG_GROWTH
      &                                +   ISOAAQ(I,J,L) * ORG_GROWTH  )
@@ -2647,9 +2631,6 @@
       id_TSOA2  = Ind_( 'TSOA2'  ) 
       id_TSOA3  = Ind_( 'TSOA3'  )
       id_TSOA0  = Ind_( 'TSOA0'  ) 
-      id_ISOA1  = Ind_( 'ISOA1'  )  
-      id_ISOA2  = Ind_( 'ISOA2'  )  
-      id_ISOA3  = Ind_( 'ISOA3'  )
       id_ASOAN  = Ind_( 'ASOAN'  ) 
       id_ASOA1  = Ind_( 'ASOA1'  )  
       id_ASOA2  = Ind_( 'ASOA2'  ) 
@@ -2762,12 +2743,6 @@
       CALL GC_CheckVar( 'aerosol_mod.F:TSOA', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TSOA = 0.0_fp
-
-      ALLOCATE( ISOA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC )
-      CALL GC_CheckVar( 'aerosol_mod.F:ISOA', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      ISOA = 0.0_fp
 
       ALLOCATE( ASOA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
      &          STAT=RC )
@@ -2882,7 +2857,6 @@
       IF ( ALLOCATED( SLA         ) ) DEALLOCATE( SLA         )
       IF ( ALLOCATED( SPA         ) ) DEALLOCATE( SPA         )
       IF ( ALLOCATED( TSOA        ) ) DEALLOCATE( TSOA        )
-      IF ( ALLOCATED( ISOA        ) ) DEALLOCATE( ISOA        )
       IF ( ALLOCATED( ASOA        ) ) DEALLOCATE( ASOA        )
       IF ( ALLOCATED( OPOA        ) ) DEALLOCATE( OPOA        )
       IF ( ALLOCATED( SOAGX       ) ) DEALLOCATE( SOAGX       )
@@ -3201,15 +3175,6 @@
          ENDIF
       
          !--------------------------------------
-         ! AerMassISOA [ug/m3]
-         !--------------------------------------
-         IF ( State_Diag%Archive_AerMassISOA ) THEN
-            State_Diag%AerMassISOA(I,J,L)     = ( ISOA(I,J,L)          
-     &                                          + ISOAAQ(I,J,L) )      
-     &                                          * kgm3_to_ugm3
-         ENDIF
-      
-         !--------------------------------------
          ! AerMassLVOCOA [ug/m3]
          !--------------------------------------
          IF ( State_Diag%Archive_AerMassLVOCOA ) THEN
@@ -3328,7 +3293,6 @@
          !--------------------------------------
          IF ( State_Diag%Archive_TotalBiogenicOA ) THEN
             State_Diag%TotalBiogenicOA(I,J,L) = ( TSOA(I,J,L)
-     &                                          + ISOA(I,J,L)
      &                                          + ISOAAQ(I,J,L) )
      &                                        * kgm3_to_ugm3  
          ENDIF
@@ -3338,7 +3302,6 @@
          !--------------------------------------
          IF ( State_Diag%Archive_TotalOA ) THEN
             State_Diag%TotalOA(I,J,L)         = ( TSOA(I,J,L)     
-     &                                          + ISOA(I,J,L)     
      &                                          + ASOA(I,J,L)     
      &                                          + OCPO(I,J,L)     
      &                                          + OCPI(I,J,L)     
@@ -3355,13 +3318,13 @@
             
             IF ( Is_POA ) THEN
                State_Diag%TotalOC(I,J,L) =                          
-     &               ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L)     
+     &               ( ( TSOA(I,J,L) + ASOA(I,J,L)     
      &                 + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J)  
      &                 + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3 
               
             ELSE
                State_Diag%TotalOC(I,J,L) =                          
-     &               ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L)     
+     &               ( ( TSOA(I,J,L) + ASOA(I,J,L)     
      &                 + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )   
      &                 / OCFOPOA(I,J) ) * kgm3_to_ugm3
             ENDIF

@@ -1953,42 +1953,6 @@ CONTAINS
              Henry_CR      = 9200.0_f8
              WD_RetFactor  = 2.0e-2_fp
 
-          CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
-             FullName      = 'Lumped semivolatile aer products of isoprene oxidation'
-
-             ! Halve the Kc (cloud condensate -> precip) rate
-             ! for the temperature range 237 K <= T < 258 K.
-             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-
-             ! Turn off rainout only when 237 K <= T < 258K.
-             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
-
-             Formula       = ''
-             MW_g          = 150.0_fp
-             Is_Gas        = F
-             Is_Drydep     = T
-             Is_Wetdep     = T
-             DD_DvzAerSnow = 0.03_fp
-             DD_F0         = 0.0_fp
-             DD_HStar_old  = 0.0_fp
-             WD_AerScavEff = 0.8_fp
-             WD_KcScaleFac = KcScale
-             WD_RainoutEff = RainEff
-
-          CASE( 'ISOG1', 'ISOG2', 'ISOG3' )
-             FullName      = 'Lumped semivolatile gas products of isoprene oxidation'
-             Formula       = ''
-             MW_g          = 150.0_fp
-             Is_Gas        = T
-             Is_Drydep     = T
-             Is_Wetdep     = T
-             DD_F0         = 0.0_fp
-             DD_Hstar_old  = 1.00e+5_fp
-             Henry_K0      = 1.00e+5_f8
-             Henry_CR      = 6039.0_f8
-             WD_RetFactor  = 2.0e-2_fp
-
           CASE( 'ISOP' )
              FullName      = 'Isoprene'
              Formula       = 'CH2=C(CH3)CH=CH2'
@@ -3351,7 +3315,6 @@ CONTAINS
 
           CASE( 'SOAS' )
              FullName = 'SOA Simple - simplified non-volatile SOA parameterization'
-             !Copy data from ISOA
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.

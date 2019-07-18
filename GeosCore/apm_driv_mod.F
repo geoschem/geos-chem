@@ -1284,15 +1284,12 @@
      &   (VOL*State_Chm%SpcData(APMIDS%id_TSOA3)%Info%emMW_g*
      &    1.d-3)*6.02d17
 
-        CSOA(5)=Spc(I,J,L,APMIDS%id_ISOA1)/
-     &   (VOL*State_Chm%SpcData(APMIDS%id_ISOA1)%Info%emMW_g*
-     &    1.d-3)*6.02d17
-        CSOA(6)=Spc(I,J,L,APMIDS%id_ISOA2)/
-     &   (VOL*State_Chm%SpcData(APMIDS%id_ISOA2)%Info%emMW_g*
-     &    1.d-3)*6.02d17
-        CSOA(7)=Spc(I,J,L,APMIDS%id_ISOA3)/
-     &   (VOL*State_Chm%SpcData(APMIDS%id_ISOA3)%Info%emMW_g*
-     &    1.d-3)*6.02d17
+        ! Isoprene SOA from Pye et al. (2010) has been removed; 
+        ! the mechanistic isoprene SOA from Marais et al. is used instead.
+        ! Set to low value to avoid breaking APM. (mps, 7/15/19)
+        CSOA(5) = 1.0e-30
+        CSOA(6) = 1.0e-30
+        CSOA(7) = 1.0e-30
 
         CSOA(8) =Spc(I,J,L,APMIDS%id_ASOA1)/
      &   (VOL*State_Chm%SpcData(APMIDS%id_ASOA1)%Info%emMW_g*
@@ -1325,8 +1322,7 @@
 !------------------------------------------------------------------------------
         SOAT= (Spc(I,J,L,APMIDS%id_TSOA1)+Spc(I,J,L,APMIDS%id_TSOA2)+
      &         Spc(I,J,L,APMIDS%id_TSOA3)+Spc(I,J,L,APMIDS%id_TSOA0)+
-     &         Spc(I,J,L,APMIDS%id_ISOA1)+Spc(I,J,L,APMIDS%id_ISOA2)+
-     &         Spc(I,J,L,APMIDS%id_ISOA3)+Spc(I,J,L,APMIDS%id_ASOA1)+
+     &         Spc(I,J,L,APMIDS%id_ASOA1)+
      &         Spc(I,J,L,APMIDS%id_ASOA2)+Spc(I,J,L,APMIDS%id_ASOA3)+
      &         Spc(I,J,L,APMIDS%id_POA1)+Spc(I,J,L,APMIDS%id_POA2)+
      &         Spc(I,J,L,APMIDS%id_OPOA1)+Spc(I,J,L,APMIDS%id_OPOA2))/
@@ -1406,8 +1402,7 @@
              TEMPOUT1(56)=TEMPOUT1(56)+
      &        (Spc(I,J,L,APMIDS%id_TSOA1)+Spc(I,J,L,APMIDS%id_TSOA2)+
      &         Spc(I,J,L,APMIDS%id_TSOA3)+Spc(I,J,L,APMIDS%id_TSOA0)+
-     &         Spc(I,J,L,APMIDS%id_ISOA1)+Spc(I,J,L,APMIDS%id_ISOA2)+
-     &         Spc(I,J,L,APMIDS%id_ISOA3)+Spc(I,J,L,APMIDS%id_ASOA1)+
+     &         +Spc(I,J,L,APMIDS%id_ASOA1)+
      &         Spc(I,J,L,APMIDS%id_ASOA2)+Spc(I,J,L,APMIDS%id_ASOA3))
      &        *60.d9/(92.d0*VOL)
              IF(IFAG.EQ.1) THEN

@@ -358,8 +358,7 @@
       INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
       INTEGER :: id_ASOA3,   id_ASOAN,  id_AW1,    id_BCPI,   id_BCPO 
       INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_HO2  
-      INTEGER :: id_ISOA1,   id_ISOA2,  id_ISOA3,  id_ISOG1,  id_ISOG2
-      INTEGER :: id_ISOG3,   id_ISOP,   id_LIMO,   id_MTPA 
+      INTEGER :: id_ISOP,    id_LIMO,   id_MTPA 
       INTEGER :: id_MTPO,    id_NAP,    id_NK1,    id_NH4,    id_NO   
       INTEGER :: id_NO3,     id_OCIL1,  id_OCOB1,  id_O3,     id_OH   
       INTEGER :: id_OCPO,    id_OCPI,   id_OPOA1,  id_OPOG1,  id_OPOA2
@@ -556,14 +555,6 @@
          ! simulations but for now we just set them to zero. 
          ! (dkh, bmy, 6/1/06)
          IF ( IT_IS_AN_AEROSOL_SIM ) THEN
-
-            ! update for isoprene SOA (hotp 5/20/10)
-            IF ( id_ISOA1 > 0 ) Spc(:,:,:,id_ISOA1) = 0.0_fp
-            IF ( id_ISOA2 > 0 ) Spc(:,:,:,id_ISOA2) = 0.0_fp
-            IF ( id_ISOA3 > 0 ) Spc(:,:,:,id_ISOA3) = 0.0_fp
-            IF ( id_ISOG1 > 0 ) Spc(:,:,:,id_ISOG1) = 0.0_fp
-            IF ( id_ISOG2 > 0 ) Spc(:,:,:,id_ISOG2) = 0.0_fp
-            IF ( id_ISOG3 > 0 ) Spc(:,:,:,id_ISOG3) = 0.0_fp
 
             ! lumped arom/IVOC (hotp 5/17/10)
             ! LUMPAROMIVOC: lump arom/IVOC not supported for offline sims
@@ -1707,6 +1698,7 @@
 !  TSOA/G: the lumped semivolatile oxidation products of 
 !          monoterpene and sesquiterpene oxidation
 !  ISOA/G: the lumped semivolatile oxidation products of isoprene ox
+!           (REMOVED IN GEOS-Chem 12.6.0, July 2019)
 !  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
 !          benzene, toluene, xylene, and naphthalene (IVOC surrogate)
 !          oxidation
@@ -1719,7 +1711,7 @@
 !  LIMO           OH, O3, NO3       TSOA/G1-3
 !  MTPO           OH, O3, NO3       TSOA/G0-3
 !  SESQ           OH, O3, NO3       TSOA/G1-3
-!  ISOP           OH, NO3           ISOA/G1-3
+!  ISOP           OH, NO3           ISOA/G1-3 (REMOVED IN 12.6.0, Jul 2019)
 !  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
@@ -1729,9 +1721,9 @@
 !                                                                             .
 !  Species that must be defined in input.geos (in addition to standard
 !  full chem species) (34 additional):
-!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
-!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
-!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
+!  TSOA1      TSOG1      ASOA1      ASOG1
+!  TSOA2      TSOG2      ASOA2      ASOG2
+!  TSOA3      TSOG3      ASOA3      ASOG3
 !  ASOAN      TSOA0      TSOG0
 !  BENZ       TOLU       XYLE       MTPA       LIMO       MTPO
 !  NAP      
@@ -1754,6 +1746,7 @@
 !  TSOA/G: the lumped semivolatile oxidation products of 
 !          monoterpene and sesquiterpene oxidation
 !  ISOA/G: the lumped semivolatile oxidation products of isoprene ox
+!           (REMOVED IN GEOS-Chem 12.6.0, July 2019)
 !  ASOA/G: the lumped semivolatile (and nonvolatile) products of 
 !          benzene, toluene, and xylene oxidation
 !                                                                             .
@@ -1763,16 +1756,16 @@
 !  LIMO           OH, O3, NO3       TSOA/G1-3
 !  MTPO           OH, O3, NO3       TSOA/G0-3
 !  SESQ           OH, O3, NO3       TSOA/G1-3
-!  ISOP           OH, NO3           ISOA/G1-3
+!  ISOP           OH, NO3           ISOA/G1-3 (REMOVED IN 12.6.0, Jul 2019)
 !  BENZ           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !  TOLU           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !  XYLE           OH, (+NO,HO2)     ASOAN, ASOA/G1-3
 !                                                                             .
 !  Species that must be defined in input.geos (in addition to standard
 !  full chem species) (25 additional):
-!  TSOA1      TSOG1      ISOA1      ISOG1      ASOA1      ASOG1
-!  TSOA2      TSOG2      ISOA2      ISOG2      ASOA2      ASOG2
-!  TSOA3      TSOG3      ISOA3      ISOG3      ASOA3      ASOG3
+!  TSOA1      TSOG1      ASOA1      ASOG1
+!  TSOA2      TSOG2      ASOA2      ASOG2
+!  TSOA3      TSOG3      ASOA3      ASOG3
 !  ASOAN      TSOA0      TSOG0
 !  BENZ       TOLU       XYLE       MTPA       LIMO       MTPO
 !                                                                             .
@@ -1832,6 +1825,8 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  15 Jul 2019 - M. Sulprizio- Remove ISOA*/ISOG* from complex SOA scheme
+!                              rely on aqueous isoprene SOA instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4145,19 +4140,23 @@
       AM0(3,JSV)=Spc(I,J,L,id_TSOA3)
       AM0(4,JSV)=Spc(I,J,L,id_TSOA0)
 
-      !---------------------------------------
-      ! SEMIVOLATILE 2: ISOP
-      !---------------------------------------
-      JHC = PARENTISOP
-      JSV = IDSV(JHC)
-      ! gas phase
-      GM0(1,JSV)=Spc(I,J,L,id_ISOG1)
-      GM0(2,JSV)=Spc(I,J,L,id_ISOG2)
-      GM0(3,JSV)=Spc(I,J,L,id_ISOG3)
-      ! aerosol phase
-      AM0(1,JSV)=Spc(I,J,L,id_ISOA1)
-      AM0(2,JSV)=Spc(I,J,L,id_ISOA2)
-      AM0(3,JSV)=Spc(I,J,L,id_ISOA3)
+!-----------------------------------------------------------------------------
+! Prior to 7/15/19:
+! Remove isoprene from VBS (mps, 7/15/19)
+!      !---------------------------------------
+!      ! SEMIVOLATILE 2: ISOP
+!      !---------------------------------------
+!      JHC = PARENTISOP
+!      JSV = IDSV(JHC)
+!      ! gas phase
+!      GM0(1,JSV)=Spc(I,J,L,id_ISOG1)
+!      GM0(2,JSV)=Spc(I,J,L,id_ISOG2)
+!      GM0(3,JSV)=Spc(I,J,L,id_ISOG3)
+!      ! aerosol phase
+!      AM0(1,JSV)=Spc(I,J,L,id_ISOA1)
+!      AM0(2,JSV)=Spc(I,J,L,id_ISOA2)
+!      AM0(3,JSV)=Spc(I,J,L,id_ISOA3)
+!-----------------------------------------------------------------------------
 
       !---------------------------------------
       ! SEMIVOLATILE 3: BENZ, TOLU, XYLE, NAP
@@ -4397,67 +4396,71 @@
          AERMASS = AERMASS + AM0(IPR,JSV)
       ENDDO
 
-      !-----------------------------
-      ! SOA net production [kg]
-      !-----------------------------
-#if defined( BPCH_DIAG )
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                    + ( AERMASS - 
-     &                        Spc(I,J,L,id_ISOA1) -
-     &                        Spc(I,J,L,id_ISOA2) -
-     &                        Spc(I,J,L,id_ISOA3)   )
-      ENDIF
-#endif
-
-      !-----------------------------
-      ! Transient mass bal prod/evap
-      ! (hotp 6/5/10)
-      !-----------------------------
-      id_SPECIES = id_ISOA1
-      IPR = 1
-      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
-      IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      id_SPECIES = id_ISOA2
-      IPR = 2
-      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
-      IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      id_SPECIES = id_ISOA3
-      IPR = 3
-      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
-      IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
-      ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
-      ENDIF
-
-      !-----------------------------
-      ! Update species [kg]
-      !-----------------------------
-      ! gas phase
-      Spc(I,J,L,id_ISOG1) = MAX( GM0(1,JSV), 1e-32_fp )
-      Spc(I,J,L,id_ISOG2) = MAX( GM0(2,JSV), 1e-32_fp )
-      Spc(I,J,L,id_ISOG3) = MAX( GM0(3,JSV), 1e-32_fp )
-      ! aerosol phase
-      Spc(I,J,L,id_ISOA1) = MAX( AM0(1,JSV), 1e-32_fp )
-      Spc(I,J,L,id_ISOA2) = MAX( AM0(2,JSV), 1e-32_fp )
-      Spc(I,J,L,id_ISOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+!-----------------------------------------------------------------------------
+! Prior to 7/15/19:
+! Remove isoprene from VBS (mps, 7/15/19)
+!      !-----------------------------
+!      ! SOA net production [kg]
+!      !-----------------------------
+!#if defined( BPCH_DIAG )
+!      IF ( ND07 > 0 .and. L <= LD07 ) THEN
+!         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
+!     &                    + ( AERMASS - 
+!     &                        Spc(I,J,L,id_ISOA1) -
+!     &                        Spc(I,J,L,id_ISOA2) -
+!     &                        Spc(I,J,L,id_ISOA3)   )
+!      ENDIF
+!#endif
+!
+!      !-----------------------------
+!      ! Transient mass bal prod/evap
+!      ! (hotp 6/5/10)
+!      !-----------------------------
+!      id_SPECIES = id_ISOA1
+!      IPR = 1
+!      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+!      IF ( AERCHANGE .GT. 0e+0_fp ) THEN
+!         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+!     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+!      ELSE
+!         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+!     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+!      ENDIF
+!
+!      id_SPECIES = id_ISOA2
+!      IPR = 2
+!      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+!      IF ( AERCHANGE .GT. 0e+0_fp ) THEN
+!         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+!     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+!      ELSE
+!         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+!     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+!      ENDIF
+!
+!      id_SPECIES = id_ISOA3
+!      IPR = 3
+!      AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
+!      IF ( AERCHANGE .GT. 0e+0_fp ) THEN
+!         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+!     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+!      ELSE
+!         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+!     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+!      ENDIF
+!
+!      !-----------------------------
+!      ! Update species [kg]
+!      !-----------------------------
+!      ! gas phase
+!      Spc(I,J,L,id_ISOG1) = MAX( GM0(1,JSV), 1e-32_fp )
+!      Spc(I,J,L,id_ISOG2) = MAX( GM0(2,JSV), 1e-32_fp )
+!      Spc(I,J,L,id_ISOG3) = MAX( GM0(3,JSV), 1e-32_fp )
+!      ! aerosol phase
+!      Spc(I,J,L,id_ISOA1) = MAX( AM0(1,JSV), 1e-32_fp )
+!      Spc(I,J,L,id_ISOA2) = MAX( AM0(2,JSV), 1e-32_fp )
+!      Spc(I,J,L,id_ISOA3) = MAX( AM0(3,JSV), 1e-32_fp )
+!-----------------------------------------------------------------------------
 
       !=================================================================
       ! Semivolatile Group 3: benzene, toluene, xylene, naphthalene/IVOC
@@ -6823,10 +6826,7 @@ ccc
      &         Spc(I,J,L,id_TSOA1) +
      &         Spc(I,J,L,id_TSOA2) +
      &         Spc(I,J,L,id_TSOA3) +
-     &         Spc(I,J,L,id_TSOA0) +
-     &         Spc(I,J,L,id_ISOA1) +
-     &         Spc(I,J,L,id_ISOA2) +
-     &         Spc(I,J,L,id_ISOA3)
+     &         Spc(I,J,L,id_TSOA0)
 
       ! Add primary material as appropriate
       IF ( id_POA1 > 0 ) THEN
@@ -6920,47 +6920,51 @@ ccc
          WRITE(*,*) 'KOM',KOMIJL(IPR,JSV),OATEMP,CONVFAC
       ENDIF
 
-      !----------------------------------------------------
-      ! Semivolatile 2: isoprene SOA
-      !----------------------------------------------------
-      JHC = PARENTISOP
-      JSV = IDSV(JHC)
-
-      ! Product 1
-      IPR = 1
-      ! Compute OA in kg
-      OATEMP = Spc(I,J,L,id_ISOG1) * KOMIJL(IPR,JSV) * MOTEMP 
-      ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA1) )* CONVFAC
-      ! Assess error
-      IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-         WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
-     &              ' in box ', I, J, L
-      ENDIF
-
-      ! Product 2
-      IPR = 2
-      ! Compute OA in kg
-      OATEMP = Spc(I,J,L,id_ISOG2) * KOMIJL(IPR,JSV) * MOTEMP
-      ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA2) )* CONVFAC
-      ! Assess error
-      IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-         WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
-     &              ' in box ', I, J, L
-      ENDIF
-
-      ! Product 3
-      IPR = 3
-      ! Compute OA in kg
-      OATEMP = Spc(I,J,L,id_ISOG3) * KOMIJL(IPR,JSV) * MOTEMP
-      ! Compute difference in ug/m3
-      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA3) )* CONVFAC
-      ! Assess error
-      IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
-         WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
-     &              ' in box ', I, J, L
-      ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 7/15/19:
+! Remove isoprene from VBS (mps, 7/15/19)
+!      !----------------------------------------------------
+!      ! Semivolatile 2: isoprene SOA
+!      !----------------------------------------------------
+!      JHC = PARENTISOP
+!      JSV = IDSV(JHC)
+!
+!      ! Product 1
+!      IPR = 1
+!      ! Compute OA in kg
+!      OATEMP = Spc(I,J,L,id_ISOG1) * KOMIJL(IPR,JSV) * MOTEMP 
+!      ! Compute difference in ug/m3
+!      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA1) )* CONVFAC
+!      ! Assess error
+!      IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
+!         WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
+!     &              ' in box ', I, J, L
+!      ENDIF
+!
+!      ! Product 2
+!      IPR = 2
+!      ! Compute OA in kg
+!      OATEMP = Spc(I,J,L,id_ISOG2) * KOMIJL(IPR,JSV) * MOTEMP
+!      ! Compute difference in ug/m3
+!      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA2) )* CONVFAC
+!      ! Assess error
+!      IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
+!         WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
+!     &              ' in box ', I, J, L
+!      ENDIF
+!
+!      ! Product 3
+!      IPR = 3
+!      ! Compute OA in kg
+!      OATEMP = Spc(I,J,L,id_ISOG3) * KOMIJL(IPR,JSV) * MOTEMP
+!      ! Compute difference in ug/m3
+!      EQLBDIFF = ABS( OATEMP - Spc(I,J,L,id_ISOA3) )* CONVFAC
+!      ! Assess error
+!      IF ( EQLBDIFF > ACCEPTERRORUG ) THEN
+!         WRITE(*,*) 'EQLB Problem PR, JSV', IPR, JSV, 
+!     &              ' in box ', I, J, L
+!      ENDIF
+!-----------------------------------------------------------------------------
 
       !----------------------------------------------------
       ! Semivolatile 3: lumped arom/IVOC: total SOA+SOG in kg
@@ -7164,17 +7168,21 @@ ccc
      &                              Spc(I,J,L,id_TSOG3)
          OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_TSOA0) +
      &                              Spc(I,J,L,id_TSOG0)
-         !----------------------------------------------------
-         ! Semivolatile 2: isoprene SOA+SOG in kg
-         !----------------------------------------------------
-         JHC = PARENTISOP
-         JSV = IDSV(JHC)
-         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ISOA1) +
-     &                              Spc(I,J,L,id_ISOG1)
-         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ISOA2) +
-     &                              Spc(I,J,L,id_ISOG2)
-         OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ISOA3) +
-     &                              Spc(I,J,L,id_ISOG3)
+!-----------------------------------------------------------------------------
+! Prior to 7/15/19:
+! Remove isoprene from VBS (mps, 7/15/19
+!         !----------------------------------------------------
+!         ! Semivolatile 2: isoprene SOA+SOG in kg
+!         !----------------------------------------------------
+!         JHC = PARENTISOP
+!         JSV = IDSV(JHC)
+!         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ISOA1) +
+!     &                              Spc(I,J,L,id_ISOG1)
+!         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ISOA2) +
+!     &                              Spc(I,J,L,id_ISOG2)
+!         OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ISOA3) +
+!     &                              Spc(I,J,L,id_ISOG3)
+!-----------------------------------------------------------------------------
          !----------------------------------------------------
          ! Semivolatile 3: lumped arom/IVOC: total SOA+SOG in kg
          !----------------------------------------------------
@@ -7393,79 +7401,83 @@ ccc
      &             TEMPDELTA(:,IPR)
          ENDIF
 
-         !----------------------------------------------------
-         ! Semivolatile 2: isoprene SOA+SOG in kg
-         !----------------------------------------------------
-         TEMPDELTA = 0e+0_fp
-         JHC = PARENTISOP
-         JSV = IDSV(JHC)
-         DO IPR = 1, NPROD(JSV)
-         DO NOX = 1, NNOX(JSV)
-            TEMPDELTA(NOX,IPR) = 
-     &      DELTASOGSAVE(I,J,L,NOX,PARENTISOP)*ALPHA(NOX,IPR,PARENTISOP)
-         ENDDO
-         ENDDO
-
-         ! Product 1, C* = 1 ug/m3
-         IPR      = 1
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA1) +
-     &                                Spc(I,J,L,id_ISOG1)   ))
-         MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
-            WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
-     &                 'in box ', I, J, L
-            print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
-     &             TEMPDELTA(:,IPR)
-            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-            print*,'Spc',Spc(I,J,L,id_ISOA1),Spc(I,J,L,id_ISOG1)
-            print*,'NNOX',NNOX(JSV)
-            print*,'strat?',State_Met%InStratosphere(I,J,L)
-         ENDIF
-
-         ! Product 2, C* = 10 ug/m3
-         IPR      = 2
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA2) +
-     &                                Spc(I,J,L,id_ISOG2)   ))
-         MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
-            WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
-     &                 'in box ', I, J, L
-            print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
-     &             TEMPDELTA(:,IPR)
-            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-            print*,'Spc',Spc(I,J,L,id_ISOA2),Spc(I,J,L,id_ISOG2)
-            print*,'NNOX',NNOX(JSV)
-            print*,'strat?',State_Met%InStratosphere(I,J,L)
-
-         ENDIF
-
-         ! Product 3, C* = 100 ug/m3
-         IPR      = 3
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
-         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA3) +
-     &                                Spc(I,J,L,id_ISOG3)   ))
-         MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
-         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
-            WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
-     &                 'in box ', I, J, L
-            print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
-     &             TEMPDELTA(:,IPR)
-            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
-            print*,'Spc',Spc(I,J,L,id_ISOA3),Spc(I,J,L,id_ISOG3)
-            print*,'NNOX',NNOX(JSV)
-            print*,'strat?',State_Met%InStratosphere(I,J,L)
-         ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 7/15/19:
+! Remove isoprene from VBS (mps, 7/15/19)
+!         !----------------------------------------------------
+!         ! Semivolatile 2: isoprene SOA+SOG in kg
+!         !----------------------------------------------------
+!         TEMPDELTA = 0e+0_fp
+!         JHC = PARENTISOP
+!         JSV = IDSV(JHC)
+!         DO IPR = 1, NPROD(JSV)
+!         DO NOX = 1, NNOX(JSV)
+!            TEMPDELTA(NOX,IPR) = 
+!     &      DELTASOGSAVE(I,J,L,NOX,PARENTISOP)*ALPHA(NOX,IPR,PARENTISOP)
+!         ENDDO
+!         ENDDO
+!
+!         ! Product 1, C* = 1 ug/m3
+!         IPR      = 1
+!         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+!         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA1) +
+!     &                                Spc(I,J,L,id_ISOG1)   ))
+!         MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
+!         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
+!            WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
+!     &                 'in box ', I, J, L
+!            print*,'CK_MB ',NOX,IPR,JSV,
+!     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+!     &             TEMPDELTA(:,IPR)
+!            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
+!            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
+!            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
+!            print*,'Spc',Spc(I,J,L,id_ISOA1),Spc(I,J,L,id_ISOG1)
+!            print*,'NNOX',NNOX(JSV)
+!            print*,'strat?',State_Met%InStratosphere(I,J,L)
+!         ENDIF
+!
+!         ! Product 2, C* = 10 ug/m3
+!         IPR      = 2
+!         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+!         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA2) +
+!     &                                Spc(I,J,L,id_ISOG2)   ))
+!         MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
+!         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
+!            WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
+!     &                 'in box ', I, J, L
+!            print*,'CK_MB ',NOX,IPR,JSV,
+!     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+!     &             TEMPDELTA(:,IPR)
+!            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
+!            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
+!            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
+!            print*,'Spc',Spc(I,J,L,id_ISOA2),Spc(I,J,L,id_ISOG2)
+!            print*,'NNOX',NNOX(JSV)
+!            print*,'strat?',State_Met%InStratosphere(I,J,L)
+!
+!         ENDIF
+!
+!         ! Product 3, C* = 100 ug/m3
+!         IPR      = 3
+!         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+!         MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA3) +
+!     &                                Spc(I,J,L,id_ISOG3)   ))
+!         MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
+!         IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
+!            WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
+!     &                 'in box ', I, J, L
+!            print*,'CK_MB ',NOX,IPR,JSV,
+!     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+!     &             TEMPDELTA(:,IPR)
+!            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
+!            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
+!            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
+!            print*,'Spc',Spc(I,J,L,id_ISOA3),Spc(I,J,L,id_ISOG3)
+!            print*,'NNOX',NNOX(JSV)
+!            print*,'strat?',State_Met%InStratosphere(I,J,L)
+!         ENDIF
+!-----------------------------------------------------------------------------
 
          !----------------------------------------------------
          ! Semivolatile 3: lumped arom/IVOC: total SOA+SOG in kg
@@ -7717,16 +7729,20 @@ ccc
          print*,'TSOA0 prod and evap: ',
      &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
 
-         JSV = 2
-         IPR = 1
-         print*,'ISOA1 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-         IPR = 2
-         print*,'ISOA2 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
-         IPR = 3
-         print*,'ISOA3 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+!-----------------------------------------------------------------------------
+! Prior to 7/15/19:
+! Remove isoprene from VBS (mps, 7/15/19)
+!         JSV = 2
+!         IPR = 1
+!         print*,'ISOA1 prod and evap: ',
+!     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+!         IPR = 2
+!         print*,'ISOA2 prod and evap: ',
+!     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+!         IPR = 3
+!         print*,'ISOA3 prod and evap: ',
+!     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+!-----------------------------------------------------------------------------
 
          JSV = 3
          IPR = 1
@@ -8326,12 +8342,6 @@ ccc
       id_ECIL1    = IND_('ECIL1'   )
       id_ECOB1    = IND_('ECOB1'   )
       id_HO2      = IND_('HO2'     )
-      id_ISOA1    = IND_('ISOA1'   )
-      id_ISOA2    = IND_('ISOA2'   )
-      id_ISOA3    = IND_('ISOA3'   )
-      id_ISOG1    = IND_('ISOG1'   )
-      id_ISOG2    = IND_('ISOG2'   )
-      id_ISOG3    = IND_('ISOG3'   )
       id_ISOP     = IND_('ISOP'    )
       id_LIMO     = IND_('LIMO'    )
       id_MTPA     = IND_('MTPA'    )
