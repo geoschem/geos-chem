@@ -117,9 +117,12 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
      REAL(fp),          POINTER :: AeroH2O    (:,:,:,:) ! Aerosol water [cm3/cm3]
+     REAL(fp),          POINTER :: GammaN2O5  (:,:,:,:) ! N2O5 aerosol uptake [unitless]
      REAL(fp),          POINTER :: SSAlk      (:,:,:,:) ! Sea-salt alkalinity[-]
      REAL(fp),          POINTER :: H2O2AfterChem(:,:,:) ! H2O2, SO2 [v/v]
      REAL(fp),          POINTER :: SO2AfterChem (:,:,:) !  after sulfate chem
+     REAL(fp),          POINTER :: OMOC_POA       (:,:) ! OM:OC Ratio (OCFPOA) [unitless]
+     REAL(fp),          POINTER :: OMOC_OPOA      (:,:) ! OM:OC Ratio (OCFOPOA) [unitless]
 
      !----------------------------------------------------------------------
      ! Fields for nitrogen deposition
@@ -243,7 +246,8 @@ MODULE State_Chm_Mod
 !                              shared pointers (e.g. species info) until last
 !  01 Nov 2018 - M. Sulprizio- Add SNOW_HG_* and Hg*aq arrays for saving out
 !                              to the Restart collection
-!  23 Aug 2018 - C.D. Holmes - Add aerosol H2O variable
+!  23 Aug 2018 - C.D. Holmes - Add aerosol water as variable
+!  21 Dec 2018 - E. McDuffie - Add OMOC_POA and OMOC_OPOA as variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -332,6 +336,7 @@ CONTAINS
 !  02 Aug 2018 - H.P. Lin    - Populate the species object with existing species
 !                              DB if DB is already initialized before
 !  22 Aug 2018 - R. Yantosca - Fixed typo in registration of SSAlk field
+!  21 Dec 2018 - E. McDuffie - Add AeroH2O, OMOC_POA, and OMOC_OPOA as variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -418,7 +423,10 @@ CONTAINS
     State_Chm%WetAeroArea   => NULL()
     State_Chm%WetAeroRadi   => NULL()
     State_Chm%AeroH2O       => NULL()
-
+    State_Chm%GammaN2O5     => NULL()    
+    State_Chm%OMOC_POA      => NULL()    
+    State_Chm%OMOC_OPOA     => NULL()    
+    
     ! Isoprene SOA
     State_Chm%pHSav         => NULL()
     State_Chm%HplusSav      => NULL()
@@ -1091,7 +1099,64 @@ CONTAINS
           CALL GC_CheckVar( 'State_Chm%AeroH2O', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
+     
+       !--------------------------------------------------------------------
+       ! GammaN2O5
+       !--------------------------------------------------------------------
+       ALLOCATE( State_Chm%GammaN2O5( IM, JM, LM, 4 ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%GammaN2O5', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%GammaN2O5 = 0.0_fp
 
+       ! Loop over all entries to register each category individually
+       DO N = 1, 4
+
+          ! Define identifying string
+          SELECT CASE( N )
+             CASE( 1  )
+                chmID = 'GammaN2O5H2O'
+             CASE( 2  )
+                chmID = 'GammaN2O5HCl'
+             CASE( 3  )
+                chmID = 'GammaN2O5SS'
+             CASE( 4  )
+                chmID = 'YieldClNO2'
+             CASE DEFAULT
+                ErrMsg = 'State_Chm%GammaN2O5 exceeds the number of defined' &
+                         // ' N2O5 uptake categories'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+          END SELECT          
+
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%GammaN2O5,     &
+                                  State_Chm, RC,    Ncat=N )
+          CALL GC_CheckVar( 'State_Chm%GammaN2O5', 1, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
+       
+       !--------------------------------------------------------------------
+       ! OM:OC Ratios
+       !--------------------------------------------------------------------
+       chmId = 'OMOCpoa'
+       ALLOCATE( State_Chm%OMOC_POA( IM, JM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OMOC_POA', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%OMOC_POA = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OMOC_POA,            &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%OMOC_POA', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       !--------------------------------------------------------------------
+       chmId = 'OMOCopoa'
+       ALLOCATE( State_Chm%OMOC_OPOA( IM, JM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OMOC_OPOA', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%OMOC_OPOA = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OMOC_OPOA,            &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%OMOC_OPOA', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       
        !--------------------------------------------------------------------
        ! phSav
        !--------------------------------------------------------------------
@@ -1208,7 +1273,7 @@ CONTAINS
        chmId = 'SSAlkAccum'
        CALL Register_ChmField( am_I_Root, chmID, State_Chm%SSAlk,            &
                                State_Chm, RC,    nCat=1                     )
-       CALL GC_CheckVar( 'State-Chm%SsAlk', 1, RC )
+       CALL GC_CheckVar( 'State-Chm%SSAlk', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Register coarse mode as category 1
@@ -1844,7 +1909,28 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%AeroH2O => NULL()
     ENDIF
+    
+    IF ( ASSOCIATED( State_Chm%GammaN2O5 ) ) THEN
+       DEALLOCATE( State_Chm%GammaN2O5, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%GammaN2O5', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%GammaN2O5 => NULL()
+    ENDIF
+    
+    IF ( ASSOCIATED( State_Chm%OMOC_POA ) ) THEN
+       DEALLOCATE( State_Chm%OMOC_POA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OMOC_POA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%OMOC_POA => NULL()
+    ENDIF
 
+    IF ( ASSOCIATED( State_Chm%OMOC_OPOA ) ) THEN
+       DEALLOCATE( State_Chm%OMOC_OPOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OMOC_OPOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%OMOC_OPOA => NULL()
+    ENDIF
+    
     IF ( ASSOCIATED( State_Chm%phSav ) ) THEN
        DEALLOCATE( State_Chm%phSav, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%phSav', 2, RC )
@@ -2542,11 +2628,43 @@ CONTAINS
           IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
           IF ( isRank  ) Rank  = 3
 
+       
+       CASE ( 'GAMMAN2O5H2O' )
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + H2O reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+       
+       CASE ( 'GAMMAN2O5HCL' )
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + HCl reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+       
+       CASE ( 'GAMMAN2O5SS' )
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + SS reaction'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+       
+       CASE ( 'YIELDCLNO2' )
+          IF ( isDesc  ) Desc  = 'Production yield coefficient for ClNO2' &
+                                 // ' from N2O5 aerosol uptake'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
        CASE ( 'KPPHVALUE' )
           IF ( isDesc  ) Desc  = 'H-value for Rosenbrock solver'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
+       CASE ( 'OMOCPOA' )
+          IF ( isDesc  ) Desc  = 'OM:OC ratio for POA (from /aerosol_mod.F)'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'OMOCOPOA' )
+          IF ( isDesc  ) Desc  = 'OM:OC ratio for OPOA (from /aerosol_mod.F)'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+          
        CASE ( 'STATEPSC' )
           IF ( isDesc  ) Desc  = 'Polar stratospheric cloud type (cf Kirner' &
                                 // ' et al 2011, GMD)'
@@ -2554,57 +2672,57 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLAN2O5H2O' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLAN2O5HCL' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for N2O5 + H2O reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLACLNO3H2O' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + H2O reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for ClNO3 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLACLNO3HCL' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HCl reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for ClNO3 + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLACLNO3HBR' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for ClNO3 + HBr reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for ClNO3 + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLABRNO3H2O' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + H2O reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for BrNO3 + H2O reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLABRNO3HCL' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for BrNO3 + HCl reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for BrNO3 + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLAHOCLHCL' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOCl + HCl reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for HOCl + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLAHOCLHBR' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for HClr + HBr reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for HClr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLAHOBRHCL' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HCl reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for HOBr + HCl reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KHETISLAHOBRHBR' )
-          IF ( isDesc  ) Desc  = 'Sticking coeeficient for HOBr + HBr reaction'
+          IF ( isDesc  ) Desc  = 'Sticking coefficient for HOBr + HBr reaction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 

@@ -294,6 +294,7 @@
 !  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  05 Jan 2018 - M. Sulprizio- Use simple SOA by default in calculation of PM2.5
 !                              and OCPISOA (used in hetchem and AOD)
+!  21 Dec 2018 - E. McDuffie - Now save OCFPOA and OCFOPOA as State Chem parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -456,6 +457,10 @@
          OCFOPOA(:,:) = 2.1e+0_fp ! OM/OC for OPOA, OCPI, and OCPO
 
       ENDIF
+
+      ! Save OM/OC
+      State_Chm%OMOC_POA(:,:) = OCFPOA(:,:)
+      State_Chm%OMOC_OPOA(:,:) = OCFOPOA(:,:)
 
       !=================================================================
       ! Compute growth factors at 35% RH
@@ -1283,6 +1288,7 @@
 !                              and SOA AOD from aq isoprene (34->58; 35->59)
 !  11 May 2018 - R. Yantosca - Rename LSOA to Is_ComplexSOA for clarity
 !  17 May 2019 - C.D. Holmes - Use ISORROPIA water content for radius and surface area
+!                V. Shah
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2029,8 +2035,8 @@
                !               use same units as ERADIUS  (tmf, 4/18/07)
                ! Wet dust WTAREA and WERADIUS are archived in dust_mod.f.
                !========================================================
-          
-               ! For SO4-NIT-NH4 aerosol, Re-calculate the wet effective
+            
+               ! For SO4-NIT-NH4 aerosol, re-calculate the wet effective 
                ! radius using the water content from ISORROPIA. 
                ! This new effective radius will be used for surface area
                ! used in heterogeneous chemistry. We don't use this
