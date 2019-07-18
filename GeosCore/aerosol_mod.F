@@ -1176,7 +1176,7 @@
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE ERROR_MOD,      ONLY : ERROR_STOP, Safe_Div
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PhysConstants,  ONLY : CONSVAP
       USE State_Chm_Mod,  ONLY : ChmState
@@ -2067,7 +2067,8 @@
                   ! RWet = RDry * ( 1 + VH2O/Vdry )**(1/3)
 
                   ! Wet effective radius, um
-                  REFF = RW(1) * ( 1d0 + VH2O / VDry )**(1d0/3d0)
+                  REFF = RW(1) * ( 1d0 +
+     &                 safe_div( VH2O, VDry, 0d0 ) )**(1d0/3d0)
 
                ENDIF
 
