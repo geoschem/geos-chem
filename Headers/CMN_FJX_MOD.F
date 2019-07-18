@@ -46,7 +46,7 @@
       ! in FJX_j2j.dat.  We have since removed the duplicate ClNO2 entry,
       ! which reduces the # of photolyzed species by 1, from 130 to 129.
       ! (bmy, 4/10/19)
-      INTEGER, PARAMETER :: JVN_ = 129     ! Max number of J-values
+      INTEGER, PARAMETER :: JVN_ = 133     ! Max number of J-values
       !----------------------------------------------------------------------
 
       INTEGER            :: AN_            ! # of separate aerosols per layer

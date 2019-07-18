@@ -3724,6 +3724,14 @@ C-----------------------------------------------------------------------
      &                                ZPJ(L,112,ILON,ILAT)
                AD22(ILON,ILAT,L,37) = AD22(ILON,ILAT,L,37) +  ! JHONIT
      &                                ZPJ(L,113,ILON,ILAT)
+               AD22(ILON,ILAT,L,77) = AD22(ILON,ILAT,L,77) +  ! JMENO3
+     &                                ZPJ(L,130,ILON,ILAT)
+               AD22(ILON,ILAT,L,78) = AD22(ILON,ILAT,L,78) +  ! JETNO3
+     &                                ZPJ(L,131,ILON,ILAT)
+               AD22(ILON,ILAT,L,79) = AD22(ILON,ILAT,L,79) +  ! JIPRNO3
+     &                                ZPJ(L,132,ILON,ILAT)
+               AD22(ILON,ILAT,L,80) = AD22(ILON,ILAT,L,80) +  ! JNPRNO3
+     &                                ZPJ(L,133,ILON,ILAT)
                ! lei, 05/15/17 - added new halogen species below 
                IF ( IS_HALOGENS ) THEN
                AD22(ILON,ILAT,L,38) = AD22(ILON,ILAT,L,38) +  ! JCH3Br

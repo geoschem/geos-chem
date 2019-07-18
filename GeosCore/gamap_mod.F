@@ -5584,6 +5584,14 @@
                      NAME(T,22) = 'JH1301'
                   CASE( 76 )
                      NAME(T,22) = 'JH2402'
+                  CASE( 77 )
+                     NAME(T,22) = 'JMENO3'
+                  CASE( 78 )
+                     NAME(T,22) = 'JETNO3'
+                  CASE( 79 )
+                     NAME(T,22) = 'JIPRNO3'
+                  CASE( 80 )
+                     NAME(T,22) = 'JNPRNO3'
                  CASE DEFAULT
                   ! Nothing
                END SELECT

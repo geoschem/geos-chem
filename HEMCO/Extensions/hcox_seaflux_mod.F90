@@ -100,6 +100,7 @@ MODULE HCOX_SeaFlux_Mod
 !  10 Mar 2017 - M. Sulprizio- Add fix for acetone parameterization of Schmidt
 !                              number - use SCWPAR = 3 instead of 1
 !  11 Sep 2018 - C. Keller   - Added instances wrapper
+!  08 May 2019 - J. Fisher   - Add C1-C2 alkyl nitrates (MENO3, ETNO3)
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -622,6 +623,7 @@ CONTAINS
 ! \item Parameterization for DMS according to Saltzman et al., 1993.
 ! \item Parameterization for Acetone as in former acetone\_mod.F in GC. 
 ! \item Parameterization for Acetaldehyde as in ald2\_mod.F from D. Millet
+! \item Parameterization for MENO3, ETNO3 as in Fisher et al., 2018
 ! \end{enumerate}
 
 ! The oceanic surface concentrations of all species are obtained from
@@ -704,7 +706,7 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
     
     ! # of species for which air-sea exchange will be calculated
-    Inst%nOcSpc = 4
+    Inst%nOcSpc = 6  ! updated to include MENO3, ETNO3
 
     ! Initialize vector w/ species information
     ALLOCATE ( Inst%OcSpecs(Inst%nOcSpc) ) 
@@ -778,6 +780,36 @@ CONTAINS
     Inst%OcSpecs(I)%OcDataName = 'ALD2_SEAWATER'
     Inst%OcSpecs(I)%LiqVol     = 2d0*7d0 + 4d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
     Inst%OcSpecs(I)%SCWPAR     = 4 ! Schmidt number of acetaldehyde
+
+    ! ----------------------------------------------------------------------
+    ! Methyl nitrate:
+    ! ----------------------------------------------------------------------
+
+    I = I + 1
+    IF ( I > Inst%nOcSpc ) THEN
+       CALL HCO_ERROR ( ERR, RC )
+       RETURN
+    ENDIF
+
+    Inst%OcSpecs(I)%OcSpcName  = 'MENO3'
+    Inst%OcSpecs(I)%OcDataName = 'MENO3_SEAWATER'
+    Inst%OcSpecs(I)%LiqVol     = 64d0 ! Kornilov & Klselev 2015
+    Inst%OcSpecs(I)%SCWPAR     = 1
+
+    ! ----------------------------------------------------------------------
+    ! Ethyl nitrate:
+    ! ----------------------------------------------------------------------
+
+    I = I + 1
+    IF ( I > Inst%nOcSpc ) THEN
+       CALL HCO_ERROR ( ERR, RC )
+       RETURN
+    ENDIF
+
+    Inst%OcSpecs(I)%OcSpcName  = 'ETNO3'
+    Inst%OcSpecs(I)%OcDataName = 'ETNO3_SEAWATER'
+    Inst%OcSpecs(I)%LiqVol     = 82.2d0 ! Kornilov & Klselev 2015
+    Inst%OcSpecs(I)%SCWPAR     = 1
 
     ! ----------------------------------------------------------------------
     ! Match module species with species assigned to this module in config.

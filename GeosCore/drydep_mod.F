@@ -194,6 +194,7 @@
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  01 Dec 2018 - H.P. Lin    - Move DEPSAV to State_Chm%DryDepSav
+!  09 May 2019 - J. Fisher   - Add special case for MENO3, ETNO3 (ocean flux)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,6 +250,7 @@
       INTEGER                        :: NUMDEP,   NWATER
       INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
       INTEGER                        :: id_ACET,  id_ALD2
+      INTEGER                        :: id_MENO3, id_ETNO3
       INTEGER                        :: id_NK1
       INTEGER                        :: id_HNO3,  id_PAN,   id_ISOPND
 
@@ -618,6 +620,30 @@
             ! For ALD2, we need to only do drydep over the land
             ! and not over the oceans.
             IF ( N == id_ALD2 ) THEN
+               IF ( .not. IS_LAND( I, J, State_Met ) ) THEN
+                  DVZ = 0e+0_f8
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! Special treatment for MENO3
+            !-----------------------------------------------------------
+
+            ! For MENO3, we need to only do drydep over the land
+            ! and not over the oceans.
+            IF ( N == id_MENO3 ) THEN
+               IF ( .not. IS_LAND( I, J, State_Met ) ) THEN
+                  DVZ = 0e+0_f8
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! Special treatment for ETNO3
+            !-----------------------------------------------------------
+
+            ! For ETNO3, we need to only do drydep over the land
+            ! and not over the oceans.
+            IF ( N == id_ETNO3 ) THEN
                IF ( .not. IS_LAND( I, J, State_Met ) ) THEN
                   DVZ = 0e+0_f8
                ENDIF
@@ -4129,6 +4155,8 @@
       NUMDEP    = 0
       id_ACET   = 0
       id_ALD2   = 0
+      id_MENO3  = 0
+      id_ETNO3  = 0
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
       id_ISOPND = IND_('ISOPND')
@@ -4291,6 +4319,14 @@
                CASE( 'ALD2' )
                   ! Flag the species ID of ALD2 for use above.
                   id_ALD2 = SpcInfo%ModelId
+
+               CASE( 'MENO3' )
+                  ! Flag the species ID of MENO3 for use above.
+                  id_MENO3 = SpcInfo%ModelId
+
+               CASE( 'ETNO3' )
+                  ! Flag the species ID of ETNO3 for use above.
+                  id_ETNO3 = SpcInfo%ModelId
 
                CASE( 'NITs', 'NITS' )
                   ! DEPNAME for NITs has to be in all caps, for
