@@ -3082,14 +3082,17 @@ CONTAINS
     !
     ! and THE TAGGED O3 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%LDRYD ) THEN
+    IF ( Input_Opt%LDRYD .and.                                               &
+         ( Input_Opt%ITS_A_FULLCHEM_SIM .or.                                 &
+           Input_Opt%ITS_A_TAGO3_SIM         ) ) THEN
 
        !--------------------------------------------------------------------
        ! Dry deposition resistance RA at user-defined altitude above sfc
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%DryDepRaALT1'
        diagID  = 'DryDepRa' // TRIM( TmpHT )
-       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepRaALT1', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepRaALT1',            &
+                            Found,     RC,         exact=.TRUE.             )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%DryDepRaALT1( IM, JM ), STAT=RC )
@@ -3099,7 +3102,7 @@ CONTAINS
           State_Diag%Archive_DryDepRaALT1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%DryDepRaALT1,                  &
-                                   State_Chm, State_Diag, RC                   )
+                                   State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
@@ -3109,8 +3112,8 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%DryDepVelForALT1'
        diagID  = 'DryDepVelFor' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List,                            &
-                            'DryDepVelForALT1', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepVelForALT1',        &
+                            Found,     RC,         exact=.TRUE.              )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%DryDepVelForALT1( IM, JM, nDryAlt ), STAT=RC )
@@ -3129,7 +3132,8 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%DryDepZLfrac'
        diagID  = 'DryDepZLfrac'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagId, Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagId,                    &
+                            Found,     RC,        exact=.TRUE.              )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%DryDepZLfrac( IM, JM ), STAT=RC )
@@ -3146,43 +3150,29 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Species concentration at user-defined height above surface
        !--------------------------------------------------------------------
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
-          arrayID = 'State_Diag%SpeciesConcALT1'
-          diagID  = 'SpeciesConc' // TRIM( TmpHt )
-          CALL Check_DiagList( am_I_Root, Diag_List,                         &
-                               'SpeciesConcALT1', Found, RC                 )
-          IF ( Found ) THEN
-             IF (am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-             ALLOCATE( State_Diag%SpeciesConcALT1(IM,JM,nDryAlt), STAT=RC )
-             CALL GC_CheckVar( arrayID, 0, RC )
-             IF ( RC /= GC_SUCCESS ) RETURN
-             State_Diag%SpeciesConcALT1 = 0.0_f4
-             State_Diag%Archive_SpeciesConcALT1 = .TRUE.
-             CALL Register_DiagField( am_I_Root, diagID,                     &
-                                     State_Diag%SpeciesConcALT1,             &
+       arrayID = 'State_Diag%SpeciesConcALT1'
+       diagID  = 'SpeciesConc' // TRIM( TmpHt )
+       CALL Check_DiagList( am_I_Root, Diag_List, 'SpeciesConcALT1',         &
+                            Found,     RC,         exact=.TRUE.             )
+       IF ( Found ) THEN
+          IF (am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%SpeciesConcALT1(IM,JM,nDryAlt), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%SpeciesConcALT1 = 0.0_f4
+          State_Diag%Archive_SpeciesConcALT1 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%SpeciesConcALT1,               &
                                    State_Chm, State_Diag, RC                )
-             IF ( RC /= GC_SUCCESS ) RETURN
-          ENDIF
-
-       ELSE
-
-          ! Halt with an error message if any of the following quantities
-          ! have been requested as diagnostics in simulations other than
-          ! full-chemistry simulations or the tagged O3 simulation.
-          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, but '   // &
-                   'this is only appropriate for the  full-chemistry '    // &
-                   'simulations or the tagged O3 simulation.'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-
+          IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
     ELSE
 
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
-       ! have been requested as diagnostics in simulations with
-       ! dry-deposition turned off.
+       ! have been requested as diagnostics in full-chemistry or
+       ! tagged O3 simulations with dry-deposition turned off.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
@@ -3206,15 +3196,20 @@ CONTAINS
           ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE. )
+
+          ! Halt with an error message if any of the following quantities
+          ! have been requested as diagnostics in simulations other than
+          ! full-chemistry simulations or the tagged O3 simulation.
           IF ( Found ) THEN
-             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
-                      'but this is only appropriate for simulations  '    // &
-                      'that have dry deposition turned on.'
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, but '// &
+                      'this is only appropriate for the full-chemistry  ' // &
+                      'simulations or the tagged O3 simulation.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
        ENDDO
     ENDIF
+    STOP
 
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
