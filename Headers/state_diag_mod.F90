@@ -3209,7 +3209,6 @@ CONTAINS
           ENDIF
        ENDDO
     ENDIF
-    STOP
 
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
