@@ -2074,20 +2074,6 @@
                   State_Diag%DryDepRaALT1(I,J) = RA_Alt
                ENDIF
 
-               !--------------------------------------------------------
-               ! HISTORY (aka netCDF diagnostics)
-               !
-               ! Also keep track of the number of times that z/L <= 1
-               ! (i.e. if Monin-Obhukov theory applies) so that we can
-               ! properly handle time-averaging in post-processing.
-               !--------------------------------------------------------
-               IF ( State_Diag%Archive_DryDepZLfrac ) THEN
-                  IF ( ( CZ1(I,J) / OBK(I,J) ) > 1.0_fp ) THEN
-                     State_Diag%DryDepZLfrac(I,J) = 0.0_f8
-                  ELSE
-                     State_Diag%DryDepZLfrac(I,J) = 1.0_f8
-                  ENDIF
-               ENDIF
             ENDIF
 
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',

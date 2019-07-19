@@ -379,11 +379,9 @@ MODULE State_Diag_Mod
 
      ! O3 and HNO3 at a given height above the surface
      REAL(f4),  POINTER :: DryDepRaALT1    (:,:  )
-     REAL(f8),  POINTER :: DryDepZLfrac    (:,:  )
      REAL(f4),  POINTER :: DryDepVelForALT1(:,:,:)
      REAL(f8),  POINTER :: SpeciesConcALT1 (:,:,:)
      LOGICAL :: Archive_DryDepRaALT1
-     LOGICAL :: Archive_DryDepZLfrac
      LOGICAL :: Archive_DryDepVelForALT1
      LOGICAL :: Archive_SpeciesConcALT1
      LOGICAL :: Archive_ConcAboveSfc
@@ -1078,11 +1076,9 @@ CONTAINS
 
     ! O3 and HNO3 at a given height above the surface
     State_Diag%DryDepRaALT1                        => NULL()
-    State_Diag%DryDepZLfrac                        => NULL()
     State_Diag%DryDepVelForALT1                    => NULL()
     State_Diag%SpeciesConcALT1                     => NULL()
     State_Diag%Archive_DryDepRaALT1                = .FALSE.
-    State_Diag%Archive_DryDepZLfrac                = .FALSE.
     State_Diag%Archive_DryDepVelForALT1            = .FALSE.
     State_Diag%Archive_SpeciesConcALT1             = .FALSE.
 
@@ -3102,25 +3098,6 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Dry deposition z/L at a user-defined altitude above the surface
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%DryDepZLfrac'
-       diagID  = 'DryDepZLfrac'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagId,  Found,  RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%DryDepZLfrac( IM, JM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%DryDepZLfrac = 0.0_f8
-          State_Diag%Archive_DryDepZLfrac = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%DryDepZLfrac,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
        ! Species concentration at user-defined height above surface
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%SpeciesConcALT1'
@@ -3151,7 +3128,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 4
+       DO N = 1, 3
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -3159,9 +3136,7 @@ CONTAINS
                 diagID = 'DryDepRaALT1'
              CASE( 2  )
                 diagID = 'DryDepVelForALT1'
-             CASE( 3  )
-                diagID = 'DryDepZLfrac'
-             CASE( 4 )
+             CASE( 3 )
                 diagID = 'SpeciesConcALT1'
           END SELECT
 
@@ -6495,7 +6470,6 @@ CONTAINS
      State_Diag%Archive_ConcAboveSfc =                                       &
                                  ( State_Diag%Archive_SpeciesConcALT1  .and. &
                                    State_Diag%Archive_DryDepRaALT1     .and. &
-                                   State_Diag%Archive_DryDepZLfrac     .and. &
                                    State_Diag%Archive_DryDepVelForALT1     )
      
     !=======================================================================
@@ -8135,13 +8109,6 @@ CONTAINS
        State_Diag%DryDepVelForALT1 => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%DryDepZLfrac ) ) THEN
-       DEALLOCATE( State_Diag%DryDepZLfrac, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%DryDepZLfrac', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepZLfrac => NULL()
-    ENDIF
-
     IF ( ASSOCIATED( State_Diag%SpeciesConcALT1 ) ) THEN
        DEALLOCATE( State_Diag%SpeciesConcALT1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%SpeciesConcALT1', 2, RC )
@@ -9583,13 +9550,6 @@ CONTAINS
        IF ( isUnits   ) Units = 'cm s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRYALT'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPZLFRAC' ) THEN
-       IF ( isDesc    ) Desc  = 'Fraction of the time that z/L <= 1 '     // &
-                                ' in dry deposition'
-       IF ( isUnits   ) Units = '1'
-       IF ( isRank    ) Rank  = 2
-       IF ( isType    ) Type  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESCONC'                       // &
                                        TRIM( TmpHt_AllCaps ) )  THEN

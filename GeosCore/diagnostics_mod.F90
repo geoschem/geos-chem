@@ -596,26 +596,22 @@ CONTAINS
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
-             ! Only archive into the diagnostic if the M-O similarity applies
-             ! (i.e. if the DryDepZLfrac diagnostic is not zero)
-             IF ( State_Diag%DryDepZLfrac(I,J) > 0.0_f8 ) THEN
+             ! Species concentration [v/v dry]
+             TmpVal = State_Chm%Species(I,J,1,N)
 
-                ! Species concentration [v/v dry]
-                TmpVal = State_Chm%Species(I,J,1,N)
+             ! Conversion factor used to translate from
+             ! lowest model layer (~60m) to the surface
+             Conv = ( 1.0_fp                                              &
+                  -   ( State_Diag%DryDepRaALT1(I,J) / 100.0_fp )         &
+                  *   State_Diag%DryDepVelForALT1(I,J,D)                 )
 
-                ! Conversion factor used to translate from
-                ! lowest model layer (~60m) to the surface
-                Conv = ( 1.0_fp                                              &
-                     -   ( State_Diag%DryDepRaALT1(I,J) / 100.0_fp )         &
-                     *   State_Diag%DryDepVelForALT1(I,J,D)                 )
+             ! Do not let CONV go negative
+             IF ( Conv < 0.0_fp ) Conv = 1.0_fp
 
-                ! Do not let CONV go negative
-                IF ( Conv < 0.0_fp ) Conv = 1.0_fp
+             ! Save concentration at the user-defined altitude
+             ! as defined in input.geos (usually 10m).
+             State_Diag%SpeciesConcALT1(I,J,D) = TmpVal * Conv
 
-                ! Save concentration at the user-defined altitude
-                ! as defined in input.geos (usually 10m).
-                State_Diag%SpeciesConcALT1(I,J,D) = TmpVal * Conv
-             ENDIF
           ENDDO
           ENDDO
        ENDDO
