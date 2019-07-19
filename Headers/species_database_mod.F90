@@ -561,7 +561,7 @@ CONTAINS
     ! Local parameter
     LOGICAL,  PARAMETER :: T        = .TRUE.         ! Yes
     LOGICAL,  PARAMETER :: F        = .FALSE.        ! No
-    REAL(f8), PARAMETER :: To_M_atm = 9.86923e-3_f8  ! mol/m3/Pa -> M/atm
+    REAL(f8), PARAMETER :: To_M_atm = 101.325_f8     ! mol/m3/Pa -> M/atm
 
     !=====================================================================
     ! Spc_Info begins here!
