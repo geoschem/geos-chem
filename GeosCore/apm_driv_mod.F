@@ -1237,15 +1237,12 @@
      &   (VOL*State_Chm%SpcData(APMIDS%id_TSOG3)%Info%emMW_g*
      &    1.d-3)*6.02d17
 
-        CSOG(5)=Spc(I,J,L,APMIDS%id_ISOG1)/
-     &   (VOL*State_Chm%SpcData(APMIDS%id_ISOG1)%Info%emMW_g*
-     &    1.d-3)*6.02d17
-        CSOG(6)=Spc(I,J,L,APMIDS%id_ISOG2)/
-     &   (VOL*State_Chm%SpcData(APMIDS%id_ISOG2)%Info%emMW_g*
-     &    1.d-3)*6.02d17
-        CSOG(7)=Spc(I,J,L,APMIDS%id_ISOG3)/
-     &   (VOL*State_Chm%SpcData(APMIDS%id_ISOG3)%Info%emMW_g*
-     &    1.d-3)*6.02d17
+        ! Isoprene SOA from Pye et al. (2010) has been removed; 
+        ! the mechanistic isoprene SOA from Marais et al. is used instead.
+        ! Set to low value to avoid breaking APM. (mps, 7/15/19)
+        CSOG(5) = 1.0e-30
+        CSOG(6) = 1.0e-30
+        CSOG(7) = 1.0e-30
 
         CSOG(8) =Spc(I,J,L,APMIDS%id_ASOG1)/
      &   (VOL*State_Chm%SpcData(APMIDS%id_ASOG1)%Info%emMW_g*
