@@ -42,16 +42,7 @@ MODULE History_Mod
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  02 Aug 2017 - R. Yantosca - Added History_Update routine
-!  14 Aug 2017 - R. Yantosca - Now read the "acc_interval" field for
-!                              time-averaged data collections
-!  16 Aug 2017 - R. Yantosca - Add subroutine TestTimeForAction to avoid
-!                              duplicating similar code
-!  16 Aug 2017 - R. Yantosca - Now close all netCDF files in routine
-!                              History_Close_AllFiles
-!  18 Aug 2017 - R. Yantosca - Added routine History_SetTime
-!  02 Oct 2017 - R. Yantosca - Added CollectionFileName
-!  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,7 +61,8 @@ MODULE History_Mod
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionAccInterval(:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionDuration   (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionMode       (:  )
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionSubset     (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionLonRange   (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionLatRange   (:  )
   INTEGER,                 ALLOCATABLE :: CollectionSubsetInd  (:,:)
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionLevels     (:  )
   INTEGER,                 ALLOCATABLE :: CollectionLevelInd   (:,:)
@@ -142,9 +134,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  06 Nov 2017 - R. Yantosca - Reorder arguments for consistency (Input_Opt, 
-!                              then State_Met, State_Chm, State_Diag).
-!  29 May 2019 - R. Yantosca - Remove call to History_Netcdf_Init
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,10 +227,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
-!  15 Aug 2017 - R. Yantosca - Now initialize string arrays to UNDEFINED_STR
-!  02 Oct 2017 - R. Yantosca - Now initialize CollectionFileName
-!  28 Feb 2018 - R. Yantosca - Now use the CollList object from diaglist_mod
-!                              to get the collection names
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -410,26 +397,26 @@ CONTAINS
        CollectionMode = UNDEFINED_STR
     ENDIF
 
-    ! Allocate CollectionSubset
-    IF ( .not. ALLOCATED( CollectionSubset ) ) THEN
-       ALLOCATE( CollectionSubset( CollectionCount ), STAT=RC )
+    ! Allocate CollectionLonRange
+    IF ( .not. ALLOCATED( CollectionLonRange ) ) THEN
+       ALLOCATE( CollectionLonRange( CollectionCount ), STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN 
-          ErrMsg = 'Could not allocate "CollectionSubset"!'
+          ErrMsg = 'Could not allocate "CollectionLonRange"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionSubset = UNDEFINED_STR
+       CollectionLonRange = UNDEFINED_STR
     ENDIF
 
-    ! Allocate CollectionSubset
-    IF ( .not. ALLOCATED( CollectionSubset ) ) THEN
-       ALLOCATE( CollectionSubset( CollectionCount ), STAT=RC )
+    ! Allocate CollectionLatRange
+    IF ( .not. ALLOCATED( CollectionLatRange ) ) THEN
+       ALLOCATE( CollectionLatRange( CollectionCount ), STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN 
-          ErrMsg = 'Could not allocate "CollectionSubset"!'
+          ErrMsg = 'Could not allocate "CollectionLatRange"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionSubset = UNDEFINED_STR
+       CollectionLatRange = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionSubsetInd
@@ -520,18 +507,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
-!  03 Aug 2017 - R. Yantosca - Pass OPERATION to History_AddItemToCollection
-!  14 Aug 2017 - R. Yantosca - FileWrite{Ymd,Hms} and FileClose{Ymd,Hms} are
-!                              now computed properly, w/r/t acc_interval
-!  30 Aug 2017 - R. Yantosca - Now write collection info only on the root CPU
-!  18 Sep 2017 - R. Yantosca - Don't allow acc_interval for inst collections
-!  29 Sep 2017 - R. Yantosca - Now get the starting and ending date/time info
-!                              from the Input_Opt object
-!  24 Jan 2018 - E. Lundgren - Allow diagnostic names to include input params
-!  06 Feb 2018 - E. Lundgren - Change TS_DYN units from minutes to seconds
-!   9 Mar 2018 - R. Yantosca - Now accept "YYYYMMDD hhmmss" as the long format
-!                              for collection frequency and duration attrs
-!  12 Oct 2018 - M. Sulprizio- Add 'End' option for frequency and duration
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -584,7 +560,8 @@ CONTAINS
     CHARACTER(LEN=512)           :: ErrMsg
 
     ! Arrays
-    REAL(f8)                     :: Subset(4)
+    REAL(f8)                     :: Subset(2)
+    INTEGER                      :: Levels(200)
     CHARACTER(LEN=255)           :: Subs1(255)
     CHARACTER(LEN=255)           :: Subs2(255)
     CHARACTER(LEN=255)           :: SubStrs(255)
@@ -625,6 +602,8 @@ CONTAINS
     hhmmss         =  Input_Opt%NhmsB
     yyyymmdd_end   =  Input_Opt%NymdE
     hhmmss_end     =  Input_Opt%NhmsE
+    Subset         =  UNDEFINED_DBL
+    Levels         =  UNDEFINED_INT
 
     ! Compute the YMD and HMS intervals for collections specified with "End",
     ! such as for restart files.  NOTE: This algorithm should work with most
@@ -948,9 +927,9 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! "subset": Specifies a rectangular subset of the data grid.
-       ! The required order is: lonMin, lonMax, latMin, latMax
-       Pattern = 'subset'
+       ! "LON_RANGE": Specifies a longitude range for subsetting 
+       ! the data grid. The required order is: lonMin, lonMax
+       Pattern = 'LON_RANGE'
        Subset  =  UNDEFINED_DBL
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
 
@@ -960,18 +939,18 @@ CONTAINS
              
              ! Replace any commas with spaces
              CALL StrRepl( Subs1(2), ",", " " )
-             CollectionSubset(C) = Subs1(2)
+             CollectionLonRange(C) = Subs1(2)
           
              ! Then split by spaces and convert to INTEGER
-             CALL StrSplit( CollectionSubset(C), " ", Subs2, nSubs2 )
-             IF ( nSubs2 == 4 ) THEN
+             CALL StrSplit( CollectionLonRange(C), " ", Subs2, nSubs2 )
+             IF ( nSubs2 == 2 ) THEN
                 DO N = 1, nSubs2
                    READ( Subs2(N), '(f13.6)' ) Subset(N)
                 ENDDO
              ELSE
-                ErrMsg = 'Subsets must be specified as '                  // &
-                         'lonMin lonMax latMin latMax!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                ErrMsg = 'Subsets must be specified as: lonmin, lonmax!'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                 RETURN
              ENDIF
              
@@ -987,18 +966,6 @@ CONTAINS
                 ENDIF
              ENDDO
 
-             ! Find the latitude indices for latMin and latMax values
-             DO Y = 1, SIZE( Grid_LatE )-1
-                IF ( Grid_LatE(Y  ) <= Subset(3)  .and.                      &
-                     Grid_LatE(Y+1) >  Subset(3) ) THEN
-                   CollectionSubsetInd(3,C) = Y
-                ENDIF
-                IF ( Grid_LatE(Y  ) <= Subset(4)  .and.                      &
-                     Grid_LatE(Y+1) >  Subset(4) ) THEN
-                   CollectionSubsetInd(4,C) = Y
-                ENDIF
-             ENDDO
-             
              ! Error check longitudes
              DO N = 1, 2
                 IF ( CollectionSubsetInd(N,C) < -180.0_f8  .or.              &
@@ -1010,7 +977,48 @@ CONTAINS
                    RETURN
                 ENDIF
              ENDDO
+          ENDIF
+       ENDIF
 
+       ! "LON_RANGE": Specifies a latitude range for subsetting 
+       ! the data grid. The required order is: latMin, latMax
+       Pattern = 'LAT_RANGE'
+       Subset  =  UNDEFINED_DBL
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+
+          ! First split the line by colon
+          CALL StrSplit( Line, ":", Subs1, nSubs1 )
+          IF ( C > 0 ) THEN
+             
+             ! Replace any commas with spaces
+             CALL StrRepl( Subs1(2), ",", " " )
+             CollectionLatRange(C) = Subs1(2)
+          
+             ! Then split by spaces and convert to INTEGER
+             CALL StrSplit( CollectionLatRange(C), " ", Subs2, nSubs2 )
+             IF ( nSubs2 == 2 ) THEN
+                DO N = 1, nSubs2
+                   READ( Subs2(N), '(f13.6)' ) Subset(N)
+                ENDDO
+             ELSE
+                ErrMsg = 'Subsets must be specified as: latMin, latMax!'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+             
+             ! Find the latitude indices for latMin and latMax values
+             DO Y = 1, SIZE( Grid_LatE )-1
+                IF ( Grid_LatE(Y  ) <= Subset(1)  .and.                      &
+                     Grid_LatE(Y+1) >  Subset(1) ) THEN
+                   CollectionSubsetInd(3,C) = Y
+                ENDIF
+                IF ( Grid_LatE(Y  ) <= Subset(2)  .and.                      &
+                     Grid_LatE(Y+1) >  Subset(2) ) THEN
+                   CollectionSubsetInd(4,C) = Y
+                ENDIF
+             ENDDO
+             
              ! Error check latitudes
              DO N = 3, 4
                 IF ( CollectionSubsetInd(N,C) < -90.0_f8  .or.               &
@@ -1038,16 +1046,37 @@ CONTAINS
              CollectionLevels(C) = Subs1(2)
 
              ! Then split by spaces and convert to INTEGER
+             ! Also compute the min and max level
              CALL StrSplit( CollectionLevels(C), " ", Subs2, nSubs2 )
-             IF ( nSubs2 == 2 ) THEN
+             IF ( nSubs2 <= SIZE( Levels ) ) THEN
                 DO N = 1, nSubs2
-                   READ( Subs2(N), '(i10)' ) CollectionLevelInd(N,C)
+                   READ( Subs2(N), '(i10)' ) Levels(N)
+                   IF ( Levels(N) < 0 ) THEN
+                      ErrMsg = TRIM( CollectionName(C) ) // '.levels '    // &
+                               'must not have any negative values!'
+                      WRITE( ErrorLine, 250 ) LineNum
+                      CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                      RETURN
+                   ENDIF
                 ENDDO
              ELSE
-                ErrMsg = 'Levels must be specified as levMin levMax!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                ErrMsg = 'Too many levels specified for collection "'     // &
+                          TRIM( CollectionName(C) ) // '" Must be <= 200.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                 RETURN
              ENDIF
+
+             ! Of all the levels that are specified, store the min and max
+             ! in the CollectionLevelInd array.  We will save out all of
+             ! the levels between the min and max.
+             ! NOTE: GCHP HISTORY can archive out individual levels, but
+             ! this is trickier to implement in GC "Classic".  It is easier
+             ! to point to a contiguous array subslice, so we will just
+             ! archive everything between the min and max level for the
+             ! time being. (bmy, 7/18/19)
+             CollectionLevelInd(1,C) = MINVAL( Levels(1:nSubs2) )
+             CollectionLevelInd(2,C) = MAXVAL( Levels(1:nSubs2) )
           ENDIF
        ENDIF
 
@@ -1710,13 +1739,19 @@ CONTAINS
           ENDIF
           print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
           print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
-          IF ( CollectionSubset(C) /= UNDEFINED_STR ) THEN
-             print*, '  -> Subset       ',                                   &
-                  TRIM(ADJUSTL(ADJUSTR( CollectionSubset(C) )))
-             print*, '  -> X0 X1 Y0 Y1  ', ((CollectionSubsetInd(N,C)), N=1,4)
+          IF ( CollectionLonRange(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> LON_RANGE    ',                                   &
+                  TRIM(ADJUSTL(ADJUSTR( CollectionLonRange(C) )))
+             print*, '     -> X0 X1  ', ((CollectionSubsetInd(N,C)), N=1,2)
+          ENDIF
+          IF ( CollectionLatRange(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> LAT_RANGE    ',                                   &
+                  TRIM(ADJUSTL(ADJUSTR( CollectionLatRange(C) )))
+             print*, '     -> Y0 Y1  ', ((CollectionSubsetInd(N,C)), N=3,4)
           ENDIF
           IF ( CollectionLevels(C) /= UNDEFINED_STR ) THEN
-             print*, '  -> Z0 Z1        ', ((CollectionLevelInd(N,C)), N=1,2)
+             print*, '  -> Levels    ' , TRIM( CollectionLevels(C) )
+             print*, '     -> Z0 Z1  ', ((CollectionLevelInd(N,C)), N=1,2)
           ENDIF
 
           ! Trap error if the collection frequency is undefined
@@ -1807,10 +1842,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  03 Aug 2017 - R. Yantosca - Inherit operation code from the Collection
-!  26 Sep 2017 - E. Lundgren - Replace Lookup_State_xx calls with direct
-!                              calls to Registry_Lookup
-!  01 Nov 2017 - R. Yantosca - Make the registry lookup case-insensitive
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2305,8 +2337,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Aug 2017 - R. Yantosca - Initial version
-!  29 Aug 2017 - R. Yantosca - Remove HeartBeatDtMin as an argument; now the
-!                              Container object contains heartbeat timesteps
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2405,12 +2436,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
-!  11 Aug 2017 - R. Yantosca - Remove references to 0d pointers, data arrays
-!  16 Aug 2017 - R. Yantosca - Now call TestTimeForAction to test if it is
-!                              time to update the diagnostic collection.
-!  21 Aug 2017 - R. Yantosca - Now get yyyymmdd, hhmmss from the container
-!  05 Mar 2019 - R. Yantosca - Call HistContainer_UpdateIvalSet to recompute
-!                              the UpdateAlarm interval for intervals > 1 mon.
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2765,10 +2791,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
-!  21 Aug 2017 - R. Yantosca - Now get yyyymmdd, hhmmss from the container
-!  28 Aug 2017 - R. Yantosca - Now save the species units to the container
-!  06 Sep 2017 - R. Yantosca - Now recompute the file write and file close
-!                               intervals, if they are 1 month or longer
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2964,15 +2987,9 @@ CONTAINS
     CHARACTER(LEN=255), INTENT(OUT) :: MetaData      ! Metadata value
     INTEGER,            INTENT(OUT) :: nCollection   ! Collection Id
 !
-!
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  03 Aug 2017 - R. Yantosca - Make search algorithm more robust
-!  14 Aug 2017 - R. Yantosca - Initialize MetaData and nCollection
-!  15 Aug 2017 - R. Yantosca - Bug fix: TRIM string arguments to INDEX, and
-!                              initialize output arguments to undefined values
-!  01 Nov 2017 - R. Yantosca - Now get CleanText from charpak_mod.F90
-!  18 Jan 2018 - R. Yantosca - Bug fix: now DO N = 1, CollectionCount
+!  16 Aug 2017 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3082,6 +3099,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2017 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3170,11 +3188,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
-!  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close to close open files
-!  16 Aug 2017 - R. Yantosca - Move netCDF close code to History_Close_AllFiles
-!  26 Sep 2017 - R. Yantosca - Now call MetaHistItem_Destroy to finalize the
-!                              ContainerList object, instead of DEALLOCATE
-!  29 May 2019 - R. Yantosca - Remove call to History_Netcdf_Cleanup
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3244,15 +3258,6 @@ CONTAINS
         ENDIF
      ENDIF
 
-     IF ( ALLOCATED( CollectionSubset ) ) THEN
-        DEALLOCATE( CollectionSubset, STAT=RC )
-        IF ( RC /= GC_SUCCESS ) THEN
-           ErrMsg = 'Could not deallocate "CollectionSubset"!'
-           CALL GC_Error( ErrMsg, RC, ThisLoc )
-           RETURN
-        ENDIF
-     ENDIF
-
      IF ( ALLOCATED( CollectionFormat ) ) THEN
         DEALLOCATE( CollectionFormat, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
@@ -3293,6 +3298,51 @@ CONTAINS
         DEALLOCATE( CollectionMode, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
            ErrMsg = 'Could not deallocate "CollectionMode"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionLonRange ) ) THEN
+        DEALLOCATE( CollectionLonRange, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionLonRange"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionLatRange ) ) THEN
+        DEALLOCATE( CollectionLatRange, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionLatRange"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionSubsetInd ) ) THEN
+        DEALLOCATE( CollectionSubsetInd, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionSubsetInd"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionLevels ) ) THEN
+        DEALLOCATE( CollectionLevels, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionLevels"!'
+           CALL GC_Error( ErrMsg, RC, ThisLoc )
+           RETURN
+        ENDIF
+     ENDIF
+
+     IF ( ALLOCATED( CollectionLevelInd ) ) THEN
+        DEALLOCATE( CollectionLevelInd, STAT=RC )
+        IF ( RC /= GC_SUCCESS ) THEN
+           ErrMsg = 'Could not deallocate "CollectionLevelInd"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF
