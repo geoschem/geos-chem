@@ -5,9 +5,6 @@ Status](https://travis-ci.org/JiaweiZhuang/geos-chem.svg?branch=travis_ci)](http
 
 This repository (https://github.com/gcst/geos-chem) contains the source code for the GEOS-Chem model of atmospheric chemistry and composition. 
 
-## We have migrated from Bitbucket to Github!
-As of June 2018, we have migrated the GEOS-Chem source code repository to back Github.  Going forward, please make sure to clone or pull code updates ONLY from this repository.
-
 ## GEOS-Chem Development
 
 ### Branches
@@ -62,6 +59,12 @@ To generate GEOS-Chem run directories, please clone the [__geos-chem-unittest__]
 We encourage GEOS-Chem users to use the Github issue tracker attached to this repository to report  bugs or technical issues with the GEOS-Chem code.
 
 You are also invited to direct GEOS-Chem support requests to the GEOS-Chem Support Team at geos-chem-support@as.harvard.edu.
+
+## License
+
+GEOS-Chem (and related software) is distributed under the MIT license.
+Please see the license documents LICENSE.txt and AUTHORS.txt in the root folder.
+
 
 14 Nov 2018
 GEOS-Chem Support Team
