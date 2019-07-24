@@ -694,7 +694,7 @@ CONTAINS
 !
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    INTEGER            :: I, J, M, N, numSpc, region
+    INTEGER            :: I, J, M, N, numSpc, region, PBL_TOP
 
     !====================================================================
     ! Compute_Column_Mass begins here!
@@ -769,8 +769,9 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           N = SpcMap(M)
+          PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
           colMass(I,J,N,region) =    &
-             SUM( State_Chm%Species(I,J,1:State_Met%PBL_TOP_L(I,J),N) )
+             SUM( State_Chm%Species(I,J,1:PBL_TOP,N) )
        ENDDO
        ENDDO
        ENDDO

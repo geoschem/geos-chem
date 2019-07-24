@@ -27,7 +27,6 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : g0
       USE PhysConstants,      ONLY : AVO
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PRECISION_MOD
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
@@ -474,7 +473,7 @@ c     &           'FLUX  AD44'
             ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the 
             ! fraction of each vertical level that is located below the PBL top
             RKT = DEPSAV(I,J,DRYD(BIN)) *
-     &            GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
+     &            State_Met%F_UNDER_PBLTOP(I,J,L)
 !debug            if(i==ii .and. j==jj .and. L==1) 
 c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             IF (RKT > 0d0) THEN 
@@ -539,7 +538,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
          !Dry deposit H2SO4 gas (win, 5/24/06)
          Y0 = Spc(I,J,L,id_H2SO4)
          RKT = DEPSAV(I,J,H2SO4ID) *
-     &         GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
+     &         State_Met%F_UNDER_PBLTOP(I,J,L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
 #if defined( BPCH_DIAG )

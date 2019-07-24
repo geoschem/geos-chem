@@ -22,7 +22,6 @@
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
 #endif
       USE ERROR_MOD                             ! Error handling routines
-      USE PBL_MIX_MOD                           ! Boundary layer quantities
 #if defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
@@ -825,7 +824,7 @@
          USTR(I,J)   = State_Met%USTAR(I,J)
 
          ! Mixed layer depth [m]
-         ZH(I,J)     = GET_PBL_TOP_m( I, J )
+         ZH(I,J)     = State_Met%PBL_TOP_m(I,J)
 
          ! Relative humidity @ surface [unitless] (bec, bmy, 4/13/05)
          !RHB(I,J)    = MIN( 0.99e+0_f8, RH(I,J,1) * 1.d-2 ) 

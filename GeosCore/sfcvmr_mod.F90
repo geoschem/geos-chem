@@ -62,7 +62,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
 
     ! Needed for the new CHxCly boundary condition
-    USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
     Use PhysConstants,      Only : AirMW
 !
 ! !INPUT PARAMETERS:
@@ -119,7 +118,7 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
+          IF ( State_Met%F_UNDER_PBLTOP(I,J,L) > 0e+0_fp ) THEN
              Spc(I,J,L,id_Spc) = 550e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes
@@ -138,7 +137,7 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
+          IF ( State_Met%F_UNDER_PBLTOP(I,J,L) > 0e+0_fp ) THEN
              Spc(I,J,L,id_Spc) = 20e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes
@@ -157,7 +156,7 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
+          IF ( State_Met%F_UNDER_PBLTOP(I,J,L) > 0e+0_fp ) THEN
              Spc(I,J,L,id_Spc) = 7e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes

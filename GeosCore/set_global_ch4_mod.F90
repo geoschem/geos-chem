@@ -62,7 +62,6 @@ CONTAINS
     USE HCO_Error_Mod
     USE HCO_INTERFACE_MOD, ONLY : HcoState
     USE Input_Opt_Mod,     ONLY : OptInput
-    USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
     USE State_Chm_Mod,     ONLY : ChmState, Ind_
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
@@ -187,7 +186,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Top level of boundary layer at (I,J)
-       PBL_TOP = CEILING( GET_PBL_TOP_L(I,J) )
+       PBL_TOP = CEILING( State_Met%PBL_TOP_L(I,J) )
 
        ! Surface CH4 from HEMCO is in units [ppbv], convert to [v/v dry]
        CH4 = SFC_CH4(I,J) * 1e-9_fp

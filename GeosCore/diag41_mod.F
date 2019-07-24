@@ -254,18 +254,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG41( State_Grid )
+      SUBROUTINE DIAG41( State_Grid, State_Met )
 !
 ! !USES:
 !
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_m
       USE TIME_MOD,       ONLY : GET_LOCALTIME
       USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 ! 
 ! !REVISION HISTORY:
 !  18 Nov 1999 - A. Fiore, S. Wu - Initial version
@@ -338,12 +338,12 @@
          IF ( N == 1 ) THEN
 
             ! Afternoon PBL top [m]
-            PBLTOP = GET_PBL_TOP_m( I, J ) * GOOD(I)
+            PBLTOP = State_Met%PBL_TOP_m(I,J) * GOOD(I)
 
          ELSE IF ( N == 2 ) THEN
 
             ! Afternoon PBL top [model layers]
-            PBLTOP = GET_PBL_TOP_L( I, J ) * GOOD(I)
+            PBLTOP = State_Met%PBL_TOP_L(I,J) * GOOD(I)
 
          ENDIF
            

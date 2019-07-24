@@ -2125,7 +2125,7 @@
 #if defined( BPCH_DIAG )
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
-            IF ( ND41 > 0 ) CALL DIAG41( State_Grid )
+            IF ( ND41 > 0 ) CALL DIAG41( State_Grid, State_Met )
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG41' )
 
             ! ND42: SOA concentrations [ug/m3]

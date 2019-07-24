@@ -825,7 +825,6 @@
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE ERROR_MOD,      ONLY : SAFE_DIV
       USE Input_Opt_Mod,  ONLY : OptInput
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,    ONLY : Species
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
@@ -1246,7 +1245,7 @@
      &           State_Met%AIRDEN(I,J,L) * 1e-6_fp
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
-         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
+         F_PBL = State_Met%F_UNDER_PBLTOP(I,J,L)
 
          ! Define K for the oxidation reaction with POPG [/s]
          K_OH  = K_POPG_OH * C_OH

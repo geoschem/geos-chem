@@ -222,7 +222,6 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE inquireMod,         ONLY : findFreeLun
       USE PhysConstants            ! XTRA2, XNUMOLAIR
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
@@ -887,7 +886,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X, State_Grid )
-               Q(X,Y,1) = GET_PBL_TOP_m( I, J )
+               Q(X,Y,1) = State_Met%PBL_TOP_m(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -909,7 +908,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X, State_Grid )
-               Q(X,Y,1) = GET_PBL_TOP_L( I, J )
+               Q(X,Y,1) = State_Met%PBL_TOP_L(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

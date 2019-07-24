@@ -430,7 +430,6 @@
       USE CMN_FJX_MOD,        ONLY : ISOPOD
       USE CMN_O3_MOD               ! SAVEOH, SAVEOA
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG, GET_TS_EMIS
@@ -837,7 +836,7 @@
                !--------------------------------------
                IF ( K == 1 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( GET_PBL_TOP_m( I, J ) * GOOD(I) )  
+     &                         ( State_Met%PBL_TOP_m(I,J) * GOOD(I) )  
                ENDIF
 
             ELSE IF ( N == 510 ) THEN
@@ -847,7 +846,7 @@
                !--------------------------------------
                IF ( K == 1 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                         ( GET_PBL_TOP_L( I, J ) * GOOD(I) )
+     &                         ( State_Met%PBL_TOP_L(I,J) * GOOD(I) )
                ENDIF
 
             ELSE IF ( N == 511 ) THEN
