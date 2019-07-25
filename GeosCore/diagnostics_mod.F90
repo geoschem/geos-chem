@@ -658,7 +658,7 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+!ewl    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
@@ -692,9 +692,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=63)  :: OrigUnit
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    INTEGER            :: I, J, M, N, numSpc, region, PBL_TOP
+    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+    INTEGER             :: I, J, L, M, N, numSpc, region, PBL_TOP
+    REAL*8, ALLOCATABLE :: SpcMass(:,:,:,:)    
 
     !====================================================================
     ! Compute_Column_Mass begins here!
@@ -704,24 +704,31 @@ CONTAINS
     RC      =  GC_SUCCESS
     ThisLoc = ' -> Compute_Column_Mass ' // ModLoc
     numSpc = SIZE(SpcMap)
-
-    ! Convert species units to kg
-    ! NOTE: If you wish to output different units, e.g. kg/m2/s instead of 
-    ! kg/s, update the unit string passed in the conversion subroutine below.
-    ! Removing the per seconds would not be done here, but in the subroutine
-    ! that follows to compute the budget diagnostic. Also update the budget 
-    ! diagnostic units metadata in state_diag_mod.F90 within subroutine 
-    ! Get_Metadata_State_Diag (ewl, 9/26/18)
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg',      &
-                            RC,         OrigUnit=OrigUnit     )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Start with all zeros
     colMass = 0.0_f8
+
+    ! Get concentrations in units of kg. Incoming units should be kg/kg dry.
+    IF (State_Chm%Spc_Units == 'kg/kg dry' ) THEN
+       ALLOCATE(SpcMass(State_Grid%NX, State_Grid%NY, State_Grid%NZ, numSpc))
+    ELSE
+       CALL GC_Error( 'State_Chm%Species units must be kg/kg dry. '// &
+                      'Incorrect units: '//TRIM(State_Chm%Spc_Units),  &
+                      RC, ThisLoc )
+      RETURN
+    ENDIF
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED )  &
+    !$OMP PRIVATE( I, J, L, M, N )
+    DO M = 1, numSpc
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+       N = SpcMap(M)
+       SpcMass(I,J,L,M) = State_Chm%Species(I,J,L,N) * State_Met%AD(I,J,L)
+    ENDDO
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
 
     ! Full column
     IF ( isFull ) THEN
@@ -733,8 +740,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           N = SpcMap(M)
-          colMass(I,J,N,region) =    &
-                  SUM( State_Chm%Species(I,J,:,N) )
+          colMass(I,J,N,region) = SUM(SpcMass(I,J,:,M))
        ENDDO
        ENDDO
        ENDDO
@@ -751,8 +757,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           N = SpcMap(M)
-          colMass(I,J,N,region) =    &
-             SUM( State_Chm%Species(I,J,1:State_Met%TropLev(I,J),N) )
+          colMass(I,J,N,region) = SUM(SpcMass(I,J,1:State_Met%TropLev(I,J),M))
        ENDDO
        ENDDO
        ENDDO
@@ -770,21 +775,15 @@ CONTAINS
        DO I = 1, State_Grid%NX
           N = SpcMap(M)
           PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-          colMass(I,J,N,region) =    &
-             SUM( State_Chm%Species(I,J,1:PBL_TOP,N) )
+          colMass(I,J,N,region) = SUM(SpcMass(I,J,1:PBL_TOP,M))
        ENDDO
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
 
-    ! Convert species conc back to original units
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-       RETURN
-    ENDIF
+    ! Clean up
+    DEALLOCATE(SpcMass)
 
   END SUBROUTINE Compute_Column_Mass
 !EOC
