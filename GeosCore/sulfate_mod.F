@@ -1077,7 +1077,6 @@
 #endif
       USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
@@ -1272,7 +1271,7 @@
          Mdiag(:) = 0.0D0
 
          ! Top level of boundary layer at (I,J)
-         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+         NTOP = CEILING( State_Met%PBL_TOP_L(I,J) )
 
          ! Zero SO4 array at all levels
          DO L = 1, State_Grid%NZ
@@ -1307,7 +1306,7 @@
             DO L = 1, State_Grid%NZ
 
                ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-               EFRAC(L)  = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+               EFRAC(L)  = State_Met%F_OF_PBL(I,J,L)
 
             ENDDO
 !         ELSE
@@ -6490,7 +6489,6 @@
       USE APM_INIT_MOD,       ONLY : IFEMITBCOCS
       USE APM_DRIV_MOD,       ONLY : PSO4GAS
       USE APM_DRIV_MOD,       ONLY : FCLOUD
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE WETSCAV_MOD,        ONLY : PSO4_SO2APM2
 #endif
 !
@@ -7906,7 +7904,6 @@
 ! (jas, 8/4/15) calculate kt using sea salt surface area concentration
       USE CMN_SIZE_MOD,       ONLY : NDUST
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
@@ -8014,13 +8011,13 @@
 !      ALK2  = ALK_EMIS(I,J,L,2)
 
       ! Layer in which the PBL top occurs
-      NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+      NTOP = CEILING( State_Met%PBL_TOP_L(I,J) )
       
       ! Do the following only if we are within the PBL
       IF ( L <= NTOP ) THEN      
 
          ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-         FEMIS = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+         FEMIS = State_Met%F_OF_PBL(I,J,L)
          
          ! Uncomment the following line to reproduce pre-HEMCO code.
          ! FEMIS = 1.0d0

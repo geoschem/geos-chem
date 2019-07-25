@@ -1278,7 +1278,6 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
@@ -1444,13 +1443,13 @@
                !===============================================================
 
                ! Layer in which the PBL top occurs
-               NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+               NTOP = CEILING( State_Met%PBL_TOP_L(I,J))
              
                ! Loop thru the boundary layer
                DO L = 1, NTOP
 
                   ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-                  FEMIS = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+                  FEMIS = State_Met%F_OF_PBL(I,J,L)
 
                !================================================================
                ! Add sea-salt number to the tracer array
@@ -1519,7 +1518,6 @@
       USE ERROR_MOD,      ONLY : DEBUG_MSG, ERROR_STOP
       USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE APM_INIT_MOD,   ONLY : DFMSALT9  ! kg m-2 s-1
       USE APM_INIT_MOD,   ONLY : IFSSTSCALE
@@ -1649,13 +1647,13 @@
       DO I = 1, State_Grid%NX
 
          ! Layer in which the PBL top occurs
-         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+         NTOP = CEILING( State_Met%PBL_TOP_L(I,J) )
 
          ! Loop thru the boundary layer
          DO L = 1, NTOP
 
             ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-            FEMIS             = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+            FEMIS             = State_Met%F_OF_PBL(I,J,L)
 
             ! Add seasalt emissions into box (I,J,L) [kg]
             TC(I,J,L,N)       = TC(I,J,L,N) + FEMIS * SALT(I,J)

@@ -25,20 +25,8 @@
 !
       PUBLIC  :: CLEANUP_PBL_MIX
       PUBLIC  :: DO_PBL_MIX
-      PUBLIC  :: GET_FRAC_OF_PBL
-      PUBLIC  :: GET_FRAC_UNDER_PBLTOP
-      PUBLIC  :: GET_PBL_MAX_L
-      PUBLIC  :: GET_PBL_TOP_hPa
-      PUBLIC  :: GET_PBL_TOP_L
-      PUBLIC  :: GET_PBL_TOP_m
-      PUBLIC  :: GET_PBL_THICK
       PUBLIC  :: INIT_PBL_MIX
       PUBLIC  :: COMPUTE_PBL_HEIGHT
-
-#if defined ( DEVEL )
-      PUBLIC :: PBL_TOP_L, PBL_TOP_m
-#endif
-
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -65,36 +53,10 @@
 !
 ! !PRIVATE TYPES:
 !
-      !=================================================================
-      ! MODULE VARIABLES
-      !
-      ! IMIX        : Array for integer # of levels under PBL top
-      ! FPBL        : Array for frac # of levels under PBL top
-      ! F_OF_PBL    : Array for frac of box (I,J,L) w/in PBL
-      ! F_UNDER_TOP : Array for frac of box (I,J,L) under PBL top
-      ! PBL_TOP_hPa : Array for PBL top [hPa]
-      ! PBL_TOP_L   : Array for PBL top [model levels]
-      ! PBL_TOP_m   : Array for PBL top [m]
-      ! PBL_THICK   : Array for PBL thickness [hPa]
-      !=================================================================
-
-      ! Scalars
-      INTEGER                :: PBL_MAX_L
-      
       ! Arrays
-      INTEGER,   ALLOCATABLE :: IMIX(:,:)
-      REAL(fp),  ALLOCATABLE :: FPBL(:,:)
-      REAL(fp),  ALLOCATABLE :: F_OF_PBL(:,:,:)
-      REAL(fp),  ALLOCATABLE :: F_UNDER_TOP(:,:,:)
-      REAL(fp),  ALLOCATABLE :: PBL_TOP_hPa(:,:)
-      REAL(fp),  ALLOCATABLE :: PBL_TOP_L(:,:)
-      REAL(fp),  ALLOCATABLE :: PBL_TOP_m(:,:)
-      REAL(fp),  ALLOCATABLE :: PBL_THICK(:,:)
-      REAL(fp),  ALLOCATABLE :: XTRA2(:,:)
+      INTEGER,   ALLOCATABLE :: IMIX(:,:)  ! # of levels under PBL top
+      REAL(fp),  ALLOCATABLE :: FPBL(:,:)  ! frac # of levels under PBL top
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -472,21 +434,16 @@
      &                                    ( P(LTOP-1) - P(LTOP) ) 
 
          ! PBL top [model layers]
-         PBL_TOP_L(I,J)           = FLOAT( IMIX(I,J) - 1 ) + FPBL(I,J)
-
-         ! PBL top level [integral model layers]
-         ! This is needed by the non-local PBL mixing scheme to
-         ! apply emissions in the boundary layer (bmy, 8/22/14)
-         State_Met%PBL_TOP_L(I,J) = MAX( 1, FLOOR( PBL_TOP_L(I,J) ) )
+         State_Met%PBL_TOP_L(I,J) = FLOAT( IMIX(I,J) - 1 ) + FPBL(I,J)
 
          ! PBL top [hPa]
-         PBL_TOP_hPa(I,J)         = BLTOP
+         State_Met%PBL_TOP_hPa(I,J) = BLTOP
 
          ! Zero PBL top [m] -- compute below
-         PBL_TOP_m(I,J)           = 0e+0_fp
+         State_Met%PBL_TOP_m(I,J) = 0e+0_fp
 
          ! PBL thickness [hPa]
-         PBL_THICK(I,J)           = BLTHIK
+         State_Met%PBL_THICK(I,J) = BLTHIK
 
          !==============================================================
          ! Loop up to edge of chemically-active grid
@@ -503,14 +460,14 @@
                !--------------------------------------------
 
                ! Fraction of grid box (I,J,L) w/in the PBL
-               F_OF_PBL(I,J,L)    = DELP / BLTHIK
+               State_Met%F_OF_PBL(I,J,L) = DELP / BLTHIK
 
                ! Fraction of grid box (I,J,L) underneath PBL top
-               F_UNDER_TOP(I,J,L) = 1e+0_fp
+               State_Met%F_UNDER_PBLTOP(I,J,L) = 1e+0_fp
 
                ! PBL height [m]
-               PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) +
-     &                              State_Met%BXHEIGHT(I,J,L)
+               State_Met%PBL_TOP_m(I,J) = State_Met%PBL_TOP_m(I,J) +
+     &                                    State_Met%BXHEIGHT(I,J,L)
 
             ELSE IF ( L == IMIX(I,J) ) THEN
 
@@ -519,15 +476,15 @@
                !--------------------------------------------
 
                ! Fraction of grid box (I,J,L) w/in the PBL
-               F_OF_PBL(I,J,L)    = ( P(L-1) - BLTOP ) / BLTHIK
+               State_Met%F_OF_PBL(I,J,L) = ( P(L-1) - BLTOP ) / BLTHIK
 
                ! Fraction of grid box (I,J,L) underneath PBL top
-               F_UNDER_TOP(I,J,L) = FPBL(I,J) 
+               State_Met%F_UNDER_PBLTOP(I,J,L) = FPBL(I,J) 
                
                ! PBL height [m] 
-               PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + 
-     &                            ( State_Met%BXHEIGHT(I,J,L) *
-     &                              FPBL(I,J) )
+               State_Met%PBL_TOP_m(I,J) = State_Met%PBL_TOP_m(I,J) + 
+     &                                  ( State_Met%BXHEIGHT(I,J,L) *
+     &                                    FPBL(I,J) )
 
             ELSE
 
@@ -536,10 +493,10 @@
                !--------------------------------------------
 
                ! Fraction of grid box (I,J,L) w/in the PBL
-               F_OF_PBL(I,J,L)    = 0e+0_fp
+               State_Met%F_OF_PBL(I,J,L)    = 0e+0_fp
 
                ! Fraction of grid box (I,J,L) underneath PBL top
-               F_UNDER_TOP(I,J,L) = 0e+0_fp
+               State_Met%F_UNDER_PBLTOP(I,J,L) = 0e+0_fp
                
             ENDIF 
 
@@ -550,26 +507,27 @@
 !               PRINT*, '### I, J, L     : ', I, J, L
 !               PRINT*, '### P(L-1)      : ', P(L-1)
 !               PRINT*, '### P(L)        : ', P(L)
-!               PRINT*, '### PBL(I,J)    : ', PBL(I,J)
-!               PRINT*, '### F_OF_PBL    : ', F_OF_PBL(I,J,L)
-!               PRINT*, '### F_UNDER_TOP : ', F_UNDER_TOP(I,J,L)
+!               PRINT*, '### F_OF_PBL    : ', State_Met%F_OF_PBL(I,J,L)
+!               PRINT*, '### F_UNDER_TOP : ', 
+!     &                  State_Met%F_UNDER_PBLTOP(I,J,L)
 !               PRINT*, '### IMIX        : ', IMIX(I,J)
 !               PRINT*, '### FPBL        : ', FPBL(I,J)
-!               PRINT*, '### PBL_TOP_hPa : ', PBL_TOP_hPa(I,J)
-!               PRINT*, '### PBL_TOP_L   : ', PBL_TOP_L(I,J)
+!               PRINT*, '### PBL_TOP_hPa : ', State_Met%PBL_TOP_hPa(I,J)
+!               PRINT*, '### PBL_TOP_L   : ', State_Met%PBL_TOP_L(I,J)
 !               PRINT*, '### DELP        : ', DELP
 !               PRINT*, '### BLTHIK      : ', BLTHIK
 !               PRINT*, '### BLTOP       : ', BLTOP
-!               PRINT*, '### BXHEIGHT    : ', BXHEIGHT(I,J,L)
-!               PRINT*, '### PBL_TOP_m   : ', PBL_TOP_m(I,J)
+!               PRINT*, '### BXHEIGHT    : ', State_Met%BXHEIGHT(I,J,L)
+!               PRINT*, '### PBL_TOP_m   : ', State_Met%PBL_TOP_m(I,J)
 !               PRINT*, '### other way m : ', 
-!     &               P(0) * EXP( -PBL_TOP_hPa(I,J) / SCALE_HEIGHT )
+!     &          P(0) * EXP( -State_Met%PBL_TOP_hPa(I,J) / SCALE_HEIGHT )
 !            ENDIF
 
          ENDDO
 
          ! Error check
-         IF (ABS(SUM( F_OF_PBL(I,J,:) ) - 1.e+0_fp) > 1.e-3_fp) THEN
+         IF ( ABS( SUM( State_Met%F_OF_PBL(I,J,:) ) - 1.e+0_fp)
+     &        > 1.e-3_fp) THEN
 !$OMP CRITICAL
             PRINT*, 'bad sum at: ', I, J
             Bad_Sum = .TRUE.
@@ -587,7 +545,7 @@
       ENDIF
 
       ! Model level where PBL top occurs
-      PBL_MAX_L = MAXVAL( IMIX ) 
+      State_Met%PBL_MAX_L = MAXVAL( IMIX ) 
 
       END SUBROUTINE COMPUTE_PBL_HEIGHT
 !EOC
@@ -882,261 +840,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_frac_of_pbl
-!
-! !DESCRIPTION: Function GET\_FRAC\_OF\_PBL returns the fraction of grid box 
-!  (I,J,L) that lies within the planetary boundary layer.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_FRAC_OF_PBL( I, J, L, State_Grid ) RESULT( FRAC )
-!
-! !USES:
-!
-      USE State_Grid_Mod, ONLY : GrdState
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, lev indices
-      TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
-!
-! !RETURN VALUE:
-!
-      REAL(fp)              :: FRAC       ! Fraction of box (I,J,L) in the PBL
-! 
-! !REVISION HISTORY: 
-!  11 Feb 2005 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      !=================================================================
-      ! GET_FRAC_OF_PBL begins here!
-      !=================================================================
-      IF ( L <= State_Grid%MaxChemLev ) THEN
-         FRAC = F_OF_PBL(I,J,L)
-      ELSE
-         FRAC = 0e+0_fp
-      ENDIF
-
-      ! Return to calling program
-      END FUNCTION GET_FRAC_OF_PBL
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_frac_under_pbltop
-!
-! !DESCRIPTION: Function GET\_FRAC\_UNDER\_PBLTOP returns the fraction of 
-!  grid box (I,J,L) that lies underneath the planetary boundary layer top.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
-     &     RESULT( FRAC )
-!
-! !USES:
-!
-      USE State_Grid_Mod, ONLY : GrdState
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, level indices
-      TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
-!
-! !RETURN VALUE:
-!
-      REAL(fp) :: FRAC      ! Fraction of box (I,J,L) below PBL top
-! 
-! !REVISION HISTORY: 
-!  11 Feb 2005 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF ( L <= State_Grid%MaxChemLev ) THEN
-         FRAC = F_UNDER_TOP(I,J,L)
-      ELSE
-         FRAC = 0e+0_fp
-      ENDIF
-
-      END FUNCTION GET_FRAC_UNDER_PBLTOP
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_pbl_max_l
-!
-! !DESCRIPTION: Function GET\_PBL\_MAX\_L returns the model level at the 
-!  highest part of the planetary boundary layer.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PBL_MAX_L() RESULT( TOP )
-!
-! !RETURN VALUE:
-!
-      INTEGER  :: TOP   ! Highest extent of PBL [model levels]
-! 
-! !REVISION HISTORY: 
-!  11 Feb 2005 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      TOP = PBL_MAX_L
-
-      END FUNCTION GET_PBL_MAX_L
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_pbl_top_hpa
-!
-! !DESCRIPTION: Function GET\_PBL\_TOP\_hPa returns the planetary boundary 
-!  layer top [hPa] at a given GEOS-Chem surface location (I,J). 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PBL_TOP_hPa( I, J ) RESULT( TOP )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I, J   ! Lon and lat indices
-!
-! !RETURN VALUE:
-!
-      REAL(fp)              :: TOP    ! PBL top [hPa]
-!
-! !REVISION HISTORY: 
-!  11 Feb 2005 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      TOP = PBL_TOP_hPa(I,J)
-
-      END FUNCTION GET_PBL_TOP_hPa
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_pbl_top_l
-!
-! !DESCRIPTION: Function GET\_PBL\_TOP\_L returns the planetary boundary 
-!  layer top [model levels] at a given GEOS-Chem surface location (I,J). 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PBL_TOP_L( I, J ) RESULT( TOP )
-!
-! !USES:
-!
-
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I, J   ! Lon and lat indices
-!
-! !RETURN VALUE:
-!
-      REAL(fp)            :: TOP    ! PBL top [model levels]
-! 
-! !REVISION HISTORY: 
-!  11 Feb 2005 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      TOP = PBL_TOP_L(I,J)
-
-      END FUNCTION GET_PBL_TOP_L
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_pbl_top_m
-!
-! !DESCRIPTION: Function GET\_PBL\_TOP\_m returns the planetary boundary 
-!  layer top [m] at a given GEOS-CHEM surface location (I,J). 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PBL_TOP_m( I, J ) RESULT( TOP )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I, J   ! Lon and lat indices
-!
-! !RETURN VALUE:
-!
-      REAL(fp)              :: TOP    ! PBL top [m]
-! 
-! !REVISION HISTORY: 
-!  11 Feb 2005 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      TOP = PBL_TOP_m(I,J)
-
-      END FUNCTION GET_PBL_TOP_m
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: 
-!
-! !DESCRIPTION: Function GET\_PBL\_THICK returns the thickness of the PBL
-!  at a given surface location (I,J).
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_PBL_THICK( I, J ) RESULT( THICK )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I, J    ! Lon and lat indices
-!
-! !RETURN VALUE:
-!
-      REAL(fp)              :: THICK   ! PBL thickness [hPa]
-! 
-! !REVISION HISTORY: 
-!  11 Feb 2005 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THICK = PBL_THICK(I,J)
-
-      END FUNCTION GET_PBL_THICK
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_pbl_mix
 !
 ! !DESCRIPTION: Subroutine INIT\_PBL\_MIX allocates and zeroes module arrays
@@ -1185,9 +888,6 @@
       ! done so.
       IF ( ALLOCATED( IMIX ) ) RETURN
 
-      ! Scalars
-      PBL_MAX_L = 0
-
       ! Arrays
       ALLOCATE( IMIX( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:IMIX', 0, RC )
@@ -1198,38 +898,6 @@
       CALL GC_CheckVar( 'pbl_mix_mod:FPBL', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       FPBL = 0.0_fp
-
-      ALLOCATE( F_OF_PBL( State_Grid%NX, State_Grid%NY,
-     &          State_Grid%MaxChemLev ), STAT=RC )
-      CALL GC_CheckVar( 'pbl_mix_mod:F_OF_PBL', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      F_OF_PBL = 0.0_fp
-
-      ALLOCATE( F_UNDER_TOP( State_Grid%NX, State_Grid%NY,
-     &          State_Grid%MaxChemLev ), STAT=RC )
-      CALL GC_CheckVar( 'pbl_mix_mod:F_UNDER_TOP', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      F_UNDER_TOP = 0.0_fp
-
-      ALLOCATE( PBL_TOP_hPa( State_Grid%NX, State_Grid%NY ), STAT=RC )
-      CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_hPa', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      PBL_TOP_hPa = 0.0_fp
-
-      ALLOCATE( PBL_TOP_L( State_Grid%NX, State_Grid%NY ), STAT=RC )
-      CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_L', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      PBL_TOP_L = 0.0_fp
-
-      ALLOCATE( PBL_TOP_m( State_Grid%NX, State_Grid%NY ), STAT=RC )
-      CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_m', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      PBL_TOP_m = 0.0_fp
-
-      ALLOCATE( PBL_THICK( State_Grid%NX, State_Grid%NY ), STAT=RC )
-      CALL GC_CheckVar( 'pbl_mix_mod:PBL_THICK', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      PBL_THICK = 0.0_fp
 
       END SUBROUTINE INIT_PBL_MIX
 !EOC
@@ -1259,12 +927,6 @@
       !=================================================================     
       IF ( ALLOCATED( IMIX        ) ) DEALLOCATE( IMIX        )
       IF ( ALLOCATED( FPBL        ) ) DEALLOCATE( FPBL        )
-      IF ( ALLOCATED( F_OF_PBL    ) ) DEALLOCATE( F_OF_PBL    )
-      IF ( ALLOCATED( F_UNDER_TOP ) ) DEALLOCATE( F_UNDER_TOP )
-      IF ( ALLOCATED( PBL_TOP_hPa ) ) DEALLOCATE( PBL_TOP_hPa )
-      IF ( ALLOCATED( PBL_TOP_L   ) ) DEALLOCATE( PBL_TOP_L   ) 
-      IF ( ALLOCATED( PBL_TOP_m   ) ) DEALLOCATE( PBL_TOP_m   ) 
-      IF ( ALLOCATED( PBL_THICK   ) ) DEALLOCATE( PBL_THICK   )
 
       END SUBROUTINE CLEANUP_PBL_MIX
 !EOC

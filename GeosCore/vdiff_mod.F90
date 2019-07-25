@@ -1934,8 +1934,7 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
-    USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
-                                   GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
+    USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -2295,7 +2294,7 @@ contains
     do I = 1, State_Grid%NX
 
        ! PBL top level [integral model levels]
-       topmix      = State_Met%PBL_TOP_L(I,J)
+       topmix      = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
        !--------------------------------------------------------------------
        ! Add emissions & deposition values calculated in HEMCO.
@@ -2390,15 +2389,15 @@ contains
           if (pbl_mean_drydep) then 
              wk1 = 0.e+0_fp
              wk2 = 0.e+0_fp
-             pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches, 
-                                       ! globally
+             pbl_top = State_Met%PBL_MAX_L ! the highest layer the PBL reaches, 
+                                           ! globally
              do L = 1, pbl_top
                 wk1 = wk1 + State_Chm%Species    (I,J,L,N) * & 
                             State_Met%AD         (I,J,L  ) * &
-                            GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)
+                            State_Met%F_UNDER_PBLTOP(I,J,L)
 
                 wk2 = wk2 + State_Met%AD         (I,J,L)   * &
-                            GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)
+                            State_Met%F_UNDER_PBLTOP(I,J,L)
              enddo
              ! since we only use the ratio of wk1 / wk2, there should not be
              ! a problem even if the PBL top is lower than the top of the 
@@ -2415,7 +2414,7 @@ contains
                 dflx(I,J,N) = dflx(I,J,N) * (wk2+1.e-30_fp) / &
                                State_Met%AD(I,J,1)         * &
                                State_Met%BXHEIGHT(I,J,1)   / &
-                               GET_PBL_TOP_m(I,J)
+                               State_Met%PBL_TOP_m(I,J)
              endif
           else
 
@@ -2655,7 +2654,7 @@ contains
        if ( pblh_ar ) then
        do J = 1, State_Grid%NY
        do I = 1, State_Grid%NX
-         pblh(I,J) = GET_PBL_TOP_m(I,J) ! obtain archived PBLH
+         pblh(I,J) = State_Met%PBL_TOP_m(I,J) ! obtain archived PBLH
        enddo
        enddo
        endif

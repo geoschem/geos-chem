@@ -668,7 +668,7 @@ CONTAINS
           !-----------------------------------------------------------------
 
           ! Get PBL_TOP at this grid box
-          PBL_TOP = State_Met%PBL_TOP_L(I,J)
+          PBL_TOP = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
           ! Molecular weight in kg
           MWkg = SpcInfo%emMW_g * 1.e-3_fp

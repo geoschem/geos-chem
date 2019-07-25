@@ -4734,7 +4734,6 @@
 #endif
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
@@ -4811,7 +4810,7 @@
       Spc => State_Chm%Species
 
       ! Maximum extent of PBL [model levels]
-      PBL_MAX = GET_PBL_MAX_L()
+      PBL_MAX = State_Met%PBL_MAX_L
 
 !temp debug      if( sum(emismass(ii,jj,:)) > 0e+0_fp) dbg = .true.
       if( dbg) then
@@ -4834,7 +4833,7 @@
 
       DO L = 1, PBL_MAX
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+         F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
          DO K = 1, IBINS
             NDISTINIT(K) = EMISMASS(I,J,K) * F_OF_PBL / AVGMASS(K) 
@@ -5118,8 +5117,6 @@ ccc
       USE HCO_INTERFACE_MOD,     ONLY : HcoState, GetHcoID, GetHcoVal
       USE HCO_ERROR_MOD
       USE Input_Opt_Mod,         ONLY : OptInput
-      USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
-      USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
       USE State_Grid_Mod,        ONLY : GrdState
       USE State_Met_Mod,         ONLY : MetState
       USE TIME_MOD,              ONLY : GET_TS_EMIS
@@ -5229,7 +5226,7 @@ ccc
       IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 .AND. HCOPOG2 <=0 ) RETURN
  
       ! Maximum extent of PBL [model levels]
-      PBL_MAX = GET_PBL_MAX_L()
+      PBL_MAX = State_Met%PBL_MAX_L
 
 !sfarina16: anything to do here for simple SOA?
 
@@ -5241,7 +5238,7 @@ ccc
       DO I = 1, State_Grid%NX
  
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+         F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
          ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
          ! We assume all SESQ emissions are placed in surface level.
@@ -5607,7 +5604,7 @@ ccc
      &                         AVGMASS(K)
          ENDDO
 
-         CALL EMITHIGH2( Input_Opt, State_Chm, State_Grid,
+         CALL EMITHIGH2( Input_Opt, State_Chm, State_Grid, State_Met,
      &                   BCSRC,     OCSRC,     NUMBSRC )
       ENDIF  !sgcoag
 
@@ -5679,22 +5676,23 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMITHIGH2( Input_Opt, State_Chm, State_Grid,
+      SUBROUTINE EMITHIGH2( Input_Opt, State_Chm, State_Grid, State_Met,
      &                      BCSRC,     OCSRC,     NUMBSRC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(OptInput), INTENT(IN)  :: Input_Opt               ! Input Options
       TYPE(GrdState), INTENT(IN)  :: State_Grid              ! Grid State
+      TYPE(MetState), INTENT(IN)  :: State_Met               ! Meteorology State
       REAL(fp),       INTENT(IN)  :: BCSRC(State_Grid%NX,    ! Total BC [kg]
      &                                     State_Grid%NY,
      &                                     IBINS, 2)
@@ -5738,7 +5736,7 @@ ccc
       Spc => State_Chm%Species
 
       ! Maximum extent of PBL [model levels]
-      PBL_MAX = GET_PBL_MAX_L()
+      PBL_MAX = State_Met%PBL_MAX_L
 
       !=================================================================
       ! Partition emissions throughout the boundary layer
@@ -5762,7 +5760,7 @@ ccc
       DO K = 1, IBINS
 
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+         F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
          ! Hydrophilic ELEMENTAL CARBON
          Spc(I,J,L,id_ECIL1-1+K) =  Spc(I,J,L,id_ECIL1-1+K) +

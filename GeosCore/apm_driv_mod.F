@@ -331,7 +331,6 @@
 
       USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
       USE TIME_MOD,     ONLY : GET_DAY,GET_HOUR,GET_MINUTE
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,GET_PBL_TOP_M
 
       USE APM_PHYS_MOD, ONLY : APM_PHYS
       USE APM_INIT_MOD, ONLY : IFNUCL,IFAG,IFCOATBC,NUCLAMINE,IFATHN
@@ -2057,8 +2056,8 @@
           XU = State_Met%U(I,J,L)
           XV = State_Met%V(I,J,L)
 
-          TOPP = GET_PBL_TOP_M(I, J ) ! PBL top pressure (hpa)
-          TOP = GET_PBL_TOP_L(I, J ) ! PBL top model levels
+          TOPP = State_Met%PBL_TOP_M(I,J) ! PBL top pressure (hpa)
+          TOP  = State_Met%PBL_TOP_L(I,J) ! PBL top model levels
           YTOP(NSITE,1) = TOP
           YTOP(NSITE,2) = TOPP
           SITEOUT(NSITE,L,1)=PRESS/100.
