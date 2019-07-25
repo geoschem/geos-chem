@@ -718,10 +718,9 @@ MODULE GCKPP_HETRATES
       HET(ind_MONITA, 1) = HetMONITA(     MW_MONITA, 1E-1_fp)
 
       ! First-order loss in clouds
-      ! [Commented until adopted in official release, cdholmes]
-      !HET(ind_NO3,    1) = HET(ind_NO3, 1) + &
-      !                     CloudHet( 'NO3', CldFr, Aliq, Aice, rLiq, rIce, TempK, XDenA )
-      !HET(ind_N2O5,   4) = CloudHet( 'N2O5',CldFr, Aliq, Aice, rLiq, rIce, TempK, XDenA )
+      HET(ind_NO3,    1) = HET(ind_NO3, 1) + &
+                           CloudHet( 'NO3', CldFr, Aliq, Aice, rLiq, rIce, TempK, XDenA )
+      HET(ind_N2O5,   4) = CloudHet( 'N2O5',CldFr, Aliq, Aice, rLiq, rIce, TempK, XDenA )
 
       ! Now calculate reaction rates where the educt can be consumed.
       ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
