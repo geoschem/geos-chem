@@ -291,6 +291,7 @@
 !  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  05 Jan 2018 - M. Sulprizio- Use simple SOA by default in calculation of PM2.5
 !                              and OCPISOA (used in hetchem and AOD)
+!  21 Dec 2018 - E. McDuffie - Now save OCFPOA and OCFOPOA as State Chem parameters
 !  15 Jul 2019 - M. Sulprizio- Remove ISOA and use ISOAAQ instead
 !EOP
 !------------------------------------------------------------------------------
@@ -453,6 +454,10 @@
          OCFOPOA(:,:) = 2.1e+0_fp ! OM/OC for OPOA, OCPI, and OCPO
 
       ENDIF
+
+      ! Save OM/OC
+      State_Chm%OMOC_POA(:,:) = OCFPOA(:,:)
+      State_Chm%OMOC_OPOA(:,:) = OCFOPOA(:,:)
 
       !=================================================================
       ! Compute growth factors at 35% RH
@@ -1156,7 +1161,7 @@
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE ERROR_MOD,      ONLY : ERROR_STOP, Safe_Div
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PhysConstants,  ONLY : CONSVAP
       USE State_Chm_Mod,  ONLY : ChmState
@@ -1266,6 +1271,8 @@
 !  17 Jan 2018 - E. Lundgren - Fix bpch diagnostic indexing for aer aq volume
 !                              and SOA AOD from aq isoprene (34->58; 35->59)
 !  11 May 2018 - R. Yantosca - Rename LSOA to Is_ComplexSOA for clarity
+!  17 May 2019 - C.D. Holmes - Use ISORROPIA water content for radius and surface area
+!                V. Shah
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1283,7 +1290,7 @@
       REAL(fp)            :: TEMP2(State_Grid%NX,
      &                             State_Grid%NY,
      &                             State_Grid%NZ)
-      REAL(fp)            :: MSDENS(NAER), DRYAREA
+      REAL(fp)            :: MSDENS(NAER), DRYAREA, VDRY, VH2O
       REAL(f8)            :: XTAU
       REAL*8              :: BCSCAT_AE  !(xnw, 8/24/15)
 
@@ -1754,6 +1761,7 @@
 !$OMP+PRIVATE( IR                                               )
 #endif
 !$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
+!$OMP+PRIVATE( VDRY,     VH2O                                   )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
@@ -2013,6 +2021,42 @@
                ! Wet dust WTAREA and WERADIUS are archived in dust_mod.f.
                !========================================================
             
+               ! For SO4-NIT-NH4 aerosol, re-calculate the wet effective 
+               ! radius using the water content from ISORROPIA. 
+               ! This new effective radius will be used for surface area
+               ! used in heterogeneous chemistry. We don't use this
+               ! effective radius in the optics above (OD, scattering,
+               ! absorption) because the index of refraction, phase
+               ! function, and Q must all be consistent with the radius and composition.
+               ! Note: ISORROPIA water includes fine sea salt aerosol,
+               ! which we are assigning all to SNA here without decreasing
+               ! the sea salt volume. This double counts the fine SSA
+               ! volume. (cdholmes, 5/17/2019)
+               IF (N == 1) THEN
+
+                  ! Volume of water, m3(H2O)/m3(air)
+                  ! AeroH2O has units g/m3
+                  VH2O = State_Chm%AeroH2O(I,J,L,NDUST+1) / 1e6
+                  ! Volume of dry aerosol, m3(aerosol)/m3(air)
+                  VDry = WAERSL(I,J,L,N) / MSDENS(N)
+
+                  ! Notes on REFF derivation
+                  ! Volume of wet aerosol: VWet = VDry + VH2O [note:
+                  ! this is incorrect but has the correct limits for
+                  ! VH2O/VDry << 1 and VH2O/VDry >> 1. It would be
+                  ! better to use an empirical function for density.]
+                  ! Volume of one dry particle v1dry = 4/3*pi*RDry**3 [note: RW(1) = RDry]
+                  ! Number of aerosol particles: n = VDry / v1dry
+                  ! Volume of wet aerosol is also: VWet = 4/3*pi * RWet**3 * n
+                  ! So RWet = ( 3*VWet / (4 pi n) )**(1/3)
+                  ! RWet = RDry * ( 1 + VH2O/Vdry )**(1/3)
+
+                  ! Wet effective radius, um
+                  REFF = RW(1) * ( 1d0 +
+     &                 safe_div( VH2O, VDry, 0d0 ) )**(1d0/3d0)
+
+               ENDIF
+
                !get scaling for R and VOL
                SCALER                 = REFF / RW(1)
                SCALEVOL               = SCALER**3
@@ -2028,6 +2072,12 @@
 
                WTAREA(I,J,L,N+NDUST)   = TAREA(I,J,L,N+NDUST)
                WERADIUS(I,J,L,N+NDUST) = ERADIUS(I,J,L,N+NDUST)     
+
+               ! Save aerosol water content. Assume that the increase in volume
+               ! equals the volume of pure water added, m3(H2O)/m3(air),
+               ! then convert to g/m3 
+               State_Chm%AeroH2O(I,J,L,N+NDUST) = 1e+6_fp *
+     &              WAERSL(I,J,L,N) / MSDENS(N) * (ScaleVol - 1d0)
 
                !include hydrophobic BC and OC
                !stored separate to hydrophillic in RT variables
