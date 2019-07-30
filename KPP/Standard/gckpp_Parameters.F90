@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Thu Jun 27 12:01:15 2019
-! Working directory    : /local/msulprizio/Code.Dev/KPP/Standard
+! Time                 : Tue Jul 30 11:05:02 2019
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -42,7 +42,7 @@ MODULE gckpp_Parameters
 ! NFIX - Number of Fixed species
   INTEGER, PARAMETER :: NFIX = 5 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 729 
+  INTEGER, PARAMETER :: NREACT = 730 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.

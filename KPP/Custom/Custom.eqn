@@ -51,12 +51,19 @@ v11-02d (Sep 2017)
  (1) Add halogen chemistry from Sherwen2016b/Sherwen2017 (TS,JAS,SDE,LZHU)
  (2) Add HOBr + S(IV) from Chen2017 (QJC)
 
+12.6.0 (Jul 2019)
+-----------------------
+
+ (1) Add photolysis of NITs (off by default) (TMS, PK)
+ (2) Aerosol heterogeneous uptake for NOx (CDH)
+
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
 ===============================================================================
 
 BHH : Barron Henderson;        barronh@gmail.com
 CCM : Christopher Chan Miller; cmiller@fas.harvard.edu
+CDH : Christopher Holmes;      cdholmes@fsu.edu
 DBM : Dylan Millet             dbm@umn.edu
 EAM : Eloise Marais;           e.a.marais@bham.ac.uk
 ECB : Ellie Browne             eleanor.browne@colorado.edu
@@ -74,8 +81,8 @@ LZHU: Lei Zhu;                 leizhu@fas.harvard.edu
 MJE : Mat Evans;               mat.evans@york.ac.uk
 MPS : Melissa Sulprizio;       mpayer@seas.harvard.edu
 MSL : Mike Long;               mlong@seas.harvard.edu
-QJC : Qianjie Chen;            chenqjie@uw.edu
 PK  : Prasad Kasibhatla;       psk9@duke.edu
+QJC : Qianjie Chen;            chenqjie@uw.edu
 RHS : Rebecca Schwantes;       rschwant@caltech.edu
 SAS : Sarah Safieddine;        sarahsaf@mit.edu
 SDE : Sebastian Eastham;       seastham@seas.harvard.edu
@@ -1172,6 +1179,7 @@ NO3 = HNO3 :                                 HET(ind_NO3,1);
 N2O5 + H2O = 2.000HNO3 :                     HET(ind_N2O5,1);
 N2O5 + HCl = ClNO2 + HNO3 :                  HET(ind_N2O5,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 N2O5 = ClNO2 + HNO3 :                        HET(ind_N2O5,3);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+N2O5 = 2.000HNO3 :                           HET(ind_N2O5,4);                     {2018/10/17; Cloud uptake, CDH}
 BrNO3 + H2O = HOBr + HNO3 :                  HET(ind_BrNO3,1);                    {2014/02/03; Eastham2014; SDE}
 BrNO3 + HCl = BrCl + HNO3 :                  HET(ind_BrNO3,2);                    {2014/02/03; Eastham2014; SDE}
 ClNO3 + H2O = HOCl + HNO3 :                  HET(ind_ClNO3,1);                    {2014/02/03; Eastham2014; SDE}

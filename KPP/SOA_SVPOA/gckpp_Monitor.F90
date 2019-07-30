@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Thu Jun 27 12:00:03 2019
-! Working directory    : /local/msulprizio/Code.Dev/KPP/SOA_SVPOA
+! Time                 : Tue Jul 30 11:05:08 2019
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -610,180 +610,181 @@ MODULE gckpp_Monitor
      '    N2O5 + H2O --> LOx + 2 HNO3                                                                     ', & ! index 482
      '    N2O5 + HCl --> LOx + ClNO2 + HNO3                                                               ', & ! index 483
      '          N2O5 --> LOx + ClNO2 + HNO3                                                               ', & ! index 484
-     '   BrNO3 + H2O --> HOBr + HNO3                                                                      ', & ! index 485
-     '   BrNO3 + HCl --> LOx + BrCl + HNO3                                                                ', & ! index 486
-     '   ClNO3 + H2O --> HOCl + HNO3                                                                      ', & ! index 487
-     '   ClNO3 + HCl --> LOx + Cl2 + HNO3                                                                 ', & ! index 488
-     '   ClNO3 + HBr --> LOx + BrCl + HNO3                                                                ', & ! index 489
-     'BrSALA + ClNO3 --> LOx + BrCl + HNO3                                                                ', & ! index 490
-     'BrSALC + ClNO3 --> LOx + BrCl + HNO3                                                                ', & ! index 491
-     '    HOCl + HCl --> LOx + Cl2 + H2O                                                                  ', & ! index 492
-     '    HOCl + HBr --> LOx + BrCl + H2O                                                                 ', & ! index 493
-     '    HOBr + HBr --> LOx + Br2 + H2O                                                                  ', & ! index 494
-     '    HOBr + HCl --> LOx + BrCl + H2O                                                                 ', & ! index 495
-     '          HOBr --> LOx + BrCl + H2O                                                                 ', & ! index 496
-     ' BrSALA + HOBr --> LOx + Br2                                                                        ', & ! index 497
-     ' BrSALC + HOBr --> LOx + Br2                                                                        ', & ! index 498
-     '          HOBr --> SO4H1 + LOx + HBr                                                                ', & ! index 499
-     '          HOBr --> SO4H2 + LOx + HBr                                                                ', & ! index 500
-     '           HCl --> O2                                                                               ', & ! index 501
+     '          N2O5 --> LOx + 2 HNO3                                                                     ', & ! index 485
+     '   BrNO3 + H2O --> HOBr + HNO3                                                                      ', & ! index 486
+     '   BrNO3 + HCl --> LOx + BrCl + HNO3                                                                ', & ! index 487
+     '   ClNO3 + H2O --> HOCl + HNO3                                                                      ', & ! index 488
+     '   ClNO3 + HCl --> LOx + Cl2 + HNO3                                                                 ', & ! index 489
+     '   ClNO3 + HBr --> LOx + BrCl + HNO3                                                                ', & ! index 490
+     'BrSALA + ClNO3 --> LOx + BrCl + HNO3                                                                ', & ! index 491
+     'BrSALC + ClNO3 --> LOx + BrCl + HNO3                                                                ', & ! index 492
+     '    HOCl + HCl --> LOx + Cl2 + H2O                                                                  ', & ! index 493
+     '    HOCl + HBr --> LOx + BrCl + H2O                                                                 ', & ! index 494
+     '    HOBr + HBr --> LOx + Br2 + H2O                                                                  ', & ! index 495
+     '    HOBr + HCl --> LOx + BrCl + H2O                                                                 ', & ! index 496
+     '          HOBr --> LOx + BrCl + H2O                                                                 ', & ! index 497
+     ' BrSALA + HOBr --> LOx + Br2                                                                        ', & ! index 498
+     ' BrSALC + HOBr --> LOx + Br2                                                                        ', & ! index 499
+     '          HOBr --> SO4H1 + LOx + HBr                                                                ', & ! index 500
+     '          HOBr --> SO4H2 + LOx + HBr                                                                ', & ! index 501
      '           HCl --> O2                                                                               ', & ! index 502
-     '      HBr + O3 --> HOBr                                                                             ', & ! index 503
-     '   BrSALA + O3 --> HOBr                                                                             ', & ! index 504
-     '   BrSALC + O3 --> HOBr                                                                             ', & ! index 505
-     '           HBr --> BrSALA                                                                           ', & ! index 506
-     '           HBr --> BrSALC                                                                           ', & ! index 507
-     '            HI --> AERI                                                                             ', & ! index 508
-     '            HI --> ISALA                                                                            ', & ! index 509
-     '            HI --> ISALC                                                                            ' /)
+     '           HCl --> O2                                                                               ', & ! index 503
+     '      HBr + O3 --> HOBr                                                                             ', & ! index 504
+     '   BrSALA + O3 --> HOBr                                                                             ', & ! index 505
+     '   BrSALC + O3 --> HOBr                                                                             ', & ! index 506
+     '           HBr --> BrSALA                                                                           ', & ! index 507
+     '           HBr --> BrSALC                                                                           ', & ! index 508
+     '            HI --> AERI                                                                             ', & ! index 509
+     '            HI --> ISALA                                                                            ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_17 = (/ &
-     '           HOI --> ISALA + LOx                                                                      ', & ! index 511
-     '           HOI --> ISALC + LOx                                                                      ', & ! index 512
-     '          I2O2 --> 2 AERI + 2 LOx                                                                   ', & ! index 513
-     '          I2O2 --> 2 ISALA + 2 LOx                                                                  ', & ! index 514
-     '          I2O2 --> 2 ISALC + 2 LOx                                                                  ', & ! index 515
-     '          I2O3 --> 2 AERI + 3 LOx                                                                   ', & ! index 516
-     '          I2O3 --> 2 ISALA + 3 LOx                                                                  ', & ! index 517
-     '          I2O3 --> 2 ISALC + 3 LOx                                                                  ', & ! index 518
-     '          I2O4 --> 2 AERI + 4 LOx                                                                   ', & ! index 519
-     '          I2O4 --> 2 ISALA + 4 LOx                                                                  ', & ! index 520
-     '          I2O4 --> 2 ISALC + 4 LOx                                                                  ', & ! index 521
-     '          IONO --> ISALA + LOx                                                                      ', & ! index 522
-     '          IONO --> ISALC + LOx                                                                      ', & ! index 523
-     '         IONO2 --> ISALA + 2 LOx                                                                    ', & ! index 524
-     '         IONO2 --> ISALC + 2 LOx                                                                    ', & ! index 525
-     '          IONO --> LOx + 0.15 IBr + 0.85 ICl + HNO2                                                 ', & ! index 526
-     '         IONO2 --> LOx + 0.15 IBr + 0.85 ICl + HNO3                                                 ', & ! index 527
-     '           HOI --> LOx + 0.15 IBr + 0.85 ICl                                                        ', & ! index 528
-     '          GLYX --> SOAGX                                                                            ', & ! index 529
-     '          MGLY --> SOAMG                                                                            ', & ! index 530
-     '        IEPOXA --> SOAIE                                                                            ', & ! index 531
-     '        IEPOXB --> SOAIE                                                                            ', & ! index 532
-     '        IEPOXD --> SOAIE                                                                            ', & ! index 533
-     '          IMAE --> SOAME                                                                            ', & ! index 534
-     '          LVOC --> LVOCOA                                                                           ', & ! index 535
-     '        ISN1OG --> ISN1OA                                                                           ', & ! index 536
-     '        ISOPND --> LOx + IONITA                                                                     ', & ! index 537
-     '        ISOPNB --> LOx + IONITA                                                                     ', & ! index 538
-     '         MACRN --> LOx + IONITA                                                                     ', & ! index 539
-     '          MVKN --> LOx + IONITA                                                                     ' /)
+     '            HI --> ISALC                                                                            ', & ! index 511
+     '           HOI --> ISALA + LOx                                                                      ', & ! index 512
+     '           HOI --> ISALC + LOx                                                                      ', & ! index 513
+     '          I2O2 --> 2 AERI + 2 LOx                                                                   ', & ! index 514
+     '          I2O2 --> 2 ISALA + 2 LOx                                                                  ', & ! index 515
+     '          I2O2 --> 2 ISALC + 2 LOx                                                                  ', & ! index 516
+     '          I2O3 --> 2 AERI + 3 LOx                                                                   ', & ! index 517
+     '          I2O3 --> 2 ISALA + 3 LOx                                                                  ', & ! index 518
+     '          I2O3 --> 2 ISALC + 3 LOx                                                                  ', & ! index 519
+     '          I2O4 --> 2 AERI + 4 LOx                                                                   ', & ! index 520
+     '          I2O4 --> 2 ISALA + 4 LOx                                                                  ', & ! index 521
+     '          I2O4 --> 2 ISALC + 4 LOx                                                                  ', & ! index 522
+     '          IONO --> ISALA + LOx                                                                      ', & ! index 523
+     '          IONO --> ISALC + LOx                                                                      ', & ! index 524
+     '         IONO2 --> ISALA + 2 LOx                                                                    ', & ! index 525
+     '         IONO2 --> ISALC + 2 LOx                                                                    ', & ! index 526
+     '          IONO --> LOx + 0.15 IBr + 0.85 ICl + HNO2                                                 ', & ! index 527
+     '         IONO2 --> LOx + 0.15 IBr + 0.85 ICl + HNO3                                                 ', & ! index 528
+     '           HOI --> LOx + 0.15 IBr + 0.85 ICl                                                        ', & ! index 529
+     '          GLYX --> SOAGX                                                                            ', & ! index 530
+     '          MGLY --> SOAMG                                                                            ', & ! index 531
+     '        IEPOXA --> SOAIE                                                                            ', & ! index 532
+     '        IEPOXB --> SOAIE                                                                            ', & ! index 533
+     '        IEPOXD --> SOAIE                                                                            ', & ! index 534
+     '          IMAE --> SOAME                                                                            ', & ! index 535
+     '          LVOC --> LVOCOA                                                                           ', & ! index 536
+     '        ISN1OG --> ISN1OA                                                                           ', & ! index 537
+     '        ISOPND --> LOx + IONITA                                                                     ', & ! index 538
+     '        ISOPNB --> LOx + IONITA                                                                     ', & ! index 539
+     '         MACRN --> LOx + IONITA                                                                     ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_18 = (/ &
-     '          R4N2 --> LOx + IONITA                                                                     ', & ! index 541
-     '          DHDN --> IONITA                                                                           ', & ! index 542
-     '        MONITS --> MONITA                                                                           ', & ! index 543
-     '        MONITU --> MONITA                                                                           ', & ! index 544
-     '         HONIT --> MONITA                                                                           ', & ! index 545
-     '            O3 --> LOx + 2 OH                                                                       ', & ! index 546
-     '            O3 --> LOx + OH + HO2                                                                   ', & ! index 547
-     '           NO2 --> NO + O3                                                                          ', & ! index 548
-     '          H2O2 --> 2 OH                                                                             ', & ! index 549
-     '            MP --> CH2O + OH + HO2                                                                  ', & ! index 550
-     '          CH2O --> PCO + 2 HO2 + CO                                                                 ', & ! index 551
-     '          CH2O --> PCO + CO + H2                                                                    ', & ! index 552
-     '          HNO3 --> OH + NO2                                                                         ', & ! index 553
-     '          HNO2 --> NO + OH                                                                          ', & ! index 554
-     '          HNO4 --> POx + OH + NO3                                                                   ', & ! index 555
-     '          HNO4 --> HO2 + NO2                                                                        ', & ! index 556
-     '           NO3 --> O3 + NO2                                                                         ', & ! index 557
-     '           NO3 --> 2 LOx + NO + O2                                                                  ', & ! index 558
-     '          N2O5 --> NO3 + NO2                                                                        ', & ! index 559
-     '          ALD2 --> 0.88 PCO + 0.88 MO2 + 0.12 MCO3 + HO2 + 0.88 CO                                  ', & ! index 560
-     '          ALD2 --> PCO + CO + CH4                                                                   ', & ! index 561
-     '           PAN --> 0.3 POx + 0.3 MO2 + 0.3 NO3 + 0.7 MCO3 + 0.7 NO2                                 ', & ! index 562
-     '          RCHO --> PCO + ETO2 + HO2 + CO                                                            ', & ! index 563
-     '          ACET --> MO2 + MCO3                                                                       ', & ! index 564
-     '          ACET --> PCO + 2 MO2 + CO                                                                 ', & ! index 565
-     '           MEK --> 0.15 RCO3 + 0.85 ETO2 + 0.15 MO2 + 0.85 MCO3                                     ', & ! index 566
-     '          GLYC --> PCO + 0.9 CH2O + 0.07 OH + 1.73 HO2 + CO + 0.1 MOH                               ', & ! index 567
-     '          GLYX --> 2 PCO + 2 HO2 + 2 CO                                                             ', & ! index 568
-     '          GLYX --> 2 PCO + 2 CO + H2                                                                ', & ! index 569
-     '          GLYX --> PCO + CH2O + CO                                                                  ' /)
+     '          MVKN --> LOx + IONITA                                                                     ', & ! index 541
+     '          R4N2 --> LOx + IONITA                                                                     ', & ! index 542
+     '          DHDN --> IONITA                                                                           ', & ! index 543
+     '        MONITS --> MONITA                                                                           ', & ! index 544
+     '        MONITU --> MONITA                                                                           ', & ! index 545
+     '         HONIT --> MONITA                                                                           ', & ! index 546
+     '            O3 --> LOx + 2 OH                                                                       ', & ! index 547
+     '            O3 --> LOx + OH + HO2                                                                   ', & ! index 548
+     '           NO2 --> NO + O3                                                                          ', & ! index 549
+     '          H2O2 --> 2 OH                                                                             ', & ! index 550
+     '            MP --> CH2O + OH + HO2                                                                  ', & ! index 551
+     '          CH2O --> PCO + 2 HO2 + CO                                                                 ', & ! index 552
+     '          CH2O --> PCO + CO + H2                                                                    ', & ! index 553
+     '          HNO3 --> OH + NO2                                                                         ', & ! index 554
+     '          HNO2 --> NO + OH                                                                          ', & ! index 555
+     '          HNO4 --> POx + OH + NO3                                                                   ', & ! index 556
+     '          HNO4 --> HO2 + NO2                                                                        ', & ! index 557
+     '           NO3 --> O3 + NO2                                                                         ', & ! index 558
+     '           NO3 --> 2 LOx + NO + O2                                                                  ', & ! index 559
+     '          N2O5 --> NO3 + NO2                                                                        ', & ! index 560
+     '          ALD2 --> 0.88 PCO + 0.88 MO2 + 0.12 MCO3 + HO2 + 0.88 CO                                  ', & ! index 561
+     '          ALD2 --> PCO + CO + CH4                                                                   ', & ! index 562
+     '           PAN --> 0.3 POx + 0.3 MO2 + 0.3 NO3 + 0.7 MCO3 + 0.7 NO2                                 ', & ! index 563
+     '          RCHO --> PCO + ETO2 + HO2 + CO                                                            ', & ! index 564
+     '          ACET --> MO2 + MCO3                                                                       ', & ! index 565
+     '          ACET --> PCO + 2 MO2 + CO                                                                 ', & ! index 566
+     '           MEK --> 0.15 RCO3 + 0.85 ETO2 + 0.15 MO2 + 0.85 MCO3                                     ', & ! index 567
+     '          GLYC --> PCO + 0.9 CH2O + 0.07 OH + 1.73 HO2 + CO + 0.1 MOH                               ', & ! index 568
+     '          GLYX --> 2 PCO + 2 HO2 + 2 CO                                                             ', & ! index 569
+     '          GLYX --> 2 PCO + 2 CO + H2                                                                ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_19 = (/ &
-     '          MGLY --> PCO + MCO3 + HO2 + CO                                                            ', & ! index 571
-     '           MVK --> PCO + PRPE + CO                                                                  ', & ! index 572
-     '           MVK --> PCO + CH2O + MCO3 + HO2 + CO                                                     ', & ! index 573
-     '           MVK --> RCO3 + MO2                                                                       ', & ! index 574
-     '          MACR --> PCO + CH2O + MCO3 + HO2 + CO                                                     ', & ! index 575
-     '           HAC --> CH2O + MCO3 + HO2                                                                ', & ! index 576
-     '          INPN --> RCHO + OH + HO2 + NO2                                                            ', & ! index 577
-     '          PRPN --> RCHO + OH + HO2 + NO2                                                            ', & ! index 578
-     '           ETP --> ALD2 + OH + HO2                                                                  ', & ! index 579
-     '          RA3P --> RCHO + OH + HO2                                                                  ', & ! index 580
-     '          RB3P --> ACET + OH + HO2                                                                  ', & ! index 581
-     '           R4P --> RCHO + OH + HO2                                                                  ', & ! index 582
-     '            PP --> CH2O + ALD2 + OH + HO2                                                           ', & ! index 583
-     '            RP --> ALD2 + OH + HO2                                                                  ', & ! index 584
-     '          RIPA --> 0.005 LVOC + 0.275 HC5 + 0.71 CH2O + 0.425 MVK + 0.985 OH + 0.985 HO2 + 0.285 MAC', & ! index 585
-     '          RIPB --> 0.005 LVOC + 0.275 HC5 + 0.71 CH2O + 0.425 MVK + 0.985 OH + 0.985 HO2 + 0.285 MAC', & ! index 586
-     '          RIPD --> 0.005 LVOC + 0.275 HC5 + 0.71 CH2O + 0.425 MVK + 0.985 OH + 0.985 HO2 + 0.285 MAC', & ! index 587
-     '           IAP --> 0.67 PCO + 0.26 GLYC + 0.58 MGLY + 0.36 HAC + OH + HO2 + 0.67 CO + 0.19 H2       ', & ! index 588
-     '          ISNP --> RCHO + OH + HO2 + NO2                                                            ', & ! index 589
-     '           VRP --> 0.7 GLYC + 0.3 MGLY + 0.3 CH2O + OH + 0.7 MCO3 + 0.3 HO2                         ', & ! index 590
-     '           MRP --> 0.5 PCO + HAC + 0.5 CH2O + OH + HO2 + 0.5 CO                                     ', & ! index 591
-     '          MAOP --> CH2O + OH + MCO3                                                                 ', & ! index 592
-     '          R4N2 --> 0.05 A3O2 + 0.18 B3O2 + 0.32 ACET + 0.32 ETO2 + 0.19 MEK + 0.32 ALD2 + 0.13 RCHO ', & ! index 593
-     '           MAP --> MO2 + OH                                                                         ', & ! index 594
-     '         MACRN --> 0.5 PCO + MGLY + HAC + 0.5 CH2O + HO2 + 0.5 CO + NO2                             ', & ! index 595
-     '          MVKN --> GLYC + MCO3 + NO2                                                                ', & ! index 596
-     '        ISOPNB --> HC5 + HO2 + NO2                                                                  ', & ! index 597
-     '           Br2 --> 2 Br                                                                             ', & ! index 598
-     '           BrO --> Br + O3                                                                          ', & ! index 599
-     '          HOBr --> LOx + Br + OH                                                                    ' /)
+     '          GLYX --> PCO + CH2O + CO                                                                  ', & ! index 571
+     '          MGLY --> PCO + MCO3 + HO2 + CO                                                            ', & ! index 572
+     '           MVK --> PCO + PRPE + CO                                                                  ', & ! index 573
+     '           MVK --> PCO + CH2O + MCO3 + HO2 + CO                                                     ', & ! index 574
+     '           MVK --> RCO3 + MO2                                                                       ', & ! index 575
+     '          MACR --> PCO + CH2O + MCO3 + HO2 + CO                                                     ', & ! index 576
+     '           HAC --> CH2O + MCO3 + HO2                                                                ', & ! index 577
+     '          INPN --> RCHO + OH + HO2 + NO2                                                            ', & ! index 578
+     '          PRPN --> RCHO + OH + HO2 + NO2                                                            ', & ! index 579
+     '           ETP --> ALD2 + OH + HO2                                                                  ', & ! index 580
+     '          RA3P --> RCHO + OH + HO2                                                                  ', & ! index 581
+     '          RB3P --> ACET + OH + HO2                                                                  ', & ! index 582
+     '           R4P --> RCHO + OH + HO2                                                                  ', & ! index 583
+     '            PP --> CH2O + ALD2 + OH + HO2                                                           ', & ! index 584
+     '            RP --> ALD2 + OH + HO2                                                                  ', & ! index 585
+     '          RIPA --> 0.005 LVOC + 0.275 HC5 + 0.71 CH2O + 0.425 MVK + 0.985 OH + 0.985 HO2 + 0.285 MAC', & ! index 586
+     '          RIPB --> 0.005 LVOC + 0.275 HC5 + 0.71 CH2O + 0.425 MVK + 0.985 OH + 0.985 HO2 + 0.285 MAC', & ! index 587
+     '          RIPD --> 0.005 LVOC + 0.275 HC5 + 0.71 CH2O + 0.425 MVK + 0.985 OH + 0.985 HO2 + 0.285 MAC', & ! index 588
+     '           IAP --> 0.67 PCO + 0.26 GLYC + 0.58 MGLY + 0.36 HAC + OH + HO2 + 0.67 CO + 0.19 H2       ', & ! index 589
+     '          ISNP --> RCHO + OH + HO2 + NO2                                                            ', & ! index 590
+     '           VRP --> 0.7 GLYC + 0.3 MGLY + 0.3 CH2O + OH + 0.7 MCO3 + 0.3 HO2                         ', & ! index 591
+     '           MRP --> 0.5 PCO + HAC + 0.5 CH2O + OH + HO2 + 0.5 CO                                     ', & ! index 592
+     '          MAOP --> CH2O + OH + MCO3                                                                 ', & ! index 593
+     '          R4N2 --> 0.05 A3O2 + 0.18 B3O2 + 0.32 ACET + 0.32 ETO2 + 0.19 MEK + 0.32 ALD2 + 0.13 RCHO ', & ! index 594
+     '           MAP --> MO2 + OH                                                                         ', & ! index 595
+     '         MACRN --> 0.5 PCO + MGLY + HAC + 0.5 CH2O + HO2 + 0.5 CO + NO2                             ', & ! index 596
+     '          MVKN --> GLYC + MCO3 + NO2                                                                ', & ! index 597
+     '        ISOPNB --> HC5 + HO2 + NO2                                                                  ', & ! index 598
+     '           Br2 --> 2 Br                                                                             ', & ! index 599
+     '           BrO --> Br + O3                                                                          ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_20 = (/ &
-     '         BrNO3 --> Br + NO3                                                                         ', & ! index 601
-     '         BrNO3 --> BrO + NO2                                                                        ', & ! index 602
-     '         BrNO2 --> Br + NO2                                                                         ', & ! index 603
-     '         CHBr3 --> 3 Br                                                                             ', & ! index 604
-     '        CH2Br2 --> 2 Br                                                                             ', & ! index 605
-     '         CH3Br --> Br + MO2                                                                         ', & ! index 606
-     '         CH3Cl --> MO2 + Cl                                                                         ', & ! index 607
-     '        CH2Cl2 --> 2 Cl                                                                             ', & ! index 608
-     '          BrCl --> Br + Cl                                                                          ', & ! index 609
-     '           Cl2 --> 2 Cl                                                                             ', & ! index 610
-     '           ClO --> Cl + O3                                                                          ', & ! index 611
-     '          OClO --> ClO + O3                                                                         ', & ! index 612
-     '         Cl2O2 --> 2 LOx + ClOO + Cl                                                                ', & ! index 613
-     '         ClNO2 --> Cl + NO2                                                                         ', & ! index 614
-     '         ClNO3 --> Cl + NO3                                                                         ', & ! index 615
-     '         ClNO3 --> ClO + NO2                                                                        ', & ! index 616
-     '          HOCl --> LOx + OH + Cl                                                                    ', & ! index 617
-     '          ClOO --> Cl + O2                                                                          ', & ! index 618
-     '            I2 --> 2 I                                                                              ', & ! index 619
-     '           HOI --> LOx + I + OH                                                                     ', & ! index 620
-     '            IO --> I + O3                                                                           ', & ! index 621
-     '           OIO --> 2 LOx + I + O2                                                                   ', & ! index 622
-     '           INO --> I + NO                                                                           ', & ! index 623
-     '          IONO --> I + NO2                                                                          ', & ! index 624
-     '         IONO2 --> I + NO3                                                                          ', & ! index 625
-     '          I2O2 --> OIO + I                                                                          ', & ! index 626
-     '          CH3I --> I                                                                                ', & ! index 627
-     '         CH2I2 --> 2 I                                                                              ', & ! index 628
-     '        CH2ICl --> I + Cl                                                                           ', & ! index 629
-     '        CH2IBr --> I + Br                                                                           ' /)
-  CHARACTER(LEN=100), PARAMETER, DIMENSION(22) :: EQN_NAMES_21 = (/ &
-     '          I2O4 --> 2 OIO                                                                            ', & ! index 631
-     '          I2O3 --> OIO + IO                                                                         ', & ! index 632
-     '           IBr --> I + Br                                                                           ', & ! index 633
-     '           ICl --> I + Cl                                                                           ', & ! index 634
-     '           MPN --> POx + CH2O + NO3 + HO2                                                           ', & ! index 635
-     '           MPN --> MO2 + NO2                                                                        ', & ! index 636
-     '        ISOPND --> HC5 + HO2 + NO2                                                                  ', & ! index 637
-     '        PROPNN --> PCO + CH2O + MO2 + CO + NO2                                                      ', & ! index 638
-     '         ATOOH --> CH2O + OH + MCO3                                                                 ', & ! index 639
-     '           PIP --> RCHO + OH + HO2                                                                  ', & ! index 640
-     '          IPMN --> 0.4 CO2 + 0.4 POx + 0.6 IMAO3 + 0.4 CH2O + 0.4 NO3 + 0.4 MCO3 + 0.6 NO2          ', & ! index 641
-     '         ETHLN --> PCO + CH2O + HO2 + CO + NO2                                                      ', & ! index 642
-     '          DHDC --> GLYX + MGLY + 2 OH                                                               ', & ! index 643
-     '         HPALD --> 1.89 PCO + 0.11 GLYC + 0.5 MGLY + 0.39 HAC + 2 OH + 0.11 MCO3 + 0.89 HO2 + 1.89 C', & ! index 644
-     '          ISN1 --> 0.25 GLYX + 0.5 GLYC + 0.25 MGLY + 0.5 HAC + CH2O + HO2 + NO2                    ', & ! index 645
-     '        MONITS --> POx + MEK + NO2                                                                  ', & ! index 646
-     '        MONITU --> POx + RCHO + NO2                                                                 ', & ! index 647
-     '         HONIT --> POx + HAC + NO2                                                                  ', & ! index 648
-     '          NITs --> HNO2                                                                             ', & ! index 649
-     '          NITs --> POx + NO2                                                                        ', & ! index 650
-     '           NIT --> HNO2                                                                             ', & ! index 651
+     '          HOBr --> LOx + Br + OH                                                                    ', & ! index 601
+     '         BrNO3 --> Br + NO3                                                                         ', & ! index 602
+     '         BrNO3 --> BrO + NO2                                                                        ', & ! index 603
+     '         BrNO2 --> Br + NO2                                                                         ', & ! index 604
+     '         CHBr3 --> 3 Br                                                                             ', & ! index 605
+     '        CH2Br2 --> 2 Br                                                                             ', & ! index 606
+     '         CH3Br --> Br + MO2                                                                         ', & ! index 607
+     '         CH3Cl --> MO2 + Cl                                                                         ', & ! index 608
+     '        CH2Cl2 --> 2 Cl                                                                             ', & ! index 609
+     '          BrCl --> Br + Cl                                                                          ', & ! index 610
+     '           Cl2 --> 2 Cl                                                                             ', & ! index 611
+     '           ClO --> Cl + O3                                                                          ', & ! index 612
+     '          OClO --> ClO + O3                                                                         ', & ! index 613
+     '         Cl2O2 --> 2 LOx + ClOO + Cl                                                                ', & ! index 614
+     '         ClNO2 --> Cl + NO2                                                                         ', & ! index 615
+     '         ClNO3 --> Cl + NO3                                                                         ', & ! index 616
+     '         ClNO3 --> ClO + NO2                                                                        ', & ! index 617
+     '          HOCl --> LOx + OH + Cl                                                                    ', & ! index 618
+     '          ClOO --> Cl + O2                                                                          ', & ! index 619
+     '            I2 --> 2 I                                                                              ', & ! index 620
+     '           HOI --> LOx + I + OH                                                                     ', & ! index 621
+     '            IO --> I + O3                                                                           ', & ! index 622
+     '           OIO --> 2 LOx + I + O2                                                                   ', & ! index 623
+     '           INO --> I + NO                                                                           ', & ! index 624
+     '          IONO --> I + NO2                                                                          ', & ! index 625
+     '         IONO2 --> I + NO3                                                                          ', & ! index 626
+     '          I2O2 --> OIO + I                                                                          ', & ! index 627
+     '          CH3I --> I                                                                                ', & ! index 628
+     '         CH2I2 --> 2 I                                                                              ', & ! index 629
+     '        CH2ICl --> I + Cl                                                                           ' /)
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(23) :: EQN_NAMES_21 = (/ &
+     '        CH2IBr --> I + Br                                                                           ', & ! index 631
+     '          I2O4 --> 2 OIO                                                                            ', & ! index 632
+     '          I2O3 --> OIO + IO                                                                         ', & ! index 633
+     '           IBr --> I + Br                                                                           ', & ! index 634
+     '           ICl --> I + Cl                                                                           ', & ! index 635
+     '           MPN --> POx + CH2O + NO3 + HO2                                                           ', & ! index 636
+     '           MPN --> MO2 + NO2                                                                        ', & ! index 637
+     '        ISOPND --> HC5 + HO2 + NO2                                                                  ', & ! index 638
+     '        PROPNN --> PCO + CH2O + MO2 + CO + NO2                                                      ', & ! index 639
+     '         ATOOH --> CH2O + OH + MCO3                                                                 ', & ! index 640
+     '           PIP --> RCHO + OH + HO2                                                                  ', & ! index 641
+     '          IPMN --> 0.4 CO2 + 0.4 POx + 0.6 IMAO3 + 0.4 CH2O + 0.4 NO3 + 0.4 MCO3 + 0.6 NO2          ', & ! index 642
+     '         ETHLN --> PCO + CH2O + HO2 + CO + NO2                                                      ', & ! index 643
+     '          DHDC --> GLYX + MGLY + 2 OH                                                               ', & ! index 644
+     '         HPALD --> 1.89 PCO + 0.11 GLYC + 0.5 MGLY + 0.39 HAC + 2 OH + 0.11 MCO3 + 0.89 HO2 + 1.89 C', & ! index 645
+     '          ISN1 --> 0.25 GLYX + 0.5 GLYC + 0.25 MGLY + 0.5 HAC + CH2O + HO2 + NO2                    ', & ! index 646
+     '        MONITS --> POx + MEK + NO2                                                                  ', & ! index 647
+     '        MONITU --> POx + RCHO + NO2                                                                 ', & ! index 648
+     '         HONIT --> POx + HAC + NO2                                                                  ', & ! index 649
+     '          NITs --> HNO2                                                                             ', & ! index 650
+     '          NITs --> POx + NO2                                                                        ', & ! index 651
+     '           NIT --> HNO2                                                                             ', & ! index 652
      '           NIT --> POx + NO2                                                                        ' /)
-  CHARACTER(LEN=100), PARAMETER, DIMENSION(652) :: EQN_NAMES = (/&
+  CHARACTER(LEN=100), PARAMETER, DIMENSION(653) :: EQN_NAMES = (/&
     EQN_NAMES_0, EQN_NAMES_1, EQN_NAMES_2, EQN_NAMES_3, EQN_NAMES_4, &
     EQN_NAMES_5, EQN_NAMES_6, EQN_NAMES_7, EQN_NAMES_8, EQN_NAMES_9, &
     EQN_NAMES_10, EQN_NAMES_11, EQN_NAMES_12, EQN_NAMES_13, EQN_NAMES_14, &

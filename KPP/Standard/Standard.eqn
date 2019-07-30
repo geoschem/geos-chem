@@ -51,12 +51,19 @@ v11-02d (Sep 2017)
  (1) Add halogen chemistry from Sherwen2016b/Sherwen2017 (TS,JAS,SDE,LZHU)
  (2) Add HOBr + S(IV) from Chen2017 (QJC)
 
+12.6.0 (Jul 2019)
+-----------------------
+
+ (1) Add photolysis of NITs (off by default) (TMS, PK)
+ (2) Aerosol heterogeneous uptake for NOx (CDH)
+
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
 ===============================================================================
 
 BHH : Barron Henderson;        barronh@gmail.com
 CCM : Christopher Chan Miller; cmiller@fas.harvard.edu
+CDH : Christopher Holmes;      cdholmes@fsu.edu
 DBM : Dylan Millet             dbm@umn.edu
 EAM : Eloise Marais;           e.a.marais@bham.ac.uk
 ECB : Ellie Browne             eleanor.browne@colorado.edu
@@ -98,7 +105,7 @@ REFERENCES (alphabetical order)
 * Goliff2013:   Goliff et al., Atmos. Environ., doi:10.1016/j.atmosenv.2012.11.038, 2013.
 * Jacobs2014:   Jacobs et al., Atmos. Chem. Phys., doi:10.5194/acp-14-8933-2014, 2014.
 * Jenkin2015:   Jenkin et al., Atmos. Chem. Phys., doi:10.5194/acp-15-11433-2015, 2015.
-* Kasibhatla2018: Kasibhatla et al., 2018, Atmos. Chem. Phys. Discuss., doi:10.5194/acp-2018-303, 2018. 
+* Kasibhatla2018: Kasibhatla et al., Atmos. Chem. Phys., doi:10.5194/acp-18-11185-2018, 2018
 * JPL 10-6:     JPL Publication 10-6, https://jpldataeval.jpl.nasa.gov/previous_evaluations.html, 2011.
 * JPL 15-10:    JPL Publication 15-10, https://jpldataeval.jpl.nasa.gov, 2015.
 * Lee2014:      Lee et al., J. Phys. Chem. A, doi:10.1021/jp4107603, 2014.
@@ -1172,6 +1179,7 @@ NO3 = HNO3 :                                 HET(ind_NO3,1);
 N2O5 + H2O = 2.000HNO3 :                     HET(ind_N2O5,1);
 N2O5 + HCl = ClNO2 + HNO3 :                  HET(ind_N2O5,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 N2O5 = ClNO2 + HNO3 :                        HET(ind_N2O5,3);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+N2O5 = 2.000HNO3 :                           HET(ind_N2O5,4);                     {2018/10/17; Cloud uptake, CDH}
 BrNO3 + H2O = HOBr + HNO3 :                  HET(ind_BrNO3,1);                    {2014/02/03; Eastham2014; SDE}
 BrNO3 + HCl = BrCl + HNO3 :                  HET(ind_BrNO3,2);                    {2014/02/03; Eastham2014; SDE}
 ClNO3 + H2O = HOCl + HNO3 :                  HET(ind_ClNO3,1);                    {2014/02/03; Eastham2014; SDE}
