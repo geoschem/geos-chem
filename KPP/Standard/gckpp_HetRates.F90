@@ -601,7 +601,7 @@ MODULE GCKPP_HETRATES
       XRADI(1:State_Chm%nAero) = State_Chm%AeroRadi(I,J,L,:)
 
       ! Aerosol specific volume, cm3(aerosol)/cm3(air)
-      XVOL(1:State_Chm%nAero)  = XAREA(1:State_Chm%nAero) * XRADI(1:State_Chm%nAero) / 3d0
+      XVOL(1:State_Chm%nAero)  = XAREA(1:State_Chm%nAero) * XRADI(1:State_Chm%nAero) / 3e+0_fp
 
       ! Aerosol water content, cm3(H2O)/cm3(air) [note: AeroH2O has units g/m3]
       XH2O(1:State_Chm%nAero)  = State_Chm%AeroH2O(I,J,L,:) * 1e-6_fp
@@ -1021,10 +1021,10 @@ MODULE GCKPP_HETRATES
       real(fp),parameter  :: tauc = 3600
 
       ! Molar mass of species, kg/mol
-      real(fp), parameter :: mN2O5 = 0.108d0
-      real(fp), parameter :: mNO2  = 0.046d0
-      real(fp), parameter :: mNO3  = 0.062d0
-      real(fp), parameter :: mHO2  = 0.033d0
+      real(fp), parameter :: mN2O5 = 0.108e+0_fp
+      real(fp), parameter :: mNO2  = 0.046e+0_fp
+      real(fp), parameter :: mNO3  = 0.062e+0_fp
+      real(fp), parameter :: mHO2  = 0.033e+0_fp
 !
 ! !LOCAL VARIABLES:
 !
@@ -1050,20 +1050,20 @@ MODULE GCKPP_HETRATES
 
       case ('HO2')
 
-         gammaLiq = 0.1
-         gammaIce = 0.025
+         gammaLiq = 0.1e+0_fp
+         gammaIce = 0.025e+0_fp
          molmass  = mHO2
 
       case ('NO2')
 
-         gammaLiq = 1d-8
-         gammaIce = 0.0
+         gammaLiq = 1e-8_fp
+         gammaIce = 0.0e+0_fp
          molmass  = mNO2
 
       case ('NO3')
 
-         gammaLiq = 0.002
-         gammaIce = 0.001
+         gammaLiq = 0.002e+0_fp
+         gammaIce = 0.001e+0_fp
          molmass  = mNO3
 
       case ('N2O5')
@@ -1073,11 +1073,11 @@ MODULE GCKPP_HETRATES
          ! For temperature dependence, JPL recommends the same as
          ! sulfuric acid aerosol at zero percent H2SO4, which is 0.019 at 298 K.
          ! Then apply constant scale factor (0.03/0.019)
-         gammaLiq = ( 0.03d0 / 0.019d0 ) * &
-              exp( -25.5265d0 + 9283.76d0 / T - 851801d0 / T**2 )
+         gammaLiq = ( 0.03e+0_fp / 0.019e+0_fp ) * &
+              exp( -25.5265e+0_fp + 9283.76e+0_fp / T - 851801e+0_fp / T**2 )
 
          ! Reactive uptake coefficient for N2O5 on water ice
-         gammaIce = 0.02
+         gammaIce = 0.02e+0_fp
 
          molmass  = mN2O5
 
@@ -1134,7 +1134,7 @@ MODULE GCKPP_HETRATES
 !         print'(I4,6E10.3)',K,area,rd,airnumden,gam,T,molmass
 
          ! Skip calculation if there is no surface area
-         if (area <= 0) cycle
+         if ( area <= 0.0e+0_fp ) cycle
          
          ! In-cloud loss frequency, combining ice and liquid in parallel, 1/s
          ! Pass radius in cm and mass in g.
@@ -1153,13 +1153,13 @@ MODULE GCKPP_HETRATES
 !      ! real(fp) :: kIinv, kEinv
 !
 !      ! Entrainment rate, inverse, s
-!      kEinv = safe_div( tauc * ( 1d0 - fc ), fc, 1d30 )
+!      kEinv = safe_div( tauc * ( 1e+0_fp - fc ), fc, 1e+30_fp )
 !
 !      ! In-cloud loss rate, inverse, s
-!      kIinv = safe_div( 1d0, fc*kI, 1d30 )
+!      kIinv = safe_div( 1e+0_fp, fc*kI, 1e+30_fp )
 !      
 !      ! Overall heterogeneous loss rate, grid average, 1/s
-!      kHet = safe_div( 1d0, ( kEinv + kIinv ), 0d0 )
+!      kHet = safe_div( 1e+0_fp, ( kEinv + kIinv ), 0e+0_fp )
 !
 
       !------------------------------------------------------------------------
@@ -1182,7 +1182,7 @@ MODULE GCKPP_HETRATES
            sqrt( 1e0_fp + ff**2 + kk**2 + 2*ff**2 + 2*kk**2 - 2*ff*kk ) / 2e0_fp
 
       ! Overall heterogeneous loss rate, grid average, 1/s
-      ! kHet = kI * xx / ( 1d0 + xx )
+      ! kHet = kI * xx / ( 1e+0_fp + xx )
       !  Since the expression ( xx / (1+xx) ) may behave badly when xx>>1,
       !  use the equivalent 1 / (1 + 1/x) with an upper bound on 1/x
       kHet = kI / ( 1e0_fp + safe_div( 1e0_fp, xx, 1e30_fp ) )
@@ -1540,7 +1540,7 @@ MODULE GCKPP_HETRATES
          select case (N)
             case (1:7) 
                ! dust
-               xstkcf = 0.01d0
+               xstkcf = 0.01
             case (8)
                ! sulfate
                if ( relhum < 0.4 ) then
@@ -1550,19 +1550,19 @@ MODULE GCKPP_HETRATES
                endif
             case (9)
                ! BC
-               if (relhum < 0.5) then
-                  xstkcf = 2d-4
+               if ( relhum < 0.5 ) then
+                  xstkcf = 2e-4
                else
-                  xstkcf = 1d-3
+                  xstkcf = 1e-3
                endif
             case (10)
                ! OC
                xstkcf = 0.005
             case (11:12)
                ! sea salt
-               if (relhum < 0.4) then
+               if ( relhum < 0.4 ) then
                   xstkcf = 0.05
-               elseif (relhum > 0.7) then
+               elseif ( relhum > 0.7 ) then
                   xstkcf = 0.002
                else
                   xstkcf = 0.05 + (0.002 - 0.05) * (relhum-0.4)/(0.7-0.4)
@@ -1651,24 +1651,24 @@ MODULE GCKPP_HETRATES
          select case (N)
             case (1:7)
                ! dust
-               xstkcf = 1d-8
+               xstkcf = 1e-8_fp
             case (8)
                ! sulfate
-               xstkcf = 5d-6
+               xstkcf = 5e-6_fp
             case (9)
                ! BC
-               xstkcf = 1d-4
+               xstkcf = 1e-4_fp
             case (10)
                ! OC
-               xstkcf = 1d-6
+               xstkcf = 1e-6_fp
             case (11:12)
                ! sea salt
-               if (relhum < 0.4) then
-                  xstkcf = 1d-8
-               elseif (relhum > 0.7) then
-                  xstkcf = 1d-4
+               if ( relhum < 0.4 ) then
+                  xstkcf = 1e-8_fp
+               elseif ( relhum > 0.7 ) then
+                  xstkcf = 1e-4_fp
                else
-                  xstkcf = 1d-8 + (1d-4 - 1d-8) * (relhum-0.4)/(0.7-0.4)
+                  xstkcf = 1e-8_fp + (1e-4_fp-1e-8_fp) * (relhum-0.4)/(0.7-0.4)
                endif
          end select
 
@@ -1974,7 +1974,7 @@ MODULE GCKPP_HETRATES
             ! Properties of inorganic (sulfate-nitrate-ammonium-sea salt) coated
             ! with organics
             output = N2O5_InorgOrg( XVOL(8), XVOL(10), XH2O(8), XH2O(10), &
-                 XRADI(8),    SPC_NIT,    0d0,   TEMPK,    RELHUM )
+                 XRADI(8),    SPC_NIT,    0e+0_fp,   TEMPK,    RELHUM )
 
             ! Gamma
             XSTKCF = output(1)
@@ -2048,20 +2048,31 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION N2O5_InorgOrg( volInorg, volOrg, H2Oinorg, H2Oorg, Rcore, NIT, Cl, T, RH ) &
+    FUNCTION N2O5_InorgOrg( volInorg, volOrg, H2Oinorg, H2Oorg, Rcore, &
+                            NIT,      Cl,     T,        RH ) &
          RESULT ( output )
+!
+! !USES:
+!
+  USE PhysConstants,      ONLY : AVO, RGASLATM, RSTARG, PI
 !
 ! !INPUT PARAMETERS: 
 !      
-      real(fp), intent(in) :: volInorg ! volume of wet inorganic aerosol core, cm3(aerosol)/cm3(air)
-      real(fp), intent(in) :: volOrg   ! volume of wet organic aerosol coating, cm3(aerosol)/cm3(air)
-      real(fp), intent(in) :: H2Oinorg ! volume of H2O in inorganic core, cm3(H2O)/cm3(air)
-      real(fp), intent(in) :: H2Oorg   ! volume of H2O in organic coating, cm3(H2O)/cm3(air)
-      real(fp), intent(in) :: Rcore    ! radius of inorganic core, cm
-      real(fp), intent(in) :: NIT      ! aerosol nitrate concentration, molecule/cm3(air)
-      real(fp), intent(in) :: Cl       ! aerosol chloride concentration, molecule/cm3(air)
-      real(fp), intent(in) :: T        ! air temperature, K
-      real(fp), intent(in) :: RH       ! relative humidity, fraction [0-1]
+      real(fp), intent(in) :: volInorg ! volume of wet inorganic aerosol core
+                                       !  [cm3(aerosol)/cm3(air)]
+      real(fp), intent(in) :: volOrg   ! volume of wet organic aerosol coating
+                                       !  [cm3(aerosol)/cm3(air)]
+      real(fp), intent(in) :: H2Oinorg ! volume of H2O in inorganic core
+                                       !  [cm3(H2O)/cm3(air)]
+      real(fp), intent(in) :: H2Oorg   ! volume of H2O in organic coating
+                                       !  [cm3(H2O)/cm3(air)]
+      real(fp), intent(in) :: Rcore    ! radius of inorganic core [cm]
+      real(fp), intent(in) :: NIT      ! aerosol nitrate concentration
+                                       !  [molecule/cm3(air)
+      real(fp), intent(in) :: Cl       ! aerosol chloride concentration
+                                       !  [molecule/cm3(air)
+      real(fp), intent(in) :: T        ! air temperature [K]
+      real(fp), intent(in) :: RH       ! relative humidity [fraction, 0-1]
 !
 ! !RETURN VALUE:
 !      
@@ -2082,18 +2093,18 @@ MODULE GCKPP_HETRATES
 ! !DEFINED PARAMETERS:
 !
       ! Parameters from Bertram and Thornton (2009) ACP and McDuffie 2018 JGR
-      real(fp), parameter :: KH    = 5.1D1,  & !unitless
-                              k3k2b = 4.0D-2, & !unitless  
-                              beta  = 1.15D6, & ![s-1]
-                              delta = 1.3D-1    ![M-1]
+      real(fp), parameter :: KH    = 5.1e+1_fp   !unitless
+      real(fp), parameter :: k3k2b = 4.0e-2_fp   !unitless  
+      real(fp), parameter :: beta  = 1.15e+6_fp  ![s-1]
+      real(fp), parameter :: delta = 1.3e-1_fp   ![M-1]
        
       ! Organic Parameters from Antilla et al., 2006 and Riemer et al., 2009
       ! aq. Henry's Law coef [mol m-3 atm-1] (Antilla 2006)
-      real(fp), parameter :: Haq  = 5D3
+      real(fp), parameter :: Haq  = 5e+3_fp
       ! aq. diffusion coef [m2 s-1] (Riemer, 2009)
-      real(fp), parameter :: Daq  = 1D-9
+      real(fp), parameter :: Daq  = 1e-9_fp
       ! Gas constant [m3 atm K-1 mol-1]
-      real(fp), parameter :: R    = 8.206D-5 
+      real(fp), parameter :: R    = RGASLATM * 1e-3_fp
 !
 ! !LOCAL VARIABLES
 !
@@ -2105,12 +2116,10 @@ MODULE GCKPP_HETRATES
       real(fp) :: volTotal, H2Ototal, areaTotal, volRatioDry
       real(fp) :: Rp, l, eps, OCratio
       real(fp) :: M_H2O, M_NIT, M_Cl, ClNO2_yield
-
-!------------------------------------------------------------------------------
       
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
       ! Particle size & volume, coating thickness, molar concentrations
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
        
       ! Total volume (organic + inorganic), cm3(aerosol)/cm3(air)
       volTotal = volInorg + volOrg
@@ -2119,7 +2128,7 @@ MODULE GCKPP_HETRATES
       H2Ototal = H2Oinorg + H2Oorg
 
       ! Ratio of organic to inorganic volumes, when dry, unitless
-      volRatioDry = safe_div( (volOrg - H2Oorg), (volInorg - H2Oinorg), 0d0 )
+      volRatioDry = safe_div( (volOrg - H2Oorg), (volInorg - H2Oinorg), 0e+0_fp )
 
       ! Particle radius, cm
       ! Derived from spherical geometry
@@ -2128,21 +2137,21 @@ MODULE GCKPP_HETRATES
       ! We use the dry volume ratio here because McDuffie et al. (2018) fitted
       ! the N2O5 gamma parameters to field data in a model using the 
       ! dry ratio. cdholmes 7/22/2019]
-      Rp = Rcore * ( 1d0 + volRatioDry )**(1d0/3d0)
+      Rp = Rcore * ( 1e+0_fp + volRatioDry )**(1e+0_fp/3e+0_fp)
 
       ! Coating thickness, cm
       l = Rp - Rcore
 
       ! mean molecular speed [m s-1]
       ! sqrt( 8RT / (pi M) )
-      speed = sqrt( 8d0 * 8.31d0 * T / (3.14159d0 * 0.108d0) )
+      speed = sqrt( 8e+0_fp * RSTARG * T / ( PI * 0.108+0_fp) )
 
       ! H2O molar concentration, mol/L
-      M_H2O = H2Ototal / 18d0 / volTotal * 1d3
+      M_H2O = H2Ototal / 18e+0_fp / volTotal * 1e+3_fp
       ! Nitrate molar concentration, mol/L 
-      M_NIT = NIT / volTotal / 6.022d23 * 1d3
+      M_NIT = NIT / volTotal / AVO * 1e+3_fp
       ! Chloride molar concentration, mol/L
-      M_Cl = Cl   / volTotal / 6.022d23 * 1d3     
+      M_Cl = Cl   / volTotal / AVO * 1e+3_fp
 
       !--------------------------------------------------------------------------
       ! Gamma for the organic shell
@@ -2151,19 +2160,21 @@ MODULE GCKPP_HETRATES
 
       !O:C ratio from Eq. 10 of Canagaratna et al., 2015 (ACP)
       ! Take average OM/OC ratio from /GeosCore/aerosol_mod.F90
-      OCratio = ( ( ( OMOC_POA + OMOC_OPOA ) / 2 ) - 1.17D0 ) / 1.29D0
+      OCratio = ( ( ( OMOC_POA + OMOC_OPOA ) / 2 ) - 1.17e+0_fp ) / 1.29e+0_fp
 
       ! organic scaling factor (eps(Haq*Daq) = Horg*Dorg)
       ! from McDuffie (2018) JGR
-      eps = 1.5D-1 * OCratio + 1.6D-3 * RH
+      eps = 1.5e-1_fp * OCratio + 1.6e-3_fp * RH
 
       ! Gamma for coating
       ! [Rcore, Rp, and l converted cm -> m here]
-      gamma_coat = ( 4D0 * R * T * eps * Haq * Daq * Rcore/1d2 ) / &
-                   ( speed * l/1d2 * Rp/1d2 )
+      Print*, 'Num =', ( 4e+0_fp * R * T * eps * Haq * Daq * Rcore/1e+2_fp )
+      Print*, 'Den =', ( speed * l/1e+2_fp * Rp/1e+2_fp )
+      gamma_coat = ( 4e+0_fp * R * T * eps * Haq * Daq * Rcore/1e+2_fp ) / &
+                   ( speed * l/1e+2_fp * Rp/1e+2_fp )
 
       ! Total particle surface area, cm2/cm3
-      areaTotal = 3d0 * volTotal / Rp 
+      areaTotal = 3e+0_fp * volTotal / Rp 
 
       !--------------------------------------------------------------------------
       ! Gamma for the inorganic core
@@ -2172,15 +2183,15 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------------
 
       ! Select dry or deliquesed aerosol based on molar concentration of H2O
-      IF ( M_H2O < 0.1 ) THEN
+      IF ( M_H2O < 0.1e+0_fp ) THEN
          
          ! When H2O is nearly zero, use dry aerosol value
-         gamma_core = 0.005
+         gamma_core = 0.005e+0_fp
  
       ELSE
          
          ! mean molecular speed [cm/s] 
-         speed = speed * 1d2
+         speed = speed * 1e+2_fp
 
          ! A factor from Bertram and Thornton (2009), s
          ! Their paper suggested an approximated value of A = 3.2D-8
@@ -2193,16 +2204,16 @@ MODULE GCKPP_HETRATES
          ! calculated following Bertram and Thornton ACP (2009).
          ! Eq 11 from Bertram and Thronton (2009):
          ! Modified to avoid underflow when exp(-delta*H2O) ~1
-         IF ( delta * M_H2O < 1E-2 ) THEN
+         IF ( delta * M_H2O < 1e-2_fp ) THEN
             k2f = beta * ( delta * M_H2O )
          ELSE
-            k2f = beta * ( 1D0 - exp( -delta * M_H2O ) )
+            k2f = beta * ( 1e+0_fp - exp( -delta * M_H2O ) )
          ENDIF
 
          ! Eq 12 from Bertram and Thornton (2009)
          ! Use safe_div to avoid overflow when NIT ~ 0
-         gamma_core = A * k2f * ( 1D0 - &
-               1D0 / ( 1D0 + safe_div( k3k2b * M_H2O, M_NIT, 1D30 ) ) )
+         gamma_core = A * k2f * ( 1e+0_fp - &
+            1e+0_fp / ( 1e+0_fp + safe_div( k3k2b * M_H2O, M_NIT, 1e+30_fp ) ) )
 
       ENDIF
 
@@ -2210,7 +2221,7 @@ MODULE GCKPP_HETRATES
       ! Gamma for overall uptake
       !--------------------------------------------------------------------------
 
-      gamma = 1d0 / ( ( 1d0 / gamma_core ) + ( 1d0 / gamma_coat ) )
+      gamma = 1e+0_fp / ( ( 1e+0_fp / gamma_core ) + ( 1e+0_fp / gamma_coat ) )
 
       !--------------------------------------------------------------------------
       ! ClNO2 yield
@@ -2218,7 +2229,7 @@ MODULE GCKPP_HETRATES
 
       ! Calculate the ClNO2 yield following Bertram and Thornton 2009 ACP
       ! Reduce by 74% following McDuffie (2018) JGR
-      ClNO2_yield = ClNO2_BT( M_Cl, M_H2O ) * 0.25
+      ClNO2_yield = ClNO2_BT( M_Cl, M_H2O ) * 0.25e+0_fp
      
       output(1) = gamma
       output(2) = ClNO2_yield
@@ -2269,7 +2280,7 @@ MODULE GCKPP_HETRATES
 ! !DEFINED PARAMETERS:
 !
 !      ! Parameters from Bertram and Thornton (2009) ACP
-       REAL(fp), parameter :: k2k3  = 1D0 / 4.5D2
+       REAL(fp), parameter :: k2k3  = 1e+0_fp / 4.5e+2_fp
 
 !------------------------------------------------------------------------------
 
@@ -2279,15 +2290,15 @@ MODULE GCKPP_HETRATES
 
       !When H2O is nearly zero, assign phi accordingly
       IF ( H2O < 0.1 ) THEN
-           IF ( Cl > 1D-3 ) THEN
-               PHI = 1D0
+           IF ( Cl > 1e-3_fp ) THEN
+               PHI = 1e+0_fp
            ELSE
-               PHI = 0D0
+               PHI = 0e+0_fp
            ENDIF
       ELSE
            ! Eq from Bertram and Thronton (2009)
            ! Use safe_div to avoid overflow when Cl ~ 0
-           PHI = 1D0 / ( 1D0 + k2k3 * ( safe_div( H2O, Cl, 0D0 ) ) )
+           PHI = 1e+0_fp / ( 1e+0_fp + k2k3 * ( safe_div( H2O, Cl, 0e+0_fp ) ) )
 
      ENDIF
 
@@ -6719,19 +6730,19 @@ MODULE GCKPP_HETRATES
       !-----------------------------------------------
 
       ! Heymsfield (2014) ice size parameters
-      if (T < 273d0 - 71d0 ) then
-          alpha = 83.3d0
-          beta  = 0.0184d0
-      elseif ( T < 273d0 - 56d0 ) then
-          alpha = 9.1744d4
-          beta = 0.117d0
+      if (T < 273e+0_fp - 71e+0_fp ) then
+          alpha = 83.3e+0_fp
+          beta  = 0.0184e+0_fp
+      elseif ( T < 273e+0_fp - 56e+0_fp ) then
+          alpha = 9.1744e+4_fp
+          beta = 0.117e+0_fp
       else
-          alpha = 308.4d0
-          beta  = 0.0152d0
+          alpha = 308.4e+0_fp
+          beta  = 0.0152e+0_fp
       endif
 
       ! Effective radius, cm
-      rIce = 0.5e+0_fp * alpha * exp( beta * (T-273.15d0) ) / 1d4
+      rIce = 0.5e+0_fp * alpha * exp( beta * (T-273.15e+0_fp) ) / 1e+4_fp
 
       ! Ice surface area density, cm2/cm3
       AIce = 3.e+0_fp * (VIce/VAir) / rIce * 2.25e+0_fp
