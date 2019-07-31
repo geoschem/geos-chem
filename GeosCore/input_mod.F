@@ -2038,6 +2038,46 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%BCAE_2
 
+      ! Photoylse nitrate aerosol? (TMS, 23/08/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT
+
+      ! scalar for JHNO3 for photoylsing NITs aerosol (TMS, 23/08/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT_JNITs', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT_JNITs
+
+      ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'hvAerNIT_JNIT', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%hvAerNIT_JNIT
+
+      ! Fraction for JNITS/NIT channel A (HNO2) for NITs photoylsis (TMS, 10/10/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'JNITChanA', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%JNITChanA
+
+      ! Fraction for JNITs/NIT channel B (NO2) for NITs photoylsis (TMS, 10/10/18)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'JNITChanB', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%JNITChanB
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2071,6 +2111,7 @@
          Input_Opt%LSVPOA       = .FALSE.
          Input_Opt%LOMOC        = .FALSE.
          Input_Opt%LBCAE        = .FALSE.
+         Input_Opt%hvAerNIT     = .FALSE.
       ENDIF
 
       ! Return success
@@ -2131,6 +2172,16 @@
      &                        Input_Opt%BCAE_1
          WRITE( 6, 105     ) 'Hydrophobic BC AE factor    : ',
      &                        Input_Opt%BCAE_2
+         WRITE( 6, 100     ) 'Photolyse nitrate aerosol?  : ',
+     &                        Input_Opt%hvAerNIT
+         WRITE( 6, 105     ) 'JNITs scaling of JHNO3      : ',
+     &                        Input_Opt%hvAerNIT_JNITs
+         WRITE( 6, 105     ) 'JNIT scaling of JHNO3       : ',
+     &                        Input_Opt%hvAerNIT_JNIT
+         WRITE( 6, 105     ) 'JNIT(s) channel A (HONO)    : ',
+     &                        Input_Opt%JNITChanA
+         WRITE( 6, 105     ) 'JNIT(s) channel B (NO2)     : ',
+     &                        Input_Opt%JNITChanB
       ENDIF
 
  100  FORMAT( A, L5     )
@@ -3752,6 +3803,8 @@
 !  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
 !                              now the default.
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  25 Jun 2017 - A. Wong     - Add the option of inclduing CO2 effect on drydep
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3801,6 +3854,38 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_OPt%LWETD
 
+      ! Turn on CO2 effect on drydep?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_EFFECT', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%CO2_EFFECT
+      
+      ! CO2 level at simulation
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_LEVEL', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%CO2_LEVEL
+
+      ! Reference CO2 level
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_REF', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%CO2_REF
+
+      ! Reference CO2 level
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'RA_Alt_Above_Sfc', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%RA_Alt_Above_Sfc
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -3835,6 +3920,16 @@
          Input_Opt%PBL_DRYDEP = .TRUE.
       ENDIF
 
+      ! If CO2 effect on RS in turned on, calculate the scaling factor 
+      ! on Rs based on Franks et al. (2013) (ayhwong, 6/25/2019)
+      If (Input_Opt%CO2_EFFECT) THEN
+         Input_Opt%RS_SCALE = Input_Opt%CO2_LEVEL / Input_Opt%CO2_REF * 
+     &                       (Input_Opt%CO2_LEVEL + 80.0_fp) * 
+     &                       (Input_Opt%CO2_REF - 40.0_fp) /
+     &                       (Input_Opt%CO2_LEVEL - 40.0_fp) / 
+     &                       (Input_Opt%CO2_REF + 80.0_fp)
+      ENDIF
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3847,10 +3942,20 @@
      &                        Input_Opt%PBL_DRYDEP
          WRITE( 6, 100     ) 'Turn on wet deposition?     : ',
      &                        Input_Opt%LWETD
+         WRITE( 6, 100     ) 'Turn on CO2 effect?         : ', 
+     &                        Input_Opt%CO2_EFFECT
+         WRITE( 6, 110     ) 'CO2 level                   : ', 
+     &                        Input_Opt%CO2_LEVEL         
+         WRITE( 6, 110     ) 'CO2 reference level         : ', 
+     &                        Input_Opt%CO2_REF         
+         WRITE( 6, 110     ) 'RIX scaling factor          : ', 
+     &                        Input_Opt%RS_SCALE
+
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
+ 110  FORMAT( A, f6.2 )
 
       END SUBROUTINE READ_DEPOSITION_MENU
 !EOC
@@ -8695,9 +8800,6 @@
       I = MAX( Ind_('TSOA1','A'), 0 )
      &  + MAX( Ind_('TSOA2','A'), 0 )
      &  + MAX( Ind_('TSOA3','A'), 0 )
-     &  + MAX( Ind_('ISOA1','A'), 0 )
-     &  + MAX( Ind_('ISOA2','A'), 0 )
-     &  + MAX( Ind_('ISOA3','A'), 0 )
      &  + MAX( Ind_('ASOA1','A'), 0 )
      &  + MAX( Ind_('ASOA2','A'), 0 )
      &  + MAX( Ind_('ASOA3','A'), 0 )

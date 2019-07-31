@@ -188,7 +188,6 @@
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
 !      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
@@ -518,7 +517,7 @@
             GMTRC    = 1
 
             IF ( K == 1 ) THEN
-               Q(1) = GET_PBL_TOP_m( I, J )
+               Q(1) = State_Met%PBL_TOP_m(I,J)
             ENDIF
                
          ELSE IF ( N == 510 ) THEN
@@ -531,7 +530,7 @@
             GMTRC    = 2
 
             IF ( K == 1 ) THEN
-               Q(1) = GET_PBL_TOP_L( I, J )
+               Q(1) = State_Met%PBL_TOP_L(I,J)
             ENDIF
 
          ELSE IF ( N == 511 ) THEN 

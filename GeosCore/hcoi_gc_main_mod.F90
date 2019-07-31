@@ -2143,8 +2143,6 @@ CONTAINS
     USE FAST_JX_MOD,      ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod, ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,    ONLY : OptInput
-    USE PBL_MIX_MOD,      ONLY : GET_FRAC_OF_PBL
-    USE PBL_MIX_MOD,      ONLY : GET_PBL_MAX_L
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
@@ -2271,11 +2269,11 @@ CONTAINS
 
        ! Fraction of PBL for each box [unitless]
        IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
-          HCO_FRAC_OF_PBL(I,J,L) = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+          HCO_FRAC_OF_PBL(I,J,L) = State_Met%F_OF_PBL(I,J,L)
        ENDIF
 
        ! Maximum extent of the PBL [model level]
-       HCO_PBL_MAX = GET_PBL_MAX_L()
+       HCO_PBL_MAX = State_Met%PBL_MAX_L
 
        ! J-values for NO2 and O3 (2D field only)
        ! This code was moved from hcox_paranox_mod.F90 to break
@@ -2332,7 +2330,6 @@ CONTAINS
     USE HCOX_STATE_MOD,   ONLY : ExtDat_Set
     USE HCO_GeoTools_Mod, ONLY : HCO_CalcVertGrid
     USE HCO_GeoTools_Mod, ONLY : HCO_SetPBLm
-    USE PBL_MIX_MOD,      ONLY : GET_PBL_TOP_M
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
 !
@@ -2439,7 +2436,7 @@ CONTAINS
 !$OMP PRIVATE( I, J )
     DO J=1,State_Grid%NY
     DO I=1,State_Grid%NX
-       PBLM(I,J) = GET_PBL_TOP_m(I,J)
+       PBLM(I,J) = State_Met%PBL_TOP_m(I,J)
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
@@ -3889,6 +3886,10 @@ CONTAINS
    USE State_Met_Mod,      ONLY : MetState
    USE TIME_MOD,           ONLY : EXPAND_DATE
    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#if defined( APM )
+   USE APM_INIT_MOD,       ONLY : APMIDS
+#endif
+
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4188,6 +4189,120 @@ CONTAINS
          ENDDO
 !$OMP END PARALLEL DO
 
+#if defined( APM )
+         !================================================================
+         ! APM MICROPHYSICS
+         !================================================================
+         WRITE(*,*)'APM run does not find '// TRIM( SpcInfo%Name ),N
+         IF(SpcInfo%Name(1:9)=='APMSPBIN2')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SO4)/20.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:9)=='APMSPBIN3')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SO4)/20.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+!GanLuotest
+           IF(SpcInfo%Name(1:10)=='APMSEABIN0')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SALA)/9.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:10)=='APMSEABIN1')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SALC)/10.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:10)=='APMDSTBIN1')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = &
+               SUM(State_Chm%Species(I,J,L,APMIDS%id_DST1:APMIDS%id_DST4))/6.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:8)=='APMBCBIN')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = 1.D-30
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:8)=='APMOCBIN')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = 1.D-30
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+#endif
       ENDIF
 
       ! Free pointer

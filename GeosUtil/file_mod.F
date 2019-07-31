@@ -38,7 +38,6 @@
       PUBLIC  :: CLOSE_FILES
       PUBLIC  :: FILE_EXISTS
       PUBLIC  :: IOERROR
-      PUBLIC  :: LINE_BUFFER 
 
       INTERFACE FILE_EXISTS
          MODULE PROCEDURE FILE_EX_C
@@ -110,16 +109,6 @@
       INTEGER,          INTENT(IN) :: UNIT       ! Logical unit # for file
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION   ! Descriptive message
 !
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: "LINUX_IFORT" and "LINUX_PGI" ARE CURRENTLY THE ONLY       %%%
-!  %%%  SUPPORTED COMPILER OPTIONS.  MOST SYSTEMS NOW USE A UNIX VERSION %%%
-!  %%%  BASED ON LINUX, SO OTHER COMPILERS (IBM/AIX, SUN/SPARC, etc.)    %%%
-!  %%%  ARE GENERALLY NOT USED ANYMORE.  LEAVE THE OLDER CODE HERE JUST  %%%
-!  %%%  IN CASE WE NEED TO REVERT TO IT AGAIN IN THE FUTURE.             %%%
-!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 ! !REVISION HISTORY:
 !  (1 ) Now flush the standard output buffer before stopping.  
 !        Also updated comments. (bmy, 2/7/00)
@@ -170,21 +159,7 @@
  110  FORMAT( 'GEOS-CHEM I/O ERROR ', i5, ' in file unit ', i5, /, 
      &        'Encountered at routine:location ', a )
 
-#if   defined( LINUX_PGI )
-
-      !=================================================================
-      ! For LINUX platform w/ PGI compiler
-      ! Call gerror() to get the I/O error msg
-      !=================================================================
-
-      ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 
-      ERROR_MSG = GERROR()
- 
-      ! Print error message to std output
-      WRITE( 6, 120 ) TRIM( ERROR_MSG )
- 120  FORMAT( /, 'Error: ', a )
-
-#elif defined( LINUX_IFORT ) 
+#if defined( LINUX_IFORT ) 
 
       !=================================================================
       ! For LINUX platform w/ IFORT v8/v9 compiler:
@@ -197,32 +172,6 @@
       ! Print error message to std output
       WRITE( 6, 120 ) ERROR_NUM, TRIM( ERROR_MSG )
  120  FORMAT( /, 'Error ', i4, ': ', a )
-
-#elif defined( SPARC ) 
-
-      !=================================================================
-      ! For SUN/Sparc platform: call gerror() to get the I/O error msg
-      !=================================================================
-
-      ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 
-      ERROR_MSG = GERROR()
- 
-      ! Print error message to std output
-      WRITE( 6, 120 ) TRIM( ERROR_MSG )
- 120  FORMAT( /, 'Error: ', a )
-
-#elif defined( IBM_AIX ) || defined( IBM_XLF )
-
-      !=================================================================
-      ! For IBM/AIX platform: call gerror() to get the I/O error msg
-      !=================================================================
-
-      ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 
-      ERROR_MSG = GERROR()
- 
-      ! Print error message to std output
-      WRITE( 6, 120 ) TRIM( ERROR_MSG )
- 120  FORMAT( /, 'Error: ', a )
 
 #endif
       
@@ -383,76 +332,6 @@
       CLOSE( IU_FILE    )
 
       END SUBROUTINE CLOSE_FILES
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Line_Buffer
-!
-! !DESCRIPTION: Manually sets a Fortran file to line-buffered output,
-!  with a buffer size of 80 characters.  This is necessary in order to 
-!  be able to view logfile output while a GEOS-Chem simulation is still
-!  running.  This is only meant to be used with the pgfortran compiler,
-!  which by default will only flush output to disk at the end of a run.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE LINE_BUFFER( UNIT )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: UNIT  ! Fortran logical unit number
-!
-! !REMARKS:
-!  From the PGI Fortran Reference Manual:
-!     http://www.pgroup.com/doc/pgifortref.pdf
-!  
-!  Fortran I/O supports 3 types of buffering., described in detail in the 
-!  description of setvbuf.  
-!
-!    * Logical units 5 (stdin) and 6 (stdout) are line buffered. 
-!    * Logical unit 0 (stderr) is unbuffered.  
-!    * Disk files are fully buffered.  
-!
-!  These defaults generally give the expected behavior. You can use setvbuf3f 
-!  to change a unit's buffering type and size of the buffer.
-!
-!  This function must be called after the unit is opened and before any I/O 
-!  is done on the unit.
-!
-!  The OPTION parameter can have the following values, 0 specifies full 
-!  buffering, 1 specifies line buffering, and 2 specifies unbuffered.
-!  The size parameter specifies the size of the buffer.
-!  
-!  This function returns zero on success and non-zero on failure.
-!
-!  An example of a program in which this function might be useful is a 
-!  long-running program that periodically writes a small amount of data to 
-!  a log file. If the log file is line buffered, you could check the log file
-!  for progress. If the log file is fully buffered (the default), the data 
-!  may not be written to disk until the program terminates.
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-#if defined( LINUX_PGI )
-
-      ! Reference to external SETVBUF3F function
-      INTEGER, EXTERNAL :: SETVBUF3F
-      INTEGER           :: RC
-      
-      ! Set unit to line buffering w/ 80-character buffer
-      RC = SETVBUF3F( UNIT, 1, 80 )
-
-#endif
-
-      END SUBROUTINE LINE_BUFFER
   
       ! End of module
       END MODULE FILE_MOD

@@ -1131,9 +1131,6 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
-#if defined( MODEL_GEOS )
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1279,7 +1276,7 @@
       DO I = 1, State_Grid%NX
 
          ! Top level of boundary layer at (I,J)
-         !PBL_TOP = CEILING( GET_PBL_TOP_L(I,J) )
+         !PBL_TOP = CEILING( State_Met%PBL_TOP_L(I,J) )
          PBL_TOP = 1 ! only set surface layer
 
          ! Do for every species

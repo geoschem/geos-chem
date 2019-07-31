@@ -16,8 +16,7 @@
 ! !USES:
 !
       USE AEROSOL_MOD,        ONLY : OCPI, OCPO
-      USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
-      USE AEROSOL_MOD,        ONLY : ISOAAQ
+      USE AEROSOL_MOD,        ONLY : TSOA, ASOA, OPOA, ISOAAQ
       USE CMN_O3_MOD,         ONLY : SAVEOA
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
       USE State_Grid_Mod,     ONLY : GrdState
@@ -59,7 +58,7 @@
 
          ! Sum of all organic aerosol [ug/m3]
          SAVEOA(I,J,L) = SAVEOA(I,J,L) +
-     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
+     &                   ( TSOA(I,J,L) + ASOA(I,J,L) +
      &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) +
      &                     ISOAAQ(I,J,L) ) * FACTOR
 

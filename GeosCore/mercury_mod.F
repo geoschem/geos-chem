@@ -382,7 +382,6 @@
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -922,7 +921,7 @@
          !------------------------------------------------------
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
-         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
+         F_PBL = State_Met%F_UNDER_PBLTOP(I,J,L)
 
          ! Do dry deposition only for the fraction of the box in the PBL
          IF (F_PBL > 0.1e+0_fp) THEN
@@ -2990,7 +2989,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
@@ -3052,7 +3050,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       DTSRCE    = GET_TS_EMIS()
 
       ! Maximum extent of the PBL [model levels]
-      PBL_MAX   = GET_PBL_MAX_L() 
+      PBL_MAX   = State_Met%PBL_MAX_L
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO
@@ -3118,7 +3116,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          DO L = 1, PBL_MAX
 
             ! Fraction of box (I,J,L) w/in the PBL [unitless]
-            F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+            F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
             !-----------------
             ! Total Hg species
@@ -3947,7 +3945,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
@@ -4006,7 +4003,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       DTSRCE    = GET_TS_EMIS()
 
       ! Maximum extent of the PBL [model levels]
-      PBL_MAX   = GET_PBL_MAX_L()
+      PBL_MAX   = State_Met%PBL_MAX_L
 
       IF (.NOT. LPREINDHG ) THEN
 
@@ -4021,7 +4018,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             DO L = 1, PBL_MAX
 
                ! Fraction of box (I,J,L) w/in the PBL [unitless]
-               F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
+               F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
                ! Partition total Hg2 into box (I,J,L) [kg]
                E_Hg     = F_OF_PBL * EHg2_an(I,J) * DTSRCE
@@ -4205,7 +4202,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
@@ -4261,7 +4257,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       DTSRCE    = GET_TS_EMIS()
       
       ! Maximum extent of the PBL [model levels]
-      PBL_MAX   = GET_PBL_MAX_L()
+      PBL_MAX   = State_Met%PBL_MAX_L
 
       IF (.NOT. LPREINDHG) THEN
 
@@ -4275,7 +4271,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             DO L = 1, PBL_MAX
 
                ! Fraction of box (I,J,L) w/in the PBL [unitless]
-               F_OF_PBL           = GET_FRAC_OF_PBL(I, J, L, State_Grid)
+               F_OF_PBL           = State_Met%F_OF_PBL(I,J,L)
 
                ! Partition HgP into box (I,J,L) [kg]
                E_Hg               = F_OF_PBL * EHgP_an(I,J) * DTSRCE
@@ -5333,7 +5329,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
       USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
@@ -5452,7 +5447,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !----------------------------------------------------------------
       IF ( (L_ADD_MBL_BR) .OR. (LPOLARBR) ) THEN
          ! Fraction of grid box mass which is within the mixed layer
-         FPBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid ) 
+         FPBL = State_Met%F_UNDER_PBLTOP(I,J,L) 
       ENDIF
       
       IF ( L_ADD_MBL_BR ) THEN
@@ -5849,7 +5844,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_WATER
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !

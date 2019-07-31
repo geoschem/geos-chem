@@ -678,13 +678,13 @@
          ! in mol/m3 air --> convert to mol/L water
          IF ( AERLIQ(8) < 1e-18_fp ) THEN
             ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
-            ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
-            ! (hotp, ccc, 12/18/09)
+            ! We force HPLUSTEMP to 1d20 (hotp, ccc, 12/18/09)
+            ! Force pHSav to 20e0 (X. Wang, 6/27/19)
             HPLUSTEMP       = 1e+20_fp
             SULFTEMP        = 1e-30_fp
             BISULTEMP       = 1e-30_fp
             NITRTEMP        = 1e-30_fp
-            State_Chm%pHSav(I,J,L) = -999e+0_fp
+            State_Chm%pHSav(I,J,L) = 20e+0_fp
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
             SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp

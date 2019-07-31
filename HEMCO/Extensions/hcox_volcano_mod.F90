@@ -103,6 +103,8 @@ MODULE HCOX_Volcano_Mod
    REAL(sp), ALLOCATABLE           :: VolcCld(:)       ! Cloud column height [m]
    INTEGER,  ALLOCATABLE           :: VolcIdx(:)       ! Lon grid index
    INTEGER,  ALLOCATABLE           :: VolcJdx(:)       ! Lat grid index
+   INTEGER,  ALLOCATABLE           :: VolcBeg(:)       ! Begin time (optional)
+   INTEGER,  ALLOCATABLE           :: VolcEnd(:)       ! End time   (optional)
    CHARACTER(LEN=255)              :: FileName         ! Volcano file name
    CHARACTER(LEN=255)              :: VolcSource       ! Volcano data source
    CHARACTER(LEN=61), ALLOCATABLE  :: SpcScalFldNme(:) ! Names of scale factor fields
@@ -195,7 +197,7 @@ CONTAINS
 
     !----------------------------------------------
     ! Read/update the volcano data
-    ! (will be done only if this is a new day
+    ! (will be done only if this is a new day)
     !----------------------------------------------
     CALL ReadVolcTable( am_I_Root, HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -577,6 +579,8 @@ CONTAINS
           IF ( ALLOCATED(Inst%VolcCld) ) DEALLOCATE(Inst%VolcCld)
           IF ( ALLOCATED(Inst%VolcIdx) ) DEALLOCATE(Inst%VolcIdx)
           IF ( ALLOCATED(Inst%VolcJdx) ) DEALLOCATE(Inst%VolcJdx)
+          IF ( ALLOCATED(Inst%VolcBeg) ) DEALLOCATE(Inst%VolcBeg)
+          IF ( ALLOCATED(Inst%VolcEnd) ) DEALLOCATE(Inst%VolcEnd)
 
           ALLOCATE(     VolcLon(nVolc), &
                         VolcLat(nVolc), &
@@ -585,6 +589,8 @@ CONTAINS
                    Inst%VolcCld(nVolc), &
                    Inst%VolcIdx(nVolc), &
                    Inst%VolcJdx(nVolc), &
+                   Inst%VolcBeg(nVolc), &
+                   Inst%VolcEnd(nVolc), &
                    STAT=AS )
           IF ( AS /= 0 ) THEN
              CALL HCO_ERROR ( HcoState%Config%Err, &
@@ -596,6 +602,8 @@ CONTAINS
           Inst%VolcSlf = 0.0_sp
           Inst%VolcElv = 0.0_sp
           Inst%VolcCld = 0.0_sp
+          Inst%VolcBeg = 0
+          Inst%VolcEnd = 0
 
        ELSE
           WRITE(MSG,*) 'No volcano data found for year/mm/dd: ', YYYY, MM, DD
@@ -630,11 +638,11 @@ CONTAINS
                                  Dum, nCol, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
-             ! Expect 5 values
-             IF ( nCol /= 5 ) THEN
+             ! Allow for 5 or 7 values
+             IF ( nCol /= 5 .and. nCol /= 7 ) THEN
                 WRITE(MSG,*) 'Cannot parse line ', TRIM(ThisLine), &
-                             'Expected five entries, separated by space ', &
-                             'character, instead found ', nCol
+                             'Expected five or seven entries, separated by ', &
+                             'space character, instead found ', nCol
                 CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
                 RETURN
              ENDIF
@@ -645,6 +653,12 @@ CONTAINS
              Inst%VolcSlf(N) = Dum(3)
              Inst%VolcElv(N) = Dum(4)
              Inst%VolcCld(N) = Dum(5)
+
+             ! Some lines also include start and end time
+             IF ( nCol == 7 ) THEN
+                Inst%VolcBeg(N) = Dum(6)
+                Inst%VolcEnd(N) = DUM(7)
+             ENDIF
           ENDDO
 
           ! At this point, we should have read exactly nVolc entries!
@@ -698,6 +712,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
 !
 ! !INPUT PARAMETERS:
 !
@@ -717,13 +732,15 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller   - Initial version
+!  20 Jun 2019 - M. Sulprizio- Update to accommodate beginning and start time
+!                              entries for some volcanoes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, N
+    INTEGER            :: I, J, L, N, HH, MN, hhmmss
     LOGICAL            :: Erupt
     REAL(sp)           :: nSO2, zTop, zBot, PlumeHgt
     REAL(sp)           :: z1,   z2
@@ -759,6 +776,11 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Get current hour, minute and save as hhmmss
+    CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cH=HH, cM=MN, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    hhmmss = HH*10000 + MN*100
+
     ! Do for every volcano
     IF ( Inst%nVolc > 0 ) THEN
        DO N = 1, Inst%nVolc
@@ -769,6 +791,14 @@ CONTAINS
 
           ! Skip if outside of domain
           IF( I < 1 .OR. J < 1 ) CYCLE
+
+          ! Check if beginning and end time are specified
+          ! Do not include emissions for this volcano outside of
+          ! start and end times (mps, 6/20/19)
+          IF ( Inst%VolcBeg(N) > 0 .or. Inst%VolcEnd(N) > 0 ) THEN
+             IF ( hhmmss <  Inst%VolcBeg(N) ) CYCLE
+             IF ( hhmmss >= Inst%VolcEnd(N) ) CYCLE
+          ENDIF
 
           ! total emissions of this volcano
           volcE = 0.0_sp

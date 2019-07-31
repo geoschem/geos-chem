@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Tue May 21 15:14:49 2019
-! Working directory    : /n/home05/msulprizio/GC/Code.12.4.0/KPP/Standard
+! Time                 : Thu Jun 27 12:01:15 2019
+! Working directory    : /local/msulprizio/Code.Dev/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -1208,6 +1208,10 @@ SUBROUTINE Update_RCONST ( )
   RCONST(723) = (PHOTOL(111))
   RCONST(724) = (PHOTOL(112))
   RCONST(725) = (PHOTOL(113))
+  RCONST(726) = (PHOTOL(130))
+  RCONST(727) = (PHOTOL(131))
+  RCONST(728) = (PHOTOL(132))
+  RCONST(729) = (PHOTOL(133))
       
 END SUBROUTINE Update_RCONST
 
@@ -1349,6 +1353,10 @@ SUBROUTINE Update_PHOTO ( )
   RCONST(723) = (PHOTOL(111))
   RCONST(724) = (PHOTOL(112))
   RCONST(725) = (PHOTOL(113))
+  RCONST(726) = (PHOTOL(130))
+  RCONST(727) = (PHOTOL(131))
+  RCONST(728) = (PHOTOL(132))
+  RCONST(729) = (PHOTOL(133))
       
 END SUBROUTINE Update_PHOTO
 

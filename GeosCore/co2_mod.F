@@ -238,8 +238,6 @@
 
       ! SAVEd scalars
       LOGICAL,         SAVE      :: FIRST      = .TRUE.
-      LOGICAL,         SAVE      :: BIOFUEL_ON = .TRUE.
-      LOGICAL,         SAVE      :: BIOMASS_ON = .TRUE.
 
       ! Strings
       CHARACTER(LEN=255)         :: ThisLoc

@@ -79,6 +79,23 @@
       ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
       INTEGER,    PARAMETER :: NRH = 5
 
+#if   defined( APM )
+      INTEGER,    PARAMETER :: APMSPEC    = 119
+
+      INTEGER,    PARAMETER :: NAPMLVGs   = 2
+      INTEGER,    PARAMETER :: NAPMSO4BIN = 40
+      INTEGER,    PARAMETER :: NAPMLVA    = 1
+      INTEGER,    PARAMETER :: NAPMCTBC   = 2
+      INTEGER,    PARAMETER :: NAPMCTOC   = 2
+      INTEGER,    PARAMETER :: NAPMCTDST  = 2
+      INTEGER,    PARAMETER :: NAPMCTSEA  = 2
+      INTEGER,    PARAMETER :: NAPMSEABIN = 20
+      INTEGER,    PARAMETER :: NAPMDSTBIN = 15
+      INTEGER,    PARAMETER :: NAPMBCBIN  = 15
+      INTEGER,    PARAMETER :: NAPMOCBIN  = 15
+      INTEGER,    PARAMETER :: NAPMAMINE  = 3
+#endif
+
 #if   defined( TOMAS )
       INTEGER,    PARAMETER :: TOMASSPEC = 8
 

@@ -4205,20 +4205,9 @@
          THISMINUTE = MINUTE
       ENDIF
 
-#if   defined( LINUX_PGI ) 
-      
-      ! For PGI/F90 Linux, we must use the ENCODE command
-      ! to convert from numeric to string format (bmy, 9/29/03)
-      ENCODE( 16, 100, TIME_STR ) THISYEAR, THISMONTH, 
-     &                            THISDAY,  THISHOUR, THISMINUTE
-
-#else
-
       ! For other platforms, we can just use a FORTRAN internal write
       WRITE( TIME_STR, 100 ) THISYEAR, THISMONTH, 
      &                       THISDAY,  THISHOUR, THISMINUTE
-
-#endif
 
       ! Format statement
  100  FORMAT( i4.4, '/', i2.2, '/', i2.2, ' ', i2.2, ':', i2.2 )
@@ -4339,18 +4328,6 @@
       YY = YYYY - 1900
       IF ( YY >= 100 ) YY = YY - 100
 
-#if   defined( LINUX_PGI )
-      
-      ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
-      ENCODE( 4, '(i4.4)', YYYY_STR ) YYYY
-      ENCODE( 2, '(i2.2)', YY_STR   ) YY
-      ENCODE( 2, '(i2.2)', MM_STR   ) MM
-      ENCODE( 2, '(i2.2)', DD_STR   ) DD
-      ENCODE( 2, '(i2.2)', HH_STR   ) HH
-      ENCODE( 2, '(i2.2)', II_STR   ) II
-
-#else
-
       ! For other platforms, use an F90 internal write (bmy, 9/29/03)
       WRITE( YYYY_STR, '(i4.4)' ) YYYY
       WRITE( YY_STR,   '(i2.2)' ) YY
@@ -4358,8 +4335,6 @@
       WRITE( DD_STR,   '(i2.2)' ) DD
       WRITE( HH_STR,   '(i2.2)' ) HH
       WRITE( II_STR,   '(i2.2)' ) II
-
-#endif
 
       ! Replace YYYY, MM, DD, HH tokens w/ actual values 
       CALL STRREPL( FILENAME, 'YYYY', YYYY_STR )

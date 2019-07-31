@@ -136,7 +136,7 @@
       INTEGER :: id_BCPI,  id_BCPO,  id_BENZ,  id_C2H2  
       INTEGER :: id_C2H4,  id_C2H6,  id_C3H8,  id_CH2O  
       INTEGER :: id_CH4,   id_CO,    id_EOH,   id_GLYC
-      INTEGER :: id_GLYX,  id_HAC,   id_ISOA1, id_LIMO
+      INTEGER :: id_GLYX,  id_HAC,   id_LIMO
       INTEGER :: id_MEK,   id_MGLY,  id_MTPA,  id_MTPO
       INTEGER :: id_NAP,   id_NH3,   id_NK1,   id_NO
       INTEGER :: id_OCPI,  id_OCPO,  id_OPOA1, id_OPOG1
@@ -4732,7 +4732,7 @@
          ! Number of tracers
          IF ( Input_Opt%LSOA ) THEN
             ! hotp updated for SOA (7/31/08)
-            NTRAC(07) = 11
+            NTRAC(07) = 10
          ELSE
             NTRAC(07) = 2
          ENDIF
@@ -4787,14 +4787,10 @@
                   FNAME(T,07) = 'mono+sesq aerosol'
                   INDEX(T,07) = id_TSOA1 + ( SPACING * 33 )
                CASE( 8 ) ! SOAupdate hotp
-                  NAME (T,07) = 'ISOA'
-                  FNAME(T,07) = 'isoprene aerosol'
-                  INDEX(T,07) = id_ISOA1 + ( SPACING * 33 )
-               CASE( 9 ) ! SOAupdate hotp
                   NAME (T,07) = 'ASOA'
                   FNAME(T,07) = 'BTX + IVOC aerosol'
                   INDEX(T,07) = id_ASOA1 + ( SPACING * 33 )
-               CASE( 10 ) ! SOAupdate update 5/27/10 hotp
+               CASE( 9 ) ! SOAupdate update 5/27/10 hotp
                   NAME (T,07) = 'OPOA'
                   FNAME(T,07) = 'OPOA production'
                   IF ( id_OPOA1 > 0 ) THEN ! hotp 6/8/10
@@ -4803,7 +4799,7 @@
                      INDEX(T,07) = 80 + (SPACING * 33 )
                   ENDIF
                   UNIT (T,07) = 'kgC'
-               CASE( 11 ) ! SOAupdate update 5/27/10 hotp
+               CASE( 10 ) ! SOAupdate update 5/27/10 hotp
                   NAME (T,07) = 'OPOG'
                   FNAME(T,07) = 'POG + OH reaction'
                   UNIT (T,07) = 'kgC'
@@ -5584,6 +5580,10 @@
                      NAME(T,22) = 'JH1301'
                   CASE( 76 )
                      NAME(T,22) = 'JH2402'
+                  CASE( 77 )
+                     NAME(T,22) = 'JNITs'
+                  CASE( 78 )
+                     NAME(T,22) = 'JNIT'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
@@ -6202,8 +6202,8 @@
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 150e-3
                CASE( 2 )
-                  NAME (T,42) = 'ISOA'
-                  FNAME(T,42) = 'Aer prods of isoprene ox'
+                  NAME (T,42) = 'OBSOLETE3'
+                  FNAME(T,42) = 'This diagnostic is obsolete'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 150e-3
                CASE( 3 )
@@ -7908,7 +7908,6 @@
       id_GLYX  = Ind_('GLYX' )
       id_HAC   = Ind_('HAC'  )
       id_HNO3  = Ind_('HNO3' )
-      id_ISOA1 = Ind_('ISOA1')
       id_LIMO  = Ind_('LIMO' )
       id_MEK   = Ind_('MEK'  ) 
       id_MGLY  = Ind_('MGLY' )

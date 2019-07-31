@@ -40,13 +40,7 @@
 
       INTEGER            :: JVL_           ! Vertical levels for J-values
 
-      !----------------------------------------------------------------------
-      ! NOTE: In GC 12.3.2, it was discovered that ClNO2 was listed twice
-      ! in FJX_j2j.dat.  We have since removed the duplicate ClNO2 entry,
-      ! which reduces the # of photolyzed species by 1, from 130 to 129.
-      ! (bmy, 4/10/19)
-      INTEGER, PARAMETER :: JVN_ = 129     ! Max number of J-values
-      !----------------------------------------------------------------------
+      INTEGER, PARAMETER :: JVN_ = 133     ! Max number of J-values
 
       INTEGER            :: AN_            ! # of separate aerosols per layer
                                            ! Now set in Init_CMN_FJX below

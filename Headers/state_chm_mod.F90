@@ -63,6 +63,7 @@ MODULE State_Chm_Mod
      INTEGER                    :: nSpecies             ! # species (all)
      INTEGER                    :: nAdvect              ! # advected species
      INTEGER                    :: nAero                ! # of Aerosol Types
+     INTEGER                    :: nDryAlt              ! # dryalt species
      INTEGER                    :: nDryDep              ! # drydep species
      INTEGER                    :: nGasSpc              ! # gas phase species
      INTEGER                    :: nHygGrth             ! # hygroscopic growth
@@ -79,6 +80,7 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species IDs
      INTEGER,           POINTER :: Map_Aero   (:      ) ! Aerosol species IDs
+     INTEGER,           POINTER :: Map_DryAlt (:      ) ! Dryalt species IDs
      INTEGER,           POINTER :: Map_DryDep (:      ) ! Drydep species IDs
      INTEGER,           POINTER :: Map_GasSpc (:      ) ! Gas species IDs
      INTEGER,           POINTER :: Map_HygGrth(:      ) ! HygGrth species IDs
@@ -137,6 +139,7 @@ MODULE State_Chm_Mod
      ! Cloud quantities
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: pHCloud    (:,:,:  ) ! Cloud pH [-]
+     REAL(fp),          POINTER :: isCloud    (:,:,:  ) ! Cloud presence [-]
 
      !----------------------------------------------------------------------
      ! Fields for KPP solver
@@ -196,7 +199,7 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Fields for dry deposition
      !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Dry deposition frequencies [s-1]
+     REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Drydep freq [s-1]
 
      !----------------------------------------------------------------------
      ! Fields for Linoz stratospheric ozone algorithm
@@ -215,50 +218,7 @@ MODULE State_Chm_Mod
 !                                                                             
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Initial version, based on "gc_type2_mod.F90"
-!  26 Oct 2012 - R. Yantosca - Add fields for stratospheric chemistry
-!  26 Feb 2013 - M. Long     - Add DEPSAV to derived type ChmState
-!  07 Mar 2013 - R. Yantosca - Add Register_Tracer subroutine
-!  07 Mar 2013 - R. Yantosca - Now make POSITION a locally SAVEd variable
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  19 May 2014 - C. Keller   - Removed Trac_Btend. DepSav array covers now
-!                              all species.
-!  03 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  11 Dec 2014 - R. Yantosca - Keep JLOP and JLOP_PREV for ESMF runs only
-!  17 Feb 2015 - E. Lundgren - New tracer units kg/kg dry air (previously kg)
-!  13 Aug 2015 - E. Lundgren - Add tracer units string to ChmState derived type 
-!  28 Aug 2015 - R. Yantosca - Remove strat chemistry fields, these are now
-!                              handled by the HEMCO component
-!  05 Jan 2016 - E. Lundgren - Use global physical constants
-!  28 Jan 2016 - M. Sulprizio- Add STATE_PSC, KHETI_SLA. These were previously
-!                              local arrays in ucx_mod.F, but now need to be
-!                              accessed in gckpp_HetRates.F90.
-!  12 May 2016 - M. Sulprizio- Add WetAeroArea, WetAeroRadi to replace 1D arrays
-!                              WTARE, WERADIUS previously in comode_mod.F
-!  18 May 2016 - R. Yantosca - Add mapping vectors for subsetting species
-!  07 Jun 2016 - M. Sulprizio- Remove routines Get_Indx, Register_Species, and
-!                              Register_Tracer made obsolete by the species
-!                              database.
-!  22 Jun 2016 - R. Yantosca - Rename Id_Hg0 to Hg0_Id_List, Id_Hg2 to
-!                              Hg2_Id_List, and Id_HgP to HgP_Id_List
-!  16 Aug 2016 - M. Sulprizio- Rename from gigc_state_chm_mod.F90 to
-!                              state_chm_mod.F90. The "gigc" nomenclature is
-!                              no longer used.
-!  23 Aug 2016 - M. Sulprizio- Remove tracer fields from State_Chm. These are
-!                              now entirely replaced with the species fields.
-!  08 Jun 2017 - M. Sulprizio- Add fields for isoprene SOA updates from E.Marais
-!  29 Jun 2017 - R. Yantosca - Add fields of State_Chm to the registry
-!  29 Jun 2017 - R. Yantosca - Remove Spec_Id, it's no longer used
-!  30 Jun 2017 - R. Yantosca - Now register variables of State_Chm
-!  31 Jul 2017 - R. Yantosca - Add fixes in registering ISORROPIA *_SAV fields
-!  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Chm and Print_State_Chm
-!  02 Oct 2017 - E. Lundgren - Abstract metadata and routine to add to Registry
-!  27 Nov 2017 - E. Lundgren - Add # and ID mapping for more species categories
-!  31 Jan 2018 - E. Lundgren - Remove underscores from diagnostic names
-!  03 Aug 2018 - H.P. Lin    - Add nChmState counter for # of chemistry states
-!                              initialized in this CPU, to avoid deallocating
-!                              shared pointers (e.g. species info) until last
-!  01 Nov 2018 - M. Sulprizio- Add SNOW_HG_* and Hg*aq arrays for saving out
-!                              to the Restart collection
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -287,8 +247,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Chm( am_I_Root,  Input_Opt, State_Chm, &
-                             State_Grid, RC )
+  SUBROUTINE Init_State_Chm( am_I_Root,  Input_Opt, State_Chm,               &
+                             State_Grid, RC                                 )
 !
 ! !USES:
 !
@@ -318,39 +278,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Renamed from gc_type2_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now pass all dimensions as arguments
-!  26 Oct 2012 - R. Yantosca - Now allocate Strat_P, Strat_k fields
-!  26 Oct 2012 - R. Yantosca - Add nSchem, nSchemBry as arguments
-!  01 Nov 2012 - R. Yantosca - Don't allocate strat chem fields if nSchm=0
-!                              and nSchmBry=0 (i.e. strat chem is turned off)
-!  26 Feb 2013 - M. Long     - Now pass Input_Opt via the argument list
-!  26 Feb 2013 - M. Long     - Now allocate the State_Chm%DEPSAV field
-!  11 Dec 2014 - R. Yantosca - Remove TRAC_TEND and DEPSAV fields
-!  13 Aug 2015 - E. Lundgren - Initialize trac_units to ''
-!  28 Aug 2015 - R. Yantosca - Remove stratospheric chemistry fields; 
-!                              these are all now read in via HEMCO
-!  28 Aug 2015 - R. Yantosca - Also initialize the species database object
-!  09 Oct 2015 - R. Yantosca - Bug fix: set State_Chm%SpcData to NULL
-!  16 Dec 2015 - R. Yantosca - Now overwrite the Input_Opt%TRACER_MW_G and
-!                              related fields w/ info from species database
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  02 May 2016 - R. Yantosca - Nullify Hg index fields for safety's sake
-!  18 May 2016 - R. Yantosca - Now determine the # of each species first,
-!                              then allocate fields of State_Chm
-!  18 May 2016 - R. Yantosca - Now populate the species mapping vectors
-!  30 Jun 2016 - M. Sulprizio- Remove nSpecies as an input argument. This is now
-!                              initialized as the size of SpcData.
-!  22 Jul 2016 - E. Lundgren - Initialize spc_units to ''
-!  28 Nov 2016 - R. Yantosca - Only allocate STATE_PSC and KHETI_SLA for UCX
-!                              simulations; set to NULL otherwise
-!  28 Nov 2016 - R. Yantosca - Only allocate State_Chm%*Aero* fields for
-!                              fullchem and/or aerosol-only simulations
-!  16 Nov 2017 - E. Lundgren - Get grid params and # aerosls from CMN_Size_Mod 
-!                              rather than arguments list
-!  02 Aug 2018 - H.P. Lin    - Populate the species object with existing species
-!                              DB if DB is already initialized before
-!  22 Aug 2018 - R. Yantosca - Fixed typo in registration of SSAlk field
-!  23 Jan 2019 - H.P. Lin    - Add TLSTT for Linoz
+!  See the subsequent Git history with the Gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,6 +323,7 @@ CONTAINS
     State_Chm%nSpecies      =  0
     State_Chm%nAdvect       =  0
     State_Chm%nAero         =  0
+    State_Chm%nDryAlt       =  0
     State_Chm%nDryDep       =  0
     State_Chm%nGasSpc       =  0
     State_Chm%nHygGrth      =  0
@@ -410,6 +339,7 @@ CONTAINS
     ! Mapping vectors for subsetting each type of species
     State_Chm%Map_Advect    => NULL()
     State_Chm%Map_Aero      => NULL()
+    State_Chm%Map_DryAlt    => NULL()
     State_Chm%Map_DryDep    => NULL()
     State_Chm%Map_GasSpc    => NULL() 
     State_Chm%Map_HygGrth   => NULL()
@@ -458,6 +388,7 @@ CONTAINS
 
     ! pH/alkalinity
     State_Chm%pHCloud       => NULL()
+    State_Chm%isCloud       => NULL()
     State_Chm%SSAlk         => NULL()
 
     ! Fields for sulfate chemistry
@@ -539,13 +470,20 @@ CONTAINS
     ! Get the number of advected, dry-deposited, KPP chemical species,
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and 
     ! HgP species (these are zero unless the Hg simulation is used).
-    CALL Spc_GetNumSpecies( State_Chm%nAdvect,  State_Chm%nAero,            &
-                            State_Chm%nDryDep,  State_Chm%nGasSpc,          &
-                            State_Chm%nHygGrth, State_Chm%nKppVar,          &
-                            State_Chm%nKppFix,  State_Chm%nKppSpc,          &
-                            State_Chm%nPhotol,  State_Chm%nWetDep,          &
-                            N_Hg0_CATS,         N_Hg2_CATS,                 &
-                            N_HgP_CATS                                     )
+    CALL Spc_GetNumSpecies( nAdvect  = State_Chm%nAdvect,                  &
+                            nAero    = State_Chm%nAero,                    &
+                            nDryAlt  = State_Chm%nDryAlt,                  &
+                            nDryDep  = State_Chm%nDryDep,                  &
+                            nGasSpc  = State_Chm%nGasSpc,                  &
+                            nHygGrth = State_Chm%nHygGrth,                 &
+                            nKppVar  = State_Chm%nKppVar,                  &
+                            nKppFix  = State_Chm%nKppFix,                  &
+                            nKppSpc  = State_Chm%nKppSpc,                  &
+                            nPhotol  = State_Chm%nPhotol,                  &
+                            nWetDep  = State_Chm%nWetDep,                  &
+                            nHg0Cats = N_Hg0_CATS,                         &
+                            nHg2Cats = N_Hg2_CATS,                         &
+                            nHgPCats = N_HgP_CATS                         )
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,
@@ -605,6 +543,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%Map_Aero', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_Aero = 0
+    ENDIF
+
+    IF (  State_Chm%nDryAlt > 0 ) THEN
+       ALLOCATE( State_Chm%Map_DryAlt( State_Chm%nDryAlt ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_DryAlt', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_DryAlt = 0
     ENDIF
 
     IF (  State_Chm%nDryDep > 0 ) THEN
@@ -724,6 +669,14 @@ CONTAINS
        IF ( ThisSpc%Is_Aero ) THEN
           C                     = ThisSpc%AeroId
           State_Chm%Map_Aero(C) = ThisSpc%ModelId
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Set up the mapping for DRYDEP SPECIES TO SAVE AT A GIVEN ALTITUDE
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_DryAlt ) THEN
+          C                       = ThisSpc%DryAltId
+          State_Chm%Map_DryAlt(C) = ThisSpc%ModelId
        ENDIF
 
        !--------------------------------------------------------------------
@@ -1177,6 +1130,20 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
+       ! isCloud
+       ! jmm 3/1/19
+       !--------------------------------------------------------------------
+       chmId = 'isCloud'
+       ALLOCATE( State_Chm%isCloud( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%isCloud', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%isCloud = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%isCloud,          &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%isCloud', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+            
+       !--------------------------------------------------------------------
        ! SSAlk
        !--------------------------------------------------------------------
        ALLOCATE( State_Chm%SSAlk( IM, JM, LM, 2 ), STAT=RC )
@@ -1538,13 +1505,13 @@ CONTAINS
        ! Non-reducible Hg snowpack on land
        !--------------------------------------------------------------------
        chmID = 'SnowHgLandStored'
-       ALLOCATE( State_Chm%SnowHgLandStored(IM, JM, State_Chm%N_Hg_CATS ), &
+       ALLOCATE( State_Chm%SnowHgLandStored(IM, JM, State_Chm%N_Hg_CATS ),   &
                  STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SnowHgLandStored = 0.0_fp
        CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgLandStored, &
-                               State_Chm, RC                             )
+                               State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1563,8 +1530,8 @@ CONTAINS
         CALL GC_CheckVar( 'State_Chm%DryDepSav', 0, RC )    
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%DryDepSav = 0.0_fp
-        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepSav,   &
-                                State_Chm, RC                            )
+        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepSav,       &
+                                State_Chm, RC                               )
         CALL GC_CheckVar( 'State_Chm%DryDepSav', 1, RC )    
         IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1574,7 +1541,8 @@ CONTAINS
     !------------------------------------------------------------------
     IF ( Input_Opt%LLINOZ .AND. Input_Opt%LINOZ_NFIELDS > 0 ) THEN
         chmID = 'TLSTT'
-        ALLOCATE( State_Chm%TLSTT( IM, JM, LM, Input_Opt%LINOZ_NFIELDS ) , STAT=RC )
+        ALLOCATE( State_Chm%TLSTT( IM, JM, LM, Input_Opt%LINOZ_NFIELDS ),    &
+                  STAT=RC )
         CALL GC_CheckVar( 'State_Chm%TLSTT', 0, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%TLSTT = 0.0_fp
@@ -1661,17 +1629,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  15 Oct 2012 - R. Yantosca - Initial version
-!  26 Oct 2012 - R. Yantosca - Now deallocate Strat_P, Strat_k fields
-!  26 Feb 2013 - M. Long     - Now deallocate State_Chm%DEPSAV
-!  11 Dec 2014 - R. Yantosca - Remove TRAC_TEND and DEPSAV fields
-!  28 Aug 2015 - R. Yantosca - Remove stratospheric chemistry fields; 
-!                              these are all now read in via HEMCO
-!  28 Aug 2015 - R. Yantosca - Also initialize the species database object
-!  29 Jun 2017 - R. Yantosca - Add error checks for deallocations.  Also
-!                              destroy the registry of State_Chm fields.
-!  03 Aug 2018 - H.P. Lin    - Add a counter for nChmState, only deallocating
-!                              species data if it is the last chemistry state.
-!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify all pointer fields
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1916,6 +1874,13 @@ CONTAINS
        State_Chm%pHCloud => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%isCloud ) ) THEN
+       DEALLOCATE( State_Chm%isCloud, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%isCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%isCloud => NULL()
+    ENDIF
+    
     IF ( ASSOCIATED( State_Chm%SSAlk ) ) THEN
        DEALLOCATE( State_Chm%SSAlk, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SSAlk', 2, RC )
@@ -2154,8 +2119,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  02 Oct 2017 - E. Lundgren - Initial version
-!  20 Oct 2017 - R. Yantosca - Update metadata to better match array names,
-!                              and to remove special characters like "+"
+!  See the subsequent Git history with the gitk browser
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2611,6 +2575,11 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 
+       CASE( 'ISCLOUD' )
+          IF ( isDesc  ) Desc  = 'Cloud presence'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+          
        CASE( 'SSALKACCUM' )
           IF ( isDesc  ) Desc  = 'Sea salt alkalinity, accumulation mode'
           IF ( isUnits ) Units = '1'
@@ -2757,6 +2726,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2880,6 +2850,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3001,6 +2972,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3170,6 +3142,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
+!  See the subsequent Git history with the gitk browser
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3324,11 +3297,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  07 Oct 2016 - M. Long     - Initial version
-!  15 Jun 2016 - M. Sulprizio- Make species name uppercase before computing hash
-!  17 Aug 2016 - M. Sulprizio- Tracer flag 'T' is now advected species flag 'A'
-!  01 Nov 2017 - R. Yantosca - Now use Str2Hash14 from charpak_mod.F90, which
-!                              computes a hash from an input string of 14 chars
-!  27 Nov 2017 - E. Lundgren - Add flags for additional species categories
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3479,6 +3448,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3589,6 +3559,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser
 !EOP
 !------------------------------------------------------------------------------
 !BOC
