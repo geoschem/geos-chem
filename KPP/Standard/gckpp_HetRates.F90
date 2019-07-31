@@ -1890,8 +1890,8 @@ MODULE GCKPP_HETRATES
 !
 ! !RETURN VALUE:
 !
+      ! HET_N2O5(1) = rate coefficient; HET_N2O5(2) = SA-weighted gamma
       REAL(fp)             :: HET_N2O5(2) 
-!      ! HET_N2O5(1) = rate coefficient, HET_N2O5(2) = SA-weighted gamma
 !
 ! !REMARKS:
 !
@@ -1933,9 +1933,11 @@ MODULE GCKPP_HETRATES
       !NOTE: This calculations follows these general steps:
       !Loop over all aerosol types
       ! A) Calculate gamma for each aerosol type
-      ! B) Use gamma to calculate N2O5 loss rate coefficient for each aerosol type
-      ! C) Add results from all aerosol types to get running sum of ADJUSTEDRATE 
+      ! B) Use gamma to calculate N2O5 loss rate coefficient for each aerosol
+      !    type
+      ! C) Add results from all aerosol types to get running sum of ADJUSTEDRATE
       !    and surface-area-weighted gamma
+      !
       !After looping through all aerosol types:
       ! D) Divide gamma by SA to get single SA-weighted gamma
       
@@ -1956,7 +1958,8 @@ MODULE GCKPP_HETRATES
             XSTKCF = KHETI_SLA(1)
          ELSEIF ((N==8) .or. (N==10) .or. (N==11) .or. (N==12)) THEN
             ! Set all of these to zero because they are handled elsewhere
-            ! For inorganic and organic aerosol (N=8,10), Calculation occurs below
+            ! For inorganic and organic aerosol (N=8,10), Calculation occurs
+            ! below
             ! For Sea salt (N=11,12) - follows the N2O5 + Cl- channel
             XSTKCF = 0.0e+0_fp
          ELSE
@@ -1964,10 +1967,12 @@ MODULE GCKPP_HETRATES
             XSTKCF = N2O5( N, TEMPK, RELHUM )
          ENDIF
          
-         ! B) Use gamma to calculate N2O5 loss rate coefficient for each aerosol type
+         ! B) Use gamma to calculate N2O5 loss rate coefficient for each
+         !    aerosol type
          IF (N.eq.8) THEN
 
-            ! Properties of inorganic (sulfate-nitrate-ammonium-sea salt) coated with organics
+            ! Properties of inorganic (sulfate-nitrate-ammonium-sea salt) coated
+            ! with organics
             output = N2O5_InorgOrg( XVOL(8), XVOL(10), XH2O(8), XH2O(10), &
                  XRADI(8),    SPC_NIT,    0d0,   TEMPK,    RELHUM )
 
@@ -2002,25 +2007,29 @@ MODULE GCKPP_HETRATES
                                (A**0.5_FP))
          ENDIF
          
-         ! C) Add results from all aerosol types to get running sum of ADJUSTEDRATE 
-         !    and surface-area-weighted gamma
-         HET_N2O5(1) = HET_N2O5(1) + ADJUSTEDRATE              !loss rate coefficient
+         ! C) Add results from all aerosol types to get running sum of
+         !    ADJUSTEDRATE and surface-area-weighted gamma
+         HET_N2O5(1) = HET_N2O5(1) + ADJUSTEDRATE         !loss rate coefficient
          
          IF (N.eq.8) THEN
               HET_N2O5(2) = HET_N2O5(2) + ( XSTKCF * SA ) !SA-weighted gamma
-              SA_sum = SA_sum + SA                    !total SA in cm2/cm3
+              SA_sum = SA_sum + SA                        !total SA in cm2/cm3
          ELSEIF (N.eq.10) THEN
               !don't include ORG SA since it has already been included above
               SA_sum = SA_sum 
          ELSE
-              HET_N2O5(2) = HET_N2O5(2) + ( XSTKCF * XAREA(N) )!SA-weighted gamma
-              SA_sum = SA_sum + XAREA(N)                   !total SA
+              HET_N2O5(2) = HET_N2O5(2) + ( XSTKCF * XAREA(N))!SA-weighted gamma
+              SA_sum = SA_sum + XAREA(N)                      !total SA
          ENDIF
 
       END DO
 
       ! D) Divide gamma by SA to get SA-weighted gamma
-      HET_N2O5(2) = HET_N2O5(2) / SA_sum
+      IF ( SA_sum > 0.0e+0_fp ) THEN
+         HET_N2O5(2) = HET_N2O5(2) / SA_sum
+      ELSE
+         HET_N2O5(2) = 0.0e+0_fp
+      ENDIF
 
     END FUNCTION HETN2O5
 !EOC
@@ -3751,35 +3760,39 @@ MODULE GCKPP_HETRATES
       ! Directly calculate for sea salt only
       ! Get GAMMA for N2O5 hydrolysis, which is
       ! a function of aerosol type, temp, and RH
-      Do N=8, NAERO
-        IF ((N.eq.11).or.(N.eq.12)) THEN
-         ! Sea salt - follows the N2O5 + Cl- channel
-         XSTKCF = N2O5( N, TEMPK, RELHUM )
+      DO N=8, NAERO
+         IF ((N.eq.11).or.(N.eq.12)) THEN
+            ! Sea salt - follows the N2O5 + Cl- channel
+            XSTKCF = N2O5( N, TEMPK, RELHUM )
 
-         ! Convert to first-order rate constant
-         ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+            ! Convert to first-order rate constant
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                (A**0.5_FP))
 
-         ! Add to overall reaction rate
-           kISum(1) = kISum(1) + ADJUSTEDRATE
-           kISum(2) = kISum(2) + ( XSTKCF * XAREA(N) )
-           SA_total = SA_total + XAREA(N)   
-        ELSEIF (N.eq.8) THEN
-           ClNO2_yield = 0 ! (add in future update)
-           ! phi = kClNO2/kN2O5 (kN2O5 = sum (ClNO2+HNO3) and 2*HNO3 production pathways)
-           kClNO2 = ClNO2_yield * ADJUSTEDRATE
-           ! rate of this HNO3 + ClNO2 pathway for this aerosol type is kClNO2
-           !Calculate the total rate of this pathway from both SS and SNA aerosol
-           ADJUSTEDRATE = kClNO2
-           kISum(1) = kISum(1) + ADJUSTEDRATE
-        ENDIF
+            ! Add to overall reaction rate
+            kISum(1) = kISum(1) + ADJUSTEDRATE
+            kISum(2) = kISum(2) + ( XSTKCF * XAREA(N) )
+            SA_total = SA_total + XAREA(N)   
+         ELSEIF (N.eq.8) THEN
+            ClNO2_yield = 0 ! (add in future update)
+            ! phi = kClNO2/kN2O5 (kN2O5 = sum (ClNO2+HNO3) and 2*HNO3 production pathways)
+            kClNO2 = ClNO2_yield * ADJUSTEDRATE
+            ! rate of this HNO3 + ClNO2 pathway for this aerosol type is kClNO2
+            !Calculate the total rate of this pathway from both SS and SNA aerosol
+            ADJUSTEDRATE = kClNO2
+            kISum(1) = kISum(1) + ADJUSTEDRATE
+         ENDIF
       END DO
       
       ! Only report gamma for SS aerosol here
-         ! SA-weighted gamma from other aerosol types calc'd by HETN2O5()
-         ! This is the only place where ClNO2_yield is recorded
+      ! SA-weighted gamma from other aerosol types calc'd by HETN2O5()
+      ! This is the only place where ClNO2_yield is recorded
+      IF ( SA_total > 0.0e+0_fp ) THEN
          kISum(2) = kISum(2) / SA_total
-         kISum(3) = ClNO2_yield
+      ELSE
+         kISum(2) = 0.0e+0_fp
+      ENDIF
+      kISum(3) = ClNO2_yield
 
     END FUNCTION HETN2O5_SS
 !EOC
@@ -3888,8 +3901,13 @@ MODULE GCKPP_HETRATES
          ENDIF
 
       END DO
+
       !Calculate SA-weighted gamma at end
-      kISum(2) = kISum(2) / SA_total
+      IF ( SA_total > 0.0e+0_fp ) THEN
+         kISum(2) = kISum(2) / SA_total
+      ELSE
+         kISum(2) = 0.0e+0_fp
+      ENDIF
 
     END FUNCTION HETN2O5_HCl
 !EOC
