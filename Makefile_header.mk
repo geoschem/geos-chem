@@ -505,12 +505,6 @@ ifeq ($(shell [[ "$(GTMM_Hg)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DGTMM_Hg
 endif
 
-# Option to turn off ISORROPIA for testing
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NO_ISO)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DNO_ISORROPIA
-endif
-
 #------------------------------------------------------------------------------
 # Performance profiling
 #------------------------------------------------------------------------------

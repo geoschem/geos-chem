@@ -2568,15 +2568,6 @@
 #endif
 
       !-----------------------------------------------------------------
-      ! Print status of ISORROPIA
-      !-----------------------------------------------------------------
-#if defined( NO_ISORROPIA ) 
-      WRITE( 6, 140 ) 'TURNED OFF FOR TESTING'
-#else
-      WRITE( 6, 140 ) 'ON'
-#endif
-
-      !-----------------------------------------------------------------
       ! Print status of OpenMP
       !-----------------------------------------------------------------
 #if defined( NO_OMP ) 
@@ -2621,7 +2612,6 @@
  100  FORMAT( /, '===> Mode of operation         : ', a             )
  110  FORMAT(    '===> GEOS-Chem version         : ', a             )
  120  FORMAT(    '===> Compiler                  : ', a             )
- 140  FORMAT(    '===> ISORROPIA ATE package     : ', a             )
  150  FORMAT(    '===> Parallelization w/ OpenMP : ', a             )
  160  FORMAT(    '===> Binary punch diagnostics  : ', a             )
  170  FORMAT(    '===> netCDF diagnostics        : ', a             )
