@@ -259,8 +259,9 @@ CONTAINS
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
-    ! For testing only, may be removed later (mps, 4/26/16)
+    ! For testing purposes
     LOGICAL                :: DO_HETCHEM
+    LOGICAL                :: DO_PHOTCHEM
 
 #if defined( MODEL_GEOS )
     ! OH reactivity
@@ -291,17 +292,23 @@ CONTAINS
     Month     =  Get_Month()  ! Current month
     Year      =  Get_Year()   ! Current year
 
-    ! Turn heterogeneous chemistry and photolysis on/off here
-    ! This is for testing only and may be removed later (mps, 4/26/16)
+    ! Turn heterogeneous chemistry and photolysis on/off for testing
     DO_HETCHEM  = .TRUE.
-
-    ! Remove debug output
-    !IF ( FIRSTCHEM .AND. am_I_Root ) THEN
-    !   WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-    !   WRITE( 6, '(a,l,a)' ) '# Do_FlexChem: DO_HETCHEM  =', &
-    !                                         DO_HETCHEM,  ' #'
-    !   WRITE( 6, '(a)' ) REPEAT( '#', 32 )
-    !ENDIF
+    DO_PHOTCHEM = .TRUE.
+    IF ( FIRSTCHEM .AND. am_I_Root ) THEN
+       IF ( .not. DO_HETCHEM ) THEN
+          WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+          WRITE( 6, '(a)' )  ' # Do_FlexChem: Heterogeneous chemistry' // &
+                             ' is turned off for testing purposes.'
+          WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+       ENDIF
+       IF ( .not. DO_PHOTCHEM ) THEN
+          WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+          WRITE( 6, '(a)' )  ' # Do_FlexChem: Photolysis chemistry' // &
+                             ' is turned off for testing purposes.'
+          WRITE( 6, '(a)' ) REPEAT( '#', 32 )
+       ENDIF
+    ENDIF
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
@@ -759,9 +766,13 @@ CONTAINS
           ! Loop over the FAST-JX photolysis species
           DO N = 1, JVN_
 
-             ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
-             PHOTOL(N) = ZPJ(L,N,I,J)
+             IF ( DO_PHOTCHEM ) THEN
+
+                ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
+                PHOTOL(N) = ZPJ(L,N,I,J)
              
+             ENDIF
+
 #if defined( MODEL_GEOS )
              ! Archive in local array
              GLOB_JVAL(I,J,L,N) = PHOTOL(N)
