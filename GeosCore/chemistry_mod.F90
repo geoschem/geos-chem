@@ -98,7 +98,6 @@ CONTAINS
     USE AEROSOL_MOD,     ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,     ONLY : RDAER
     USE AEROSOL_MOD,     ONLY : SOILDUST
-    USE C2H6_MOD,        ONLY : CHEMC2H6
     USE CARBON_MOD,      ONLY : CHEMCARBON
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD  
@@ -273,12 +272,8 @@ CONTAINS
     INTEGER            :: MONTH
     INTEGER            :: YEAR
     INTEGER            :: WAVELENGTH
-    LOGICAL            :: IT_IS_A_C2H6_SIM
-    LOGICAL            :: IT_IS_A_CH3I_SIM
     LOGICAL            :: IT_IS_A_CH4_SIM
     LOGICAL            :: IT_IS_A_FULLCHEM_SIM
-    LOGICAL            :: IT_IS_A_H2HD_SIM
-    LOGICAL            :: IT_IS_A_HCN_SIM
     LOGICAL            :: IT_IS_A_MERCURY_SIM
     LOGICAL            :: IT_IS_A_RnPbBe_SIM
     LOGICAL            :: IT_IS_A_TAGCO_SIM
@@ -331,12 +326,8 @@ CONTAINS
     LSOA                     = Input_Opt%LSOA
     LNLPBL                   = Input_Opt%LNLPBL
     LUCX                     = Input_Opt%LUCX
-    IT_IS_A_C2H6_SIM         = Input_Opt%ITS_A_C2H6_SIM
-    IT_IS_A_CH3I_SIM         = Input_Opt%ITS_A_CH3I_SIM
     IT_IS_A_CH4_SIM          = Input_Opt%ITS_A_CH4_SIM 
     IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
-    IT_IS_A_H2HD_SIM         = Input_Opt%ITS_A_H2HD_SIM
-    IT_IS_A_HCN_SIM          = Input_Opt%ITS_A_HCN_SIM
     IT_IS_A_MERCURY_SIM      = Input_Opt%ITS_A_MERCURY_SIM
     IT_IS_A_RnPbBe_SIM       = Input_Opt%ITS_A_RnPbBe_SIM
     IT_IS_A_TAGCO_SIM        = Input_Opt%ITS_A_TAGCO_SIM
@@ -962,20 +953,6 @@ CONTAINS
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
 #endif
-
-       !====================================================================
-       ! C2H6
-       !====================================================================
-       ELSE IF ( IT_IS_A_C2H6_SIM ) THEN
-          CALL ChemC2H6( am_I_Root, Input_Opt, State_Chm, State_Grid,       &
-                         State_Met, RC                                     )
- 
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "ChemC2H6"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
 
        !====================================================================
        ! CH4

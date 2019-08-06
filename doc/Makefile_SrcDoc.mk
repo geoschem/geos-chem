@@ -148,7 +148,6 @@ $(CORE)/isorropiaII_mod.F             \
 $(CORE)/dao_mod.F                     \
 $(CORE)/flexgrid_read_mod.F90         \
 ./gc_specialty.P                      \
-$(CORE)/c2h6_mod.F                    \
 $(CORE)/co2_mod.F                     \
 $(CORE)/exchange_mod.F                \
 $(CORE)/global_ch4_mod.F              \

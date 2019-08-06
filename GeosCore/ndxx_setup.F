@@ -226,11 +226,9 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect, NFAM
-      LOGICAL :: IT_IS_A_CH3I_SIM
       LOGICAL :: IT_IS_A_FULLCHEM_SIM
       LOGICAL :: IT_IS_A_MERCURY_SIM
       LOGICAL :: IT_IS_A_TAGO3_SIM
-      LOGICAL :: IT_IS_A_H2HD_SIM
       LOGICAL :: LDUST
       LOGICAL :: LCARB
       LOGICAL :: LSSALT
@@ -248,11 +246,9 @@
       LSSALT               = Input_Opt%LSSALT
       LDRYD                = Input_Opt%LDRYD
       LGTMM                = Input_Opt%LGTMM
-      IT_IS_A_CH3I_SIM     = Input_Opt%ITS_A_CH3I_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
       IT_IS_A_MERCURY_SIM  = Input_Opt%ITS_A_MERCURY_SIM  
       IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM 
-      IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
 
       ! Assume success
       RC                   = GC_SUCCESS
@@ -350,19 +346,6 @@
      &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
       ENDIF  
-
-      !=================================================================
-      ! ND09: HCN / CH3CN source & sink
-      !=================================================================
-      IF ( ND09 > 0 ) THEN
-         LD09 = MIN( ND09, State_Grid%NZ )
-
-!         ALLOCATE( AD09( State_Grid%NX, State_Grid%NY, LD09, nAdvect ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09' )
-!
-!         ALLOCATE( AD09_em( State_Grid%NX, State_Grid%NY, PD09 ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09_em' )
-      ENDIF
 
       !=================================================================
       ! ND12: Distribution of emissions in boundary layer [fraction]

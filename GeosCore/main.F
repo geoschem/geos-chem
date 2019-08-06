@@ -204,7 +204,6 @@
       LOGICAL                  :: ITS_A_MERCURY_SIM 
       LOGICAL                  :: ITS_A_TAGCO_SIM
       LOGICAL                  :: ITS_AN_AEROSOL_SIM
-      LOGICAL                  :: ITS_A_CH3I_SIM
       LOGICAL                  :: DO_DIAG_WRITE
       LOGICAL                  :: LCHEM
       LOGICAL                  :: LCONV
@@ -415,7 +414,6 @@
       ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
       ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM 
       ITS_AN_AEROSOL_SIM  =  Input_Opt%ITS_AN_AEROSOL_SIM
-      ITS_A_CH3I_SIM      =  Input_Opt%ITS_A_CH3I_SIM
       DO_DIAG_WRITE       =  Input_Opt%DO_DIAG_WRITE
       LCHEM               =  Input_Opt%LCHEM
       LCONV               =  Input_Opt%LCONV
@@ -2737,11 +2735,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! FAST-J is only used for fullchem, offline aerosol
-      ! and CH3I simulations, so skip otherwise
+      ! FAST-J is only used for fullchem and offline aerosol, skip otherwise
       IF ( ITS_A_FULLCHEM_SIM  .or.
-     &     ITS_AN_AEROSOL_SIM  .or.
-     &     ITS_A_CH3I_SIM     ) THEN
+     &     ITS_AN_AEROSOL_SIM  ) THEN
 
          ! Only execute this if we are doing chemistry
          ! and if it we are at a chemistry timestep

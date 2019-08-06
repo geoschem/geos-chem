@@ -1488,77 +1488,6 @@
       ENDIF   
 !
 !******************************************************************************
-!  ND09: HCN/CH3CN sources/sinks (Categories: "HCN-PL-$", "HCN-SRCE")
-!
-!  # : Field    : Description                     : Units       : Scale factor
-! ----------------------------------------------------------------------------
-! (1:N) sink    : Loss of tagged tracer to OH     : kg
-! (N+1) HCNbb   : HCN   from biomass burning      : molec/cm2/s : SCALESRCE
-! (N+2) CH3CNbb : CH3CN from biomass burning      : molec/cm2/s : SCALESRCE
-! (N+3) HCNdf   : HCN   from domestic fossil fuel : molec/cm2/s : SCALESRCE
-! (N+4) CH3CNdf : CH3CN from domestic fossil fuel : molec/cm2/s : SCALESRCE
-! (N+5) HCNoc   : HCN   loss to ocean uptake      : molec/cm2/s : SCALECHEM
-! (N+6) CH3CNoc : CH3CN loss to ocean uptake      : molec/cm2/s : SCALECHEM
-!******************************************************************************
-!
-      IF ( ND09 > 0 ) THEN
-
-         ! Binary punch file
-         DO M = 1, TMAX(9)
-            N  = TINDEX(9,M)
-            IF ( N > nAdvect+6 ) CYCLE
-
-            ! Test tracer number
-            IF ( N <= nAdvect ) THEN
-
-               !---------------------------
-               ! HCN/CH3CN sinks
-               !---------------------------              
-               CATEGORY  = 'HCN-PL-$'
-               UNIT      = 'kg'
-               NN        = N
-              
-               DO L = 1, LD09
-                  ARRAY(:,:,L) = AD09(:,:,L,N)
-               ENDDO
-
-               ! Save to disk
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     State_Grid%NX, State_Grid%NY, LD09, IFIRST,
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD09) )
-
-            ELSE 
-
-               !---------------------------
-               ! HCN/CH3CN sources
-               !---------------------------
-               CATEGORY     = 'HCN-SRCE'
-               UNIT         = 'molec/cm2/s'
-               NN           = N - nAdvect
-
-               ! Pick proper scale
-               IF ( NN <= 4 ) THEN
-                  SCALEX = SCALESRCE
-               ELSE
-                  SCALEX = SCALECHEM
-               ENDIF
-
-               ! Scale data
-               ARRAY(:,:,1) = AD09_em(:,:,NN) / SCALEX
- 
-               ! Write to disk
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     State_Grid%NX, State_Grid%NY, 1, IFIRST,
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-            ENDIF
-         ENDDO
-      ENDIF
-!
-!******************************************************************************
 !  ND11: Acetone source & sink diagnostic (Category: "ACETSRCE")
 !
 !   # : Field  : Description                        : Units      : Scale factor
@@ -2198,7 +2127,6 @@
 !  (36 ) JMONITU: MONITU J-value               : s-1   : SCALE_JV
 !  (37 ) JHONIT: HONIT J-value                 : s-1   : SCALE_JV
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
-!  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
 !  NOTES:
 !  (1) We must add TRCOFFSET for CH3I and HCN runs, so that GAMAP can
@@ -3799,12 +3727,10 @@
          ! Loop over drydep species
          DO N = 1, M
 
-            IF ( Input_Opt%ITS_A_RnPbBe_SIM .or. 
-     &           Input_Opt%ITS_A_H2HD_SIM ) THEN
+            IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
 
                ! NOTE: ND44 is now archived in molec/cm2/s for all 
                ! simulations, including Rn-Pb-Be. (bmy, 6/16/15)
-               ! Radon or H2/HD
                UNIT = 'molec/cm2/s'
                NN   = State_Chm%Map_DryDep(N)
  

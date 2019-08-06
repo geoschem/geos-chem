@@ -253,12 +253,6 @@
             AD07_OC    = 0e0
             AD07_HC    = 0e0
          ENDIF
-
-         ! ND09 -- HCN & CH3CN simulation (xyp, bmy, 6/27/05)
-         IF ( ND09 > 0 ) THEN
-            AD09     = 0e0
-            AD09_em  = 0e0
-         ENDIF
  
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN

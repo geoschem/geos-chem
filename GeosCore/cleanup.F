@@ -16,7 +16,6 @@
 ! !USES:
 !
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
-      USE C2H6_MOD,                ONLY : CLEANUP_C2H6
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
@@ -304,7 +303,6 @@
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()
-      CALL CLEANUP_C2H6()
       CALL CLEANUP_CARBON()
       CALL CLEANUP_CO2()
 #if defined( BPCH_DIAG )

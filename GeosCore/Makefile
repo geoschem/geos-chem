@@ -468,9 +468,6 @@ benchmark_mod.o             : benchmark_mod.F
 bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
                               pbl_mix_mod.o
 
-c2h6_mod.o                  : c2h6_mod.F                                     \
-                              diag_mod.o              hco_interface_mod.o
-
 carbon_mod.o                : carbon_mod.F                                   \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o                                  \
@@ -480,7 +477,7 @@ carbon_mod.o                : carbon_mod.F                                   \
 
 chemistry_mod.o             : chemistry_mod.F90                              \
                               aerosol_mod.o           isorropiaII_mod.o      \
-                              c2h6_mod.o              carbon_mod.o           \
+                              carbon_mod.o                                   \
                               dust_mod.o              drydep_mod.o           \
                               global_ch4_mod.o        mercury_mod.o          \
                               pops_mod.o              apm_driv_mod.o         \
@@ -492,7 +489,7 @@ chemistry_mod.o             : chemistry_mod.F90                              \
 
 cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
-                              bromocarb_mod.o         c2h6_mod.o             \
+                              bromocarb_mod.o                                \
                               carbon_mod.o            co2_mod.o              \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag_mod.o              diag03_mod.o           \
@@ -641,7 +638,7 @@ gamap_mod.o                 : gamap_mod.F                                    \
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
                               aerosol_mod.o           benchmark_mod.o        \
-                              c2h6_mod.o              carbon_mod.o           \
+                              carbon_mod.o                                   \
                               co2_mod.o               diagnostics_mod.o      \
                               depo_mercury_mod.o      diag03_mod.o           \
                               diag20_mod.o            diag48_mod.o           \

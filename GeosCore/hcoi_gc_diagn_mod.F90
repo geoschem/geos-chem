@@ -2714,10 +2714,8 @@ CONTAINS
 #if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o the anthro species below
-    IF ( Input_Opt%ITS_A_C2H6_SIM    ) RETURN
     IF ( Input_Opt%ITS_A_CH4_SIM     ) RETURN
     IF ( Input_Opt%ITS_A_CO2_SIM     ) RETURN
-    IF ( Input_Opt%ITS_A_HCN_SIM     ) RETURN
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
@@ -3566,7 +3564,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
 
     ! Exit if we are doing a specialty simulation w/o biogenic emissions
-    IF ( Input_Opt%ITS_A_HCN_SIM     ) RETURN
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) RETURN
     IF ( Input_Opt%ITS_A_POPS_SIM    ) RETURN
     IF ( Input_Opt%ITS_A_RnPbBe_SIM  ) RETURN
