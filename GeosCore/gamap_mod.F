@@ -202,7 +202,7 @@
       STAMP    = SYSTEM_TIMESTAMP()
 
       ! Get simulation name
-      SIM_NAME = Input_Opt%SIM_NAME
+      SIM_NAME = Input_Opt%SimulationName
 
       ! Write "diaginfo.dat" file
       CALL CREATE_DINFO()
