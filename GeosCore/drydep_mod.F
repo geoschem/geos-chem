@@ -663,7 +663,7 @@
 !$OMP END PARALLEL DO
 
       !Write out the values for the updated agriculture values
-      CALL DIAGS_TO_TEXT( O3_DIAGS )
+      !CALL DIAGS_TO_TEXT( O3_DIAGS )
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
