@@ -1303,7 +1303,6 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-      !USE Error_Mod, ONLY: Is_Safe_Div
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2025,11 +2024,7 @@ MODULE GCKPP_HETRATES
       END DO
 
       ! D) Divide gamma by SA to get SA-weighted gamma
-      IF ( SA_sum > 0.0e+0_fp ) THEN
-         HET_N2O5(2) = HET_N2O5(2) / SA_sum
-      ELSE
-         HET_N2O5(2) = 0.0e+0_fp
-      ENDIF
+      HET_N2O5(2) = safe_div( HET_N2O5(2), SA_sum, 0.0e+0_fp )
 
     END FUNCTION HETN2O5
 !EOC
@@ -2127,8 +2122,8 @@ MODULE GCKPP_HETRATES
       ! Total H2O (organic + inorganic), cm3(H2O)/cm3(air)
       H2Ototal = H2Oinorg + H2Oorg
 
-      ! Ratio of organic to inorganic volumes, when dry, unitless
-      volRatioDry = safe_div( (volOrg - H2Oorg), (volInorg - H2Oinorg), 0e+0_fp )
+      ! Ratio of organic to total (organic+inorganic) volumes when dry, unitless
+      volRatioDry = safe_div((volOrg - H2Oorg), (volTotal - H2Ototal), 0e+0_fp)
 
       ! Particle radius, cm
       ! Derived from spherical geometry
@@ -2137,7 +2132,7 @@ MODULE GCKPP_HETRATES
       ! We use the dry volume ratio here because McDuffie et al. (2018) fitted
       ! the N2O5 gamma parameters to field data in a model using the 
       ! dry ratio. cdholmes 7/22/2019]
-      Rp = Rcore * ( 1e+0_fp + volRatioDry )**(1e+0_fp/3e+0_fp)
+      Rp = safe_div( Rcore, volRatioDry**(1e+0_fp/3e+0_fp), Rcore) 
 
       ! Coating thickness, cm
       l = Rp - Rcore
@@ -2168,8 +2163,6 @@ MODULE GCKPP_HETRATES
 
       ! Gamma for coating
       ! [Rcore, Rp, and l converted cm -> m here]
-      Print*, 'Num =', ( 4e+0_fp * R * T * eps * Haq * Daq * Rcore/1e+2_fp )
-      Print*, 'Den =', ( speed * l/1e+2_fp * Rp/1e+2_fp )
       gamma_coat = ( 4e+0_fp * R * T * eps * Haq * Daq * Rcore/1e+2_fp ) / &
                    ( speed * l/1e+2_fp * Rp/1e+2_fp )
 
@@ -2217,15 +2210,21 @@ MODULE GCKPP_HETRATES
 
       ENDIF
 
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
       ! Gamma for overall uptake
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
 
-      gamma = 1e+0_fp / ( ( 1e+0_fp / gamma_core ) + ( 1e+0_fp / gamma_coat ) )
+      IF (gamma_coat <= 0.0e+0_fp ) THEN
+         gamma = gamma_core
+      ELSEIF (gamma_core <= 0.0e+0_fp ) THEN
+         gamma = 0.0e+0_fp
+      ELSE
+         gamma = 1e+0_fp / (( 1e+0_fp / gamma_core ) + ( 1e+0_fp / gamma_coat ))
+      ENDIF
 
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
       ! ClNO2 yield
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
 
       ! Calculate the ClNO2 yield following Bertram and Thornton 2009 ACP
       ! Reduce by 74% following McDuffie (2018) JGR
@@ -3798,12 +3797,7 @@ MODULE GCKPP_HETRATES
       ! Only report gamma for SS aerosol here
       ! SA-weighted gamma from other aerosol types calc'd by HETN2O5()
       ! This is the only place where ClNO2_yield is recorded
-      IF ( SA_total > 0.0e+0_fp ) THEN
-         kISum(2) = kISum(2) / SA_total
-      ELSE
-         kISum(2) = 0.0e+0_fp
-      ENDIF
-      kISum(3) = ClNO2_yield
+      kISum(2) = safe_div( kISum(2),  SA_total, 0.0e+0_fp )
 
     END FUNCTION HETN2O5_SS
 !EOC
