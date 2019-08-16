@@ -80,7 +80,6 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, and MERRA
 !  17 Oct 2017 - C. Keller   - Now estimate default scale factor from
 !                              model resolution.
-!  03 Apr 2018 - S. Philip   - Add anthropogenic PM2.5 dust emission (AFCID)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,7 +243,6 @@
 !  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
-!  03 Apr 2018 - S. Philip   - Add anthropogenic PM2.5 dust emission (AFCID)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -287,12 +285,6 @@
       REAL(hp), TARGET       :: FLUX_ALK(HcoState%NX,
      &                                   HcoState%NY,
      &                                   NBINS) 
-
-      ! AFCID (fine PM2.5) emissions (S. Philip)
-      ! Array to get emissions flux from HEMCO
-      REAL(hp), TARGET       :: AFCID_PM25(HcoState%NX,
-     &                                     HcoState%NY,
-     &                                     HcoState%NZ)
 
       ! Pointers
       TYPE(MyInst), POINTER  :: Inst
@@ -388,33 +380,6 @@
      &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         !--------------------------------------------------------------
-         ! Get AFCID emissions fluxes from HEMCO (S. Philip)
-         !--------------------------------------------------------------
-
-         ! Initialize
-         AFCID_PM25                     = 0.0_hp
-
-         ! Update settings in HcoState
-         HcoState%Options%SpcMin        = Inst%HcoIDs(1)
-         HcoState%Options%SpcMax        = Inst%HcoIDs(1)
-         HcoState%Options%CatMin        =  1
-         HcoState%Options%CatMax        = -1
-         HcoState%Options%ExtNr         = Inst%ExtNr
-         HcoState%Options%AutoFillDiagn = .FALSE.
-         HcoState%Options%FillBuffer    = .TRUE.
-         HcoState%Buffer3D%Val          => AFCID_PM25
-    
-         ! Compute emissions
-         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-
-         ! Reset HcoState settings to standard
-         HcoState%Buffer3D%Val          => NULL()
-         HcoState%Options%FillBuffer    = .FALSE.
-         HcoState%Options%ExtNr         = 0
-         HcoState%Options%AutoFillDiagn = .TRUE.
-
 !         FIRST = .FALSE.
       !ENDIF
 
@@ -440,11 +405,6 @@
 
       ! Error check
       ERR = .FALSE.
-
-      ! Debug AFCID emissions added (S. Philip)
-      !print*, 'test = ', SUM(MyDST1e(:,:,:))
-      !print*, 'test = ', MyDST1e(50,40,1)
-      !print*, 'test = ', FLUX(50,40,1)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -541,18 +501,6 @@
 
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
-
-                  !-----------------------------------------------------
-                  ! Add AFCID fine PM2.5 dust emissons [kg/m2/s]
-                  ! to the DST1 species (dust bin #1)
-                  !
-                  ! NOTE: AFCID_PM25 is a 3-D array (to get data from
-                  ! HcoState), but all emissions are in the 1st layer
-                  !-----------------------------------------------------
-                  IF ( N == 1 ) THEN
-                     FLUX(I,J,N) = FLUX(I,J,N) + AFCID_PM25(I,J,1) 
-                  ENDIF
-
                ENDIF
 
                ! Include DUST Alkalinity SOURCE, assuming an alkalinity
