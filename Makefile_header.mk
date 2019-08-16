@@ -120,7 +120,6 @@ REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
   IS_HPC             :=1
   OMP                :=no
-  NO_REDUCED         :=yes
 # PRECISION          :=4
 else
   IS_HPC             :=0
@@ -325,7 +324,6 @@ REGEXP               :=(^[Ss][Tt][Aa][Nn][Dd][Aa][Rr][Dd])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
-  NO_REDUCED         :=yes
 endif
 
 # %%%%% Test if CHEM=SOA (same as Tropchem as of v11-02a) %%%%%
@@ -503,12 +501,6 @@ REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(GTMM_Hg)" =~ $(REGEXP) ]] && echo true),true)
   GTMM_NEEDED        :=1
   USER_DEFS          += -DGTMM_Hg
-endif
-
-# Option to turn off ISORROPIA for testing
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(NO_ISO)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DNO_ISORROPIA
 endif
 
 #------------------------------------------------------------------------------
@@ -1065,5 +1057,3 @@ export IS_GNU_8
 #	@@echo "NC_INC_CMD       : $(NC_INC_CMD)"
 #	@@echo "NC_LINK_CMD      : $(NC_LINK_CMD)"
 #	@@echo "BPCH_DIAG        : $(BPCH_DIAG)"
-#	@@echo "NO_REDUCED       : $(NO_REDUCED)"
-

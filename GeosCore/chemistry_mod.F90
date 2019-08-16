@@ -595,7 +595,6 @@ CONTAINS
              !-----------------------------------------
              IF ( LSSALT ) THEN
 
-#if !defined( NO_ISORROPIA )
 #if !defined( APM )
                 ! ISORROPIA takes Na+, Cl- into account
                 CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,      &
@@ -607,7 +606,6 @@ CONTAINS
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
-#endif
 #endif
 
              ELSE
@@ -749,12 +747,10 @@ CONTAINS
           IF ( LSULF ) THEN
              IF ( LSSALT ) THEN
 
-#if !defined( NO_ISORROPIA )
 #if !defined( APM )
                 ! ISORROPIA takes Na+, Cl- into account
                 CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,      &
                                      State_Diag, State_Grid, State_Met, RC  )
-#endif
 #endif
 
                 ! Trap potential errors
