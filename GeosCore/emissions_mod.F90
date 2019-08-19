@@ -31,13 +31,13 @@ MODULE Emissions_Mod
   PRIVATE :: MMR_Compute_Flux
 !
 ! !REVISION HISTORY:
-!  27 Aug 2014 - C. Keller   - Initial version. 
+!  27 Aug 2014 - C. Keller   - Initial version.
 !  20 Jun 2016 - R. Yantosca - Declare species ID flags as module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES: 
+! !PRIVATE TYPES:
 !
   ! Species ID flags
   INTEGER :: id_BrO, id_CH4, id_CH3Br
@@ -53,14 +53,14 @@ CONTAINS
 ! !IROUTINE: emissions_init
 !
 ! !DESCRIPTION: Subroutine EMISSIONS\_INIT calls the HEMCO - GEOS-Chem
-! interface initialization routines. 
+! interface initialization routines.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE Emissions_Init( am_I_Root,  Input_Opt, State_Chm,                &
                              State_Grid, State_Met, RC,                       &
-                             HcoConfig                                       ) 
+                             HcoConfig                                       )
 !
 ! !USES:
 !
@@ -76,8 +76,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   )          :: am_I_Root  ! root CPU?
-    TYPE(ChmState),  INTENT(IN   )          :: State_Chm  ! Chemistry state 
-    TYPE(GrdState),  INTENT(IN   )          :: State_Grid ! Grid state 
+    TYPE(ChmState),  INTENT(IN   )          :: State_Chm  ! Chemistry state
+    TYPE(GrdState),  INTENT(IN   )          :: State_Grid ! Grid state
     TYPE(MetState),  INTENT(IN   )          :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -86,8 +86,8 @@ CONTAINS
     INTEGER,         INTENT(INOUT)          :: RC         ! Failure or success
     TYPE(ConfigObj), POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
 !
-! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller   - Initial version 
+! !REVISION HISTORY:
+!  27 Aug 2014 - C. Keller   - Initial version
 !  16 Jun 2016 - J. Sheng    - Added tracer index retriever
 !  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
 !  22 Jan 2018 - R. Yantosca - Return error code to calling routine
@@ -112,7 +112,7 @@ CONTAINS
     id_CH4   = Ind_('CH4'  )
     id_CH3Br = Ind_('CH3Br')
 
-    ! Are we including a species for which the global mixing ratio should 
+    ! Are we including a species for which the global mixing ratio should
     ! remain constant?
     doMaintainMixRatio = ( Ind_('GlobEmis90dayTracer') > 0 .OR. &
                            Ind_('GlobNH90dayTracer'  ) > 0 .OR. &
@@ -121,7 +121,7 @@ CONTAINS
     ! Initialize the HEMCO environment for this GEOS-Chem run.
     CALL HCOI_GC_Init( am_I_Root,  Input_Opt, State_Chm,                      &
                        State_Grid, State_Met, RC,                             &
-                       HcoConfig=HcoConfig                                   ) 
+                       HcoConfig=HcoConfig                                   )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -146,7 +146,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Emissions_Run( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
-                            State_Grid, State_Met, EmisTime,  Phase, RC   ) 
+                            State_Grid, State_Met, EmisTime,  Phase, RC   )
 !
 ! !USES:
 !
@@ -172,7 +172,7 @@ CONTAINS
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     ! Setting other surface VMRs
-    Use sfcVMR_Mod,         Only : fixSfcVMR
+    Use sfcVMR_Mod,         Only : FixSfcMr_Run
 
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -189,14 +189,14 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry State object 
+    TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT)  :: State_Diag ! Diagnostics State object
     TYPE(MetState), INTENT(INOUT)  :: State_Met  ! Meteorology State object
     TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
     INTEGER,        INTENT(INOUT)  :: RC         ! Failure or success
 !
-! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller   - Initial version 
+! !REVISION HISTORY:
+!  27 Aug 2014 - C. Keller   - Initial version
 !  13 Nov 2014 - C. Keller   - Added EMISSCARBON (for SESQ and POA)
 !  21 Nov 2014 - C. Keller   - Added EMISSVOC to prevent VOC build-up
 !                              above tropopause
@@ -208,6 +208,7 @@ CONTAINS
 !  15 Oct 2018 - R. Yantosca - Now call GetPopsDiagsFromHemco to copy manual
 !                              diags for the POPS simulation into State_Diag
 !  18 Oct 2018 - R. Yantosca - Now pass State_Diag to EmissCO2 for nc diags
+!  16 Aug 2019 - C. Keller   - Now call update FixSfcMr_Run routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,10 +227,10 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at Emissions_Run (in module GeosCore/emissions_mod.F90)'
 
-    ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
+    ! Run HEMCO. Phase 1 will only update the HEMCO clock and the
     ! HEMCO data list, phase 2 will perform the emission calculations.
-    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid, & 
-                      State_Met, EmisTime,  Phase,     RC          ) 
+    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                      State_Met, EmisTime,  Phase,     RC          )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -246,7 +247,7 @@ CONTAINS
     ! species array in carbon, as well as to ensure that POA emissions
     ! are correctly treated.
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
-         Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
+         Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
        CALL EmissCarbon( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
@@ -296,13 +297,13 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-   
-    ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
-    ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
+
+    ! For CH4 simulation or if CH4 is defined, call EMISSCH4.
+    ! This will get the individual CH4 emission terms (gas, coal, wetlands,
     ! ...) and write them into the individual emissions arrays defined in
     ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
     ! call to EMISSCH4 is for backwards consistency.  This is especially
-    ! needed to do the analytical inversions.  NOTE: The CH4 manual 
+    ! needed to do the analytical inversions.  NOTE: The CH4 manual
     ! diagnostics are no longer used to force-feed the ND58 bpch diagnostics
     ! becasue we now archive the exact same quantities to the HEMCO
     ! diagnostics output. (bmy, mps, 10/19/18)
@@ -317,7 +318,7 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-   
+
     ! For UCX, use Seb's routines for stratospheric species for now.
     IF ( Input_Opt%LUCX .and. Input_Opt%LBASICEMIS ) THEN
        CALL Emiss_Basic( am_I_Root,  Input_Opt, State_Chm, &
@@ -344,8 +345,8 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! For the POPS simulation, copy values from several HEMCO-based manual 
-    ! diagnostics (defined in hcoi_gc_diagn_mod.F90) from the HEMCO state 
+    ! For the POPS simulation, copy values from several HEMCO-based manual
+    ! diagnostics (defined in hcoi_gc_diagn_mod.F90) from the HEMCO state
     ! object into the State_Diag object.  This will allow us to save these
     ! fields to netCDF output via HISTORY. (bmy, 10/15/18)
     IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
@@ -361,7 +362,7 @@ CONTAINS
 
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-  
+
        !========================================================
        !jpp, 2/12/08: putting a call to SET_CH3Br
        !              which is in bromocarb_mod.f
@@ -380,13 +381,13 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-   
+
        ! ----------------------------------------------------
        ! If selected in input.geos, then set the MBL
        ! concentration of BrO equal to 1 pptv during daytime.
        ! ----------------------------------------------------
        IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
-          CALL Set_BrO( am_I_Root,  Input_Opt, State_Chm, & 
+          CALL Set_BrO( am_I_Root,  Input_Opt, State_Chm, &
                         State_Grid, State_Met, RC )
 
           ! Trap potential errors
@@ -396,12 +397,11 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-   
+
        ! Set other (non-UCX) fixed VMRs
        If ( Input_Opt%LEMIS ) Then
-          CALL FixSfcVMR( am_I_Root,  Input_Opt, State_Chm, & 
-                          State_Grid, State_Met, RC          )
-
+          CALL FixSfcVMR_Run( am_I_Root, Input_Opt, State_Met, &
+                              State_Chm, RC          )
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "FixSfcVmr"!'
@@ -410,9 +410,9 @@ CONTAINS
           ENDIF
 
        endif
- 
+
     ENDIF
-   
+
     IF ( doMaintainMixRatio ) THEN
 
        ! Compute the surface flux needed to restore the total burden
@@ -446,18 +446,18 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)  :: am_I_Root  ! root CPU?
-    LOGICAL, INTENT(IN)  :: Error      ! Cleanup arrays after crash? 
+    LOGICAL, INTENT(IN)  :: Error      ! Cleanup arrays after crash?
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: RC         ! Success or failure?
 !
-! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller    - Initial version 
+! !REVISION HISTORY:
+!  27 Aug 2014 - C. Keller    - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
- 
+
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
@@ -527,8 +527,8 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
-!  31 Jan 2019 - M. Sulprizio- Initial version, modified from MMR code in 
+! !REVISION HISTORY:
+!  31 Jan 2019 - M. Sulprizio- Initial version, modified from MMR code in
 !                              TR_GridCompMod.F90 from GEOS model
 !EOP
 !------------------------------------------------------------------------------
