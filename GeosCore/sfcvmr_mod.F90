@@ -33,6 +33,7 @@ MODULE SFCVMR_MOD
     USE inquireMod,    ONLY : findFreeLUN
     USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
     USE HCO_ERROR_MOD
+    USE CMN_SIZE_MOD
 
   IMPLICIT NONE
   PRIVATE
@@ -67,7 +68,6 @@ MODULE SFCVMR_MOD
 
 CONTAINS
 !EOC
-!EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -79,7 +79,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE fixSfcVMR_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+  SUBROUTINE fixSfcVMR_Init( am_I_Root, Input_Opt, State_Met, State_Grid, &
+                             State_Chm, RC )
 !
 ! !USES:
 !
@@ -90,6 +91,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE Species_Mod,        ONLY : Species
     USE HCO_Interface_Mod,  ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
@@ -98,6 +100,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid State object
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -116,7 +119,7 @@ CONTAINS
     ! Loop indices
     Integer                 :: N
     TYPE(Species), POINTER  :: SpcInfo
-    REAL(hp)                :: Arr2D(IIPAR,JJPAR)
+    REAL(hp)                :: Arr2D(State_Grid%NX,State_Grid%NY)
     CHARACTER(LEN=63)       :: FldName
     LOGICAL                 :: FOUND
     TYPE(SfcMrObj), POINTER :: iSfcMrObj => NULL()
@@ -197,7 +200,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE fixSfcVMR_Run( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+  SUBROUTINE fixSfcVMR_Run( am_I_Root, Input_Opt, State_Met, State_Grid, &
+                            State_Chm, RC )
 !
 ! !USES:
 !
@@ -207,6 +211,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Chm_Mod,      ONLY : Ind_
     USE Species_Mod,        ONLY : Species
     USE HCO_Interface_Mod,  ONLY : HcoState
@@ -224,6 +229,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid  ! Grid State object
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -256,7 +262,7 @@ CONTAINS
     ! Species information
     TYPE(Species), POINTER     :: SpcInfo
     ! Species information
-    REAL(hp)                   :: Arr2D(IIPAR,JJPAR)
+    REAL(hp)                   :: Arr2D(State_Grid%NX,State_Grid%NY)
     ! Linked list
     TYPE(SfcMrObj), POINTER    :: iObj => NULL()
 
@@ -269,7 +275,8 @@ CONTAINS
 
     ! Initialize object if needed
     IF ( FIRST ) THEN
-       CALL fixSfcVMR_Init( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL fixSfcVMR_Init( am_I_Root, Input_Opt, State_Met, State_Grid, &
+                            State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        FIRST = .FALSE.
     ENDIF
@@ -290,10 +297,10 @@ CONTAINS
        id_Spc = SpcInfo%ModelID
        IF ( id_Spc > 0 ) THEN
 
-          DO L = 1, LLPAR
-          DO J = 1, JJPAR
-          DO I = 1, IIPAR
-             IF (GET_FRAC_UNDER_PBLTOP(I,J,L)>0e+0_fp) THEN
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+             IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
                 Spc(I,J,L,id_Spc) = Arr2d(I,J)*1.0e-9 / ( AIRMW / SpcInfo%emMW_g )
              ENDIF  ! end selection of PBL boxes
           ENDDO

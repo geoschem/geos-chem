@@ -172,7 +172,7 @@ CONTAINS
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     ! Setting other surface VMRs
-    Use sfcVMR_Mod,         Only : FixSfcMr_Run
+    Use sfcVMR_Mod,         Only : fixSfcVMR_Run
 
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -208,7 +208,7 @@ CONTAINS
 !  15 Oct 2018 - R. Yantosca - Now call GetPopsDiagsFromHemco to copy manual
 !                              diags for the POPS simulation into State_Diag
 !  18 Oct 2018 - R. Yantosca - Now pass State_Diag to EmissCO2 for nc diags
-!  16 Aug 2019 - C. Keller   - Now call update FixSfcMr_Run routine
+!  16 Aug 2019 - C. Keller   - Now call update fixSfcVMR_Run routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -401,7 +401,7 @@ CONTAINS
        ! Set other (non-UCX) fixed VMRs
        If ( Input_Opt%LEMIS ) Then
           CALL FixSfcVMR_Run( am_I_Root, Input_Opt, State_Met, &
-                              State_Chm, RC          )
+                             State_Grid, State_Chm, RC          )
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "FixSfcVmr"!'
