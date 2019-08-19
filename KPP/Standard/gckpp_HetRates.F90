@@ -2148,10 +2148,10 @@ MODULE GCKPP_HETRATES
       ! Chloride molar concentration, mol/L
       M_Cl = Cl   / volTotal / AVO * 1e+3_fp
 
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
       ! Gamma for the organic shell
       ! Implements recommendations by McDuffie (2018) JGR,
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
 
       !O:C ratio from Eq. 10 of Canagaratna et al., 2015 (ACP)
       ! Take average OM/OC ratio from /GeosCore/aerosol_mod.F90
@@ -2163,17 +2163,21 @@ MODULE GCKPP_HETRATES
 
       ! Gamma for coating
       ! [Rcore, Rp, and l converted cm -> m here]
-      gamma_coat = ( 4e+0_fp * R * T * eps * Haq * Daq * Rcore/1e+2_fp ) / &
-                   ( speed * l/1e+2_fp * Rp/1e+2_fp )
+      IF ( l <= 0.0e+0_fp ) THEN
+         gamma_coat = 0.0e+0_fp
+      ELSE
+         gamma_coat = ( 4e+0_fp * R * T * eps * Haq * Daq * Rcore/1e+2_fp ) / &
+                      ( speed * l/1e+2_fp * Rp/1e+2_fp )
+      ENDIF
 
       ! Total particle surface area, cm2/cm3
       areaTotal = 3e+0_fp * volTotal / Rp 
 
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
       ! Gamma for the inorganic core
       ! Implements recommendations by McDuffie (2018) JGR,
       ! following the general approach from Bertram and Thornton ACP (2009). 
-      !--------------------------------------------------------------------------
+      !------------------------------------------------------------------------
 
       ! Select dry or deliquesed aerosol based on molar concentration of H2O
       IF ( M_H2O < 0.1e+0_fp ) THEN
