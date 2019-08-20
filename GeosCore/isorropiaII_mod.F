@@ -287,8 +287,8 @@
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
-      ! Zero state_chm arrays to avoid leftover values from hanging
-      ! around  between calls -- especially up near the mesopause
+      ! Zero State_Chm arrays to avoid leftover values from hanging
+      ! around between calls -- especially up near the tropopause
       State_Chm%pHSav      = 0.0_fp
       State_Chm%HplusSav   = 0.0_fp
       State_Chm%WaterSav   = 0.0_fp

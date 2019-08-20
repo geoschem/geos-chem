@@ -8936,9 +8936,9 @@ CONTAINS
        ! regardless of simulation type. (bmy, 12/4/17)
        IF ( isUnits   ) THEN
           IF ( IsFullChem ) THEN
-             Units = 'molec/cm3/s'
+             Units = 'molec cm-3 s-1'
           ELSE
-             Units = 'kg/s'
+             Units = 'kg s-1'
           ENDIF
        ENDIF
 
@@ -8952,9 +8952,9 @@ CONTAINS
        ! regardless of simulation type. (bmy, 12/4/17)
        IF ( isUnits   ) THEN
           IF ( IsFullChem ) THEN
-             Units = 'molec/cm3/s'
+             Units = 'molec cm-3 s-1'
           ELSE
-             Units = 'kg/s'
+             Units = 'kg s-1'
           ENDIF
        ENDIF
 
