@@ -106,6 +106,7 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 
 	$<$<BOOL:${RRTMG}>:rrtmg_rad_transfer_mod.F>
 	$<$<BOOL:${TOMAS}>:tomas_mod.F>
+	$<$<BOOL:${APM}>:apm_driv_mod.F>
 )
 target_link_libraries(GeosCore
 	PUBLIC 
@@ -116,6 +117,7 @@ target_link_libraries(GeosCore
 		$<$<STREQUAL:${MECH},Standard>:KPP_Standard>
 		$<$<STREQUAL:${MECH},Tropchem>:KPP_Tropchem>
 
+		$<$<BOOL:${APM}>:APM>			        # depends on APM iff APM is true
 		$<$<BOOL:${RRTMG}>:GeosRad>			# depends on GeosRad iff RRTMG is true
 		$<$<BOOL:${GTMM}>:Hg>				# depends on Hg iff GTMM is true
 		Isorropia

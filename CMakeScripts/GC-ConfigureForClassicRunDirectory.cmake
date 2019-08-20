@@ -35,6 +35,7 @@ function(configureForClassicRunDirectory)
         "RRTMG"
         "TOMAS15"
         "TOMAS40"
+        "APM"
         "complexSOA"
     )
     set(SOA_SVPOA_MECHS
@@ -126,6 +127,22 @@ function(configureForClassicRunDirectory)
     gc_message(SECTION "General settings")
     dump_log(GENERAL_OPTIONS_LOG)
 
+    # Build APM?
+    if("${RUNDIR_SIM}" STREQUAL "APM")
+        set(APM_DEFAULT "TRUE")
+    else()
+        set(APM_DEFAULT "FALSE")
+    endif()
+    set_dynamic_option(APM 
+        DEFAULT ${APM_DEFAULT}
+        LOG ADD_ONS_LOG
+        SELECT_EXACTLY 1
+        OPTIONS "TRUE" "FALSE"
+    )
+    if(${APM})
+        target_compile_definitions(BaseTarget INTERFACE "APM")
+    endif()
+
     # Build RRTMG?
     if("${RUNDIR_SIM}" STREQUAL "RRTMG")
         set(RRTMG_DEFAULT "TRUE")
@@ -185,6 +202,7 @@ function(configureForClassicRunDirectory)
     set(GCHP                    FALSE                       PARENT_SCOPE)
     set(MECH                    ${MECH}                     PARENT_SCOPE)
     set(TOMAS                   ${TOMAS}                    PARENT_SCOPE)
+    set(APM                     ${APM}                      PARENT_SCOPE)
     set(RRTMG                   ${RRTMG}                    PARENT_SCOPE)
     set(GTMM                    ${GTMM}                     PARENT_SCOPE)
     set(RUNDIR                  ${RUNDIR}                   PARENT_SCOPE)
