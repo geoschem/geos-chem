@@ -287,6 +287,16 @@
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
+      ! Zero state_chm arrays to avoid leftover values from hanging
+      ! around  between calls -- especially up near the mesopause
+      State_Chm%pHSav      = 0.0_fp
+      State_Chm%HplusSav   = 0.0_fp
+      State_Chm%WaterSav   = 0.0_fp
+      State_Chm%SulratSav  = 0.0_fp
+      State_Chm%NaRatSav   = 0.0_fp
+      State_Chm%BisulSav   = 0.0_fp
+      State_Chm%AcidPurSav = 0.0_fp
+
       ! First-time initialization
       IF ( FIRST ) THEN
 
