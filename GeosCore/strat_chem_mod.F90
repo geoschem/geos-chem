@@ -304,7 +304,6 @@ CONTAINS
     ! Flags for simulation types
     LOGICAL            :: IT_IS_A_FULLCHEM_SIM
     LOGICAL            :: IT_IS_A_TAGO3_SIM
-    LOGICAL            :: IT_IS_A_H2HD_SIM
 
     ! Scalars
     LOGICAL            :: prtDebug
@@ -356,7 +355,6 @@ CONTAINS
     LUCX                 = Input_Opt%LUCX
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM  
-    IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
     Spc                  => NULL()
     AD                   => NULL()
     T                    => NULL()

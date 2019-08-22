@@ -62,6 +62,16 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: DATA_DIR
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
      CHARACTER(LEN=255)          :: MetField
+     CHARACTER(LEN=255)          :: SimulationName
+     LOGICAL                     :: ITS_A_CH4_SIM
+     LOGICAL                     :: ITS_A_CO2_SIM
+     LOGICAL                     :: ITS_A_FULLCHEM_SIM
+     LOGICAL                     :: ITS_A_MERCURY_SIM
+     LOGICAL                     :: ITS_A_POPS_SIM
+     LOGICAL                     :: ITS_A_RnPbBe_SIM
+     LOGICAL                     :: ITS_A_TAGO3_SIM
+     LOGICAL                     :: ITS_A_TAGCO_SIM
+     LOGICAL                     :: ITS_AN_AEROSOL_SIM
 
      !----------------------------------------
      ! PASSIVE SPECIES MENU fields
@@ -81,22 +91,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      INTEGER                     :: N_ADVECT
      CHARACTER(LEN=255), POINTER :: AdvectSpc_Name(:)
-     INTEGER                     :: SIM_TYPE
-     CHARACTER(LEN=255)          :: SIM_NAME
      LOGICAL                     :: LSPLIT
-     LOGICAL                     :: ITS_A_RnPbBe_SIM
-     LOGICAL                     :: ITS_A_CH3I_SIM
-     LOGICAL                     :: ITS_A_FULLCHEM_SIM
-     LOGICAL                     :: ITS_A_HCN_SIM
-     LOGICAL                     :: ITS_A_TAGO3_SIM
-     LOGICAL                     :: ITS_A_TAGCO_SIM
-     LOGICAL                     :: ITS_A_C2H6_SIM
-     LOGICAL                     :: ITS_A_CH4_SIM
-     LOGICAL                     :: ITS_AN_AEROSOL_SIM
-     LOGICAL                     :: ITS_A_MERCURY_SIM
-     LOGICAL                     :: ITS_A_CO2_SIM
-     LOGICAL                     :: ITS_A_H2HD_SIM
-     LOGICAL                     :: ITS_A_POPS_SIM
 
      !----------------------------------------
      ! AEROSOL MENU fields
@@ -695,6 +690,16 @@ CONTAINS
     Input_Opt%DATA_DIR               = './'
     Input_Opt%CHEM_INPUTS_DIR        = './'
     Input_Opt%MetField               = ''
+    Input_Opt%SimulationName         = ''
+    Input_Opt%ITS_A_CH4_SIM          = .FALSE.
+    Input_Opt%ITS_A_CO2_SIM          = .FALSE.
+    Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
+    Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
+    Input_Opt%ITS_A_POPS_SIM         = .FALSE.
+    Input_Opt%ITS_A_RnPbBe_SIM       = .FALSE.
+    Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
+    Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
+    Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
 
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
@@ -706,22 +711,7 @@ CONTAINS
 
     Input_Opt%N_ADVECT               = 0
     Input_Opt%AdvectSpc_Name         = ''
-    Input_Opt%SIM_TYPE               = 0
-    Input_Opt%SIM_NAME               = ''
     Input_Opt%LSPLIT                 = .FALSE.
-    Input_Opt%ITS_A_RnPbBe_SIM       = .FALSE.
-    Input_Opt%ITS_A_CH3I_SIM         = .FALSE.
-    Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
-    Input_Opt%ITS_A_HCN_SIM          = .FALSE.
-    Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
-    Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
-    Input_Opt%ITS_A_C2H6_SIM         = .FALSE.
-    Input_Opt%ITS_A_CH4_SIM          = .FALSE.
-    Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
-    Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
-    Input_Opt%ITS_A_CO2_SIM          = .FALSE.
-    Input_Opt%ITS_A_H2HD_SIM         = .FALSE.
-    Input_Opt%ITS_A_POPS_SIM         = .FALSE.
 
     !----------------------------------------
     ! PASSIVE SPECIES MENU fields

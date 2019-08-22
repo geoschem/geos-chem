@@ -500,7 +500,6 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE CO2_Mod,            ONLY : Init_CO2
-    USE C2H6_Mod,           ONLY : Init_C2H6
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE Diag03_Mod,         ONLY : Init_Diag03
     USE Diag04_Mod,         ONLY : Init_Diag04
@@ -805,19 +804,6 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! C2H6 -- note: simulation is obsolete, needs help!
-    !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
-         Input_Opt%ITS_A_C2H6_SIM     ) THEN
-       CALL Init_C2H6( am_I_Root, Input_Opt, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_C2H6"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
     ! CH4
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
@@ -833,8 +819,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Tagged CO
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_TAGCO_SIM   .or. &
-         Input_Opt%ITS_A_H2HD_SIM  ) THEN
+    IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
        CALL Init_Tagged_CO( am_I_Root,  Input_Opt, State_Diag, &
                             State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN

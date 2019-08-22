@@ -4132,8 +4132,6 @@
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND05, LD05
       USE DIAG_MOD,           ONLY : AD05
-      !USE CMN_DIAG_MOD          ! ND19
-      !USE DIAG_MOD,        ONLY : AD09
 #endif
       USE CMN_SIZE_MOD          
       USE ErrCode_Mod
@@ -4378,13 +4376,6 @@
       !EQ2 = ALK2 * 0.14e+0_fp
       !----------------------------------------------------------------------
 
-      !----------------------------------------------------------------------
-      ! DIAGNOSTIC -- leave uncommented for now (bec, bmy, 4/13/05)
-      !! Write out beginning alkalinity [eq SO4]
-      !EQ_BEG = EQ1 + EQ2
-      !IF ( ND09 > 0 ) AD09(I,J,L,1) = AD09(I,J,L,1) + EQ_BEG
-      !----------------------------------------------------------------------
-
       IF ( TOT_FLUX_A > EQ1 ) THEN
 
 	 ! Fraction of alkalinity available for each acid
@@ -4458,12 +4449,6 @@
       ! Alkalinity titrated by S(IV) --> S(VI) [eq]
       TITR_SO2     = SO4E + SO4F
 
-      !-------------------------------------------------------------------
-      ! DIAGNOSTIC -- leave uncommented for now
-      !! write out in diagnostic
-      !IF ( ND09 > 0 ) AD09(I,J,L,2) = AD09(I,J,L,2) + TITR_SO2
-      !-------------------------------------------------------------------
-
       ! Modified SO2 [eq] converted back to [v/v]
       ! Remove species molecular weights from equation (bmy, 2/10/17)
       SO2_ss       = ( SO2_chem * AIRMW / AD(I,J,L) ) / 2000.0_fp
@@ -4488,12 +4473,6 @@
       HNO3_SSC     = MIN(N_FLUX_C, HNO3_EQ_C, EQ_2_N)
       HNO3_SSC     = MAX(HNO3_SSC, MINDAT)
       TITR_HNO3    = HNO3_SSA + HNO3_SSC
-
-      !----------------------------------------------------------------------
-      ! DIAGNOSTIC -- leave commented out for now
-      ! !write out alkalinity titrated by HNO3(g)
-      !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
-      !----------------------------------------------------------------------
 
       ! HNO3 lost [eq/timestep] converted back to [v/v/timestep]
       IF ( id_HNO3 > 0 ) THEN
@@ -4565,13 +4544,6 @@
       !! [eq] --> [kg] --> [v/v] use this only if transporting alkalinity
       !ALKCvv = (ALKC * ( AIRMW / MW_SAL2 ))/(7.0d-2 * AD(I,J,L))
       !ALKCvv = MAX(ALKCvv, MINDAT)
-      !------------------------------------------------------------------------
-
-      !------------------------------------------------------------------------
-      ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
-      !! write out ending alkalinity
-      !END_ALK = ALKA + ALKC
-      !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
       !------------------------------------------------------------------------
 
       ! Free pointers
@@ -4917,13 +4889,6 @@
          ALK1_eq     = 2.e+0_fp * ALK1_vv * AD(I,J,L)
      &               / ( AIRMW / 40.e+0_fp ) / 40.e-3_fp
 
-         !---------------------------------------------------------------
-         ! DIAGNOSTIC -- leave uncommented for now (bec, bmy, 4/13/05)
-         ! Write out beginning alkalinity [eq SO4]
-         !EQ_BEG = EQ1 + EQ2
-         !IF ( ND09 > 0 ) AD09(I,J,L,1) = AD09(I,J,L,1) + EQ_BEG
-         !---------------------------------------------------------------
-
          ! total acid flux available; exclude flux from H2SO4, since it is
          ! not limited by dust alkalinity               ! tdf 3/02/2K9
          T_FLUX_A = S_FLUX (IBIN) + N_FLUX (IBIN)
@@ -5053,12 +5018,6 @@
      &                  / 98.e+0_fp ) / AD(I,J,L) / 2.0e+0_fp ! Hard-coded MW
       H2SO4_gas       = MAX( H2SO4_gas, MINDAT )
 
-      !-------------------------------------------------------------------
-      ! DIAGNOSTIC -- leave uncommented for now
-      !! write out in diagnostic
-      !IF ( ND09 > 0 ) AD09(I,J,L,2) = AD09(I,J,L,2) + TITR_SO2
-      !-------------------------------------------------------------------
-
       !-------------------
       ! Nitrate production
       !-------------------
@@ -5095,12 +5054,6 @@
 !         endif
 
       END DO
-
-      !----------------------------------------------------------------------
-      ! DIAGNOSTIC -- leave commented out for now
-      ! !write out alkalinity titrated by HNO3(g)
-      !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
-      !----------------------------------------------------------------------
 
       !Modified HNO3 [eq/timestep] converted back to [v/v/timestep]
       HNO3_gas      = HNO3_new * 0.063e+0_fp * ( AIRMW / MW_HNO3 ) 
@@ -5153,12 +5106,6 @@
       Spc(I,J,L,id_DAL2) = MAX( ALKA(2), MINDAT )
       Spc(I,J,L,id_DAL3) = MAX( ALKA(3), MINDAT )
       Spc(I,J,L,id_DAL4) = MAX( ALKA(4), MINDAT )
-
-      !------------------------------------------------------------------------
-      ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
-      !! write out ending alkalinity
-      !IF ( ND09 > 0 ) AD09(I,J,L,4) = AD09(I,J,L,4) + END_ALK
-      !------------------------------------------------------------------------
 
       ! Free pointers
       Spc    => NULL()

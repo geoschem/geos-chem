@@ -226,7 +226,7 @@
       CHARACTER(LEN=1)      :: TAB   = ACHAR(9)
       CHARACTER(LEN=1)      :: SPACE = ' '
       CHARACTER(LEN=MAXDIM) :: LINE
-      CHARACTER(LEN=255)    :: TOPTITLE, ErrMsg, ThisLoc
+      CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
 
       !=================================================================
       ! READ_INPUT_FILE begins here!
@@ -255,18 +255,13 @@
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
 
-      ! Read TOPTITLE for binary punch file
-      TOPTITLE = ReadOneLine( IU_GEOS, EOF, IOS )
-      IF ( EOF     ) RETURN
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:2' )
-
       ! Loop until EOF
       DO
 
          ! Read a line from the file, exit if EOF
          LINE = ReadOneLine( IU_GEOS, EOF, IOS )
          IF ( EOF     ) EXIT
-         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:3')
+         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:2')
 
          ! Replace tab characters in LINE (if any) w/ spaces
          CALL STRREPL( LINE, TAB, SPACE )
@@ -811,6 +806,7 @@
       CHARACTER(LEN=6)   :: TimeStr
       CHARACTER(LEN=8)   :: DateStr
       CHARACTER(LEN=12)  :: Met
+      CHARACTER(LEN=24)  :: Sim
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       ! Arrays
@@ -947,6 +943,80 @@
          RETURN
       ENDIF
 
+
+      ! Simulation type
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'SIM_TYPE', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%SimulationName
+
+      ! Set fields of Input Options object
+      Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
+      IF ( TRIM(Sim) /= 'ACIDUPTAKE'       .and.
+     &     TRIM(Sim) /= 'AEROSOLS'         .and.
+     &     TRIM(Sim) /= 'APM'              .and.
+     &     TRIM(Sim) /= 'BENCHMARK'        .and.
+     &     TRIM(Sim) /= 'CH4'              .and.
+     &     TRIM(Sim) /= 'CO2'              .and.
+     &     TRIM(Sim) /= 'COMPLEXSOA'       .and.
+     &     TRIM(Sim) /= 'COMPLEXSOA_SVPOA' .and.
+     &     TRIM(Sim) /= 'HEMCO'            .and.
+     &     TRIM(Sim) /= 'HG'               .and.
+     &     TRIM(Sim) /= 'MARINEPOA'        .and.
+     &     TRIM(Sim) /= 'MASSCONS'         .and.
+     &     TRIM(Sim) /= 'POPS'             .and.
+     &     TRIM(Sim) /= 'RRTMG'            .and.
+     &     TRIM(Sim) /= 'STANDARD'         .and.
+     &     TRIM(Sim) /= 'TRANSPORTTRACERS' .and.
+     &     TRIM(Sim) /= 'TROPCHEM'         .and.
+     &     TRIM(Sim) /= 'TAGCO'            .and.
+     &     TRIM(Sim) /= 'TAGCH4'           .and.
+     &     TRIM(Sim) /= 'TAGHG'            .and.
+     &     TRIM(Sim) /= 'TAGO3'            .and.
+     &     TRIM(Sim) /= 'TOMAS12'          .and.
+     &     TRIM(Sim) /= 'TOMAS15'          .and.
+     &     TRIM(Sim) /= 'TOMAS30'          .and.
+     &     TRIM(Sim) /= 'TOMAS40'          ) THEN
+         ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'      //
+     &            ' valid simulation. Supported simulations are:'     //
+     &            ' AcidUptake, Aerosols, APM, Benchmark, CH4, CO2, ' //
+     &            ' ComplexSOA, ComplexSOA_SVPOA, HEMCO, Hg,'         //
+     &            ' MarinePOA, MassCons, POPs, RRTMG, Standard,'      //
+     &            ' TransportTracers, Tropchem, TagCO, TagCH4, TagHg,'//
+     &            ' TagO3, TOMAS12, TOMAS15, TOMAS30, and TOMAS40.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Set fields of Input Options object
+      Input_Opt%ITS_A_CH4_SIM      = ( TRIM(Sim) == 'CH4'
+     &                            .or. TRIM(Sim) == 'TAGCH4'           )
+      Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'
+     &                            .or. TRIM(Sim) == 'MASSCONS'         )
+      Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'ACIDUPTAKE'
+     &                            .or. TRIM(Sim) == 'APM'
+     &                            .or. TRIM(Sim) == 'BENCHMARK'
+     &                            .or. TRIM(Sim) == 'COMPLEXSOA'
+     &                            .or. TRIM(Sim) == 'COMPLEXSOA_SVPOA'
+     &                            .or. TRIM(Sim) == 'HEMCO'
+     &                            .or. TRIM(Sim) == 'MARINEPOA'
+     &                            .or. TRIM(Sim) == 'RRTMG'
+     &                            .or. TRIM(Sim) == 'STANDARD'
+     &                            .or. TRIM(Sim) == 'TROPCHEM'
+     &                            .or. TRIM(Sim) == 'TOMAS12'
+     &                            .or. TRIM(Sim) == 'TOMAS15'
+     &                            .or. TRIM(Sim) == 'TOMAS30'
+     &                            .or. TRIM(Sim) == 'TOMAS40'          )
+      Input_Opt%ITS_A_MERCURY_SIM  = ( TRIM(Sim) == 'HG'
+     &                            .or. TRIM(Sim) == 'TAGHG'            )
+      Input_Opt%ITS_A_POPS_SIM     = ( TRIM(Sim) == 'POPS'             )
+      Input_Opt%ITS_A_RnPbBe_SIM   = ( TRIM(Sim) == 'TRANSPORTTRACERS' )
+      Input_Opt%ITS_A_TAGO3_SIM    = ( TRIM(Sim) == 'TAGO3'            )
+      Input_Opt%ITS_A_TAGCO_SIM    = ( TRIM(Sim) == 'TAGCO'            )
+      Input_Opt%ITS_AN_AEROSOL_SIM = ( TRIM(Sim) == 'AEROSOLS'         )
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -975,6 +1045,9 @@
      &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
          WRITE( 6, 110 ) 'Meteorology field           : ',
      &                    TRIM( Input_Opt%MetField )
+         WRITE( 6, 110 ) 'Simulation name             : ',
+     &                    TRIM( Input_Opt%SimulationName )
+
       ENDIF
 
       ! Format statements
@@ -1606,71 +1679,6 @@
       ThisLoc =
      &   ' -> at Read_Advected_Species_Menu (in GeosCore/input_mod.F)'
 
-      ! Simulation type
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'SIM_TYPE', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%SIM_TYPE
-
-      ! Set fields of Input Options object
-      Input_Opt%ITS_A_RnPbBe_SIM       = ( Input_Opt%SIM_TYPE == 1  )
-      Input_Opt%ITS_A_CH3I_SIM         = ( Input_Opt%SIM_TYPE == 2  )
-      Input_Opt%ITS_A_FULLCHEM_SIM     = ( Input_Opt%SIM_TYPE == 3  )
-      Input_Opt%ITS_A_HCN_SIM          = ( Input_Opt%SIM_TYPE == 4  )
-      Input_Opt%ITS_A_TAGO3_SIM        = ( Input_Opt%SIM_TYPE == 6  )
-      Input_Opt%ITS_A_TAGCO_SIM        = ( Input_Opt%SIM_TYPE == 7  )
-      Input_Opt%ITS_A_C2H6_SIM         = ( Input_Opt%SIM_TYPE == 8  )
-      Input_Opt%ITS_A_CH4_SIM          = ( Input_Opt%SIM_TYPE == 9  )
-      Input_Opt%ITS_AN_AEROSOL_SIM     = ( Input_Opt%SIM_TYPE == 10 )
-      Input_Opt%ITS_A_MERCURY_SIM      = ( Input_Opt%SIM_TYPE == 11 )
-      Input_Opt%ITS_A_CO2_SIM          = ( Input_Opt%SIM_TYPE == 12 )
-      Input_Opt%ITS_A_H2HD_SIM         = ( Input_Opt%SIM_TYPE == 13 )
-      Input_Opt%ITS_A_POPS_SIM         = ( Input_Opt%SIM_TYPE == 14 )
-
-      ! Also pick a name corresponding to each simulation type
-      ! This replaces function GET_SIM_NAME from tracer_mod.F
-      SELECT CASE( Input_Opt%SIM_TYPE )
-         CASE( 1 )
-            Input_Opt%SIM_NAME = 'Rn-Pb-Be'
-         CASE( 2 )
-            Input_Opt%SIM_NAME = 'CH3I'
-         CASE( 3 )
-            Input_Opt%SIM_NAME = 'NOx-Ox-Hydrocarbon-Aerosol'
-         CASE( 4 )
-            Input_Opt%SIM_NAME = 'HCN'
-         CASE( 5 )
-            Input_Opt%SIM_NAME = ''
-         CASE( 6 )
-            Input_Opt%SIM_NAME = 'Tagged O3'
-         CASE( 7 )
-            Input_Opt%SIM_NAME = 'Tagged CO'
-         CASE( 8 )
-            Input_Opt%SIM_NAME = 'Tagged C2H6'
-         CASE( 9 )
-            Input_Opt%SIM_NAME = 'CH4'
-         CASE( 10 )
-            Input_Opt%SIM_NAME = 'Offline Aerosol'
-         CASE( 11 )
-            Input_Opt%SIM_NAME = 'Mercury'
-         CASE( 12 )
-            Input_Opt%SIM_NAME = 'CO2'
-         CASE( 13 )
-            Input_Opt%SIM_NAME = 'H2 and HD'
-         CASE( 14 )
-            Input_Opt%SIM_NAME = 'POPs'
-         CASE DEFAULT
-            Input_Opt%SIM_NAME = 'UNKNOWN'
-       END SELECT
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'separator 1', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
       !=================================================================
       ! Read advected species name
       !=================================================================
@@ -1725,11 +1733,6 @@
 
          ! Need Hg0, Hg2, HgP for tagged Mercury
          Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 3 )
-
-      ELSE IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
-
-         ! Need HCN, CH3CN for HCN simulation
-         Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 2 )
 
       ELSE
 
@@ -3061,10 +3064,9 @@
          RETURN
       ENDIF
 
-      ! FAST-JX is only used for fullchem, offline aerosol, and CH3I
+      ! FAST-JX is only used for fullchem and offline aerosol
       IF ( Input_Opt%ITS_A_FULLCHEM_SIM  .or.
-     &     Input_Opt%ITS_AN_AEROSOL_SIM  .or.
-     &     Input_Opt%ITS_A_CH3I_SIM      ) THEN
+     &     Input_Opt%ITS_AN_AEROSOL_SIM  ) THEN
 
          ! Make sure either O3 from met or TOMS is selected
          IF ( .not. Input_Opt%USE_O3_FROM_MET .and.
@@ -3083,8 +3085,7 @@
          ENDIF
 
          ! Make sure specialty simulations select O3 from met or TOMS
-         IF ( Input_Opt%ITS_AN_AEROSOL_SIM  .or.
-     &        Input_Opt%ITS_A_CH3I_SIM      ) THEN
+         IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
             IF ( Input_Opt%USE_ONLINE_O3 ) THEN
               ErrMsg= 'Cannot use online O3 for specialty simulations! '
      &             // 'Select O3 from met or TOMS O3 instead.'
@@ -3898,15 +3899,11 @@
       !=================================================================
 
       ! Turn off drydep for simulations that don't need it
-      IF ( Input_Opt%ITS_A_CH3I_SIM    ) Input_Opt%LDRYD = .FALSE.
       IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LDRYD = .FALSE.
 
       ! Turn off wetdep for simulations that don't need it
-      IF ( Input_Opt%ITS_A_CH3I_SIM    ) Input_Opt%LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_HCN_SIM     ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
-      IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
 
       ! Set the PBL drydep flag. This determines if dry deposition is
@@ -4467,7 +4464,7 @@
       ! Included in HEMCO diagnostics for netCDF
 
       !--------------------------
-      ! ND09: HCN/CH3CN (obsolete)
+      ! ND09: Free
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND09', RC )
       IF ( RC /= GC_SUCCESS ) THEN

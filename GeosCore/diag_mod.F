@@ -42,10 +42,6 @@
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
 
-      ! For ND09 -- HCN / CH3CN simulation
-      REAL*4,  ALLOCATABLE :: AD09(:,:,:,:)
-      REAL*4,  ALLOCATABLE :: AD09_em(:,:,:)
-
       ! For ND12 -- boundary layer multiplication factor
       REAL*4,  ALLOCATABLE :: AD12(:,:,:)
 
@@ -350,8 +346,6 @@
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD07_HC     ) ) DEALLOCATE( AD07_HC     )
-      IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
-      IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
       IF ( ALLOCATED( AD12        ) ) DEALLOCATE( AD12        )
       IF ( ALLOCATED( AD16        ) ) DEALLOCATE( AD16        )
       IF ( ALLOCATED( AD17        ) ) DEALLOCATE( AD17        )
