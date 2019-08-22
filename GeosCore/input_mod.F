@@ -954,28 +954,63 @@
 
       ! Set fields of Input Options object
       Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-      IF ( TRIM(Sim) /= 'AEROSOLS'         .and.
+      IF ( TRIM(Sim) /= 'ACIDUPTAKE'       .and.
+     &     TRIM(Sim) /= 'AEROSOLS'         .and.
+     &     TRIM(Sim) /= 'APM'              .and.
+     &     TRIM(Sim) /= 'BENCHMARK'        .and.
      &     TRIM(Sim) /= 'CH4'              .and.
      &     TRIM(Sim) /= 'CO2'              .and.
-     &     TRIM(Sim) /= 'FULLCHEM'         .and.
+     &     TRIM(Sim) /= 'COMPLEXSOA'       .and.
+     &     TRIM(Sim) /= 'COMPLEXSOA_SVPOA' .and.
+     &     TRIM(Sim) /= 'HEMCO'            .and.
      &     TRIM(Sim) /= 'HG'               .and.
+     &     TRIM(Sim) /= 'MARINEPOA'        .and.
+     &     TRIM(Sim) /= 'MASSCONS'         .and.
      &     TRIM(Sim) /= 'POPS'             .and.
+     &     TRIM(Sim) /= 'RRTMG'            .and.
+     &     TRIM(Sim) /= 'STANDARD'         .and.
      &     TRIM(Sim) /= 'TRANSPORTTRACERS' .and.
+     &     TRIM(Sim) /= 'TROPCHEM'         .and.
+     &     TRIM(Sim) /= 'TAGCO'            .and.
+     &     TRIM(Sim) /= 'TAGCH4'           .and.
+     &     TRIM(Sim) /= 'TAGHG'            .and.
      &     TRIM(Sim) /= 'TAGO3'            .and.
-     &     TRIM(Sim) /= 'TAGCO'            ) THEN
-         ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'  //
-     &            ' valid simulation. Supported simulations are:' //
-     &            ' Aerosols, CH4, CO2, Fullchem, Hg, POPs,'      //
-     &            ' TransportTracers, TagCO, and TagO3.'
+     &     TRIM(Sim) /= 'TOMAS12'          .and.
+     &     TRIM(Sim) /= 'TOMAS15'          .and.
+     &     TRIM(Sim) /= 'TOMAS30'          .and.
+     &     TRIM(Sim) /= 'TOMAS40'          ) THEN
+         ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'      //
+     &            ' valid simulation. Supported simulations are:'     //
+     &            ' AcidUptake, Aerosols, APM, Benchmark, CH4, CO2, ' //
+     &            ' ComplexSOA, ComplexSOA_SVPOA, HEMCO, Hg,'         //
+     &            ' MarinePOA, MassCons, POPs, RRTMG, Standard,'      //
+     &            ' TransportTracers, Tropchem, TagCO, TagCH4, TagHg,'//
+     &            ' TagO3, TOMAS12, TOMAS15, TOMAS30, and TOMAS40.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
 
       ! Set fields of Input Options object
-      Input_Opt%ITS_A_CH4_SIM      = ( TRIM(Sim) == 'CH4'              )
-      Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'              )
-      Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'FULLCHEM'         )
-      Input_Opt%ITS_A_MERCURY_SIM  = ( TRIM(Sim) == 'HG'               )
+      Input_Opt%ITS_A_CH4_SIM      = ( TRIM(Sim) == 'CH4'
+     &                            .or. TRIM(Sim) == 'TAGCH4'           )
+      Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'
+     &                            .or. TRIM(Sim) == 'MASSCONS'         )
+      Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'ACIDUPTAKE'
+     &                            .or. TRIM(Sim) == 'APM'
+     &                            .or. TRIM(Sim) == 'BENCHMARK'
+     &                            .or. TRIM(Sim) == 'COMPLEXSOA'
+     &                            .or. TRIM(Sim) == 'COMPLEXSOA_SVPOA'
+     &                            .or. TRIM(Sim) == 'HEMCO'
+     &                            .or. TRIM(Sim) == 'MARINEPOA'
+     &                            .or. TRIM(Sim) == 'RRTMG'
+     &                            .or. TRIM(Sim) == 'STANDARD'
+     &                            .or. TRIM(Sim) == 'TROPCHEM'
+     &                            .or. TRIM(Sim) == 'TOMAS12'
+     &                            .or. TRIM(Sim) == 'TOMAS15'
+     &                            .or. TRIM(Sim) == 'TOMAS30'
+     &                            .or. TRIM(Sim) == 'TOMAS40'          )
+      Input_Opt%ITS_A_MERCURY_SIM  = ( TRIM(Sim) == 'HG'
+     &                            .or. TRIM(Sim) == 'TAGHG'            )
       Input_Opt%ITS_A_POPS_SIM     = ( TRIM(Sim) == 'POPS'             )
       Input_Opt%ITS_A_RnPbBe_SIM   = ( TRIM(Sim) == 'TRANSPORTTRACERS' )
       Input_Opt%ITS_A_TAGO3_SIM    = ( TRIM(Sim) == 'TAGO3'            )
