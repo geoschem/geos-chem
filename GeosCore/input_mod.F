@@ -955,7 +955,7 @@
       ! Set fields of Input Options object
       Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
       IF ( TRIM(Sim) /= 'ACIDUPTAKE'       .and.
-     &     TRIM(Sim) /= 'AEROSOLS'         .and.
+     &     TRIM(Sim) /= 'AEROSOL'          .and.
      &     TRIM(Sim) /= 'APM'              .and.
      &     TRIM(Sim) /= 'BENCHMARK'        .and.
      &     TRIM(Sim) /= 'CH4'              .and.
@@ -981,7 +981,7 @@
      &     TRIM(Sim) /= 'TOMAS40'          ) THEN
          ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'      //
      &            ' valid simulation. Supported simulations are:'     //
-     &            ' AcidUptake, Aerosols, APM, Benchmark, CH4, CO2, ' //
+     &            ' AcidUptake, Aerosol, APM, Benchmark, CH4, CO2,'   //
      &            ' ComplexSOA, ComplexSOA_SVPOA, HEMCO, Hg,'         //
      &            ' MarinePOA, MassCons, POPs, RRTMG, Standard,'      //
      &            ' TransportTracers, Tropchem, TagCO, TagCH4, TagHg,'//
@@ -1015,7 +1015,7 @@
       Input_Opt%ITS_A_RnPbBe_SIM   = ( TRIM(Sim) == 'TRANSPORTTRACERS' )
       Input_Opt%ITS_A_TAGO3_SIM    = ( TRIM(Sim) == 'TAGO3'            )
       Input_Opt%ITS_A_TAGCO_SIM    = ( TRIM(Sim) == 'TAGCO'            )
-      Input_Opt%ITS_AN_AEROSOL_SIM = ( TRIM(Sim) == 'AEROSOLS'         )
+      Input_Opt%ITS_AN_AEROSOL_SIM = ( TRIM(Sim) == 'AEROSOL'          )
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
