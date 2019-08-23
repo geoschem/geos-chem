@@ -4257,11 +4257,11 @@
       ! Verbose mode
       IF ( am_I_Root ) THEN
          MSG = 'Use MEGAN biogenic emissions (extension module)'
-         CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
+         CALL HCO_MSG( HcoState%Config%Err, MSG, SEP1='-' )
          WRITE(MSG,*) ' - This is instance ',ExtState%Megan
-         CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
+         CALL HCO_MSG( HcoState%Config%Err, MSG, SEP1='-' )
          MSG = ' - Use the following species:'
-         CALL HCO_MSG(HcoState%Config%Err,MSG )
+         CALL HCO_MSG( HcoState%Config%Err, MSG )
       ENDIF
 
       ! Get species IDs
@@ -4320,32 +4320,32 @@
          END SELECT
     
          ! Verbose
-         IF ( am_I_Root ) CALL HCO_MSG(HcoState%Config%Err,MSG )
+         IF ( am_I_Root ) CALL HCO_MSG( HcoState%Config%Err, MSG )
       ENDDO
 
       ! Verbose mode
       IF ( am_I_Root ) THEN
          WRITE(MSG,*) ' --> Isoprene scale factor is ',Inst%ISOP_SCALING
-         CALL HCO_MSG(HcoState%Config%Err,MSG )
+         CALL HCO_MSG( HcoState%Config%Err, MSG )
          WRITE(MSG,*) ' --> Use CO2 inhibition on isoprene option ', 
      &                Inst%LISOPCO2
-         CALL HCO_MSG(HcoState%Config%Err,MSG )
+         CALL HCO_MSG( HcoState%Config%Err, MSG )
          WRITE(MSG,*) ' --> Global atmospheric CO2 concentration : ', 
      &                Inst%GLOBCO2, ' ppmv'
-         CALL HCO_MSG(HcoState%Config%Err,MSG )
+         CALL HCO_MSG( HcoState%Config%Err, MSG )
          WRITE(MSG,*) ' --> Normalize LAI by PFT: ',
      &                Inst%NORMLAI
-         CALL HCO_MSG(HcoState%Config%Err,MSG )
+         CALL HCO_MSG( HcoState%Config%Err, MSG )
       ENDIF
 
       IF ( am_I_Root ) THEN
          !convert back to direct mass basis just for show
          WRITE(MSG,*) ' --> Isoprene to SOA-Precursor',
      &       Inst%ISOPTOSOAP / 1.134
-         CALL HCO_MSG( MSG )
+         CALL HCO_MSG( HcoState%Config%Err, MSG )
          WRITE(MSG,*) ' --> Isoprene direct to SOA (Simple)',
      &       Inst%ISOPTOSOAS / 1.134
-         CALL HCO_MSG( MSG )
+         CALL HCO_MSG( HcoState%Config%Err, MSG )
       ENDIF
 
       ! Check for monoterpene option --> required for CO, MTPA, MTPO, LIMO, SESQ
@@ -4365,36 +4365,36 @@
          IF ( am_I_Root ) THEN
             MSG = 'The HEMCO configuration file uses the old MEGAN' //
      &            'syntax - Please merge SOA into Mono, e.g.:'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG = '108     MEGAN             : on    '//
      &            'ISOP/ACET/PRPE/C2H4/ALD2/EOH/SOAP/SOAS'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG = '--> Isoprene scaling  :       1.0' 
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG = '--> CO2 inhibition    :       true'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG = '--> CO2 conc (ppmv)   :       390.0'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG = '--> Isoprene to SOAP  :       0.015'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG = '--> Isoprene to SOAS  :       0.015'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG = '--> Normalize LAI     :       true'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG='#3% mass yield from isoprene to SOA'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG='109     MEGAN_Mono      : on    CO/MTPA/MTPO/LIMO/SESQ'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG='--> Monoterp to SOAP  :       0.050'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG='--> Monoterp to SOAS  :       0.050'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG='#10% mass yield from monoterpenes to SOA'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG='--> Othrterp to SOAP  :       0.050'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             MSG='--> Othrterp to SOAS  :       0.050'
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
          ENDIF
          MSG = 'Your HEMCO configuration file uses old MEGAN syntax'
          CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -4406,7 +4406,7 @@
          ! Verbose
          IF ( am_I_Root ) THEN
             MSG = ' - MEGAN monoterpene option enabled' 
-            CALL HCO_MSG(HcoState%Config%Err,MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
          ENDIF
 
          ! Get HEMCO species IDs
@@ -4533,16 +4533,16 @@
             !convert back to direct mass basis just for show
             WRITE(MSG,*) ' --> Monoterpene to SOA-Precursor',
      &       Inst%MONOTOSOAP / 1.134
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             WRITE(MSG,*) ' --> Monoterpene direct to SOA (Simple)',
      &       Inst%MONOTOSOAS / 1.134
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             WRITE(MSG,*) ' --> Othrterpene to SOA-Precursor',
      &       Inst%OTHRTOSOAP / 1.134
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
             WRITE(MSG,*) ' --> Othrterpene direct to SOA (Simple)',
      &       Inst%OTHRTOSOAS / 1.134
-            CALL HCO_MSG( MSG )
+            CALL HCO_MSG( HcoState%Config%Err, MSG )
          ENDIF
 
       ELSE
