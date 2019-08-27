@@ -191,6 +191,8 @@
 !                              variables from the restart file just once.  In
 !                              the ESMF environment we have to do that on every
 !                              call to get data from the External State object.
+!  27 Aug 2019 - M. Sulprizio- Remove CO from monoterpenes. This source is now
+!                              included explicitly in the chemistry mechanism.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -219,7 +221,6 @@
          ! HEMCO species IDs
          INTEGER                 :: IDTISOP
          INTEGER                 :: IDTACET
-         INTEGER                 :: IDTCO 
          INTEGER                 :: IDTPRPE
          INTEGER                 :: IDTC2H4
          INTEGER                 :: IDTALD2
@@ -404,7 +405,6 @@
       REAL(hp), TARGET    :: FLUXACETmo(HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXACETmb(HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXACETbg(HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXCO    (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXPRPE  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXC2H4  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXLIMO  (HcoState%NX,HcoState%NY)
@@ -504,7 +504,6 @@
       FLUXACETmo = 0.0_hp
       FLUXACETmb = 0.0_hp
       FLUXACETbg = 0.0_hp
-      FLUXCO     = 0.0_hp
       FLUXPRPE   = 0.0_hp
       FLUXC2H4   = 0.0_hp
       FLUXLIMO   = 0.0_hp
@@ -1031,67 +1030,6 @@
          ENDIF
 
          !--------------------------------------------------------------------
-         !  Biogenic source of CO -- from oxidation of METHANOL and MONOTERPENES
-         !
-         !  CO from METHANOL oxidation -- scaled from ISOPRENE (bnd, 1/2/01)
-         !
-         !    We need to scale the Isoprene flux to get the CH3OH (methanol)
-         !    flux. Currently, the annual isoprene flux in GEOS-CHEM is
-         !    ~ 397 Tg C.
-         !
-         !    Daniel Jacob recommends a flux of 100 Tg/yr CO from CH3OH
-         !    oxidation based on Singh et al. 2000 [JGR 105, 3795-3805] who
-         !    estimate a global methanol source of 122 Tg yr-1, of which most
-         !    (75 Tg yr-1) is "primary biogenic". He also recommends for now
-         !    that the CO flux from CH3OH oxidation be scaled to monthly mean
-         !    isoprene flux.
-         !
-         !    To get CO from METHANOL oxidation, we must therefore multiply
-         !    the ISOPRENE flux by the following scale factor:
-         !    ( 100 Tg CO from CH3OH Oxidation / 397 Tg C from Isoprene Flux ) *
-         !    (  12 g C/mole                   / 28 g CO/mole                )
-         !
-         !  CO from MONOTERPENE oxidation (bnd, bmy, 1/2/01)
-         !
-         !    Assume the production of CO from monoterpenes is instantaneous
-         !    even though the lifetime of intermediate species may be on the
-         !    order of hours or days. This assumption will likely cause CO from
-         !    monoterpene oxidation to be too high in the box in which the
-         !    monoterpene is emitted.
-         !
-         !    The CO yield here is taken from:
-         !
-         !    Hatakeyama et al. JGR, Vol. 96, p. 947-958 (1991)
-         !      "The ultimate yield of CO from the tropospheric oxidation of
-         !       terpenes (including both O3 and OH reactions) was estimated
-         !       to be 20% on the carbon number basis." They studied
-         !       ALPHA- & BETA-pinene.
-         !
-         !    Vinckier et al. Fresenius Env. Bull., Vol. 7, p.361-368 (1998)
-         !      "R(CO)=1.8+/-0.3" : 1.8/10 is about 20%.
-         !
-         !    EMIS_MONO is now kgC, conversion factor then becomes: 
-         !    28g CO / 60g C = 46.666%
-         !    (ckeller, 4/15/14).
-         !--------------------------------------------------------------------
- 
-         ! NOTE: Don't save into EMISRR for the tagged CO simulation.  
-         ! Also for tagged CO we don't use monoterpenes  ??????
-         ! (jaf, mak, bmy, 2/14/08)
-         IF ( (Inst%IDTCO>0) .AND. (Inst%ExtNrMono>0) ) THEN
-!            FLUX = EMMO * 0.2d0
-            FLUXCO(I,J) = EMIS_MONO * 0.4666_hp
-
-!            ! testing only
-!            if ( i==ix .and. j==iy .and. .FALSE. ) then
-!               write(*,*) ' '
-!               write(*,*) 'HEMCO MEGAN @ ', ix, iy
-!               write(*,*) 'CO (kg/m2/s): ', FLUXCO(I,J)
-!            endif
-
-         ENDIF
-
-         !--------------------------------------------------------------------
          ! Biogenic emissions of SOA and SOA-Precursor from monoterpenes
          !--------------------------------------------------------------------
          IF ( (Inst%IDTSOAP>0) .AND. (Inst%ExtNrMono>0) ) THEN
@@ -1513,28 +1451,6 @@
       ENDIF
 
       ! ----------------------------------------------------------------
-      ! CO
-      IF ( ( Inst%ExtNrMono > 0 ) .AND. 
-     &     ( Inst%IDTCO     > 0 )      ) THEN
-
-         ! Add flux to emission array
-         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXCO, Inst%IDTCO, 
-     &                     RC,        ExtNr=Inst%ExtNrMono )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            CALL HCO_ERROR( HcoState%Config%Err,
-     &                  'HCO_EmisAdd error: FLUXCO', RC )
-            RETURN 
-         ENDIF
-
-         ! Also archive the BIOGENIC_CO diagnostic (bmy, 4/29/15)
-         DiagnName =  'BIOGENIC_CO'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNrMono,
-     &      cName=TRIM(DiagnName), Array2D=FLUXCO, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         Arr2D => NULL()
-      ENDIF
-
-      ! ----------------------------------------------------------------
       ! ALKENES 
       IF ( Inst%IDTPRPE > 0 ) THEN
 
@@ -1793,7 +1709,6 @@
 !      write(*,*) 'total ISOP: ', SUM(FLUXISOP)
 !      write(*,*) 'total ACET: ', SUM(FLUXACETmo)+SUM(FLUXACETmb)
 !     &                          +SUM(FLUXACETbg)
-!      write(*,*) 'total CO  : ', SUM(FLUXCO  )
 !      write(*,*) 'total PRPE: ', SUM(FLUXPRPE)
 !      write(*,*) 'total OCPI: ', SUM(FLUXOCPI)
 !      write(*,*) ''
@@ -2319,7 +2234,7 @@
          A_OLD  = 0.95_hp
          BI_DIR = .FALSE. 
 
-      ! Calls for any other MEGAN compounds (e.g. sesquiterpenes, CO, etc.) can
+      ! Calls for any other MEGAN compounds (e.g. sesquiterpenes, etc.) can
       ! be added following the above format based on the parameters in
       ! Guenther 2012 or the MEGAN source code (dbm, 6/21/2012).
       ELSE
@@ -4348,8 +4263,7 @@
          CALL HCO_MSG( MSG )
       ENDIF
 
-      ! Check for monoterpene option --> required for CO, MTPA, MTPO, LIMO, SESQ
-      Inst%IDTCO     = -1 
+      ! Check for monoterpene option --> required for MTPA, MTPO, LIMO, SESQ
       Inst%IDTMTPA   = -1 
       Inst%IDTMTPO   = -1 
       Inst%IDTLIMO   = -1 
@@ -4383,7 +4297,7 @@
             CALL HCO_MSG( MSG )
             MSG='#3% mass yield from isoprene to SOA'
             CALL HCO_MSG( MSG )
-            MSG='109     MEGAN_Mono      : on    CO/MTPA/MTPO/LIMO/SESQ'
+            MSG='109     MEGAN_Mono      : on    MTPA/MTPO/LIMO/SESQ'
             CALL HCO_MSG( MSG )
             MSG='--> Monoterp to SOAP  :       0.050'
             CALL HCO_MSG( MSG )
@@ -4472,10 +4386,6 @@
     
          DO I = 1, nSpc
             SELECT CASE ( TRIM(SpcNames(I)) )
-               CASE( 'CO' )
-                  Inst%IDTCO = HcoIDs(I)
-                  WRITE(MSG,*) '   CO         = ',
-     &                         TRIM(SpcNames(I)),Inst%IDTCO
                CASE( 'MTPA' )
                   Inst%IDTMTPA = HcoIDs(I)
                   WRITE(MSG,*) '     a-,b-pinene    = ',
@@ -4515,15 +4425,14 @@
          ENDDO
 
          ! Check if at least one of the Mono species is defined 
-         IF ( Inst%IDTCO   < 0 .AND.
-     &        Inst%IDTMTPA < 0 .AND.
+         IF ( Inst%IDTMTPA < 0 .AND.
      &        Inst%IDTMTPO < 0 .AND.  
      &        Inst%IDTLIMO < 0 .AND.
      &        Inst%IDTSESQ < 0 .AND.
      &        Inst%IDTSOAP < 0 .AND. 
      &        Inst%IDTSOAS < 0  ) THEN
             MSG = 'MEGAN_MONO option is anabled but none of the '  // 
-     &            'species is found (CO, MTPA, MTPO, LIMO, SESQ, ' //
+     &            'species is found (MTPA, MTPO, LIMO, SESQ, ' //
      &            'SOAP, SOAS)!'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
             RETURN
@@ -4547,15 +4456,12 @@
 
       ELSE
 
-         ! CO emissions and acetone emissions will be zero/incomplete!
+         ! Acetone emissions will be zero/incomplete!
          IF ( Inst%IDTACET > 0 ) THEN
             MSG = 'Cannot fully calculate MEGAN acetone ' //
      &            'emissions because monoterpene switch is off!'
             CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
          ENDIF
-         MSG = 'Will not calculate MEGAN CO emissions ' //
-     &         'because monoterpene switch is off!'
-         CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       ENDIF
 
       CALL GetExtOpt( HcoState%Config, ExtNr, 'MEGAN_SUFFIX',  
