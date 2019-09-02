@@ -25,7 +25,6 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	aerosol_mod.F
 	benchmark_mod.F
 	bromocarb_mod.F
-	c2h6_mod.F
 	carbon_mod.F
 	chemistry_mod.F90
 	cldice_HBrHOBr_rxn.F
