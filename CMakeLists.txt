@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(GEOS_Chem VERSION 12.4.0 LANGUAGES Fortran)
+project(GEOS_Chem VERSION 12.6.0 LANGUAGES Fortran)
 
 # Set policies
 cmake_policy(SET CMP0054 NEW)
@@ -12,7 +12,7 @@ if(POLICY CMP0079)
 endif()
 
 # Add CMakeScripts/ to the module path and import helper functions
-list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/CMakeScripts)
+list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts)
 include(GC-Helpers)
 
 # Declare the BaseTarget. All GEOS-Chem targets depend on BaseTarget.
@@ -39,7 +39,7 @@ if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
 endif()
 
 # Print a description of the source code repo's version
-get_repo_version(GC_REPO_VERSION ${CMAKE_SOURCE_DIR})
+get_repo_version(GC_REPO_VERSION ${CMAKE_CURRENT_SOURCE_DIR})
 message(STATUS "GEOS-Chem version: ${GC_REPO_VERSION}")
 
 if(NOT GC_EXTERNAL_CONFIG)
