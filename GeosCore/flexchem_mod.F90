@@ -246,9 +246,6 @@ CONTAINS
                                           State_Grid%NZ,NREACT               )
     REAL(f4)               :: GLOB_JVAL  (State_Grid%NX,State_Grid%NY, &
                                           State_Grid%NZ,JVN_                 )
-#else
-    REAL(dp)               :: GLOB_RCONST(State_Grid%NX,State_Grid%NY, &
-                                          State_Grid%NZ,NREACT               )
 #endif
     REAL(fp)               :: Before     (State_Grid%NX,State_Grid%NY, &
                                           State_Grid%NZ,State_Chm%nAdvect    )
@@ -1064,8 +1061,10 @@ CONTAINS
        ! Save for next integration time step
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
 
+#if defined( MODEL_GEOS )
        ! Save rate constants in global array (not used)
        GLOB_RCONST(I,J,L,:) = RCONST(:)
+#endif
 
        !====================================================================
        ! Check we have no negative values and copy the concentrations
