@@ -107,7 +107,7 @@
       ENDIF
    
       ! Compute the "A" term. 
-      X1 = DBLE( YYYY ) / 100.0d0
+      X1 = DBLE( YEAR1 ) / 100.0d0
       A  = MINT( X1 )
    
       ! The Gregorian calendar begins on 10 October 1582
