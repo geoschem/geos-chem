@@ -5,7 +5,7 @@ target_link_libraries(JulDay
 	PUBLIC Headers
 )
 
-add_library(GeosUtil2 STATIC EXCLUDE_FROM_ALL
+add_library(GeosUtil STATIC EXCLUDE_FROM_ALL
 	bpch2_mod.F
 	error_mod.F
 	file_mod.F
@@ -22,7 +22,7 @@ add_library(GeosUtil2 STATIC EXCLUDE_FROM_ALL
 	transfer_mod.F
 	unitconv_mod.F90
 )
-target_link_libraries(GeosUtil2
+target_link_libraries(GeosUtil
 	PUBLIC NcdfUtil
 )
 

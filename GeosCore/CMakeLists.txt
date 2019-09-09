@@ -12,7 +12,7 @@ add_library(Transport STATIC EXCLUDE_FROM_ALL
 	# tendencies_mod.F90
 )
 target_link_libraries(Transport
-	PUBLIC GeosUtil2
+	PUBLIC GeosUtil
 )
 if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
 	set_source_files_properties(tpcore_window_mod.F90 PROPERTIES COMPILE_FLAGS "-r8")

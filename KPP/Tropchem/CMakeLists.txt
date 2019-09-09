@@ -26,6 +26,6 @@ add_library(KPP_Tropchem STATIC EXCLUDE_FROM_ALL
 	gckpp_Util.F90
 )
 target_link_libraries(KPP_Tropchem
-	PUBLIC GeosUtil2
+	PUBLIC GeosUtil
 )
 

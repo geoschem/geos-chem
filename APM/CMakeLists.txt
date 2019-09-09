@@ -20,6 +20,6 @@ add_library(APM STATIC EXCLUDE_FROM_ALL
 	module_mosaic_therm.F90
 )
 target_link_libraries(APM
-	PUBLIC GeosUtil2
+	PUBLIC GeosUtil
 )
 

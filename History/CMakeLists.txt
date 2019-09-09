@@ -8,6 +8,6 @@ add_library(History STATIC EXCLUDE_FROM_ALL
 	metahistitem_mod.F90
 )
 target_link_libraries(History
-	PUBLIC GeosUtil2
+	PUBLIC GeosUtil
 )
 

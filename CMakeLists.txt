@@ -26,6 +26,20 @@ target_include_directories(BaseTarget
 	INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/mod
 )
 
+# Append GEOS-Chem's environment varialbes to CMAKE_PREFIX_PATH
+list(APPEND CMAKE_PREFIX_PATH
+	# Possible NetCDF environment variables
+	$ENV{NetCDF_F_ROOT}         $ENV{NetCDF_C_ROOT}     $ENV{NetCDF_ROOT}
+	$ENV{NETCDF_F_ROOT}         $ENV{NETCDF_C_ROOT}     $ENV{NETCDF_ROOT}
+	$ENV{NetCDF_Fortran_ROOT} 
+	$ENV{NETCDF_FORTRAN_ROOT}
+    
+	# Possible GEOS-Chem's environmnet variables
+	$ENV{GC_F_BIN} 		$ENV{GC_BIN}
+	$ENV{GC_F_INCLUDE} 	$ENV{GC_INCLUDE}
+	$ENV{GC_F_LIB} 		$ENV{GC_LIB}
+)
+
 # Link NetCDF-F to BaseTarget
 find_package(NetCDF REQUIRED)
 target_link_libraries(BaseTarget INTERFACE NetCDF-F)
@@ -51,37 +65,31 @@ if(NOT GC_EXTERNAL_CONFIG)
 	if(NOT CMAKE_BUILD_TYPE)
 		set(CMAKE_BUILD_TYPE "Release" 
 			CACHE STRING
-			"Choose the type of build, options are: Debug Release."
+			"Set the build type"
 			FORCE
 		)
 	endif()
 	
 	# Display CMAKE_PREFIX_PATH and CMAKE_BUILD_TYPE
-	gc_message(SECTION "Useful CMake variables")
-	gc_message(VARIABLE CMAKE_PREFIX_PATH)
-	set_dynamic_option(CMAKE_BUILD_TYPE     # making CMAKE_BUILD_TYPE an option restricts it to Release and Debug
-		DEFAULT ${CMAKE_BUILD_TYPE}
-		OPTIONS "Release" "Debug"
-		LOG CMAKE_VAR_LOG
-	)
-	dump_log(CMAKE_VAR_LOG)
+	gc_pretty_print(SECTION "Useful CMake variables")
+	gc_pretty_print(VARIABLE CMAKE_PREFIX_PATH)
+	gc_pretty_print(VARIABLE CMAKE_BUILD_TYPE)
 
 	# Get the run directory
-	gc_message(SECTION "Run directory setup")
-	set(RUNDIR_DEFAULT "..")
-	set_dynamic_default(RUNDIR DEFAULT "${RUNDIR_DEFAULT}"
-		LOG RUNDIR_LOG
-		IS_DIRECTORY
-	)
-	dump_log(RUNDIR_LOG)
-	message(STATUS "Bootstrapping ${RUNDIR}")
-	get_filename_component(RUNDIR "${RUNDIR}" ABSOLUTE) # Make RUNDIR an absolute path
+	gc_pretty_print(SECTION "Run directory setup")
+	set(RUNDIR ".." CACHE PATH "Path to your run directory")
+	gc_pretty_print(VARIABLE RUNDIR)
+	message(STATUS "Bootstrapping  ${RUNDIR}")
+	get_filename_component(RUNDIR "${RUNDIR}" ABSOLUTE BASE_DIR "${CMAKE_BINARY_DIR}") # Make RUNDIR an absolute path
 
 	# Configure the GEOS-Chem build for GCHP or GC-Classic
 	if(EXISTS ${RUNDIR}/input.geos)
 		file(STRINGS ${RUNDIR}/input.geos GCHP REGEX ": *gchp_*")
 	elseif(EXISTS ${RUNDIR}/getRunInfo)
-		set(GCHP FALSE) # getRunInfo is only in GC-Classic run direcotries
+		set(GCHP FALSE) # getRunInfo is only in GC-Classic run direcotries	
+	elseif((NOT EXISTS RUNDIR) AND (DEFINED RUNDIR_SIM))
+		set(GCHP FALSE) # special case for building without a run directory
+		set(RUNDIR ${CMAKE_BINARY_DIR})
 	else()
 		message(FATAL_ERROR "Your run directory doesn't have an input.geos or getRunInfo! Set RUNDIR to a valid run directory.")
 	endif()

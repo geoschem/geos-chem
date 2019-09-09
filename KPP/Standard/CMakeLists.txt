@@ -26,6 +26,6 @@ add_library(KPP_Standard STATIC EXCLUDE_FROM_ALL
 	gckpp_Util.F90
 )
 target_link_libraries(KPP_Standard
-	PUBLIC GeosUtil2
+	PUBLIC GeosUtil
 )
 
