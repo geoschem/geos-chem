@@ -9,7 +9,7 @@ function(configureForClassicRunDirectory)
     endmacro()
 
     # Inspect the run directory to get simulation type
-    inspect_rundir(RUNDIR_SIM 2)
+    inspect_rundir(RUNDIR_SIM 5)
 
     # Determine the appropriate chemistry mechanism base on the simulation
     set(STANDARD_MECHS
@@ -66,16 +66,6 @@ function(configureForClassicRunDirectory)
     elseif("${RUNDIR_SIM}" MATCHES "TOMAS40")
         target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS40)
         set(TOMAS TRUE)
-    endif()
-
-    # Inspect the run directory to determine if it's a nested simulation
-    inspect_rundir(RUNDIR_REGION 3)
-    if("${RUNDIR_REGION}" STREQUAL "n")
-        set(RUNDIR_NESTED "FALSE")
-        unset(RUNDIR_REGION)
-    else()
-        set(RUNDIR_NESTED "TRUE")
-        string(TOUPPER "${RUNDIR_REGION}" RUNDIR_REGION)
     endif()
 
     # Make MECH an option. This controls which KPP directory is used.
