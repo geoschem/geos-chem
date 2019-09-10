@@ -135,3 +135,55 @@ file(WRITE ${CMAKE_BINARY_DIR}/BaseTarget.txt
     "CMAKE_Fortran_FLAGS_DEBUG:${CMAKE_Fortran_FLAGS_DEBUG}\n"
     "CMAKE_Fortran_FLAGS:${CMAKE_Fortran_FLAGS}\n\n"
 )
+
+
+# Try to compile a simple program that uses NetCDF-Fortran and OpenMP
+if(NOT GC_EXTERNAL_CONFIG AND NOT GC_TRY_RUN_PASSED)
+	# Format definitions with -D prefix
+	set(TRY_RUN_DEFINITIONS "")
+	foreach(DEF ${BT_DEFINITIONS})
+		list(APPEND TRY_RUN_DEFINITIONS "-D${DEF}")
+	endforeach()
+
+	# Try to compile and run try_compile.F90
+	try_run(RUN_FAILED COMPILED_OK 
+		${CMAKE_CURRENT_BINARY_DIR}/try_compile 					# binary dir
+		${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts/try_compile.F90	# test source file
+		COMPILE_DEFINITIONS ${TRY_RUN_DEFINITIONS} ${BT_OPTIONS}	# compiler flags
+		LINK_LIBRARIES ${BT_LIBRARIES}								# link flags
+		CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${BT_INCLUDES}"			# include directories 
+		COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT
+		RUN_OUTPUT_VARIABLE RUN_OUTPUT
+	)
+
+	# Display a warning if its compilation failed
+	if(NOT COMPILED_OK)
+		if(OMP)
+			set(CONDITIONAL_AND_OMP " and OpenMP")
+		endif()
+		message(WARNING
+			"Failed to compile a simple program that uses NetCDF-Fortran"
+			"${CONDITIONAL_AND_OMP}! Could your NetCDF installation "
+			"be broken?\nSee \"FailedCompile.txt\" for more info."
+		)
+		file(WRITE ${CMAKE_BINARY_DIR}/FailedCompile.txt "${COMPILE_OUTPUT}")
+	else()
+		file(REMOVE ${CMAKE_BINARY_DIR}/FailedCompile.txt)
+	endif()
+
+	# Display a warning if its execution failed
+	if(RUN_FAILED)
+		if(OMP)
+			set(CONDITIONAL_AND_OMP "and OpenMP ")
+		endif()
+		message(WARNING
+			"A simple program that uses NetCDF-Fortran "
+			"${CONDITIONAL_AND_OMP}compiled successfully, but its execution "
+			"failed!\n\nSee \"FailedExecution.txt\" for more info."
+		)
+		file(WRITE ${CMAKE_BINARY_DIR}/FailedEasyRun.txt "${COMPILE_OUTPUT}\n${RUN_OUTPUT}")
+	else()
+		file(REMOVE ${CMAKE_BINARY_DIR}/FailedEasyRun.txt ${CMAKE_BINARY_DIR}/simple_xy.nc)
+		set(GC_TRY_RUN_PASSED TRUE CACHE INTERNAL "try_run passed" FORCE)
+	endif()
+endif()
