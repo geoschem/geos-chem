@@ -42,7 +42,8 @@ list(APPEND CMAKE_PREFIX_PATH
 
 # Link NetCDF-F to BaseTarget
 find_package(NetCDF REQUIRED)
-target_link_libraries(BaseTarget INTERFACE NetCDF-F)
+target_include_directories(BaseTarget INTERFACE ${NETCDF_INCLUDE_DIRS})
+target_link_libraries(BaseTarget INTERFACE ${NETCDF_LIBRARIES})
 
 # Use the NC_HAS_COMPRESSION definition if nf_def_var_deflate is in netcdf.inc
 if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
@@ -54,7 +55,7 @@ endif()
 
 # Print a description of the source code repo's version
 get_repo_version(GC_REPO_VERSION ${CMAKE_CURRENT_SOURCE_DIR})
-message(STATUS "GEOS-Chem version: ${GC_REPO_VERSION}")
+message(STATUS "GEOS-Chem @ ${GC_REPO_VERSION}")
 
 if(NOT GC_EXTERNAL_CONFIG)
 	# This conditional block configures the GEOS-Chem build for GEOS-Chem 
