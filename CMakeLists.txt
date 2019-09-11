@@ -84,6 +84,7 @@ if(NOT GC_EXTERNAL_CONFIG)
 	get_filename_component(RUNDIR "${RUNDIR}" ABSOLUTE BASE_DIR "${CMAKE_BINARY_DIR}") # Make RUNDIR an absolute path
 
 	# Configure the GEOS-Chem build for GCHP or GC-Classic
+	set(BUILD_WITHOUT_RUNDIR FALSE)
 	if(EXISTS ${RUNDIR}/input.geos)
 		file(STRINGS ${RUNDIR}/input.geos GCHP REGEX ": *gchp_*")
 	elseif(EXISTS ${RUNDIR}/getRunInfo)
@@ -91,6 +92,7 @@ if(NOT GC_EXTERNAL_CONFIG)
 	elseif((NOT EXISTS RUNDIR) AND (DEFINED RUNDIR_SIM))
 		set(GCHP FALSE) # special case for building without a run directory
 		set(RUNDIR ${CMAKE_BINARY_DIR})
+		set(BUILD_WITHOUT_RUNDIR TRUE)
 	else()
 		message(FATAL_ERROR "Your run directory doesn't have an input.geos or getRunInfo! Set RUNDIR to a valid run directory.")
 	endif()

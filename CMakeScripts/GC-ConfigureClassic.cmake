@@ -9,7 +9,35 @@ function(configureGCClassic)
         target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
     else()
         target_compile_definitions(BaseTarget INTERFACE "NO_OMP")
-	endif()
+    endif()
+    
+    # Check that GEOS-Chem's version number matches the run directory's version
+    if(EXISTS ${RUNDIR}/Makefile AND NOT "${BUILD_WITHOUT_RUNDIR}")
+        # Read ${RUNDIR}/Makefile which has the version number
+        file(READ ${RUNDIR}/Makefile RUNDIR_MAKEFILE)
+
+        # Pull out the major.minor version
+        if(RUNDIR_MAKEFILE MATCHES "VERSION[ \t]*:=[ \t]*([0-9]+\\.[0-9]+)\\.[0-9]+")
+            set(RUNDIR_VERSION ${CMAKE_MATCH_1})
+        else()
+            message(FATAL_ERROR "Failed to determine your run directory's version from ${RUNDIR}/Makefile")
+        endif()
+
+        # Get the major.minor version of GEOS-Chem
+        if(PROJECT_VERSION MATCHES "([0-9]+\\.[0-9]+)\\.[0-9]+")
+            set(GC_VERSION ${CMAKE_MATCH_1})
+        else()
+            message(FATAL_ERROR "Internal error. Bad GEOS-Chem version number.")
+        endif()
+
+        # Throw error if major.minor versions don't match
+        if(NOT "${GC_VERSION}" VERSION_EQUAL "${RUNDIR_VERSION}")
+            message(FATAL_ERROR 
+                "Mismatched version numbers. Your run directory's version number "
+                "is ${RUNDIR_VERSION} but the GEOS-Chem source's version number is ${PROJECT_VERSION}"
+            )
+        endif()
+    endif()
 
     # Configure the build based on the run directory. Propagate the configuration variables.
     # Define a macro for inspecting the run directory. Inspecting the run
