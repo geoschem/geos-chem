@@ -7,21 +7,32 @@ assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Describe the bug
+Include a clear and concise description of the bug or issue that you have encountered.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Compilation commands
-2. Run commands
+## To Reproduce
+Include the steps that must be done in order to reproduce the observed behavior:
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**Compilation commands**
+1. Step 1
+2. Step 2
+3. ... etc ...
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Run commands**
+1. Step 1
+2. Step 2
+3. ... etc ...
 
-**Required information**
+## Expected behavior
+Include a clear and concise description of what you expected to happen.
+
+## Error messages
+```
+Cut and paste any error output here.
+```
+
+## Required information
+Please include the following:
  - GEOS-Chem version you are using [e.g. 12.3.2]
  - Compiler version that you are using [e.g. gfortran 8.2.0, ifort 17.0.4] 
  - netCDF and netCDF-Fortran library version
@@ -29,7 +40,7 @@ If applicable, add screenshots to help explain your problem.
  - The Amazon Machine Image (AMI) ID that you used (if you ran on the AWS cloud)
  - Are you using "out of the box" code, or have you made modifications?
 
-**Input and log files to attach**
+## Input and log files to attach
 For more info, see: http://wiki.geos-chem.org/Submitting_GEOS-Chem_support_requests
  - The lastbuild file
  - The input.geos file
@@ -39,5 +50,5 @@ For more info, see: http://wiki.geos-chem.org/Submitting_GEOS-Chem_support_reque
  - Error output from your scheduler, if applicable [e.g. slurm*.out]
  - Any other error messages
 
-**Additional context**
-Add any other context about the problem here.
+## Additional context
+Include any other context about the problem here.
