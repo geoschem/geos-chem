@@ -1,0 +1,21 @@
+trigger:
+- feature/AzurePipeline
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+strategy:
+  matrix:
+    gcc6:
+      containerImage: "liambindle/gcc-netcdf-c-netcdf-fortran:6-4.7.1-4.4.5"
+
+container: $[ variables['containerImage'] ]
+
+steps:
+- script: |
+    mkdir build
+    cd build
+    cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=standard $(Build.Repository.LocalPath)
+    make -j
+    make install
+  displayName: 'Building GEOS-Chem'
