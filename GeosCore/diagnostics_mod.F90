@@ -170,6 +170,28 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
+    ! Compute fraction of time each grid box spent in the troposphere
+    !-----------------------------------------------------------------------
+    IF ( State_Diag%Archive_FracOfTimeInTrop ) THEN
+       !$OMP PARALLEL DO            &
+       !$OMP DEFAULT( SHARED      ) &
+       !$OMP SCHEDULE( DYNAMIC, 8 ) &
+       !$OMP PRIVATE( I, J, L )
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          IF ( State_Met%InTroposphere(I,J,L) ) THEN
+             State_Diag%FracOfTimeInTrop(I,J,L) = 1.0_f4
+          ELSE
+             State_Diag%FracOfTimeInTrop(I,J,L) = 0.0_f4
+          ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
+
+    !-----------------------------------------------------------------------
     ! Diagnostics for the mercury and tagged mercury simulations
     !-----------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN

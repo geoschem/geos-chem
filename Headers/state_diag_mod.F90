@@ -56,16 +56,20 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
 
      ! Restart file fields
-     REAL(f8),  POINTER :: SpeciesRst      (:,:,:,:) ! Spc Conc for GC restart
+     REAL(f8),  POINTER :: SpeciesRst(:,:,:,:) ! Spc Conc for GC restart
      LOGICAL :: Archive_SpeciesRst
 
      ! Boundary condition fields
-     REAL(f8),  POINTER :: SpeciesBC       (:,:,:,:) ! Spc Conc for BCs
+     REAL(f8),  POINTER :: SpeciesBC(:,:,:,:) ! Spc Conc for BCs
      LOGICAL :: Archive_SpeciesBC
      
      ! Concentrations
-     REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
+     REAL(f8),  POINTER :: SpeciesConc(:,:,:,:) ! Spc Conc for diag output
      LOGICAL :: Archive_SpeciesConc
+
+     ! Time spent in the troposphere
+     REAL(f4), POINTER :: FracOfTimeInTrop(:,:,:)
+     LOGICAL :: Archive_FracOfTimeInTrop
 
      ! Budget diagnostics
      REAL(f8),  POINTER :: BudgetEmisDryDepFull     (:,:,:) 
@@ -1082,6 +1086,10 @@ CONTAINS
     State_Diag%Archive_DryDepVelForALT1            = .FALSE.
     State_Diag%Archive_SpeciesConcALT1             = .FALSE.
 
+    ! Time in troposphere diagnostic
+    State_Diag%FracOfTimeInTrop                    => NULL()
+    State_Diag%Archive_FracOfTimeInTrop            = .FALSE.
+
     ! Rn-Pb-Be simulation diagnostics
     State_Diag%PbFromRnDecay                       => NULL()
     State_Diag%RadDecay                            => NULL()
@@ -1360,6 +1368,25 @@ CONTAINS
        State_Diag%SpeciesConc = 0.0_f8
        State_Diag%Archive_SpeciesConc = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesConc,   &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Fraction of total time each grid box spent in the troposphere
+    !------------------------------------------------------------------------
+    arrayID = 'State_Diag%FracOfTimeInTrop'
+    diagID  = 'FracOfTimeInTrop'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%FracOfTimeInTrop( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FracOfTimeInTrop = 0.0_f4
+       State_Diag%Archive_FracOfTimeInTrop = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,                           &
+                                State_Diag%FracOfTimeInTrop,                 &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1805,9 +1832,9 @@ CONTAINS
     ENDIF
 
 #if defined( MODEL_GEOS )
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Aerodynamic resistance @ 2m (ckeller, 11/17/17) 
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepRa2m'
     diagID  = 'DryDepRa2m'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -1825,9 +1852,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Aerodynamic resistance @ 10m (ckeller, 11/17/17) 
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepRa10m'
     diagID  = 'DryDepRa10m'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -1845,9 +1872,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Monin-Obukhov length 
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%MoninObukhov'
     diagID  = 'MoninObukhov'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -1865,9 +1892,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !--------------------------------------------
+    !-----------------------------------------------------------------------
     ! Bry 
-    !-------------------------------------------- 
+    !-----------------------------------------------------------------------
     arrayID = 'State_Diag%Bry'
     diagID  = 'Bry'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -6562,6 +6589,13 @@ CONTAINS
        State_Diag%SpeciesConc => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%FracOfTimeInTrop ) ) THEN
+       DEALLOCATE( State_Diag%FracOfTimeInTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FracOfTimeInTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FracOfTimeInTrop => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%BudgetMass1 ) ) THEN
        DEALLOCATE( State_Diag%BudgetMass1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetMass1', 2, RC )
@@ -8259,6 +8293,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'FRACOFTIMEINTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Fraction of time spent in the troposphere'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
@@ -10174,6 +10213,8 @@ CONTAINS
                                   desc=desc,   units=units, rank=rank,       &
                                   type=type,   vloc=vloc,                    &
                                   tagID=tagID                               )
+    
+    print*, '### NAME, RC: ', TRIM(metadataID), RC
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
