@@ -150,8 +150,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE BROMOCARB_MOD,      ONLY : SET_BRO
-    USE BROMOCARB_MOD,      ONLY : SET_CH3BR
+!    USE BROMOCARB_MOD,      ONLY : SET_BRO
+!    USE BROMOCARB_MOD,      ONLY : SET_CH3BR
     USE CARBON_MOD,         ONLY : EMISSCARBON
     USE CO2_MOD,            ONLY : EMISSCO2
     USE ErrCode_Mod
@@ -370,33 +370,33 @@ CONTAINS
        ! Kludge: eventually I want to keep the concentration
        !         entirely fixed! Ask around on how to...
        !========================================================
-       IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
-          CALL Set_CH3Br( am_I_Root,  Input_Opt, State_Chm, &
-                          State_Grid, State_Met, RC )
+!       IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
+!          CALL Set_CH3Br( am_I_Root,  Input_Opt, State_Chm, &
+!                          State_Grid, State_Met, RC )
 
           ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Set_CH3BR"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
+!          IF ( RC /= GC_SUCCESS ) THEN
+!             ErrMsg = 'Error encountered in "Set_CH3BR"!'
+!             CALL GC_Error( ErrMsg, RC, ThisLoc )
+!             RETURN
+!          ENDIF
+!       ENDIF
 
        ! ----------------------------------------------------
        ! If selected in input.geos, then set the MBL
        ! concentration of BrO equal to 1 pptv during daytime.
        ! ----------------------------------------------------
-       IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
-          CALL Set_BrO( am_I_Root,  Input_Opt, State_Chm, &
-                        State_Grid, State_Met, RC )
+!       IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
+!          CALL Set_BrO( am_I_Root,  Input_Opt, State_Chm, &
+!                        State_Grid, State_Met, RC )
 
           ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Set_BrO"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
+!          IF ( RC /= GC_SUCCESS ) THEN
+!             ErrMsg = 'Error encountered in "Set_BrO"!'
+!             CALL GC_Error( ErrMsg, RC, ThisLoc )
+!             RETURN
+!          ENDIF
+!       ENDIF
 
        ! Set other (non-UCX) fixed VMRs
        If ( Input_Opt%LEMIS ) Then

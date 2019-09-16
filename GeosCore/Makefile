@@ -458,9 +458,6 @@ aerosol_mod.o               : aerosol_mod.F                                  \
 
 benchmark_mod.o             : benchmark_mod.F                              
 
-bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
-                              pbl_mix_mod.o
-
 c2h6_mod.o                  : c2h6_mod.F                                     \
                               diag_mod.o              hco_interface_mod.o
 
