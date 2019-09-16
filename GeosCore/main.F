@@ -1443,24 +1443,26 @@
             ENDIF
          ENDIF
 
-         ! Prescribe methane surface concentrations throughout PBL
-         IF ( ITS_A_FULLCHEM_SIM .and. id_CH4 > 0 ) THEN
+        ! Below is hashed out as species with fixed concentraitons 
+        ! in the PBL can just be set in HEMCO_Config.rc (TMS, 15, 09, 2019)
+        ! Prescribe methane surface concentrations throughout PBL
+!         IF ( ITS_A_FULLCHEM_SIM .and. id_CH4 > 0 ) THEN
 
             ! Debug print
-            IF ( prtDebug ) THEN 
-               CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
-            ENDIF
+!            IF ( prtDebug ) THEN 
+!               CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
+!            ENDIF
             
             ! Set CH4 concentrations
-            CALL SET_CH4( am_I_Root,  Input_Opt,  State_Chm,
-     &                    State_Diag, State_Grid, State_Met, RC )
+!            CALL SET_CH4( am_I_Root,  Input_Opt,  State_Chm,
+!     &                    State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
-            IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in call to "SET_CH4"!'
-               CALL Error_Stop( ErrMsg, ThisLoc )
-            ENDIF
-         ENDIF
+!            IF ( RC /= GC_SUCCESS ) THEN
+!               ErrMsg = 'Error encountered in call to "SET_CH4"!'
+!               CALL Error_Stop( ErrMsg, ThisLoc )
+!            ENDIF
+!         ENDIF
 
          !==============================================================
          !              ***** T R A N S P O R T *****
