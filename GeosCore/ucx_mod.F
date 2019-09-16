@@ -5805,67 +5805,67 @@
       N_EMIT = 0
       IDT_EMIT = 0
 
-      IF (LCH4SBC) THEN
+!      IF (LCH4SBC) THEN
          ! Simple CH4 fixed surface emissions
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CH4
-         TRAC_EMIT(N_EMIT) = 'CH4'
-      ENDIF 
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CH4
+!         TRAC_EMIT(N_EMIT) = 'CH4'
+!      ENDIF 
 
-      IF (LCFCEMIS) THEN
+ !     IF (LCFCEMIS) THEN
          ! R-11/12/113/114/115
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CFC11
-         TRAC_EMIT(N_EMIT) = 'CFC11'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CFC11
+!         TRAC_EMIT(N_EMIT) = 'CFC11'
 
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CFC12
-         TRAC_EMIT(N_EMIT) = 'CFC12'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CFC12
+!         TRAC_EMIT(N_EMIT) = 'CFC12'
 
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CFC113
-         TRAC_EMIT(N_EMIT) = 'CFC113'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CFC113
+!         TRAC_EMIT(N_EMIT) = 'CFC113'
 
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CFC114
-         TRAC_EMIT(N_EMIT) = 'CFC114'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CFC114
+!         TRAC_EMIT(N_EMIT) = 'CFC114'
 
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CFC115
-         TRAC_EMIT(N_EMIT) = 'CFC115'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CFC115
+!         TRAC_EMIT(N_EMIT) = 'CFC115'
 
          ! HCFC-22/123/141b/142b
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_HCFC22
-         TRAC_EMIT(N_EMIT) = 'HCFC22'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_HCFC22
+!         TRAC_EMIT(N_EMIT) = 'HCFC22'
 
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_HCFC141b
-         TRAC_EMIT(N_EMIT) = 'HCFC141b'
+!         N_EMIT = N_EMIT + 1
+!        IDT_EMIT( N_EMIT) = id_HCFC141b
+!         TRAC_EMIT(N_EMIT) = 'HCFC141b'
 
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_HCFC142b
-         TRAC_EMIT(N_EMIT) = 'HCFC142b'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_HCFC142b
+!         TRAC_EMIT(N_EMIT) = 'HCFC142b'
 
          ! Halons (H-1301/2402/1211)
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_H1301
-         TRAC_EMIT(N_EMIT) = 'H1301'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_H1301
+!         TRAC_EMIT(N_EMIT) = 'H1301'
 
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_H1211
-         TRAC_EMIT(N_EMIT) = 'H1211'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_H1211
+!         TRAC_EMIT(N_EMIT) = 'H1211'
 
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_H2402
-         TRAC_EMIT(N_EMIT) = 'H2402'
-      ENDIF
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_H2402
+!         TRAC_EMIT(N_EMIT) = 'H2402'
+!      ENDIF
 
-      IF (LCLEMIS) THEN
+!      IF (LCLEMIS) THEN
          ! CCl4
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CCl4
-         TRAC_EMIT(N_EMIT) = 'CCl4'
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CCl4
+!         TRAC_EMIT(N_EMIT) = 'CCl4'
 
          ! This is now set in emissions_mod along with CH2Cl2 and CHCl3
          !! CH3Cl
@@ -5874,10 +5874,10 @@
          !TRAC_EMIT(N_EMIT) = 'CH3Cl'
 
          ! CH3CCl3
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CH3CCl3
-         TRAC_EMIT(N_EMIT) = 'CH3CCl3'
-      ENDIF
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CH3CCl3
+!         TRAC_EMIT(N_EMIT) = 'CH3CCl3'
+!      ENDIF
 
       IF (LOCSEMIS) THEN
          N_EMIT = N_EMIT + 1
@@ -5891,11 +5891,11 @@
          TRAC_EMIT(N_EMIT) = 'N2O'
       ENDIF 
 
-      IF (LBREMIS) THEN
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_CH3Br
-         TRAC_EMIT(N_EMIT) = 'CH3Br'
-      ENDIF
+!      IF (LBREMIS) THEN
+!         N_EMIT = N_EMIT + 1
+!         IDT_EMIT( N_EMIT) = id_CH3Br
+!         TRAC_EMIT(N_EMIT) = 'CH3Br'
+!      ENDIF
 
       IF (id_H2.gt.0) THEN
          N_EMIT = N_EMIT + 1
