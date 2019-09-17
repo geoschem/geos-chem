@@ -5537,9 +5537,9 @@
 !
 !   # : Field  : Description                    : Units      : Scale factor
 !  ----------------------------------------------------------------------------
+!  (W)  NET-X  : Net flux for bin X             : 1/cm2s     : 1
 !  (W)  DIR-X  : Direct flux for bin X          : 1/cm2s     : 1        
 !  (W)  DIF-X  : Diffuse flux for bin X         : 1/cm2s     : 1
-!  (W)  NET-X  : Net flux for bin X             : 1/cm2s     : 1
 !******************************************************************************
 !
       IF ( ND64 > 0 ) THEN
@@ -5549,11 +5549,9 @@
          !DO M = 1, TMAX(64)
          DO MM = 1,3
             DO MMB = 1,W_
-                M = ((MM-1)*W_) + MMB
-                N  = TINDEX(64,M)
-                NN = N
+                NN = ((MM-1)*W_) + MMB
                 SCALEX = SCALECHEM
-   
+
                 ! Divide by # of timesteps
                 DO L = 1, LD64
                    ARRAY(:,:,L) = AD64(:,:,L,MMB,MM) / SCALEX

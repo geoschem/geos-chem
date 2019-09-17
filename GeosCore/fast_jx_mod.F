@@ -3667,29 +3667,39 @@ C-----------------------------------------------------------------------
       !=================================================================
       ! ND64 (bpch) diagnostic
       !
-      ! UV radiative fluxes (direct, diffuse, net) [W/m2]
+      ! UV radiative fluxes (direct, diffuse, net) [1/cm2/s]
       !
       ! New diagnostic (SDE 2013-10-25)
       ! Use it to calculate fluxes for output if necessary
+      !
+      ! Get net direct and net diffuse fluxes separately
+      ! Order:
+      !    1 - Net flux
+      !    2 - Direct flux
+      !    3 - Diffuse flux
+      ! Convention: -ve is downwards
       !=================================================================
-      IF ( ND64 > 0 .and. L <= LD64 ) THEN
-         ! Get net direct and net diffuse fluxes separately
-         ! Order:
-         !    1 - Net flux
-         !    2 - Direct flux
-         !    3 - Diffuse flux
-         ! Convention: -ve is downwards
+      IF ( ND64 > 0 ) THEN
+
+         ! Loop over wavelengths
          DO K=1,W_
-            ! Direct flux at the bottom
-            FDIRECT(:) = 0.0
-            FDIFFUSE(:) = 0.0
+
+            ! Initialize
+            FDIRECT = 0.0
+            FDIFFUSE = 0.0
+
+            ! Direct and diffuse flux at the bottom
             FDIRECT(1) = FSBOT(K)
             FDIFFUSE(1) = FJBOT(K)
-            DO L=2,LD64
+
+            ! Direct & diffuse fluxes at each level
+            DO L = 2, LD64
                FDIRECT(L) = FDIRECT(L-1) + FLXD(L-1,K)
                FDIFFUSE(L) = FJFLX(L-1,K)
             ENDDO
-            DO L=1,L1_
+
+            ! Save into diagnostic arrays
+            DO L = 1, LD64
                AD64(ILON,ILAT,L,K,1) = AD64(ILON,ILAT,L,K,1) +
      &            ((FDIRECT(L)+FDIFFUSE(L))*SOLF*FL(K)*UVXFACTOR(K))
                AD64(ILON,ILAT,L,K,2) = AD64(ILON,ILAT,L,K,2) +

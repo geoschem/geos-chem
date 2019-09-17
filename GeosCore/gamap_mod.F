@@ -7031,7 +7031,7 @@
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Diffuse UV flux in bin ', NN
             ENDIF
-            UNIT (T,64) = 'Wm-2'
+            UNIT (T,64) = 'cm-2s-1'
             INDEX(T,64) = T + ( SPACING * 54 )
             MOLC (T,64) = 1
             MWT  (T,64) = 0e0
