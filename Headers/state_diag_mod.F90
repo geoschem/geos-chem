@@ -28,6 +28,7 @@ MODULE State_Diag_Mod
   USE Registry_Mod
   USE Species_Mod,     ONLY : Species
   USE State_Chm_Mod,   ONLY : ChmState
+  USE CMN_FJX_MOD,     ONLY : W_
 
   IMPLICIT NONE
   PRIVATE
@@ -140,9 +141,9 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
      REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
      REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
-     REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
-     REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
-     REAL(f4),  POINTER :: UVFluxNet       (:,:,:  ) ! Net UV flux per bin
+     REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:,:) ! Diffuse UV flux per bin
+     REAL(f4),  POINTER :: UVFluxDirect    (:,:,:,:) ! Direct UV flux per bin
+     REAL(f4),  POINTER :: UVFluxNet       (:,:,:,:) ! Net UV flux per bin
      REAL(f4),  POINTER :: OHconcAfterChem (:,:,:  ) ! OH, HO2, O1D, and O3P
      REAL(f4),  POINTER :: HO2concAfterChem(:,:,:  ) !  concentrations 
      REAL(f4),  POINTER :: O1DconcAfterChem(:,:,:  ) !  upon exiting the
@@ -2430,7 +2431,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM ), STAT=RC )
+          ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM, W_ ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxDiffuse = 0.0_f4
@@ -2449,7 +2450,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM ), STAT=RC )
+          ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM, W_ ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxDirect = 0.0_f4
@@ -2468,7 +2469,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM ), STAT=RC )
+          ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM, W_ ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxNet = 0.0_f4
@@ -8153,19 +8154,23 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIFFUSE' ) THEN
-       IF ( isDesc    ) Desc  = 'placeholder'
+       IF ( isDesc    ) Desc  = 'Diffuse UV flux in bin'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'UVFLX'
+
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIRECT' ) THEN
-       IF ( isDesc    ) Desc  = 'placeholder'
+       IF ( isDesc    ) Desc  = 'Direct UV flux in bin'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'UVFLX'       
 
     ELSEIF ( TRIM( Name_AllCaps ) == 'UVFLUXNET' ) THEN
-       IF ( isDesc    ) Desc  = 'placeholder'
+       IF ( isDesc    ) Desc  = 'Net UV flux in bin'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'UVFLX'       
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'ADVFLUXZONAL' ) THEN
        IF ( isDesc    ) Desc  = 'Advection of species in zonal direction'
@@ -9240,6 +9245,7 @@ CONTAINS
 !
 ! !USES:
 !
+!    
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,            INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
@@ -9332,6 +9338,8 @@ CONTAINS
           numTags = State_Chm%nLoss
        CASE( 'PHO'     )
           numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
+       CASE( 'UVFLX'     )
+          numTags = W_
        CASE( 'PRD'     )
           numTags = State_Chm%nProd
        CASE( 'RRTMG'   )
@@ -9370,7 +9378,7 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG' )
+       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -9470,6 +9478,49 @@ CONTAINS
        CASE( 'RRTMG' )
           tagName = RadFlux(D)
 
+       ! UVFlux requested output fluxes
+       CASE( 'UVFLX' )
+          SELECT CASE( N )
+          CASE( 1  )
+                tagName = 'at187nm'
+             CASE( 2  )
+                tagName = 'at191nm'
+             CASE( 3  )
+                tagName = 'at193nm'
+             CASE( 4  )
+                tagName = 'at196nm'
+             CASE( 5  )
+                tagName = 'at202nm'
+             CASE( 6  )
+                tagName = 'at208nm'
+             CASE( 7  )
+                tagName = 'at211nm'
+             CASE( 8  )
+                tagName = 'at214nm'
+             CASE( 9  )
+                tagName = 'at261nm'
+             CASE( 10 )
+                tagName = 'at267nm'
+             CASE( 11 )
+                tagName = 'at277nm'
+             CASE( 12  )
+                tagName = 'at295nm'
+             CASE( 13  )
+                tagName = 'at303nm'
+             CASE( 14  )
+                tagName = 'at310nm'
+             CASE( 15  )
+                tagName = 'at316nm'
+             CASE( 16  )
+                tagName = 'at333nm'
+             CASE( 17  )
+                tagName = 'at380nm'
+             CASE( 18  )
+                tagName = 'at574nm'
+             CASE DEFAULT  
+                tagName = 'NA'
+          END SELECT
+       
        ! Default tag name is the name in the species database
        CASE DEFAULT
           tagName = State_Chm%SpcData(D)%Info%Name
