@@ -1720,6 +1720,7 @@
       USE DIAG42_MOD,         ONLY : ND42, PD42
       USE DIAG53_MOD,         ONLY : ND53, PD53
       USE DIAG56_MOD,         ONLY : ND56
+      USE CMN_FJX_MOD,        ONLY : W_
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7003,17 +7004,23 @@
       !-------------------------------------      
       ! Radiative flux (ND63) (SDE 2013-10-25)
       !-------------------------------------
+
       IF ( ND64 > 0 ) THEN
 
+         PRINT*, 'PD64 :', PD64
+         PRINT*, 'W_ :', W_
+
          ! Number of tracers
-         NTRAC(64) = PD64*3 ! Number of wavelength bins
+!         NTRAC(64) = PD64*3 ! Number of wavelength bins
+         NTRAC(64) = W_*3 ! Number of wavelength bins
          NN = 0
          N = 1
 
          ! Loop over tracers
          DO T = 1, NTRAC(64)
             NN = NN + 1
-            IF (NN .gt. PD64) THEN
+            IF (NN .gt. W_) THEN
+!            IF (NN .gt. PD64) THEN
                 NN = 1
                 N = N + 1
             ENDIF

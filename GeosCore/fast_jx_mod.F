@@ -31,6 +31,8 @@
       PUBLIC  :: FAST_JX
       PUBLIC  :: PHOTRATE_ADJ
 
+
+
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -45,9 +47,9 @@
       PRIVATE :: SPHERE2
       PRIVATE :: EXTRAL
       PRIVATE :: RD_PROF_NC
-      PRIVATE :: RD_XXX
       PRIVATE :: RD_AOD
       PRIVATE :: RD_MIE
+      PRIVATE :: RD_XXX
       PRIVATE :: RD_JS_JX
       PRIVATE :: SET_AER
 !
@@ -312,6 +314,17 @@
 
       ! Was AOD calculated at 999 nm or reference?
       AOD999    = ( WLAOD == 0 )
+
+    ! Zero diagnostic archival arrays to make sure that we don't have any
+    ! leftover values from the last timestep near the top of the chemgrid
+      IF ( State_Diag%Archive_UVFluxDiffuse ) State_Diag%UVFluxDiffuse 
+     &     = 0.0_f4
+      IF ( State_Diag%Archive_UVFluxDirect ) State_Diag%UVFluxDirect 
+     &     = 0.0_f4
+      IF ( State_Diag%Archive_UVFluxNet ) State_Diag%UVFluxNet 
+     &     = 0.0_f4
+
+
 
       !-----------------------------------------------------------------
       ! Special handling for first-time setup
@@ -1846,6 +1859,19 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ENDIF
 
       call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
+
+      ! Compute factors for ND64 netCDF equivalent
+      IF ( State_Diag%Archive_UVFluxNet .or.
+     &     State_Diag%Archive_UVFluxDirect .or.
+     &     State_Diag%Archive_UVFluxDiffuse) THEN
+         UVXFACTOR(:) = 0e+0_fp
+         ND64MULT = UVXPLANCK*UVXCCONST*1.0e+13_fp
+         DO  J=1,W_
+            UVXFACTOR(J) = ND64MULT/WL(J)
+         ENDDO
+      ENDIF
+
+
 
 #if defined( BPCH_DIAG )
       ! Compute factors for ND64
@@ -3662,6 +3688,64 @@ C-----------------------------------------------------------------------
             ENDDO
          ENDDO
       ENDIF
+
+
+
+      !=================================================================
+      ! UVFlux diagnostic
+      ! 
+      ! UV radiative fluxes (direct, diffuse, net) [W/m2]
+      !
+      ! Updated for netCDF from nd64 (JMM 2019-09-11) 
+      ! Use it to calculate fluxes for output if necessary
+      !=================================================================
+      IF ( State_Diag%Archive_UVFluxDiffuse .or.
+     &     State_Diag%Archive_UVFluxDirect .or.
+     &     State_Diag%Archive_UVFluxNet ) THEN
+         ! Get net direct and net diffuse fluxes separately
+         ! Order:
+         !    1 - Net flux
+         !    2 - Direct flux
+         !    3 - Diffuse flux
+         ! Convention: -ve is downwards
+         DO K=1,W_
+            ! Direct flux at the bottom
+            FDIRECT(:) = 0.0
+            FDIFFUSE(:) = 0.0
+            FDIRECT(1) = FSBOT(K)
+            FDIFFUSE(1) = FJBOT(K)
+
+            DO L=2,L_
+               FDIRECT(L) = FDIRECT(L-1) + FLXD(L-1,K)
+               FDIFFUSE(L) = FJFLX(L-1,K)
+            ENDDO
+
+            DO L=1,L1_
+
+               IF ( State_Diag%Archive_UVFluxNet ) THEN
+                  State_Diag%UVFluxNet(ILON,ILAT,L,K) =
+     &            State_Diag%UVFluxNet(ILON,ILAT,L,K) +
+     &            ((FDIRECT(L)+FDIFFUSE(L))*SOLF*FL(K)*UVXFACTOR(K))
+               ENDIF
+
+               IF ( State_Diag%Archive_UVFluxDirect ) THEN
+                  State_Diag%UVFluxDirect(ILON,ILAT,L,K) = 
+     &            State_Diag%UVFluxDirect(ILON,ILAT,L,K) +
+     &            (FDIRECT(L)*SOLF*FL(K)*UVXFACTOR(K))
+               ENDIF
+
+               IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
+                  State_Diag%UVFluxDiffuse(ILON,ILAT,L,K) = 
+     &            State_Diag%UVFluxDirect(ILON,ILAT,L,K) +
+     &            (FDIFFUSE(L)*SOLF*FL(K)*UVXFACTOR(K))
+               ENDIF
+
+            ENDDO
+         ENDDO
+      ENDIF
+
+
+
 
 #if defined( BPCH_DIAG )
       !=================================================================
