@@ -4197,6 +4197,7 @@
       USE DIAG42_MOD,    ONLY : ND42,      PD42
       USE DIAG53_MOD,    ONLY : ND53,      PD53
       USE DIAG56_MOD,    ONLY : ND56,      PD56
+      USE CMN_FJX_MOD,   ONLY : W_
 #endif
       USE DRYDEP_MOD,    ONLY : NUMDEP
       USE ErrCode_Mod
@@ -5142,6 +5143,7 @@
       ENDIF
       READ( SUBSTRS(1), * ) ND64x
 #if defined( BPCH_DIAG )
+      PD64 = W_
       CALL SET_TINDEX( am_I_Root, 64, ND64x, SUBSTRS(2:N), N-1, PD64*3 )
 #endif
 
@@ -5273,7 +5275,7 @@
 #if defined( BPCH_DIAG )
       !=================================================================
       ! %%%%% IF BPCH DIAGNOSTICS ARE ACTIVATED (BPCH_DIAG=y) %%%%%
-      !
+      !}
       ! Copy shadow variables to diagnostic variables and
       ! call various bpch diagnostic setup routines
       !=================================================================

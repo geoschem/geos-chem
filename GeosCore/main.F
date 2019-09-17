@@ -400,6 +400,10 @@
          ErrMsg = 'Error encountered in "GC_Allocate_All"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
+#ifdef BPCH_DIAG
+      ! BMY KLUDGE: Define PD64 here 
+      PD64 = W_
+#endif
 
       ! Store shadow copies of am_I_Root, Input_Opt in error_mod.F
       CALL Init_Error( am_I_Root, Input_Opt, RC )
