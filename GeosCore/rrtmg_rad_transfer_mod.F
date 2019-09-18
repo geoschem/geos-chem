@@ -303,8 +303,6 @@
      &                                  State_Grid%NZ)
       REAL(KIND=RB)          :: PEDGE  (State_Grid%NX,State_Grid%NY,
      &                                  State_Grid%NZ)
-      LOGICAL                :: INTROP (State_Grid%NX,State_Grid%NY,
-     &                                  State_Grid%NZ)
 
       !-----------------------------------------------------------------
       !ARRAYS FOR RRTMG
@@ -760,7 +758,6 @@
          PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
          H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
          TLAY   (I,J,L) = State_Met%T(I,J,L)
-         INTROP (I,J,L) = State_Met%InTroposphere(I,J,L)
          SUNCOS (I,J,L) = State_Met%SUNCOS(I,J)
       ENDDO
       TSFC  (I,J)   = State_Met%TSKIN(I,J)
@@ -841,7 +838,7 @@
              CLDFR(I,J,L)  = State_Met%CLDF(I,J,L)
             ENDIF !CLOUDS
 
-       IF (INTROP(I,J,L).EQ..TRUE.) THEN 
+       IF ( State_Met%InTroposphere(I,J,L) ) THEN 
           !-----------------------------
           ! WE ARE IN THE TROPOSPHERE
           !-----------------------------
@@ -1042,7 +1039,7 @@
 
           !if UCX on, we need to go above the tropopause to get 
           !the strat AOD, but only for IS=8 and IS=9
-          IF ((INTROP(I,J,L).EQ..TRUE.).OR.
+          IF ( State_Met%InTroposphere(I,J,L) .OR.
      &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
 
            !MAKE SURE WE HAVE SENSIBLE DATA
@@ -1107,7 +1104,7 @@
 
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
-          IF ((INTROP(I,J,L).EQ..TRUE.).OR.
+          IF ( State_Met%InTroposphere(I,J,L) .OR.
      &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
 
            IF ((TAUAER_SW(I,J,L,IB_SW).GT.0).AND.
@@ -1158,7 +1155,7 @@
 
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
-          IF ((INTROP(I,J,L).EQ..TRUE.).OR.
+          IF ( State_Met%InTroposphere(I,J,L) .OR.
      &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
 
           IF (IB.LE.16) THEN

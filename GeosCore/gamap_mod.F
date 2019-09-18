@@ -1720,6 +1720,7 @@
       USE DIAG42_MOD,         ONLY : ND42, PD42
       USE DIAG53_MOD,         ONLY : ND53, PD53
       USE DIAG56_MOD,         ONLY : ND56
+      USE CMN_FJX_MOD,        ONLY : W_
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7003,17 +7004,19 @@
       !-------------------------------------      
       ! Radiative flux (ND63) (SDE 2013-10-25)
       !-------------------------------------
+
       IF ( ND64 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(64) = PD64*3 ! Number of wavelength bins
+         NTRAC(64) = W_*3 ! Number of wavelength bins
          NN = 0
          N = 1
 
          ! Loop over tracers
          DO T = 1, NTRAC(64)
             NN = NN + 1
-            IF (NN .gt. PD64) THEN
+            IF (NN .gt. W_) THEN
+!            IF (NN .gt. PD64) THEN
                 NN = 1
                 N = N + 1
             ENDIF
@@ -7031,7 +7034,7 @@
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Diffuse UV flux in bin ', NN
             ENDIF
-            UNIT (T,64) = 'Wm-2'
+            UNIT (T,64) = 'W/m2'
             INDEX(T,64) = T + ( SPACING * 54 )
             MOLC (T,64) = 1
             MWT  (T,64) = 0e0

@@ -93,6 +93,7 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: Map_Prod   (:      ) ! Prod diag species
      CHARACTER(LEN=36), POINTER :: Name_Prod  (:      ) !  ID and names
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
+     INTEGER,           POINTER :: Map_WL     (:      ) ! Wavelength bins in fjx
 
 #if defined( MODEL_GEOS )
      ! For drydep
@@ -150,7 +151,6 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: KPPHvalue  (:,:,:  ) ! H-value for Rosenbrock
                                                         !  solver
-
      !----------------------------------------------------------------------
      ! Fields for UCX mechanism
      !----------------------------------------------------------------------
@@ -261,6 +261,7 @@ CONTAINS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Database_Mod, ONLY : Init_Species_Database
     USE State_Grid_Mod,       ONLY : GrdState
+    USE CMN_FJX_MOD,          ONLY : W_         ! For UVFlx diagnostic
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -356,6 +357,7 @@ CONTAINS
     State_Chm%Name_Prod     => NULL() 
     State_Chm%Map_Prod      => NULL() 
     State_Chm%Map_WetDep    => NULL()
+    State_Chm%Map_WL    => NULL()
 
     ! Chemical species
     State_Chm%Species       => NULL()
@@ -389,7 +391,7 @@ CONTAINS
 
     ! Fields for KPP solver
     State_Chm%KPPHvalue     => NULL()
-
+    
     ! Fields for UCX mechanism
     State_Chm%STATE_PSC     => NULL()
     State_Chm%KHETI_SLA     => NULL()   
@@ -640,6 +642,13 @@ CONTAINS
        State_Chm%Map_WetDep = 0
     ENDIF
 
+    IF ( W_ > 0 ) THEN
+       ALLOCATE( State_Chm%Map_WL( W_ ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_WL', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_WL = 0
+    ENDIF
+
     !=======================================================================
     ! Set up the species mapping vectors
     !=======================================================================
@@ -756,6 +765,19 @@ CONTAINS
 
     ENDDO
 
+    !-----------------------------------------------------------------------
+    ! Set up the mapping for UVFlux Diagnostics
+    ! placeholder for now since couldn't figure out how to read in WL from file
+    !-----------------------------------------------------------------------
+    IF ( W_ > 0 ) THEN
+
+       DO N = 1, W_
+          !
+          ! Define identifying string
+                State_Chm%Map_WL(N) = 0
+       ENDDO
+    ENDIF
+    
     !-----------------------------------------------------------------------
     ! Set up the mapping for PRODUCTION AND LOSS DIAGNOSTIC SPECIES
     !-----------------------------------------------------------------------
@@ -1399,7 +1421,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDIF
-
+        
     !=======================================================================
     ! Allocate and initialize fields for UCX mechamism
     !=======================================================================
@@ -1866,6 +1888,13 @@ CONTAINS
        State_Chm%Map_WetDep => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%Map_WL ) ) THEN
+       DEALLOCATE( State_Chm%Map_WL, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_WL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_WL => NULL()
+    ENDIF
+    
     IF ( ASSOCIATED( State_Chm%Species ) ) THEN
        DEALLOCATE( State_Chm%Species, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
