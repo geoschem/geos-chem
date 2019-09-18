@@ -2976,7 +2976,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
          TEXT = JLABEL(K)
          CALL CSTRIP( TEXT )
 
-         WRITE(*,*) K, TRIM( TEXT )
+         !IF ( am_I_Root ) THEN
+         !   WRITE(*,*) K, TRIM( TEXT )
+         !ENDIF
 
          ! Look for certain reactions
          SELECT CASE( TRIM( TEXT ) )
