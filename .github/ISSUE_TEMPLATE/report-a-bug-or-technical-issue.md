@@ -7,6 +7,8 @@ assignees: ''
 
 ---
 
+# Report a GEOS-Chem bug or technical issue
+
 ## Describe the bug
 Include a clear and concise description of the bug or issue that you have encountered.
 
