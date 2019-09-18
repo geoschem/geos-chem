@@ -30,9 +30,6 @@
       PUBLIC  :: INIT_FJX
       PUBLIC  :: FAST_JX
       PUBLIC  :: PHOTRATE_ADJ
-
-
-
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -54,16 +51,7 @@
       PRIVATE :: SET_AER
 !
 ! !REVISION HISTORY:
-!  27 Mar 2013 - S. D. Eastham - Initial version (based on original GEOS-Chem
-!                                files and instructions from J. Mao)
-!  28 Mar 2013 - S. D. Eastham - Upgraded to Fast-JX v7.0
-!  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
-!  13 Nov 2014 - M. Yannetti   - Added PRECISION_MOD
-!  29 Mar 2016 - R. Yantosca   - Add flags for rxns adjusted by PHOTRATE_ADJ
-!  27 Jun 2016 - M. Sulprizio  - Remove FJXFUNC and JV_INDEX routines. We now
-!                                obtain the photolysis rates directly from the
-!                                ZPJ array.
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,77 +169,7 @@
 !                           3 - Maximum Random Overlap (computation intensive)
 !
 ! !REVISION HISTORY:
-!  01 Apr 1998 - P. Murti, R. Martin, R. Yantosca - Initial version
-!  (1 ) Call this routine EACH chemistry time-step, before solver.
-!  (2 ) This routine must know IMAX, JMAX, LMAX.
-!  (3 ) Now use new !$OMP compiler directives for parallelization (bmy, 5/2/00)
-!  (4 ) Now reference "cmn_fj.h" and "jv_cmn.h" for the aerosol
-!        optical depths (bmy, 10/2/00)
-!  (5 ) Add OPTDUST as a local variable -- make OPTDUST private for
-!        the parallel DO-loop, since it stores 1 column of aerosol optical
-!        depth for each dust type (bmy, rvm, 10/2/00)
-!  (6 ) For now, LPAR in "cmn_fj.h" = LGLOB in "CMN_SIZE".  Therefore we
-!        assume that we are always doing global runs. (bmy, 10/2/00)
-!  (7 ) Removed obsolete code from 10/2/00 (bmy, 12/21/00)
-!  (8 ) Replace {IJL}GLOB w/ IIPAR,JJPAR,LLPAR everywhere.  Also YLMID(NLAT)
-!        needs to be referenced by YLMID(NLAT+J0). (bmy, 9/26/01)
-!  (9 ) Remove obsolete code from 9/01.  Updated comments. (bmy, 10/24/01)
-!  (10) Add OPTAER as a local variable, make it private for the parallel
-!        DO loop, since it stores 1 column of aerosol optical depths for each
-!        aerosol type.  Pass OPTAER to PHOTOJ via the argument list.  Declare
-!        OPTAER as PRIVATE for the parallel DO-loop. (rvm, bmy, 2/27/02)
-!  (11) Now reference GET_PEDGE from "pressure_mod.f", which returns the
-!        correct "floating" pressure. (dsa, bdf, bmy, 8/20/02)
-!  (12) Now reference T from "dao_mod.f" (bmy, 9/23/02)
-!  (13) Now uses routine GET_YMID from "grid_mod.f" to compute grid box
-!        latitude.  Now make IDAY, MONTH local variables.  Now use function
-!        GET_DAY_OF_YEAR from "time_mod.f".  Bug fix: now IDAY (as passed to
-!        photoj.f) is day of year rather than cumulative days since Jan 1,
-!        1985. (bmy, 2/11/03)
-!  (14) Now reference routine GET_YEAR from "time_mod.f".  Added LASTMONTH
-!        as a SAVEd variable.  Now call READ_TOMSO3 from "toms_mod.f" at the
-!        beginning of a new month (or the first timestep) to read TOMS O3
-!        columns which will be used by "set_prof.f".  Now also reference
-!        routine GET_DAY from "time_mod.f".  Rename IDAY to DAY_OF_YR. Pass
-!        day of month to PHOTOJ.  Updated comments, cosmetic changes.
-!        (bmy, 7/17/03)
-!  (15) Bug fix: PRES needs to be the true surface pressure for GEOS-4, but
-!        PS-PTOP for all prior GEOS models.  (bmy, 2/6/04)
-!  (16) Now account for cloud overlap (Maximum-Random Overlap and Random
-!        Overlap) in each column (hyl, phs, bmy, 9/18/07)
-!  (17) Now initialize the PJ array here, instead of two layers below in
-!        "set_prof.f".  Now no longer pass PRES to "photoj.f". (bmy, 11/29/07)
-!  (18) Now switch to approx. random overlap option (hyl, phs, bmy, 10/7/08)
-!  (19) Now can handle GEOS-5 reprocessed met data with OPTDEPTH being
-!        in-cloud optical depths. (bmy, hyl, 10/24/08)
-!  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  06 Mar 2012 - R. Yantosca - Now call GET_OVERHEAD_O3 to get the total
-!                              overhead O3 column for FAST-J
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
-!  27 Mar 2013 - S.D. Eastham- Rolled in FAST_JX_MOD
-!  21 Feb 2014 - M. Sulprizio- Replaced all met field arrays with State_Met
-!                              derived type object
-!  28 Feb 2014 - M. Sulprizio- Now obtain O3_CTM directly from CSPEC
-!  05 Mar 2014 - R. Yantosca - Cosmetic changes
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod and
-!                              redundant PEDGE pre-preprocessor block if
-!                              EXTERNAL_GRID.
-!  09 Apr 2015 - R. Yantosca - Bug fixes: Add missing vars to !$OMP+PRIVATE
-!                              clause and error check for JLOOP > 0
-!  11 Aug 2015 - R. Yantosca - MERRA2 behaves the same way as for GEOS-FP
-!  21 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
-!  17 Jun 2016 - R. Yantosca - Now define id_O3 with the Ind_ function
-!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
-!EOP
+!  See the Git history with the gitk browser!
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -653,6 +571,7 @@
 !
 ! !REVISION HISTORY:
 !  27 Mar 2013 - S. D. Eastham - Copied from GEOS-Chem v9-01-03
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -946,6 +865,7 @@ c---SUMBX = flux from Lambert reflected I+
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1210,8 +1130,7 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  02 Apr 2013 - S. D. Eastham - Now only assign J-rates on
-!                                levels within the chemistry grid.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1330,6 +1249,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1416,7 +1336,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  04 Dec 2014 - R. Yantosca   - Now use SQRT instead of DSQRT
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1564,8 +1484,7 @@ c  Lowest level intersected by emergent beam
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  21 May 2018 - C. Keller     - Use increasingly less extra levels if max.
-!                                is reached, added diagnostics.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1725,6 +1644,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1781,13 +1701,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  05 Mar 2014 - R. Yantosca   - Use correct filenames for use w/ ESMF
-!  27 Sep 2017 - M. Sulprizio  - Define species IDs for ND22 diagnostic
-!  03 Nov 2017 - R. Yantosca   - Now accept State_Diag as an argument
-!  29 Dec 2017 - C. Keller     - Print mapping on root CPU only
-!  19 Sep 2018 - M. Sulprizio  - Read .dat files from data directories instead
-!                                of run directories
-!  10 Apr 2019 - R. Yantosca   - Now read data from FAST_JX/v2019-04 folder
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1860,29 +1774,17 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
-      ! Compute factors for ND64 netCDF equivalent
-      IF ( State_Diag%Archive_UVFluxNet .or.
-     &     State_Diag%Archive_UVFluxDirect .or.
-     &     State_Diag%Archive_UVFluxDiffuse) THEN
-         UVXFACTOR(:) = 0e+0_fp
-         ND64MULT = UVXPLANCK*UVXCCONST*1.0e+13_fp
-         DO  J=1,W_
+      ! Compute factors for UV flux diagnostics
+      IF ( ND64 > 0                          .or.
+     &     State_Diag%Archive_UVFluxNet      .or.
+     &     State_Diag%Archive_UVFluxDirect   .or.
+     &     State_Diag%Archive_UVFluxDiffuse ) THEN
+         UVXFACTOR = 0e+0_fp
+         ND64MULT  = UVXPLANCK*UVXCCONST*1.0e+13_fp
+         DO J = 1, W_
             UVXFACTOR(J) = ND64MULT/WL(J)
          ENDDO
       ENDIF
-
-
-
-#if defined( BPCH_DIAG )
-      ! Compute factors for ND64
-      IF ( ND64 > 0 ) THEN
-         UVXFACTOR(:) = 0e+0_fp
-         ND64MULT = UVXPLANCK*UVXCCONST*1.0e+13_fp
-         DO  J=1,W_
-            UVXFACTOR(J) = ND64MULT/WL(J)
-         ENDDO
-      ENDIF
-#endif
 
       !=====================================================================
       ! Read in 5-wavelength scattering data
@@ -2076,7 +1978,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  09 May 2014 - S. D. Eastham - Fixed bug when using <18 wavelengths
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2344,8 +2246,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Adapted from GEOS-Chem v9-1-3
-!  25 Jun 2015 - M. Sulprizio  - Add brown carbon optical properties from
-!                                M. Hammer
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2468,24 +2369,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY:
 !  10 May 2010 - C. Heald      - Initial version
-!  06 Aug 2010 - C. Carouge    - Add an error check when opening the file
-!  01 Aug 2012 - R. Yantosca   - Now restore NJ1 to INTENT(IN) status
-!  31 Mar 2013 - S. D. Eastham - Added to Fast-JX v7.0 implementation
-!  30 Mar 2015 - M. Sulprizio  - Removed NAMFIL argument. Now specify filenames
-!                                for aerosol LUT files in this routine.
-!  02 Apr 2015 - C. Keller     - Append '.rc' to species files in ESMF mode.
-!  12 May 2015 - R. Yantosca   - Bug fix: For PGI compiler, you need to have
-!                                exactly as many elements in the DATA statement
-!                                as there are elements in the SPECFIL array.
-!  25 Jun 2015 - M. Sulprizio  - Add brown carbon optical properties from
-!                                M. Hammer
-!  04 Aug 2015 - M. Long       - Removed ".rc" file specifier. Not necessary.
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
-!  23 Mar 2018 - E. Lundgren   - Pass Input_Opt to Calc_AOD
-!  19 Sep 2018 - M. Sulprizio  - Read .dat files from data directories instead
-!                                of run directories
-!  10 Apr 2019 - R. Yantosca   - Now read data from FAST_JX/v2019-04 folder
-!  26 Apr 2019 - T. Sherwen    - Read FAST-JX files from FAST_JX_DIR
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2656,10 +2540,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D. Ridley   - Initial version
-!  15 Dec 2014 - M. Sulprizio- Added ProTeX headers
-!  02 Apr 2015 - C. Keller   - Added am_I_Root argument
-!  23 Mar 2018 - E. Lundgren - Added Input_Opt argument for wavelength vars
-!                              read in input.geos now stored in Input_Opt
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2887,12 +2768,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  31 Mar 2013 - S. D. Eastham - Modified to track number of branches
-!  29 Mar 2016 - R. Yantosca   - Now flag rxn numbers for use in PHOTRATE_ADJ
-!  27 Jun 2016 - M. Sulprizio  - Add RXN_NO2 flag for PARANOX
-!  10 Mar 2017 - C. Keller     - Wrapped print out into am_I_Root statement
-!  19 Dec 2017 - R. Yantosca   - Now return error code to calling routine
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3240,7 +3116,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Adapted from Fast-JX v7.0
-!  06 Jan 2016 - E. Lundgren   - Use global PI rather than local definition
+!  See the Git history with the gitk browser
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3325,10 +3201,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  05 Mar 2014 - R. Yantosca - Now only save ND64 with LD64 specified levels
-!  26 Sep 2017 - M. Sulprizio- Add new halogen species to ND22 (L. Zhu)
-!  04 Oct 2017 - E. Lundgren - Populate State_Diag J-Values array for nc diag
-!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3375,8 +3248,10 @@ C-----------------------------------------------------------------------
       ! T_INPUT: Input temperature (K) with extra layer for compatibility
       REAL(fp) :: T_INPUT(JXL1_+1)
 
-      ! AD64 diagnostics
-      REAL(fp), DIMENSION(JXL1_) :: FDIRECT, FDIFFUSE
+      ! UVFlux* diagnostics
+      REAL(fp) :: FDIRECT (JXL1_)
+      REAL(fp) :: FDIFFUSE(JXL1_)
+      REAL(fp) :: UVX_CONST
 
       ! Logical flags
       LOGICAL :: IS_HALOGENS
@@ -3689,63 +3564,64 @@ C-----------------------------------------------------------------------
          ENDDO
       ENDIF
 
-
-
       !=================================================================
-      ! UVFlux diagnostic
-      ! 
       ! UV radiative fluxes (direct, diffuse, net) [W/m2]
       !
       ! Updated for netCDF from nd64 (JMM 2019-09-11) 
       ! Use it to calculate fluxes for output if necessary
+      !
+      ! Get net direct and net diffuse fluxes separately
+      ! Order:
+      !    1 - Net flux
+      !    2 - Direct flux
+      !    3 - Diffuse flux
+      ! Convention: negative is downwards
       !=================================================================
       IF ( State_Diag%Archive_UVFluxDiffuse .or.
      &     State_Diag%Archive_UVFluxDirect .or.
      &     State_Diag%Archive_UVFluxNet ) THEN
-         ! Get net direct and net diffuse fluxes separately
-         ! Order:
-         !    1 - Net flux
-         !    2 - Direct flux
-         !    3 - Diffuse flux
-         ! Convention: -ve is downwards
-         DO K=1,W_
-            ! Direct flux at the bottom
-            FDIRECT(:) = 0.0
-            FDIFFUSE(:) = 0.0
-            FDIRECT(1) = FSBOT(K)
-            FDIFFUSE(1) = FJBOT(K)
 
-            DO L=2,L_
+         ! Loop over wavelength bins
+         DO K = 1, W_
+
+            ! Initialize
+            FDIRECT  = 0.0_fp
+            FDIFFUSE = 0.0_fp
+
+            ! Direct & diffuse fluxes at each level
+            FDIRECT(1)  = FSBOT(K)                    ! surface
+            FDIFFUSE(1) = FJBOT(K)                    ! surface
+            DO L = 2, State_Grid%NZ
                FDIRECT(L) = FDIRECT(L-1) + FLXD(L-1,K)
                FDIFFUSE(L) = FJFLX(L-1,K)
             ENDDO
 
-            DO L=1,L1_
+            ! Constant to multiply UV fluxes at each wavelength bin
+            UVX_CONST = SOLF * FL(K) * UVXFACTOR(K)
+
+            ! Archive into diagnostic arrays
+            DO L = 1, State_Grid%NZ
 
                IF ( State_Diag%Archive_UVFluxNet ) THEN
                   State_Diag%UVFluxNet(ILON,ILAT,L,K) =
      &            State_Diag%UVFluxNet(ILON,ILAT,L,K) +
-     &            ((FDIRECT(L)+FDIFFUSE(L))*SOLF*FL(K)*UVXFACTOR(K))
+     &                 ( ( FDIRECT(L) + FDIFFUSE(L) ) * UVX_CONST )
                ENDIF
 
                IF ( State_Diag%Archive_UVFluxDirect ) THEN
                   State_Diag%UVFluxDirect(ILON,ILAT,L,K) = 
      &            State_Diag%UVFluxDirect(ILON,ILAT,L,K) +
-     &            (FDIRECT(L)*SOLF*FL(K)*UVXFACTOR(K))
+     &                 ( FDIRECT(L) * UVX_CONST )
                ENDIF
 
                IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
                   State_Diag%UVFluxDiffuse(ILON,ILAT,L,K) = 
-     &            State_Diag%UVFluxDirect(ILON,ILAT,L,K) +
-     &            (FDIFFUSE(L)*SOLF*FL(K)*UVXFACTOR(K))
+     &            State_Diag%UVFluxDiffuse(ILON,ILAT,L,K) +
+     &                 ( FDIFFUSE(L) * UVX_CONST )
                ENDIF
-
             ENDDO
          ENDDO
       ENDIF
-
-
-
 
 #if defined( BPCH_DIAG )
       !=================================================================
@@ -3765,20 +3641,18 @@ C-----------------------------------------------------------------------
       !=================================================================
       IF ( ND64 > 0 ) THEN
 
-         ! Loop over wavelengths
-         DO K=1,W_
+         ! Loop over wavelength bins
+         DO K = 1, W_
 
             ! Initialize
-            FDIRECT = 0.0
-            FDIFFUSE = 0.0
+            FDIRECT  = 0.0_fp
+            FDIFFUSE = 0.0_fp
 
-            ! Direct and diffuse flux at the bottom
-            FDIRECT(1) = FSBOT(K)
-            FDIFFUSE(1) = FJBOT(K)
-
-            ! Direct & diffuse fluxes at each level
+            ! Direct & diffuse fluxes each level
+            FDIRECT(1)  = FSBOT(K)                ! surface
+            FDIFFUSE(1) = FJBOT(K)                ! surface
             DO L = 2, LD64
-               FDIRECT(L) = FDIRECT(L-1) + FLXD(L-1,K)
+               FDIRECT(L)  = FDIRECT(L-1) + FLXD(L-1,K)
                FDIFFUSE(L) = FJFLX(L-1,K)
             ENDDO
 

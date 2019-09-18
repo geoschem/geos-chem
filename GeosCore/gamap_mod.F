@@ -7007,11 +7007,7 @@
 
       IF ( ND64 > 0 ) THEN
 
-         PRINT*, 'PD64 :', PD64
-         PRINT*, 'W_ :', W_
-
          ! Number of tracers
-!         NTRAC(64) = PD64*3 ! Number of wavelength bins
          NTRAC(64) = W_*3 ! Number of wavelength bins
          NN = 0
          N = 1
@@ -7038,7 +7034,7 @@
                 WRITE(FNAME(T,64),'(a,I2)') 
      &                'Diffuse UV flux in bin ', NN
             ENDIF
-            UNIT (T,64) = 'cm-2s-1'
+            UNIT (T,64) = 'W/m2'
             INDEX(T,64) = T + ( SPACING * 54 )
             MOLC (T,64) = 1
             MWT  (T,64) = 0e0

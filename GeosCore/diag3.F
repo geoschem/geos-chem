@@ -5537,14 +5537,14 @@
 !
 !   # : Field  : Description                    : Units      : Scale factor
 !  ----------------------------------------------------------------------------
-!  (W)  NET-X  : Net flux for bin X             : 1/cm2s     : 1
-!  (W)  DIR-X  : Direct flux for bin X          : 1/cm2s     : 1        
-!  (W)  DIF-X  : Diffuse flux for bin X         : 1/cm2s     : 1
+!  (W)  NET-X  : Net flux for bin X             : W/m2       : 1
+!  (W)  DIR-X  : Direct flux for bin X          : W/m2       : 1
+!  (W)  DIF-X  : Diffuse flux for bin X         : W/m2       : 1
 !******************************************************************************
 !
       IF ( ND64 > 0 ) THEN
          CATEGORY = 'FJX-FLX$'
-         UNIT     = 'cm-2s-1'
+         UNIT     = 'W/m2'
 
          !DO M = 1, TMAX(64)
          DO MM = 1,3

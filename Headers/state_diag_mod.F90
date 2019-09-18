@@ -8524,7 +8524,6 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'UVFLX'
 
-
     ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIRECT' ) THEN
        IF ( isDesc    ) Desc  = 'Direct UV flux in bin'
        IF ( isUnits   ) Units = 'W m-2'
@@ -9736,7 +9735,7 @@ CONTAINS
           numTags = State_Chm%nLoss
        CASE( 'PHO'     )
           numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
-       CASE( 'UVFLX'     )
+       CASE( 'UVFLX'   )
           numTags = W_
        CASE( 'PRD'     )
           numTags = State_Chm%nProd
@@ -9879,44 +9878,45 @@ CONTAINS
           tagName = RadFlux(D)
 
        ! UVFlux requested output fluxes
+       ! These are at the FAST-JX wavelength bins
        CASE( 'UVFLX' )
           SELECT CASE( N )
-          CASE( 1  )
-                tagName = 'at187nm'
+             CASE( 1  )
+                tagName = '187nm'
              CASE( 2  )
-                tagName = 'at191nm'
+                tagName = '191nm'
              CASE( 3  )
-                tagName = 'at193nm'
+                tagName = '193nm'
              CASE( 4  )
-                tagName = 'at196nm'
+                tagName = '196nm'
              CASE( 5  )
-                tagName = 'at202nm'
+                tagName = '202nm'
              CASE( 6  )
-                tagName = 'at208nm'
+                tagName = '208nm'
              CASE( 7  )
-                tagName = 'at211nm'
+                tagName = '211nm'
              CASE( 8  )
-                tagName = 'at214nm'
+                tagName = '214nm'
              CASE( 9  )
-                tagName = 'at261nm'
+                tagName = '261nm'
              CASE( 10 )
-                tagName = 'at267nm'
+                tagName = '267nm'
              CASE( 11 )
-                tagName = 'at277nm'
+                tagName = '277nm'
              CASE( 12  )
-                tagName = 'at295nm'
+                tagName = '295nm'
              CASE( 13  )
-                tagName = 'at303nm'
+                tagName = '303nm'
              CASE( 14  )
-                tagName = 'at310nm'
+                tagName = '310nm'
              CASE( 15  )
-                tagName = 'at316nm'
+                tagName = '316nm'
              CASE( 16  )
-                tagName = 'at333nm'
+                tagName = '333nm'
              CASE( 17  )
-                tagName = 'at380nm'
+                tagName = '380nm'
              CASE( 18  )
-                tagName = 'at574nm'
+                tagName = '574nm'
              CASE DEFAULT  
                 tagName = 'NA'
           END SELECT
