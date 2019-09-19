@@ -1775,8 +1775,10 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
       ! Compute factors for UV flux diagnostics
-      IF ( ND64 > 0                          .or.
-     &     State_Diag%Archive_UVFluxNet      .or.
+      IF ( State_Diag%Archive_UVFluxNet      .or.
+#ifdef BPCH_DIAG
+     &     ND64 > 0                          .or.
+#endif
      &     State_Diag%Archive_UVFluxDirect   .or.
      &     State_Diag%Archive_UVFluxDiffuse ) THEN
          UVXFACTOR = 0e+0_fp
