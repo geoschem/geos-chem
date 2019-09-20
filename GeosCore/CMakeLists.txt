@@ -1,3 +1,6 @@
+# Generate gc_classic_version.H with GEOS-Chem's version number
+configure_file(gc_classic_version.H.in ${CMAKE_CURRENT_SOURCE_DIR}/gc_classic_version.H @ONLY)
+
 add_library(Transport STATIC EXCLUDE_FROM_ALL
 	diag_mod.F
 	dao_mod.F

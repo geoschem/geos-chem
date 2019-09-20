@@ -10,3 +10,4 @@ geosapm
 *.inst.*
 *.continue.*
 *.ppk
+gc_classic_version.H
