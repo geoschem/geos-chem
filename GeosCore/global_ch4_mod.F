@@ -659,10 +659,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD43
-#endif
       USE ErrCode_Mod
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
@@ -858,43 +854,21 @@
       ENDIF
 
       !=================================================================
-      ! (3.1) ND43 diagnostics...save [OH] in molecules/cm3
+      ! (3.1) HISTORY (aka netCDF diagnostics)
+      !       OH concentration in [molec/cm3] after chemistry
+      !
       ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
       ! (ckeller, 9/16/2014)
       !=================================================================
-      IF ( Do_ND43 .or. State_Diag%Archive_OHconcAfterChem ) THEN
-
-         ! Zero the diagnostic array for OH to avoid leftover values
-         IF ( State_Diag%Archive_OHconcAfterChem ) THEN
-            State_Diag%OHconcAfterChem = 0.0_f4
-         ENDIF
-
-         ! NOTE: Can parallelize this loop later
+      IF ( State_Diag%Archive_OHconcAfterChem ) THEN
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
             IF ( State_Met%InChemGrid(I,J,L) ) THEN
-
-#if defined( BPCH_DIAG )
-               !--------------------------------------------------------
-               ! ND43 (bpch) diagnostic
-               ! OH concentration in [molec/cm3] after chemistry
-               !--------------------------------------------------------
-               IF ( Do_ND43 .and. L <= LD43 ) THEN
-                  AD43(I,J,L,1) = AD43(I,J,L,1) +
-     &                            ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
-               ENDIF
-#endif
-
-               !--------------------------------------------------------
-               ! HISTORY (aka netCDF diagnostics)
-               ! OH concentration in [molec/cm3] after chemistry
-               !--------------------------------------------------------
-               IF ( State_Diag%Archive_OHconcAfterChem ) THEN
-                  State_Diag%OHconcAfterChem(I,J,L) =
-     &                 ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
-               ENDIF
-
+               State_Diag%OHconcAfterChem(I,J,L) =
+     &              ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+            ELSE 
+               State_Diag%OHconcAfterChem(I,J,L) = 0.0_f4
             ENDIF
          ENDDO
          ENDDO
@@ -974,10 +948,6 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD19   	      
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
@@ -1124,25 +1094,6 @@
 
             TROPOCH4=TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4
      &                        + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
-
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! %%%%% ND19 (bpch) diagnostic %%%%%
-            !
-            ! (1) How much CH4 (kg) is lost by reaction with OH
-            ! (3) How much CH4 (kg) is lost by reaction with Cl
-            !-----------------------------------------------------------
-            IF ( ND19 > 0 ) THEN
-               IF ( L <= LD19 ) THEN
-                  AD19(I,J,L,1) = AD19(I,J,L,1) + 
-     &                 ( GCH4 * KRATE    * C_OH * DT ) / Spc2GCH4
-
-                  AD19(I,J,L,3) = AD19(I,J,L,3) + 
-     &                 ( GCH4 * KRATE_Cl * C_Cl * DT ) / Spc2GCH4
-
-               ENDIF
-            ENDIF
-#endif
 
             !-----------------------------------------------------------
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -1367,10 +1318,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD19
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
@@ -1496,18 +1443,6 @@
 
                ! Convert back from [molec CH4/cm3] --> [kg/box] 
                Spc(I,J,L,1) = GCH4 / Spc2GCH4
-
-#if defined( BPCH_DIAG )
-               !------------------------------------------------------------
-               ! %%%%% ND19 (bpch) diagnostic %%%%%
-               !
-               ! Loss of CH4 by OH above tropopause [kg]
-               !------------------------------------------------------------
-               IF ( ND19 > 0 ) THEN ! --> [kg/box]
-                  AD19(I,J,L,2) = AD19(I,J,L,2) +
-     &	                          ( LRATE * DT ) / Spc2GCH4
-               ENDIF
-#endif
 
                !------------------------------------------------------------
                ! %%%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -1640,9 +1575,6 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
@@ -1718,13 +1650,6 @@
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0e+0_fp
-
-      ! Set a flag to denote if bpch diagnostics are activated
-#if defined( BPCH_DIAG )
-      Do_ND43 = ( ND43 > 0 )
-#else
-      Do_ND43 = .FALSE.
-#endif
 
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC

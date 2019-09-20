@@ -463,8 +463,6 @@ aerosol_mod.o               : aerosol_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               tomas_mod.o             ucx_mod.o
 
-benchmark_mod.o             : benchmark_mod.F                              
-
 bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
                               pbl_mix_mod.o
 
@@ -493,10 +491,8 @@ cleanup.o                   : cleanup.F                                      \
                               carbon_mod.o            co2_mod.o              \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag_mod.o              diag03_mod.o           \
-                              diag04_mod.o            diag41_mod.o           \
-                              diag50_mod.o            diag51_mod.o           \
-                              diag51b_mod.o           diag53_mod.o           \
-                              diag_oh_mod.o           diag20_mod.o           \
+                              diag51_mod.o            diag51b_mod.o          \
+                              diag53_mod.o            diag_oh_mod.o          \
                               drydep_mod.o            dust_mod.o             \
                               global_ch4_mod.o        wetscav_mod.o          \
                               isorropiaII_mod.o       land_mercury_mod.o     \
@@ -532,37 +528,17 @@ depo_mercury_mod.o          : depo_mercury_mod.F                             \
 
 diag03_mod.o                : diag03_mod.F
 
-diag04_mod.o                : diag04_mod.F
-
 diag1.o                     : diag1.F                                        \
                               hco_interface_mod.o     dao_mod.o              \
                               diag03_mod.o            diag_mod.o
 
 diag3.o                     : diag3.F                                        \
                               diag_mod.o              diag03_mod.o           \
-                              diag04_mod.o            diag41_mod.o           \
-                              diag42_mod.o            diag53_mod.o           \
-                              diag56_mod.o            depo_mercury_mod.o     \
+                              diag53_mod.o            diag56_mod.o           \
+                              depo_mercury_mod.o                             \
                               drydep_mod.o            hco_interface_mod.o    \
                               apm_driv_mod.o          wetscav_mod.o          \
                               tomas_mod.o             
-
-diag20_mod.o                : diag20_mod.F
-
-diag41_mod.o                : diag41_mod.F                                   \
-                              pbl_mix_mod.o
-
-diag42_mod.o                : diag42_mod.F                                   \
-                              aerosol_mod.o           carbon_mod.o            
-
-diag48_mod.o                : diag48_mod.F                                   \
-                              pbl_mix_mod.o           
-
-diag49_mod.o                : diag49_mod.F                                   \
-                              modis_lai_mod.o         pbl_mix_mod.o
-
-diag50_mod.o                : diag50_mod.F                                   \
-                              pbl_mix_mod.o           aerosol_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
                               pbl_mix_mod.o           
@@ -573,13 +549,6 @@ diag51b_mod.o               : diag51b_mod.F                                  \
 diag53_mod.o                : diag53_mod.F
 
 diag56_mod.o                : diag56_mod.F
-
-diag63_mod.o                : diag63_mod.F                                   \
-                              diag_mod.o              pbl_mix_mod.o          \
-                              hco_interface_mod.o
-
-diag_2pm.o                  : diag_2pm.F                                     \
-                              diag_mod.o
 
 diag_mod.o                  : diag_mod.F
 
@@ -613,9 +582,8 @@ fast_jx_mod.o               : fast_jx_mod.F                                  \
                               dao_mod.o               toms_mod.o              
 
 flexchem_mod.o              : flexchem_mod.F90                               \
-                              aerosol_mod.o                                  \
-                              diag_mod.o              diag_oh_mod.o          \
-                              diag20_mod.o            dust_mod.o             \
+                              aerosol_mod.o           diag_mod.o             \
+                              diag_oh_mod.o           dust_mod.o             \
                               fast_jx_mod.o           strat_chem_mod.o       \
                               tomas_mod.o
 
@@ -627,22 +595,15 @@ fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
                               diag_mod.o              depo_mercury_mod.o
 
 gamap_mod.o                 : gamap_mod.F                                    \
-                              diag03_mod.o            diag04_mod.o           \
-                              diag41_mod.o            diag42_mod.o           \
-                              diag48_mod.o            diag49_mod.o           \
-                              diag50_mod.o            diag51_mod.o           \
+                              diag03_mod.o            diag51_mod.o           \
                               diag51b_mod.o           diag53_mod.o           \
-                              diag56_mod.o            diag63_mod.o           \
-                              drydep_mod.o            tomas_mod.o            \
-                              wetscav_mod.o
+                              diag56_mod.o            drydep_mod.o           \
+                              tomas_mod.o             wetscav_mod.o
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
-                              aerosol_mod.o           benchmark_mod.o        \
-                              carbon_mod.o                                   \
+                              aerosol_mod.o           carbon_mod.o           \
                               co2_mod.o               diagnostics_mod.o      \
                               depo_mercury_mod.o      diag03_mod.o           \
-                              diag20_mod.o            diag48_mod.o           \
-                              diag49_mod.o            diag50_mod.o           \
                               diag51_mod.o            diag51b_mod.o          \
                               diag63_mod.o            diag_oh_mod.o          \
                               drydep_mod.o            dust_mod.o             \
@@ -687,13 +648,10 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
-                              diag04_mod.o            diag41_mod.o           \
-                              diag42_mod.o            diag53_mod.o           \
-                              diag56_mod.o
+                              diag53_mod.o            diag56_mod.o
 
 input_mod.o                 : input_mod.F                                    \
-                              diag03_mod.o            diag04_mod.o           \
-                              diag41_mod.o            diag42_mod.o  	     \
+                              diag03_mod.o                                   \
                               diag53_mod.o            diag56_mod.o           \
                               drydep_mod.o            planeflight_mod.o
 
@@ -707,11 +665,9 @@ land_mercury_mod.o          : land_mercury_mod.F      modis_lai_mod.o        \
 linoz_mod.o                 : linoz_mod.F
 
 main.o                      : main.F                                         \
-                              benchmark_mod.o         chemistry_mod.o        \
+                              chemistry_mod.o                                \
                               carbon_mod.o            convection_mod.o       \
-                              diag41_mod.o            diag42_mod.o           \
-                              diag48_mod.o            diag49_mod.o           \
-                              diag50_mod.o            diag51_mod.o           \
+                              diag51_mod.o                                   \
                               diag51b_mod.o           diag63_mod.o           \
                               diag_oh_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      drydep_mod.o           \
@@ -752,8 +708,8 @@ modis_lai_mod.o             : modis_lai_mod.F90                              \
                               hco_interface_mod.o
 
 ndxx_setup.o                : ndxx_setup.F                                   \
-                              diag_mod.o                                     \
-                              diag63_mod.o            diag_oh_mod.o          \
+                              diag_mod.o              diag63_mod.o           \
+                              diag_oh_mod.o                                  \
                               drydep_mod.o            planeflight_mod.o      \
                               tomas_mod.o             wetscav_mod.o
 

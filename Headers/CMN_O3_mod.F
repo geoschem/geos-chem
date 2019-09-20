@@ -22,9 +22,10 @@
 ! !PUBLIC DATA MEMBERS:
 !
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: THESE ARE USED FOR DIAGNOSTICS WHICH ARE OBSOLETE %%%
+      !%%% NOTE: THESE ARE ONLY NEEDED FOR THE ND51 AND ND51b BPCH %%%
+      !%%% BPCH TIMESERIES DIAGNOSTICS, WHICH ARE NOW OBSOLETE.    %%%
       !%%% WE WILL EVENTUALLY REMOVE THESE IN THE NEAR FUTURE.     %%%
-      !%%% (bmy, 5/22/15)                                          %%%
+      !%%% (bmy, 9/20/19)                                          %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! SAVEEOH = array to save EOH fields (evf, 5/21/13)

@@ -104,11 +104,6 @@ CONTAINS
 !
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
-#if defined( BPCH_DIAG )
-    USE CMN_DIAG_MOD,         ONLY : ND52
-    USE DIAG_MOD,             ONLY : AD65,  AD52, ad22
-    USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
-#endif
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
     USE DUST_MOD,             ONLY : RDUST_ONLINE
     USE ErrCode_Mod
@@ -123,7 +118,7 @@ CONTAINS
     USE GCKPP_Global
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     USE GcKPP_Util,           ONLY : Get_OHreactivity
 #endif
     USE GEOS_Timers_Mod
@@ -146,7 +141,7 @@ CONTAINS
     USE UCX_MOD,              ONLY : SO4_PHOTFRAC
     USE UCX_MOD,              ONLY : UCX_NOX
     USE UCX_MOD,              ONLY : UCX_H2SO4PHOT
-#if   defined( TOMAS )
+#ifdef TOMAS
     USE TOMAS_MOD,            ONLY : H2SO4_RATE
 #endif
 !
@@ -241,7 +236,7 @@ CONTAINS
     INTEGER                :: ISTATUS    (                  20               )
     REAL(dp)               :: RCNTRL     (                  20               )
     REAL(dp)               :: RSTATE     (                  20               )
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     REAL(f4)               :: GLOB_RCONST(State_Grid%NX,State_Grid%NY, &
                                           State_Grid%NZ,NREACT               )
     REAL(f4)               :: GLOB_JVAL  (State_Grid%NX,State_Grid%NY, &
@@ -260,7 +255,7 @@ CONTAINS
     LOGICAL                :: DO_HETCHEM
     LOGICAL                :: DO_PHOTCHEM
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     ! OH reactivity
     LOGICAL                :: DoOHreact
     REAL(fp)               :: OHreact
@@ -325,7 +320,7 @@ CONTAINS
        ENDWHERE
     ENDIF
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     GLOB_RCONST = 0.0_f4
     GLOB_JVAL   = 0.0_f4
    
@@ -424,7 +419,7 @@ CONTAINS
     !=======================================================================
     ! Call RDAER -- computes aerosol optical depths
     !=======================================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
     CALL GEOS_Timer_End  ( "=> Gas-phase chem",   RC )
     CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
@@ -467,33 +462,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 3/3/19:
-! Remove RDUST_OFFLINE -- dust should always be on in fullchem and aerosol 
-! simulations (mps, 3/3/19)
-!    ELSE
-!#if !defined( TOMAS )
-!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!       !%%%% NOTE: RDUST_OFFLINE STILL HAS BPCH CODE AND THEREFORE   %%%% 
-!       !%%%% IS PROBABLY NOW OBSOLETE.  THIS WILL BE REMOVED WHEN WE %%%%
-!       !%%%% GET HIGH_RESOLUTION DUST EMISSIONS (bmy, 1/18/18)       %%%%
-!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!       ! Don't read dust emissions from disk when using TOMAS,
-!       ! because TOMAS uses a different set of dust species than the 
-!       ! std code (win, bmy, 1/25/10)
-!       CALL RDUST_OFFLINE( am_I_Root,  Input_Opt, State_Chm,  State_Diag,   &
-!                           State_Grid, State_Met, MONTH,      YEAR,         &
-!                           WAVELENGTH, RC )
-!
-!       ! Trap potential errors
-!       IF ( RC /= GC_SUCCESS ) THEN
-!          ErrMsg = 'Error encountered in "RDUST_OFFLINE"!'
-!          CALL GC_Error( ErrMsg, RC, ThisLoc )
-!          RETURN
-!       ENDIF
-!#endif
-!------------------------------------------------------------------------------
     ENDIF
 
     !### Debug
@@ -501,7 +469,7 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after RDUST' )
     ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
     CALL GEOS_Timer_End  ( "=> All aerosol chem", RC )
     CALL GEOS_Timer_Start( "=> Gas-phase chem",   RC )
 #endif
@@ -542,7 +510,7 @@ CONTAINS
     !=======================================================================
     ! Call photolysis routine to compute J-Values
     !=======================================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
     CALL GEOS_Timer_End  ( "=> Gas-phase chem",     RC )
     CALL GEOS_Timer_Start( "=> FAST-JX photolysis", RC )
 #endif
@@ -558,7 +526,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
     CALL GEOS_Timer_End  ( "=> FAST-JX photolysis", RC )
     CALL GEOS_Timer_Start( "=> Gas-phase chem",     RC )
 #endif
@@ -568,7 +536,7 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after FAST_JX' )
     ENDIF
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     ! Init diagnostics
     IF ( ASSOCIATED(State_Diag%KppError) ) THEN
        State_Diag%KppError(:,:,:) = 0.0
@@ -669,7 +637,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     !$OMP PRIVATE  ( Vloc,     Aout, OHreact                                )&
 #endif
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 ) &
@@ -770,7 +738,7 @@ CONTAINS
              
              ENDIF
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
              ! Archive in local array
              GLOB_JVAL(I,J,L,N) = PHOTOL(N)
 #endif
@@ -859,31 +827,25 @@ CONTAINS
        !====================================================================
        ! Get rates for heterogeneous chemistry
        !====================================================================
-
-!#if defined( DEVEL )
-!       ! Get starting time for rate computation
-!       CALL CPU_TIME( start )
-!#endif
-
        IF ( DO_HETCHEM ) THEN
 
           ! Set hetchem rates
           CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
 
-#if defined( BPCH_DIAG )
-          IF ( ND52 > 0 ) THEN
-             ! Archive gamma values
-             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
-             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
-                                           + HET(ind_IEPOXB,1) &
-                                           + HET(ind_IEPOXD,1)
-             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
-             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
-                                           + HET(ind_ISOPNB,1)
-             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
-             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
-          ENDIF
-#endif
+!#if defined( BPCH_DIAG )
+!          IF ( ND52 > 0 ) THEN
+!             ! Archive gamma values
+!             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
+!             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
+!                                           + HET(ind_IEPOXB,1) &
+!                                           + HET(ind_IEPOXD,1)
+!             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
+!             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
+!                                           + HET(ind_ISOPNB,1)
+!             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
+!             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
+!          ENDIF
+!#endif
 
        ENDIF
 
@@ -943,7 +905,7 @@ CONTAINS
        ! Update the array of rate constants
        CALL Update_RCONST( )
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        ! Archive 
        CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
        IF ( Input_Opt%NN_RxnRates > 0 ) THEN
@@ -980,11 +942,6 @@ CONTAINS
        ! Integrate the box forwards
        !=================================================================
 
-!#if defined( DEVEL )
-!         ! Get time before integrator starts
-!         CALL CPU_TIME( start )
-!#endif
-
        ! Call the KPP integrator
        CALL Integrate( TIN,    TOUT,    ICNTRL,      &
                        RCNTRL, ISTATUS, RSTATE, IERR )
@@ -994,7 +951,7 @@ CONTAINS
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
        ENDIF
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
@@ -1036,7 +993,7 @@ CONTAINS
           IF ( IERR < 0 ) THEN 
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ! Revert to start values
@@ -1061,7 +1018,7 @@ CONTAINS
        ! Save for next integration time step
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        ! Save rate constants in global array (not used)
        GLOB_RCONST(I,J,L,:) = RCONST(:)
 #endif
@@ -1087,71 +1044,8 @@ CONTAINS
 
        ENDDO
 
-#if defined( BPCH_DIAG )
-       !====================================================================
-       ! ND65 (bpch) diagnostic
-       !
-       ! Obtain prod/loss rates from KPP [molec/cm3]
-       !====================================================================
-       IF ( Input_Opt%DO_SAVE_PL ) THEN
-
-          ! Loop over # prod/loss species
-          DO F = 1, nFam
-
-             ! NOTE: KppId is the KPP ID # for each of the prod and loss
-             ! diagnostic species.  This is the value used to index the
-             ! KPP "VAR" array (in module gckpp_Global.F90).
-             KppId         = ND65_Kpp_Id(F)
-
-             ! Archive prod or loss for species or families [molec/cm3/s]
-             AD65(I,J,L,F) = AD65(I,J,L,F) + VAR(KppID) / DT
-
-             ! Save out P(Ox) and L(Ox) from the fullchem simulation
-             ! for a future tagged O3 run
-             ! NOTE: Probably not needed for netCDF diagnostics
-             IF ( Input_Opt%DO_SAVE_O3 ) THEN
-                IF ( TRIM(FAM_NAMES(F)) == 'POx' ) THEN
-                   POx(I,J,L) = VAR(KppID) / DT
-                ENDIF
-                IF ( TRIM(FAM_NAMES(F)) == 'LOx' ) THEN
-                   LOx(I,J,L) = VAR(KppID) / DT
-                ENDIF
-             ENDIF
-
-             !--------------------------------------------------------
-             ! Save out P(CO) and L(CH4) from the fullchem simulation
-             ! for use in tagged CO
-             !--------------------------------------------------------
-             IF ( Input_Opt%DO_SAVE_PCO ) THEN
-                IF ( TRIM(FAM_NAMES(F)) == 'PCO'  ) THEN
-                   PCO_TOT = VAR(KppID) / DT
-                ENDIF
-                IF ( TRIM(FAM_NAMES(F)) == 'LCH4' ) THEN
-                   LCH4    = VAR(KppID) / DT
-                ENDIF
-             ENDIF
-
-          ENDDO
-
-          ! For tagged CO, use LCH4 to get P(CO) contributions from
-          ! CH4 and NMVOC
-          IF ( Input_Opt%DO_SAVE_PCO ) THEN
-             ! P(CO)_CH4 is LCH4. Cap so that it is never greater
-             ! than total P(CO) to prevent negative P(CO)_NMVOC
-             PCO_CH4 = MIN( LCH4, PCO_TOT )
-   
-             ! P(CO) from NMVOC is the remaining P(CO)
-             PCO_NMVOC = PCO_TOT - PCO_CH4
-   
-             ! Add to AD65 array [molec/cm3/s]
-             AD65(I,J,L,NFAM+1) = AD65(I,J,L,NFAM+1) + PCO_CH4
-             AD65(I,J,L,NFAM+2) = AD65(I,J,L,NFAM+2) + PCO_NMVOC
-
-          ENDIF
-
-       ENDIF
-
-#if defined( TOMAS )
+#ifdef BPCH_DIAG
+#ifdef TOMAS
        !always calculate rate for TOMAS
        DO F = 1, NFAM
 
@@ -1211,7 +1105,7 @@ CONTAINS
           ENDDO
        ENDIF
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        !==============================================================
        ! Write out OH reactivity
        ! The OH reactivity is defined here as the inverse of its life-
@@ -1270,21 +1164,6 @@ CONTAINS
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
     ENDIF
-
-#if defined( BPCH_DIAG )
-    !=======================================================================
-    ! Save out P(O3) and L(O3) for a tagged O3 run
-    !
-    ! %%%% NOTE: Currently only works when BPCH_DIAG=y %%%%
-    !=======================================================================
-    IF ( Input_Opt%DO_SAVE_O3 ) THEN
-       CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Grid, &     
-                    State_Met, RC )
-       IF ( prtDebug ) THEN
-          CALL DEBUG_MSG( '### Do_FlexChem: after DIAG20' )
-       ENDIF
-    ENDIF
-#endif
 
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
@@ -1349,7 +1228,7 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     ! Archive all needed reaction rates in state_diag
     IF ( Input_Opt%NN_RxnRconst > 0 ) THEN
        DO N = 1, Input_Opt%NN_RxnRconst
@@ -1392,10 +1271,6 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
-#if defined( BPCH_DIAG )
-    USE Diag_Mod,       ONLY : AD43
-    USE Diag_Mod,       ONLY : LTOH, LTHO2, LTO1D, LTO3P
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1457,7 +1332,7 @@ CONTAINS
     ! Zero the netCDF diagnostic arrays (if activated) above the 
     ! tropopause or mesopause to avoid having leftover values
     ! from previous timesteps
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     IF ( State_Diag%Archive_O3concAfterChem  ) THEN
        State_Diag%O3concAfterChem  = 0.0_f4
     ENDIF
@@ -1497,19 +1372,11 @@ CONTAINS
          !------------------------------------------------------------------
          IF ( ok_OH ) THEN
 
-#if defined( BPCH_DIAG )
-            ! ND43 (bpch) diagnostic
-            IF ( Do_ND43 ) THEN
-               AD43(I,J,L,1) = AD43(I,J,L,1)                                 &
-                             + ( Spc(I,J,L,id_OH) * LTOH(I,J)               )
-            ENDIF
-#endif
-
             ! HISTORY (aka netCDF diagnostics)
             IF ( State_Diag%Archive_OHconcAfterChem ) THEN
                State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
             ENDIF
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
             IF ( State_Diag%Archive_O3concAfterChem ) THEN
                State_Diag%O3concAfterChem(I,J,L) = Spc(I,J,L,id_O3)
             ENDIF
@@ -1604,17 +1471,6 @@ CONTAINS
          ! HO2 concentration [v/v] 
          !------------------------------------------------------------------
          IF ( ok_HO2 ) THEN
-
-#if defined( BPCH_DIAG )
-            ! ND43 (bpch) diagnostic
-            IF ( Do_ND43 ) THEN
-               AD43(I,J,L,2) = AD43(I,J,L,2)                                 &
-                             + ( Spc(I,J,L,id_HO2) / AirNumDen(I,J,L) )      &
-                             * ( LTHO2(I,J)                           )
-            ENDIF
-#endif
-
-            ! HISTORY (aka netCDF diagnostics)
             IF ( State_Diag%Archive_HO2concAfterChem ) THEN
                State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
                                                   /   AirNumDen(I,J,L)      )
@@ -1628,16 +1484,6 @@ CONTAINS
             ! O1D concentration [molec/cm3]
             !---------------------------------------------------------------
             IF ( ok_O1D ) THEN
-
-#if defined( BPCH_DIAG ) 
-               ! ND43 (bpch) diagnostic
-               IF ( Do_ND43 ) THEN
-                  AD43(I,J,L,3) = AD43(I,J,L,3)                              &
-                                + ( Spc(I,J,L,id_O1D) * LTO1D(I,J)          )
-               ENDIF
-#endif
-
-               ! HISTORY (aka netCDF diagnostics)
                IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
                   State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
                ENDIF
@@ -1649,16 +1495,6 @@ CONTAINS
             ! O3P concentration [molec/cm3]
             !---------------------------------------------------------------
             IF ( ok_O3P ) THEN
-
-#if defined( BPCH_DIAG )
-               ! ND43 (bpch) diagnostic
-               IF ( Do_ND43 ) THEN
-                  AD43(I,J,L,4) = AD43(I,J,L,4)                              &
-                                + ( Spc(I,J,L,id_O3P) * LTO3P(I,J)          )
-               ENDIF
-#endif
-
-               ! HISTORY (aka netCDF diagnostics)
                IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
                   State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
                ENDIF

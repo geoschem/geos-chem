@@ -173,15 +173,6 @@
       ! SAVEd scalars
       LOGICAL, SAVE :: FIRST   = .TRUE.
       LOGICAL, SAVE :: Do_ND03 = .FALSE.
-      LOGICAL, SAVE :: Do_ND30 = .FALSE.
-      LOGICAL, SAVE :: Do_ND31 = .FALSE.
-      LOGICAL, SAVE :: Do_ND45 = .FALSE.
-      LOGICAL, SAVE :: Do_ND47 = .FALSE.
-      LOGICAL, SAVE :: Do_ND54 = .FALSE.
-      LOGICAL, SAVE :: Do_ND57 = .FALSE.
-      LOGICAL, SAVE :: Do_ND67 = .FALSE.
-      LOGICAL, SAVE :: Do_ND68 = .FALSE.
-      LOGICAL, SAVE :: Do_ND71 = .FALSE.
       INTEGER, SAVE :: id_Hg2  = -1
       INTEGER, SAVE :: id_HgP  = -1
       REAL(fp),SAVE :: EmMW_g_Hg2 = -1.0_fp
@@ -195,6 +186,9 @@
       RC      =  GC_SUCCESS
 
 #if defined( BPCH_DIAG )
+      ! Are certain diagnostics turned on?
+      IF ( .not. Input_Opt%ND03 > 0 ) RETURN
+
       !=================================================================
       ! First-time setup
       !=================================================================
@@ -214,32 +208,6 @@
             EmMW_g_HgP = State_Chm%SpcData(id_HgP)%Info%EmMW_g
          ENDIF
 
-         ! Are certain diagnostics turned on?
-         Do_ND03 = ( Input_Opt%ND03 > 0 ) 
-         Do_ND30 = ( Input_Opt%ND30 > 0 )
-         Do_ND31 = ( Input_Opt%ND31 > 0 )
-         Do_ND45 = ( Input_Opt%ND45 > 0 )
-         Do_ND47 = ( Input_Opt%ND47 > 0 )
-         Do_ND54 = ( Input_Opt%ND54 > 0 )
-         Do_ND57 = ( Input_Opt%ND57 > 0 )
-         Do_ND67 = ( Input_Opt%ND67 > 0 )
-         Do_ND68 = ( Input_Opt%ND68 > 0 )
-         Do_ND71 = ( Input_Opt%ND71 > 0 )
-         
-         !--------------------------------------------------------------
-         ! ND69: Surface area [m2]
-         !
-         ! NOTE: This is a time-invariant diagnostic, 
-         ! so we can just archive this on the first call
-         !--------------------------------------------------------------
-         IF ( Input_Opt%ND69 > 0 ) THEN
-            DO J = 1, State_Grid%NY
-            DO I = 1, State_Grid%NX
-               AD69(I,J,1) = State_Grid%Area_M2(I,J)
-            ENDDO
-            ENDDO
-         ENDIF
-
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
@@ -249,6 +217,7 @@
       ! within a single OpenMP parallel loop, so that we can enclose
       ! more work within the parallel region than the prior code.
       !=================================================================
+      IF ( Input_Opt%ND03 > 0 ) THEN
 
       ! Loop over advected species
 !$OMP PARALLEL DO
@@ -273,7 +242,7 @@
             !===========================================================
             ! ND03: Hg speciality simulation diagnostics
             !===========================================================
-            IF ( Do_ND03 .and. NA == 1 ) THEN
+            IF ( NA == 1 ) THEN
 
                !--------------------------------------------------------
                ! Reactive gaseous mercury [pptv]
@@ -293,187 +262,12 @@
      &                            * ( AIRMW / EmMW_g_HgP * 1e+12_fp )
                ENDIF
             ENDIF
-         
-            !===========================================================
-            ! ND30: Land/water/ice flags
-            !===========================================================
-            IF ( Do_ND30 .and. NA == 1 .and. L == 1 ) THEN
-            
-               ! Water
-               IF ( IS_WATER( I, J, State_Met ) ) THEN
-                  AD30(I,J) = AD30(I,J) + 0e0
-               ENDIF
-
-               ! Land
-               IF ( IS_LAND ( I, J, State_Met ) ) THEN
-                  AD30(I,J) = AD30(I,J) + 1e0
-               ENDIF
-               
-               ! Ice
-               IF ( IS_ICE  ( I, J, State_Met ) ) THEN
-                  AD30(I,J) = AD30(I,J) + 2e0
-               ENDIF
-
-            ENDIF
-
-            !===========================================================
-            ! ND31: Pressure [hPa] at level edges
-            !===========================================================
-            IF ( Do_ND31 .and. NA == 1 .and. L <= LD31 ) THEN
-               AD31(I,J,L) = AD31(I,J,L) + State_Met%PEDGE(I,J,L) 
-
-               ! Also archive the State_Grid%NZ+1th pressure edge
-               IF ( L == State_Grid%NZ ) THEN
-                  AD31(I,J,L+1) = AD31(I,J,L+1) 
-     &                          + State_Met%PEDGE(I,J,L+1) 
-               ENDIF
-            ENDIF
-
-            !===========================================================
-            ! ND45/ND47/ND71: Species concentrations [v/v dry air]
-            !===========================================================
-            IF ( Do_ND45 .or. Do_ND47 .or. Do_ND71 ) THEN
-
-               ! Species concentration in [v/v dry air]
-               Spc_VV = State_Chm%Species(I,J,L,N) * AIRMW / EmMW_g
-
-               !--------------------------------------------------------
-               ! ND45: Species concentration between HR_OTH1 and HR_OTH2
-               !--------------------------------------------------------
-               IF ( Do_ND45 .and. L <= LD45 ) THEN
-                  AD45(I,J,L,NA) = AD45(I,J,L,NA) 
-     &                           + ( Spc_VV * LTOTH(I,J) )
-               ENDIF
-
-               !--------------------------------------------------------
-               ! ND47: 24-hr average species concentration
-               !--------------------------------------------------------
-               IF ( Do_ND47 .and. L <= LD47 ) THEN
-                  AD47(I,J,L,NA) = AD47(I,J,L,NA) + Spc_VV
-               ENDIF
-
-               !--------------------------------------------------------
-               ! ND71: Maximum hourly surface PPBV
-               !       Save data into hourly tracking array AD71_HR
-               !       and then compute the max outside of the loop
-               !--------------------------------------------------------
-               IF ( Do_ND71 .and. L== 1 ) THEN
-                  AD71_HR(I,J,NA) = AD71_HR(I,J,NA) + Spc_VV
-               ENDIF
-            
-            ENDIF
-
-            !===========================================================
-            ! ND54: Count time the box was tropospheric
-            !=========================================================== 
-            IF ( Do_ND54 .and. NA == 1 .and. L <= LD54 ) THEN
-
-               IF ( State_Met%InTroposphere(I,J,L) ) THEN
-                  AD54(I,J,L) = AD54(I,J,L) + 1.0_f4
-               ENDIF
-               
-            ENDIF
-
-            !===========================================================
-            ! ND57: Potential temperature
-            !===========================================================
-            IF ( Do_ND57 .and. NA == 1 .and. L <= LD57 ) THEN
-               AD57(I,J,L) = AD57(I,J,L) + State_Met%THETA(I,J,L)
-            ENDIF
-
-            !===========================================================
-            ! ND67: Store PBL top pressure [hPa]
-            !===========================================================
-            IF ( Do_ND67 .and. NA == 1 .and. L == 1 ) THEN
-
-               ! PBL is in [m], use hydrostatic law to get [hPa]
-               AD67(I,J,13) = AD67(I,J,13)
-     &                      +  ( State_Met%PEDGE(I,J,1) 
-     &                      *    EXP( -State_Met%PBLH(I,J)
-     &                      /          SCALE_HEIGHT        ) )
-            ENDIF
-
-            !===========================================================
-            ! ND68: 1: BXHEIGHT   - box height [m] 
-            !       2: AD         - dry air mass [kg]
-            !       3: AVGW       - mol H2O / mol dry air [v/v]
-            !       4: AIRNUMDEN  - dry air number density [molecs/cm3]
-            !       5: T          - temperature [K]
-            !       6: PMID       - arithmetic mean pressure [hPa]
-            !       7: PEDGE      - level pressure (bottom edge) [hPa]
-            !       8: RH         - relative humidity [%]
-            !=========================================================== 
-            IF ( Do_ND68 .and. NA == 1 .and. L <= LD68 ) THEN
-
-               AD68(I,J,L,1) = AD68(I,J,L,1)
-     &                       + State_Met%BXHEIGHT(I,J,L)
-
-               AD68(I,J,L,2) = AD68(I,J,L,2)
-     &                       + State_Met%AD(I,J,L)
-
-               AD68(I,J,L,3) = AD68(I,J,L,3)
-     &                       + State_Met%AVGW(I,J,L)
-
-               AD68(I,J,L,4) = AD68(I,J,L,4)
-     &                       + State_Met%AIRNUMDEN(I,J,L) 
-
-               AD68(I,J,L,5) = AD68(I,J,L,5)
-     &                       + State_Met%T(I,J,L)
-
-               AD68(I,J,L,6) = AD68(I,J,L,6)
-     &                       + State_Met%PMID(I,J,L)
-
-               AD68(I,J,L,7) = AD68(I,J,L,7) 
-     &                       + State_Met%PEDGE(I,J,L)
-
-               AD68(I,J,L,8) = AD68(I,J,L,8)
-     &                       + State_Met%RH(I,J,L)
-
-            ENDIF
-
          ENDDO
          ENDDO
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      !================================================================= 
-      ! ND71: Species (V/V) at level 1, daily maximum hourly avg.
-      !================================================================= 
-      IF ( ND71 > 0 ) THEN
-
-         IF ((GET_DAY().ne.AD71_LDAY).and.(AD71_LDAY.ge.0)) THEN
-            ! It's a new day, with no diagnostics written
-            AD71(:,:,:) = AD71(:,:,:) + AD71_DAY(:,:,:)
-            AD71_DAY(:,:,:) = 0e0
-            AD71_COUNT = AD71_COUNT + 1
-         ENDIF
-
-         IF ((GET_HOUR().ne.AD71_LHR).and.(AD71_LHR.ge.0)) THEN
-            ! New hour - get average of last data
-!            AD71_HR = AD71_HR / AD71_HRCT
-            ! Set daily max
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, NA )
-            DO NA = 1, State_Chm%nAdvect
-            DO J = 1, State_Grid%NY
-            DO I = 1, State_Grid%NX
-               AD71_DAY(I,J,NA) = MAX(AD71_DAY(I,J,NA),
-     &                            (AD71_HR(I,J,N)/(AD71_HRCT)))
-            ENDDO   
-            ENDDO
-            ENDDO 
-!$OMP END PARALLEL DO
-            AD71_HR = 0e0
-            AD71_HRCT = 0
-         ENDIF
-
-         AD71_LDAY = GET_DAY()
-         AD71_LHR  = GET_HOUR()
-         AD71_HRCT = AD71_HRCT + 1
       ENDIF
-
 #endif
       END SUBROUTINE DIAG1
 !EOC

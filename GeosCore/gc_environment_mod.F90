@@ -49,16 +49,7 @@ MODULE GC_Environment_Mod
 !
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Created module file
-!  13 Aug 2012 - R. Yantosca - Added ProTeX headers
-!  19 Oct 2012 - R. Yantosca - Removed routine INIT_LOCAL_MET, this is now
-!                              handled in Headers/gigc_state_met_mod.F90
-!  22 Oct 2012 - R. Yantosca - Renamed to gigc_environment_mod.F90
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  28 Aug 2015 - R. Yantosca - Remove Get_nSchm_nSchmBry; stratospheric 
-!                              chemistry fields are now read by HEMCO
-!  16 Aug 2016 - M. Sulprizio- Rename from gigc_environment_mod.F90 to 
-!                              gc_environment_mod.F90. The "gigc" nomenclature
-!                              is no longer used.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,8 +80,8 @@ CONTAINS
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-    USE CMN_DIAG_Mod,       ONLY : Init_CMN_DIAG
+#ifdef BPCH_DIAG
+    USE CMN_DIAG_MOD,       ONLY : Init_CMN_DIAG
 #endif
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
@@ -132,33 +123,12 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  26 Jan 2012 - M. Long     - Initial version
-!  13 Aug 2012 - R. Yantosca - Added ProTeX headers
-!  17 Oct 2012 - R. Yantosca - Add am_I_Root, RC as arguments
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_All
-!  30 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC to SET_COMMSOIL_MOD
-!  01 Nov 2012 - R. Yantosca - Now zero the fields of the Input Options object
-!  16 Nov 2012 - R. Yantosca - Remove this routine from the #ifdef DEVEL block
-!  27 Nov 2012 - R. Yantosca - Now pass Input_Opt to INIT_COMODE_LOOP
-!  03 Dec 2012 - R. Yantosca - Now pass am_I_Root, RC to INIT_CMN_SIZE
-!  03 Dec 2012 - R. Yantosca - Add optional arguments to accept dimension
-!                              size information from the ESMF interface
-!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F
-!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_mod.F
-!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_NOX_mod.F
-!  25 Jul 2014 - R. Yantosca - Remove reference to obsolete commsoil_mod.F90
-!  25 Jul 2014 - R. Yantosca - Now call INIT_GET_NDEP (GeosCore/get_ndep_mod.F)
-!  04 Aug 2015 - C. Keller   - Now pass LLTROP and LLSTRAT to INIT_CMN_SIZE.
-!  17 Jun 2016 - R. Yantosca - Move call to INIT_GET_NDEP to GIGC_INIT_EXTRA
-!                              which is called after species database init
-!  30 Jun 2016 - M. Sulprizio- Remove call to INIT_COMODE_LOOP; it's obsolete
-!  20 Dec 2017 - R. Yantosca - Return when encountering errors
-!  29 Dec 2017 - C. Keller   - Now accept value of LLSTRAT from Input_Opt
-!  14 Mar 2018 - E. Lundgren - Input_Opt parameter is IN only, not INOUT
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     ! Integers
     INTEGER            :: LLTROP
 #endif
@@ -187,7 +157,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
     CALL Init_CMN_DIAG( am_I_Root, State_Grid, RC )
 
@@ -281,33 +251,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  26 Jan 2012 - M. Long     - Initial version
-!  13 Aug 2012 - R. Yantosca - Added ProTeX headers
-!  16 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
-!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE  argument to State_Chm
-!  16 Oct 2012 - R. Yantosca - Call Init_Chemistry_State (in gc_type2_mod.F90,
-!                              which was renamed from INIT_CHEMSTATE)
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now reference IGAS in Headers/comode_loop_mod.F
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Init_All
-!  26 Oct 2012 - R. Yantosca - Now call Get_nSchm, nSchmBry to find out the
-!                              number of strat chem species and Bry species
-!  01 Nov 2012 - R. Yantosca - Now use LSCHEM from logical_mod.F
-!  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
-!  26 Feb 2013 - R. Yantosca - Now pass Input_Opt to Init_GIGC_State_Chm
-!  28 Aug 2015 - R. Yantosca - Remove strat-chem options from call to 
-!                              Init_GIGC_State_Chm; this is done by HEMCO
-!  25 Jan 2016 - R. Yantosca - Bug fix: Declare Input_Opt as INTENT(INOUT),
-!                              to match the declaration in INIT_GIGC_STATE_CHM
-!  28 Jan 2016 - M. Sulprizio- Remove NBIOMAX from call to Init_GIGC_State_Chm
-!  30 Jun 2016 - M. Sulprizio- Remove nSpecies from call to Init_GIGC_State_Chm
-!  26 Jun 2017 - R. Yantosca - Now call GC_ERROR to give better error feedback
-!  05 Jul 2017 - R. Yantosca - Now initialize the Diagnostics State object
-!  26 Sep 2017 - E. Lundgren - Pass diagnostics list object as argument
-!  16 Nov 2017 - E. Lundgren - Do not pass IIPAR, JJPAR, LLPAR, NDUST, AER
-!                              since available from CMN_Size_Mod in routines
-!  01 Feb 2018 - E. Lundgren - Initialize new diagnostics_mod module
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,20 +367,7 @@ CONTAINS
 !                                                                             .
 ! !REVISION HISTORY: 
 !  01 Mar 2012 - R. Yantosca - Initial version
-!  01 May 2012 - M. Payer    - Add call to COMPUTE_GLOBAL_GRID for nested grids
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!  30 Nov 2012 - R. Yantosca - Accept external DLON, DLAT from ESMF interface
-!  26 Feb 2013 - R. Yantosca - Now pass I_LO, J_LO to COMPUTE_GRID
-!  28 Feb 2013 - R. Yantosca - Bug fix for GEOS-5 interface: Now call 
-!                              Compute_Grid with 1..IIPAR, I..JJPAR
-!  01 Jul 2013 - R. Yantosca - Don't use 1/2 sized polar boxes for GCAP
-!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
-!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete global_grid_mod
-!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
-!  26 Jan 2018 - M. Sulprizio- Moved to gc_environment_mod.F90 from input_mod.F
-!                              and renamed from Initialize_Grid to GC_Init_Grid
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,18 +433,10 @@ CONTAINS
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE Diag03_Mod,         ONLY : Init_Diag03
-    USE Diag04_Mod,         ONLY : Init_Diag04
-    USE Diag20_Mod,         ONLY : Init_Diag20
-    USE Diag41_Mod,         ONLY : Init_Diag41
-    USE Diag42_Mod,         ONLY : Init_Diag42
-    USE Diag48_Mod,         ONLY : Init_Diag48
-    USE Diag49_Mod,         ONLY : Init_Diag49
-    USE Diag50_Mod,         ONLY : Init_Diag50
     USE Diag51_Mod,         ONLY : Init_Diag51
     USE Diag51b_Mod,        ONLY : Init_Diag51b
     USE Diag53_Mod,         ONLY : Init_Diag53
     USE Diag56_Mod,         ONLY : Init_Diag56
-    USE Diag63_Mod,         ONLY : Init_Diag63
     USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
@@ -564,41 +487,7 @@ CONTAINS
 !                                                                             .
 ! !REVISION HISTORY: 
 !  04 Mar 2013 - R. Yantosca - Initial revision
-!  05 Mar 2013 - R. Yantosca - Now call INIT_AEROSOL (GeosCore/aerosol_mod.F)
-!  15 Mar 2013 - R. Yantosca - Now call INIT_LINOZ (GeosCore/linoz_mod.F)
-!  29 Mar 2013 - R. Yantosca - Now call INIT_TROPOPAUSE (so that we can pass
-!                              a LVARTROP from Input_Opt and not logical_mod.F)
-!  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_CO
-!  10 Apr 2014 - R. Yantosca - Now call INIT_TAGGED_OX and INIT_GLOBAL_CH4
-!  11 Apr 2014 - R. Yantosca - Now call INIT_C2H6 and INIT_HCN_CH3CN
-!  14 Apr 2014 - R. Yantosca - Also call INIT_C2H6 if it's a fullchem sim
-!                              since we read C2H6 emissions from c2h6_mod.F
-!  25 Jun 2014 - R. Yantosca - Now call INIT_MODIS_LAI      
-!  25 Jun 2014 - R. Yantosca - Now call SET_VDIFF_VALUES (vdiff_pre_mod.F90)
-!  25 Aug 2014 - M. Sulprizio- Now call INIT_POPS
-!  16 Mar 2015 - R. Yantosca - Now call INIT_TOMS here
-!  28 Aug 2015 - R. Yantosca - Now initialize drydep & wetdep here, so that
-!                              we can take advantage of the species database
-!  03 Sep 2015 - R. Yantosca - Now call INIT_WETSCAV instead of WETDEPID
-!  21 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_POPS
-!  22 Sep 2015 - R. Yantosca - Bug fix: only call INIT_WETSCAV if convection,
-!                              wetdep, or chemistry ist turned on.  This
-!                              replicates the prior behavior,
-!  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SEASALT
-!  23 Sep 2015 - R. Yantosca - Now pass State_Chm to INIT_SULFATE
-!  25 Apr 2016 - R. Yantosca - Now call INIT_DIAG03 here
-!  25 Apr 2016 - R. Yantosca - Now initialize all mercury modules from here
-!  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from here
-!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_Init_Extra to GC_Init_Extra.
-!                              The "gigc" nomenclature is no longer used.
-!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument and
-!                              pass it to the various init routines
-!  07 Nov 2017 - R. Yantosca - Now accept Diag_List as an argument
-!  07 Nov 2017 - R. Yantosca - Return error condition to main level
-!  26 Jan 2018 - M. Sulprizio- Moved to gc_environment_mod.F90 from input_mod.F
-!  07 Aug 2018 - H.P. Lin    - Unify init routines to accept Input_Opt,
-!                              State_Chm, State_Diag
-!  14 Feb 2019 - R. Yantosca - Remove call to Init_Modis_Lai, it's obsolete
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -912,13 +801,7 @@ CONTAINS
     CALL Ndxx_Setup( am_I_Root, Input_Opt, State_Chm, State_Grid, RC )
 
     ! Allocate diagnostic arrays
-    CALL Init_Diag04( State_Grid )
-    CALL Init_Diag41( State_Grid )
-    CALL Init_Diag42( am_I_Root, Input_Opt, State_Grid, RC )
-    IF ( Input_Opt%DO_ND48 ) &
-       CALL INIT_DIAG48 ( am_I_Root, Input_Opt, State_Grid, RC )
-    IF ( Input_Opt%DO_ND49 ) &
-       CALL Init_Diag49 ( am_I_Root, Input_Opt, State_Grid, RC )
+#ifdef BPCH_DIAG
     IF ( Input_Opt%DO_ND50 ) &
        CALL Init_Diag50 ( am_I_Root, Input_Opt, State_Grid, RC )
     IF ( Input_Opt%DO_ND51 ) &
@@ -927,21 +810,16 @@ CONTAINS
        CALL Init_Diag51b( am_I_Root, Input_Opt, State_Grid, RC )
     CALL Init_Diag53( State_Grid )
     CALL Init_Diag56( State_Grid )
-    IF ( Input_Opt%DO_ND63 ) &
-       CALL Init_Diag63 ( am_I_Root, Input_Opt, State_Grid, RC )
 
     ! Initialize the Hg diagnostics (bpch)
     CALL Init_Diag03( State_Chm, State_Grid )
-
-    ! Initialize ND20 for tagged O3 simulation
-    IF ( Input_Opt%DO_SAVE_O3 ) THEN
-       CALL Init_Diag20( am_I_Root, Input_Opt, State_Grid, RC )
-    ENDIF
+#endif
 
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
     CALL Init_Diag_OH( am_I_Root, Input_Opt, State_Grid, RC )
 
-#if !defined( ESMF_ )
+#ifdef BPCH_DIAG
+#ifndef ESMF_
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !
@@ -952,6 +830,7 @@ CONTAINS
     ! but we have to keep it for the time being (bmy, 4/11/18)
     !--------------------------------------------------------------------
     CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
+#endif
 #endif
 
     IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
@@ -1000,10 +879,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  15 Jul 2014 - R. Yantosca - Initial version
-!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/HEMCO
-!  26 Jan 2018 - M. Sulprizio- Moved to gc_environment_mod.F90 from main.F and
-!                              renamed from Initialize_Regridding to
-!                              GC_Init_Regridding
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1053,7 +929,7 @@ CONTAINS
       
   END SUBROUTINE GC_Init_Regridding
 !EOC
-#if defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1110,54 +986,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
-!  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
-!  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
-!  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
-!  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options 
-!        (bmy, 5/10/06)
-!  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
-!  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
-!  (10) Now read LSTREETS for David Streets' emissions (bmy, 8/17/06)
-!  (11) Kludge: Reset LMFLUX or LPRECON to LCTH, as the MFLUX and PRECON
-!        lightning schemes have not yet been implemented.  Rename LOTDLIS
-!        to LOTDREG.  Also read LOTDLOC for the OTD-LIS local redistribution
-!        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and 
-!        LOTDLOC are not both turned on at the same time. (bmy, 1/31/07)
-!  (12) Add LOTDSCALE to the list of LNOx options (ltm, bmy, 9/24/07)
-!  (13) Add new error traps for OTD-LIS options, dependent on met field type
-!        (ltm, bmy, 11/29/07)
-!  (14) Bug fix, create string variables for ERROR_STOP (bmy, 1/24/08)
-!  (15) Now read LCAC for CAC emissions (amv, 1/09/2008)
-!  (16) Now read LEDGARSHIP, LARCSHIP and LEMEPSHIP (phs, 12/5/08)
-!  (17) Fixed typo in message for GEOS-3 (bmy, 10/30/08)
-!  (18) Now read LVISTAS (amv, 12/2/08)
-!  (19) Now read L8DAYBB, L3HRBB and LSYNOPBB for GFED2 8-days and 3hr
-!        emissions, and LICARTT for corrected EPA (phs, yc, 12/17/08)
-!  (20) Add a specific switch for MEGAN emissions for monoterpenes and MBO
-!       (ccc, 2/2/09)
-!  (21) Now read LICOADSSHIP (cklee, 6/30/09)
-!  (22) Bug fix: for now, if LEMEPSHIP is turned on but LEMEP is turned off,
-!        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
-!  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
-!  (24) Included optional flag for using MODIS LAI data (mpb,2009).
-!  (25) Included optional flag for using PCEEA model (mpb, 2009)
-!  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
-!  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
-!  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
-!  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
-!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  23 Apr 2013 - R. Yantosca - Renamed to INIT_TOMAS_MICROPHYS
-!  30 Jan 2014 - R. Yantosca - INIT_TOMAS accepts am_I_Root, Input_Opt, RC
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
-!  16 Jun 2016 - E. Lundgren - INIT_TOMAS now accepts State_Chm
-!  22 Jun 2016 - R. Yantosca - Force -1's returned by Ind_() to zeroes,
-!                              in order to preserve the program logic
-!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
