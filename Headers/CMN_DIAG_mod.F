@@ -33,13 +33,13 @@
       INTEGER, PARAMETER :: MAX_TRACER = 600      ! Large placeholder value
 
 #ifdef BPCH_DIAG
+
 #if defined( TOMAS )
       ! Special settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
       INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC   
       INTEGER, PARAMETER :: PD60=TOMASBIN*TOMASSPEC    
       INTEGER, PARAMETER :: PD61=2 
       INTEGER            :: PD65
-
       INTEGER, PARAMETER :: MAX_DIAG   = 80
 
 #elif defined( RRTMG )
@@ -55,10 +55,15 @@
       INTEGER, PARAMETER :: MAX_DIAG   = 187
 
 #else
-      ! For non-TOMAS and non-RRTMG
+      ! For non-TOMAS and non-RRTMG with BPCH_DIAG=y
       INTEGER, PARAMETER :: MAX_DIAG   = 80
 
 #endif
+
+#else
+      ! For BPCH_DIAG=n
+      INTEGER, PARAMETER :: MAX_DIAG   = 80
+
 #endif
 !
 ! !PUBLIC DATA MEMBERS:

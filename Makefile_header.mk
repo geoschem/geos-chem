@@ -289,9 +289,9 @@ endif
 # Diagnostic settings
 #------------------------------------------------------------------------------
 
-# Turn on bpch diagnostics UNLESS specified otherwis
+# Turn OFF bpch diagnostics UNLESS specified otherwise
 ifdef BPCH_DIAG
-  BPCH_DIAG          :=yes
+  BPCH_DIAG          :=no
 endif
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
