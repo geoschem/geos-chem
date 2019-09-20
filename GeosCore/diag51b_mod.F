@@ -148,7 +148,7 @@
 !
 ! !PRIVATE TYPES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       !=================================================================
       ! MODULE VARIABLES
       ! GOOD             : Array denoting grid boxes w/in LT limits
@@ -283,7 +283,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       REAL(fp) :: TAU_W
 #endif
 
@@ -294,7 +294,7 @@
       ! Assume success
       RC = GC_SUCCESS
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
 
       ! Construct array of where local times are between HR1, HR2
       CALL GET_LOCAL_TIME( Input_Opt, State_Grid )
@@ -333,7 +333,7 @@
 !
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       USE TIME_MOD,       ONLY : GET_LOCALTIME
       USE TIME_MOD,       ONLY : GET_TS_DYN
 #endif
@@ -369,7 +369,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       INTEGER  :: I
       REAL(fp) :: LT, TS_DYN
 
@@ -418,7 +418,7 @@
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH
@@ -498,7 +498,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
@@ -531,7 +531,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
 
       ! Number of advected species
       nAdvect   =  State_Chm%nAdvect
@@ -1168,7 +1168,7 @@
 ! !USES:
 !
       USE Input_Opt_Mod, ONLY : OptInput
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_HOUR
       USE TIME_MOD,      ONLY : GET_MINUTE
@@ -1201,7 +1201,7 @@
 !
       LOGICAL  :: ITS_TIME
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       REAL(fp) :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
@@ -1277,7 +1277,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState    
       USE State_Grid_Mod,     ONLY : GrdState    
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_SIZE_MOD             ! Size Parameters
@@ -1363,7 +1363,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       INTEGER             :: I,   J,  L,  W, N, GMNL, GMTRC
       INTEGER             :: IOS, X, Y, K, NHMS, nAdvect
       CHARACTER(LEN=16)   :: STAMP
@@ -1379,7 +1379,7 @@
       ! Assume success
       RC         =  GC_SUCCESS
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
 
       ! Copy values from Input_Opt
       nAdvect    = State_Chm%nAdvect
@@ -1876,7 +1876,7 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       ! Add the offset to X to get I  
       I = IOFF + X
 
@@ -1906,7 +1906,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       USE BPCH2_MOD,      ONLY : GET_MODELNAME
       USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD         ! Size parameters
@@ -1945,7 +1945,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       INTEGER            :: AS
       CHARACTER(LEN=255) :: LOCATION
 #endif
@@ -1957,7 +1957,7 @@
       ! Assume success
       RC = GC_SUCCESS
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
 
       ! Initialize
       LOCATION               = 'INIT_DIAG51b ("diag51b_mod.f")'
@@ -2112,7 +2112,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG 
       !=================================================================
       ! CLEANUP_DIAG51b begins here!
       !=================================================================

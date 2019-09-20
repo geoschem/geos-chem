@@ -154,7 +154,7 @@
 !
 ! !PRIVATE TYPES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       !=================================================================
       ! MODULE VARIABLES
       !
@@ -288,7 +288,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       REAL(fp) :: TAU_W
 #endif
 
@@ -299,7 +299,7 @@
       ! Assume success
       RC =  GC_SUCCESS      
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
 
       ! Construct array of where local times are between HR1, HR2
       CALL GET_LOCAL_TIME( Input_Opt, State_Grid )
@@ -339,7 +339,7 @@
 !
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       USE TIME_MOD,       ONLY : GET_LOCALTIME
       USE TIME_MOD,       ONLY : GET_TS_DYN
 #endif
@@ -375,7 +375,7 @@
 !
 ! !LOCAL VARIABLES:
 !   
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       INTEGER  :: I
       REAL(fp) :: LT, TS_DYN
 
@@ -424,7 +424,7 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_FJX_MOD,        ONLY : ISOPOD
@@ -510,7 +510,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
@@ -546,7 +546,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
 
       ! Copy values from INPUT_OPT
       LSOA      = Input_Opt%LSOA
@@ -1325,7 +1325,7 @@
 ! !USES:
 !
       USE Input_Opt_Mod, ONLY : OptInput
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_HOUR
       USE TIME_MOD,      ONLY : GET_MINUTE
@@ -1357,7 +1357,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL  :: ITS_TIME
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       REAL(fp) :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
@@ -1432,7 +1432,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_SIZE_MOD             ! Size Parameters
@@ -1443,20 +1443,6 @@
       USE TIME_MOD,           ONLY : GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-
-#if   defined( USE_HDF5 )
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%%% NOTE: THIS IS PROBABLY BROKEN, WE WILL NOT REPLACE IT
-      !%%%%% BECAUSE WE ARE GOING TO MOVE TO netCDF OUTPUT (bmy, 4/11/18)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-      USE HDF_MOD,            ONLY : OPEN_HDF
-      USE HDF_MOD,            ONLY : CLOSE_HDF
-      USE HDF_MOD,            ONLY : WRITE_HDF
-      USE HDF5,               ONLY : HID_T
-      INTEGER(HID_T)              :: IU_ND51_HDF
-#endif
-
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1511,7 +1497,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       INTEGER             :: I,   J,  L,  W, N, GMNL, GMTRC, nAdvect
       INTEGER             :: IOS, X, Y, K, NHMS
       CHARACTER(LEN=16)   :: STAMP
@@ -1527,7 +1513,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
 
       ! Copy values from Input_Opt
       nAdvect   = State_Chm%nAdvect
@@ -1982,19 +1968,6 @@
          ! Save to bpch file
          !------------------------
          IF ( Input_Opt%LND51_HDF ) THEN
-#if   defined( USE_HDF5 )
-            ! Only include this if we are linking to HDF5 library 
-            ! (bmy, 12/21/09)
-            CALL WRITE_HDF( IU_ND51_HDF, N,
-     &                  CATEGORY,     GMTRC,        UNIT,
-     &                  TAU0,         TAU1,         RESERVED,
-     &                  ND51_NI,      ND51_NJ,      GMNL,
-     &                  Input_Opt%ND51_IMIN+I0,
-     &                  Input_Opt%ND51_JMIN+J0,
-     &                  Input_Opt%ND51_LMIN,
-     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
-#else
-         ELSE
             CALL BPCH2( IU_ND51,      MODELNAME,    LONRES,   
      &                  LATRES,       HALFPOLAR,    CENTER180, 
      &                  CATEGORY,     GMTRC,        UNIT,      
@@ -2004,7 +1977,6 @@
      &                  Input_Opt%ND51_JMIN+J0,
      &                  Input_Opt%ND51_LMIN, 
      &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
-#endif
          ENDIF
       ENDDO
 
@@ -2013,14 +1985,7 @@
  120  FORMAT( '     - DIAG51: Closing file ', a )
 
       ! Close file
-      IF ( Input_Opt%LND51_HDF ) THEN
-#if   defined( USE_HDF5 )
-         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-         CALL CLOSE_HDF( IU_ND51_HDF )
-#endif
-      ELSE
-         CLOSE( IU_ND51 )
-      ENDIF
+      CLOSE( IU_ND51 )
 
       !=================================================================
       ! Re-initialize quantities for next diagnostic cycle
@@ -2081,7 +2046,7 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       ! Add the offset to X to get I  
       I = IOFF + X
 
@@ -2111,7 +2076,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       USE BPCH2_MOD,      ONLY : GET_MODELNAME
       USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
@@ -2150,7 +2115,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       INTEGER            :: AS
       CHARACTER(LEN=255) :: LOCATION
 #endif
@@ -2162,7 +2127,7 @@
       ! Assume success
       RC = GC_SUCCESS 
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
 
       ! Initialize
       LOCATION               = 'INIT_DIAG51 ("diag51_mod.f")'
@@ -2316,7 +2281,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
       !=================================================================
       ! CLEANUP_DIAG51 begins here!
       !=================================================================

@@ -2942,7 +2942,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_nat
 #endif
       USE ErrCode_Mod
@@ -3732,7 +3732,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
          ENDDO
         
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          !==============================================================
          ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
          !
@@ -3898,7 +3898,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03
 #endif
       USE ErrCode_Mod
@@ -4098,7 +4098,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
             ENDDO
             
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !==============================================================
             ! %%%%% ND03 (bpch) DIAGNOSTICS %%%%%
             !
@@ -4155,7 +4155,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03
 #endif
       USE ErrCode_Mod
@@ -4351,7 +4351,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
             ENDDO
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !-----------------------------------------------------------
             ! %%%%% ND03 (bpch) diagnostics
             !
@@ -5280,7 +5280,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : GET_OBK
       USE DAO_MOD,            ONLY : IS_WATER
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
 #endif
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -5572,7 +5572,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             BR_PPTV  = BR_PPTV  + Br_POLAR
             BrO_PPTV = BrO_PPTV + BrO_POLAR
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !==============================================================
             ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
             !
@@ -6313,7 +6313,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE TIME_MOD,           ONLY : EXPAND_DATE,GET_YEAR, GET_TS_EMIS !hmh 9/16/15
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, GET_MONTH
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03 ! hmh 9/16/15 for Hg_up/down
 #endif
       ! adding hmh 5/17/16
@@ -6617,7 +6617,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                FUP(I,J,NN) = MAX(FUP(I,J,NN), SMALLNUM )
                FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
                !--------------------------------------------------------
                ! %%%%% ND03 (bpch) DIAGNOSTICS %%%%%
                !

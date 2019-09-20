@@ -563,7 +563,7 @@
                ! Save in PVAR -- add offset of 100000
                PVAR(N) = 100000 + NUM
 
-#if   defined( TOMAS )
+#ifdef TOMAS
             ! Add case matching for TOMAS microphysics rates (win, 7/28/09)
             !===========================================================
             ! GEOS-CHEM tracer: listed as "TMS_001", etc.
@@ -1525,8 +1525,10 @@
       USE TIME_MOD
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
       USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
-#if defined( BPCH_DIAG ) && defined( TOMAS )
+#ifdef TOMAS
+#ifdef BPCH_DIAG
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
+#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -2262,7 +2264,8 @@
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
-#if   defined( TOMAS ) && defined( BPCH_DIAG )
+#ifdef TOMAS
+#ifdef BPCH_DIAG
                   !-------------------------------
                   ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
                   !-------------------------------
@@ -2278,7 +2281,7 @@
      &                    'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
 
 #endif
-
+#endif
                   !--------------------------
                   ! Otherwise it's an error!
                   !--------------------------
@@ -2503,7 +2506,7 @@
       ! FP replace 95 by 200
 ! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
 !     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
-#if   defined( TOMAS )
+#ifdef TOMAS
  110  FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3,
      $       X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,250(es11.3e3,x))
 #else

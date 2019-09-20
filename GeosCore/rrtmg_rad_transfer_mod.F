@@ -1,4 +1,4 @@
-#if defined( RRTMG )
+#ifdef RRTMG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -19,7 +19,7 @@
       USE CMN_FJX_MOD,  ONLY : RTODAER, RTSSAER, RTASYMAER,
      &                         WVAA,    SPECMASK
       USE CMN_SIZE_MOD, ONLY : NDUST, NAER
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
 #endif
       USE OMP_LIB
@@ -178,7 +178,7 @@
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
       USE UnitConv_Mod,        ONLY : Convert_Spc_Units
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG_MOD,            ONLY : AD72
 #endif
 !
@@ -1656,7 +1656,7 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO J=1,State_Grid%NY
       DO I=1,State_Grid%NX
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
        !================================================================
        ! %%%%% ND72 (bpch) DIAGNOSTIC %%%%%
        !
@@ -1855,7 +1855,7 @@
          !DIVIDE THROUGH BY AOD
          SSAOUT=SSAOUT/AODOUT
          !offsetting output depending on wavelength
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = 
      &   AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) + AODOUT
          AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) = 

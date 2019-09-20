@@ -4183,7 +4183,7 @@
 !      !-----------------------------
 !      ! SOA net production [kg]
 !      !-----------------------------
-!#if defined( BPCH_DIAG )
+!#ifdef BPCH_DIAG
 !      IF ( ND07 > 0 .and. L <= LD07 ) THEN
 !         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
 !     &                    + ( AERMASS - 
@@ -5051,7 +5051,7 @@ ccc
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
 #endif
       USE CMN_SIZE_MOD
@@ -5355,7 +5355,7 @@ ccc
 
 !end anthro emissions
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
       !%%%% which is only called if BPCH_DIAG=y.(bmy, 8/7/18)          %%%%

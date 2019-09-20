@@ -402,7 +402,7 @@
 ! !USES:
 !     
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
       USE DIAG03_MOD,         ONLY : ND03                
 #endif
@@ -655,7 +655,7 @@
 !$OMP END PARALLEL DO
 
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       ! Increment diagnostic timestep counter. 
       CALL SET_Hg2_DIAG( INCREMENT=.TRUE. )
 #endif
@@ -693,7 +693,7 @@
 !
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE,  IS_LAND
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03,    ND03 
 #endif
       USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
@@ -783,7 +783,7 @@
             SNOW_Hg2aq(NN) =
      &            ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
                   
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !===========================================================
             ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
             !
@@ -1022,7 +1022,7 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_WATER, IS_ICE
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
 #endif
       USE ErrCode_Mod
@@ -1921,7 +1921,7 @@
                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG *
      &                            A_M2 * DTSRCE * FRAC_O
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
                   !-----------------------------------------------------
                   ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
                   !
@@ -2088,7 +2088,7 @@
 
                   HgPaq(I,J,NN)   = MAX ( HgPaq(I,J,NN) , 0e+0_fpp )    
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
                   !-----------------------------------------------------
                   ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
                   !
@@ -2219,7 +2219,7 @@
 
             ENDDO   
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !-----------------------------------------------------------
             ! %%%%% ND03 (bpch) DIAGNOSTICS
             !
