@@ -20,7 +20,7 @@
       IMPLICIT NONE
       PRIVATE
 !
-#if defined( APM )
+#ifdef APM
       ! NOTE: This should really go into State_CHM!! (bmy, 6/17/19)
       REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: PSO4_SO2APM2(:,:,:)
 #endif
@@ -787,7 +787,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-#if defined( TOMAS )
+#ifdef TOMAS
       USE Tomas_Mod,          ONLY : GetFraction
 #endif
 !
@@ -906,7 +906,7 @@
       ! Scalars
       INTEGER                  :: I, J, L
       REAL(fp)                 :: SO2LOSS,   Ki
-#if defined( TOMAS )
+#ifdef TOMAS
       REAL(fp)                 :: SOLFRAC,   XFRAC
 #endif
 
@@ -1064,7 +1064,7 @@
       !-----------------------------------------------------------
       ELSE IF ( SpcInfo%MP_SizeResAer ) THEN
 
-#if defined( TOMAS )
+#ifdef TOMAS
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
@@ -1091,7 +1091,7 @@
       !-----------------------------------------------------------
       ELSE IF ( SpcInfo%MP_SizeResNum ) THEN
 
-#if defined( TOMAS )
+#ifdef TOMAS
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
@@ -1730,12 +1730,12 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
-#if defined( APM )
+#ifdef APM
       USE APM_INIT_MOD,   ONLY : APMIDS
       USE APM_INIT_MOD,   ONLY : RDRY, RSALT, RDST, DENDST
       USE APM_DRIV_MOD,   ONLY : GFTOT3D, DENWET3D, MWSIZE3D
 #endif
-#if defined( TOMAS )
+#ifdef TOMAS
       USE ERROR_MOD
       USE TOMAS_MOD,      ONLY : IBINS,    ICOMP
       USE UnitConv_Mod
@@ -1862,10 +1862,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-#if defined( APM )
+#ifdef APM
       REAL(fp)               :: RIN
 #endif
-#if defined( TOMAS )
+#ifdef TOMAS
       LOGICAL                :: UNITCHANGE_KGKG ! flag for STT units kg/kg
       LOGICAL                :: UNITCHANGE_KGM2 ! flag for STT units kg/m2 
 #endif
@@ -1891,7 +1891,7 @@
       ErrMsg  = ''
       ThisLoc = ' -> at Washout (in module GeosCore/wetscav_mod.F)'
 
-#if defined( TOMAS )
+#ifdef TOMAS
       !-----------------------------------------------------------------
       ! TOMAS MICROPHYSICS ONLY 
       !
@@ -2026,7 +2026,7 @@
       ! NOTE: treat H2SO4 as an aerosol for wetdep in TOMAS
       !-----------------------------------------------------------------
       ELSE IF ( SpcInfo%MP_SizeResAer .or. SpcInfo%MP_SizeResNum ) THEN
-#if defined( APM )
+#ifdef APM
          ! Washout is a kinetic process
          KIN      = .TRUE.
 
@@ -2053,7 +2053,7 @@
          CALL WASHFRAC_APMSIZE_AEROSOL
      &       (RIN, DT, F, PP, TK, WASHFRAC)
 #endif
-#if defined( TOMAS )
+#ifdef TOMAS
          ! Washout is a kinetic process
          KIN      = .TRUE.
 
@@ -2086,7 +2086,7 @@
 
       ENDIF
 
-#if defined( TOMAS )
+#ifdef TOMAS
       !-----------------------------------------------------------------
       ! TOMAS MICROPHYSICS ONLY 
       ! Convert State_Chm%Species units back to original units 
@@ -2303,7 +2303,7 @@
 
       END FUNCTION WASHFRAC_COARSE_AEROSOL
 !EOC
-#if defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2503,7 +2503,7 @@
       ENDIF
 
       END FUNCTION WASHFRAC_HNO3
-#if defined( APM )
+#ifdef APM
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3739,14 +3739,6 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
-      USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
-      USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
-      USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
-      USE DIAG_MOD,       ONLY : CT16                  ! ND16 diag counter
-      USE DIAG_MOD,       ONLY : CT17                  ! ND17 diag counter
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : IT_IS_NAN             ! Test for NaN
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
@@ -3755,12 +3747,9 @@
       USE State_Diag_Mod, ONLY : DgnState              ! Diag State object
       USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
       USE State_Met_Mod,  ONLY : MetState              ! Met State object
-#if defined( TOMAS )
+#ifdef TOMAS
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
       USE TOMAS_MOD,      ONLY : GETFRACTION
-#if defined( BPCH_DIAG )
-      USE DIAG_MOD,       ONLY : AD05
-#endif
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -3827,7 +3816,7 @@
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
 
-#if defined( TOMAS )
+#ifdef TOMAS
       ! Scavenging fraction of 30-bin aerosols (win, 7/16/09)
       REAL(fp)           :: TOM_SC_FRACTION(IBINS)
       REAL(fp)           :: SOLFRAC, XFRAC
@@ -3845,23 +3834,6 @@
 
       ! Point to the chemical species array [kg/m2]
       Spc => State_Chm%Species
-
-#if defined( BPCH_DIAG )
-      !-----------------------------------------------------------------
-      ! ND16 (bpch) diagnostic
-      !-----------------------------------------------------------------
-
-      ! ND16 diagnostic...save F 
-      IF ( ND16 > 0 .and. L <= LD16 ) THEN
-         AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F_RAINOUT
-         CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1 
-      ENDIF
-
-      ! ND17 diagnostic...increment counter
-      IF ( ND17 > 0 .and. L <= LD17 ) THEN
-         CT17(I,J,L,IDX) = CT17(I,J,L,IDX) + 1
-      ENDIF
-#endif
 
       !-----------------------------------------------------------------
       ! HISTORY (aka netCDF diagnostics)
@@ -3905,7 +3877,7 @@
             RETURN
          ENDIF
 
-#if defined( TOMAS )
+#ifdef TOMAS
          IF ( id_NK1 > 0 ) THEN
             IF ( N >= id_NK1 .and. N < id_NK1 + IBINS ) THEN  
 
@@ -3951,26 +3923,6 @@
             DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
 
          ENDIF
-
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND17 and ND39 (bpch) diagnostics
-         !--------------------------------------------------------------
-
-         ! ND17 diagnostic...rainout fractions [unitless]
-         IF ( ND17 > 0 .and. L <= LD17 ) THEN
-            AD17(I,J,L,NW,IDX) = 
-     &           AD17(I,J,L,NW,IDX) + RAINFRAC / F_RAINOUT
-         ENDIF
-
-         ! ND39 diag -- save rainout losses in [kg/s] 
-         ! NOTE: eventually change this to kg/m2/s (ewl, 11/16/15)
-         ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
-         IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-            AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Grid%Area_M2(I,J)
-         ENDIF
-#endif
 
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
@@ -4066,17 +4018,6 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD05
-      USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
-      USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
-      USE DIAG_MOD,       ONLY : AD18                  ! ND18 diag array
-      USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
-      USE DIAG_MOD,       ONLY : CT16                  ! ND16 diag counter
-      USE DIAG_MOD,       ONLY : CT17                  ! ND17 diag counter
-      USE DIAG_MOD,       ONLY : CT18                  ! ND18 diag counter
-#endif
       USE ErrCode_Mod                                  
       USE ERROR_MOD
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
@@ -4085,7 +4026,7 @@
       USE State_Diag_Mod, ONLY : DgnState              ! Diagnostic State object
       USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
       USE State_Met_Mod,  ONLY : MetState              ! Met State object
-#if defined( TOMAS )      
+#ifdef TOMAS      
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
 #endif
 !
@@ -4236,7 +4177,7 @@
       ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
       REAL(fp), POINTER  :: Spc(:,:,:,:)
 
-#if defined( TOMAS )
+#ifdef TOMAS
       REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
       INTEGER            :: KMIN       !(win, 7/16/09)
 #endif
@@ -4253,23 +4194,6 @@
 
       ! Point to the chemical species array [kg/m2]
       Spc => State_Chm%Species
-
-#if defined( BPCH_DIAG )
-      !-----------------------------------------------------------------
-      ! ND16 (bpch) diagnostic
-      !-----------------------------------------------------------------
-
-      ! ND16 diagnostic...save F (fraction of grid box raining)
-      IF ( ND16 > 0e+0_fp .and. L <= LD16 ) THEN
-         AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F_WASHOUT
-         CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1 
-      ENDIF
-
-      ! ND18 diagnostic...increment counter
-      IF ( ND18 > 0 .and. L <= LD18 ) THEN
-         CT18(I,J,L,IDX) = CT18(I,J,L,IDX) + 1
-      ENDIF
-#endif
 
       !-----------------------------------------------------------------
       ! HISTORY (aka netCDF diagnostics)
@@ -4402,7 +4326,7 @@
                Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) 
      &                           + GAINED * 96e+0_fp / 64e+0_fp
 
-#if defined( APM )
+#ifdef APM
                PSO4_SO2APM2(I,J,L) = PSO4_SO2APM2(I,J,L)
      &                             + GAINED * 96e+0_fp / 64e+0_fp
 #endif
@@ -4411,16 +4335,8 @@
      &                                          ( 1e+0_fp - WASHFRAC )
 
 
-#if defined( TOMAS )
+#ifdef TOMAS
 !added for TOMAS (win, 7/16/09)
-#if defined( BPCH_DIAG )
-            ! Save the amout of SO4 [kg S/m2] added via aqueous 
-            ! chem to ND05(6) diagnostic assuming it's all 
-            ! by reacting with H2O2 (win, 7/16/09)
-            IF ( ND05 > 0 .and. L <= LD05 ) 
-     &         AD05(I,J,L,6) = AD05(I,J,L,6) +
-     &         ( GAINED * 32e+0_fp / 64e+0_fp )
-#endif
 
             ! Re-evaporated portion get distributed onto
             ! size-resolved sulfate by AQOXID (win, 7/16/09)
@@ -4488,18 +4404,6 @@
                DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
             ENDIF
 
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND18 (bpch) diagnostic
-            !-----------------------------------------------------------
-
-            ! ND18 diagnostic...divide washout fraction by F
-            IF ( ND18 > 0 .and. L <= LD18 ) THEN
-               AD18(I,J,L,NW,IDX) = 
-     &         AD18(I,J,L,NW,IDX) + ( WASHFRAC / F_WASHOUT )
-            ENDIF
-#endif
-
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -4550,19 +4454,6 @@
                DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
             ENDIF
 
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND18 (bpch) diagnostic
-            !-----------------------------------------------------------
-
-            ! ND18 diagnostic...we don't have to divide the
-            ! washout fraction by F since this is accounted for.
-            IF ( ND18 > 0 .and. L <= LD18 ) THEN
-               AD18(I,J,L,NW,IDX) = 
-     &         AD18(I,J,L,NW,IDX) + WASHFRAC
-            ENDIF
-#endif
-
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -4580,21 +4471,6 @@
             ENDIF
 
          ENDIF
-
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND39 (bpch) diagnostic
-         !--------------------------------------------------------------
-
-         ! ND39 diag -- save washout losses in [kg/s]
-         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
-         ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
-         IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-            AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Grid%Area_M2(I,J)
-
-         ENDIF
-#endif
 
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
@@ -4679,17 +4555,6 @@
 !     
 ! !USES:
 !
-#if defined( BPCH_DIAG )                              
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD05
-      USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
-      USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
-      USE DIAG_MOD,       ONLY : AD18                  ! ND18 diag array
-      USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
-      USE DIAG_MOD,       ONLY : CT16                  ! ND16 diag counter
-      USE DIAG_MOD,       ONLY : CT17                  ! ND17 diag counter
-      USE DIAG_MOD,       ONLY : CT18                  ! ND18 diag counter
-#endif                                                
       USE ErrCode_Mod
       USE Error_Mod,      ONLY : It_Is_Nan
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
@@ -4698,7 +4563,7 @@
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
-#if defined( TOMAS )
+#ifdef TOMAS
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
 #endif
 !
@@ -4753,7 +4618,7 @@
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
 
-#if defined( TOMAS )
+#ifdef TOMAS
       REAL(fp)           :: REEVAPSO2  !(win, 7/16/09)
       INTEGER            :: KMIN       !(win, 7/16/09)
 #endif
@@ -4788,12 +4653,12 @@
             Spc(I,J,L,id_SO4) = Spc(I,J,L,id_SO4) 
      &                        - ( WETLOSS * 96e+0_fp / 64e+0_fp )
 
-#if defined( APM )
+#ifdef APM
             PSO4_SO2APM2(I,J,L) = PSO4_SO2APM2(I,J,L)
      &                          - ( WETLOSS * 96e+0_fp / 64e+0_fp )
 #endif
 
-#if defined( TOMAS )
+#ifdef TOMAS
 !added for TOMAS (win, 7/16/09)
                      ! Save the amout of SO4 [kg S] added via aqueous 
                      ! chem to ND05(6) diagnostic assuming it's all 
@@ -4868,21 +4733,6 @@
          ! (I,J,L), so set DSpc at grid box (I,J,L) to zero.
          DSpc(NW,L,I,J) = 0e+0_fp
          
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND39 (bpch) diagnostic
-         !--------------------------------------------------------------
-
-         ! ND39 diag -- save rainout losses in [kg/s]
-         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
-         ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
-         IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-            AD39(I,J,L,NW) = AD39(I,J,L,NW) + ( WETLOSS / DT )
-     &                       * State_Grid%Area_M2(I,J)
-
-         ENDIF
-#endif
-
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -4966,16 +4816,6 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )                               
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
-      USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
-      USE DIAG_MOD,       ONLY : AD18                  ! ND18 diag array
-      USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
-      USE DIAG_MOD,       ONLY : CT16                  ! ND16 diag counter
-      USE DIAG_MOD,       ONLY : CT17                  ! ND17 diag counter
-      USE DIAG_MOD,       ONLY : CT18                  ! ND18 diag counter
-#endif                                                 
       USE ErrCode_Mod                                  
       USE ERROR_MOD,      ONLY : IT_IS_NAN             ! Test for NaN
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
@@ -5060,23 +4900,6 @@
       ! Point to the chemical species array [kg/m2]
       Spc => State_Chm%Species
 
-#if defined( BPCH_DIAG )
-      !-----------------------------------------------------------------
-      ! ND16 (bpch) diagnostic
-      !-----------------------------------------------------------------
-
-      ! ND16 diagnostic...save F 
-      IF ( ND16 > 0 .and. L <= LD16 ) THEN
-         AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F
-         CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1
-      ENDIF
-
-      ! ND18 diagnostic...increment counter
-      IF ( ND18 > 0 .and. L <= LD18 ) THEN
-         CT18(I,J,L,IDX) = CT18(I,J,L,IDX) + 1
-      ENDIF
-#endif
-
       !-----------------------------------------------------------------
       ! HISTORY (aka netCDF diagnostics)
       !
@@ -5143,34 +4966,6 @@
          ! Add washout losses in grid box (I,J,L=1) to DSpc [kg/m2] 
          ! (added cdh, 4/14/2009)
          DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
-
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND18 and ND39 (bpch) diagnostics
-         !--------------------------------------------------------------
-
-         ! ND18 diagnostic...LS and conv washout fractions [unitless]
-         IF ( ND18 > 0 .and. L <= LD18 ) THEN
-
-            ! Only divide WASHFRAC by F for aerosols, since
-            ! for non-aerosols this is already accounted for
-            IF ( KIN ) THEN
-               TMP = WASHFRAC / F
-            ELSE
-               TMP = WASHFRAC
-            ENDIF
-            
-            AD18(I,J,L,NW,IDX) = AD18(I,J,L,NW,IDX) + TMP
-         ENDIF
-
-         ! ND39 diag -- save washout loss in [kg/s]
-         ! NOTE: Eventually this will be [kg/m2/s] (ewl, 11/16/15)
-         ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
-         IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-            AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Grid%Area_M2(I,J)
-         ENDIF
-#endif
 
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
@@ -5642,7 +5437,7 @@
       id_SO4   = Ind_('SO4'  )
       id_H2O2  = Ind_('H2O2' )
 
-#if defined( APM )
+#ifdef APM
       ! NOTE: This should really go into State_Chm! (bmy, 6/17/19)
       ALLOCATE( PSO4_SO2APM2( State_Grid%NX, 
      &                        State_Grid%NY,

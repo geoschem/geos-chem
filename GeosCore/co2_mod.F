@@ -157,10 +157,6 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-#if defined( BPCH_DIAG )
-      USE DIAG04_MOD,         ONLY : ND04
-      USE DIAG04_MOD,         ONLY : AD04_chem
-#endif
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
@@ -340,17 +336,6 @@
      &            * XNUMOL_C                                 ! => molec/cm3
      &            / DTSRCE                                   ! => molec/cm3/s
      &            *State_Met%BXHEIGHT(I,J,L) * 100           ! => molec/cm2/s
-
-#if defined( BPCH_DIAG )
-            !==========================================================
-            ! %%%%% ND04 (bpch) DIAGNOSTICS %%%%%
-            ! 
-            ! Save production of CO2 from CO oxidation [molec/cm2/s]
-            !==========================================================
-            IF ( ND04 > 0 ) THEN
-               AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
-            ENDIF
-#endif
 
             !==========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%

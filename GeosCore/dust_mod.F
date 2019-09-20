@@ -24,16 +24,10 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEMDUST      
-#if defined( TOMAS )
+#ifdef TOMAS
       PUBLIC  :: SETTLEDUST
 #endif
       PUBLIC  :: RDUST_ONLINE
-!------------------------------------------------------------------------------
-! Prior to 3/3/19:
-! Remove RDUST_OFFLINE -- dust should always be on in fullchem and aerosol 
-! simulations (mps, 3/3/19)
-!      PUBLIC  :: RDUST_OFFLINE
-!------------------------------------------------------------------------------
       PUBLIC  :: GET_DUST_ALK
       PUBLIC  :: INIT_DUST
       PUBLIC  :: CLEANUP_DUST
@@ -41,7 +35,7 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: DRY_SETTLING
-#if defined( APM )
+#ifdef APM
       PRIVATE :: DRY_SETTLINGBIN
 #endif
 !
@@ -102,7 +96,7 @@
       REAL(fp), ALLOCATABLE :: FRAC_S(:)
       REAL(fp), ALLOCATABLE :: SRCE_FUNC(:,:,:)
 
-#if defined( TOMAS )
+#ifdef TOMAS
       ! To replicate the obsolete Input_Opt%IDDEP field
       ! Set to a large placeholder value
       INTEGER               :: TOMAS_IDDEP(1000)
@@ -136,7 +130,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Diag_Mod,     ONLY : DgnState
-#if defined( APM )
+#ifdef APM
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
       USE APM_INIT_MOD,       ONLY : APMIDS
@@ -198,7 +192,7 @@
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg
       CHARACTER(LEN=255) :: ThisLoc
-#if defined( APM )
+#ifdef APM
       INTEGER       :: I,J,N,IDDST
       REAL(fp)      :: A_M2, E_DST, DTSRCE
       REAL(fp), POINTER :: Spc(:,:,:,:)
@@ -243,7 +237,7 @@
          FIRST = .FALSE.
       ENDIF
 
-#if defined( APM )
+#ifdef APM
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State
       ! object
       ! (mpayer, 12/6/12)
@@ -360,7 +354,7 @@
      &                      State_Diag, State_Grid, State_Met,
      &                      id_DAL1,    id_DAL4,    RC       )
 
-#if defined( APM )
+#ifdef APM
          ! Call APM size-resolved settling algorithm
          CALL DRY_SETTLINGBIN( am_I_Root,  Input_Opt,  State_Chm,
      &                         State_Diag, State_Grid, State_Met, RC )
@@ -381,7 +375,7 @@
 
       END SUBROUTINE CHEMDUST
 !EOC
-#if   defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -403,7 +397,7 @@
 ! !USES:
 ! 
       USE CMN_SIZE_MOD             ! Size parameters
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND44
       USE DIAG_MOD,           ONLY : AD44
 #endif
@@ -577,7 +571,7 @@
 !debug-----
             ENDDO
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !=========================================================== 
             !  Dry deposition diagnostic [#/cm2/s] (bpch)
             !===========================================================
@@ -632,7 +626,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND59
       USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
 #endif
@@ -763,7 +757,7 @@
      &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
          ENDIF
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          IF ( ND59 > 0 ) THEN 
             DO K = 1, IBINS
             DO J = 1, State_Grid%NY
@@ -811,10 +805,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD44
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants
@@ -1034,34 +1024,6 @@
                !========================================================      
                ! Dry deposition diagnostic [molec/cm2/s]
                !========================================================
-#if defined( BPCH_DIAG )
-               !-----------------------------------------------------
-               ! ND44 DIAGNOSTIC (bpch)
-               ! Dry deposition flux loss [molec/cm2/s]
-               !-----------------------------------------------------
-               IF ( ND44 > 0 ) THEN
-
-                  ! Initialize
-                  TOT1 = 0e+0_fp
-                  TOT2 = 0e+0_fp
-                  
-                  ! Compute column totals of TCO(:) and TC(I,J,:,N)
-                  DO L = 1, State_Grid%NZ
-                     TOT1 = TOT1 + TC0(L)
-                     TOT2 = TOT2 + TC(I,J,L,NA)
-                  ENDDO
-                  
-                  ! Convert dust flux from [kg/s] to [molec/cm2/s]
-                  FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
-                  FLUX = FLUX * AVO * ( AIRMW / 
-     &                    ThisSpc%emMw_g    ) /
-     &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
-                  
-                  ! For bpch diagnostic, save in global array AD44
-                  AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
-               ENDIF
-#endif
-
                IF ( State_Diag%Archive_DryDepChm .OR.
      &              State_Diag%Archive_DryDep        ) THEN
                   !-----------------------------------------------------
@@ -1103,7 +1065,7 @@
       TC      => NULL()
 
       END SUBROUTINE DRY_SETTLING
-#if defined( APM )
+#ifdef APM
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1379,7 +1341,7 @@
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
 #endif
@@ -1580,7 +1542,7 @@
      &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  / 
      &                           ( MSDENS(N) * RDAA(N,IDST) * 1.0e-6_fp)
 
-#if defined ( RRTMG )
+#ifdef RRTMG
             !add dust optics to the RT code arrays
             !SSA and ASYM copying seems a little redundant...
             !will keep this way for uniformity for now but
@@ -1645,7 +1607,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       !=================================================================
       ! ND21 Diagnostic: 
       !
@@ -3109,7 +3071,7 @@
          ENDIF
       ENDIF
 
-#if defined( TOMAS )
+#ifdef TOMAS
       !=================================================================
       ! INITIALIZATION SECTION FOR TOMAS MICROPHYSICS
       !=================================================================

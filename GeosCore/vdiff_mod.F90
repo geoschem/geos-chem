@@ -15,9 +15,6 @@ MODULE VDIFF_MOD
 ! 
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-  USE CMN_DIAG_MOD,  ONLY : ND15,  ND44            ! Diagnostics
-#endif
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE PhysConstants                                ! Physical constants
   USE PRECISION_MOD                                ! For GEOS-Chem Precision(fp)
@@ -227,9 +224,6 @@ contains
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-    USE DIAG_MOD,           ONLY : TURBFLUP
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : IS_SAFE_DIV
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -812,62 +806,47 @@ contains
     IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy   
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar  
 
-#if defined( BPCH_DIAG )
-    !=======================================================
-    ! ND15 Diagnostic: 
-    ! mass change due to mixing in the boundary layer
-    ! ND15 diagnostic moved here to not count the emissions
-    ! and dry deposition in the Turbulent Flux.
-    ! Needs to call qvdiff with emis+dep = 0 (dqbot) to 
-    ! account for all mixing. (ccc, 9/24/10)
-    !=======================================================
-    IF ( ND15 > 0 ) THEN
 
-       dqbot = 0e+0_fp
-       call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
-            termh, qp1, plonl )
-
-!-----------------------------------------------------------------------
-! Simple bug fix to ensure mass conservation - Jintai Lin 20180809
-!   Without this fix, mass is almost but not completed conserved,
-!   which is OK for full chemistry simulations but a big problem
-!   for long lived species such as CH4 and CO2
-!-----------------------------------------------------------------------
-       DO M = 1, pcnst
-       do I = 1, plonl
-
-          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
-          sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
-                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
-
-          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
-          sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
-                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
-
-          qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
-                                 sum_qp0 / sum_qp1
-
-       enddo
-       ENDDO
-
-       DO M = 1, pcnst
-       DO L = 1, plev 
-       do I = 1, plonl
-          ! Arrays in vdiff are upside-down
-          K = plev - L + 1
-          ! qp1 and qp0 are volume mixing ratio
-          TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
-                              + (qp1(I,L,M) - qp0(I,L,M)) &
-                              * State_Met%AD(I,lat,k) &
-                              / ( ( AIRMW /           &
-                                    State_Chm%SpcData(M)%Info%emMW_g ) &
-                                  * ztodt )
-       enddo
-       enddo
-       ENDDO
-
-    ENDIF
-#endif
+    ! NOTE: IS THIS DONE WHEN BPCH_DIAG IS OFF??????
+!#ifdef BPCH_DIAG
+!    !=======================================================
+!    ! ND15 Diagnostic: 
+!    ! mass change due to mixing in the boundary layer
+!    ! ND15 diagnostic moved here to not count the emissions
+!    ! and dry deposition in the Turbulent Flux.
+!    ! Needs to call qvdiff with emis+dep = 0 (dqbot) to 
+!    ! account for all mixing. (ccc, 9/24/10)
+!    !=======================================================
+!    IF ( Input_Opt%ND15 > 0 ) THEN
+!
+!       dqbot = 0e+0_fp
+!       call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+!            termh, qp1, plonl )
+!
+!!-----------------------------------------------------------------------
+!! Simple bug fix to ensure mass conservation - Jintai Lin 20180809
+!!   Without this fix, mass is almost but not completed conserved,
+!!   which is OK for full chemistry simulations but a big problem
+!!   for long lived species such as CH4 and CO2
+!!-----------------------------------------------------------------------
+!       DO M = 1, pcnst
+!       do I = 1, plonl
+!
+!          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+!          sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
+!                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
+!
+!          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+!          sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
+!                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
+!
+!          qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
+!                                 sum_qp0 / sum_qp1
+!
+!       enddo
+!       ENDDO
+!    ENDIF
+!#endif
 
   end subroutine vdiff
 !EOC
@@ -1923,9 +1902,6 @@ contains
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
-#if defined( BPCH_DIAG )
-    USE DIAG_MOD,           ONLY : AD44
-#endif
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
@@ -2561,22 +2537,6 @@ contains
           ! Get the (emitted) molecular weight of the species in kg
           EmMW_kg = SpcInfo%emMW_g * 1.e-3_fp
 
-#if defined( BPCH_DIAG )
-          !-----------------------------------------------------------------
-          ! Update dry deposition flux diagnostic for bpch output (ND44) 
-          !-----------------------------------------------------------------
-	  IF( Do_ND44 .or. LGTMM) THEN                
-             ! only for the lowest model layer
-             ! Convert : kg/m2/s -> molec/cm2/s
-             ! consider timestep difference between convection and emissions
-             ! Calculate flux [molec/cm2/s]
-             ! For bpch diagnostic output, save flux in global ADD 44 array
-	     AD44(:,:,ND,1) = AD44(:,:,ND,1) + dflx(:,:,N)        &
-                             /  (SpcInfo%emMW_g * 1.e-3_fp) * AVO      &
-                             * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM() 
-          ENDIF
-#endif
-
           !-----------------------------------------------------------------
           ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
           !
@@ -2852,8 +2812,10 @@ contains
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
+#ifdef TOMAS
+#ifdef BPCH_DIAG
     USE CMN_DIAG_MOD,       ONLY : ND44
+#endif 
 #endif
     USE DAO_MOD,            ONLY : AIRQNT
     USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
@@ -2961,10 +2923,12 @@ contains
           RETURN
        ENDIF
 
-#if defined( BPCH_DIAG )
+#ifdef TOMAS
+#ifdef BPCH_DIAG
        ! Set a flag to denote we should archive ND44 bpch diagnostic
        ! NOTE: this will only be valid if BPCH_DIAG=y
        Do_ND44 = ( ND44 > 0 ) 
+#endif
 #endif
       
        ! Reset first-time flag

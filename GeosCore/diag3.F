@@ -40,9 +40,6 @@
       USE BPCH2_MOD                          ! For binary punch I/O routines
       USE DIAG_MOD                           ! For diagnostic arrays
       USE DIAG03_MOD                         ! For Hg diagnostic
-      USE DIAG04_MOD                         ! For CO2 diagnostics
-      USE DIAG41_MOD                         ! For afternoon PBL diag
-      USE DIAG42_MOD                         ! For SOA diag
       USE DIAG53_MOD                         ! For POPs diag
       USE DIAG56_MOD                         ! For time in tropopause diag
 #endif
@@ -123,7 +120,7 @@
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
 
       REAL(fp)           :: SCALE_TMP(State_Grid%NX,State_Grid%NY)
-      REAL(fp)           :: SCALE_A1,   SCALE_A3  
+      REAL(fp)           :: SCALE_A3  
       REAL(fp)           :: SCALED,     SCALEDYN
       REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM  
       REAL(fp)           :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
@@ -145,7 +142,7 @@
       CHARACTER (LEN=40) :: UNIT
       CHARACTER (LEN=40) :: RESERVED = ''
 
-#if   defined( TOMAS )
+#ifdef TOMAS
       ! For ND06 diagnostics
       CHARACTER(LEN=1)   :: ISTR1
       CHARACTER(LEN=2)   :: ISTR2
@@ -244,7 +241,6 @@
       SCALESRCE  = DBLE( GET_CT_EMIS() ) + 1e-32_fp
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
       SCALERAD   = DBLE( GET_CT_RAD()  ) + 1e-32_fp
-      SCALE_A1   = DBLE( GET_CT_A1()   ) + 1e-32_fp
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1e-32_fp
       SCALE_I3   = DBLE( GET_CT_I3()   ) + 1e-32_fp
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1e-32_fp

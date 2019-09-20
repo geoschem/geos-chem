@@ -31,19 +31,7 @@ MODULE FlexChem_Mod
 !    
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  15 Jun 2016 - M. Sulprizio- Remove STTTOCSPEC mapping array. Species and
-!                              tracers have a 1:1 mapping currently so mapping
-!                              is not required
-!  18 Jul 2016 - M. Sulprizio- Remove FAMILIES_KLUDGE routine. Family tracers
-!                              have been eliminated.
-!  24 Aug 2016 - M. Sulprizio- Rename from flexchem_setup_mod.F90 to
-!                              flexchem_mod.F90
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  17 Nov 2017 - R. Yantosca - Now call Diag_OH_HO2_O1D_O3P, which will let
-!                              us remove arrays in CMN_O3_SIZE_mod.F
-!  29 Dec 2017 - C. Keller   - Make HSAVE_KPP public (needed for GEOS-5 restart)
-!  24 Jan 2018 - E. Lundgren - Pass error handling up if RC is GC_FAILURE
-!  11 Oct 2018 - M. Sulprizio- Move HSAVE_KPP to State_Chm, rename as KPPHvalue
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -65,7 +53,6 @@ MODULE FlexChem_Mod
 
   ! Diagnostic flags
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
-  LOGICAL               :: Do_ND43
 #if defined( MODEL_GEOS )
   LOGICAL               :: Archive_O3concAfterchem
   LOGICAL               :: Archive_RO2concAfterchem
@@ -142,7 +129,9 @@ CONTAINS
     USE UCX_MOD,              ONLY : UCX_NOX
     USE UCX_MOD,              ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
+#ifdef BPCH_DIAG
     USE TOMAS_MOD,            ONLY : H2SO4_RATE
+#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -828,25 +817,7 @@ CONTAINS
        ! Get rates for heterogeneous chemistry
        !====================================================================
        IF ( DO_HETCHEM ) THEN
-
-          ! Set hetchem rates
           CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
-
-!#if defined( BPCH_DIAG )
-!          IF ( ND52 > 0 ) THEN
-!             ! Archive gamma values
-!             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
-!             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
-!                                           + HET(ind_IEPOXB,1) &
-!                                           + HET(ind_IEPOXD,1)
-!             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
-!             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
-!                                           + HET(ind_ISOPNB,1)
-!             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
-!             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
-!          ENDIF
-!#endif
-
        ENDIF
 
        !====================================================================
@@ -1661,9 +1632,6 @@ CONTAINS
     ok_O3P                   = ( id_O3P > 0         )
     ok_OH                    = ( id_OH  > 0         )
     
-    ! Is the ND43 bpch diagnostic turned on?
-    Do_ND43                  = ( Input_Opt%ND43 > 0 ) 
-
     ! Throw an error if certain diagnostics for UCX are turned on,
     ! but the UCX mechanism is not used in this fullchem simulation
     ! NOTE: Maybe eventually move this error check to state_diag_mod.F90
@@ -1689,16 +1657,14 @@ CONTAINS
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
 #if defined( MODEL_GEOS )
-    Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                             .or. &  
-                                    State_Diag%Archive_O3concAfterChem  .or. &
+    Do_Diag_OH_HO2_O1D_O3P      = ( State_Diag%Archive_O3concAfterChem  .or. &
                                     State_Diag%Archive_RO2concAfterChem .or. &
                                     State_Diag%Archive_OHconcAfterChem  .or. &
                                     State_Diag%Archive_HO2concAfterChem .or. &
                                     State_Diag%Archive_O1DconcAfterChem .or. &
                                     State_Diag%Archive_O3PconcAfterChem     )
 #else
-    Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                             .or. &  
-                                    State_Diag%Archive_OHconcAfterChem  .or. &
+    Do_Diag_OH_HO2_O1D_O3P      = ( State_Diag%Archive_OHconcAfterChem  .or. &
                                     State_Diag%Archive_HO2concAfterChem .or. &
                                     State_Diag%Archive_O1DconcAfterChem .or. &
                                     State_Diag%Archive_O3PconcAfterChem     )

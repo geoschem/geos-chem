@@ -281,7 +281,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03
 #endif
       USE Time_Mod,           ONLY : Get_Ts_Chem
@@ -396,7 +396,7 @@
      7                               FRAC_SNOW_OR_ICE
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
 !----------------------------------------------------------------------------
 ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
 !
@@ -848,13 +848,12 @@
 ! !INTERFACE: 
 !
       SUBROUTINE UPDATE_DEP( NN )
+!#ifdef BPCH_DIAG
+!      USE DIAG_MOD,     ONLY : AD38, AD39, AD44
+!#endif
 ! 
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE DIAG_MOD,     ONLY : AD38,   AD39
-      USE DIAG_MOD,     ONLY : AD44
-#endif
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
 !
 ! !INPUT PARAMETERS:
@@ -880,20 +879,20 @@
       SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
 
-#if defined( BPCH_DIAG )
-      ! Hg2 total wet deposition at the surface
-      HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
-     &                          SUM(AD39(:,:,:,NN), DIM=3) )
-     &                      / SCALEDYN
-
-      ! Hg0 total dry deposition at the surface
-      N         = id_Hg0
-      HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
-
-      ! Hg2 total dry deposition at the surface
-      N         = id_Hg2
-      HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
-#endif
+!#ifdef BPCH_DIAG
+!      ! Hg2 total wet deposition at the surface
+!      HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
+!     &                          SUM(AD39(:,:,:,NN), DIM=3) )
+!     &                      / SCALEDYN
+!
+!      ! Hg0 total dry deposition at the surface
+!      N         = id_Hg0
+!      HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
+!
+!      ! Hg2 total dry deposition at the surface
+!      N         = id_Hg2
+!      HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
+!#endif
 
       END SUBROUTINE UPDATE_DEP
 !EOC

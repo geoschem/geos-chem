@@ -4024,10 +4024,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD07_HC 
-#endif
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
 !
@@ -4267,20 +4263,6 @@
       ENDDO
 
       !-----------------------------
-      ! SOA net production [kg]
-      !-----------------------------
-#if defined( BPCH_DIAG )
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                    + ( AERMASS - 
-     &                        Spc(I,J,L,id_ASOAN) -
-     &                        Spc(I,J,L,id_ASOA1) -
-     &                        Spc(I,J,L,id_ASOA2) -
-     &                        Spc(I,J,L,id_ASOA3)   )
-      ENDIF
-#endif
-
-      !-----------------------------
       ! Transient mass bal prod/evap
       ! (hotp 6/5/10)
       !-----------------------------
@@ -4489,7 +4471,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND59
       USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
       USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
@@ -4729,7 +4711,7 @@ ccc
       !                 [kg/box/timestep] and the corresponding
       !                  number emission [no./box/timestep]
       !=======================================================================
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       IF ( ND59 > 0 ) THEN 
          DO L = 1, PBL_MAX
          DO K = 1, IBINS

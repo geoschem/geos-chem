@@ -115,11 +115,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD01
-      USE DIAG_MOD,       ONLY : AD02
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
@@ -298,20 +293,6 @@
             ! Rn_LOST = amount of 222Rn lost to decay [kg]
             Rn_LOST(I,J,L) = Spc(I,J,L,id_Rn222) * ( 1.0_fp - EXP_Rn )
 
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND02 (bpch) diagnostic:
-            !
-            ! Rn222 lost to radioactive decay
-            !-----------------------------------------------------------
-
-            ! Units: [kg/s]
-            IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,1)   = AD02(I,J,L,1) 
-     &                         + ( Rn_LOST(I,J,L) / DTCHEM )
-            ENDIF
-#endif
-
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -347,23 +328,6 @@
             ! ADD_Pb = Amount of 210Pb gained by decay from 222Rn [kg]
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND01 (bpch) diagnostic
-            !
-            ! Pb210 emission from Rn222 decay
-            !-----------------------------------------------------------
-
-            ! Units: [kg/s]
-            IF ( ND01 > 0 .and. L <= LD01 ) THEN
-               AD01(I,J,L,1) = AD01(I,J,L,1) + ( ADD_Pb / DTCHEM )
-
-               IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                  AD01(I,J,L,2) = AD01(I,J,L,2) + ( ADD_Pb / DTCHEM )
-               ENDIF
-            ENDIF
-#endif
-
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -392,20 +356,6 @@
                PbStrat_LOST = Spc(I,J,L,id_Pb210Strat) *
      &                        ( 1.0_fp - EXP_Pb)
             ENDIF
-
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND02 (bpch) diagnostic:
-            !
-            ! Pb210 lost to radioactive decay
-            !-----------------------------------------------------------
-
-            ! Units: [kg/s]
-            IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST      / DTCHEM )
-               AD02(I,J,L,3) = AD02(I,J,L,3) + ( PbStrat_LOST / DTCHEM )
-            ENDIF
-#endif
 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
@@ -454,20 +404,6 @@
      &                         ( 1d0 - EXP_Be7 )
             ENDIF
 
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND02 (bpch) diagnostic:
-            !
-            ! Be7 lost to radioactive decay
-            !-----------------------------------------------------------
-
-            ! Units: [kg/s]
-            IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,4) = AD02(I,J,L,4) + ( Be7_LOST      / DTCHEM)
-               AD02(I,J,L,5) = AD02(I,J,L,5) + ( Be7Strat_LOST / DTCHEM)
-            ENDIF
-#endif
-
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -514,20 +450,6 @@
                Be10Strat_LOST = Spc(I,J,L,id_Be10Strat) *
      &                          ( 1d0 - EXP_Be10 )
             ENDIF
-
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND02 (bpch) diagnostic:
-            !
-            ! Be10 lost to radioactive decay
-            !-----------------------------------------------------------
-
-            ! Units: [kg/s]
-            IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,6) = AD02(I,J,L,6) + ( Be10_LOST      /DTCHEM)
-               AD02(I,J,L,7) = AD02(I,J,L,7) + ( Be10Strat_LOST /DTCHEM)
-            ENDIF
-#endif
 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)

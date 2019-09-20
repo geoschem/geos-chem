@@ -98,12 +98,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,        ONLY : CONVFLUP
-      USE DIAG_MOD,        ONLY : AD37
-      USE DIAG_MOD,        ONLY : AD38
-#endif
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
       USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
       USE ErrCode_Mod
@@ -119,7 +113,7 @@
       USE TIME_MOD,        ONLY : GET_TS_CONV
       USE UnitConv_Mod     
       USE WETSCAV_MOD,     ONLY : COMPUTE_F
-#if defined( USE_TEND )    
+#ifdef USE_TEND
       USE TENDENCIES_MOD   
       USE State_Chm_Mod,   ONLY : Ind_
 #endif
@@ -271,14 +265,10 @@
       TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [sec]
       DT         = DBLE( TS_DYN )                         ! Dyn timestep [sec]
       FSOL       = 0e+0_fp                                ! Zero the FSOL array
-      DO_ND14    = ( Input_Opt%ND14 > 0                 ) ! Is CONVFLUP alloc'd?
-      DO_ND38    = ( Input_Opt%ND38 > 0                 ) ! Is AD38 alloc'd?
-      DoConvFlux = ( DO_ND14 .or. State_Diag%Archive_CloudConvFlux ) 
-                                                          ! Save mass flux?
-      DoWetLoss  = ( DO_ND38 .or. State_Diag%Archive_WetLossConv   ) 
-                                                          ! Save wet loss?
+      DoConvFlux = State_Diag%Archive_CloudConvFlux       ! Save mass flux?
+      DoWetLoss  = State_Diag%Archive_WetLossConv         ! Save wet loss?
 
-#if defined( USE_TEND )
+#ifdef USE_TEND
       !=================================================================
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
@@ -321,20 +311,6 @@
          IF ( EC /= GC_SUCCESS ) THEN
             RC = EC
          ENDIF
-
-#if defined( BPCH_DIAG ) 
-         !--------------------------------------------------------------
-         ! ND37 (bpch) diagnostic
-         !
-         ! Fraction of soluble species lost in convective updrafts
-         ! NOTE: This diagnostic was somehow removed from GEOS-FP
-         ! and MERRA-2 convection, we have now restored it
-         !--------------------------------------------------------------
-         IF ( ND37 > 0 .and. ISOL > 0 ) THEN
-            AD37(:,:,1:LD37,ISOL) = AD37  (:,:,1:LD37,ISOL)
-     &                            + p_FSOL(:,:,1:LD37     )
-         ENDIF
-#endif
 
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
@@ -416,36 +392,6 @@
             RC = EC
          ENDIF
          
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND14 (bpch) DIAGNOSTIC 
-         !
-         ! Convective mass flux [kg/s]
-         ! NOTE: May be replaced soon with better flux diagnostics
-         !--------------------------------------------------------------
-         IF ( DO_ND14 ) THEN
-            DO N = 1, State_Chm%nAdvect
-            DO L = 1, Input_Opt%LD14
-               CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
-            ENDDO
-            ENDDO
-         ENDIF
-
-         !--------------------------------------------------------------
-         ! ND38 (bpch) DIAGNOSTIC
-         !
-         ! Loss of soluble species in convective mass flux [kg/s]
-         ! NOTE: May be replaced soon with better flux diagnostics
-         !--------------------------------------------------------------
-         IF ( DO_ND38 ) THEN
-            DO NW = 1, State_Chm%nWetDep
-            DO L  = 1, Input_Opt%LD38
-               AD38(I,J,L,NW) = AD38(I,J,L,NW) + DIAG38(L,NW)
-            ENDDO
-            ENDDO
-         ENDIF
-#endif
-
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -488,7 +434,7 @@
       ! Convection timestep [s]
       DT_Conv = GET_TS_CONV()
 
-#if defined( USE_TEND )
+#ifdef USE_TEND
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)

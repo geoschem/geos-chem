@@ -363,9 +363,8 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD44
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Br,  AD03_Hg2_OH
       USE DIAG03_MOD,         ONLY : AD03_Hg2_BRY,  AD03_Hg2_CLY
@@ -1348,48 +1347,7 @@
             ENDIF           
 !$OMP END CRITICAL
 
-#if defined( BPCH_DIAG )
-            !=================================================================
-            ! %%%%% ND44 (bpch) DIAGNOSTIC %%%%%
-            !
-            ! Dry deposition flux of Hg(II) in molec/cm2/s
-            !=================================================================
-            IF ( ( ND44 > 0 .OR. LGTMM )  .and. 
-     &           ( .not. LNLPBL        )  .and.
-     &           ( F_PBL > 0.1_fp      ) ) THEN
-
-               ! Grid box surface area [cm2]
-               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-               ! Amt of Hg(0) lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp *
-     &             State_Chm%SpcData(Hg0_Id_List(N))%Info%emMW_g ) / 
-     &             ( AREA_CM2 * DTCHEM )
-
-               ! Archive Hg(0) drydep flux in AD44 array [molec/cm2/s]
-               AD44(I,J,Hg0_Id_List(N),1) = 
-     &         AD44(I,J,Hg0_Id_List(N),1) +  DEP_DRY_FLX
-
-               ! Amt of Hg(II)g lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG2G_DRY * AVO / ( 1.e-3_fp *
-     &             State_Chm%SpcData(Hg2_Id_List(N))%Info%emMW_g ) / 
-     &             ( AREA_CM2 * DTCHEM )
-
-               ! Archive Hg(II) drydep flux in AD44 array [molec/cm2/s]
-               AD44(I,J,Hg2_Id_List(N),1) = 
-     &         AD44(I,J,Hg2_Id_List(N),1) + DEP_DRY_FLX
-
-               ! Amt of Hg(II)p lost to drydep [molec/cm2/s]
-               DEP_DRY_FLX  = DEP_HG2P_DRY * AVO / ( 1.e-3_fp *
-     &             State_Chm%SpcData(HgP_Id_List(N))%Info%emMW_g ) / 
-     &             ( AREA_CM2 * DTCHEM )
-
-               ! Archive Hg(II)p drydep flux in AD44 array [molec/cm2/s]
-               AD44(I,J,HgP_Id_List(N),1) = 
-     &         AD44(I,J,HgP_Id_List(N),1) + DEP_DRY_FLX
-
-            ENDIF
-
+#ifdef BPCH_DIAG
             !==============================================================
             ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
             !

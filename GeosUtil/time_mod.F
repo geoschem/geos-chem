@@ -38,10 +38,8 @@
       PUBLIC  :: SET_CT_EMIS
       PUBLIC  :: SET_CT_DIAG
       PUBLIC  :: SET_CT_RAD
-      PUBLIC  :: SET_CT_A1 
       PUBLIC  :: SET_CT_A3
       PUBLIC  :: SET_CT_I3
-      PUBLIC  :: SET_CT_XTRA
       PUBLIC  :: SET_ELAPSED_SEC
       PUBLIC  :: GET_JD
       PUBLIC  :: GET_ELAPSED_SEC
@@ -80,10 +78,8 @@
       PUBLIC  :: GET_CT_DYN
       PUBLIC  :: GET_CT_EMIS
       PUBLIC  :: GET_CT_RAD
-      PUBLIC  :: GET_CT_A1
       PUBLIC  :: GET_CT_A3
       PUBLIC  :: GET_CT_I3
-      PUBLIC  :: GET_CT_XTRA
       PUBLIC  :: GET_CT_DIAG
       PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
@@ -145,90 +141,7 @@
 !
 ! !REVISION HISTORY:
 !  21 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Updated comments (bmy, 9/4/01)
-!  (2 ) Added routine YMD_EXTRACT.  Also rewrote TIMECHECK using astronomical
-!        Julian day routines from "julday_mod.f". (bmy, 11/21/01)
-!  (3 ) Eliminated obsolete code (bmy, 2/27/02)
-!  (4 ) Updated comments (bmy, 5/28/02)
-!  (5 ) Added routine "expand_date".  Also now reference "charpak_mod.f".
-!        (bmy, 6/27/02)
-!  (6 ) Now references "error_mod.f".  Also added function GET_SEASON, which
-!        returns the current season number. (bmy, 10/22/02)
-!  (7 ) Now added module variables and various GET_ and SET_ routines to
-!        access them.  Now minutes are the smallest timing unit. (bmy, 3/21/03)
-!  (8 ) Bug fix in DATE_STRING (bmy, 5/15/03)
-!  (9 ) Added GET_FIRST_A3_TIME and GET_FIRST_A6_TIME.  Also added changes for
-!        reading fvDAS fields. (bmy, 6/26/03)
-!  (10) Now allow ITS_A_LEAPYEAR to take an optional argument.  Bug fix for
-!        Linux: must use ENCODE to convert numbers to strings (bmy, 9/29/03)
-!  (11) Bug fix in EXPAND_DATE.  Also add optional arguments to function
-!        TIMESTAMP_STRNIG. (bmy, 10/28/03)
-!  (12) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
-!  (13) Modified ITS_TIME_FOR_A6 and GET_FIRST_A6_TIME for both GEOS-4 
-!        "a_llk_03" and "a_llk_04" data versions. (bmy, 3/22/04)
-!  (14) Added routines ITS_A_NEW_MONTH, ITS_A_NEW_YEAR, ITS_A_NEW_DAY.
-!        (bmy, 4/1/04)
-!  (15) Added routines ITS_A_NEW_SEASON, GET_NDIAGTIME, SET_NDIAGTIME, and
-!        variable NDIAGTIME. (bmy, 7/20/04)
-!  (17) Added routine GET_DAY_OF_WEEK (bmy, 11/5/04)
-!  (18) Removed obsolete FIRST variable in GET_A3_TIME (bmy, 12/10/04)
-!  (19) Added routines SYSTEM_DATE_TIME and SYSTEM_TIMESTAMP.  Also modified
-!        for GCAP and GEOS-5 met fields. (swu, bmy, 5/3/05)
-!  (20) GCAP/GISS met fields don't have leap years (swu, bmy, 8/29/05)
-!  (21) Added counter variable & routines for XTRA fields (tmf, bmy, 10/20/05)
-!  (22) Bug fix in ITS_A_NEW_YEAR (bmy, 11/1/05)
-!  (23) Added function ITS_MIDMONTH.  Also removed obsolete functions
-!        NYMD_Y2K, NYMD6_2_NYMD8, NYMD_STRING, DATE_STRING. 
-!        (sas, cdh, bmy, 12/15/05)
-!  (24) GCAP bug fix: There are no leapyears, so transition from 2/28 to 3/1,
-!        skipping 2/29 for all years. (swu, bmy, 4/24/06)
-!  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (26) Further bug fix to skip over Feb 29th in GCAP (phs, bmy, 10/3/06)
-!  (27) Moved ITS_TIME_FOR_BPCH here from "main.f" (bmy, 2/2/07)
-!  (28) Add TS_DIAG and CT_DIAG variables to correctly output diagnostics 
-!        (good time step).
-!       Add SET_CT_DIAG and GET_CT_DIAG to implement TS_DIAG correctly.
-!       (ccc, 5/21/09)
-!  (29) Add NYMD_DIAG, GET_NYMD_DIAG, TIMESTAMP_DIAG to get the good timestamp
-!       for diagnostic filenames (ccc, 8/12/09)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Apr 2010 - R. Yantosca - Added OFFSET argument to GET_LOCALTIME
-!  27 Apr 2010 - R. Yantosca - Added TS_SUN_2 to hold 1/2 of the interval
-!                              for computing SUNCOS.
-!  27 Apr 2010 - R. Yantosca - Added public routine GET_TS_SUN_2
-!  19 Aug 2010 - R. Yantosca - Added variable CT_A1 and routine SET_CT_A1
-!  20 Aug 2010 - R. Yantosca - Added function ITS_TIME_FOR_A1
-!  27 Sep 2010 - R. Yantosca - Added function GET_FIRST_I6_TIME
-!  17 Dec 2010 - R. Yantosca - Bug fix for HHMMSS=240000 in GET_TIME_AHEAD
-!  27 Mar 2011 - R. Yantosca - Bug fix for GCAP leap year problem
-!  29 Jul 2011 - R. Yantosca - Add LEAP_YEAR_DAYS as a SAVEd module variable
-!  17 Feb 2011 - R. Yantosca - Added ITS_TIME_FOR_A6UPDATE for APM (G. Luo)
-!  07 Oct 2011 - M. Payer    - Modifications for central chemistry timestep
-!  07 Oct 2011 - R. Yantosca - Remove obsolete TS_SUN_2, GET_TS_SUN_2
-!  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
-!  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
-!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
-!                              v9-01-02
-!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
-!  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
-!  14 Jun 2013 - R. Yantosca - Now compute day of week in SET_CURRENT_TIME
-!  14 Jun 2013 - R. Yantosca - Added comments to module variable declarations
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
-!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  17 Dec 2014 - R. Yantosca - Need to keep time variables as 8-byte precision
-!  06 Jan 2015 - R. Yantosca - Add ITS_TIME_FOR_EXCH function for 2-way nests
-!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
-!                              compatible with the FlexChem implementation
-!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
-!                              compatible with the FlexChem implementation
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
-!                              MERRA; Remove obsolete A6 and I6 routines
-!  06 Feb 2018 - E. Lundgren - Change timestep units from min to secf
-!  06 Jul 2018 - R. Yantosca - Add Valid_Date and Valid_Time functions
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,10 +208,8 @@
       INTEGER             :: CT_DYN       ! # of elapsed dynamic timesteps
       INTEGER             :: CT_EMIS      ! # of elapsed emission timesteps
       INTEGER             :: CT_RAD       ! # of elapsed radiation timesteps
-      INTEGER             :: CT_A1        ! # of elapsed A1 met field reads
       INTEGER             :: CT_A3        ! # of elapsed A3 met field reads
       INTEGER             :: CT_I3        ! # of elapsed I3 met field reads
-      INTEGER             :: CT_XTRA      ! # of elapsed XTRA met field reads
       INTEGER             :: CT_DIAG      ! # of elapsed diagnostic timesteps
       INTEGER             :: Hg2_DIAG     ! # of elapsed Hg2 diag outputs
 
@@ -739,7 +650,7 @@
       CT_EMIS  = 0
       CT_RAD   = 0
       CT_A3    = 0
-      CT_XTRA  = 0
+      CT_I3    = 0
       CT_DIAG  = 0
       Hg2_DIAG = 0
 
@@ -1001,39 +912,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_ct_a1
-!
-! !DESCRIPTION: Subroutine SET\_CT\_A1 increments CT\_A1, the counter of the 
-!  number of times we have read in A1 fields.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_CT_A1( INCREMENT, RESET )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
-!  19 Aug 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_A1 = CT_A1 + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_A1 = 0
-      ENDIF
-
-      END SUBROUTINE SET_CT_A1
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Set_ct_a3
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_A3 increments CT\_A3, the counter of the 
@@ -1095,40 +973,6 @@
       ENDIF
 
       END SUBROUTINE SET_CT_I3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_ct_xtra
-!
-! !DESCRIPTION: Subroutine SET\_CT\_XTRA increments CT\_XTRA, the counter of 
-!  the number of times we have read in GEOS-3 XTRA fields. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_CT_XTRA( INCREMENT, RESET )
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
-!  20 Oct 2009 - T-M Fu, R. Yantosca - Initial Version
-!  15 Jan 2010 -         R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_XTRA = CT_XTRA + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_XTRA = 0
-      ENDIF
-
-      END SUBROUTINE SET_CT_XTRA
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2450,35 +2294,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_ct_a1
-!
-! !DESCRIPTION: Function GET\_CT\_A1 returns the A1 fields timestep 
-!  counter to the calling program.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_CT_A1() RESULT( THIS_CT_A1 )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THIS_CT_A1   ! # of A-3 timesteps
-! 
-! !REVISION HISTORY: 
-!  19 Aug 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      THIS_CT_A1 = CT_A1
-
-      END FUNCTION GET_CT_A1
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Get_ct_a3
 !
 ! !DESCRIPTION: Function GET\_CT\_A3 returns the A-3 fields timestep 
@@ -2531,35 +2346,6 @@
       THIS_CT_I3 = CT_I3
 
       END FUNCTION GET_CT_I3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_ct_xtra
-!
-! !DESCRIPTION: Function GET\_CT\_XTRA returns the XTRA fields timestep 
-!  counter to the calling program.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_CT_XTRA() RESULT( THIS_CT_XTRA )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THIS_CT_XTRA    ! # of XTRA timesteps
-! 
-! !REVISION HISTORY: 
-!  20 Oct 2005 - T-M Fu, R. Yantosca - Initial Version
-!  15 Jan 2010 -         R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THIS_CT_XTRA = CT_XTRA
-
-      END FUNCTION GET_CT_XTRA
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

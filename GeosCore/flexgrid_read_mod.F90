@@ -19,12 +19,6 @@ MODULE FlexGrid_Read_Mod
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
-#if defined( BPCH_DIAG )
-  USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
-  USE DIAG_MOD,      ONLY : AD21          ! Array for ND21 diagnostic  
-  USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
-  USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
-#endif
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
   USE PhysConstants                       ! Physical constants
   USE TIME_MOD                            ! Date & time routines
@@ -56,26 +50,10 @@ MODULE FlexGrid_Read_Mod
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  03 Feb 2012 - R. Yantosca - Add Geos57_Read_A3 wrapper function
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Add function Get_Resolution_String
-!  05 Apr 2012 - R. Yantosca - Convert units for specific humidity properly
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields via Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to geosfp_read_mod.F90
-!  14 Jan 2014 - R. Yantosca - Remove "define GEOS572_FILES #ifdef blocks
-!  14 Aug 2014 - R. Yantosca - Compute CLDTOPS field in GeosFp_Read_A3mstE
-!  03 Dec 2015 - R. Yantosca - Add file ID's as module variables
-!  03 Dec 2015 - R. Yantosca - Add CLEANUP_GEOSFP_READ to close any open 
-!                              netCDF files left at the end of a simulation
-!  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -120,14 +98,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_CN
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -177,13 +148,6 @@ CONTAINS
 
     ! Convert PHIS from [m2/s2] to [m]
     State_Met%PHIS = State_Met%PHIS / g0
-
-#if defined( BPCH_DIAG )
-    ! ND67 diagnostic 
-    IF ( ND67 > 0 ) THEN
-       AD67(:,:,15) = AD67(:,:,15) + State_Met%PHIS  ! Sfc geopotential [m]
-    ENDIF
-#endif
 
   END SUBROUTINE FlexGrid_Read_CN
 !EOC
@@ -249,19 +213,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  04 Jan 2013 - M. Payer    - Bug fix: Use State_Met%TSKIN for ND67 surface
-!                              skin temperature diagnostic, not State_MET%TS
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  02 Dec 2013 - S. Philip   - Correction for GEOS-FP boundary layer height
-!  04 Dec 2013 - R. Yantosca - Now comment out GEOS-FP BL height correction
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  23 Sep 2015 - E. Lundgren - Now assign SWGDN to State_Met SWGDN not RADSWG
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -543,12 +495,9 @@ CONTAINS
  10 FORMAT( '     - Found all A1     met fields for ', a )
 
     !======================================================================
-    ! Diagnostics, cleanup, and quit
+    ! Cleanup and quit
     !======================================================================
 
-    ! Increment the # of times A1 fields are read from disk
-    CALL Set_Ct_A1( INCREMENT=.TRUE. )
-      
     ! Convert surface precip fields from [kg/m2/s] --> [mm/day]
     State_Met%PRECANV = State_Met%PRECANV * 86400d0
     State_Met%PRECCON = State_Met%PRECCON * 86400d0
@@ -560,32 +509,6 @@ CONTAINS
        State_Met%SLP     = State_Met%SLP     * 1e-2_fp
        State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
     ENDIF
-
-#if defined( BPCH_DIAG )
-    ! ND67 diagnostic: surface fields
-    IF ( ND67 > 0 ) THEN
-       AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
-       AD67(:,:,2 ) = AD67(:,:,2 ) + State_Met%SWGDN    ! SW rad @ sfc [W/m2]
-       AD67(:,:,3 ) = AD67(:,:,3 ) + State_Met%PRECTOT  ! Tot prec [kg/m2/s]
-       AD67(:,:,4 ) = AD67(:,:,4 ) + State_Met%PRECCON  ! Sfc conv prec[kg/m2/s]
-       AD67(:,:,5 ) = AD67(:,:,5 ) + State_Met%TS       ! T @ 2m height [K]
-       AD67(:,:,6 ) = AD67(:,:,6 ) + 0e0                !
-       AD67(:,:,7 ) = AD67(:,:,7 ) + State_Met%USTAR    ! Friction vel [m/s]
-       AD67(:,:,8 ) = AD67(:,:,8 ) + State_Met%Z0       ! Roughness height [m]
-       AD67(:,:,9 ) = AD67(:,:,9 ) + State_Met%PBLH     ! PBL height [m]
-       AD67(:,:,10) = AD67(:,:,10) + State_Met%CLDFRC   ! Column cld fraction
-       AD67(:,:,11) = AD67(:,:,11) + State_Met%U10M     ! U-wind @ 10m [m/s]
-       AD67(:,:,12) = AD67(:,:,12) + State_Met%V10M     ! V-wind @ 10m [m/s]
-       AD67(:,:,14) = AD67(:,:,14) + State_Met%ALBD     ! Sfc albedo [unitless]
-       AD67(:,:,17) = AD67(:,:,17) + State_Met%TROPP    ! T'pause pressure [hPa]
-       AD67(:,:,18) = AD67(:,:,18) + State_Met%SLP      ! Sea level prs [hPa]
-       AD67(:,:,19) = AD67(:,:,19) + State_Met%TSKIN    ! Sfc skin temp [K]
-       AD67(:,:,20) = AD67(:,:,20) + State_Met%PARDF    ! Diffuse PAR [W/m2]
-       AD67(:,:,21) = AD67(:,:,21) + State_Met%PARDR    ! Direct PAR [W/m2]
-       AD67(:,:,22) = AD67(:,:,22) + State_Met%GWETTOP  ! Topsoil wetness [frac]
-       AD67(:,:,23) = AD67(:,:,23) + State_Met%EFLUX    ! Latent heat flux [W/m2]
-    ENDIF
-#endif
 
     ! Save date & time for next iteration
     lastDate = YYYYMMDD
@@ -619,6 +542,9 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+#ifdef BPCH_DIAG
+    USE Time_Mod,           ONLY : Set_Ct_A3
+#endif
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -633,8 +559,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -679,8 +604,10 @@ CONTAINS
     ! Cleanup and quit
     !======================================================================
 
+#ifdef BPCH_DIAG
     ! Increment the # of times that A3 fields have been read
     CALL Set_Ct_A3( INCREMENT=.TRUE. )
+#endif
 
     ! Save date & time for next iteration
     lastDate = YYYYMMDD
@@ -733,18 +660,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  05 Apr 2012 - R. Yantosca - Fixed bug: TAUCLI was overwritten w/ TAUCLW
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3Cld
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
-!  17 Mar 2016 - M. Sulprizio- Read optical depth into State_Met%OPTD instead of
-!                              State_Met%OPTDEP (obsolete).
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -797,18 +713,6 @@ CONTAINS
     WRITE( 6, 10 ) stamp
  10 FORMAT( '     - Found all A3cld  met fields for ', a )
 
-    !======================================================================
-    ! Diagnostics, cleanup, and quit
-    !======================================================================
-
-#if defined( BPCH_DIAG )
-    ! ND21 diagnostic: OPTD and CLDF
-    IF ( ND21 > 0 ) THEN
-       AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + State_Met%OPTD(:,:,1:LD21)
-       AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + State_Met%CLDF(:,:,1:LD21)
-    ENDIF
-#endif
-
   END SUBROUTINE FlexGrid_Read_A3cld
 !EOC
 !------------------------------------------------------------------------------
@@ -856,18 +760,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directories with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3dyn
-!  15 Nov 2013 - R. Yantosca - Now convert RH from [1] to [%], in order
-!                              to be consistent with GEOS-Chem convention
-!  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS in GeosFP_Read_A3mstE
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
-!  03 Feb 2017 - M. Sulprizio- Activate reading OMEGA fields from file
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -922,21 +815,6 @@ CONTAINS
     ! Convert RH from [1] to [%]
     State_Met%RH = State_Met%RH * 100d0
 
-#if defined( BPCH_DIAG )
-    ! ND66 diagnostic: U, V, DTRAIN, OMEGA met fields
-    IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + State_Met%U     (:,:,1:LD66)
-       AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + State_Met%V     (:,:,1:LD66)
-       AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + State_Met%DTRAIN(:,:,1:LD66)
-       AD66(:,:,1:LD66,7) = AD66(:,:,1:LD66,7) + State_Met%OMEGA (:,:,1:LD66)
-    ENDIF
-
-    ! ND67 diagnostic: CLDTOPS
-    IF ( ND67 > 0 ) THEN
-       AD67(:,:,16) = AD67(:,:,16) + State_Met%CLDTOPS         ! [levels]
-    ENDIF
-#endif
-
   END SUBROUTINE FlexGrid_Read_A3dyn
 !EOC
 !------------------------------------------------------------------------------
@@ -985,14 +863,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3mstC
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1087,17 +958,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3mstE
-!  26 Sep 2013 - R. Yantosca - Now read CMFMC from GEOSFP*.nc files
-!  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS here; it depends on CMFMC
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
-!  16 Jan 2019 - L. Murray   - Add offline lightning met fields 
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1174,13 +1035,6 @@ CONTAINS
     ENDDO
     ENDDO
 
-#if defined( BPCH_DIAG )
-    ! ND66 diagnostic: CMFMC met field
-    IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC(:,:,1:LD66)
-    ENDIF
-#endif
-
   END SUBROUTINE FlexGrid_Read_A3mstE
 !EOC
 !------------------------------------------------------------------------------
@@ -1205,6 +1059,9 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
+#ifdef BPCH_DIAG
+    USE Time_Mod,           ONLY : Set_Ct_I3
+#endif
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1228,22 +1085,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  05 Apr 2012 - R. Yantosca - Now convert QV1 from [kg/kg] to [g/kg]
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  06 Sep 2013 - R. Yantosca - Bug fix: we need to initialize State_Met%T
-!                              with State_Met%TMPU1 to avoid errors.  The
-!                              State_Met%T field will be set again in INTERP.
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_I3_1
-!  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_1 for offline simulations
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
-!  12 Jun 2015 - E. Lundgren - Initialize State_MET%SPHU with State_Met%SPHU1
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1333,15 +1175,9 @@ CONTAINS
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
+#ifdef BPCH_DIAG
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
-
-#if defined( BPCH_DIAG )
-    ! ND66 diagnostic: T1, QV1 met fields
-    IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU1(:,:,1:LD66)
-       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU1(:,:,1:LD66)
-    ENDIF
 #endif
 
   END SUBROUTINE FlexGrid_Read_I3_1
@@ -1368,6 +1204,9 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
+#ifdef BPCH_DIAG
+    USE Time_Mod,           ONLY : Set_Ct_I3
+#endif
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1391,18 +1230,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  05 Apr 2012 - R. Yantosca - Now convert QV2 from [kg/kg] to [g/kg]
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Rename to GeosFp_Read_I3_2
-!  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_2 for offline simulations
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
-!  20 Sep 2016 - R. Yantosca - Bug fix: FIRST must be declared as LOGICAL
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1486,15 +1314,9 @@ CONTAINS
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
+#ifdef BPCH_DIAG
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
-
-#if defined( BPCH_DIAG )
-    ! ND66 diagnostic: T2, QV2 met fields
-    IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU2(:,:,1:LD66)
-       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU2(:,:,1:LD66)
-    ENDIF
 #endif
 
   END SUBROUTINE FlexGrid_Read_I3_2
@@ -1525,23 +1347,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  13 Apr 2004 - R. Yantosca - Initial version
-!  (1 ) Added parallel DO-loops (bmy, 4/13/04)
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (3 ) Added TROPP (phs 11/10/06)
-!  (4 ) Don't copy TROPP2 to TROPP1 for GEOS-5 (bmy, 1/17/07) 
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2010 - R. Yantosca - Rewrite #if block for clarity
-!  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
-!  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
-!  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  11 Aug 2015 - R. Yantosca - MERRA2 behaves in the same way as GEOS-FP
-!  03 May 2016 - E. Lundgren - Add PS1_DRY update
-!  26 Oct 2018 - M. Sulprizio- Moved this routine from dao_mod.F to
-!                              flexgrid_read_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

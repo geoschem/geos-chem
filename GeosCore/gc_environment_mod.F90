@@ -39,7 +39,7 @@ MODULE GC_Environment_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-#if defined( TOMAS )
+#ifdef TOMAS
   PRIVATE :: INIT_TOMAS_MICROPHYSICS
 #endif
 !
@@ -802,17 +802,22 @@ CONTAINS
 
     ! Allocate diagnostic arrays
 #ifdef BPCH_DIAG
-    IF ( Input_Opt%DO_ND50 ) &
-       CALL Init_Diag50 ( am_I_Root, Input_Opt, State_Grid, RC )
+
+    ! Initialize the Hg diagnostics (bpch)
+    CALL Init_Diag03( State_Chm, State_Grid )
+
+    ! Satellite timeseries (bpch)
     IF ( Input_Opt%DO_ND51 ) &
        CALL Init_Diag51 ( am_I_Root, Input_Opt, State_Grid, RC )
     IF ( Input_Opt%DO_ND51b) &
        CALL Init_Diag51b( am_I_Root, Input_Opt, State_Grid, RC )
+
+    ! POPs (bpch)
     CALL Init_Diag53( State_Grid )
+
+    ! Lightning flash rates (bpch)
     CALL Init_Diag56( State_Grid )
 
-    ! Initialize the Hg diagnostics (bpch)
-    CALL Init_Diag03( State_Chm, State_Grid )
 #endif
 
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it

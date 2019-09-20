@@ -32,7 +32,6 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	convection_mod.F
 	depo_mercury_mod.F
 	diag03_mod.F
-	diag04_mod.F
 	diag1.F
 	diag3.F
 	diag51b_mod.F

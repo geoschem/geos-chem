@@ -197,9 +197,6 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -424,10 +421,6 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD65
-#endif
 
       IMPLICIT NONE
 !
@@ -634,28 +627,6 @@
             ELSE
                LL = 0.0e+0_fp
             ENDIF 
-
-#if defined( BPCH_DIAG )
-            !===========================================================
-            ! ND65 (bpch) diagnostic
-            !
-            ! Chemical production and loss of tagged O3 species
-            !===========================================================
-            IF ( ND65 > 0 ) THEN
-
-               ! Only archive chemical production if this
-               ! region has production to begin with [kg/s]
-               IF ( PP(I,J,L,N) > 0e+0_fp ) THEN
-                  PL            = P24H(I,J,L) * BOXVL / TS_EMIS
-                  AD65(I,J,L,N) = AD65(I,J,L,N) + PL
-               ENDIF
-
-               ! Archive loss for all species [kg/s]
-               PL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL / TS_EMIS
-               AD65(I,J,L,nAdvect+N) = AD65(I,J,L,nAdvect+N) + PL
-
-            ENDIF
-#endif
 
             !===========================================================
             ! HISTORY (aka netCDF diagnostics)

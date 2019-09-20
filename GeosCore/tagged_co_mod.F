@@ -165,10 +165,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD65
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -1021,20 +1017,6 @@
                   !
                   !------------------------------------------------------
 
-#if defined( BPCH_DIAG )
-                  !-----------------------------------------------------
-                  ! ND65 (bpch) diagnostic
-                  !
-                  ! Loss of CO by OH for "tagged" species
-                  !-----------------------------------------------------
-
-                  ! Units: [molec CO/cm3/s]
-                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) +
-     &                               ( CORATE * Spc(I,J,L,N) * STTCO)
-                  ENDIF
-#endif
-
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   !
@@ -1159,20 +1141,6 @@
                   !    -- Jenny Fisher (27 Mar 2017)
                   !-----------------------------------------------------
 
-#if defined( BPCH_DIAG )
-                  !-----------------------------------------------------
-                  ! ND65 (bpch) diagnostic
-                  !
-                  ! Loss of CO by OH for "tagged" species
-                  !-----------------------------------------------------
-
-                  ! Units: [molec CO/cm3/s]
-                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) + 
-     &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
-                  ENDIF
-#endif
-
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   !
@@ -1214,44 +1182,6 @@
          ! State_Chm%Species
          Spc(I,J,L,1) = GCO / STTCO
 
-#if defined( BPCH_DIAG )
-         !==============================================================
-         ! ND65 (bpch) diagnostics -- Production & Loss of CO
-         ! Also save P(CO) from CH3OH and MONOTERPENES (bmy, 1/2/01)
-         !==============================================================
-         IF ( ND65 > 0 .and. L <= LD65 ) THEN
-
-            ! Loss of CO by OH (global) [molec CO/cm3/s]
-            N             = 1
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
-
-            ! Production of CO from CH4 [molec CO/cm3/s]
-            N             = nAdvect + 1
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH4 / DTCHEM )
-
-            ! Production of CO from NMVOCs [molec CO/cm3/s]
-            N             = nAdvect + 2
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_NMVOC / DTCHEM )
-   
-            IF ( .not. LPCO_NMVOC ) THEN
-               ! Production of CO from Isoprene [molec CO/cm3/s]
-               N             = nAdvect + 3
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ISOP / DTCHEM )
-   
-               ! Production of CO from CH3OH [molec CO/cm3/s]            
-               N             = nAdvect + 4
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH3OH / DTCHEM )
-   
-               ! Production of CO from MONO [molec CO/cm3/s]
-               N             = nAdvect + 5
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_MONO / DTCHEM )    
-   
-               ! Production of CO from ACET [molec CO/cm3/s]
-               N             = nAdvect + 6 
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
-            ENDIF
-         ENDIF
-#endif
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !

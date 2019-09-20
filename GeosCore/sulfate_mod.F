@@ -26,13 +26,13 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS: 
 !
-#if defined( APM )
+#ifdef APM
       PRIVATE :: WET_SETTLINGBIN
 #endif
       PUBLIC :: CHEMSULFATE       
       PUBLIC :: CLEANUP_SULFATE   
       PUBLIC :: INIT_SULFATE
-#if defined( TOMAS )
+#ifdef TOMAS
       PUBLIC :: EMISSSULFATETOMAS ! JKodros (6/2/15 - this is to connect TOMAS to HEMCO)
 #endif
 !
@@ -189,7 +189,7 @@
       REAL(fp),  PARAMETER   :: SMALLNUM    = 1e-20_fp
       REAL(fp),  PARAMETER   :: CM3PERM3    = 1.e6_fp
 
-#if defined( TOMAS )
+#ifdef TOMAS
       !---------------------------------------------------------------
       ! For TOMAS microphysics: Add parameter for scaling anthro SO2
       !---------------------------------------------------------------
@@ -254,11 +254,11 @@
       REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
       REAL(fp),  ALLOCATABLE :: COSZM(:,:)
 
-#if defined( APM )
+#ifdef APM
       REAL(fp),  ALLOCATABLE :: PSO4_SO2APM(:,:,:)
       REAL(fp),  ALLOCATABLE :: PSO4_SO2SEA(:,:,:)
 #endif
-#if defined( TOMAS )
+#ifdef TOMAS
       !---------------------------------------------------------------
       ! For TOMAS microphysics: Define PSO4_SO2aq array
       !---------------------------------------------------------------
@@ -348,7 +348,7 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if defined( APM )
+#ifdef APM
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
       USE APM_DRIV_MOD,       ONLY : EMITNH3,EMITSO2
 #endif
@@ -452,7 +452,7 @@
 
       ! Pointers
       REAL(fp),        POINTER :: Spc(:,:,:,:)
-#if defined( APM )
+#ifdef APM
       INTEGER           :: IDNH3,IDSO2
       REAL(fp)          :: A_M2
 #endif
@@ -555,7 +555,7 @@
          TS_EMIS = HcoState%TS_EMIS
       ENDIF
 
-#if defined( APM )
+#ifdef APM
       IDNH3 = HCO_GetHcoID( 'NH3', HcoState )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -605,11 +605,11 @@
       PNITs      = 0e+0_fp
       PSO4_dust  = 0e+0_fp     ! tdf 04/17/08
       PNIT_dust  = 0e+0_fp     ! tdf 04/17/08
-#if defined( APM )
+#ifdef APM
       PSO4_SO2APM = 0d0
       PSO4_SO2SEA = 0d0
 #endif
-#if defined( TOMAS )
+#ifdef TOMAS
       PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
 #endif
                   
@@ -906,7 +906,7 @@
          
       END SUBROUTINE CHEMSULFATE
 !EOC
-#if defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1063,7 +1063,7 @@
 !-----------------------------------------------------------------------------
 !                  Jack Kodros re-writing this
 !-----------------------------------------------------------------------------
-#if defined( TOMAS )
+#ifdef TOMAS
       SUBROUTINE SRCSF30( am_I_Root,  Input_Opt,
      &                    State_Grid, State_Met,
      &                    TC1, TC2, RC )
@@ -1071,7 +1071,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-#if defined( BPCH_DIAG )
+#if defined BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
 #endif
@@ -1496,7 +1496,7 @@
            !                 [kg S/box/timestep] and the corresponding
            !                  number emission [no./box/timestep]
            !==============================================================
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             IF ( ND59 > 0 ) THEN
                !print*, 'JACK IN ND59 SULFATE'
                DO K = 1, IBINS
@@ -1545,7 +1545,7 @@
                ENDDO
             ENDDO
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
            !==============================================================
            ! ND59 Diagnostic: Size-resolved primary sulfate emission in
            !                 [kg S/box/timestep] and the corresponding
@@ -1600,10 +1600,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD        
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD        
-      USE DIAG_MOD,           ONLY : AD44
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -1613,6 +1609,12 @@
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#ifdef TOMAS
+#ifdef BPCH_DIAG
+      USE CMN_DIAG_MOD        
+      USE DIAG_MOD,           ONLY : AD44
+#endif
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1935,7 +1937,8 @@
          ! DIAGNOSTIC: Drydep flux [molec/cm2/s]
          ! (specifically sea salt loss diagnostics)
          !==============================================================
-#if defined( BPCH_DIAG )
+#ifdef TOMAS
+#ifdef BPCH_DIAG
          !-----------------------------------------------------------
          ! ND44 DIAGNOSTIC (bpch)
          ! Dry deposition flux loss [molec/cm2/s]
@@ -1967,6 +1970,7 @@
             AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
 
          ENDIF
+#endif
 #endif
 
          !-----------------------------------------------------------
@@ -2032,10 +2036,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD         
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD         
-      USE DIAG_MOD,           ONLY : AD05
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -2268,48 +2268,6 @@
          ENDIF
 
          PSO2_DMS(I,J,L) =  DMS0 - DMS - PMSA_DMS(I,J,L)
-
-#if defined( BPCH_DIAG )
-         !==============================================================
-         ! ND05 (bpch) diagnostic: production and loss
-         !
-         ! For the offline run, we are reading in monthly mean OH, NO3 
-         ! from disk.  We don't modify these, so LOH = 0 and LNO3 = 0.
-         !==============================================================
-         IF ( ND05 > 0 .and. L <= LD05 ) THEN
-
-            ! P(SO2) from DMS+OH, DMS+NO3, and DMS+X
-            XOH  = ( DMS0   - DMS_OH - PMSA_DMS(I,J,L) ) /
-     &                 Fx   * State_Met%AD(I,J,L) / TCVV_S
-            XN3  = ( DMS_OH - DMS ) / Fx * State_Met%AD(I,J,L) / TCVV_S
-            XX   = ( ( DMS0 - DMS ) * State_Met%AD(I,J,L) / TCVV_S )
-     &               - XOH  - XN3
-
-            ! Grid box volume [cm3]
-            BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-            ! Convert L(OH) and L(NO3) from [molec/cm3] to [kg/timestep]
-            LOH  = ( OH0   - OH  ) * BOXVL / XNUMOL_OH
-            LNO3 = ( XNO30 - XNO3) * BOXVL / XNUMOL_NO3
-
-            ! Store P(SO2) from DMS + OH [kg S/timestep]
-            AD05(I,J,L,1) = AD05(I,J,L,1) + XOH
-
-            ! Store P(SO2) from DMS + NO3 [kg S/timestep]
-            AD05(I,J,L,2) = AD05(I,J,L,2) + XN3
-
-            ! Store total P(SO2) from DMS [kg S/timestep]
-            AD05(I,J,L,3) = AD05(I,J,L,3)   + 
-     &                    ( PSO2_DMS(I,J,L) * State_Met%AD(I,J,L) /
-     &                      TCVV_S )
-
-            ! Store P(MSA) from DMS [kg S/timestep]
-            AD05(I,J,L,4) = AD05(I,J,L,4)   + 
-     &                    ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) /
-     &                      TCVV_S )
-
-         ENDIF
-#endif
 
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
@@ -2611,11 +2569,7 @@
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
-#if defined( BPCH_DIAG ) 
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD05
-#endif
-#if defined( APM )
+#ifdef APM
       USE APM_DRIV_MOD,       ONLY : PSO4GAS
       USE APM_DRIV_MOD,       ONLY : XO3
 #endif
@@ -2927,7 +2881,7 @@
          ENDIF
          O3     = GET_O3( I, J, L, Input_Opt, State_Chm,
      &                    State_Grid, State_Met )
-#if defined( APM )
+#ifdef APM
          XO3(I,J,L)= O3
 #endif
 
@@ -3281,7 +3235,7 @@
                !--------------------------------------------------------
 
                ! Get dust concentrations [v/v -> ng/m3]
-#if defined( TOMAS )
+#ifdef TOMAS
                ! TOMAS uses its own dust tracers and does not
                ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
                DUST = 0e+0_fp
@@ -3590,7 +3544,7 @@
             ! Note that it is better to use dust and sea-salt alkalinity
             ! tracers if these are being transported (bec, 12/23/11)
 
-#if defined( TOMAS )
+#ifdef TOMAS
             !%%%%%%%%%%%%%%%%% BUG FIX FOR TOMAS %%%%%%%%%%%%%%%%%%%%%%%
             ! NOTE: TOMAS uses its own dust tracers and does not
             ! carry ALKdst.  Set ALKdst to zero here. (bmy, 1/28/14)
@@ -3877,13 +3831,13 @@
          ! Production of sulfate on sea salt
          PSO4_ss (I,J,L) = PSO4F
 
-#if defined( APM )
+#ifdef APM
          PSO4_SO2APM(I,J,L) = L2S + L3S + L4S + L5S + SR
          PSO4_SO2APM(I,J,L) = MAX(0.d0,PSO4_SO2APM(I,J,L))
          PSO4_SO2SEA(I,J,L) = PSO4E + PSO4F
          PSO4_SO2SEA(I,J,L) = MAX(0.d0,PSO4_SO2SEA(I,J,L))
 #endif
-#if defined( TOMAS )
+#ifdef TOMAS
          PSO4_SO2AQ(I,J,L) = L2S + L3S + SR ! For TOMAS microphysics
 #endif
 
@@ -3906,88 +3860,6 @@
             END DO
 
          ENDIF    !tdf end of if (LDSTUP) condition
-
-#if defined( BPCH_DIAG )
-         !=================================================================
-         ! ND05 Diagnostics [kg S/timestep]
-         !=================================================================
-         IF ( FullRun .and. ND05 > 0 .and. L <= LD05 ) THEN
-           
-            ! P(SO4) from gas-phase oxidation [kg S/timestep]
-            AD05(I,J,L,5) = AD05(I,J,L,5) +
-     &                      ( L1  * State_Met%AD(I,J,L) / TCVV_S )
-
-            ! P(SO4) from aqueous-phase oxidation with H2O2 [kg S/timestep]
-            AD05(I,J,L,6) = AD05(I,J,L,6) +
-     &                      ( L2S * State_Met%AD(I,J,L) / TCVV_S )
-
-            ! P(SO4) from aqueous-phase oxidation with O3 [kg S/timestep]
-            ! Replace SR with SRo3 (qjc, 04/10/16)
-            AD05(I,J,L,7) = AD05(I,J,L,7) +
-     &                      ( ( L3S + SRo3 ) * State_Met%AD(I,J,L) /
-     &                      TCVV_S )
-
-            ! P(SO4) from aqueous-phase oxidation with O2 metal-catalyzed
-            ! [kg S/timestep]
-            AD05(I,J,L,8) = AD05(I,J,L,8) +
-     &                      ( L4S * State_Met%AD(I,J,L) / TCVV_S )
-
-            ! P(SO4) from O3 oxidation in sea-salt aerosols [kg S/timestep]
-            AD05(I,J,L,9) = AD05(I,J,L,9) +
-     &                      ( (PSO4E + PSO4F) * State_Met%AD(I,J,L) /
-     &                      TCVV_S )
-
-            ! P(SO4) from aqueous-phase oxidation with HOBr [kg S/timestep]
-            AD05(I,J,L,16) = AD05(I,J,L,16) +
-     &                       ((L5S+SRhobr)* State_Met%AD(I,J,L)/TCVV_S)
-
-            ! P(SO4) by SRo3
-            AD05(I,J,L,17) = AD05(I,J,L,17) +
-     &                       (SRo3*State_Met%AD(I,J,L)/TCVV_S)
-
-            ! P(SO4) by SRhobr
-            AD05(I,J,L,18) = AD05(I,J,L,18) +
-     &                       (SRhobr*State_Met%AD(I,J,L)/TCVV_S)
-
-            ! P(SO4) by o3s
-            AD05(I,J,L,19) = AD05(I,J,L,19) +
-     &                       (L3S_1*State_Met%AD(I,J,L)/TCVV_S)
-
-            ! Cloud pH
-            AD05(I,J,L,20) = AD05(I,J,L,20) + HPLUS
-
-            !tdf
-            PSO4d_tot   = 0.e+0_fp
-            PH2SO4d_tot = 0.e+0_fp
-            PNITd_tot   = 0.e+0_fp
-
-            IF ( LDSTUP ) THEN
-               DO IBIN = 1, NDSTBIN
-                  PSO4d_tot = PSO4d_tot + PSO4_d(IBIN)
-                  PNITd_tot = PNITd_tot + PNIT_d(IBIN)
-                  ! included P(SO4) due to uptake of H2SO4(g)     !tdf 3/2/2K9
-                  PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
-               END DO
-
-               ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
-               AD05(I,J,L,12) = AD05(I,J,L,12) +
-     &                       ( PSO4d_tot * State_Met%AD(I,J,L) /
-     &                         TCVV_S )
-
-               ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
-               AD05(I,J,L,13) = AD05(I,J,L,13) +
-     &                       ( PNITd_tot * State_Met%AD(I,J,L) /
-     &                         TCVV_N )
-
-               ! Included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
-               ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
-               AD05(I,J,L,14) = AD05(I,J,L,14) +
-     &                       ( PH2SO4d_tot * State_Met%AD(I,J,L) /
-     &                         TCVV_S )
-            ENDIF
-
-         ENDIF
-#endif
 
          !=================================================================
          ! HISTORY (aka netCDF diagnostics)
@@ -4129,10 +4001,6 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD             ! ND05, LD05
-      USE DIAG_MOD,           ONLY : AD05
-#endif
       USE CMN_SIZE_MOD          
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -4493,19 +4361,6 @@
          HNO3_ss = ( TITR_HNO3 * AIRMW / AD(I,J,L) ) / 1000.0_fp
 
       ENDIF
-
-#if defined( BPCH_DIAG )
-      !=================================================================
-      ! ND05 (bpch) diagnostic
-      !
-      ! Loss of HNO3 on sea salt
-      !=================================================================
-      IF ( FullRun .and. ( ND05 > 0 .and. L <= LD05 ) ) THEN
-         ! L(HNO3) on sea-salt aerosols [kg N/timestep]
-         AD05(I,J,L,15) = AD05(I,J,L,15) +
-     &                  ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
-      ENDIF
-#endif
 
       !=================================================================
       ! HISTORY (aka netCDF diagnostics)
@@ -6429,7 +6284,7 @@
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
-#if defined( APM )
+#ifdef APM
       USE APM_INIT_MOD,       ONLY : APMIDS
       USE APM_INIT_MOD,       ONLY : NGCOND,   NSO4,      NSEA
       USE APM_INIT_MOD,       ONLY : NCTSO4,NCTBC,NCTOC,NCTDST,NCTSEA
@@ -6526,7 +6381,7 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
-#if defined( APM )
+#ifdef APM
       REAL*8            :: MASS0, MASS, PMASS
       REAL*8            :: RKTs, E_RKTs, DTCHEM
 #endif
@@ -6544,7 +6399,7 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP    = Input_Opt%LDSTUP
 
-#if defined( APM )
+#ifdef APM
       !------------------------------------------
       ! Call APM size-resolved drydep algorithm
       !------------------------------------------
@@ -6650,7 +6505,7 @@
          Spc(I,J,L,id_SO4s) = SO4s
 
 !APM_GanLuo+
-#if defined( APM )
+#ifdef APM
          IF(NSO4>=1)THEN
             DO N=1,NSO4
             ! Updated SO4 (gas phase) [v/v]
@@ -6717,7 +6572,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( APM )
+#ifdef APM
       PSO4_SO2APM2 = 0.D0
 #endif
 
@@ -8470,7 +8325,7 @@
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
       IF ( ALLOCATED( PSO4_SO2   ) ) DEALLOCATE( PSO4_SO2   )
-#if defined( APM )
+#ifdef APM
       IF ( ALLOCATED( PSO4_SO2APM ) ) DEALLOCATE( PSO4_SO2APM )
       IF ( ALLOCATED( PSO4_SO2SEA ) ) DEALLOCATE( PSO4_SO2SEA )
 #endif
@@ -8501,7 +8356,7 @@
 
       END SUBROUTINE CLEANUP_SULFATE
 !EOC
-#if defined( APM )
+#ifdef APM
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

@@ -795,7 +795,7 @@ CONTAINS
     ! Assume success
     RC = HCO_SUCCESS
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
 
     ! Exit if we are doing a specialty simulation w/o dust
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
@@ -811,7 +811,7 @@ CONTAINS
     Is_DustGinoux = ( ExtState%DustGinoux > 0 )
 
     ! Define diagnostics if dust is used
-    IF ( ND06 > 0 ) THEN
+    IF ( Input_Opt%ND06 > 0 ) THEN
 
        ! Get Ext. Nr
        IF ( Is_DustDead ) THEN
@@ -829,7 +829,7 @@ CONTAINS
        ! Do for each dust bin
        DO I = 1, NDSTBIN
 
-#if defined( TOMAS )
+#ifdef TOMAS
 
           ! Get species name (i.e. DUST1 .. DUST40) for TOMAS simulatiosn
           IF ( I < 10 )  THEN

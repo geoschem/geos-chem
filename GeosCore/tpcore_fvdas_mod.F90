@@ -428,9 +428,6 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-#if defined( BPCH_DIAG )
-                           MASSFLEW, MASSFLNS, MASSFLUP,                    &
-#endif
                            AREA_M2, ND24, ND25, ND26, State_Diag )
 !
 ! !USES:
@@ -517,13 +514,6 @@ CONTAINS
 
     ! Diagnostics state object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag
-
-#if defined( BPCH_DIAG )
-    ! E/W, N/S, and up/down diagnostic mass fluxes
-    REAL(fp),  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
-    REAL(fp),  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
-    REAL(fp),  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
-#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -651,7 +641,7 @@ CONTAINS
     j1p = 3
     j2p = jm - j1p + 1
 
-#if defined( TOMAS )
+#ifdef TOMAS
       !================================================================
       ! For TOMAS microphysics: zero out UA and VA.
       !
@@ -1039,7 +1029,7 @@ CONTAINS
        !  s        1      hPa     m      1       DeltaT
        !
        !======================================================================
-       IF ( Do_ND24 .or. State_Diag%Archive_AdvFluxZonal ) THEN
+       IF ( State_Diag%Archive_AdvFluxZonal ) THEN
 
           ! Zero temp array
           DTC = 0e+0_fp
@@ -1054,19 +1044,6 @@ CONTAINS
              ! Compute mass flux [kg/s]
              DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
-#if defined( BPCH_DIAG )
-             !----------------------------------------------------------------
-             ! ND24 (bpch) diagnostic:
-             !
-             ! E/W flux of advected species
-             !----------------------------------------------------------------
-
-             ! Units: [kg/s]
-             IF ( Do_ND24 ) THEN
-                MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
-             ENDIF
-#endif 
-
              !----------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -1078,10 +1055,8 @@ CONTAINS
 
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
-             IF ( State_Diag%Archive_AdvFluxZonal ) THEN
-                Kflip                                 = KM - K + 1 ! flip vert
-                State_Diag%AdvFluxZonal(I,J,Kflip,IQ) = DTC(I,J,K)
-             ENDIF
+             Kflip                                 = KM - K + 1 ! flip vert
+             State_Diag%AdvFluxZonal(I,J,Kflip,IQ) = DTC(I,J,K)
 
           ENDDO
           ENDDO
@@ -1100,7 +1075,7 @@ CONTAINS
        ! ND24 E-W diagnostics.  The geometrical factor was already applied to
        ! fy in Ytp. (ccc, 4/1/09)
        !======================================================================
-       IF ( Do_ND25 .or. State_Diag%Archive_AdvFluxMerid ) THEN
+       IF ( State_Diag%Archive_AdvFluxMerid ) THEN
 
           ! Zero temp array
           DTC = 0e+0_fp
@@ -1115,19 +1090,6 @@ CONTAINS
              ! Compute mass flux [kg/s]
              DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
-#if defined( BPCH_DIAG )
-             !----------------------------------------------------------------
-             ! ND25 (bpch) diagnostic:
-             !
-             ! N/S flux of advected species
-             !----------------------------------------------------------------
-
-             ! Units: [kg/s]
-             IF ( Do_ND25 ) THEN
-                MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K)
-             ENDIF
-#endif
-
              !----------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -1139,10 +1101,8 @@ CONTAINS
 
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
-             IF ( State_Diag%Archive_AdvFluxMerid ) THEN
-                Kflip                                 = KM - K + 1  ! flip vert
-                State_Diag%AdvFluxMerid(I,J,Kflip,IQ) = DTC(I,J,K) 
-             ENDIF
+             Kflip                                 = KM - K + 1  ! flip vert
+             State_Diag%AdvFluxMerid(I,J,Kflip,IQ) = DTC(I,J,K) 
 
           ENDDO
           ENDDO
@@ -1168,7 +1128,7 @@ CONTAINS
        ! flux at the bottom of KM (the surface box) is not zero by design. 
        ! (phs, 3/4/08)
        !======================================================================
-       IF ( Do_ND26 .or. State_Diag%Archive_AdvFluxVert ) THEN
+       IF ( State_Diag%Archive_AdvFluxVert ) THEN
           
           ! Zero temp array
           DTC = 0e+0_fp
@@ -1198,17 +1158,6 @@ CONTAINS
              !
              DTC(I,J,K) = FZ(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT
 
-#if defined( BPCH_DIAG )
-             !----------------------------------------------------------------
-             ! ND26 (bpch) diagnostic:
-             !
-             ! Vertical flux of advected species
-             !----------------------------------------------------------------
-             IF ( Do_ND26 ) THEN
-                MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
-             ENDIF
-#endif 
-
              !----------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -1220,10 +1169,8 @@ CONTAINS
 
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
-             IF ( State_Diag%Archive_AdvFluxVert ) THEN
-                Kflip                                = KM - K + 1  !flip vert
-                State_Diag%AdvFluxVert(I,J,Kflip,IQ) = DTC(I,J,K) 
-             ENDIF
+             Kflip                                = KM - K + 1  !flip vert
+             State_Diag%AdvFluxVert(I,J,Kflip,IQ) = DTC(I,J,K) 
 
           ENDDO
           ENDDO

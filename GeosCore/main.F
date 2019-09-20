@@ -84,8 +84,6 @@
       !-----------------------------------------------------------------
 #ifdef BPCH_DIAG
       USE DIAG_MOD              ! G-C diagnostic arrays & counters
-#endif
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
       USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
@@ -125,7 +123,7 @@
 
 #ifdef RRTMG
       !-----------------------------------------------------------------
-      ! Radiation modules
+      ! Radiation modules (RRTMG)
       !-----------------------------------------------------------------
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : Do_RRTMG_Rad_Transfer
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_RRTMG_Rad_Transfer
@@ -133,9 +131,12 @@
       USE RRTMG_LW_Init,          ONLY : RRTMG_LW_Ini
       USE RRTMG_SW_Init,          ONLY : RRTMG_SW_Ini
 #endif
+
 #ifdef APM
+      !-----------------------------------------------------------------
       ! For APM aerosol microphysics simulation, 
       ! see apm_driv_mod.f for more information
+      !-----------------------------------------------------------------
       USE APM_INIT_MOD,      ONLY : APM_NTRACERS
       USE APM_INIT_MOD,      ONLY : APM_INIT
       USE APM_INIT_MOD,      ONLY : CLEANUP_APMARRAYS
@@ -579,7 +580,7 @@
       ENDIF
 #endif
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       !-----------------------------------------------------------------
       ! Initialize bpch diagnostic arrays and counters
       !-----------------------------------------------------------------
@@ -992,7 +993,7 @@
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH( Input_Opt ) ) THEN
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !===========================================================
             ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
             !===========================================================
@@ -1049,7 +1050,7 @@
             ! Set time at beginning of next diagnostic timestep
             CALL SET_DIAGb( TAU )
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !===========================================================
             !   ***** Z E R O   B P C H   D I A G N O S T I C S *****
             !===========================================================
@@ -1193,48 +1194,6 @@
             ErrMsg = 'Error encountered in "Get_Cosine_SZA"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
-
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         !   ***** B P C H   D I A G N O S T I C   U P D A T E *****
-         !--------------------------------------------------------------
-#ifdef USE_TIMERS
-         CALL GEOS_Timer_Start( "All diagnostics",              RC )
-         CALL GEOS_Timer_Start( "=> Binary punch diagnostics",  RC )
-#endif
-
-         !-------------------------------------------------------------
-         ! ND55 (bpch) DIAGNOSTIC
-         !
-         ! Tropopause level, height [km], and pressure [hPa]
-         !
-         ! NOTE: Attach here because this is where the call to
-         ! obsolete routine DIAG_TROPOPAUSE was.  This should
-         ! replicate results w/ prior versions. (bmy, 1/17/18)
-         !-------------------------------------------------------------
-         IF ( ND55 > 0 ) THEN
-            AD55(:,:,1) = AD55(:,:,1) + State_Met%TropLev
-            AD55(:,:,2) = AD55(:,:,2) + State_Met%TropHt
-            AD55(:,:,3) = AD55(:,:,3) + State_Met%TropP
-         ENDIF
-
-         ! Update dynamic timestep (for bpch diagnostics
-         CALL SET_CT_DYN( INCREMENT=.TRUE. )
-
-         !-------------------------------------------------------------
-         ! Get averaging intervals for local-time diagnostics
-         ! (NOTE: maybe improve this later on)
-         ! Placed after interpolation to get correct value of TROPP. 
-         ! (ccc, 12/9/08)
-         !-------------------------------------------------------------
-         CALL DIAG_2PM( State_Grid, State_Met )
-
-#ifdef USE_TIMERS
-         CALL GEOS_Timer_End( "All diagnostics",              RC )
-         CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
-#endif
-
-#endif
 
          !### Debug
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INTERP, etc' )
@@ -1460,7 +1419,7 @@
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             ! Increment emission counter
             CALL Set_Ct_Emis( INCREMENT=.TRUE. )
 #endif
@@ -1539,7 +1498,7 @@
          !-------------------------------
          IF ( ITS_TIME_FOR_CONV() ) THEN
             
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             ! Increment the convection timestep
             CALL Set_Ct_Conv( INCREMENT=.TRUE. )
 #endif
@@ -1627,7 +1586,7 @@
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             ! Increment chemistry timestep counter
             CALL Set_Ct_Chem( INCREMENT=.TRUE. )
 #endif
@@ -1808,7 +1767,7 @@
                ENDIF
             ENDDO
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             ! Increment radiation timestep counter
             CALL Set_Ct_Rad( INCREMENT=.TRUE. )
 #endif
@@ -1921,7 +1880,7 @@
 
          ENDIF
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
          !--------------------------------------------------------------
          !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
          !
@@ -1958,7 +1917,7 @@
          ENDIF
 #endif
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          !--------------------------------------------------------------
          ! **** C H 4   S I M U L A T I O N   D I A G N O S I C S ****
          !
@@ -2026,7 +1985,7 @@
             CALL Debug_Msg( '### MAIN: after SET_ELAPSED_SEC' )
          ENDIF
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
          !==============================================================
          !      ***** D I A G N O S T I C S   A R C H I V A L *****
          !
@@ -2118,13 +2077,6 @@
             ENDIF
          ENDIF
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG51' )
-
-         ! Comment out for now 
-         !! Column timeseries
-         !IF ( ND52 > 0 .and. ITS_TIME_FOR_ND52() ) THEN
-         !   CALL DIAG52
-         !   IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a ND52' )
-         !ENDIF
 
          !### After diagnostics
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after TIMESERIES' )
@@ -2433,7 +2385,7 @@
       !-----------------------------------------------------------------
       ! Print status of binary punch (bpch) diagnostics
       !-----------------------------------------------------------------
-#if defined( BPCH_DIAG ) 
+#ifdef BPCH_DIAG 
       WRITE( 6, 160 ) 'ON'
 #else
       WRITE( 6, 160 ) 'OFF'
@@ -2506,7 +2458,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       ! NOTE: Block out with an #ifdef, so that we don't interfere
       ! with file units in GCHP, or when using GEOS-Chem as an
       ! instance in other models like CESM or ECMWF (bmy, 1/12/18)

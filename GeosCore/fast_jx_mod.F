@@ -1676,9 +1676,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD,   ONLY : ND64
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE inquireMod,     ONLY : findFreeLUN
@@ -1776,9 +1773,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Compute factors for UV flux diagnostics
       IF ( State_Diag%Archive_UVFluxNet      .or.
-#ifdef BPCH_DIAG
-     &     ND64 > 0                          .or.
-#endif
      &     State_Diag%Archive_UVFluxDirect   .or.
      &     State_Diag%Archive_UVFluxDiffuse ) THEN
          UVXFACTOR = 0e+0_fp
@@ -3168,10 +3162,6 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD,   ONLY : LD22, LD64, ND22, ND64
-      USE DIAG_MOD,       ONLY : AD22, AD64, LTJV
-#endif
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Grid_Mod, ONLY : GrdState
@@ -3626,244 +3616,6 @@ C-----------------------------------------------------------------------
             ENDDO
          ENDDO
       ENDIF
-
-#if defined( BPCH_DIAG )
-      !=================================================================
-      ! ND64 (bpch) diagnostic
-      !
-      ! UV radiative fluxes (direct, diffuse, net) [1/cm2/s]
-      !
-      ! New diagnostic (SDE 2013-10-25)
-      ! Use it to calculate fluxes for output if necessary
-      !
-      ! Get net direct and net diffuse fluxes separately
-      ! Order:
-      !    1 - Net flux
-      !    2 - Direct flux
-      !    3 - Diffuse flux
-      ! Convention: -ve is downwards
-      !=================================================================
-      IF ( ND64 > 0 ) THEN
-
-         ! Loop over wavelength bins
-         DO K = 1, W_
-
-            ! Initialize
-            FDIRECT  = 0.0_fp
-            FDIFFUSE = 0.0_fp
-
-            ! Direct & diffuse fluxes each level
-            FDIRECT(1)  = FSBOT(K)                ! surface
-            FDIFFUSE(1) = FJBOT(K)                ! surface
-            DO L = 2, LD64
-               FDIRECT(L)  = FDIRECT(L-1) + FLXD(L-1,K)
-               FDIFFUSE(L) = FJFLX(L-1,K)
-            ENDDO
-
-            ! Save into diagnostic arrays
-            DO L = 1, LD64
-               AD64(ILON,ILAT,L,K,1) = AD64(ILON,ILAT,L,K,1) +
-     &            ((FDIRECT(L)+FDIFFUSE(L))*SOLF*FL(K)*UVXFACTOR(K))
-               AD64(ILON,ILAT,L,K,2) = AD64(ILON,ILAT,L,K,2) +
-     &            (FDIRECT(L)*SOLF*FL(K)*UVXFACTOR(K))
-               AD64(ILON,ILAT,L,K,3) = AD64(ILON,ILAT,L,K,3) +
-     &            (FDIFFUSE(L)*SOLF*FL(K)*UVXFACTOR(K))
-            ENDDO
-         ENDDO
-      ENDIF
-
-      !=================================================================
-      ! ND22 (bpch) diagnostic
-      !
-      ! Archive photolysis rates [s-1] for each species
-      ! summed over all reaction branches
-      !
-      ! NOTE: Special handling for some reactions is done in
-      ! routine PHOTRATE_ADJ, which is called in DO_FLEXCHEM.
-      !=================================================================
-      IF ( ND22 > 0 ) THEN
-
-         ! Save J-values for 2PM diagnostic boxes
-         IF ( LTJV(ILON,ILAT) > 0 ) THEN
-
-            DO L = 1, LD22
-               ! AD22 IDs 5, 6, and 15 (J-values for O3 and O2)
-               ! are handled in routine PHOTRATE_ADJ
-               ! Hardcode ZPJ indices based on valued from FJX_j2j.dat
-               ! for now (mps, 3/15/16)
-               ! TMS (18/10/10) - IDs 77, 78 (JNIT, JNITs)
-               ! also handled in routine PHOTRATE_ADJ
-               !
-               ! NOTE: Updated to remove duplicate ClNO2 entry #101,
-               ! This reduces the # of photolyzed species from 130 to 129.
-               ! Entries 102-130 are now renumbered as 101-129.
-               ! (bmy, 4/10/19)
-               AD22(ILON,ILAT,L, 1) = AD22(ILON,ILAT,L, 1) +  ! JNO2
-     &                                ZPJ(L,11,ILON,ILAT)
-               AD22(ILON,ILAT,L, 2) = AD22(ILON,ILAT,L, 2) +  ! JHNO3
-     &                                ZPJ(L,16,ILON,ILAT)
-               AD22(ILON,ILAT,L, 3) = AD22(ILON,ILAT,L, 3) +  ! JH2O2
-     &                                ZPJ(L, 9,ILON,ILAT)
-               AD22(ILON,ILAT,L, 4) = AD22(ILON,ILAT,L, 4) +  ! JCH2O
-     &                                ZPJ(L, 7,ILON,ILAT)  +
-     &                                ZPJ(L, 8,ILON,ILAT)
-               AD22(ILON,ILAT,L, 7) = AD22(ILON,ILAT,L, 7) +  ! JGLYX
-     &                                ZPJ(L,72,ILON,ILAT)  +
-     &                                ZPJ(L,73,ILON,ILAT)  +
-     &                                ZPJ(L,74,ILON,ILAT)
-               AD22(ILON,ILAT,L, 8) = AD22(ILON,ILAT,L, 8) +  ! JMGLY
-     &                                ZPJ(L,71,ILON,ILAT)
-               AD22(ILON,ILAT,L, 9) = AD22(ILON,ILAT,L, 9) +  ! JBrO
-     &                                ZPJ(L,28,ILON,ILAT)
-               AD22(ILON,ILAT,L,10) = AD22(ILON,ILAT,L,10) +  ! JHOBr
-     &                                ZPJ(L,32,ILON,ILAT)
-               AD22(ILON,ILAT,L,11) = AD22(ILON,ILAT,L,11) +  ! JBrNO2
-     &                                ZPJ(L,31,ILON,ILAT)
-               AD22(ILON,ILAT,L,12) = AD22(ILON,ILAT,L,12) +  ! JBrNO3
-     &                                ZPJ(L,29,ILON,ILAT)  +
-     &                                ZPJ(L,30,ILON,ILAT)
-               AD22(ILON,ILAT,L,13) = AD22(ILON,ILAT,L,13) +  ! JCHBr3
-     &                                ZPJ(L,56,ILON,ILAT)
-               AD22(ILON,ILAT,L,14) = AD22(ILON,ILAT,L,14) +  ! JBr2
-     &                                ZPJ(L,23,ILON,ILAT)
-               AD22(ILON,ILAT,L,16) = AD22(ILON,ILAT,L,16) +  ! JN2O
-     &                                ZPJ(L,36,ILON,ILAT)
-               AD22(ILON,ILAT,L,17) = AD22(ILON,ILAT,L,17) +  ! JNO
-     &                                ZPJ(L, 6,ILON,ILAT)
-               AD22(ILON,ILAT,L,18) = AD22(ILON,ILAT,L,18) +  ! JNO3
-     &                                ZPJ(L,12,ILON,ILAT)  +
-     &                                ZPJ(L,13,ILON,ILAT)
-               AD22(ILON,ILAT,L,19) = AD22(ILON,ILAT,L,19) +  ! JCFC11
-     &                                ZPJ(L,37,ILON,ILAT)
-               AD22(ILON,ILAT,L,20) = AD22(ILON,ILAT,L,20) +  ! JCFC12
-     &                                ZPJ(L,38,ILON,ILAT)
-               AD22(ILON,ILAT,L,21) = AD22(ILON,ILAT,L,21) +  ! JCCl4
-     &                                ZPJ(L,42,ILON,ILAT)
-               AD22(ILON,ILAT,L,22) = AD22(ILON,ILAT,L,22) +  ! JCH3Cl
-     &                                ZPJ(L,43,ILON,ILAT)
-               AD22(ILON,ILAT,L,23) = AD22(ILON,ILAT,L,23) +  ! JACET
-     &                                ZPJ(L,76,ILON,ILAT)  +
-     &                                ZPJ(L,77,ILON,ILAT)
-               AD22(ILON,ILAT,L,24) = AD22(ILON,ILAT,L,24) +  ! JALD2
-     &                                ZPJ(L,61,ILON,ILAT)  +
-     &                                ZPJ(L,62,ILON,ILAT)
-               AD22(ILON,ILAT,L,25) = AD22(ILON,ILAT,L,25) +  ! JMVK
-     &                                ZPJ(L,63,ILON,ILAT)  +
-     &                                ZPJ(L,64,ILON,ILAT)  +
-     &                                ZPJ(L,65,ILON,ILAT)
-               AD22(ILON,ILAT,L,26) = AD22(ILON,ILAT,L,26) +  ! JMACR
-     &                                ZPJ(L,66,ILON,ILAT)  +
-     &                                ZPJ(L,67,ILON,ILAT)
-               AD22(ILON,ILAT,L,27) = AD22(ILON,ILAT,L,27) +  ! JHAC
-     &                                ZPJ(L,75,ILON,ILAT)
-               AD22(ILON,ILAT,L,28) = AD22(ILON,ILAT,L,28) +  ! JGLYC
-     &                                ZPJ(L,68,ILON,ILAT)
-               AD22(ILON,ILAT,L,29) = AD22(ILON,ILAT,L,29) +  ! JPIP
-     &                                ZPJ(L,105,ILON,ILAT)
-               AD22(ILON,ILAT,L,30) = AD22(ILON,ILAT,L,30) +  ! JIPMN
-     &                                ZPJ(L,106,ILON,ILAT)
-               AD22(ILON,ILAT,L,31) = AD22(ILON,ILAT,L,31) +  ! JETHLN
-     &                                ZPJ(L,107,ILON,ILAT)
-               AD22(ILON,ILAT,L,32) = AD22(ILON,ILAT,L,32) +  ! JDHDC
-     &                                ZPJ(L,108,ILON,ILAT)
-               AD22(ILON,ILAT,L,33) = AD22(ILON,ILAT,L,33) +  ! JHPALD
-     &                                ZPJ(L,109,ILON,ILAT)
-               AD22(ILON,ILAT,L,34) = AD22(ILON,ILAT,L,34) +  ! JISN1
-     &                                ZPJ(L,110,ILON,ILAT)
-               AD22(ILON,ILAT,L,35) = AD22(ILON,ILAT,L,35) +  ! JMONITS
-     &                                ZPJ(L,111,ILON,ILAT)
-               AD22(ILON,ILAT,L,36) = AD22(ILON,ILAT,L,36) +  ! JMONITU
-     &                                ZPJ(L,112,ILON,ILAT)
-               AD22(ILON,ILAT,L,37) = AD22(ILON,ILAT,L,37) +  ! JHONIT
-     &                                ZPJ(L,113,ILON,ILAT)
-               ! lei, 05/15/17 - added new halogen species below 
-               IF ( IS_HALOGENS ) THEN
-               AD22(ILON,ILAT,L,38) = AD22(ILON,ILAT,L,38) +  ! JCH3Br
-     &                                ZPJ(L,50,ILON,ILAT)
-               AD22(ILON,ILAT,L,39) = AD22(ILON,ILAT,L,39) +  ! JBrCl
-     &                                ZPJ(L,33,ILON,ILAT)
-               AD22(ILON,ILAT,L,40) = AD22(ILON,ILAT,L,40) +  ! JCH2Br2
-     &                                ZPJ(L,55,ILON,ILAT)
-               AD22(ILON,ILAT,L,41) = AD22(ILON,ILAT,L,41) +  ! JCH2IBr
-     &                                ZPJ(L,125,ILON,ILAT)
-               AD22(ILON,ILAT,L,42) = AD22(ILON,ILAT,L,42) +  ! JIBr
-     &                                ZPJ(L,128,ILON,ILAT)
-               AD22(ILON,ILAT,L,43) = AD22(ILON,ILAT,L,43) +  ! JCl2
-     &                                ZPJ(L,22,ILON,ILAT)
-               AD22(ILON,ILAT,L,44) = AD22(ILON,ILAT,L,44) +  ! JClO
-     &                                ZPJ(L,27,ILON,ILAT)
-               AD22(ILON,ILAT,L,45) = AD22(ILON,ILAT,L,45) +  ! JOClO
-     &                                ZPJ(L,25,ILON,ILAT)
-               AD22(ILON,ILAT,L,46) = AD22(ILON,ILAT,L,46) +  ! JCl2O2
-     &                                ZPJ(L,26,ILON,ILAT)
-               AD22(ILON,ILAT,L,47) = AD22(ILON,ILAT,L,47) +  ! JClNO2
-     &                                ZPJ(L,21,ILON,ILAT)
-               AD22(ILON,ILAT,L,48) = AD22(ILON,ILAT,L,48) +  ! JClNO3
-     &                                ZPJ(L,19,ILON,ILAT)  +
-     &                                ZPJ(L,20,ILON,ILAT)
-               AD22(ILON,ILAT,L,49) = AD22(ILON,ILAT,L,49) +  ! JHOCl
-     &                                ZPJ(L,24,ILON,ILAT)
-               AD22(ILON,ILAT,L,50) = AD22(ILON,ILAT,L,50) +  ! JCH3CCl3
-     &                                ZPJ(L,44,ILON,ILAT)
-               AD22(ILON,ILAT,L,51) = AD22(ILON,ILAT,L,51) +  ! JCFC113
-     &                                ZPJ(L,39,ILON,ILAT)
-               AD22(ILON,ILAT,L,52) = AD22(ILON,ILAT,L,52) +  ! JCFC114
-     &                                ZPJ(L,40,ILON,ILAT)
-               AD22(ILON,ILAT,L,53) = AD22(ILON,ILAT,L,53) +  ! JCFC115
-     &                                ZPJ(L,41,ILON,ILAT)
-               AD22(ILON,ILAT,L,54) = AD22(ILON,ILAT,L,54) +  ! JHCFC123
-     &                                ZPJ(L,47,ILON,ILAT)
-               AD22(ILON,ILAT,L,55) = AD22(ILON,ILAT,L,55) +  ! JHCFC141b
-     &                                ZPJ(L,48,ILON,ILAT)
-               AD22(ILON,ILAT,L,56) = AD22(ILON,ILAT,L,56) +  ! JHCFC142b
-     &                                ZPJ(L,49,ILON,ILAT)
-               AD22(ILON,ILAT,L,57) = AD22(ILON,ILAT,L,57) +  ! JHCFC22
-     &                                ZPJ(L,46,ILON,ILAT)
-               AD22(ILON,ILAT,L,58) = AD22(ILON,ILAT,L,58) +  ! JH1211
-     &                                ZPJ(L,51,ILON,ILAT)
-               AD22(ILON,ILAT,L,59) = AD22(ILON,ILAT,L,59) +  ! JClOO
-     &                                ZPJ(L,101,ILON,ILAT)
-               AD22(ILON,ILAT,L,60) = AD22(ILON,ILAT,L,60) +  ! JCH2Cl2
-     &                                ZPJ(L,45,ILON,ILAT)
-               AD22(ILON,ILAT,L,61) = AD22(ILON,ILAT,L,61) +  ! JCH2ICl
-     &                                ZPJ(L,124,ILON,ILAT)
-               AD22(ILON,ILAT,L,62) = AD22(ILON,ILAT,L,62) +  ! JICl
-     &                                ZPJ(L,129,ILON,ILAT)
-               AD22(ILON,ILAT,L,63) = AD22(ILON,ILAT,L,63) +  ! JI2
-     &                                ZPJ(L,114,ILON,ILAT)
-               AD22(ILON,ILAT,L,64) = AD22(ILON,ILAT,L,64) +  ! JHOI
-     &                                ZPJ(L,115,ILON,ILAT)
-               AD22(ILON,ILAT,L,65) = AD22(ILON,ILAT,L,65) +  ! JIO
-     &                                ZPJ(L,116,ILON,ILAT)
-               AD22(ILON,ILAT,L,66) = AD22(ILON,ILAT,L,66) +  ! JOIO
-     &                                ZPJ(L,117,ILON,ILAT)
-               AD22(ILON,ILAT,L,67) = AD22(ILON,ILAT,L,67) +  ! JINO
-     &                                ZPJ(L,118,ILON,ILAT)
-               AD22(ILON,ILAT,L,68) = AD22(ILON,ILAT,L,68) +  ! JIONO
-     &                                ZPJ(L,119,ILON,ILAT)
-               AD22(ILON,ILAT,L,69) = AD22(ILON,ILAT,L,69) +  ! JIONO2
-     &                                ZPJ(L,120,ILON,ILAT)
-               AD22(ILON,ILAT,L,70) = AD22(ILON,ILAT,L,70) +  ! JI2O2
-     &                                ZPJ(L,121,ILON,ILAT)
-               AD22(ILON,ILAT,L,71) = AD22(ILON,ILAT,L,71) +  ! JCH3I
-     &                                ZPJ(L,122,ILON,ILAT)
-               AD22(ILON,ILAT,L,72) = AD22(ILON,ILAT,L,72) +  ! JCH2I2
-     &                                ZPJ(L,123,ILON,ILAT)
-               AD22(ILON,ILAT,L,73) = AD22(ILON,ILAT,L,73) +  ! JI2O4
-     &                                ZPJ(L,126,ILON,ILAT)
-               AD22(ILON,ILAT,L,74) = AD22(ILON,ILAT,L,74) +  ! JI2O3
-     &                                ZPJ(L,127,ILON,ILAT)
-               AD22(ILON,ILAT,L,75) = AD22(ILON,ILAT,L,75) +  ! JH1301
-     &                                ZPJ(L,53,ILON,ILAT)
-               AD22(ILON,ILAT,L,76) = AD22(ILON,ILAT,L,76) +  ! JH2402
-     &                                ZPJ(L,54,ILON,ILAT)
-               ENDIF ! IS_HALOGENS
-            ENDDO
-
-         ENDIF
-
-      ENDIF
-#endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% COMMENT OUT FAST-J DIAGNOSTICS FOR NOW (bmy, 3/5/14)
@@ -5173,10 +4925,6 @@ C---Always does PL(2) = P[1]
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD,   ONLY : LD22, ND22
-      USE DIAG_MOD,       ONLY : AD22, LTJV
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
@@ -5233,10 +4981,6 @@ C---Always does PL(2) = P[1]
 
       ! Initialize
       RC      = GC_SUCCESS
-#if defined( BPCH_DIAG )
-      Do_ND22 = ( ND22 > 0 .and. L <= LD22 .and. LTJV(I,J) > 0 )
-#endif
-
 
       ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
       ! scaled value of JHNO3. NOTE: this is set in input.geos
@@ -5292,17 +5036,6 @@ C---Always does PL(2) = P[1]
          ! RXN_H2SO4 specifies SO4 + hv -> SO2 + OH + OH
          ZPJ(L,RXN_H2SO4,I,J) = ZPJ(L,RXN_H2SO4,I,J) * FRAC
 
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND22 (bpch) diagnostic
-         !
-         ! Store unadjusted O2 photolysis rate as ND22(:,:,:,15)
-         !--------------------------------------------------------------
-         IF ( Do_ND22 ) THEN
-            AD22(I,J,L,15) = AD22(I,J,L,15) + ZPJ(L,RXN_O2,I,J)
-         ENDIF
-#endif
-
          !==============================================================
          ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! %%% FOR MECHANISMS WITH UCX                              %%%
@@ -5325,40 +5058,7 @@ C---Always does PL(2) = P[1]
          ZPJ(L,RXN_O3_1,I,J) = ZPJ(L,RXN_O3_1,I,J)
      &                       - ZPJ(L,RXN_O3_2a,I,J)
 
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND22 (bpch) diagnostic
-         !
-         ! For UCX, store O1D and O3P photolysis rates separately
-         !--------------------------------------------------------------
-         IF ( Do_ND22 ) THEN
-            AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
-            AD22(I,J,L,6) = AD22(I,J,L,6) + ZPJ(L,RXN_O3_1, I,J)
-         ENDIF
-#endif
-
       ELSE
-
-         !==============================================================
-         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         ! %%% FOR MECHANISMS WITHOUT UCX %%%
-         ! %%% (tropchem)                 %%%
-         ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !
-         ! SPECIAL TREATMENT FOR O3+hv -> OH+OH (trop-only simulation)
-         !==============================================================
-
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND22 (bpch) diagnostic
-         !
-         ! Store unadjusted total O3 photolysis rate as AD22(:,:,:,5)
-         ! RXN_O3_2a specifies: O3 + hv -> O2 + O(1D)
-         !--------------------------------------------------------------
-         IF ( Do_ND22 ) THEN
-            AD22(I,J,L,5) = AD22(I,J,L,5) + ZPJ(L,RXN_O3_2a,I,J)
-         ENDIF
-#endif
 
          !==============================================================
          ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -5423,39 +5123,7 @@ C---Always does PL(2) = P[1]
      &                           * RO1DplH2  / RO1D
 
          ENDIF
-
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND22 (bpch) diagnostic
-         !
-         ! Store P(OH) from O3 photolysis as AD22(:,:,:,6)
-         !--------------------------------------------------------------
-         IF ( Do_ND22 ) THEN
-            AD22(I,J,L,6) = AD22(I,J,L,6)
-     &                    + ZPJ(L,RXN_O3_2a,I,J)
-     &                    + ZPJ(L,RXN_O3_2b,I,J)
-         ENDIF
-#endif
-
       ENDIF
-
-#if defined( BPCH_DIAG )
-      !--------------------------------------------------------------
-      ! ND22 (bpch) diagnostic
-      !
-      ! Store JNIT and JNITs
-      !--------------------------------------------------------------
-      IF ( Do_ND22 ) THEN
-
-         AD22(I,J,L,77) = AD22(I,J,L,77) +  ! JNITs
-     &                          ZPJ(L,RXN_JNITSa,I,J) +
-     &                          ZPJ(L,RXN_JNITSb,I,J)
-         AD22(I,J,L,78) = AD22(I,J,L,78) +  ! JNIT
-     &                          ZPJ(L,RXN_JNITa,I,J) +
-     &                          ZPJ(L,RXN_JNITb,I,J)
-
-      ENDIF
-#endif
 
       END SUBROUTINE PHOTRATE_ADJ
 !EOC
