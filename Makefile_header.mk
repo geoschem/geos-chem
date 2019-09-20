@@ -620,6 +620,11 @@ ifeq ($(APM_NEEDED),1)
   LINK               :=$(LINK) -lApm
 endif
 
+# Append library for GCHP, if necessary
+ifeq ($(IS_HPC),1)
+  LINK               :=$(LINK) -lGCHPint
+endif
+
 # Create linker command to create the GEOS-Chem executable
 LINK                 :=$(LINK) -lIsorropia -lObsPack -lHistory
 LINK                 :=$(LINK) -lHCOI -lHCOX -lHCO
