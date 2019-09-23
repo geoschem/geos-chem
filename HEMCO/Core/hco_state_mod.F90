@@ -320,8 +320,10 @@ CONTAINS
     CALL HCO_ArrInit( HcoState%Buffer3D, 0, 0, 0, RC )
     IF ( RC /= 0 ) RETURN
 
+    ! Dust bins (set default to 4)
+    HcoState%nDust = 4
+
     ! Aerosol options
-    HcoState%nDust = 0
     ALLOCATE ( HcoState%MicroPhys, STAT = AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR( HcoConfig%Err, 'HEMCO aerosol microphysics options', RC )
