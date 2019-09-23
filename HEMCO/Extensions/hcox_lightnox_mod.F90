@@ -1599,7 +1599,7 @@ CONTAINS
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.6591586d0
 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.4666451d0
 
 #elif defined( GRID05x0625   ) && defined( NESTED_AS )
     REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.1040315d0
@@ -1653,9 +1653,9 @@ CONTAINS
     ! Constrained with simulated "climatology" for
     ! April 2012 - Jul 2017. Will need to be updated as more
     ! met fields become available (ltm, 2017-09-24).
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+    !IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
        BETA = ANN_AVG_FLASHRATE / 85.362449d0
-    ENDIF
+    !ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
 
@@ -1666,9 +1666,9 @@ CONTAINS
     ! Constrained with simulated "climatology" for
     ! April 2012 - Jul 2017. Will need to be updated as more
     ! met fields become available (ltm, 2017-09-24).    
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+    !IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
        BETA = ANN_AVG_FLASHRATE / 269.13945d0
-    ENDIF
+    !ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
@@ -1691,12 +1691,10 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - April 2016. Will need to be updated as more
-    ! met fields become available (ltm, 2016-10-07).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4    ) .or. &
-         ( cYr .ge. 2013 .and. cYr .le. 2015 ) .or. &
-         ( cYr .eq. 2016 .and. cMt .le. 4  ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 754.91d0
+    ! April 2012 - Jan 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-28).
+    IF ( ( cYr .eq. 2018 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN    
+       BETA = ANN_AVG_FLASHRATE / 770.29078d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU )

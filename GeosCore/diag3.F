@@ -683,6 +683,14 @@
                ARRAY(:,:,L) = AD05(:,:,L,N) / SCALEX
             ENDDO
 
+            IF (N == 19) THEN
+               UNIT = ' '
+               ! Divide by # of chemistry timesteps
+               DO L = 1, LD05
+                  ARRAY(:,:,L) = AD05(:,:,L,N) / SCALECHEM
+               ENDDO
+            ENDIF
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,

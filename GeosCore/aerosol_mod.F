@@ -1657,7 +1657,7 @@
      &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
             ENDIF
 
-            ! Get the AOD contribution from isoprene SOA
+            ! Get the AOD contribution from isoprene/ SOA
             ! only (eam, 2014):
             IF ((N.eq.3) .and. LSOA ) THEN
                ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
@@ -1780,14 +1780,12 @@
                !Calulate surface area for fine sulfate/salt aerosol, xnw
                !Assuming Cl- in internally mixed sulfate and sea salt
                IF (N.eq.4) THEN
-                  ACLAREA(I,J,L) = 3.D0 * ACL(I,J,L) * SCALEVOL /
-     &                      ( ERADIUS(I,J,L,N+NDUST) * MSDENS(N) )
-                  ACLRADIUS(I,J,L) = ( WERADIUS(I,J,L,1+NDUST) *
-     &                               WTAREA(I,J,L,1+NDUST)   +
-     &                                  WERADIUS(I,J,L,N+NDUST) *
-     &                               ACLAREA(I,J,L) )        /
-     &                  ( WTAREA(I,J,L,1+NDUST) + ACLAREA(I,J,L) )
-                  ACLAREA(I,J,L) = ACLAREA(I,J,L)+WTAREA(I,J,L,1+NDUST)
+                  ACLAREA(I,J,L) = WTAREA(I,J,L,1+NDUST) +
+     &                             WTAREA(I,J,L,4+NDUST)
+       
+                  ACLRADIUS(I,J,L) = (WERADIUS(I,J,L,1+NDUST) * 
+     &              WTAREA(I,J,L,1+NDUST) + WERADIUS(I,J,L,4+NDUST) *
+     &              WTAREA(I,J,L,4+NDUST) ) / ACLAREA(I,J,L)
                ENDIF
 
                !include hydrophobic BC and OC

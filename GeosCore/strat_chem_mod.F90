@@ -1036,7 +1036,8 @@ CONTAINS
             TRIM( ThisName ) .eq. 'AERI' ) THEN
           Is_UCX_Spc = .TRUE.
        ELSE
-          Is_UCX_Spc = .FALSE.
+          !Is_UCX_Spc = .FALSE.
+          Is_UCX_Spc = .TRUE.
        ENDIF
 
        ! ---------------------------------------------------------------

@@ -174,8 +174,7 @@ MODULE GCKPP_HETRATES
 !$OMP THREADPRIVATE( KHETI_SLA,    SUNCOS,   AClAREA,  AClRADI    )
 !$OMP THREADPRIVATE( H_PLUS,       MSO4,       MNO3,     MHSO4    )
 !$OMP THREADPRIVATE( HSO3conc_Cld, SO3conc_Cld, fupdateHOBr       )
-!$OMP THREADPRIVATE( fupdateHOCl, nitConc_SALA, nitConc_SALC     )
-
+!$OMP THREADPRIVATE( fupdateHOCl                                  )
 ! !DEFINED PARAMETERS:
 !
   REAL(fp), PARAMETER :: HetMinLife = 1.e-3_fp
@@ -631,28 +630,28 @@ MODULE GCKPP_HETRATES
       hConc_SSC = 10.0**(-5.0e+0_fp)
 
       ! Get halide concentrations, in cloud      
-      CALL Get_Halide_CldConc(spcVec(Ind_('HBr'))+spcVec(Ind_('BrSALA'))*0.7e+0_fp+spcVec(Ind_('BrSALC')), &    
-                             spcVec(Ind_('HCl'))+spcVec(Ind_('SALACL'))*0.7e+0_fp+spcVec(Ind_('SALCCL')), VLiq, &    
-                             VIce, VAir, TempK, CLDFr, pHCloud, brConc_Cldg, clConc_Cldg)
+      CALL Get_Halide_CldConc(spcVec(Ind_('HBr'))+spcVec(Ind_('BrSALA'))*0.7e+0_fp+spcVec(Ind_('BrSALC'))*0.9e+0_fp, &    
+                             spcVec(Ind_('HCl'))+spcVec(Ind_('SALACL'))*0.7e+0_fp+spcVec(Ind_('SALCCL'))*0.9e+0_fp, VLiq, &    
+                             VIce, VAir, TempK, CLDFr, brConc_Cldg, clConc_Cldg)
 
       brConc_Cld = brConc_Cldg
       brConc_Cldg = brConc_Cld * spcVec(Ind_('HBr')) / &
-           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))     
+           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC'))*0.9e+0_fp)     
       brConc_CldA = brConc_Cld * spcVec(Ind_('BrSALA'))*0.7e+0_fp / &
-           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))
-      brConc_CldC = brConc_Cld * spcVec(Ind_('BrSALC')) / &
-           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC')))
+           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC'))*0.9e+0_fp)
+      brConc_CldC = brConc_Cld * spcVec(Ind_('BrSALC'))*0.9e+0_fp / &
+           (spcVec(Ind_('HBr')) + spcVec(Ind_('BrSALA'))*0.7e+0_fp + spcVec(Ind_('BrSALC'))*0.9e+0_fp)
       brConc_Cldg = MAX(brConc_Cldg, 1.0e-20_fp)
       brConc_CldA = MAX(brConc_CldA, 1.0e-20_fp)
       brConc_CldC = MAX(brConc_CldC, 1.0e-20_fp)
 
       clConc_Cld = clConc_Cldg   
       clConc_Cldg = clConc_Cld * spcVec(Ind_('HCl')) / &
-           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))   
+           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL'))*0.9e+0_fp)   
       clConc_CldA = clConc_Cld * spcVec(Ind_('SALACL'))*0.7e+0_fp / &
-           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))
-      clConc_Cldc = clConc_Cld * spcVec(Ind_('SALCCL')) / &
-           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL')))
+           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL'))*0.9e+0_fp)
+      clConc_Cldc = clConc_Cld * spcVec(Ind_('SALCCL'))*0.9e+0_fp / &
+           (spcVec(Ind_('HCl')) + spcVec(Ind_('SALACL'))*0.7e+0_fp + spcVec(Ind_('SALCCL'))*0.9e+0_fp)
       clConc_Cldg = MAX(clConc_Cldg, 1.0e-20_fp)
       clConc_CldA = MAX(clConc_CldA, 1.0e-20_fp)
       clConc_CldC = MAX(clConc_CldC, 1.0e-20_fp)
@@ -725,7 +724,7 @@ MODULE GCKPP_HETRATES
       ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
       ! second reactant is "abundant" and calculate the overall rate based on
       ! the uptake rate of the first reactant only.
-      kITemp = HETN2O5(1.08E2_fp, 1E-1_fp, clConc_SALA, clConc_SALC, CldFr) + &
+      kITemp = HETN2O5(1.08E2_fp, 1E-1_fp, clConc_SALA, clConc_SALC) + &
                CloudHet( 'N2O5',CldFr, Aliq, Aice, rLiq, rIce, TempK, XDenA)
       HET(ind_N2O5,  1) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('H2O'), &
                kITemp, HetMinLife)
@@ -738,19 +737,19 @@ MODULE GCKPP_HETRATES
          !----------------------------------------------------------------
          ! Cl- enhanced NO3 hydrolysis (XW 2018-03-16)
          !----------------------------------------------------------------
-         kITemp = HetNO3_Cl(XDenA, AClRADI, (1-CldFr)*AClAREA, TempK, clConc_SALA, 1)
+         kITemp = HetNO3_Cl(XDenA, AClRADI, AClAREA, TempK, clConc_SALA, 1)
          HET(ind_NO3, 2) = kITemp
-         kITemp = HetNO3_Cl(XDenA, XRADI(12), (1-CldFr)*XAREA(12), TempK, clConc_SALC, 2)
+         kITemp = HetNO3_Cl(XDenA, XRADI(12), XAREA(12), TempK, clConc_SALC, 2)
          HET(ind_NO3, 3) = kITemp
 
          !----------------------------------------------------------------
          ! ClNO3 and BrNO3 hydrolysis (update: XW 2019-06-08)
          !----------------------------------------------------------------
-         kITemp = HETBrNO3( XDenA, TempK, CldFr) + &
+         kITemp = HETBrNO3( XDenA, TempK) + &
                   CloudHet( 'BrNO3',CldFr, Aliq, Aice, rLiq, rIce, TempK, XDenA)
          HET(ind_BrNO3, 1) = kIIR1Ltd( spcVec, Ind_('BrNO3'), Ind_('H2O'), &
                                        kITemp, HetMinLife)
-         kITemp = HETClNO3( XDenA, TempK, clConc_SALA, brConc_SALA, CldFr) + &
+         kITemp = HETClNO3( XDenA, TempK, clConc_SALA, brConc_SALA) + &
                   HETClNO3_TCld( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, & 
                     CldFr, clConc_CldA, clConc_CldC, clConc_Cldg, brConc_CldA, &
                     brConc_CldC, brConc_Cldg, hno3_th, hcl_th, hbr_th, 7)
@@ -794,7 +793,7 @@ MODULE GCKPP_HETRATES
                            hno3_th, hcl_th, hbr_th, 3)
          ! Then calculate reaction on aerosols 
          kITemp = kITemp + &
-                  HETHOBr_SS( XDenA, AClRADI, (1-CldFr)*AClAREA, SSAlk(1), TempK, &
+                  HETHOBr_SS( XDenA, AClRADI, AClAREA, SSAlk(1), TempK, &
                                  hConc_SSA, clConc_SALA, brConc_SALA, 2)
          HET(ind_HOBr,  5) = kIIR1Ltd( spcVec, Ind_('HOBr'),  Ind_('BrSALA'), &
                                        kITemp, HetMinLife)
@@ -807,7 +806,7 @@ MODULE GCKPP_HETRATES
                            hno3_th, hcl_th, hbr_th, 4)
          ! Then calculate reaction on aerosols
          kITemp = kITemp + &
-                  HETHOBr_SS( XDenA, xRadi(12), (1-CldFr)*xArea(12), SSAlk(2), TempK, &
+                  HETHOBr_SS( XDenA, xRadi(12), xArea(12), SSAlk(2), TempK, &
                                  hConc_SSC, clConc_SALC, brConc_SALC, 2)
          HET(ind_HOBr,  6) = kIIR1Ltd( spcVec, Ind_('HOBr'),  Ind_('BrSALC'), &
                                        kITemp, HetMinLife)
@@ -823,7 +822,7 @@ MODULE GCKPP_HETRATES
                            hno3_th, hcl_th, hbr_th, 1)
          ! Then calculate reaction on aerosols 
          kITemp = kITemp + &
-                  HETHOBr_SS( XDenA, AClRADI, (1-CldFr)*AClAREA, SSAlk(1), TempK, &
+                  HETHOBr_SS( XDenA, AClRADI, AClAREA, SSAlk(1), TempK, &
                                  hConc_SSA, clConc_SALA, brConc_SALA, 1)
          HET(ind_HOBr,  3) = kIIR1Ltd( spcVec, Ind_('HOBr'),  Ind_('SALACL'), &
                                        kITemp, HetMinLife)
@@ -835,7 +834,7 @@ MODULE GCKPP_HETRATES
                            hno3_th, hcl_th, hbr_th, 2)
          ! Then calculate reaction on aerosols
          kITemp = kITemp + &
-                  HETHOBr_SS( XDenA, xRadi(12), (1-CldFr)*xArea(12), SSAlk(2), &
+                  HETHOBr_SS( XDenA, xRadi(12), xArea(12), SSAlk(2), &
                                  TempK, hConc_SSC, clConc_SALC, brConc_SALC, 1)
          HET(ind_HOBr,  4) = kIIR1Ltd( spcVec, Ind_('HOBr'),  Ind_('SALCCL'), &
                                        kITemp, HetMinLife)
@@ -875,7 +874,7 @@ MODULE GCKPP_HETRATES
                            brConc_CldC, brConc_Cldg, hno3_th, hcl_th, hbr_th, 3)
          ! Then calculate reaction on aerosols
          kITemp = kITemp + &
-                  HETClNO3_SS( XDenA, AClRADI, (1-CldFr)*AClAREA, SSAlk(1), &
+                  HETClNO3_SS( XDenA, AClRADI, AClAREA, SSAlk(1), &
                                   TempK, clConc_SALA, brConc_SALA, 2, 1)
          HET(ind_ClNO3, 4) = kIIR1Ltd( spcVec, Ind_('ClNO3'), Ind_('BrSALA'), &
                                        kITemp, HetMinLife)
@@ -886,7 +885,7 @@ MODULE GCKPP_HETRATES
                            brConc_CldC, brConc_Cldg, hno3_th, hcl_th, hbr_th, 4)
          ! Then calculate reaction on aerosols
          kITemp = kITemp + &
-                  HETClNO3_SS( XDenA, xRadi(12), (1-CldFr)*xArea(12), SSAlk(2), &
+                  HETClNO3_SS( XDenA, xRadi(12), xArea(12), SSAlk(2), &
                                   TempK, clConc_SALC, brConc_SALC, 2, 2)
          HET(ind_ClNO3, 5) = kIIR1Ltd( spcVec, Ind_('ClNO3'), Ind_('BrSALC'), &
                                        kITemp, HetMinLife)
@@ -900,7 +899,7 @@ MODULE GCKPP_HETRATES
                            brConc_CldC, brConc_Cldg, hno3_th, hcl_th, hbr_th, 1)
          ! Then calculate reaction on aerosols
          kITemp = kITemp + &
-                  HETClNO3_SS( XDenA, AClRADI, (1-CldFr)*AClAREA, SSAlk(1), &
+                  HETClNO3_SS( XDenA, AClRADI, AClAREA, SSAlk(1), &
                                   TempK, clConc_SALA, brConc_SALA, 1, 1)
          HET(ind_ClNO3, 6) = kIIR1Ltd( spcVec, Ind_('ClNO3'), Ind_('SALACL'), &
                                        kITemp, HetMinLife)
@@ -911,7 +910,7 @@ MODULE GCKPP_HETRATES
                            brConc_CldC, brConc_Cldg, hno3_th, hcl_th, hbr_th, 2)
          ! Then calculate reaction on aerosols out of cloud
          kITemp = kITemp + &
-                  HETClNO3_SS( XDenA, xRadi(12), (1-CldFr)*xArea(12), SSAlk(2), &
+                  HETClNO3_SS( XDenA, xRadi(12), xArea(12), SSAlk(2), &
                                   TempK, clConc_SALC, brConc_SALC, 1, 2)
          HET(ind_ClNO3, 7) = kIIR1Ltd( spcVec, Ind_('ClNO3'), Ind_('SALCCL'), &
                                        kITemp, HetMinLife)
@@ -959,7 +958,7 @@ MODULE GCKPP_HETRATES
                            HSO3conc_Cld, SO3conc_Cld, hcl_th, 1)
          ! Then calculate reaction on aerosols 
          kITemp = kITemp + &
-                  HETHOCl_SS( XDenA, AClRADI, (1-CldFr)*AClAREA, SSAlk(1), TempK, &
+                  HETHOCl_SS( XDenA, AClRADI, AClAREA, SSAlk(1), TempK, &
                              hConc_SSA, clConc_SALA)
          HET(ind_HOCl,  3) = kIIR1Ltd( spcVec, Ind_('HOCl'),  Ind_('SALACL'), &
                              kITemp, HetMinLife)
@@ -970,7 +969,7 @@ MODULE GCKPP_HETRATES
                            HSO3conc_Cld, SO3conc_Cld, hcl_th, 2)
          ! Then calculate reaction on aerosols 
          kITemp = kITemp + &
-                  HETHOCl_SS( XDenA, xRadi(12), (1-CldFr)*xArea(12), SSAlk(2), TempK, &
+                  HETHOCl_SS( XDenA, xRadi(12), xArea(12), SSAlk(2), TempK, &
                              hConc_SSC, clConc_SALC)
          HET(ind_HOCl,  4) = kIIR1Ltd( spcVec, Ind_('HOCl'),  Ind_('SALCCL'), &
                              kITemp, HetMinLife)
@@ -1006,14 +1005,14 @@ MODULE GCKPP_HETRATES
          !----------------------------------------------------------------
          kITemp = HETO3_TCld( XDenA, rLiq, rIce, ALiq, AIce, VAir, &
                              TempK, CldFr,brConc_CldA, brConc_CldC, brConc_Cldg, spcVec(Ind_('O3')), 1)
-         kITemp = kITemp + HETO3_SS( XDenA, AClRADI, (1-CldFr)*AClAREA, SSAlk(1), &
+         kITemp = kITemp + HETO3_SS( XDenA, AClRADI, AClAREA, SSAlk(1), &
                                TempK, brConc_SALA, spcVec(Ind_('O3'))) 
          HET(ind_O3,    2) = kIIR1Ltd( spcVec, Ind_('O3'), Ind_('BrSALA'), &
                                        kITemp, HetMinLife)
 
          kITemp = HETO3_TCld( XDenA, rLiq, rIce, ALiq, AIce, VAir, &
                             TempK, CldFr, brConc_CldA, brConc_CldC, brConc_Cldg, spcVec(Ind_('O3')), 2)
-         kITemp = kITemp + HETO3_SS( XDenA, xRadi(12), (1-CldFr)*xArea(12), SSAlk(2), &
+         kITemp = kITemp + HETO3_SS( XDenA, xRadi(12), xArea(12), SSAlk(2), &
                                TempK, brConc_SALC, spcVec(Ind_('O3')))
          HET(ind_O3,    3) = kIIR1Ltd( spcVec, Ind_('O3'), Ind_('BrSALC'), &
                                        kITemp, HetMinLife)
@@ -1043,10 +1042,10 @@ MODULE GCKPP_HETRATES
          !----------------------------------------------------------------
          ! Reaction of N2O5 with Cl-, XW 1/24/18)
          !----------------------------------------------------------------
-         kITemp = HETN2O5_SS( XDenA, AClRADI, (1-CldFr)*AClAREA, TempK, clConc_SALA, 1)
+         kITemp = HETN2O5_SS( XDenA, AClRADI, AClAREA, TempK, clConc_SALA, 1)
          HET(ind_N2O5,  3) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('SALACL'), &
                                        kITemp, HetMinLife)
-         kITemp = HETN2O5_SS( XDenA, xRadi(12), (1-CldFr)*xArea(12), TempK, clConc_SALC, 2)
+         kITemp = HETN2O5_SS( XDenA, xRadi(12), xArea(12), TempK, clConc_SALC, 2)
          HET(ind_N2O5,  4) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('SALCCL'), &
                                        kITemp, HetMinLife)
 
@@ -1069,7 +1068,7 @@ MODULE GCKPP_HETRATES
                            brConc_CldA, brConc_CldC, brConc_Cldg, 1)
          ! Then calculate reaction on aerosols out of cloud
          kITemp = kITemp + &
-                  HETClNO2( XDenA, AClRADI, (1-CldFr)*AClAREA, SSAlk(1), &
+                  HETClNO2( XDenA, AClRADI, AClAREA, SSAlk(1), &
                             TempK, pHSSA(1), clConc_SALA, brConc_SALA,1)
 
          HET(ind_ClNO2, 1) = kIIR1Ltd( spcVec, Ind_('ClNO2'), Ind_('SALACL'), &
@@ -1101,7 +1100,7 @@ MODULE GCKPP_HETRATES
                            brConc_CldA, brConc_CldC, brConc_Cldg, 4)
          ! Then calculate reaction on aerosols 
          kITemp = kITemp + &
-                  HETClNO2( XDenA, AClRADI, (1-CldFr)*AClAREA, SSAlk(1), &
+                  HETClNO2( XDenA, AClRADI, AClAREA, SSAlk(1), &
                             TempK, pHSSA(1), clConc_SALA, brConc_SALA,2)
 
          HET(ind_ClNO2, 4) = kIIR1Ltd( spcVec, Ind_('ClNO2'), Ind_('BrSALA'), &
@@ -1113,7 +1112,7 @@ MODULE GCKPP_HETRATES
                            brConc_CldA, brConc_CldC, brConc_Cldg, 5)
          ! Then calculate reaction on aerosols 
          kITemp = kITemp + &
-                  HETClNO2( XDenA, xRadi(12), (1-CldFr)*xArea(12), SSAlk(2), &
+                  HETClNO2( XDenA, xRadi(12), xArea(12), SSAlk(2), &
                             TempK, pHSSA(2), clConc_SALC, brConc_SALC,2)
       
          HET(ind_ClNO2, 5) = kIIR1Ltd( spcVec, Ind_('ClNO2'), Ind_('BrSALC'), &
@@ -2208,7 +2207,7 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETN2O5( A, B, C_X1, C_X2, CldFr) RESULT( HET_N2O5 )
+    FUNCTION HETN2O5( A, B, C_X1, C_X2) RESULT( HET_N2O5 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2216,8 +2215,6 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: A, B
       ! Cl- concentration (mol/L)
       REAL(fp), INTENT(IN) :: C_X1, C_X2
-      ! Cloud fraction
-      REAL(fp), INTENT(IN) :: CldFr
 !
 ! !RETURN VALUE:
 !
@@ -2297,10 +2294,10 @@ MODULE GCKPP_HETRATES
             ! factor in this case, including c-bar
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSEIF (N.eq.11) THEN
-            ADJUSTEDRATE=ARSL1K((1-CldFr)*AClAREA,AClRADI,XDENA,XSTKCF,XTEMP, &
+            ADJUSTEDRATE=ARSL1K(AClAREA,AClRADI,XDENA,XSTKCF,XTEMP, &
                                (A**0.5_FP)) * (1.0e0_fp-r_gp)
          ELSEIF (N.eq.12) THEN
-            ADJUSTEDRATE=ARSL1K((1-CldFr)*XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP, &
                                (A**0.5_FP)) * (1.0e0_fp-r_gp)
          ELSE
             ! Reaction rate for surface of aerosol
@@ -4172,7 +4169,7 @@ MODULE GCKPP_HETRATES
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp) :: X1, X2, ADJUSTEDRATE
+      REAL(fp) :: X1, ADJUSTEDRATE
       Real(fp), Parameter :: XMolWeight=81.45e+0_fp
       Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
       REAL(fp) :: GAM_ClNO2, r_gp, clConc, r_ac, brConc, r1
@@ -4213,9 +4210,7 @@ MODULE GCKPP_HETRATES
          X1 = GAM_ClNO2
          r1 = r_gp * r_ac
 
-         X2 = 0
-
-         kISum = CloudHet( 'ClNO2', CldFr, Aliq, Aice, rLiq, rIce, TK, denAir, X1, X2, r1)
+         kISum = CloudHet( 'ClNO2', CldFr, Aliq, Aice, rLiq, rIce, TK, denAir, X1, 0, r1)
       ENDIF
 
     END FUNCTION HetClNO2_TCld
@@ -4811,7 +4806,7 @@ MODULE GCKPP_HETRATES
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: N
-      REAL(fp) :: XSTKCF, ADJUSTEDRATE, brConc, r_ac, X1, X2
+      REAL(fp) :: XSTKCF, ADJUSTEDRATE, brConc, r_ac, X1
       Real(fp), Parameter :: XMolWeight=48.0e+0_fp
       Real(fp), Parameter :: XSQM=SQRT(XMolWeight)
 
@@ -4836,8 +4831,7 @@ MODULE GCKPP_HETRATES
     ! Reaction on liquid clouds (tropospheric only)
     IF (.not. StratBox) THEN
        X1 = Gamma_O3_Br( rLiq, denAir, TK, brConc, O3Conc )
-       X2 = 0
-       kISum = CloudHet( 'O3', CldFr, Aliq, Aice, rLiq, rIce, TK, denAir, X1, X2, r_ac)
+       kISum = CloudHet( 'O3', CldFr, Aliq, Aice, rLiq, rIce, TK, denAir, X1, 0, r_ac)
     ENDIF
 
     END FUNCTION HETO3_TCld
@@ -5019,14 +5013,13 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETClNO3( denAir, TK, clConc, brConc, CldFr) RESULT( HET_ClNO3 )
+    FUNCTION HETClNO3( denAir, TK, clConc, brConc) RESULT( HET_ClNO3 )
 !
 ! !INPUT PARAMETERS: 
 !
       REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
       REAL(fp), INTENT(IN) :: clconc, brconc   ! Cl-/Br- concentration in fine mode (M)
-      REAL(fp), INTENT(IN) :: CldFr       ! Cloud fraction
 !
 ! !RETURN VALUE:
 !
@@ -5096,7 +5089,7 @@ MODULE GCKPP_HETRATES
             ! factor in this case, including c-bar
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE IF (N .eq. 11) THEN
-            ADJUSTEDRATE =ARSL1K((1-CldFr)*AClAREA,AClRADI,XDENA,XSTKCF,XTEMP,XSQM)*r_gp
+            ADJUSTEDRATE =ARSL1K(AClAREA,AClRADI,XDENA,XSTKCF,XTEMP,XSQM)*r_gp
          ELSE
             ! Reaction rate for surface of aerosol
             ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),XDENA,XSTKCF,XTEMP,XSQM)
@@ -5647,13 +5640,11 @@ MODULE GCKPP_HETRATES
 !      ELSEIF ( X==3 ) THEN
          ! Reaction rate coefficient for HOBr + HSO3- [M-2 s-1]
          ! (Liu and Margerum, Environ. Sci. Tech., 2001)
-         !k_b3  = 3.2e+9_fp 
-         k_b3  = 0.0e0_fp
+         k_b3  = 3.2e+9_fp 
 !      ELSEIF ( X==4 ) THEN
          ! Reaction rate coefficient for HOBr + HSO3-- [M-2 s-1]
          ! (Troy and Margerum, Inorg. Chem., 1991)
-         !k_b4  = 5.0e+9_fp 
-         k_b4 = 0.0e0_fp
+         k_b4  = 5.0e+9_fp 
 !      ENDIF
 
       ! Liquid phase diffusion coefficient [cm2/s] for HOBr
@@ -5740,7 +5731,7 @@ MODULE GCKPP_HETRATES
 !
 ! !OUTPUT PARAMETER:
       ! Reactive uptake coefficient (unitless)
-      REAL(fp)                         :: GAM_HOBr, r_gp
+      REAL(fp)                         :: GAM_ClNO3, r_gp
 ! !INPUT PARAMETERS:
 !
       INTEGER,  INTENT(IN)           :: X        ! 1=HCl,2=HBr
@@ -6197,13 +6188,12 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETBrNO3( denAir, TK, CldFr ) RESULT( HET_BrNO3 )
+    FUNCTION HETBrNO3( denAir, TK ) RESULT( HET_BrNO3 )
 !
 ! !INPUT PARAMETERS: 
 !
       REAL(fp), INTENT(IN) :: denAir      ! Density of air (#/cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
-      REAL(fp), INTENT(IN) :: CldFr       ! Cloud fraction
 !
 ! !RETURN VALUE:
 !
@@ -6251,12 +6241,10 @@ MODULE GCKPP_HETRATES
          ! Get the aerosol type
          IF ( N == 8 ) THEN
             ! sulfate aerosol
-            !XSTKCF = 1.0_fp / (1.0_fp/ab + 1.0_fp/GAM)
-            XSTKCF = GAM
+            XSTKCF = 1.0_fp / (1.0_fp/ab + 1.0_fp/GAM)
          ELSEIF ( (N == 11) .OR. ( N == 12) ) THEN
             ! 2 modes of sea-salt
-            !XSTKCF = 1.0_fp / (1.0_fp/ab + 1.0_fp/GAM)
-            XSTKCF = GAM
+            XSTKCF = 1.0_fp / (1.0_fp/ab + 1.0_fp/GAM)
          ELSEIF ( N == 13 ) THEN
             ! SSA/STS
             XSTKCF = KHETI_SLA(6)
@@ -6278,7 +6266,7 @@ MODULE GCKPP_HETRATES
             ADJUSTEDRATE = XAREA(N) * XSTKCF
          ELSE
             ! Reaction rate for surface of aerosol
-            ADJUSTEDRATE=ARSL1K((1-CldFr)*XAREA(N),XRADI(N),denAir,XSTKCF,XTEMP,XSQM)
+            ADJUSTEDRATE=ARSL1K(XAREA(N),XRADI(N),denAir,XSTKCF,XTEMP,XSQM)
          ENDIF
          
          ! Add to overall reaction rate
@@ -7615,7 +7603,7 @@ END SUBROUTINE GAMMA_N2O5_Cl
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_HALIDE_CLDCONC( HBr, HCl, VLiq, VIce, VAir, TK, CF, pHCloud, br_conc, cl_conc )
+      SUBROUTINE GET_HALIDE_CLDCONC( HBr, HCl, VLiq, VIce, VAir, TK, CF, br_conc, cl_conc )
 
 !
 ! !USES:
@@ -7627,7 +7615,6 @@ END SUBROUTINE GAMMA_N2O5_Cl
       REAL(fp),  INTENT(IN) :: VLiq, VIce ! Volume of the cloud (liq and ice) [cm3]
       REAL(fp),  INTENT(IN) :: TK      ! Air temperature [K]
       REAL(fp),  INTENT(IN) :: CF      ! Cloud fraction
-      REAL(fp),  INTENT(IN) :: pHCloud ! Cloud pH
 !
 ! !RETURN VALUE:
 !
@@ -7646,7 +7633,7 @@ END SUBROUTINE GAMMA_N2O5_Cl
 !
       REAL(fp)            :: n_br, n_cl ! dissolved bromide and chloride [#/cm3(air)]
       REAL(fp)            :: V_tot, dr_ratio, t2l ! 
-      REAL(fp)            :: L2G, F_L, pH
+      REAL(fp)            :: L2G, F_L
 
       !=================================================================
       ! GET_HALIDE_CLDCONC_G begins here!
@@ -7671,20 +7658,20 @@ END SUBROUTINE GAMMA_N2O5_Cl
          Return
       ENDIF
 
-      ! Chloride 
-      CALL COMPUTE_L2G_LOCAL( 1.0e0_fp, 9000.0e0_fp, -6.3e+0_fp, TK, V_tot, L2G, pH)
+      ! Chloride (Assuming ph=4.5)
+      CALL COMPUTE_L2G_LOCAL( 1.1e11_fp, 9000.0e0_fp, 0.0e+0_fp, TK, V_tot, L2G)
       F_L = L2G/(1.0e0_fp + L2G)
       cl_conc = F_L * HCl / (V_tot * AVO * 1.0e-3_fp) ! [Cl-] in (mol/L)
-      !cl_conc = min(cl_conc,5.0e0_fp)
-      !cl_conc = max(cl_conc,1.0e-20_fp)
+      cl_conc = min(cl_conc,5.0e0_fp)
+      cl_conc = max(cl_conc,1.0e-20_fp)
 
-      ! Bromide 
-      CALL COMPUTE_L2G_LOCAL( 7.5e-1_fp, 10200.0e0_fp, -9.0e+0_fp, TK, V_tot, L2G, pH)
+      ! Bromide (Assuming ph=4.5)
+      CALL COMPUTE_L2G_LOCAL( 7.1e13_fp, 10200.0e0_fp, 0.0e+0_fp, TK, V_tot, L2G)
       F_L = L2G/(1.0e0_fp + L2G)
       br_conc = F_L * HBr / (V_tot * AVO * 1.0e-3_fp) ! [Br-] in (mol/L)
 
-      !br_conc = min(br_conc,5.0e0_fp)
-      !br_conc = max(br_conc,1.0e-20_fp)
+      br_conc = min(br_conc,5.0e0_fp)
+      br_conc = max(br_conc,1.0e-20_fp)
 
       END SUBROUTINE GET_HALIDE_CLDCONC
 !EOC
@@ -7799,8 +7786,8 @@ END SUBROUTINE GAMMA_N2O5_Cl
          ! V_tot*(1-CF), n_x = n_x*(1-CF), so (1-CF) is canceled. 
          ! xnw, 02/05/18
          conc_x =  (n_x / AVO) / V_tot ! mol/L
-         !conc_x = MIN(conc_x,5.0e0_fp)
-         !conc_x = MAX(conc_x,1.0e-20_fp)
+         conc_x = MIN(conc_x,5.0e0_fp)
+         conc_x = MAX(conc_x,1.0e-20_fp)
       ENDIF
 
       END SUBROUTINE GET_HALIDE_SSACONC
@@ -7818,7 +7805,7 @@ END SUBROUTINE GAMMA_N2O5_Cl
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_L2G_LOCAL( K0, CR, pKa, TK, H2OLIQ, L2G, pH )
+      SUBROUTINE COMPUTE_L2G_LOCAL( K0, CR, pKa, TK, H2OLIQ, L2G )
 !
 ! !USES:
 !
@@ -7832,7 +7819,6 @@ END SUBROUTINE GAMMA_N2O5_Cl
       REAL(fp), INTENT(IN)  :: pKa    ! Henry's pH correction factor [1]
       REAL(fp), INTENT(IN)  :: TK     ! Temperature [K]
       REAL(fp), INTENT(IN)  :: H2OLIQ ! Liquid water content [cm3 H2O/cm3 air]
-      REAL(fp), INTENT(IN)  :: pH     ! Liquid water pH
 !                                     
 ! !OUTPUT PARAMETERS:                 
 !                                     
@@ -7851,7 +7837,6 @@ END SUBROUTINE GAMMA_N2O5_Cl
 !                          to M/atm
 !  15-May-2013 - F. Paulot - Fix R constant
 !  08 Dec 2015 - R. Yantosca - Now use functions from henry_mod.F
-!  09 Jul 2019 - X. Wang - Add pH as input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7859,7 +7844,7 @@ END SUBROUTINE GAMMA_N2O5_Cl
 ! !LOCAL VARIABLES:
 !
       INTEGER  :: RC
-      REAL(fp) :: HEFF, KH, TK_8
+      REAL(fp) :: HEFF, KH, pH, TK_8
 
       !=================================================================
       ! COMPUTE_L2G_LOCAL begins here!
@@ -7869,7 +7854,7 @@ END SUBROUTINE GAMMA_N2O5_Cl
       TK_8 = TK
 
       ! For wetdep, we assume a pH of 4.5 for rainwater
-      !pH = 4.5_fp
+      pH = 4.5_fp
 
       ! Calculate the Henry's law constant
       CALL CALC_KH( K0, CR, TK_8, KH, RC )

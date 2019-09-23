@@ -108,6 +108,8 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
      REAL(fp),          POINTER :: pHCloud    (:,:,:  ) ! Cloud pH [-]
+     REAL(fp),          POINTER :: QLXpHCloud (:,:,:  )
+     REAL(fp),          POINTER :: isCloud (:,:,:  )
      REAL(fp),          POINTER :: SSAlk      (:,:,:,:) ! Sea-salt alkalinity[-]
      REAL(fp),          POINTER :: AClArea    (:,:,:  ) ! Fine Cl- Area [cm2/cm3]
      REAL(fp),          POINTER :: AClRadi    (:,:,:  ) ! Fine Cl- Radius [cm]
@@ -387,6 +389,8 @@ CONTAINS
     ! pH/alkalinity
     State_Chm%pHCloud       => NULL()
     State_Chm%SSAlk         => NULL()
+    State_Chm%QLxpHCloud       => NULL()
+    State_Chm%isCloud       => NULL()
 
     ! Hg species indexing
     N_Hg0_CATS              =  0
@@ -1583,6 +1587,18 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%QLxpHCloud ) ) THEN
+       DEALLOCATE( State_Chm%QLxpHCloud, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%isCloud ) ) THEN
+       DEALLOCATE( State_Chm%isCloud, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%isCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%SSAlk ) ) THEN
        DEALLOCATE( State_Chm%SSAlk, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SSAlk', 2, RC )
@@ -2133,6 +2149,16 @@ CONTAINS
 
        CASE( 'PHCLOUD' )
           IF ( isDesc  ) Desc  = 'Cloud pH'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE( 'QLXPHCLOUD' )
+          IF ( isDesc  ) Desc  = 'Cloud pH * Met_QL'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+          
+       CASE( 'ISCLOUD' )
+          IF ( isDesc  ) Desc  = 'Cloud presence'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 

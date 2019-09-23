@@ -2991,20 +2991,19 @@
 
          ENDIF
 
-         IF (FullRun) Then
-
-            ! Store sea salt alkalinity
-            ! StateChem%SSAlk can be removed at some point, xnw 12/8/17
+         ! We must store alkalinity first for gas phase chemsitry
+         ! XW 6/9/19
+         IF ( .NOT. FullRun) Then
             SSAlk(I,J,L,1) = AlkA * (7.0d-2 * State_Met%AD(I,J,L)) / 
      &           (AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g)
             SSAlk(I,J,L,2) = AlkC * (7.0d-2 * State_Met%AD(I,J,L)) / 
      &           (AIRMW / State_Chm%SpcData(id_SALCAL)%Info%emMW_g)
-
-            ! Update sea salt alkalinity [v/v], xnw 12/8/17
+         ENDIF
+         ! Update sea salt alkalinity [v/v] in FullRun, XW 12/8/17
+         IF (FullRun) Then
             Spc(I,J,L,id_SALAAL) = AlkA
             Spc(I,J,L,id_SALCAL) = AlkC
-
-          ENDIF
+         ENDIF
 
          IF ( LDSTUP .and. FullRun ) THEN
 
@@ -3195,13 +3194,15 @@
             ! in aqueous phase with different rate constants. 
             !===========================================================
 
-	    ! Get concentrations for cloud pH calculation (bec, 12/23/11)
+            ! Get concentrations for cloud pH calculation (bec, 12/23/11)
 
-	    ! Get sulfate concentration and convert from [v/v] to
+            ! Get sulfate concentration and convert from [v/v] to
             ! [moles/liter]
 	    ! Use a cloud scavenging ratio of 0.7 
-	    SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) *
-     &                 0.7e+0_fp / ( AIRMW * LWC )
+            SO4nss  =  Spc(I,J,L,id_SO4) * State_Met%AIRDEN(I,J,L) *
+     &                 0.7e+0_fp / ( AIRMW * LWC ) +
+     &                 Spc(I,J,L,id_SO4s) * State_Met%AIRDEN(I,J,L) 
+     &                 / ( AIRMW * LWC)
 
 	    ! Get total ammonia (NH3 + NH4+) concentration [v/v]
 	    ! Use a cloud scavenging ratio of 0.7 for NH4+
@@ -3211,6 +3212,7 @@
             ! Get total chloride (SALACL + HCL) concentration [v/v]
             ! Use a cloud scavenging ratio of 0.7
             CL       = ( Spc(I,J,L,id_SALACL) * 0.7e+0_fp ) +
+     &                   Spc(I,J,L,id_SALCCL)  +
      &                   Spc(I,J,L,id_HCL)
 
             ! Get total formic acid concentration [v/v]
@@ -3230,7 +3232,10 @@
             ! Use a cloud scavenging ratio of 0.7
             TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *
      &                 ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp ) *
-     &                 0.7e+0_fp / ( AIRMW * LWC )
+     &                 0.7e+0_fp / ( AIRMW * LWC )  +
+     &                 Spc(I,J,L,id_SALC) * State_Met%AIRDEN(I,J,L) *
+     &                 ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp )
+     &                 / ( AIRMW * LWC )
 
             ! Get total dust cation concentration [mol/L]
             ! Use a cloud scavenging ratio of 1 for dust
@@ -3265,7 +3270,8 @@
      	    ! Use a cloud scavenging ratio of 0.7 for NIT
 	    IF ( IS_FULLCHEM ) THEN
                TNO3 = Spc(I,J,L,id_HNO3) + 
-     &              ( Spc(I,J,L,id_NIT) * 0.7e+0_fp )
+     &                (Spc(I,J,L,id_NIT) * 0.7e+0_fp ) +
+     &                Spc(I,J,L,id_NITs)
 	       GNO3 = Spc(I,J,L,id_HNO3) !For Fahey & Pandis decision algorithm
             ELSE IF ( IS_OFFLINE ) THEN
                TANIT = Spc(I,J,L,id_NIT) !aerosol nitrate [v/v]
@@ -3854,7 +3860,7 @@
      &                       (L3S_1*State_Met%AD(I,J,L)/TCVV_S)
 
             ! Cloud pH
-            AD05(I,J,L,19) = AD05(I,J,L,19) + HPLUS
+            AD05(I,J,L,19) =AD05(I,J,L,19)+pHCloud(I,J,L)*isCloud(I,J,L)
 
             !tdf
             PSO4d_tot   = 0.e+0_fp
@@ -5279,11 +5285,13 @@
          ! Define f(x)
          ! note Kw/nHPLUS is OH-
          f = D - nHPLUS + Kw/nHPLUS + fHCO3 + 2.e+0_fp * 
-     &        fCO3 + fHSO3 + 2.e+0_fp * fSO3 + fHNO3 - fNH4
+     &        fCO3 + fHSO3 + 2.e+0_fp * fSO3 + fHNO3 - 
+     &        fNH4 + fHCl + fFA + fAA
 
          ! Define f'(x)
          df = - 1.e+0_fp - Kw/nHPLUS/nHPLUS + dHCO3 + 2.e+0_fp * 
-     &        dCO3 + dHSO3 + 2.e+0_fp * dSO3 + dHNO3 - dNH4 
+     &        dCO3 + dHSO3 + 2.e+0_fp * dSO3 + dHNO3 - dNH4 + 
+     &        dHCl + dFA + dAA
 
          ! Apply Newton's method
          nnHPLUS = nHPLUS - f/df
@@ -6218,7 +6226,7 @@
       ! NH3 dissociation contants
       REAL(fp),  PARAMETER  :: Ka1 = 1.7e-5
       REAL(fp),  PARAMETER  :: Hnh3 = 62.
-      REAL(fp),  PARAMETER  :: Dhnh3 = 8.17+0_fp/1.986e-3_fp
+      REAL(fp),  PARAMETER  :: Dhnh3 = 8.17e0_fp/1.986e-3_fp
       REAL(fp),  PARAMETER  :: DhrKa1 = -450.
 
       ! Variables

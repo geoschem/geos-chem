@@ -983,12 +983,6 @@ CONTAINS
        CALL Integrate( TIN,    TOUT,    ICNTRL,      &
                        RCNTRL, ISTATUS, RSTATE, IERR )
 
-       DO F = 1, NVar
-          IF (ISNAN(VAR(F))) THEN
-             PRINT*, F
-          ENDIF
-       ENDDO
-
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
@@ -1080,11 +1074,6 @@ CONTAINS
 
              ! Archive prod or loss for species or families [molec/cm3/s]
              AD65(I,J,L,F) = AD65(I,J,L,F) + VAR(KppID) / DT
-
-             If (ISNAN(AD65(I,J,L,F))) THEN
-                PRINT*, KppID, VAR(KppID), VAR(32) 
-                STOP
-             ENDIF
 
              ! Save out P(Ox) and L(Ox) from the fullchem simulation
              ! for a future tagged O3 run

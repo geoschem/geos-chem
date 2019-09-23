@@ -590,6 +590,9 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 1.00e+20_fp,                  &
+                              Henry_K0      = 1.00e+20_fp,                  &
+                              Henry_CR      = 0.0_fp,                       &
+                              WD_RetFactor  = 1.0_fp,                       &
                               RC            = RC )
 
           CASE( 'BRO' )
@@ -1032,7 +1035,7 @@ CONTAINS
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
+                              Is_Wetdep     = F,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 1.00e+20_fp,                  &

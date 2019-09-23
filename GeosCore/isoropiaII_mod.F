@@ -146,9 +146,9 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE PhysConstants,      ONLY : AVO
+      USE TIME_MOD,           ONLY : GET_MONTH
+      USE PhysConstants,      ONLY : AVO, Pi
 
       USE IsorropiaII_Main_Mod,Only : Isoropia
 !
@@ -239,11 +239,12 @@
       REAL(f8)                 :: WT(NCOMPA)
       REAL(f8)                 :: CNTRL(NCTRLA)
       REAL(f8)                 :: AlkR !Alkalinity % depleted
-      REAL(f8)                 :: Qk, PHCl
+      REAL(f8)                 :: Qk, PHCl, F_HCl, F_HNO3
       REAL(f8)                 :: Hplus !H+ in SALC,mol/m3
       REAL(f8)                 :: Dcs !SALC diameter, m
       REAL(f8)                 :: n_air !air density, molec/cm3
       REAL(f8)                 :: n_ssc !SALC number concentration, molec/m3
+
       CHARACTER(LEN=255)       :: X 
       CHARACTER(LEN=15)        :: SCASI  
 
@@ -260,7 +261,7 @@
       REAL(fp)                 :: NITRTEMP
       ! Temporary variable for Cl-
       REAL(fp)                 :: CLTEMP
-
+      
 
       ! debug variables
       INTEGER                  :: Itemp, Jtemp, Ltemp
@@ -424,7 +425,7 @@
 !$OMP+PRIVATE( SCASI,   P_PA,     TNO3,       AERLIQ,    AERSLD  )
 !$OMP+PRIVATE( OTHER,   TNH4,     TNIT,       HPLUSTEMP, NUM_SAV )
 !$OMP+PRIVATE( Qk,      n_air,    n_ssc,      Hplus,     Dcs     )         
-!$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds                    )
+!$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds, F_HCl, F_HNO3     )
 !$OMP+PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP, CLTEMP             )
 !$OMP+SCHEDULE( DYNAMIC, 1 )
       DO L = 1, LLPAR
@@ -477,8 +478,8 @@
             ! Calculate parameters for mass transfer
             Dcs = State_Chm%AeroRadi(I,J,L,12) * 2.e-2_fp !(cm->m)
             n_air = State_Met%AIRNUMDEN(I,J,L) !(molec/cm3)
-            n_ssc = Spc(I,J,L,id_SALC) * 1.e+3_fp * AVO
-     &              / ( 31.4e+0_fp  * VOL  )  !(kg->molec/m-3)
+            n_ssc = Spc(I,J,L,id_SALC) / 2.2e+3_fp /
+     &              ((1.e+0_fp/6.e+0_fp) * Pi * Dcs**3 ) / VOL !(kg->#/m3)
          ELSE
             NM = 1
          ENDIF
@@ -743,10 +744,14 @@
                IF (N == 2) THEN
                   !Hplus = AERLIQ(1) !H+ in aerosol, mol/m3
                   Hplus = 1.e-5_fp*18.e-3_fp*AERLIQ(8)
-                  Qk = GET_QK(GNO3, GCL, GAS(2), GAS(3), Hplus, Dcs, 
-     &                        TEMPI, n_air, n_ssc)
+                  CALL GET_QK(GNO3, GCL, GAS(2), GAS(3), Hplus, Dcs, 
+     &                   TEMPI, n_air, n_ssc, Qk, F_HNO3, F_HCl)
                   GAS(2) = GAS(2) * Qk
                   GAS(3) = GAS(3) * Qk
+                  GAS(2) = GNO3 - (GNO3 - GAS(2)) *
+     &                     ( 1.e0_fp - exp(-F_HNO3))
+                  GAS(3) = GCL - (GCL - GAS(3)) *
+     &                     ( 1.e0_fp - exp(-F_HCl))
                ENDIF
 
                ! Retrieve concentrations in mol/m3
@@ -1151,10 +1156,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_QK(GNO3, GCL, GNO3eq, GCLeq, Hplus, d, temp, denair, 
-     &  n_x)  Result( Qk )
+      Subroutine GET_QK(GNO3, GCL, GNO3eq, GCLeq, Hplus, d, temp, 
+     & denair, n_x, Qk, F_HNO3, F_HCl )
 
       USE PhysConstants,      ONLY : pi
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1175,7 +1181,7 @@
 !
 ! !Return value: 
 !
-      REAL(fp)               :: Qk
+      REAL(fp),  INTENT(OUT)  :: Qk, F_HNO3, F_HCl
 !
 ! !REVISION HISTORY: 
 !  14 Feb 2018 - X. Wang - Initial version
@@ -1222,6 +1228,7 @@
       bb1 = -D_g * f * GNO3 !(mole m-1 s-1)
       ! Also calulate availabe H+ flux for later calculation (mol m-3 s-1)
       H_flux_NO3 = 2*pi*D_g*d*n_x*f*(GNO3-GNO3eq)
+      F_HNO3 = 2*pi*D_g*d*n_x*f * GET_TS_CHEM() * 60e+0_fp !save for flux calc
       aa1 = D_g*f*GNO3eq !(mole m-1 s-1)
 
       ! Do similar for the 2nd term, for HCl
@@ -1231,13 +1238,14 @@
       f = (1+Kn) / (1 + 2.*Kn*(1+Kn)/ab) 
       bb2 = -D_g * f * GCL !(mole m-1 s-1)
       H_flux_Cl = 2*pi*D_g*d*n_x*f*(GCL-GCLeq)
+      F_HCl = 2*pi*D_g*d*n_x*f * GET_TS_CHEM() * 60e+0_fp !save for flux calc
       aa2 = D_g*f*GCLeq !(mole m-1 s-1)
 
       ! In the third term, alpha is the limited changes in the acidity
       ! of the particle. The limitation is set to 0.1s-1 following Pilinis, 2000
       alpha = H_flux_Cl+H_flux_NO3 !(mole m-3 s-1)
       Hlim = 1.e-1_fp * Hplus !(mole m-3 s-1)
-      !IF (abs(alpha) .GT. Hlim) THEN
+      IF (abs(alpha) .GT. Hlim) THEN
          alpha = sign(Hlim, alpha) !(mole m-3 s-1)      
          bb3 = alpha/(2*pi*d*n_x) !(mole m-1 s-1)
          IF ((aa1+aa2) .LE. 0) THEN
@@ -1247,12 +1255,11 @@
          ELSE
             Qk = - (bb1 + bb2 + bb3) / (aa1 + aa2)
          ENDIF
-      !ELSE
-      !   Qk = 1e+0_fp
-      !ENDIF
-
+      ELSE
+         Qk = 1e+0_fp
+      ENDIF
       
-      END FUNCTION GET_Qk
+      END SUBROUTINE GET_Qk
 !EOC
 !------------------------------------------------------------------------------
 !BOP

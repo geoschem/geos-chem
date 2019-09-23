@@ -174,8 +174,7 @@ MODULE GCKPP_HETRATES
 !$OMP THREADPRIVATE( KHETI_SLA,    SUNCOS,   AClAREA,  AClRADI    )
 !$OMP THREADPRIVATE( H_PLUS,       MSO4,       MNO3,     MHSO4    )
 !$OMP THREADPRIVATE( HSO3conc_Cld, SO3conc_Cld, fupdateHOBr       )
-!$OMP THREADPRIVATE( fupdateHOCl, nitConc_SALA, nitConc_SALC     )
-
+!$OMP THREADPRIVATE( fupdateHOCl                                  )
 ! !DEFINED PARAMETERS:
 !
   REAL(fp), PARAMETER :: HetMinLife = 1.e-3_fp
@@ -1022,9 +1021,9 @@ MODULE GCKPP_HETRATES
          ! Br uptake calculation - forms BrSALA/C (TS index: hhc17/18)
          !----------------------------------------------------------------
          ! First-order reactions, no calculation of kII required
-         kITemp = HETHXUptake( XDenA, AClRADI, AClAREA, TempK, 2)
+         kITemp = HETHXUptake( XDenA, AClRADI, (1-CldFr)*AClAREA, TempK, 2)
          HET(ind_HBr,   1) = kITemp
-         kITemp = HETHXUptake( XDenA, xRadi(12), xArea(12), TempK, 2)
+         kITemp = HETHXUptake( XDenA, xRadi(12), (1-CldFr)*xArea(12), TempK, 2)
          HET(ind_HBr,   2) = kITemp
 
          !----------------------------------------------------------------
