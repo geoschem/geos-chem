@@ -134,27 +134,27 @@ PBLH:gamap_category     = GMAO-2D
 #-
 PRECANV                 = REAL*4::lon,lat,time
 PRECANV:long_name       = Surface precipitation flux from anvils
-PRECANV:units           = kg m-2 s-2
+PRECANV:units           = kg m-2 s-1
 PRECANV:gamap_category  = GMAO-2D
 #-
 PRECCON                 = REAL*4::lon,lat,time
 PRECCON:long_name       = Surface precipitation flux from convection
-PRECCON:units           = kg m-2 s-2
+PRECCON:units           = kg m-2 s-1
 PRECCON:gamap_category  = GMAO-2D
 #-
 PRECLSC                 = REAL*4::lon,lat,time
 PRECLSC:long_name       = Surface precipitation flux from large-scale
-PRECLSC:units           = kg m-2 s-2
+PRECLSC:units           = kg m-2 s-1
 PRECLSC:gamap_category  = GMAO-2D
 #-
 PRECSNO                 = REAL*4::lon,lat,time
 PRECSNO:long_name       = Surface precipitation flux from snow
-PRECSNO:units           = kg m-2 s-2
+PRECSNO:units           = kg m-2 s-1
 PRECSNO:gamap_category  = GMAO-2D
 #-
 PRECTOT                 = REAL*4::lon,lat,time
 PRECTOT:long_name       = Total surface precipitation flux
-PRECTOT:units           = kg m-2 s-2
+PRECTOT:units           = kg m-2 s-1
 PRECTOT:gamap_category  = GMAO-2D
 #-
 QV2M                    = REAL*4::lon,lat,time

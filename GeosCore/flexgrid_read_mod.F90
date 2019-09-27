@@ -566,8 +566,8 @@ CONTAINS
     IF ( ND67 > 0 ) THEN
        AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
        AD67(:,:,2 ) = AD67(:,:,2 ) + State_Met%SWGDN    ! SW rad @ sfc [W/m2]
-       AD67(:,:,3 ) = AD67(:,:,3 ) + State_Met%PRECTOT  ! Tot prec [kg/m2/s]
-       AD67(:,:,4 ) = AD67(:,:,4 ) + State_Met%PRECCON  ! Sfc conv prec[kg/m2/s]
+       AD67(:,:,3 ) = AD67(:,:,3 ) + State_Met%PRECTOT  ! Tot prec [mm/day]
+       AD67(:,:,4 ) = AD67(:,:,4 ) + State_Met%PRECCON  ! Sfc conv prec [mm/day]
        AD67(:,:,5 ) = AD67(:,:,5 ) + State_Met%TS       ! T @ 2m height [K]
        AD67(:,:,6 ) = AD67(:,:,6 ) + 0e0                !
        AD67(:,:,7 ) = AD67(:,:,7 ) + State_Met%USTAR    ! Friction vel [m/s]
