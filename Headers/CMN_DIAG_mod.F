@@ -68,27 +68,14 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      !=================================================================
-      ! Variables for the number of levels in multi-level diagnostics  
-      ! Removed LD03 -- this is now in diag03_mod.f (bmy, 1/21/05)
-      ! Added LD09 (bmy, 6/27/05)
-      ! Added LD54 (phs, 9/22/06)
-      ! Added LD10 (phs, 9/18/07)
-      ! Added LD31 (bmy, 5/8/07)
-      ! Added LD52 (jaegle, 02/26/09)
-      ! Added LD59, LD60, LD61 (bmy, 1/22/10)
-      ! Added LD57 (hotp 7/31/09)
-      !=================================================================
-      INTEGER :: LD65, LD09, LD10, LD31, LD52, LD57, LD59, LD60, LD73
-
+#ifdef BPCH_DIAG
       !=================================================================
       ! NDxx diagnostic flags
       !=================================================================
-#ifdef BPCH_DIAG
 
 #ifdef TOMAS
-      INTEGER :: LD06, LD44, LD65, LD60, LD61
-      INTEGER :: ND06, ND44, ND59, ND60, ND61
+      INTEGER :: LD06, LD44, LD65, LD59, LD60, LD61
+      INTEGER :: ND06, ND44, ND65, ND59, ND60, ND61
 #endif
 
 #ifdef RRTMG

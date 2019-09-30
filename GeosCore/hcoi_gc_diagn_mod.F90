@@ -35,7 +35,7 @@ MODULE HCOI_GC_Diagn_Mod
 !
   ! GEOS-Chem diagnostic switches and arrays
   USE CMN_SIZE_Mod
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
   USE CMN_DIAG_Mod
   USE DIAG_Mod
   USE DIAG53_Mod
@@ -192,7 +192,6 @@ CONTAINS
     ENDIF
 
 #ifdef BPCH_DIAG
-
     !=======================================================================
     ! Define manual diagnostics
     !=======================================================================
@@ -986,7 +985,7 @@ CONTAINS
     ! Assume success
     RC = HCO_SUCCESS
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
 
     ! Exit if we are doing a specialty simulation w/o lightning
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1141,7 +1140,7 @@ CONTAINS
     ! values archived by HEMCO and then let HISTORY do the averaging.
     OutOper = 'Instantaneous'
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
     ! Exit if ND53 diagnostics aren't turned on
     IF ( ND53 <= 0 ) RETURN
 
@@ -1550,7 +1549,7 @@ CONTAINS
 
   END SUBROUTINE Diagn_Hg
 !EOC
-#if defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -1603,7 +1602,7 @@ CONTAINS
     ! Assume success
     RC = HCO_SUCCESS
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
 
     ! Exit if the CH4 simulation is not selected
     !IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. id_CH4 > 0 ) ) RETURN
@@ -1865,6 +1864,42 @@ CONTAINS
                        RC        = RC                  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    !-------------------------------------------------------------------
+    ! %%%%% diag for direct emission of SOAS OC for TOMAS          %%%%%
+    ! %%%%% this is not optional for tomas simulations             %%%%%
+    !-------------------------------------------------------------------
+
+    ! Extension and category #'s for MEGAN
+    ExtNr = GetExtNr( HcoState%Config%ExtList, 'MEGAN')
+    IF ( ExtNr > 0 ) THEN
+       Cat   = -1
+    ELSE
+       ! Use offline biogenic emissions
+       ExtNr = 0
+       Cat   = CATEGORY_BIOGENIC
+    ENDIF
+
+    ! HEMCO species ID
+    HcoID = HCO_GetHcoID( 'SOAS', HcoState )
+
+    ! Create diagnostic container
+    IF ( HcoID > 0 ) THEN
+       DiagnName = 'BIOGENIC_SOAS'
+       CALL Diagn_Create( am_I_Root,                                         &
+                          HcoState  = HcoState,                              &
+                          cName     = TRIM( DiagnName ),                     &
+                          ExtNr     = ExtNr,                                 &
+                          Cat       = Cat,                                   &
+                          Hier      = -1,                                    &
+                          HcoID     = HcoID,                                 &
+                          SpaceDim  = 2,                                     &
+                          LevIDx    = -1,                                    &
+                          OutUnit   = 'kg/m2/s',                             &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,       &
+                          AutoFill  = 1,                                     &
+                          RC        = RC                                    )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
 #endif
 
   END SUBROUTINE Diagn_TOMAS

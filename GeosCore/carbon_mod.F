@@ -236,7 +236,7 @@
       REAL(fp), ALLOCATABLE, TARGET :: BCPI_ANTH_BULK(:,:)
       REAL(fp), ALLOCATABLE, TARGET :: BCPO_ANTH_BULK(:,:)
       REAL(fp), ALLOCATABLE, TARGET :: OCPI_ANTH_BULK(:,:)
- 7    REAL(fp), ALLOCATABLE, TARGET :: OCPO_ANTH_BULK(:,:)
+      REAL(fp), ALLOCATABLE, TARGET :: OCPO_ANTH_BULK(:,:)
 
       REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOB_BULK(:,:)
       REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOB_BULK(:,:)
@@ -5363,14 +5363,14 @@ ccc
       ! READ IN directly emitted SOAS (sfarina / jkodros)
       Ptr2D => NULL()
       DgnName = 'BIOGENIC_SOAS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-!         print*, 'NOT ASSOCIATED TERP_ORGC'
+         CALL GC_Error('Not found: '//TRIM(DgnName), RC, THISLOC=LOC)
+         RETURN
       ENDIF
       TERP_ORGC = Ptr2D(:,:)
-      Ptr2D => NULL()
       TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
+      Ptr2D => NULL()
 #endif
 
 !$OMP PARALLEL DO

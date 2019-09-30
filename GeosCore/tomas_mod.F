@@ -3494,8 +3494,16 @@ C     and get the nucleation rate and critical cluster size
          print *,'Percent error=',abs((mcond-(tot_f-tot_i))/mcond)*1e2
       endif
 
-      if (mcond.gt.0.e+0_fp.and.
-     &    abs((mcond-(tot_f-tot_i))/mcond).gt.0.e+0_fp) then
+!--------------------------------------------------------------------------
+! Prior to 9/30/19:
+! Split this up into 2 IF statements.  If Mcond == 0, then the 2nd clause
+! in the IF statement will execute and this will cause a floating point
+! error. (bmy, 9/30/19)
+!      if (mcond.gt.0.e+0_fp.and.
+!     &    abs((mcond-(tot_f-tot_i))/mcond).gt.0.e+0_fp) then
+!--------------------------------------------------------------------------
+      if ( mcond > 0.0_fp ) then
+       if ( abs((mcond-(tot_f-tot_i))/mcond).gt.0.e+0_fp) then
          IF(mcond > 1.e-8_fp .and. tot_i > 5.e-2_fp)  THEN  !Add a check to check error if mcond is significant (win, 10/2/08)
 
           IF (abs((mcond-(tot_f-tot_i))/mcond).lt.1.e+0_fp .OR. 
@@ -3548,6 +3556,7 @@ C     and get the nucleation rate and critical cluster size
 !            RETURN
           ENDIF
          ENDIF
+       endif
       endif
 
 !jrp      if (abs(tot_f-tot_fa)/tot_i.gt.1.0D-8)then
@@ -4001,12 +4010,17 @@ C     and get the nucleation rate and critical cluster size
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
 
+      ! For SOACOND warnings 
+      INTEGER, SAVE       :: SOACOND_WARNING_CT  = -1
+      INTEGER, PARAMETER  :: SOACOND_WARNING_MAX = 20
+
       !=================================================================
       ! SOACOND begins here
       !=================================================================
 
       ! Assume success
-      RC                =  GC_SUCCESS
+      RC                 = GC_SUCCESS
+      SOACOND_WARNING_CT = 0
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -4105,7 +4119,12 @@ C     and get the nucleation rate and critical cluster size
      &                                        'SOACOND:1')
             ENDIF
          ELSE
-            WRITE(*,*) 'SOACOND WARNING: SOA mass is being discarded'
+            ! Put a limit on the amount of screen warnings that we get
+            ! to keep logfile sizes low (bmy, 9/30/19)
+            SOACOND_WARNING_CT = SOACOND_WARNING_CT + 1
+            IF ( SOACOND_WARNING_CT < SOACOND_WARNING_MAX ) THEN
+               WRITE(*,*) 'SOACOND WARNING: SOA mass is being discarded'
+            ENDIF
             GOTO 30
          ENDIF
       ENDIF

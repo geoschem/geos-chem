@@ -111,7 +111,6 @@
          ENDIF
 
          IF ( ND60 > 0 ) THEN
-            AD60       =  0e0
             AD60_COND  = 0e0
             AD60_COAG  = 0e0
             AD60_NUCL  = 0e0

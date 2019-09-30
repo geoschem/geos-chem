@@ -1076,6 +1076,39 @@ CONTAINS
           ENDDO
        ENDIF
 
+! We need to add this as an netCDF diagnostic, so add this code
+! here -- uncomment and fix it later (bmy, 9/30/19)
+!             !--------------------------------------------------------
+!             ! Save out P(CO) and L(CH4) from the fullchem simulation
+!             ! for use in tagged CO
+!             !--------------------------------------------------------
+!             IF ( Input_Opt%DO_SAVE_PCO ) THEN
+!                IF ( TRIM(FAM_NAMES(F)) == 'PCO'  ) THEN
+!                   PCO_TOT = VAR(KppID) / DT
+!                ENDIF
+!                IF ( TRIM(FAM_NAMES(F)) == 'LCH4' ) THEN
+!                   LCH4    = VAR(KppID) / DT
+!                ENDIF
+!             ENDIF
+!
+!          ENDDO
+!
+!          ! For tagged CO, use LCH4 to get P(CO) contributions from
+!          ! CH4 and NMVOC
+!          IF ( Input_Opt%DO_SAVE_PCO ) THEN
+!             ! P(CO)_CH4 is LCH4. Cap so that it is never greater
+!             ! than total P(CO) to prevent negative P(CO)_NMVOC
+!             PCO_CH4 = MIN( LCH4, PCO_TOT )
+!   
+!             ! P(CO) from NMVOC is the remaining P(CO)
+!             PCO_NMVOC = PCO_TOT - PCO_CH4
+!   
+!             ! Add to AD65 array [molec/cm3/s]
+!             AD65(I,J,L,NFAM+1) = AD65(I,J,L,NFAM+1) + PCO_CH4
+!             AD65(I,J,L,NFAM+2) = AD65(I,J,L,NFAM+2) + PCO_NMVOC
+!
+!          ENDIF
+
 #ifdef MODEL_GEOS
        !==============================================================
        ! Write out OH reactivity

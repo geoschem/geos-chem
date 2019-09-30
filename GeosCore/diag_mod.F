@@ -41,12 +41,12 @@
       REAL*4,  ALLOCATABLE :: AD59_DUST(:,:,:,:)
 
       ! For ND60 -- TOMAS condensation rate diagnostic
-      REAL*4,  ALLOCATABLE :: AD60_COND(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_COAG(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_NUCL(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_AQOX(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_ERROR(:,:,:,:)      
-      REAL*4,  ALLOCATABLE :: AD60_SOA(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_COND (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_COAG (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_NUCL (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_AQOX (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_ERROR(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60_SOA  (:,:,:,:)
 
       ! For ND61 -- 3D TOMAS rate diagnostic
       REAL*4,  ALLOCATABLE :: AD61(:,:,:,:)
@@ -116,7 +116,6 @@
       IF ( ALLOCATED( AD60_SOA    ) ) DEALLOCATE( AD60_SOA    )
       IF ( ALLOCATED( AD61        ) ) DEALLOCATE( AD61        )
       IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   ) 
-      IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
       IF ( ALLOCATED( AD65        ) ) DEALLOCATE( AD65        )
 #endif
 #ifdef RRTMG
