@@ -261,7 +261,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  13 Sep 2014 - C. Keller   - Initial version
-!  16 Jun 2016 - C. Miller   - Now define species ID's with Ind_ funciton
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -767,10 +767,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
-!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use dust
-!  30 Sep 2014 - R. Yantosca - Update for TOMAS dust species
-!  25 Oct 2016 - R. Yantosca - Make sure to cast INTEGER to LOGICAL values
-!                              before comparing them in an IF statement
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -963,8 +960,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  20 Aug 2014 - R. Yantosca - Initial version
-!  21 Aug 2014 - R. Yantosca - Exit for simulations that don't use lightning=
-!  19 Feb 2015 - C. Keller   - Added entry for MTYPE
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1114,7 +1110,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  26 Aug 2014 - M. Sulprizio- Initial version
-!  15 Oct 2018 - R. Yantosca - Changed "AD53_*" to "GCPOPS_*"
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1567,6 +1563,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ErrCode_Mod
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
@@ -1583,20 +1580,25 @@ CONTAINS
     TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
     TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
-
+!
+! !REVISION HISTORY: 
+!  23 Sep 2014 - J. Kodros - Initial version
+!  See the Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, Cat, HcoID, N
+    INTEGER            :: Cat,     ExtNr
     INTEGER            :: id_BCPI, id_BCPO, id_OCPI, id_OCPO
-    INTEGER            :: IDSO4
-    INTEGER            :: IDCO
+    INTEGER            :: id_CO,   id_SO4,  id_SOAS
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'DIAGN_TOMAS (hcoi_gc_diagn_mod.F90)'
+
     !=======================================================================
-    ! Define ND?? diagnostics (TOMAS-related emissions)
+    ! Define diagnostics (TOMAS-related emissions)
     !=======================================================================
 
     ! Assume success
@@ -1604,265 +1606,291 @@ CONTAINS
 
 #ifdef BPCH_DIAG
 
-    ! Exit if the CH4 simulation is not selected
-    !IF ( .NOT. ( Input_Opt%ITS_A_CH4_SIM .OR. id_CH4 > 0 ) ) RETURN
-    ! SOME SORT OF IF DEFINED TOMAS HERE
-
-    ! Get default HEMCO species ID for BC/OC
+    ! Get default HEMCO species ID's
     id_BCPI = HCO_GetHcoID( 'BCPI', HcoState )
     id_BCPO = HCO_GetHcoID( 'BCPO', HcoState )
+    id_CO   = HCO_GetHcoID( 'CO',   HcoState )
     id_OCPI = HCO_GetHcoID( 'OCPI', HcoState )
     id_OCPO = HCO_GetHcoID( 'OCPO', HcoState )
+    id_SOAS = HCO_GetHcoID( 'SOAS', HcoState )
+    id_SO4  = HCO_GetHcoID( 'SO4',  HcoState )
 
-    ! Extension number is zero (HEMCO core) until defined otherwise
-    ExtNr = 0
     !-----------------------------------------------------------------
     ! %%%%% BCPI from anthro (Category 1 or species BCPI_ANTH)  %%%%%
     !-----------------------------------------------------------------
+    ExtNr     = 0
+    Cat       = CATEGORY_ANTHRO
+    DiagnName = 'BCPI_ANTH'
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_BCPI,                                  &
+                       SpaceDim  = 3,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
 
-       Cat = CATEGORY_ANTHRO
-       HcoID = id_BCPI
-       ! Create diagnostic container
-       DiagnName = 'BCPI_ANTH'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "BCPI_ANTH" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% BCPO from anthro (Category 1 or species BCPO_ANTH)  %%%%%
     !-----------------------------------------------------------------
+    ExtNr     = 0
+    Cat       = CATEGORY_ANTHRO
+    DiagnName = 'BCPO_ANTH'
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_BCPO,                                  &
+                       SpaceDim  = 3,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
 
-       Cat = CATEGORY_ANTHRO
-       HcoID = id_BCPO
-       ! Create diagnostic container
-       DiagnName = 'BCPO_ANTH'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "BCPO_ANTH" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% OCPI from anthro (Category 1 or species OCPI_ANTH)  %%%%%
     !-----------------------------------------------------------------
+    Extnr     = 0
+    Cat       = CATEGORY_ANTHRO
+    DiagnName = 'OCPI_ANTH'
+    CALL Diagn_Create( am_I_Root,                                            & 
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_OCPI,                                  &
+                       SpaceDim  = 3,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
 
-       Cat = CATEGORY_ANTHRO
-       HcoID = id_OCPI
-       ! Create diagnostic container
-       DiagnName = 'OCPI_ANTH'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "OCPI_ANTH" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% OCPO from anthro (Category 1 or species OCPO_ANTH)  %%%%%
     !-----------------------------------------------------------------
+    ExtNr     = 0
+    Cat       = CATEGORY_ANTHRO
+    DiagnName = 'OCPO_ANTH'
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_OCPO,                                  &
+                       SpaceDim  = 3,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
 
-       Cat = CATEGORY_ANTHRO
-       HcoID = id_OCPO
-       ! Create diagnostic container
-       DiagnName = 'OCPO_ANTH'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 3,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "OCPO_ANTH" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
+    !-----------------------------------------------------------------------
     ! ------------ NOW DEAL WITH BIOMASS BURNING --------------------
-    ! First test if GFED is used.  If not, then test if FINN is used.
-    ! If not, then use extension # 0 and the default biomass category.
-      Cat   = -1
-      ExtNr = GetExtNr( HcoState%Config%ExtList, 'GFED' )
-      IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'FINN' )
-      IF ( ExtNr <= 0 ) THEN
-         ExtNr = 0
-         Cat   = CATEGORY_BIOMASS
-      ENDIF
+    ! Test if any of the biomass burning extensions are turned on.
+    ! If not, then use extension # 0 and the default biomass category
+    !-----------------------------------------------------------------------
+    Cat   = -1
+    ExtNr = GetExtNr( HcoState%Config%ExtList, 'GFED' )
+    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'FINN' )
+    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'GFAS' )
+    IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'QFED' )
+    IF ( ExtNr <= 0 ) THEN
+       ExtNr = 0
+       Cat   = CATEGORY_BIOMASS
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% BPCI from BIOB (Category ? or species BCPI_bb)  %%%%%
     !-----------------------------------------------------------------
+    DiagnName = 'BCPI_BB'
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_BCPI,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
 
-       HcoID = id_BCPI
-       ! Create diagnostic container
-       DiagnName = 'BCPI_BB'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "BCPI_BB" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% BPCO from BIOB (Category ? or species BCPO_bb)  %%%%%
     !-----------------------------------------------------------------
+    DiagnName = 'BCPO_BB'
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_BCPO,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
 
-       HcoID = id_BCPO
-       ! Create diagnostic container
-       DiagnName = 'BCPO_BB'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "BCPO_BB" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% OCPI from BIOB (Category ? or species OCPI_bb)  %%%%%
     !-----------------------------------------------------------------
+    DiagnName = 'OCPI_BB'
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_OCPI,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
 
-       HcoID = id_OCPI
-       ! Create diagnostic container
-       DiagnName = 'OCPI_BB'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "OCPI_BB" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% OCPO from BIOB (Category ? or species OCPI_bb)  %%%%%
     !-----------------------------------------------------------------
+    DiagnName = 'OCPO_BB'
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_OCPO,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
 
-
-       HcoID = id_OCPO
-       ! Create diagnostic container
-       DiagnName = 'OCPO_BB'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = Cat,               &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg/m2/s',         &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "OCPO_BB" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% SO4 from ANTRHO (Category ? or species SO4_ANTH)  %%%%%
     !-----------------------------------------------------------------
-    ! ID for SO4
-    IDSO4 = HCO_GetHcoID( 'SO4', HcoState )
-
-    ! Extension number is zero (HEMCO core) until defined otherwise
-    ExtNr = 0
-
-    Cat = CATEGORY_ANTHRO
-    HcoID = IDSO4
-    ! Create diagnostic container
+    ExtNr     = 0
+    Cat       = CATEGORY_ANTHRO
     DiagnName = 'SO4_ANTH'
-    CALL Diagn_Create( am_I_Root,                     &
-                       HcoState  = HcoState,          &
-                       cName     = TRIM( DiagnName ), &
-                       ExtNr     = ExtNr,             &
-                       Cat       = Cat,               &
-                       Hier      = -1,                &
-                       HcoID     = HcoID,             &
-                       SpaceDim  = 3,                 &
-                       LevIDx    = -1,                &
-                       OutUnit   = 'kg/m2/s',         &
-                       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                       AutoFill  = 1,                 &
-                       RC        = RC                  )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_SO4,                                   &
+                       SpaceDim  = 3,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "SO4_ANTH" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------
     ! %%%%% CO from ANTRHO (Category ? or species CO_ANTH)  %%%%%
     !-----------------------------------------------------------------
-    ! ID for CO
-    IDCO = HCO_GetHcoID( 'CO', HcoState )
-
-    ! Extension number is zero (HEMCO core) until defined otherwise
-    ExtNr = 0
-
-    Cat = CATEGORY_ANTHRO
-    HcoID = IDCO
-    ! Create diagnostic container
+    ExtNr     = 0
+    Cat       = CATEGORY_ANTHRO
     DiagnName = 'CO_ANTH'
-    CALL Diagn_Create( am_I_Root,                     &
-                       HcoState  = HcoState,          &
-                       cName     = TRIM( DiagnName ), &
-                       ExtNr     = ExtNr,             &
-                       Cat       = Cat,               &
-                       Hier      = -1,                &
-                       HcoID     = HcoID,             &
-                       SpaceDim  = 3,                 &
-                       LevIDx    = -1,                &
-                       OutUnit   = 'kg/m2/s',         &
-                       COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                       AutoFill  = 1,                 &
-                       RC        = RC                  )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_CO,                                    &
+                       SpaceDim  = 3,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "CO_ANTH" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF
 
     !-------------------------------------------------------------------
     ! %%%%% diag for direct emission of SOAS OC for TOMAS          %%%%%
@@ -1879,26 +1907,27 @@ CONTAINS
        Cat   = CATEGORY_BIOGENIC
     ENDIF
 
-    ! HEMCO species ID
-    HcoID = HCO_GetHcoID( 'SOAS', HcoState )
-
     ! Create diagnostic container
-    IF ( HcoID > 0 ) THEN
-       DiagnName = 'BIOGENIC_SOAS'
-       CALL Diagn_Create( am_I_Root,                                         &
-                          HcoState  = HcoState,                              &
-                          cName     = TRIM( DiagnName ),                     &
-                          ExtNr     = ExtNr,                                 &
-                          Cat       = Cat,                                   &
-                          Hier      = -1,                                    &
-                          HcoID     = HcoID,                                 &
-                          SpaceDim  = 2,                                     &
-                          LevIDx    = -1,                                    &
-                          OutUnit   = 'kg/m2/s',                             &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,       &
-                          AutoFill  = 1,                                     &
-                          RC        = RC                                    )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    DiagnName = 'BIOGENIC_SOAS'
+    CALL Diagn_Create( am_I_Root,                                            &
+                       HcoState  = HcoState,                                 &
+                       cName     = TRIM( DiagnName ),                        &
+                       ExtNr     = ExtNr,                                    &
+                       Cat       = Cat,                                      &
+                       Hier      = -1,                                       &
+                       HcoID     = id_SOAS,                                  &
+                       SpaceDim  = 2,                                        &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual,          &
+                       AutoFill  = 1,                                        &
+                       RC        = RC                                       )
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "BIOGENIC_SOAS" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
     ENDIF
 #endif
 

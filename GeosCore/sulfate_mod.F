@@ -264,7 +264,6 @@
       !---------------------------------------------------------------
       REAL(fp),  ALLOCATABLE :: PSO4_SO2AQ(:,:,:)
       REAL(fp),  ALLOCATABLE :: SO4_ANTH(:,:,:)
-      REAL(fp),  ALLOCATABLE :: SO4_BIOF(:,:)
 #endif
 
       ! These are pointers to fields in the HEMCO data structure.
@@ -824,7 +823,7 @@
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
          ENDIF
 
-#if   defined( TOMAS )
+#ifdef TOMAS
          !-----------------------------------------------------------------
          ! For TOMAS microphysics:
          !
@@ -1071,7 +1070,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-#if defined BPCH_DIAG
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
 #endif
@@ -1232,22 +1231,16 @@
       ENDIF
       Ptr3D => NULL()
 
-      DgnName = 'SO4_BIOF'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
-     &  Ptr2D=Ptr2D )
-      IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-      ELSE
-         SO4_BIOF = Ptr2D(:,:)
-      ENDIF
-      Ptr2D => NULL()
 
       ! convert to kg/box/sec
       DO L = 1, State_Grid%NZ
          SO4an(:,:,L) = 0.0d0
          SO4an(:,:,L) = SO4_ANTH(:,:,L) * AREA(:,:)
       END DO
-      SO4bf = SO4_BIOF(:,:) * AREA(:,:)
+
+      ! NOTE: Biofuels are now lumped into anthro,
+      ! so set SO4bf to zero (bmy, 10/1/19)
+      SO4bf = 0.0_fp
 
       !=================================================================
       ! Compute SO4 emissions
@@ -6417,7 +6410,7 @@
 !$OMP+PRIVATE( I, J, L, SO4, SO4s, SO40, SO40s )
 !$OMP+PRIVATE( SO4d, SO40d, SO40_dust          ) ! tdf 04/07/08
 !$OMP+PRIVATE( IBIN, PSO4d, IDTRC              )
-#if   defined( APM )
+#ifdef APM
 !$OMP+PRIVATE( N, MASS0, MASS, PMASS, RKTs, E_RKTs )
 #endif
 !$OMP+SCHEDULE( DYNAMIC ) 
@@ -6581,7 +6574,7 @@
 
       END SUBROUTINE CHEM_SO4
 !EOC
-#if   defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -8017,39 +8010,9 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
-!  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
-!        Also reference NSRCX from "CMN".  Now eferences routine ALLOC_ERR
-!        from "error_mod.f" ((rjp, bdf, bmy, 10/15/02)
-!  (2 ) Now also allocate the IJSURF array to keep the 1-D grid box indices
-!        for SUNCOS (for both coupled & offline runs).  Now allocate PH2O2m 
-!        and O3m for offline runs.  Also allocate ESO2_bf (bmy, 1/16/03)
-!  (3 ) Now allocate ENH3_na array (rjp, bmy, 3/23/03)
-!  (4 ) Now allocate COSZM for offline runs (bmy, 3/30/04)
-!  (5 ) Now allocate ESO2_sh array (bec, bmy, 5/20/04)
-!  (6 ) Now allocates ITS_AN_AEROSOL_SIM from "tracer_mod.f".  Now remove 
-!        IJSURF (bmy, 7/20/04)
-!  (7 ) Now locate species in the DEPSAV array here instead of in CHEMSULFATE.
-!        Now reference LDRYD from "logical_mod.f".  Updated for AS, AHS, LET, 
-!        SO4aq, NH4aq. (bmy, 1/6/06)
-!  (8 ) Now allocates PSO4_ss, PNITs (bec, bmy, 4/13/05)
-!  (9 ) Initialize drydep flags outside of IF block (bmy, 5/23/06)
-!  (10) Now redimension EEV & NEV arrays for new SO2 volcanic emissions
-!        inventory.  Deleted obsolete arrays from older SO2 volcanic
-!        emissions inventory. (jaf, bmy, 10/15/09)
-!  (11) Now alllocate PSO4_SO2AQ (win, 1/25/10)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  04 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_AN_AEROSOL_SIM
-!  30 May 2013 - S. Farina   - Allocate PSO4_SO2AQ for TOMAS
-!  12 Sep 2013 - M. Sulprizio- Add PSO4_dust and PNIT_dust for acid update on
-!                              dust aerosols (T.D. Fairlie)
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  21 Jun 2016 - R. Yantosca - Reorder the Ind_ declaration statements a bit
-!  24 Jun 2016 - R. Yantosca - Add error checks for dust uptake species
-!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+! !REVISION HISTORY:
+!  02 Jun 2000 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8144,7 +8107,7 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       SOx_SCALE = 0e+0_fp
 
-#if  defined( APM )
+#ifdef APM
       ! Allocate for APM microphysics
       ALLOCATE( PSO4_SO2APM( State_Grid%NX,
      &                       State_Grid%NY,
@@ -8160,7 +8123,7 @@
       PSO4_SO2SEA = 0e+0_fp
 #endif
 
-#if   defined( TOMAS )
+#ifdef TOMAS
       ! Allocate for TOMAS microphysics
       ALLOCATE( PSO4_SO2AQ( State_Grid%NX, State_Grid%NY,
      &                      State_Grid%NZ ), STAT=RC )
@@ -8173,11 +8136,6 @@
       CALL GC_CheckVar( 'sulfate_mod.F:SO4_ANTH', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SO4_ANTH = 0e+0_fp
-
-      ALLOCATE( SO4_BIOF( State_Grid%NX, State_Grid%NY ), STAT=RC )
-      CALL GC_CheckVar( 'sulfate_mod.F:SO4_BIOF', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      SO4_BIOF = 0e+0_fp
 #endif
 
       !=================================================================
@@ -8297,21 +8255,9 @@
 !
       SUBROUTINE CLEANUP_SULFATE()  
 ! 
-! !REVISION HISTORY: 
-!  (1 ) Now also deallocates IJSURF. (bmy, 11/12/02)
-!  (2 ) Now also deallocates ENH3_na (rjp, bmy, 3/23/03)
-!  (3 ) Now also deallocates COSZM (rjp, bmy, 3/30/04)
-!  (4 ) Now also deallocates ESO4_sh (bec, bmy, 5/20/04)
-!  (5 ) Now remove IJSURF (bmy, 7/20/04)
-!  (6 ) Bug fix: now deallocate PSO4_ss, PNITs (bmy, 5/3/06)
-!  (7 ) Deleted obsolete arrays from older SO2 volcanic emissions 
-!        inventory (jaf, bmy, 10/15/09)
-!  (8 ) Deallocate PSO4_SO2AQ (win, 1/25/10)
-!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!  30 May 2013 - S. Farina   - Deallocate PSO4_SO2AQ for TOMAS
-!  04 Mar 2015 - R. Yantosca - Remove EEV, NEV.  Volcano eruptions are now
-!                              handled via HEMCO.
-!  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
+! !REVISION HISTORY:
+!  01 Jun 2000 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8329,10 +8275,9 @@
       IF ( ALLOCATED( PSO4_SO2APM ) ) DEALLOCATE( PSO4_SO2APM )
       IF ( ALLOCATED( PSO4_SO2SEA ) ) DEALLOCATE( PSO4_SO2SEA )
 #endif
-#if   defined( TOMAS )
+#ifdef TOMAS
       IF ( ALLOCATED( PSO4_SO2AQ ) ) DEALLOCATE( PSO4_SO2AQ ) 
       IF ( ALLOCATED( SO4_ANTH   ))  DEALLOCATE( SO4_ANTH   )
-      IF ( ALLOCATED( SO4_BIOF   ))  DEALLOCATE( SO4_BIOF   )
 #endif
       IF ( ALLOCATED( PSO4_ss    ) ) DEALLOCATE( PSO4_ss    )
       

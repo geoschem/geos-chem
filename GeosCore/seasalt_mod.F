@@ -1525,75 +1525,69 @@
       DTEMIS = GET_TS_CHEM()
 
       DO N=1,NSALTBIN
-      ! Initialize source
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, State_Grid%NY
-      DO I = 1, State_Grid%NX
-         SALT(I,J)   = 0d0
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+         SALT = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, A_M2, W10M, FOCEAN, SFCWINDSQR, SST, SCALESST )
 !$OMP+SCHEDULE( DYNAMIC )
 
-      ! Loop over latitudes
+      ! Loop over grid boxes
       DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
-         ! Loop over longitudes
-         DO I = 1, State_Grid%NX
+         ! Initialize
+         SFCWINDSQR = 0.0_fp
+         W10M       = 0.0_fp
+         SST        = 0.0_fp
+         SCALESST   = 0.0_fp
+         A_M2       = State_Grid%AREA_M2(I,J)
 
-            ! Grid box surface area [m2]
-            A_M2 = State_Grid%AREA_M2(I,J)
+         ! Check if over ocean assuming only gridcells that are
+         ! at least 50% water are oceans (J. Pierce, 3/10/14)
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
+            FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
+         ELSE
+            FOCEAN = 0.e+0_fp
+         ENDIF
 
-            ! Check if over ocean assuming only gridcells that are
-            ! at least 50% water are oceans (J. Pierce, 3/10/14)
-            IF ( IS_WATER( I, J, State_Met ) ) THEN
-              FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
-            ELSE
-              FOCEAN = 0.e+0_fp
-            ENDIF
-
-            IF (FOCEAN > 0.5e+0_fp) THEN 
+         IF ( FOCEAN > 0.5e+0_fp ) THEN 
 
             ! Wind speed at 10 m altitude [m/s]
             SFCWINDSQR = State_Met%U10M(I,J)**2  
-     &                 + State_Met%V10M(I,J)**2
+     &                    + State_Met%V10M(I,J)**2
             W10M       = SQRT( SFCWINDSQR )
 
             ! Loop over size bins
-            IF(IFSSTSCALE==1)THEN
-              ! Sea surface temperature in Celcius (jaegle 5/11/11)
-              SST = State_Met%TSKIN(I,J) - 273.15d0
+            IF ( IFSSTSCALE==1 ) THEN
+               ! Sea surface temperature in Celsius (jaegle 5/11/11)
+               SST = State_Met%TSKIN(I,J) - 273.15d0
 
-              ! Limit SST to 0-30C range
-!Yu adjust per disc with Gan              SST = MAX( SST , 0d0 )  ! limit to  0C
-              SST = MAX( SST , 5d0 )  ! limit to  0C
-              SST = MIN( SST , 30d0 ) ! limit to 30C
+               ! Limit SST to 0-30C range
+               ! Yu adjust per disc with Gan SST = MAX( SST , 0d0 )  
+               !  ! limit to  0C
+               SST = MAX( SST, 5d0  ) ! limit to  0C
+               SST = MIN( SST, 30d0 ) ! limit to 30C
 
-              ! Empirical SST scaling factor (jaegle 5/11/11)
-              SCALESST = 0.329d0 + 0.0904d0*SST -
-     &                   0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
-
-              ! Update seasalt source into SALT [kg]
-              SALT(I,J)   = SALT(I,J) +
-              ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) at U10 = 9 m/s
-     &        DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS
-     &                   *FOCEAN*SCALESST
+               ! Empirical SST scaling factor (jaegle 5/11/11)
+               SCALESST = 0.329d0 + 0.0904d0*SST -
+     &              0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
+               
+               ! Update seasalt source into SALT [kg]
+               SALT(I,J)   = SALT(I,J) +
+                  ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) 
+                  ! at U10 = 9 m/s
+     &            DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS
+     &            *FOCEAN*SCALESST
             ELSE
-              ! Update seasalt source into SALT [kg]
-              SALT(I,J)   = SALT(I,J) +
-              ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) at U10 = 9
-              ! m/s
-     &        DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS*FOCEAN
+               ! Update seasalt source into SALT [kg]
+               SALT(I,J)   = SALT(I,J) +
+                  ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) 
+                  ! at U10 = 9  m/s
+     &            DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS*FOCEAN
             ENDIF
-
-            ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
