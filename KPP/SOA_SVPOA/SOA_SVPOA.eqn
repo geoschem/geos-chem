@@ -56,6 +56,11 @@ v11-02d (Sep 2017)
  (1) Add photolysis of NITs (off by default) (TMS, PK)
  (2) Aerosol heterogeneous uptake for NOx (CDH)
 
+12.7.0 (Oct 2019)
+-----------------------
+
+ (1) Aromatic VOC chemistry (YYY, JTL)
+
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
 ===============================================================================
@@ -74,6 +79,7 @@ JAF : Jenny Fisher;            jennyf@uow.edu.au
 JAS : Johan Schmidt;           johanalbrechtschmidt@gmail.com
 JMAO: Jingqiu Mao;             jmao2@alaska.edu
 JPP : Justin Parrella;         justin.parrella@gmail.com
+JTL : Jintai Lin;              linjt@pku.edu.cn
 KHB : Kelvin Bates;            kelvin@caltech.edu
 KRT : Katie Travis;            ktravis@fas.harvard.edu
 LZHU: Lei Zhu;                 leizhu@fas.harvard.edu
@@ -86,6 +92,7 @@ RHS : Rebecca Schwantes;       rschwant@caltech.edu
 SAS : Sarah Safieddine;        sarahsaf@mit.edu
 SDE : Sebastian Eastham;       seastham@seas.harvard.edu
 TMS : Tomas Sherwen;           tomas.sherwen@york.ac.uk
+YYY : Yingying Yan;            yanyingying@cug.edu.cn
 
 ===============================================================================
 REFERENCES (alphabetical order)
@@ -125,6 +132,7 @@ REFERENCES (alphabetical order)
 * Travis2016:   Travis et al., Atmos. Chem. Phys., doi:10.5194/acp-16-13561-2016, 2016.
 * Wolfe2012:    Wolfe et al., Phys. Chem. Chem. Phys., doi: 10.1039/C2CP40388A, 2012.
 * Xie2013:      Xie et al., Atmos. Chem. Phys., doi:10.5194/acp-13-8439-2013, 2013.
+* Yan2019:      Yan et al., Geosci. Model Dev., doi:10.5194/gmd-12-111-2019, 2019.
 
 ===============================================================================
 NOTES
@@ -357,6 +365,61 @@ VRO2       = IGNORE; {HOCH2CH(OO)C(O)CH3; RO2 from MVK+OH}
 VRP        = IGNORE; {HOCH2CH(OOH)C(O)CH3; Peroxide from VRO2}
 XYLE       = IGNORE; {C8H10; Xylene}
 XRO2       = IGNORE; {Peroxy radical from XYLE oxidation}
+RO2C       = IGNORE; {Peroxy radical for NO/NO3 to NO2}
+RO2XC      = IGNORE; {Peroxy radical for NO consumption, and the effects of peroxy radical reactions on NO3, acyl peroxy radicals, and other peroxy radicals}
+BZCO3      = IGNORE; {Peroxyacyl radical from aromatic aldehydes}
+RNO3       = IGNORE; {Lumped organic nitrates}
+PHEN       = IGNORE; {Phenol}
+AFG1       = IGNORE; {Monounsaturated dialdehydes or aldehyde-ketones formed from aromatics - Most photoreactive}
+AFG2       = IGNORE; {Monounsaturated dialdehydes or aldehyde-ketones formed from aromatics - Least photoreactive}
+AFG3       = IGNORE; {Diunsaturatred dicarbonyl aromatic fragmentation products that are assumed not to photolyze rapidly}
+RAOOH      = IGNORE; {Organic hydroperoxides formed from aromatic hydrocarbons that condense to form SOA}
+XC         = IGNORE; {Lost carbon in unreactive products}
+XN         = IGNORE; {Lost nitrogen in unreactive products}
+CATL       = IGNORE; {Catechols}
+PROD2      = IGNORE; {Ketones and other non-aldehyde oxygenated products which react with OH radicals faster than 5e-12 cm3 molec-2 sec-1}
+R6OOH      = IGNORE; {Lumped organic hydroperoxides with 5 or more carbons, and organic hydroperoxides formed from aromatics that do not participate in SOA formation}
+BALD       = IGNORE; {Aromatic aldehydes}
+PBZN       = IGNORE; {PAN analogues formed from aromatic aldehydes}
+CRES       = IGNORE; {Cresols}
+XYNL       = IGNORE; {Xylenols and higher alkylphenols}
+MACO3      = IGNORE; {Peroxyacyl radicals from methacrolein and other acroleins}
+BACL       = IGNORE; {Biacetyl}
+IPRD       = IGNORE; {Lumped isoprene product species}
+ROOH       = IGNORE; {Lumped organic hydroperoxides with 2-4 carbons}
+BZO        = IGNORE; {Phenoxy radicals}
+NPHE       = IGNORE; {Nitrophenols}
+HCOCO3     = IGNORE; {HC(O)C(O)OO radicals}
+xIPRD      = IGNORE; {Formation of IPRD  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xBACL      = IGNORE; {Formation of BACL  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xMEK       = IGNORE; {Formation of MEK   from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xMECO3     = IGNORE; {Formation of MECO3 from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xCO        = IGNORE; {Formation of CO    from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xHO2       = IGNORE; {Formation of HO2   from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xOH        = IGNORE; {Formation of OH    from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+zRNO3      = IGNORE; {Formation of RNO3 in the RO2 + NO, reaction, or formation of corresponding non-nitrate products (represented by PROD2) formed from alkoxy radicals formed in RO2 + NO3 and (in 50% yields) RO2 + RO2 reactions}
+xAFG1      = IGNORE; {Formation of AFG1  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xGLYX      = IGNORE; {Formation of GLYX  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xAFG2      = IGNORE; {Formation of AFG2  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+yRAOOH     = IGNORE; {Like yROOH or yR6OOH but for RAOOH}
+xMGLY      = IGNORE; {Formation of MGLY  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xNO2       = IGNORE; {Formation of NO2   from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xMO2       = IGNORE; {Formation of MO2   from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xMACO3     = IGNORE; {Formation of MACO3 from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xMCO3      = IGNORE; {Formation of MCO3  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xRCO3      = IGNORE; {Formation of RCO3  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xCH2O      = IGNORE; {Formation of CH2O  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xALD2      = IGNORE; {Formation of ALD2  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xRCHO      = IGNORE; {Formation of RCHO  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xACET      = IGNORE; {Formation of ACET  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xPROD2     = IGNORE; {Formation of PROD2 from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xBALD      = IGNORE; {Formation of BALD  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xAFG4      = IGNORE; {Formation of AFG4  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xMACR      = IGNORE; {Formation of MACR  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xMVK       = IGNORE; {Formation of MVK   from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+xRNO3      = IGNORE; {Formation of RNO3  from alkoxy radicals formed in peroxy radical reactions with NO and NO3 (100% yields) and RO2 (50% yields)}
+yR6OOH     = IGNORE; {Like yROOH, but the RO2 + HO2 product is represented by R6OOH and the H-shift products are represented by PROD2}
+yROOH      = IGNORE; {Formation of ROOH following RO2 + HO2 reactions, or formation of H-shift disproportionation products (represented by MEK) in the RO2 + RCO3 and (in 50% yields) RO2 + RO2 reactions}
 
 #DEFFIX
 
@@ -969,12 +1032,23 @@ GAOO + NO2 = GLYC + NO3 :                    GCARR(1.00E-15, 0.0E+00, 0.0);     
 GAOO + SO2 = GLYC + SO4 :                    GCARR(7.00E-14, 0.0E+00, 0.0);       {2015/09/25; Millet2015; DBM,EAM}
 GAOO + H2O = GLYC + H2O2 :                   GCARR(6.00E-18, 0.0E+00, 0.0);       {2015/09/25; Millet2015; DBM,EAM}
 GAOO + H2O = HAC :                           GCARR(1.00E-17, 0.0E+00, 0.0);       {2015/09/25; Millet2015; DBM,EAM}
-BENZ + OH = BRO2 + 1.920CH2O + 0.252GLYX +
- OH :                                        GCARR(2.33E-12, 0.0E+00, -193.0);    {2017/03/23; Fischer2014 ; EVF}
-TOLU + OH = TRO2 + 1.920CH2O + 0.260GLYX +
- 0.215MGLY + OH :                            GCARR(1.81E-12, 0.0E+00, 338.0);     {2017/03/23; Fischer2014 ; EVF}
-XYLE + OH = XRO2 + 1.920CH2O + 0.268GLYX +
- 0.463MGLY + OH :                            GCARR(2.31E-11, 0.0E+00, 0.0);       {2017/03/23; Fischer2014 ; EVF}
+BENZ + OH = 0.027RO2XC + 0.310RO2C + 
+0.570HO2 + 0.310xHO2 + 0.027zRNO3 + 
+0.570PHEN + 0.310xGLYX + 0.183xAFG1 + 
+0.127xAFG2 + 0.337yRAOOH + 0.093OH + 
+0.093AFG3 + 0.403XC :                        GCARR(2.33E-12, 0.0E+00, -193.0);    {2019/05/10; Yan2019; YYY,JTL}
+TOLU + OH = 0.074RO2XC + 0.605RO2C + 
+0.180HO2 + 0.605xHO2 + 0.074zRNO3 + 
+0.073yR6OOH + 0.065xBALD + 0.180CRES + 
+0.290xGLYX + 0.250xMGLY + 0.324xAFG1 + 
+0.216xAFG2 + 0.606yRAOOH + 0.141OH + 
+0.141AFG3 + 0.176XC :                        GCARR(1.81E-12, 0.0E+00, 338.0);     {2019/05/10; Yan2019; YYY,JTL}
+XYLE + OH = 0.098RO2XC + 0.600RO2C + 
+0.110HO2 + 0.600xHO2 + 0.098zRNO3 + 
+0.046yR6OOH + 0.040xBALD + 0.110XYNL + 
+0.110xGLYX + 0.450xMGLY + 0.319xAFG1 + 
+0.241xAFG2 + 0.651yRAOOH + 0.192OH + 
+0.192AFG3 + 0.538XC :                        GCARR(2.31E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
 XYLE + NO3 = CO2 :                           GCARR(2.60E-16, 0.0E+00, 0.0);
 BRO2 + HO2 = LBRO2H :                        GCARR(1.40E-12, 0.0E+00, 700.0);
 BRO2 + NO = LBRO2N :                         GCARR(2.60E-12, 0.0E+00, 350.0);
@@ -1068,6 +1142,184 @@ DHPCARP + HO2 = RCOOH :                      GCARR(2.05E-13, 0.0E+00, 1300.0);  
 HPC52O2 + HO2 = RCOOH :                      GCARR(2.05E-13, 0.0E+00, 1300.0);    {2017/07/14; Jenkin2015; KRT,JAF,CCM,EAM,KHB,RHS}
 DHPCARP = RCOOH + CO + OH :                  GCARR(2.90E+07, 0.0E+00, -5300.0);   {2017/07/14; Crounse2012; KRT,JAF,CCM,EAM,KHB,RHS}
 DHPCARP = DHDC :                             GCARR(1.28E+07, 0.0E+00, -5300.0);   {2017/07/14; Crounse2012; KRT,JAF,CCM,EAM,KHB,RHS}
+MO2 + NO3 = CH2O + HO2 + NO2:                GCARR(1.30E-12, 0.0E+00, 300.0);
+RO2C + NO = NO2 :                            GCARR(2.60E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RO2C + NO3 = NO2 :                           GCARR(2.30E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RO2C + MO2 = 0.500HO2 + 0.750CH2O +
+0.250MOH :                                   GCARR(2.00E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RO2XC + NO = XN :                            GCARR(2.60E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RO2XC + NO3 = NO2 :                          GCARR(2.30E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RO2XC + MO2 = 0.500HO2 + 0.750CH2O +
+0.250MOH :                                   GCARR(2.00E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MCO3 + NO3 = MO2 + CO2 + NO2 + O2 :          GCARR(2.30E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MCO3 + RO2C = MO2 + CO2 :                    GCARR(4.40E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MCO3 + RO2XC = MO2 + CO2 :                   GCARR(4.40E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RCO3 + NO = NO2 + RO2C + xHO2 +
+yROOH + xALD2 + CO2 :                        GCARR(6.70E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RCO3 + HO2 = 0.440OH + 0.440RO2C +
+0.440xHO2 + 0.440xALD2 + 0.440yROOH +
+0.440CO2 + 0.410RCOOH + 0.150O3 +
+0.150RCOOH :                                 GCARR(5.20E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RCO3 + NO3 = NO2 + RO2C + xHO2 +
+yROOH + xALD2 + CO2 + O2 :                   GCARR(2.30E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RCO3 + MO2 = CH2O + HO2 + RO2C +
+xHO2 + xALD2 + yROOH + CO2 :                 GCARR(2.00E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RCO3 + RO2C = RO2C + xHO2 +
+xALD2 + yROOH + CO2 :                        GCARR(4.40E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RCO3 + RO2XC = RO2C + xHO2 +
+xALD2 + yROOH + CO2 :                        GCARR(4.40E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RCO3 + MCO3 = 2.000CO2 + MO2 + RO2C +
+xHO2 + yROOH + xALD2 + O2 :                  GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RCO3 + RCO3 = 2.000RO2C + 2.000xHO2 +
+2.000xALD2 + 2.000yROOH+ 2.000CO2 :          GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + NO2 = PBZN :                         GCARR(1.37E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+PBZN = BZCO3 + NO2 :                         GCARR(7.90E-16, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + NO = NO2 + CO2 + BZO + RO2C :        GCARR(6.70E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + HO2 = 0.440OH + 0.440BZO +
+0.440RO2C + 0.440CO2 + 0.410RCOOH +
+0.150O3 + 0.150RCOOH + 2.240XC :             GCARR(5.20E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + NO3 = NO2 + CO2 + BZO +
+RO2C + O2 :                                  GCARR(2.30E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + MO2 = CH2O + HO2 + RO2C +
+BZO + CO2 :                                  GCARR(2.00E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + RO2C = RO2C + BZO + CO2 :            GCARR(4.40E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + RO2XC = RO2C + BZO + CO2 :           GCARR(4.40E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + MCO3 = 2.000CO2 + MO2 + BZO +
+RO2C :                                       GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + RCO3 = 2.000CO2 + RO2C + xHO2 +
+yROOH + xALD2 + BZO + RO2C :                 GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZCO3 + BZCO3 = 2.000BZO + 2.000RO2C +
+2.000CO2 :                                   GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + NO = NO2 + CO2 + CH2O + MCO3 :       GCARR(6.70E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + HO2 = 0.440OH + 0.440CH2O +
+0.440MCO3 + 0.440CO2 + 0.410RCOOH +
+0.150O3 + 0.150RCOOH + 0.560XC :             GCARR(5.20E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + NO3 = NO2 + CO2 + CH2O + MCO3 +
+O2 :                                         GCARR(2.30E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + MO2 = 2.000CH2O + HO2 + CO2 +
+MCO3 :                                       GCARR(4.40E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + RO2C = CO2 + CH2O + MCO3 :           GCARR(4.40E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + RO2XC = CO2 + CH2O + MCO3 :          GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + MCO3 = 2.000CO2 + MO2 + CH2O +
+MCO3 + O2 :                                  GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + RCO3 = CH2O + MCO3 + RO2C + xHO2 +
+yROOH + xALD2 + 2.000CO2 :                   GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + BZCO3 = CH2O + MCO3 + BZO + RO2C +
+2.000CO2 :                                   GCARR(6.70E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MACO3 + MACO3 = 2.000CH2O + MCO3 + CO2 :     GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZO + NO2 = NPHE :                           GCARR(2.30E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZO + HO2 = CRES + 0.100XC :                 GCARR(3.80E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BZO = CRES + RO2C + xHO2 + 0.100XC :         GCARR(2.90E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MVK + OH = 0.975RO2C + 0.025RO2XC +
+0.025zRNO3 + 0.300xHO2 + 0.675xMCO3 +
+0.300xCH2O + 0.675xRCHO + 0.300xMGLY +
+yROOH + 0.725XC :                            GCARR(2.60E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MVK + O3 = 0.164OH + 0.064HO2 +
+0.050RO2C + 0.050xHO2 + 0.475CO +
+0.124CO2 + 0.050CH2O + 0.950MGLY +
+0.351HCOOH + 0.050xRCO3 + 0.050xCH2O +
+0.050yROOH + 0.050XC :                       GCARR(8.50E-16, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+MVK + NO3 = 4.000XC + XN :                   GCARR(2.90E-18, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+IPRD + OH = 0.289MACO3 + 0.670RO2C +
+0.670xHO2 + 0.041RO2XC + 0.041zRNO3 +
+0.336xCO + 0.055xCH2O + 0.129xALD2 +
+0.013xRCHO + 0.150xMEK + 0.332xPROD2 +
+0.150xGLYX + 0.174xMGLY + 0.504XC +
+0.711 yR6OOH :                               GCARR(6.19E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+IPRD + O3 = 0.285OH + 0.400HO2 +
+0.048RO2C + 0.048xRCO3 + 0.498CO +
+0.140CO2 + 0.124CH2O + 0.210MEK +
+0.023GLYX + 0.742MGLY + 0.100HCOOH +
+0.372RCOOH + 0.047xALD2 + 0.001xCH2O +
+0.048yR6OOH + 0.329XC :                      GCARR(4.18E-18, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+IPRD + NO3 = 0.150MACO3 + 0.150HNO3 +
+0.799RO2C + 0.799xHO2 + 0.051RO2XC +
+0.051zRNO3 + 0.572xCO + 0.227xCH2O +
+0.218xRCHO + 0.008xMGLY + 0.572xRNO3+
+0.850yR6OOH + 0.278XN + 0.815XC :            GCARR(1.00E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+PROD2 + OH = 0.472HO2 + 0.379xHO2 +
+0.029xMCO3 + 0.049xRCO3 + 0.473RO2C +
+0.071RO2XC + 0.071zRNO3 + 0.002CH2O +
+0.211xCH2O + 0.001ALD2 + 0.083xALD2 +
+0.143RCHO + 0.402xRCHO + 0.115xMEK +
+0.329PROD2 + 0.007xPROD2 + 0.528yR6OOH +
+0.877XC :                                    GCARR(1.55E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+HCOCO3 + NO = HO2 + CO + CO2 + NO2 :         GCARR(6.70E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+HCOCO3 + NO2 = HO2 + CO + CO2 + NO3 :        GCARR(1.21E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+HCOCO3 + HO2 = 0.440OH + 0.440HO2 +
+0.440CO + 0.440CO2 + 0.560GLYX +
+0.150O3 :                                    GCARR(5.20E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+NPHE + OH = BZO + XN :                       GCARR(3.50E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BALD + OH = BZCO3 :                          GCARR(1.20E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+BALD + NO3 = HNO3 + BZCO3 :                  GCARR(1.34E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+PHEN + OH = 0.700HO2 + 0.100BZO +
+0.095xHO2 + 0.105OH + 0.095RO2C +
+0.700CATL + 0.105AFG3 + 0.048xAFG1 +
+0.048xAFG2 + 0.095xGLYX + 0.095yRAOOH :      GCARR(4.70E-13, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+PHEN + NO3 = 0.100HNO3 + 0.900XN +
+0.700HO2 + 0.100BZO + 0.095xHO2 +
+0.105OH + 0.095RO2C + 0.700CATL +
+0.105AFG3 + 0.048xAFG1 + 0.048xAFG2 +
+0.095xGLYX + 0.095yRAOOH :                   GCARR(3.80E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+CRES + OH = 0.7HO2 + 0.100BZO +
+0.170xHO2 + 0.030OH + 0.170RO2C +
+0.700CATL + 0.030AFG3 + 0.085xAFG1 +
+0.085xAFG2 + 0.085xGLYX + 0.085xMGLY +
+0.170yRAOOH :                                GCARR(1.60E-12, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+CRES + NO3 = 0.100HNO3 + 0.900XN +
+0.700HO2 + 0.100BZO + 0.170xHO2 +
+0.030OH + 0.170RO2C + 0.700CATL +
+0.030AFG3 + 0.085xAFG1 + 0.085xAFG2 +
+0.085xGLYX + 0.085xMGLY + 0.170yRAOOH :      GCARR(1.40E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+XYNL + OH = 0.700HO2 + 0.070BZO +
+0.230xHO2 + 0.230RO2C + 0.700CATL +
+0.115xAFG1 + 0.115xAFG2 + 0.115xGLYX +
+0.115xMGLY + 0.230yRAOOH :                   GCARR(7.38E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+XYNL + NO3 = 0.070HNO3 + 0.930XN +
+0.700HO2 + 0.070BZO + 0.230xHO2 +
+0.230RO2C + 0.700CATL + 0.115xAFG1 +
+0.115xAFG2 + 0.115xGLYX + 0.115xMGLY +
+0.230yRAOOH :                                GCARR(3.06E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+CATL + OH = 0.400HO2 + 0.200BZO +
+0.200xHO2 + 0.200OH + 0.200RO2C +
+0.200AFG3 + 0.100xAFG1 + 0.100xAFG2 +
+0.100xGLYX + 0.100xMGLY + 0.200yRAOOH :      GCARR(2.00E-10, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+CATL + NO3 = 0.200HNO3 + 0.800XN +
+0.400HO2 + 0.200BZO + 0.200xHO2 +
+0.200OH + 0.200RO2C + 0.200AFG3 +
+0.100xAFG1 + 0.100xAFG2 + 0.100xGLYX +
+0.100xMGLY + 0.200yRAOOH :                   GCARR(1.70E-10, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+AFG1 + OH = 0.217MACO3 + 0.723RO2C +
+0.060RO2XC + 0.060zRNO3 + 0.521xHO2 +
+0.201xMCO3 + 0.334xCO + 0.407xRCHO +
+0.129xMEK + 0.107xGLYX + 0.267xMGLY +
+0.783yR6OOH + 0.284XC :                      GCARR(7.40E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+AFG2 + OH = 0.217MACO3 + 0.723RO2C +
+0.060RO2XC + 0.060zRNO3 + 0.521xHO2 +
+0.201xMCO3 + 0.334xCO + 0.407xRCHO +
+0.129xMEK + 0.107xGLYX + 0.267xMGLY +
+0.783yR6OOH + 0.284XC :                      GCARR(7.40E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+AFG3 + OH = 0.206MACO3 + 0.733RO2C +
+0.117RO2XC + 0.117zRNO3 + 0.561xHO2 +
+0.117xMCO3 + 0.114xCO + 0.274xGLYX +
+0.153xMGLY + 0.019xBACL + 0.195xAFG1 +
+0.195xAFG2 + 0.231xIPRD + 0.794yR6OOH +
+0.938XC :                                    GCARR(9.35E-11, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+AFG3 + O3 = 0.471OH + 0.554HO2 +
+0.013MCO3 + 0.258RO2C + 0.007RO2XC +
+0.007zRNO3 + 0.580CO + 0.190CO2 +
+0.366GLYX + 0.184MGLY + 0.350AFG1 +
+0.350AFG2 + 0.139AFG3 + 0.003MACR +
+0.004MVK + 0.003IPRD + 0.095xHO2 +
+0.163xRCO3 + 0.163xCH2O + 0.095xMGLY +
+0.264yR6OOH + 0.575XC :                      GCARR(1.43E-17, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
+RAOOH + OH = 0.139OH + 0.148HO2 +
+0.589RO2C + 0.124RO2XC + 0.124zRNO3 +
+0.074PROD2 + 0.147MGLY + 0.139IPRD +
+0.565xHO2 + 0.024xOH + 0.448xRCHO +
+0.026xGLYX + 0.030xMEK + 0.252xMGLY +
+0.073xAFG1 + 0.073xAFG2 + 0.713yR6OOH +
+1.674XC :                                    GCARR(1.41E-10, 0.0E+00, 0.0);       {2019/05/10; Yan2019; YYY,JTL}
 NAP + OH = NRO2 + OH :                       GCARR(1.56E-11, 0.0E+00, 117.0);     {2013/08/12; Pye2010; HOTP}
 NRO2 + HO2 = LNRO2H + HO2 :                  GCARR(1.40E-12, 0.0E+00, 700.0);     {2013/08/12; Pye2010; HOTP}
 NRO2 + NO = LNRO2N + NO :                    GCARR(2.60E-12, 0.0E+00, 350.0);     {2013/08/12; Pye2010; HOTP}
@@ -1274,3 +1526,25 @@ NITs + hv = HNO2 :                           PHOTOL(130);    {2018/07/19; Kasibh
 NITs + hv = NO2 :                            PHOTOL(131);    {2018/07/19; Kasibhatla2018; PK, TMS}
 NIT + hv = HNO2 :                            PHOTOL(132);    {2018/07/19; Kasibhatla2018; PK, TMS}
 NIT + hv = NO2 :                             PHOTOL(133);    {2018/07/19; Kasibhatla2018; PK, TMS}
+PBZN + hv = 0.600BZCO3 + 0.600NO2 +
+0.400CO2 + 0.400BZO + 0.400RO2C +
+0.400NO3 :                                   PHOTOL(134);    {2019/05/10; Yan2019; YYY,JTL}
+IPRD + hv = 1.233HO2 + 0.467MCO3 +
+0.300RCO3 + 1.233CO + 0.300CH2O +
+0.467ALD2 + 0.233MEK + 0.233XC :             PHOTOL(135);    {2019/05/10; Yan2019; YYY,JTL}
+PROD2 + hv = 0.913xHO2 + 0.400MCO3 +
+0.600RCO3 + 1.590RO2C + 0.087RO2XC +
+0.087zRNO3 + 0.303xCH2O + 0.163xALD2 +
+0.780xRCHO + yR6OOH + 0.091XC :              PHOTOL(136);    {2019/05/10; Yan2019; YYY,JTL}
+BACL + hv = 2.000MCO3 :                      PHOTOL(137);    {2019/05/10; Yan2019; YYY,JTL}
+NPHE + hv = HNO2 + 6.000XC :                 PHOTOL(138);    {2019/05/10; Yan2019; YYY,JTL}
+NPHE + hv = 6.000XC + XN :                   PHOTOL(139);    {2019/05/10; Yan2019; YYY,JTL}
+BALD + hv = 7.000XC :                        PHOTOL(140);    {2019/05/10; Yan2019; YYY,JTL}
+AFG1 + hv = 1.023HO2 + 0.173MO2 +
+0.305MCO3 + 0.500MACO3 + 0.695CO +
+0.195GLYX + 0.305MGLY + 0.217XC :            PHOTOL(141);    {2019/05/10; Yan2019; YYY,JTL}
+AFG2 + hv = PROD2 + XC :                     PHOTOL(142);    {2019/05/10; Yan2019; YYY,JTL}
+RAOOH + hv = OH + HO2 + 0.500GLYX +
+0.500MGLY + 0.500AFG1 + 0.500AFG2 +
+0.500XC :                                    PHOTOL(143);    {2019/05/10; Yan2019; YYY,JTL}
+ 
