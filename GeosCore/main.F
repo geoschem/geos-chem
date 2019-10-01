@@ -884,23 +884,23 @@
          ! and convection are executed.  Call a routine to do this.
          ! (bmy, 10/25/18)
          !--------------------------------------------------------------
+         IF ( ITS_A_MERCURY_SIM ) THEN
 #ifdef USE_TIMERS
-         CALL GEOS_Timer_Start( "All diagnostics",           RC )
-         CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
+            CALL GEOS_Timer_Start( "All diagnostics",           RC )
+            CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
 
-         IF ( ITS_A_MERCURY_SIM ) THEN
             CALL Reset_Hg_Diags( am_I_Root, Input_Opt, State_Diag, RC  )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error encountered in "Reset_Hg_Diags!"'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
-         ENDIF
 
 #ifdef USE_TIMERS
-         CALL GEOS_Timer_End( "All diagnostics",           RC )
-         CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
+            CALL GEOS_Timer_End( "All diagnostics",           RC )
+            CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
+         ENDIF
 
          !==============================================================
          !       ***** R U N   H E M C O   P H A S E   1 *****
@@ -931,6 +931,7 @@
          ENDIF
 
 #ifdef USE_TIMERS
+         CALL GEOS_Timer_End( "HEMCO", RC )
          CALL GEOS_Timer_End( "Input", RC )
 #endif
 
@@ -961,7 +962,6 @@
 #ifdef USE_TIMERS
          CALL GEOS_Timer_End( "All diagnostics",      RC ) 
          CALL GEOS_Timer_End( "=> HEMCO diagnostics", RC )
-         CALL GEOS_Timer_End( "HEMCO",                RC )
          CALL GEOS_Timer_End( "Output",               RC )
 #endif
 
@@ -1029,8 +1029,8 @@
             !    ***** W R I T E   H E M C O   R E S T A R T S *****
             !===========================================================
 #ifdef USE_TIMERS
-            CALL GEOS_Timer_Start( "Output", RC )
             CALL GEOS_Timer_Start( "HEMCO",  RC )
+            CALL GEOS_Timer_Start( "Output", RC )
 #endif
 
             ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
@@ -1342,7 +1342,7 @@
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
-#if defined ( TOMAS )
+#ifdef TOMAS
             ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
             CALL Setup_WetScav( am_I_Root, Input_Opt, State_Chm,
      &                          State_Grid, State_Met, RC )
@@ -1541,7 +1541,6 @@
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
             IF ( LCONV ) THEN
-
 #ifdef USE_TIMERS
                CALL GEOS_Timer_Start( "Convection", RC )
 #endif
@@ -1783,7 +1782,7 @@
          ENDIF
 #endif
 
-#if defined( DIAG_DEVEL )
+#ifdef DIAG_DEVEL
          ! Eventually write dobson columns into diagnostics array
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
@@ -1915,9 +1914,7 @@
 
             ENDIF
          ENDIF
-#endif
 
-#ifdef BPCH_DIAG
          !--------------------------------------------------------------
          ! **** C H 4   S I M U L A T I O N   D I A G N O S I C S ****
          !
@@ -1969,7 +1966,6 @@
 !------------------------------------------------------------------------------
             ENDIF
          ENDIF
-
 #endif
 
          !==============================================================

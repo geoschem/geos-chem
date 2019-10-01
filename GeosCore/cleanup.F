@@ -124,9 +124,6 @@
       ! Finalize the History Component.
       ! Also closes all netCDF files that may still be open.
       !=================================================================
-#ifdef USE_TIMERS
-      CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
-#endif
 
       ! Finalize the history component
       CALL History_Cleanup( am_I_Root, RC )
@@ -135,10 +132,6 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-
-#ifdef USE_TIMERS
-      CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
       ! restart variables needs to be passed to the HEMCO diagnostics

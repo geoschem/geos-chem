@@ -39,8 +39,9 @@ MODULE FlexChem_Mod
 ! !PRIVATE TYPES:
 !
   ! Species ID flags (and logicals to denote if species are present)
-  INTEGER               :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
-#if defined( MODEL_GEOS )
+  INTEGER               :: id_OH,  id_HO2, id_O3P, id_O1D, id_CH4
+  INTEGER               :: id_PCO, id_LCH4
+#ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2, id_DHPCARP
   INTEGER               :: id_DIBOO,id_ETO2, id_HC5OO, id_IEPOXOO
@@ -53,7 +54,7 @@ MODULE FlexChem_Mod
 
   ! Diagnostic flags
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
   LOGICAL               :: Archive_O3concAfterchem
   LOGICAL               :: Archive_RO2concAfterchem
 #endif
@@ -63,11 +64,15 @@ MODULE FlexChem_Mod
   INTEGER,  SAVE        :: PrevMonth = -1
   
   ! Arrays
-  INTEGER,  ALLOCATABLE         :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
-  REAL(f4), ALLOCATABLE         :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
-  REAL(f4), ALLOCATABLE         :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
-  REAL(f4), ALLOCATABLE         :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
-  REAL(f4), ALLOCATABLE         :: JvSumMon   (:,:,:,:)  ! For monthly avg of J-values
+#ifdef TOMAS
+#ifdef BPCH_DIAG
+  INTEGER,  ALLOCATABLE :: ND65_Kpp_ID(:      ) 
+#endif
+#endif
+  REAL(f4), ALLOCATABLE :: JvCountDay (:,:,:  )
+  REAL(f4), ALLOCATABLE :: JvCountMon (:,:,:  )
+  REAL(f4), ALLOCATABLE :: JvSumDay   (:,:,:,:)
+  REAL(f4), ALLOCATABLE :: JvSumMon   (:,:,:,:)
 
 CONTAINS
 !EOC
@@ -152,47 +157,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  18 Dec 2015 - M. Sulprizio- Add calls to OHSAVE and DO_DIAG_OH
-!  22 Dec 2015 - M. Sulprizio- Set NUMDEN to State_Met%AIRNUMDEN for conversions
-!                              between v/v and molec/cm3
-!  28 Mar 2016 - R. Yantosca - Added several fixes for OpenMP parallelization
-!  30 Mar 2016 - R. Yantosca - Bug fix, now make sure to copy C back into
-!                              State_Chm%Species.  Also block out temp diags.
-!  16 May 2016 - M. Sulprizio- Remove call to RURALBOX. The implemementation of
-!                              FlexChem has rendered the routine obsolete.
-!  31 May 2016 - E. Lundgren - Use species database MW instead of XNUMOL
-!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with SpcInfo%Name from species database
-!  14 Jun 2016 - M. Sulprizio- Replace loops over N_TRACERS with loops over
-!                              State_Chm%nSpecies and add checks for Is_Advected
-!                              and Is_Kpp to avoid introducing numerical noise
-!                              by applying unit conversions to non-KPP species
-!  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
-!  20 Jun 2016 - R. Yantosca - Renamed IDTCH4 to id_CH4 for consistency
-!  18 Jul 2016 - M. Sulprizio- Remove calls to FAMILIES_KLUDGE. Family tracers
-!                              have been eliminated. Also simplify code to copy
-!                              to/from STT so that unit conversions to/from
-!                              molec/cm3 are done in the same step as the copy.
-!  02 Aug 2016 - M. Sulprizio- Connect production and loss rates from KPP to
-!                              ND65 diagnostic 
-!  16 Aug 2016 - E. Lundgren - Remove all references to tracers, including
-!                              STT and Input_Opt%N_TRACERS, and use routines in
-!                              unitconv_mod.F for species kg <-> molec/cm3 
-!  24 Aug 2016 - M. Sulprizio- Replace CSPECTOKPP with State_Chm%Map_KppSpc
-!  24 Aug 2016 - M. Sulprizio- Move this subroutine to flexchem_mod.F90 and
-!                              rename from FLEX_CHEMDR to Do_FlexChem
-!  22 Sep 2016 - R. Yantosca - Add extra debug printout after FAST_JX
-!  14 Nov 2016 - E. Lundgren - Move UCX calls to after spc conversion to kg
-!  10 Mar 2017 - C. Keller   - Make sure ind_CH4 is correctly specified in
-!                              ESMF environment.
-!  30 May 2017 - M. Sulprizio- Add code for stratospheric chemical tendency
-!                              for computing STE in strat_chem_mod.F90
-!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
-!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
-!  21 Dec 2017 - R. Yantosca - Add netCDF diagnostics for J-values, prod/loss
-!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
-!  18 Jan 2018 - R. Yantosca - Now do photolysis for all levels, so that 
-!                              J-values can be saved up to the atm top
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -839,20 +804,24 @@ CONTAINS
 
        ENDDO
 
+#ifdef TOMAS
+#ifdef BPCH_DIAG
        IF ( Input_Opt%DO_SAVE_PL ) THEN
-
+       
           ! Loop over # prod/loss families
           DO F = 1, NFAM
-
+       
              ! Determine dummy species index in KPP
              KppID =  ND65_Kpp_Id(F)
-
+       
              ! Initialize prod/loss rates
              IF ( KppID > 0 ) C(KppID) = 0.0_dp
-
+       
           ENDDO
-
+       
        ENDIF
+#endif
+#endif
 
        IF ( .not. Input_Opt%LUCX ) THEN
           ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
@@ -1076,38 +1045,33 @@ CONTAINS
           ENDDO
        ENDIF
 
-! We need to add this as an netCDF diagnostic, so add this code
-! here -- uncomment and fix it later (bmy, 9/30/19)
-!             !--------------------------------------------------------
-!             ! Save out P(CO) and L(CH4) from the fullchem simulation
-!             ! for use in tagged CO
-!             !--------------------------------------------------------
-!             IF ( Input_Opt%DO_SAVE_PCO ) THEN
-!                IF ( TRIM(FAM_NAMES(F)) == 'PCO'  ) THEN
-!                   PCO_TOT = VAR(KppID) / DT
-!                ENDIF
-!                IF ( TRIM(FAM_NAMES(F)) == 'LCH4' ) THEN
-!                   LCH4    = VAR(KppID) / DT
-!                ENDIF
-!             ENDIF
-!
-!          ENDDO
-!
-!          ! For tagged CO, use LCH4 to get P(CO) contributions from
-!          ! CH4 and NMVOC
-!          IF ( Input_Opt%DO_SAVE_PCO ) THEN
-!             ! P(CO)_CH4 is LCH4. Cap so that it is never greater
-!             ! than total P(CO) to prevent negative P(CO)_NMVOC
-!             PCO_CH4 = MIN( LCH4, PCO_TOT )
-!   
-!             ! P(CO) from NMVOC is the remaining P(CO)
-!             PCO_NMVOC = PCO_TOT - PCO_CH4
-!   
-!             ! Add to AD65 array [molec/cm3/s]
-!             AD65(I,J,L,NFAM+1) = AD65(I,J,L,NFAM+1) + PCO_CH4
-!             AD65(I,J,L,NFAM+2) = AD65(I,J,L,NFAM+2) + PCO_NMVOC
-!
-!          ENDIF
+       !--------------------------------------------------------------------
+       ! Archive prod/loss fields for the TagCO simulation [molec/cm3/s]
+       ! (In practice, we only need to do this from benchmark simulations)
+       !--------------------------------------------------------------------
+       IF ( State_Diag%Archive_ProdCOfromCH4     .or.                        &
+            State_Diag%Archive_ProdCOfromNMVOC ) THEN
+
+          ! Total production of CO
+          PCO_TOT = VAR(id_PCO) / DT
+
+          ! Loss of CO from CH4
+          LCH4 = VAR(id_LCH4) / DT
+
+          ! P(CO)_CH4 is LCH4. Cap so that it is never greater
+          ! than total P(CO) to prevent negative P(CO)_NMVOC.
+          PCO_CH4 = MIN( LCH4, PCO_TOT )
+
+          ! Archive P(CO) from CH4 for tagCO simulations
+          IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+             State_Diag%ProdCOfromCH4(I,J,L) = PCO_CH4
+          ENDIF
+
+          ! Archive P(CO) from NMVOC (the remaining CO) for tagCO simulations
+          IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+             State_Diag%ProdCOfromNMVOC(I,J,L) = PCO_TOT - PCO_CH4
+          ENDIF
+       ENDIF
 
 #ifdef MODEL_GEOS
        !==============================================================
@@ -1304,6 +1268,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1558,27 +1523,7 @@ CONTAINS
 !    
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  22 Dec 2015 - M. Sulprizio- Use State_Met%AIRNUMDEN to convert initial
-!                              species concentrations from v/v to molec/cm3
-!  29 Jan 2016 - M. Sulprizio- Add calls to Register_Tracer and Register_Species
-!                              to populate Tracer_Name, Tracer_Id, Species_Name,
-!                              and Species_ID fields in State_Chm
-!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with SpcInfo%Name from species database
-!  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
-!                              fast-species lookup from the species database
-!  06 Jun 2016 - M. Sulprizio- Remove calls to Register_Tracer and
-!                              Register_Species; these routines were made
-!                              obsolete by the species database
-!  14 Jun 2016 - M. Sulprizio- Replace Spc_GetIndx with Ind_ (M. Long)
-!  25 Jul 2016 - E. Lundgren - Add check that species was not in restart file
-!                              prior to v/v -> molec/cm3 conversion
-!  02 Aug 2016 - E. Lundgren - Move unit conversion of species background
-!                              values to restart_mod
-!  24 Aug 2016 - M. Sulprizio- Remove CSPECTOKPP array. State_Chm%Map_KppSpc is
-!                              now used instead.
-!  20 Sep 2016 - R. Yantosca - Use fixed integer with in WRITE statement
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1629,7 +1574,7 @@ CONTAINS
     id_O1D                   = Ind_( 'O1D'          )
     id_OH                    = Ind_( 'OH'           ) 
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     ! ckeller
     id_O3                    = Ind_( 'O3'           ) 
     id_A3O2                  = Ind_( 'A3O2'         ) 
@@ -1689,19 +1634,15 @@ CONTAINS
     ENDIF
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
-#if defined( MODEL_GEOS )
-    Do_Diag_OH_HO2_O1D_O3P      = ( State_Diag%Archive_O3concAfterChem  .or. &
-                                    State_Diag%Archive_RO2concAfterChem .or. &
-                                    State_Diag%Archive_OHconcAfterChem  .or. &
-                                    State_Diag%Archive_HO2concAfterChem .or. &
-                                    State_Diag%Archive_O1DconcAfterChem .or. &
-                                    State_Diag%Archive_O3PconcAfterChem     )
-#else
-    Do_Diag_OH_HO2_O1D_O3P      = ( State_Diag%Archive_OHconcAfterChem  .or. &
-                                    State_Diag%Archive_HO2concAfterChem .or. &
-                                    State_Diag%Archive_O1DconcAfterChem .or. &
-                                    State_Diag%Archive_O3PconcAfterChem     )
+    Do_Diag_OH_HO2_O1D_O3P = (                                               &
+#ifdef MODEL_GEOS
+                               State_Diag%Archive_O3concAfterChem       .or. &
+                               State_Diag%Archive_RO2concAfterChem      .or. &
 #endif
+                               State_Diag%Archive_OHconcAfterChem       .or. &
+                               State_Diag%Archive_HO2concAfterChem      .or. &
+                               State_Diag%Archive_O1DconcAfterChem      .or. &
+                               State_Diag%Archive_O3PconcAfterChem          )
 
     !=======================================================================
     ! Allocate arrays
@@ -1712,14 +1653,29 @@ CONTAINS
     !--------------------------------------------------------------------
     IF ( nFam > 0 ) THEN
              
+       ! Initialize
+       id_PCO  = -1
+       id_LCH4 = -1
+
+#ifdef TOMAS
+#ifdef BPCH_DIAG
        ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
        ALLOCATE( ND65_Kpp_Id( nFam ), STAT=RC )
        CALL GC_CheckVar( 'flexchem_mod.F90:ND65_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+#endif
+#endif
 
        ! Loop over all KPP prod/loss species
        DO N = 1, nFam
 
+          ! Find the slots of PCO and LCH4 in the KPP families array
+          ! We need these to save out the diagnostics for tagged CO
+          IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = N
+          IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = N
+
+#ifdef TOMAS
+#ifdef BPCH_DIAG
           ! NOTE: KppId is the KPP ID # for each of the prod and loss
           ! diagnostic species.  This is the value used to index the
           ! KPP "VAR" array (in module gckpp_Global.F90).
@@ -1735,7 +1691,33 @@ CONTAINS
 
           ! If the species ID is OK, save in ND65_Kpp_Id
           ND65_Kpp_Id(N) = KppId
+#endif
+#endif
        ENDDO
+
+    ENDIF
+    
+    !--------------------------------------------------------------------
+    ! If we are archiving the P(CO) from CH4 and from NMVOC from a fullchem
+    ! simulation for the tagCO simulation, throw an error if we cannot find
+    ! the PCO or LCH4 prod/loss families in this KPP mechanism.
+    !--------------------------------------------------------------------
+    IF ( State_Diag%Archive_ProdCOfromCH4    .or.                            &
+         State_Diag%Archive_ProdCOfromNMVOC ) THEN
+
+       IF ( id_PCO < 1 ) THEN
+          ErrMsg = 'Could not find PCO in list of KPP families!  This   ' // &
+                   'is needed to archive the ProdCOfromCH4 diagnostic!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       IF ( id_LCH4 < 1 ) THEN
+          ErrMsg = 'Could not find LCH4 in list of KPP families!  This '  // &
+                   'is needed to archive the ProdCOfromNMVOC diagnostic!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
     ENDIF
 
@@ -1769,6 +1751,7 @@ CONTAINS
 !    
 ! !REVISION HISTORY:
 !  24 Aug 2016 - M. Sulprizio- Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

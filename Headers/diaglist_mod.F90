@@ -247,9 +247,16 @@ CONTAINS
        ENDIF
     
        ! Find out if this is a full-chemistry simulation
-       IF ( INDEX( Line, 'Type of simulation' ) > 0 ) THEN
+       IF ( INDEX( Line, 'Simulation name' ) > 0 ) THEN
           CALL StrSplit( Line, ':', SubStrs, N )
-          IsFullChem = ( TRIM( ADJUSTL( SubStrs(2) ) ) == '3' )
+          SELECT CASE( To_UpperCase( ADJUSTL( SubStrs(2) ) ) )
+             CASE( 'ACIDUPTAKE',       'BENCHMARK', 'COMPLEXSOA',            &
+                   'COMPLEXSOA_SVPOA', 'MARINEPOA', 'RRTMG',                 &
+                   'STANDARD',         'TROPCHEM'                           )
+                IsFullChem = .TRUE.
+             CASE DEFAULT
+                IsFullChem = .FALSE.
+          END SELECT
        ENDIF
 
        ! Find the altitude above thes surface for O3, HNO3 diagnostics
