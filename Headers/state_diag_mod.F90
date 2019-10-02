@@ -10278,8 +10278,6 @@ CONTAINS
                                   type=type,   vloc=vloc,                    &
                                   tagID=tagID                               )
     
-    print*, '### NAME, RC: ', TRIM(metadataID), RC
-
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &

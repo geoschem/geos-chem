@@ -64,15 +64,11 @@ MODULE FlexChem_Mod
   INTEGER,  SAVE        :: PrevMonth = -1
   
   ! Arrays
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-  INTEGER,  ALLOCATABLE :: ND65_Kpp_ID(:      ) 
-#endif
-#endif
-  REAL(f4), ALLOCATABLE :: JvCountDay (:,:,:  )
-  REAL(f4), ALLOCATABLE :: JvCountMon (:,:,:  )
-  REAL(f4), ALLOCATABLE :: JvSumDay   (:,:,:,:)
-  REAL(f4), ALLOCATABLE :: JvSumMon   (:,:,:,:)
+  INTEGER,  ALLOCATABLE :: PL_Kpp_ID (:      )
+  REAL(f4), ALLOCATABLE :: JvCountDay(:,:,:  )
+  REAL(f4), ALLOCATABLE :: JvCountMon(:,:,:  )
+  REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
+  REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
 
 CONTAINS
 !EOC
@@ -258,10 +254,12 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF ( State_Diag%Archive_Loss  ) State_Diag%Loss  = 0.0_f4
-    IF ( State_Diag%Archive_Prod  ) State_Diag%Prod  = 0.0_f4
-    IF ( State_Diag%Archive_JVal  ) State_Diag%JVal  = 0.0_f4
-    IF ( State_Diag%Archive_JNoon ) State_Diag%JNoon = 0.0_f4
+    IF ( State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
+    IF ( State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
+    IF ( State_Diag%Archive_JVal           ) State_Diag%JVal           = 0.0_f4
+    IF ( State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
+    IF ( State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
+    IF ( State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
 
     ! Keep track of the boxes where it is local noon in the JNoonFrac
     ! diagnostic. When time-averaged, this will be the fraction of time
@@ -378,7 +376,6 @@ CONTAINS
     CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
 
-
     ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
     CALL RDAER( am_I_Root,  Input_Opt,  State_Chm,      &
@@ -470,8 +467,8 @@ CONTAINS
 #endif
 
     ! Do Photolysis
-    CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, State_Chm, &
-                  State_Diag, State_Grid, State_Met, RC )
+    CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, State_Chm,               &
+                  State_Diag, State_Grid, State_Met, RC                      )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -592,9 +589,9 @@ CONTAINS
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE  ( Vloc,     Aout, OHreact                                )&
+    !$OMP PRIVATE  ( Vloc,     Aout,     OHreact                            )&
 #endif
-    !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 ) &
+    !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -612,20 +609,18 @@ CONTAINS
        ! For safety sake, initialize certain variables for each grid
        ! box (I,J,L), whether or not chemistry will be done there.
        !====================================================================
-       HET       = 0.0_dp            ! Het chem array
-       IERR      = 0                 ! Success or failure flag
-       ISTATUS   = 0.0_dp            ! Rosenbrock output 
-       PHOTOL    = 0.0_dp            ! Photolysis array
-       RCNTRL    = 0.0_fp            ! Rosenbrock input
-       RSTATE    = 0.0_dp            ! Rosenbrock output
-       SO4_FRAC  = 0.0_fp            ! Fraction of SO4 available for photolysis
-       P         = 0                 ! GEOS-Chem photolyis species ID
-
-       ! For tagged CO
-       LCH4     = 0.0_fp    ! Methane loss rate
-       PCO_TOT  = 0.0_fp    ! Total CO production
-       PCO_CH4  = 0.0_fp    ! CO production from CH4
-       PCO_NMVOC  = 0.0_fp  ! Total CO from NMVOC
+       HET       = 0.0_dp    ! Het chem array
+       IERR      = 0         ! Success or failure flag
+       ISTATUS   = 0.0_dp    ! Rosenbrock output
+       PHOTOL    = 0.0_dp    ! Photolysis array
+       RCNTRL    = 0.0_fp    ! Rosenbrock input
+       RSTATE    = 0.0_dp    ! Rosenbrock output
+       SO4_FRAC  = 0.0_fp    ! Fraction of SO4 available for photolysis
+       P         = 0         ! GEOS-Chem photolyis species ID
+       LCH4      = 0.0_fp    ! For P/L diagnostics: Methane loss rate
+       PCO_TOT   = 0.0_fp    ! For P/L diagnostics: Total CO production
+       PCO_CH4   = 0.0_fp    ! For P/L diagnostics: CO production from CH4
+       PCO_NMVOC = 0.0_fp    ! For P/L diagnostics: Total CO from NMVOC
 
        ! Grid-box latitude [degrees]
        YLAT      = State_Grid%YMid(I,J)
@@ -804,24 +799,11 @@ CONTAINS
 
        ENDDO
 
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-       IF ( Input_Opt%DO_SAVE_PL ) THEN
-       
-          ! Loop over # prod/loss families
-          DO F = 1, NFAM
-       
-             ! Determine dummy species index in KPP
-             KppID =  ND65_Kpp_Id(F)
-       
-             ! Initialize prod/loss rates
-             IF ( KppID > 0 ) C(KppID) = 0.0_dp
-       
-          ENDDO
-       
-       ENDIF
-#endif
-#endif
+       ! Zero out dummy species index in KPP
+       DO F = 1, NFAM
+          KppID = PL_Kpp_Id(F)
+          IF ( KppID > 0 ) C(KppID) = 0.0_dp
+       ENDDO
 
        IF ( .not. Input_Opt%LUCX ) THEN
           ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
@@ -990,7 +972,7 @@ CONTAINS
        DO F = 1, NFAM
 
           ! Determine dummy species index in KPP
-          KppID =  ND65_Kpp_Id(F)
+          KppID =  PL_Kpp_Id(F)
 
           !-----------------------------------------------------------------
           ! FOR TOMAS MICROPHYSICS:
@@ -1053,24 +1035,28 @@ CONTAINS
             State_Diag%Archive_ProdCOfromNMVOC ) THEN
 
           ! Total production of CO
-          PCO_TOT = VAR(id_PCO) / DT
+          PCO_TOT   = VAR(id_PCO) / DT
 
           ! Loss of CO from CH4
-          LCH4 = VAR(id_LCH4) / DT
+          LCH4      = VAR(id_LCH4) / DT
 
           ! P(CO)_CH4 is LCH4. Cap so that it is never greater
           ! than total P(CO) to prevent negative P(CO)_NMVOC.
-          PCO_CH4 = MIN( LCH4, PCO_TOT )
+          PCO_CH4   = MIN( LCH4, PCO_TOT )
+
+          ! P(CO) from NMVOC is the remaining P(CO)
+          PCO_NMVOC = PCO_TOT - PCO_CH4
 
           ! Archive P(CO) from CH4 for tagCO simulations
           IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
              State_Diag%ProdCOfromCH4(I,J,L) = PCO_CH4
           ENDIF
 
-          ! Archive P(CO) from NMVOC (the remaining CO) for tagCO simulations
+          ! Archive P(CO) from NMVOC for tagCO simulations
           IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
-             State_Diag%ProdCOfromNMVOC(I,J,L) = PCO_TOT - PCO_CH4
+             State_Diag%ProdCOfromNMVOC(I,J,L) = PCO_NMVOC
           ENDIF
+
        ENDIF
 
 #ifdef MODEL_GEOS
@@ -1573,7 +1559,6 @@ CONTAINS
     id_O3P                   = Ind_( 'O'            )
     id_O1D                   = Ind_( 'O1D'          )
     id_OH                    = Ind_( 'OH'           ) 
-
 #ifdef MODEL_GEOS
     ! ckeller
     id_O3                    = Ind_( 'O3'           ) 
@@ -1648,38 +1633,32 @@ CONTAINS
     ! Allocate arrays
     !=======================================================================
 
+    ! Initialize
+    id_PCO =  -1
+    id_LCH4 = -1
+
     !--------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
     !--------------------------------------------------------------------
     IF ( nFam > 0 ) THEN
              
-       ! Initialize
-       id_PCO  = -1
-       id_LCH4 = -1
-
-#ifdef TOMAS
-#ifdef BPCH_DIAG
        ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
-       ALLOCATE( ND65_Kpp_Id( nFam ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:ND65_Kpp_Id', 0, RC )
+       ALLOCATE( PL_Kpp_Id( nFam ), STAT=RC )
+       CALL GC_CheckVar( 'flexchem_mod.F90:PL_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-#endif
-#endif
 
        ! Loop over all KPP prod/loss species
        DO N = 1, nFam
 
-          ! Find the slots of PCO and LCH4 in the KPP families array
-          ! We need these to save out the diagnostics for tagged CO
-          IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = N
-          IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = N
-
-#ifdef TOMAS
-#ifdef BPCH_DIAG
           ! NOTE: KppId is the KPP ID # for each of the prod and loss
           ! diagnostic species.  This is the value used to index the
           ! KPP "VAR" array (in module gckpp_Global.F90).
           KppID = Ind_( TRIM ( Fam_Names(N) ), 'K' )
+
+          ! Find the KPP Id corresponding to PCO and LCH4
+          ! so that we can save output for tagged CO simulations
+          IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = KppId
+          IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = KppId
 
           ! Exit if an invalid ID is encountered
           IF ( KppId <= 0 ) THEN
@@ -1690,13 +1669,11 @@ CONTAINS
           ENDIF
 
           ! If the species ID is OK, save in ND65_Kpp_Id
-          ND65_Kpp_Id(N) = KppId
-#endif
-#endif
+          PL_Kpp_Id(N) = KppId
        ENDDO
 
     ENDIF
-    
+
     !--------------------------------------------------------------------
     ! If we are archiving the P(CO) from CH4 and from NMVOC from a fullchem
     ! simulation for the tagCO simulation, throw an error if we cannot find
@@ -1760,8 +1737,14 @@ CONTAINS
     ! Cleanup_FlexChem begins here!
     !=================================================================
 
-    ! INitialize
+    ! Initialize
     RC = GC_SUCCESS
+
+    IF ( ALLOCATED( PL_Kpp_Id ) ) THEN
+       DEALLOCATE( PL_Kpp_Id, STAT=RC  )
+       CALL GC_CheckVar( 'flexchem_mod.F90:PL_Kpp_Id', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
 
     IF ( ALLOCATED( JvCountDay ) ) THEN
        DEALLOCATE( JvCountDay, STAT=RC  )
