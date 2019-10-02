@@ -177,8 +177,6 @@ CONTAINS
     ! Use old mercury code for now (ckeller, 09/23/2014)
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
 
-    ! For UCX, use Seb's routines for now
-    USE UCX_MOD,            ONLY : EMISS_BASIC
 !
 ! !INPUT PARAMETERS:
 !
@@ -314,19 +312,6 @@ CONTAINS
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "EmissCH4"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    ! For UCX, use Seb's routines for stratospheric species for now.
-    IF ( Input_Opt%LUCX .and. Input_Opt%LBASICEMIS ) THEN
-       CALL Emiss_Basic( am_I_Root,  Input_Opt, State_Chm, &
-                         State_Grid, State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Emiss_Basic"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
