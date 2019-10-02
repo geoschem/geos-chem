@@ -1077,7 +1077,7 @@
       SUBROUTINE READ_GRID_MENU( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
-!     
+!
       USE CharPak_Mod,        ONLY : StrSplit
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1095,8 +1095,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Oct 2018 - M. Sulprizio- Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -1155,7 +1155,7 @@
       ! Stop with error if there are more than two substrings
       IF ( nSubStrs /= 2 ) THEN
          ErrMsg = 'Error in extracting delta X and Y values from'   //
-     &            ' State_Grid%GridRes. Values must be separated by' // 
+     &            ' State_Grid%GridRes. Values must be separated by' //
      &            ' an x. Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -1188,7 +1188,7 @@
       ENDIF
 
       ! Compute X grid dimension
-      State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / 
+      State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) /
      &                         State_Grid%DX )
 
       !-----------------------------------------------------------------
@@ -1230,7 +1230,7 @@
       ENDIF
 
       ! Compute Y grid dimension
-      State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / 
+      State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) /
      &                         State_Grid%DY ) + 1
 
       ! Use half-sized polar boxes?
@@ -1254,8 +1254,8 @@
       READ( SUBSTRS(1:N), * ) State_Grid%NZ
 
       ! Make sure number of levels is valid
-      IF ( State_Grid%NZ /= 47  .and. 
-     &     State_Grid%NZ /= 72 ) THEN 
+      IF ( State_Grid%NZ /= 47  .and.
+     &     State_Grid%NZ /= 72 ) THEN
         WRITE( nLev, * ) State_Grid%NZ
         ErrMsg = 'Input%Opt%NZ = ' // TRIM( nLev )                 //
      &            ' is not a valid vertical resolution! Supported' //
@@ -1285,7 +1285,7 @@
          State_Grid%HalfPolar = .FALSE.
       ENDIF
 
-      ! Nested grid transport offsets 
+      ! Nested grid transport offsets
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'Buffers N/S/E/W', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1320,23 +1320,23 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'GRID MENU'
          WRITE( 6, '(  a)' ) '---------------'
-         WRITE( 6, 100 ) 'Grid resolution             : ', 
+         WRITE( 6, 100 ) 'Grid resolution             : ',
      &                    TRIM( State_Grid%GridRes )
-         WRITE( 6, 110 ) 'Min/max longitude           : ', 
+         WRITE( 6, 110 ) 'Min/max longitude           : ',
      &                    State_Grid%XMin, State_Grid%XMax
-         WRITE( 6, 110 ) 'Min/max longitude           : ', 
+         WRITE( 6, 110 ) 'Min/max longitude           : ',
      &                    State_Grid%YMin, State_Grid%YMax
          WRITE( 6, 120 ) 'X grid dimension            : ',
      &                    State_Grid%NX
          WRITE( 6, 120 ) 'Y grid dimension            : ',
      &                    State_Grid%NY
-         WRITE( 6, 120 ) 'Z grid dimension            : ', 
+         WRITE( 6, 120 ) 'Z grid dimension            : ',
      &                    State_Grid%NZ
-         WRITE( 6, 130 ) 'Use half-sized polar boxes? : ', 
+         WRITE( 6, 130 ) 'Use half-sized polar boxes? : ',
      &                    State_Grid%HalfPolar
-         WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', 
+         WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ',
      &                    State_Grid%NestedGrid
-         WRITE( 6, 140 ) ' --> Buffer zone (N S E W ) : ', 
+         WRITE( 6, 140 ) ' --> Buffer zone (N S E W ) : ',
      &                    State_Grid%NorthBuffer,
      &                    State_Grid%SouthBuffer,
      &                    State_Grid%EastBuffer,
@@ -2304,14 +2304,6 @@
       ENDIF
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%HcoConfigFile
 
-      ! Set PBL BrO concentrations equal to 1ppt during the day?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LFIX_PBL_BRO', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LFIX_PBL_BRO
-
       ! Separator line (start of UCX options)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2386,8 +2378,6 @@
      &                   Input_Opt%LEMIS
         WRITE( 6, 130 ) 'HEMCO Configuration file    : ',
      &                   TRIM( Input_Opt%HcoConfigFile )
-        WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ',
-     &                   Input_Opt%LFIX_PBL_BRO
         WRITE( 6, 100 ) 'Use CH4 emissions inventory?: ',
      &                   Input_Opt%LCH4EMIS
         WRITE( 6, 100 ) 'Set initial strat H2O?      : ',
@@ -8153,7 +8143,7 @@
       ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
          MAX_DYN = 900
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
-         MAX_DYN = 600 
+         MAX_DYN = 600
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
          MAX_DYN = 300
       ELSE

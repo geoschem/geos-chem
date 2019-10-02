@@ -136,9 +136,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LBIOFUEL
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
-     LOGICAL                     :: LWARWICK_VSLS
-     LOGICAL                     :: LSSABr2
-     LOGICAL                     :: LFIX_PBL_BRO
      LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
@@ -840,9 +837,6 @@ CONTAINS
     Input_Opt%HcoConfigFile          = ''
     Input_Opt%TS_EMIS                = 0
     Input_Opt%LSOILNOX               = .FALSE.
-    Input_Opt%LWARWICK_VSLS          = .FALSE.
-    Input_Opt%LSSABr2                = .FALSE.
-    Input_Opt%LFIX_PBL_BRO           = .FALSE.
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
@@ -875,9 +869,9 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LCHEM                  = .FALSE.
     Input_Opt%LSCHEM                 = .FALSE.
-    Input_Opt%LLINOZ                 = .FALSE. 
+    Input_Opt%LLINOZ                 = .FALSE.
     Input_Opt%LSYNOZ                 = .FALSE.
-#if defined( MODEL_GEOS ) 
+#if defined( MODEL_GEOS )
     Input_Opt%LGMIOZ                 = .FALSE.
 #endif
     Input_Opt%TS_CHEM                = 0

@@ -11,15 +11,18 @@
 !  entries need to be composed of the below defined prefix and the species
 !  name, e.g.:
 !
-!  * SfcVMR_CH3Cl  /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc CH3Cl  2000/1/1/0 C xy ppbv * - 1 1
-!  * SfcVMR_CH2Cl2 /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc CH2Cl2 2000/1/1/0 C xy ppbv * - 1 1
-!  * SfcVMR_CHCl3  /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc CHCl3  2000/1/1/0 C xy ppbv * - 1 1
+! * SfcVMR_CH3Cl  $ROOT/CMIP6/v2019-09//LIVE/CMIP6_GHG_surface_VMR_1750_2014_for_CH3Cl.nc CH3Cl   1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+! * SfcVMR_CH2Cl2 $ROOT/CMIP6/v2019-09//LIVE/CMIP6_GHG_surface_VMR_1750_2014_for_CH2Cl2.nc CH2Cl2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+! * SfcVMR_CHCl3  $ROOT/CMIP6/v2019-09//LIVE/CMIP6_GHG_surface_VMR_1750_2014_for_CHCl3.nc CHCl3   1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+! * SfcVMR_CH3Br  /LIVE/CMIP6_GHG_surface_VMR_1750_2014_for_CH3Br.nc CH3Br   1750-2014/1-12/1/0 C xy ppbv * 801 1 1
 !
 !  The concentrations in the file are expected to be in units of ppbv.
 !  It is also possible to apply scale factors to these fields, e.g. (to scale surface concentrations by 2):
-!  * SfcVMR_CH3Cl  /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc CH3Cl  2000/1/1/0 C xy ppbv * 500 1 1
+!  * SfcVMR_CH3Cl  $ROOT/CMIP6/v2019-09//LIVE/CMIP6_GHG_surface_VMR_1750_2014_for_CH3Cl.nc CH3Cl   1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+
 !  ...
-!  500 SfcVMR_ScaleFactor 2.0 - - - xy unitless 1
+!  # Scale the CMIP6 values in pptv to ppbv
+!  802 SfcVMR_ScaleFactor 0.001 - - - xy unitless 1
 !
 !\\
 !\\
@@ -48,6 +51,7 @@ MODULE SFCVMR_MOD
 !  24 Dec 2016 - S. D. Eastham - Initial version.
 !  16 Aug 2019 - C. Keller  - Now read 2D fields with boundary concentrations
 !                             via HEMCO. Applicable to any species.
+!  2 Oct 2019 - T. Sherwen - Updates to documentation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
