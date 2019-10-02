@@ -8785,7 +8785,7 @@ CONTAINS
     ELSE IF ( TRIM(Name_AllCaps) == 'AODHYG' // TRIM(RadWL(1)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  =  'Optical depth for hygroscopic aerosol ' // &
                                  'at ' // TRIM(RadWL(1)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId = 'HYG'
 
@@ -9359,7 +9359,7 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCOFROMCH4' ) THEN
-       IF ( isDesc    ) Desc  = 'Porduction of CO by CH4'
+       IF ( isDesc    ) Desc  = 'Production of CO by CH4'
        IF ( isRank    ) Rank  =  3
        IF ( isUnits   ) THEN
           IF ( isFullChem ) THEN
