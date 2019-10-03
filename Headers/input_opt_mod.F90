@@ -338,8 +338,6 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: DO_SAVE_PL
      INTEGER                     :: ND65, LD65
-     LOGICAL                     :: DO_SAVE_O3
-     LOGICAL                     :: DO_SAVE_PCO
      INTEGER                     :: NFAM
      CHARACTER(LEN=255), POINTER :: FAM_NAME(:)
      CHARACTER(LEN=255), POINTER :: FAM_TYPE(:)
@@ -881,8 +879,6 @@ CONTAINS
 
     Input_Opt%DO_SAVE_PL             = .FALSE.
     Input_Opt%ND65                   = 0
-    Input_Opt%DO_SAVE_O3             = .FALSE.
-    Input_Opt%DO_SAVE_PCO            = .FALSE.
     Input_Opt%NFAM                   = 0
     Input_Opt%FAM_NAME               = ''
     Input_Opt%FAM_TYPE               = ''

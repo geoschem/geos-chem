@@ -436,7 +436,6 @@ CONTAINS
     USE Diag51_Mod,         ONLY : Init_Diag51
     USE Diag51b_Mod,        ONLY : Init_Diag51b
     USE Diag53_Mod,         ONLY : Init_Diag53
-    USE Diag56_Mod,         ONLY : Init_Diag56
     USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
@@ -782,7 +781,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if defined( TOMAS )
+#ifdef TOMAS
     !-----------------------------------------------------------------
     ! TOMAS
     !-----------------------------------------------------------------
@@ -807,16 +806,15 @@ CONTAINS
     CALL Init_Diag03( State_Chm, State_Grid )
 
     ! Satellite timeseries (bpch)
-    IF ( Input_Opt%DO_ND51 ) &
+    IF ( Input_Opt%DO_ND51 ) THEN
        CALL Init_Diag51 ( am_I_Root, Input_Opt, State_Grid, RC )
-    IF ( Input_Opt%DO_ND51b) &
+    ENDIF
+    IF ( Input_Opt%DO_ND51b ) THEN
        CALL Init_Diag51b( am_I_Root, Input_Opt, State_Grid, RC )
+    ENDIF
 
     ! POPs (bpch)
     CALL Init_Diag53( State_Grid )
-
-    ! Lightning flash rates (bpch)
-    CALL Init_Diag56( State_Grid )
 
 #endif
 

@@ -443,8 +443,7 @@ diag1.o                     : diag1.F                                        \
 
 diag3.o                     : diag3.F                                        \
                               diag_mod.o              diag03_mod.o           \
-                              diag53_mod.o            diag56_mod.o           \
-                              depo_mercury_mod.o                             \
+                              diag53_mod.o            depo_mercury_mod.o     \
                               drydep_mod.o            hco_interface_mod.o    \
                               apm_driv_mod.o          wetscav_mod.o          \
                               tomas_mod.o             
@@ -456,8 +455,6 @@ diag51b_mod.o               : diag51b_mod.F                                  \
                               pbl_mix_mod.o           
 
 diag53_mod.o                : diag53_mod.F
-
-diag56_mod.o                : diag56_mod.F
 
 diag_mod.o                  : diag_mod.F
 
@@ -506,8 +503,7 @@ fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
 gamap_mod.o                 : gamap_mod.F                                    \
                               diag03_mod.o            diag51_mod.o           \
                               diag51b_mod.o           diag53_mod.o           \
-                              diag56_mod.o            drydep_mod.o           \
-                              tomas_mod.o             wetscav_mod.o
+                              drydep_mod.o            tomas_mod.o            
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
                               aerosol_mod.o           carbon_mod.o           \
@@ -545,8 +541,7 @@ hco_interface_mod.o         : hco_interface_mod.F90
 hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
                               hco_interface_mod.o                            \
-                              diag_mod.o              diag53_mod.o           \
-                              diag56_mod.o 
+                              diag_mod.o              diag53_mod.o
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               get_ndep_mod.o          drydep_mod.o           \
@@ -557,11 +552,10 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
-                              diag53_mod.o            diag56_mod.o
+                              diag53_mod.o
 
 input_mod.o                 : input_mod.F                                    \
-                              diag03_mod.o                                   \
-                              diag53_mod.o            diag56_mod.o           \
+                              diag03_mod.o            diag53_mod.o           \
                               drydep_mod.o            planeflight_mod.o
 
 isorropiaII_mod.o           : isorropiaII_mod.F                              \

@@ -37,7 +37,6 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	diag51b_mod.F
 	diag51_mod.F
 	diag53_mod.F
-	diag56_mod.F
 	diag_oh_mod.F
 	drydep_mod.F
 	dust_mod.F

@@ -3755,7 +3755,6 @@
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG03_MOD,    ONLY : ND03,      PD03,      PD03_PL
       USE DIAG53_MOD,    ONLY : ND53,      PD53
-      USE DIAG56_MOD,    ONLY : ND56,      PD56
       USE DRYDEP_MOD,    ONLY : NUMDEP
       USE ErrCode_Mod
       USE FILE_MOD,      ONLY : IU_BPCH
@@ -5010,22 +5009,6 @@
       ! Copy field to variable in CMN_DIAG
       ND65 = Input_Opt%ND65
 
-      ! Save P(O3) & L(O3) for tagged O3 run? (i.e. ND20 diagnostic)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'DO_SAVE_O3', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%DO_SAVE_O3
-
-      ! Save P(CO) from CH4 & NMVOC for tagged CO run?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'DO_SAVE_PCO', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%DO_SAVE_PCO
-
       !=================================================================
       ! Error check families for certain types of simulations
       !=================================================================
@@ -5034,8 +5017,6 @@
       ! ND06, ND07, ND08, ND13 etc diagnostics instead of ND65
       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
          Input_Opt%DO_SAVE_PL    = .FALSE.
-         Input_Opt%DO_SAVE_O3    = .FALSE.
-         Input_Opt%DO_SAVE_PCO   = .FALSE.
          Input_Opt%ND65          = 0
       ENDIF
 
@@ -5132,10 +5113,6 @@
      &                    Input_Opt%DO_SAVE_PL
          WRITE( 6, 110 ) '# of levels for P/L diag    : ',
      &                    Input_Opt%ND65
-         WRITE( 6, 100 ) 'Save P(O3), L(O3) for TagO3?: ',
-     &                    Input_Opt%DO_SAVE_O3
-         WRITE( 6, 100 ) 'Save CO Production?: ',
-     &                    Input_Opt%DO_SAVE_PCO
 
          ! Loop over families
          DO F = 1, Input_Opt%NFAM
