@@ -250,9 +250,11 @@ CONTAINS
        IF ( INDEX( Line, 'Simulation name' ) > 0 ) THEN
           CALL StrSplit( Line, ':', SubStrs, N )
           SELECT CASE( To_UpperCase( ADJUSTL( SubStrs(2) ) ) )
-             CASE( 'ACIDUPTAKE',       'BENCHMARK', 'COMPLEXSOA',            &
-                   'COMPLEXSOA_SVPOA', 'MARINEPOA', 'RRTMG',                 &
-                   'STANDARD',         'TROPCHEM'                           )
+             CASE( 'ACIDUPTAKE', 'APM',              'BENCHMARK',            &
+                   'COMPLEXSOA', 'COMPLEXSOA_SVPOA', 'HEMCO',                &
+                   'MARINEPOA',  'RRTMG',            'STANDARD',             &
+                   'TROPCHEM',   'TOMAS12',          'TOMAS15',              &
+                   'TOMAS30',    'TOMAS40'                                  )
                 IsFullChem = .TRUE.
              CASE DEFAULT
                 IsFullChem = .FALSE.
