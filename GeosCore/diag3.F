@@ -584,54 +584,7 @@
 
       ENDIF     
 #endif
-!
-!******************************************************************************
-!  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
-!******************************************************************************
-!
-!      IF ( ND56 > 0 ) CALL WRITE_DIAG56
 
-       IF ( ND56 > 0 ) THEN
-
-          CATEGORY = 'LFLASH-$'
-          UNIT     = 'flashes/min/km2'
-
-          ! Get scale factor
-
-          ! --> If diagnostics OutOper is set to 'Mean':
-          FACTOR = 1.0e+0_fp
-
-          ! Loop over ND56 diagnostic tracers
-          DO M = 1, 3
-
-             ! Define quantities
-             N = TINDEX(56,M)
-            
-             SELECT CASE ( N )
-                CASE ( 1 )
-                   DiagnName = 'LIGHTNING_TOTAL_FLASHRATE'
-                CASE ( 2 )
-                   DiagnName = 'LIGHTNING_INTRACLOUD_FLASHRATE'
-                CASE ( 3 )
-                   DiagnName = 'LIGHTNING_CLOUDGROUND_FLASHRATE'
-                CASE DEFAULT
-                   MSG = 'Lightning index N must not exceed 3!'
-                   CALL ERROR_STOP ( MSG, LOC )
-             END SELECT
-
-             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                       UNIT,  N,  -1, -1,   .TRUE.,    FACTOR,
-     &                       RC)
-             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-         ENDDO
-
-         DiagnName = 'LIGHTNING_CLOUD_TOP'
-         N         = 4
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,  N,  -1, -1,   .TRUE.,    FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)   
-
-      ENDIF
 #ifdef TOMAS
 !
 !*****************************************************************************
