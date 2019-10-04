@@ -475,7 +475,7 @@ CONTAINS
     CHARACTER(LEN=40)             :: AdvSpc(500)
     CHARACTER(LEN=255)            :: LINE, MSG, SUBSTRS(500)
     INTEGER                       :: N, I, J, IU_GEOS, IOS
-    INTEGER                       :: Nadv, SimType, landTypeInt
+    INTEGER                       :: Nadv, landTypeInt
     LOGICAL                       :: FOUND 
     LOGICAL                       :: EOF
     CHARACTER(LEN=60)             :: rstFile, landTypeStr, importName
@@ -721,9 +721,6 @@ CONTAINS
               RC                 = RC  )
          NADV = NADV+1
          AdvSpc(NADV) = TRIM(SUBSTRS(1))
-       ELSEIF ( INDEX( LINE, 'Type of simulation' ) > 0 ) THEN
-          ! Read and store simulation type
-          READ( SUBSTRS(1:N), * ) SimType
 #endif
 
        ENDIF
@@ -734,11 +731,7 @@ CONTAINS
 !                                 AdvSpc, Nadv, SimType, RC )
 
 !-- Add all additional species in KPP (careful not to add dummy species)
-#if defined( MODEL_GEOS )
-    IF ( Nadv > 10 ) THEN ! Exclude specialty sims
-#else
-    IF ( SimType == 3 .OR. SimType == 10 ) THEN
-#endif
+    IF ( Nadv > 50 ) THEN ! Exclude specialty sims
        DO I=1,NSPEC
           FOUND = .false.
        
