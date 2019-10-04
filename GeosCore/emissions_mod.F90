@@ -158,27 +158,23 @@ CONTAINS
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
     USE Precision_Mod
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-#if defined ( TOMAS )
+    USE Time_Mod,           ONLY : Get_Ts_Emis
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    Use sfcVMR_Mod,         Only : fixSfcVMR
+    USE UCX_MOD,            ONLY : EMISS_BASIC
+#ifdef BPCH_DIAG
+    USE MERCURY_MOD,        ONLY : EMISSMERCURY
+    USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
+#ifdef TOMAS
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
 #endif
-    USE Time_Mod,           ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-
-    ! Setting other surface VMRs
-    Use sfcVMR_Mod,         Only : fixSfcVMR
-
-    ! Use old mercury code for now (ckeller, 09/23/2014)
-    USE MERCURY_MOD,        ONLY : EMISSMERCURY
-
-    ! For UCX, use Seb's routines for now
-    USE UCX_MOD,            ONLY : EMISS_BASIC
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -331,6 +327,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifdef BPCH_DIAG
     ! For mercury, use old emissions code for now
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
        CALL EmissMercury( am_I_Root,  Input_Opt,  State_Chm,                 &
@@ -358,6 +355,7 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+#endif
 
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN

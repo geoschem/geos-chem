@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -18,9 +19,7 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
-#endif
       USE ErrCode_Mod
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
@@ -52,8 +51,10 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  For a complete list of GEOS-Chem diagnostics, please see this web page:
-!     http://acmg.seas.harvard.edu/geos/doc/man/appendix_5.html
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  See the Git history with the gitk browser!
@@ -83,7 +84,6 @@
       ! Initialize
       RC      =  GC_SUCCESS
 
-#if defined( BPCH_DIAG )
       ! Are certain diagnostics turned on?
       IF ( .not. Input_Opt%ND03 > 0 ) RETURN
 
@@ -166,6 +166,6 @@
       ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif
       END SUBROUTINE DIAG1
 !EOC
+#endif

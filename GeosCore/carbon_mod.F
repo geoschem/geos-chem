@@ -324,7 +324,6 @@
 !
 ! !USES:
 !
-      USE CMN_O3_MOD,         ONLY : SAVEOA
       USE CMN_SIZE_MOD 
       USE ErrCode_Mod 
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -346,6 +345,9 @@
       USE HCO_TYPES_MOD,      ONLY : DiagnCont
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+#endif
+#ifdef BPCH_DIAG
+      USE CMN_O3_MOD,         ONLY : SAVEOA
 #endif
 #ifdef TOMAS
       USE TOMAS_MOD,          ONLY : SOACOND, IBINS              !(win, 1/25/10)
@@ -902,10 +904,12 @@
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
 
+#ifdef BPCH_DIAG
+         ! NOTE: This is only needed for ND51, ND51b (bmy, 10/4/19)
          ! Get total organic aerosol:
          CALL OASAVE( SAVEOA,    am_I_Root,  Input_Opt,
      &                State_Chm, State_Grid, State_Met, RC )
-
+#endif
       ENDIF
 
       END SUBROUTINE CHEMCARBON
@@ -1456,7 +1460,6 @@
 !
 ! !USES:
 !
-      USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : DEBUG_MSG
@@ -1465,6 +1468,9 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Grid_Mod, ONLY : GrdState
+#ifdef BPCH_DIAG
+      USE CMN_O3_MOD
+#endif
 #ifdef APM
       USE APM_INIT_MOD,   ONLY : APMIDS
       USE APM_INIT_MOD,   ONLY : NGCOND,NSO4,NSEA,NBCOC
@@ -6140,7 +6146,6 @@ ccc
 !
 ! !USES:
 !
-      USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput

@@ -21,24 +21,19 @@
 !
 ! !USES:
 !
-      ! Modules from Headers subdirectory
-      USE CMN_SIZE_MOD          
-      USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
-      USE PRECISION_MOD
+      USE Precision_Mod
       USE State_Grid_Mod, ONLY : GrdState
-
-      ! Modules from GeosCore subdirectory
+      USE ErrCode_Mod
 #ifdef BPCH_DIAG
+      USE CMN_SIZE_MOD          
       USE CMN_DIAG_MOD
       USE DIAG_MOD
       USE DIAG03_MOD
       USE DIAG53_MOD
-      USE DIAG56_MOD
-#endif
-
       USE ERROR_MOD
       USE TIME_MOD
+#endif
 
       IMPLICIT NONE
 !
@@ -47,7 +42,6 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
-
 
       ! If IFLAG=1, zero global CTM arrays 
       ! If IFLAG=2, zero accumulating diagnostic arrays
@@ -71,14 +65,13 @@
 !
 ! !LOCAL VARIABLES:
 !
+#ifdef BPCH_DIAG
       !=================================================================
       ! INITIALIZE begins here!
       !=================================================================
 
       ! Assume success
       RC = GC_SUCCESS
-
-#ifdef BPCH_DIAG
 
       ! Error condition if IFLAG does not equal 2, or 3!
       IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
@@ -139,11 +132,6 @@
             CALL ZERO_DIAG53
          ENDIF
 
-         ! For ND56 - lightning flash rates (bmy, 5/5/06)
-         IF ( ND56 > 0 ) THEN
-            CALL ZERO_DIAG56
-         ENDIF
-
          ! Echo output
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
@@ -169,6 +157,5 @@
          ENDIF
       ENDIF
 #endif
-
       END SUBROUTINE INITIALIZE
 !EOC

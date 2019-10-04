@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -26,8 +27,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-
-#ifdef BPCH_DIAG
 #ifdef TOMAS
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44     (:,:,:,:)
@@ -58,7 +57,6 @@
 #ifdef RRTMG
       ! For ND72 -- Radiation output diagnostic
       REAL*4,  ALLOCATABLE :: AD72(:,:,:)
-#endif
 #endif
 
       !%%%%%% THIS SHOUDL GO INTO State_Chm!!
@@ -96,8 +94,6 @@
       ! CLEANUP_DIAG begins here!
       !=================================================================
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
-
-#ifdef BPCH_DIAG
 #ifdef TOMAS
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
       IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   ) 
@@ -121,9 +117,9 @@
 #ifdef RRTMG
       IF ( ALLOCATED( AD72        ) ) DEALLOCATE( AD72        )
 #endif
-#endif
       END SUBROUTINE CLEANUP_DIAG
 !EOC
       END MODULE DIAG_MOD 
+#endif
 
 

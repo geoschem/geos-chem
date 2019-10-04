@@ -14,6 +14,7 @@
 ! !INTERFACE: 
 !
       MODULE DIAG51b_MOD
+#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -37,6 +38,11 @@
       PRIVATE :: WRITE_DIAG51b
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 !  NOTE by Melissa Sulprizio, 26 May 2015
 !  ----------------------------------------------------------------------------
 !  The emission options in the timeseries diagnostics were removed 
@@ -148,7 +154,7 @@
 !
 ! !PRIVATE TYPES:
 !
-#ifdef BPCH_DIAG 
+ 
       !=================================================================
       ! MODULE VARIABLES
       ! GOOD             : Array denoting grid boxes w/in LT limits
@@ -224,7 +230,6 @@
       !REAL(fp),  PARAMETER   :: HR2        = 12d0
       !CHARACTER(LEN=255)   :: FILENAME   ='ts10_12pm.bpch'
       !=================================================================
-#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -283,9 +288,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG 
+ 
       REAL(fp) :: TAU_W
-#endif
 
       !=================================================================
       ! DIAG51b begins here!
@@ -293,8 +297,6 @@
 
       ! Assume success
       RC = GC_SUCCESS
-
-#ifdef BPCH_DIAG 
 
       ! Construct array of where local times are between HR1, HR2
       CALL GET_LOCAL_TIME( Input_Opt, State_Grid )
@@ -309,7 +311,7 @@
          CALL WRITE_DIAG51b( am_I_Root,  Input_Opt, State_Chm,
      &                       State_Grid, TAU_W, RC)
       ENDIF
-#endif
+
 
       END SUBROUTINE DIAG51b
 !EOC
@@ -333,10 +335,10 @@
 !
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
-#ifdef BPCH_DIAG 
+ 
       USE TIME_MOD,       ONLY : GET_LOCALTIME
       USE TIME_MOD,       ONLY : GET_TS_DYN
-#endif
+
 !
 ! !INPUT ARGUMENTS
 !
@@ -369,7 +371,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG 
+ 
       INTEGER  :: I
       REAL(fp) :: LT, TS_DYN
 
@@ -390,7 +392,7 @@
             GOOD(I) = 1
          ENDIF
       ENDDO
-#endif
+
 
       END SUBROUTINE GET_LOCAL_TIME
 !EOC
@@ -418,7 +420,7 @@
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-#ifdef BPCH_DIAG 
+ 
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD               ! SAVEOH
@@ -426,7 +428,7 @@
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,  GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG,      GET_TS_EMIS
-#endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -498,7 +500,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG 
       ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
@@ -522,7 +523,7 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
-#endif
+
 
       !=================================================================
       ! ACCUMULATE_DIAG51b begins here!
@@ -530,8 +531,6 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
-
-#ifdef BPCH_DIAG 
 
       ! Number of advected species
       nAdvect   =  State_Chm%nAdvect
@@ -1144,7 +1143,7 @@
          Spc => NULL()
 
       ENDIF
-#endif
+
 
       END SUBROUTINE ACCUMULATE_DIAG51b
 !EOC
@@ -1168,7 +1167,6 @@
 ! !USES:
 !
       USE Input_Opt_Mod, ONLY : OptInput
-#ifdef BPCH_DIAG 
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_HOUR
       USE TIME_MOD,      ONLY : GET_MINUTE
@@ -1178,7 +1176,6 @@
       USE TIME_MOD,      ONLY : GET_TAUe
       USE TIME_MOD,      ONLY : GET_TS_DYN
       USE TIME_MOD,      ONLY : GET_TS_DIAG
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1201,7 +1198,7 @@
 !
       LOGICAL  :: ITS_TIME
 
-#ifdef BPCH_DIAG 
+ 
       REAL(fp) :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
@@ -1248,7 +1245,7 @@
          TAU_W    = TAU + DYN
          RETURN
       ENDIF
-#endif
+
 
       END FUNCTION ITS_TIME_FOR_WRITE_DIAG51b
 !EOC
@@ -1277,7 +1274,6 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState    
       USE State_Grid_Mod,     ONLY : GrdState    
-#ifdef BPCH_DIAG 
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_SIZE_MOD             ! Size Parameters
@@ -1288,21 +1284,6 @@
       USE TIME_MOD,           ONLY : GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-
-#if defined( USE_HDF5 )
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%%% NOTE: THIS IS PROBABLY BROKEN, WE WILL NOT REPLACE IT
-      !%%%%% BECAUSE WE ARE GOING TO MOVE TO netCDF OUTPUT (bmy, 4/11/18)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-      USE HDF_MOD,            ONLY : OPEN_HDF
-      USE HDF_MOD,            ONLY : CLOSE_HDF
-      USE HDF_MOD,            ONLY : WRITE_HDF
-      USE HDF5,               ONLY : HID_T
-      INTEGER(HID_T)              :: IU_ND51b_HDF
-#endif
-
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1363,14 +1344,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG 
+ 
       INTEGER             :: I,   J,  L,  W, N, GMNL, GMTRC
       INTEGER             :: IOS, X, Y, K, NHMS, nAdvect
       CHARACTER(LEN=16)   :: STAMP
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT 
       CHARACTER(LEN=255)  :: FILENAME
-#endif
+
 
       !=================================================================
       ! WRITE_DIAG51b begins here!
@@ -1378,8 +1359,6 @@
 
       ! Assume success
       RC         =  GC_SUCCESS
-
-#ifdef BPCH_DIAG 
 
       ! Copy values from Input_Opt
       nAdvect    = State_Chm%nAdvect
@@ -1402,17 +1381,7 @@
  100  FORMAT( '     - DIAG51b: Opening file ', a, ' on unit ', i4 )
 
       ! Open output file
-      IF ( Input_Opt%LND51b_HDF ) THEN
-#if   defined( USE_HDF5 )
-         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-         CALL OPEN_HDF( IU_ND51b_HDF,         FILENAME,
-     &                  Input_Opt%ND51b_IMAX, Input_Opt%ND51b_IMIN, 
-     &                  Input_Opt%ND51b_JMAX, Input_Opt%ND51b_JMIN,
-     &                  ND51b_NI,             ND51b_NJ, State_Grid )
-#endif
-      ELSE
-         CALL OPEN_BPCH2_FOR_WRITE( IU_ND51b, FILENAME, TITLE )
-      ENDIF
+      CALL OPEN_BPCH2_FOR_WRITE( IU_ND51b, FILENAME, TITLE )
 
       ! Set ENDING TAU for this bpch write 
       TAU1 = TAU_W
@@ -1776,31 +1745,16 @@
          !------------------------
          ! Save to bpch file
          !------------------------
-        IF ( Input_Opt%LND51b_HDF ) THEN
-#if   defined( USE_HDF5 )
-            ! Only include this if we are linking to HDF5 library 
-            ! (bmy, 12/21/09)
-            CALL WRITE_HDF( IU_ND51b_HDF, N,
-     &                  CATEGORY,     GMTRC,        UNIT,
-     &                  TAU0,         TAU1,         RESERVED,
-     &                  ND51b_NI,     ND51b_NJ,     GMNL,
-     &                  Input_Opt%ND51b_IMIN+I0,
-     &                  Input_Opt%ND51b_JMIN+J0,
-     &                  Input_Opt%ND51b_LMIN,
-     &                  REAL( Q(1:ND51b_NI, 1:ND51b_NJ, 1:GMNL, W)))
-#else
-         ELSE
-            CALL BPCH2( IU_ND51b,     MODELNAME,    LONRES,   
-     &                  LATRES,       HALFPOLAR,    CENTER180, 
-     &                  CATEGORY,     GMTRC,        UNIT,      
-     &                  TAU0,         TAU1,         RESERVED,  
-     &                  ND51b_NI,     ND51b_NJ,     GMNL,     
-     &                  Input_Opt%ND51b_IMIN+I0,
-     &                  Input_Opt%ND51b_JMIN+J0,
-     &                  Input_Opt%ND51b_LMIN, 
-     &                  REAL( Q(1:ND51b_NI, 1:ND51b_NJ, 1:GMNL, W),4))
-#endif
-         ENDIF
+         CALL BPCH2( IU_ND51b,     MODELNAME,    LONRES,   
+     &               LATRES,       HALFPOLAR,    CENTER180, 
+     &               CATEGORY,     GMTRC,        UNIT,      
+     &               TAU0,         TAU1,         RESERVED,  
+     &               ND51b_NI,     ND51b_NJ,     GMNL,     
+     &               Input_Opt%ND51b_IMIN+I0,
+     &               Input_Opt%ND51b_JMIN+J0,
+     &               Input_Opt%ND51b_LMIN, 
+     &               REAL( Q(1:ND51b_NI, 1:ND51b_NJ, 1:GMNL, W),4))
+
       ENDDO
 
       ! Echo info
@@ -1808,14 +1762,7 @@
  120  FORMAT( '     - DIAG51b: Closing file ', a )
 
       ! Close file
-      IF ( Input_Opt%LND51b_HDF ) THEN
-#if   defined( USE_HDF5 )
-         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-         CALL CLOSE_HDF( IU_ND51b_HDF )
-#endif
-      ELSE
-         CLOSE( IU_ND51b )
-      ENDIF
+      CLOSE( IU_ND51b )
 
       !=================================================================
       ! Re-initialize quantities for next diagnostic cycle
@@ -1835,7 +1782,7 @@
       ! Zero counter arrays
       COUNT_CHEM3D = 0e+0_fp
       GOOD_CT      = 0e+0_fp
-#endif
+
 
       END SUBROUTINE WRITE_DIAG51b
 !EOC
@@ -1876,13 +1823,13 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-#ifdef BPCH_DIAG 
+ 
       ! Add the offset to X to get I  
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
       IF ( I > State_Grid%NX ) I = I - State_Grid%NX
-#endif
+
 
       END FUNCTION GET_I
 !EOC
@@ -1906,7 +1853,6 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
-#ifdef BPCH_DIAG 
       USE BPCH2_MOD,      ONLY : GET_MODELNAME
       USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD         ! Size parameters
@@ -1914,7 +1860,7 @@
       USE ERROR_MOD,      ONLY : ALLOC_ERR
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE TIME_MOD,       ONLY : GET_TAUb
-#endif
+
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1945,19 +1891,16 @@
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG 
+ 
       INTEGER            :: AS
       CHARACTER(LEN=255) :: LOCATION
-#endif
-      
+
       !=================================================================
       ! INIT_DIAG51b begins here!
       !=================================================================
 
       ! Assume success
       RC = GC_SUCCESS
-
-#ifdef BPCH_DIAG 
 
       ! Initialize
       LOCATION               = 'INIT_DIAG51b ("diag51b_mod.f")'
@@ -2085,7 +2028,7 @@
       ALLOCATE( COUNT_CHEM3D( ND51b_NI, ND51b_NJ, ND51b_NL ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0
-#endif
+
 
       END SUBROUTINE INIT_DIAG51b
 !EOC
@@ -2112,7 +2055,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#ifdef BPCH_DIAG 
+ 
       !=================================================================
       ! CLEANUP_DIAG51b begins here!
       !=================================================================
@@ -2120,8 +2063,8 @@
       IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
       IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
-#endif
 
       END SUBROUTINE CLEANUP_DIAG51b
 !EOC
+#endif
       END MODULE DIAG51b_MOD

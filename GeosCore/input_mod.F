@@ -2230,10 +2230,9 @@
 !
 ! !USES:
 !
-      USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -3924,18 +3923,6 @@
       CALL SET_TINDEX( am_I_Root, 53, ND53x, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
-      ! ND56: Lightning flashes
-      !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND56', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1), * ) ND56x
-      IF ( .not. Input_Opt%LEMIS ) ND56x = 0
-      CALL SET_TINDEX( am_I_Root, 56, ND56x, SUBSTRS(2:N), N-1, PD56 )
-
-      !--------------------------
       ! ND59: TOMAS aerosol emiss
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND59', RC )
@@ -4007,9 +3994,7 @@
       ! call various bpch diagnostic setup routines
       !=================================================================
       ND53            = ND53x
-      ND56            = ND56x
       Input_Opt%ND53  = ND53x
-      Input_Opt%ND56  = ND56x
 
 #ifdef TOMAS
       ND06            = ND06x
@@ -4055,11 +4040,6 @@
 
       ! Open the binary punch file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
-
-#ifdef MODEL_GEOS
-      ! NOTE: This can be removed soon!
-      Input_Opt%ND21 = .TRUE.
-#endif
 
       ! Return success
       RC = GC_SUCCESS

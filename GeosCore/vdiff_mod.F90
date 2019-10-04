@@ -127,24 +127,7 @@ MODULE VDIFF_MOD
 !
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
-!  07 Oct 2009 - R. Yantosca - Added CVS Id Tag
-!  24 Sep 2010 - J. Lin      - Modified ND15 to account for all mixing
-!                              processes but not dry deposition and emissions.
-!  17 Dec 2010 - R. Yantosca - Declare constants w/ the PARAMETER attribute
-!  20 Dec 2010 - R. Yantosca - Bug fixes for the parallelization
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
-!  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
-!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
-!  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
-!  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  07 Jan 2016 - E. Lundgren - Replace hard-coded physical params w/ global and
-!                              remove unused parameters
-!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  09 Aug 2018 - J. Lin      - Add simple bug fix to ensure mass conservation
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -297,18 +280,7 @@ contains
 !  f = sqrt(1 - 18*ri)
 !
 ! !REVISION HISTORY:
-! (1 ) All arguments are full arrays now. Latitude slices are copied in local
-!      variables. (ccc, 11/19/09)
-!  24 Sep 2010 - J. Lin      - Moved call to ND15 at the end of vdiff.
-!                              Modified to account for all mixing processes.
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt via the arg list
-!  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
-!  04 Aug 2016 - M. Yannetti - Now pass State_Chm as argument; replace TCVV 
-!                              with species db MW and phys constant 
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1361,9 +1333,8 @@ contains
 !  Procedure for solution of the implicit equation follows :
 !  Richtmyer and Morton (1967,pp 198-199)
 !
-! !REVISION HISTORY: 
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser! 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1468,9 +1439,8 @@ contains
     real(fp), intent(inout) :: &
          as2(:,:,:,:)     ! moist, tracers after vert. diff
 !
-! !REVISION HISTORY: 
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1700,9 +1670,8 @@ contains
     real(fp), intent(out) :: &
          cgq(plonl,plevp,pcnst)  ! counter-gradient term for constituents
 !
-! !REVISION HISTORY: 
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1777,11 +1746,8 @@ contains
 !
     INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
-! !REVISION HISTORY: 
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
-!  07 Nov 2017 - R. Yantosca - Add am_I_root, RC as arguments so that we
-!                              can propagate the error to the top level
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1900,16 +1866,10 @@ contains
 ! !USES:
 ! 
     USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
-    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
-    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE MERCURY_MOD,        ONLY : HG_EMIS
-    USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
-    USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
-    USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1918,7 +1878,15 @@ contains
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
-#if defined( USE_TEND )
+#ifdef BPCH_DIAG
+    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
+    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+    USE MERCURY_MOD,        ONLY : HG_EMIS
+    USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
+    USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
+    USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
+#endif
+#ifdef USE_TEND
     USE TENDENCIES_MOD
 #endif
 
@@ -1956,67 +1924,7 @@ contains
 !      to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
 
 ! !REVISION HISTORY:
-! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
-!       (ccc, 11/19/09)
-!  04 Jun 2010 - C. Carouge  - Updates for mercury simulations with GTMM 
-!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
-!  24 Sep 2010 - J. Lin      - Move ND15 to vdiff.  
-!  21 Dec 2010 - R. Yantosca - Add logical flags for different sim types
-!  21 Dec 2010 - R. Yantosca - Now call ITS_A_FULLCHEM_SIM instead of
-!                              relying on NCS == 0
-!  22 Dec 2010 - C. Carouge  - Combine array flipping w/ unit conversion 
-!                              to save on operations
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
-!  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
-!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
-!                              v9-01-02
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  18 Jun 2013 - M. Payer    - Add emissions for offline aerosol simulation
-!  01 Aug 2013 - R. Yantosca - Now pass Input_Opt via the arg list
-!  01 Aug 2013 - J. Lin      - Modified for Rn-Pb-Be simulation
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  06 Jun 2014 - R. Yantosca - Fix parallelization error in the HEMCO
-!                              modifications: Hold TOPMIX, TEMPBL private
-!  06 Jun 2014 - R. Yantosca - Wrap some debug printout in #if defined(DEBUG)
-!  25 Jun 2014 - R. Yantosca - Now get N_MEMBERS from input_mod.F
-!  16 Oct 2014 - C. Keller   - Bug fix: now add deposition rates instead of
-!                              overwriting them.
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE and GET_PCENTER with
-!                              State_Met%PEDGE and State_Met%PMID.
-!                              Remove dependency on pressure_mod.
-!                              Use virtual temperature in hypsometric eqn.
-!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
-!                              diagnostics.
-!  25 Jan 2016 - E. Lundgren - Update netcdf drydep flux diagnostic
-!  22 Apr 2016 - R. Yantosca - Now get Hg info from species database
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
-!                              database field emMW_g (emitted species molec wt)
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
-!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
-!  13 Jul 2016 - R. Yantosca - Now use NA as loop index for advected species
-!                              and ND as loop index for drydep species
-!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
-!  27 Jul 2016 - R. Yantosca - Bug fix: set nDrydep=0 if drydep is turned off
-!  04 Aug 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
-!  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  20 Oct 2016 - R. Yantosca - Only write eflx/dflx debug on the root CPU
-!  15 Mar 2017 - C. Keller   - Remove variable trc_id (use N instead) 
-!  16 Mar 2017 - R. Yantosca - Remove N_MEMBERS, it's obsolete
-!  30 Jun 2017 - R. Yantosca - For now, print out eflx/dflx if DEVEL=y
-!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  10 Oct 2017 - R. Yantosca - Now archive drydep flux (mixing) for History
-!  07 Nov 2017 - R. Yantosca - Now accept RC as an argument, so that we can
-!                              pass error codes back to the top level
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2186,7 +2094,7 @@ contains
        FIRST = .FALSE.
     ENDIF
 
-#if defined( USE_TEND )
+#ifdef USE_TEND
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, &
@@ -2327,6 +2235,7 @@ contains
           enddo
        ENDIF
 
+#ifdef BPCH_DIAG
        !--------------------------------------------------------------------
        ! Overwrite emissions for offline mercury simulation
        ! HG emissions become stored in HG_EMIS in mercury_mod.F.
@@ -2338,6 +2247,7 @@ contains
              eflx(I,J,NA) = HG_EMIS(I,J,NA) 
           enddo
        ENDIF
+#endif
 
        !--------------------------------------------------------------------
        ! Apply dry deposition frequencies
@@ -2404,6 +2314,7 @@ contains
                          ( AIRMW / SpcInfo%emMW_g )
           endif
           
+#ifdef BPCH_DIAG
           ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
           ! so disable deposition over water here.
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
@@ -2417,9 +2328,10 @@ contains
           IF ( IS_Hg .AND. SpcInfo%Is_Hg0 ) THEN
              IF ( ZERO_HG0_DEP ) THEN
                 DFLX(I,J,N) = DFLX(I,J,N) * &
-                               MAX(1e+0_fp - FRAC_NO_HG0_DEP,0e+0_fp)
+                               MAX(1e+0_fp - FRAC_NO_HG0_DEP, 0e+0_fp)
              ENDIF
           ENDIF
+#endif
 
           ! Free species database pointer
           SpcInfo => NULL()
@@ -2449,6 +2361,7 @@ contains
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
+#ifdef BPCH_DIAG
        !--------------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
        !--------------------------------------------------------------------
@@ -2494,13 +2407,13 @@ contains
              SpcInfo => NULL()
           ENDDO
        ENDIF
+#endif
 
     enddo
     enddo
 !$OMP END PARALLEL DO
 
-!#if defined( DEBUG )
-#if defined( DEVEL )
+#ifdef DEVEL
     ! Print debug output for the advected species
     write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
     do NA = 1, nAdvect
@@ -2777,7 +2690,7 @@ contains
 
     endif
 
-#if defined( USE_TEND )
+#ifdef USE_TEND
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
     CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm, &
                       State_Grid, State_Met, 'PBLMIX',  &
@@ -2812,11 +2725,6 @@ contains
 !
 ! !USES:
 !
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD,       ONLY : ND44
-#endif 
-#endif
     USE DAO_MOD,            ONLY : AIRQNT
     USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
     USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
@@ -2832,6 +2740,14 @@ contains
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE Time_Mod,           ONLY : Get_Ts_Dyn
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#ifdef TOMAS
+#ifdef BPCH_DIAG
+    !=======================================================================
+    ! These are only needed if GEOS-Chem is compiled for TOMAS
+    !=======================================================================
+    USE CMN_DIAG_MOD,       ONLY : ND44
+#endif 
+#endif
 
     IMPLICIT NONE
 !
@@ -2855,24 +2771,7 @@ contains
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
-!  21 Dec 2010 - R. Yantosca - Now only call SETEMIS for fullchem simulations
-!  22 Dec 2010 - R. Yantosca - Bug fix: print debug output only if LPRT=T
-!  05 Mar 2013 - R. Yantosca - Add am_I_root, Input_Opt, RC arguments
-!  05 Mar 2013 - R. Yantosca - Now call SETEMIS with am_I_Root, Input_Opt, RC
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%ITS_A_FULLCHEM_SIM
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!  01 Aug 2013 - R. Yantosca - Now pass the Input_Opt object to VDIFFDR
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  22 Aug 2014 - R. Yantosca - Renamed DO_TURBDAY to DO_VDIFF for clarity
-!  16 Nov 2015 - E. Lundgren - Update air quantities after VDIFFDR call
-!                              since specific humidity is updated
-!  13 Jul 2016 - R. Yantosca - Remove STT, we can point to State_Chm%Species
-!                              in the VDIFFDR routine directly
-!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
-!                              of in do_mixing
-!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
-!   7 Nov 2017 - R. Yantosca - Now send error condition back to top level
-!  26 Sep 2018 - E. Lundgren - Implement budget diagnostics
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

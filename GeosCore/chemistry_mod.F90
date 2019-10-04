@@ -31,41 +31,8 @@ MODULE Chemistry_Mod
 !
   PRIVATE :: CHEM_PASSIVE_SPECIES
 !
-! !REVISION HISTORY: 
-!  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
-!  (2 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
-!  (3 ) Now references "tagged_ox_mod.f"(bmy, 8/18/03)
-!  (4 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
-!  (5 ) Bug fix: Now also call OPTDEPTH for GEOS-4 (bmy, 1/27/04)
-!  (6 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/5/04)
-!  (7 ) Now references "seasalt_mod.f" (rjp, bec, bmy, 4/20/04)
-!  (8 ) Now references "logical_mod.f", "tracer_mod.f", "diag20_mod.f", and
-!        "diag65_mod.f", and "aerosol_mod." (bmy, 7/20/04)
-!  (9 ) Now references "mercury_mod.f" (bmy, 12/7/04)
-!  (10) Updated for SO4s, NITs chemistry (bec, bmy, 4/13/05)
-!  (11) Now call CHEM_HCN_CH3CN from "hcn_ch3cn_mod.f".  Also remove all
-!        references to the obsolete CO-OH param simulation. (xyp, bmy, 6/24/05)
-!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
-!  (14) Updated for SOA from isoprene (dkh, bmy, 6/1/06)
-!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (16) For now, replace use RPMARES instead of ISORROPIA. (bmy, 4/2/08)
-!  (17) Added KPP chemistry driver subroutine (phs,ks,dhk, 09/15/09)
-!  (18) Added public member function recompute_OD (skim, 02/03/11)
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
-!  08 Aug 2012 - R. Yantosca - Now align IF statements better
-!  10 Aug 2012 - R. Yantosca - Cosmetic changes
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm to several routines
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  19 May 2014 - C. Keller   - Added INIT_CHEMISTRY
-!  15 Dec 2014 - M. Yannetti - KPP code is commented out unless compiling KPP
-!  08 Jan 2015 - M. Sulprizio- Now restrict KPP to REAL*8 to allow for KPP code
-!                              to compile properly
-!  13 Aug 2015 - E. Lundgren - Tracer units are now kg/kg and converted to
-!                              kg within DO_CHEMISTRY
-!  03 Nov 2016 - C. Keller   - Added wrapper routine for passive tracers.
-!  17 Nov 2017 - R. Yantosca - Now in F90 format; added Diag_OH_HO2_O1D_O3P
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,9 +66,6 @@ CONTAINS
     USE AEROSOL_MOD,     ONLY : RDAER
     USE AEROSOL_MOD,     ONLY : SOILDUST
     USE CARBON_MOD,      ONLY : CHEMCARBON
-#if defined( BPCH_DIAG )
-    USE CMN_DIAG_MOD  
-#endif
     USE CMN_SIZE_MOD
     USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
@@ -113,8 +77,6 @@ CONTAINS
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
     USE ISORROPIAII_MOD, ONLY : DO_ISORROPIAII
-    USE MERCURY_MOD,     ONLY : CHEMMERCURY
-    USE POPS_MOD,        ONLY : CHEMPOPS
     USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
     USE RPMARES_MOD,     ONLY : DO_RPMARES
     USE SEASALT_MOD,     ONLY : CHEMSEASALT
@@ -129,20 +91,25 @@ CONTAINS
     USE TAGGED_O3_MOD,   ONLY : CHEM_TAGGED_O3
     USE TIME_MOD,        ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,        ONLY : GET_TS_CHEM
-#if defined( USE_TEND )  
-    USE TENDENCIES_MOD   
-#endif                   
-#if defined( APM )
+    USE UCX_MOD,         ONLY : CALC_STRAT_AER
+    USE UnitConv_Mod,    ONLY : Convert_Spc_Units
+#ifdef APM
     USE APM_INIT_MOD,    ONLY : APMIDS
     USE APM_DRIV_MOD,    ONLY : PSO4GAS
     USE APM_DRIV_MOD,    ONLY : AERONUM
     USE APM_DRIV_MOD,    ONLY : APM_DRIV
 #endif
-#if defined( TOMAS )     
+#ifdef BPCH_DIAG
+    USE CMN_DIAG_MOD  
+    USE MERCURY_MOD,     ONLY : CHEMMERCURY
+    USE POPS_MOD,        ONLY : CHEMPOPS
+#ifdef TOMAS
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif                   
-    USE UCX_MOD,         ONLY : CALC_STRAT_AER
-    USE UnitConv_Mod,    ONLY : Convert_Spc_Units
+#endif
+#ifdef USE_TEND
+    USE TENDENCIES_MOD   
+#endif                   
 !
 ! !INPUT PARAMETERS:
 !
@@ -163,104 +130,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY: 
-!  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
-!        to OPTDEPTH for GEOS-1 or GEOS-STRAT met fields (bnd, bmy, 4/14/03)
-!  (2 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
-!  (3 ) Removed call to CHEMO3, it's obsolete.  Now calls CHEM_TAGGED_OX !
-!        from "tagged_ox_mod.f" when NSRCX==6.  Now calls Kr85 chemistry if 
-!        NSRCX == 12 (jsw, bmy, 8/20/03)
-!  (4 ) Bug fix: added GEOS-4 to the #if block in the call to OPTDEPTH.
-!        (bmy, 1/27/04)
-!  (5 ) Now calls CHEMCARBON and CHEMDUST to do carbon aerosol & dust 
-!        aerosol chemistry (rjp, tdf, bmy, 4/2/04)
-!  (6 ) Now calls CHEMSEASALT to do seasalt aerosol chemistry 
-!        (rjp, bec, bmy, 4/20/04)
-!  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
-!        AEROSOL_CONC, AEROSOL_RURALBOX, and RDAER from "aerosol_mod.f".  
-!        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
-!        and INPHOT to initialize the FAST-J arrays so that we can save out !
-!        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
-!  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
-!        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
-!  (9 ) Now do not call DO_RPMARES if we are doing an offline aerosol run
-!        with crystalline sulfur & aqueous tracers (cas, bmy, 1/7/05)
-!  (10) Now use ISORROPIA for aer thermodyn equilibrium if we have seasalt 
-!        tracers defined, or RPMARES if not.  Now call CHEMSEASALT before
-!        CHEMSULFATE.  Now do aerosol thermodynamic equilibrium before
-!        aerosol chemistry for offline aerosol runs.  Now also reference 
-!        CLDF from "dao_mod.f" (bec, bmy, 4/20/05)
-!  (11) Now modified for GCAP met fields.  Now call CHEM_HCN_CH3CN from 
-!        "hcn_ch3cn_mod.f".  Also remove allreferences to the obsolete 
-!         CO-OH param simulation. (xyp, bmy, 6/23/05)
-!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
-!  (14) Removed ISOP_PRIOR as a local variable (dkh, bmy, 6/1/06)
-!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (16) Now use DRYFLXH2HD and CHEM_H2_HD for H2/HD sim (lyj, phs, 9/18/07)
-!  (17) Bug fix: now hardwired to use RPMARES since ISORROPIA can return very
-!        unphysical values at low RH.  Wait for ISORROPIA II. (bmy, 4/2/08)
-!  (18) The dry deposition diagnostic (ND44) is done in vdiff_mod if using non-
-!        local PBL (lin, ccc, 5/29/09)
-!  (19) Now calls CHEMPOPS from "pops_mod.f" for an offline POPs simulation
-!       (eck, 9/20/10)
-!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  25 Jan 2010 - R. Yantosca - Now call DO_TOMAS for TOMAS microphysics
-!  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
-!  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
-!                              ISORROPIA to facilitate debugging
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, and pass
-!                              this down to lower-level chem routines for GIGC
-!  08 Aug 2012 - R. Yantosca - Now align IF statements better
-!  10 Aug 2012 - R. Yantosca - Cosmetic changes
-!  18 Oct 2012 - R. Yantosca - Rename GC_MET argument to State_Met
-!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
-!  25 Oct 2012 - R. Yantosca - Add comments for GIGC #ifdefs
-!  25 Oct 2012 - R. Yantosca - Add the RC output argument for the GIGC
-!  08 Nov 2012 - R. Yantosca - Now pass Input_Opt argument for the GIGC and
-!                              use fields of Input_Opt to replace logicals
-!  15 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Nov 2012 - R. Yantosca - Now pass Input_Opt, State_Chm, RC to routine
-!                              DO_STRAT_CHEM (in GeosCore/strat_chem_mod.F90)
-!  11 Dec 2012 - R. Yantosca - Remove NI, NJ, NL, NCNST arguments; these are
-!                              now obtained either from CMN_SIZE_mod.F or
-!                              from the Input_Opt object
-!  05 Mar 2013 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC to DRYFLX
-!  25 Mar 2013 - H. Amos     - merged C. Friedman's PAH code into v9-01-03
-!  28 Mar 2013 - S.D. Eastham- Updated to use FAST_JX_MOD
-!  31 May 2013 - R. Yantosca - Now pass Input_Opt, State_Chm to DO_TOMAS
-!  19 May 2014 - C. Keller   - Removed call for acetone ocean sink - now done
-!                              in HEMCO.
-!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  08 May 2015 - C. Keller   - Added WRITE_STATE_PSC.
-!  18 May 2015 - R. Yantosca - Remove DIAG_STATE_PSC, that is not used anymore
-!  15 Jun 2015 - R. Yantosca - Removed calls to DRYFLXRnPbBe, that's obsolete
-!  04 Sep 2015 - C. Keller   - Added passive tracer call.
-!  17 Mar 2016 - M. Sulprizio- Remove call to OPTDEPTH. The optical depth fields
-!                              are now saved into State_Met%OPTD in the routines
-!                              that read the met fields from disk.
-!  16 May 2016 - M. Sulprizio- Remove call to AEROSOL_RURALBOX. The FlexChem
-!                              implementation has rendered the routine obsolete.
-!  16 Jun 2016 - C. Miller   - Now use Ind_ function to define species ID's
-!  17 Jun 2016 - R. Yantosca - Now define species ID's only on first call
-!  17 Jun 2016 - R. Yantosca - Now reset first-time flag at end of routine
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.
-!  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
-!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  11 Aug 2016 - R. Yantosca - Clean up calls to error subroutines
-!  09 Mar 2017 - C. Keller   - Bug fix: call TEND_STAGE1 before unit conversion
-!  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
-!  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
-!  09 Nov 2017 - R. Yantosca - Reorder arguments for consistency: Input_Opt,
-!                              State_Met, State_Chm, State_Diag
-!  20 Nov 2017 - R. Yantosca - Move ND43 diagnostics to flexchem_mod.F90
-!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
-!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
-!                              match new timestep unit of seconds
-!  28 Aug 2018 - E. Lundgren - Implement budget diagnostics
-!  26 Oct 2018 - M. Sulprizio- Remove calls to read and write STATE_PSC
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,7 +162,7 @@ CONTAINS
     LOGICAL            :: LNLPBL
     LOGICAL            :: LUCX
     REAL(fp)           :: DT_Chem
-#if defined( APM )
+#ifdef APM
     INTEGER            :: I,J,L
     REAL*8             :: CONCTMPSO4(State_Grid%NX,                         &
                                      State_Grid%NY,                         &
@@ -361,7 +231,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if defined( USE_TEND )
+#ifdef USE_TEND
     !=======================================================================
     ! Archive species concentrations for tendencies (ckeller,7/15/2015)
     !=======================================================================
@@ -394,7 +264,7 @@ CONTAINS
        !====================================================================
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
              
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
@@ -416,7 +286,7 @@ CONTAINS
              ENDIF
           ENDIF
 
-#if defined( APM )
+#ifdef APM
           ! Save SO4 concentration before chemistry
           N          = APMIDS%id_SO4
           CONCTMPSO4 = State_Chm%Species(:,:,:,N)
@@ -452,7 +322,7 @@ CONTAINS
              RETURN
           ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
 #endif
 
@@ -461,7 +331,7 @@ CONTAINS
           !----------------------------------------
           IF ( LSCHEM ) THEN 
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
              CALL GEOS_Timer_Start( "=> Strat chem", RC )
 #endif
 
@@ -483,13 +353,13 @@ CONTAINS
                 RETURN
              ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
              CALL GEOS_Timer_End( "=> Strat chem", RC )
 #endif
 
           ENDIF
 
-#if defined( APM )
+#ifdef APM
           ! Obtain SO4 production after chemistry
           N = APMIDS%id_SO4
           !$OMP PARALLEL DO         &
@@ -511,7 +381,7 @@ CONTAINS
           !$OMP END PARALLEL DO
 #endif
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
 
@@ -535,7 +405,7 @@ CONTAINS
           !-------------------------------
           IF ( LUCX ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
              CALL GEOS_Timer_End  ( "=> All aerosol chem", RC )
              CALL GEOS_Timer_Start( "=> Strat chem",       RC )
 #endif
@@ -551,7 +421,7 @@ CONTAINS
                 RETURN
              ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
              CALL GEOS_Timer_End  ( "=> Strat chem",       RC )
              CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
@@ -586,7 +456,7 @@ CONTAINS
              !-----------------------------------------
              IF ( LSSALT ) THEN
 
-#if !defined( APM )
+#ifndef APM
                 ! ISORROPIA takes Na+, Cl- into account
                 CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,      &
                                      State_Diag, State_Grid, State_Met, RC  )
@@ -601,9 +471,11 @@ CONTAINS
 
              ELSE
 
-#if defined( APM )
-                WRITE(*,*)'Warning: APM does not want to use DO_RPMARES'
-                STOP
+#ifdef APM
+                ! Exit with error if RPMARES + APM is selected
+                ErrMsg = 'Warning: APM does not want to use DO_RPMARES'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
 #endif
 
                 ! RPMARES does not take Na+, Cl- into account
@@ -644,7 +516,7 @@ CONTAINS
              ENDIF
           ENDIF
  
-#if defined( APM )
+#ifdef APM
           !--------------------------------------------
           ! Do APM aerosol microphysics
           !--------------------------------------------
@@ -659,7 +531,7 @@ CONTAINS
           ENDIF
 #endif
 
-#if   defined( TOMAS )
+#ifdef TOMAS
           !--------------------------------------------
           ! Do TOMAS aerosol microphysics and dry dep
           !--------------------------------------------
@@ -682,7 +554,7 @@ CONTAINS
           ENDIF
 #endif
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> All aerosol chem", RC )
 #endif
           
@@ -691,7 +563,7 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
 
@@ -738,7 +610,7 @@ CONTAINS
           IF ( LSULF ) THEN
              IF ( LSSALT ) THEN
 
-#if !defined( APM )
+#ifndef APM
                 ! ISORROPIA takes Na+, Cl- into account
                 CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,      &
                                      State_Diag, State_Grid, State_Met, RC  )
@@ -753,9 +625,11 @@ CONTAINS
 
              ELSE
 
-#if defined( APM )
-                WRITE(*,*)'Warning: APM does not want to use DO_RPMARES'
-                STOP
+#ifdef APM
+                ! Exit with error if RPMARES + APM is selected
+                ErrMsg = 'Warning: APM does not want to use DO_RPMARES'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
 #endif
 
                 ! RPMARES does not take Na+, Cl- into account
@@ -850,7 +724,7 @@ CONTAINS
              ENDIF
           ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> All aerosol chem", RC )
 #endif
 
@@ -859,7 +733,7 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
@@ -874,7 +748,7 @@ CONTAINS
              RETURN
           ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
 #endif
 
@@ -883,7 +757,7 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN 
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
@@ -900,7 +774,7 @@ CONTAINS
              RETURN
           ENDIF
           
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
 #endif
 
@@ -909,7 +783,7 @@ CONTAINS
           !-----------------------------------------------
           IF ( LSCHEM ) THEN 
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
              CALL GEOS_Timer_Start( "=> Strat chem", RC )
 #endif
 
@@ -924,7 +798,7 @@ CONTAINS
                 RETURN
              ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
              CALL GEOS_Timer_End( "=> Strat chem", RC )
 #endif
 
@@ -935,7 +809,7 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
@@ -950,7 +824,7 @@ CONTAINS
              RETURN
           ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
 #endif
 
@@ -959,7 +833,7 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_CH4_SIM ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif 
 
@@ -973,16 +847,17 @@ CONTAINS
              RETURN
           ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
 #endif
 
+#ifdef BPCH_DIAG
        !====================================================================
-       ! Mercury
+       ! Mercury (only used when compiled with BPCH_DIAG=y)
        !====================================================================
        ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
  
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
@@ -997,16 +872,16 @@ CONTAINS
              RETURN
           ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
 #endif
 
        !====================================================================
-       ! POPs
+       ! POPs (only used when compiled with BPCH_DIAG=y)
        !====================================================================
        ELSE IF ( IT_IS_A_POPS_SIM ) THEN
  
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
@@ -1021,8 +896,9 @@ CONTAINS
              RETURN
           ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
 #endif
        ENDIF
 
@@ -1076,7 +952,7 @@ CONTAINS
     ! Chemistry timestep [s]
     DT_Chem = Get_Ts_Chem()
 
-#if defined( USE_TEND )
+#ifdef USE_TEND
     !=======================================================================
     ! Calculate tendencies and write to diagnostics (ckeller,7/15/2015)
     !=======================================================================
@@ -1152,7 +1028,6 @@ CONTAINS
     USE AEROSOL_MOD,    ONLY : RDAER
     USE AEROSOL_MOD,    ONLY : SOILDUST
     USE DUST_MOD,       ONLY : RDUST_ONLINE
-!    USE DUST_MOD,       ONLY : RDUST_OFFLINE
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : Debug_Msg
     USE Input_Opt_Mod,  ONLY : OptInput
@@ -1181,14 +1056,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  03 Fev 2011 - Adapted from chemdr.f by skim
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  13 Nov 2012 - R. Yantosca - Now pass Input_Opt and RC arguments for GIGC
-!  15 Nov 2012 - M. Payer    - Now pass all met fields via State_Met
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
-!                               are converted to [kg] for recomputing OD
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1284,25 +1152,6 @@ CONTAINS
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 3/3/19:
-! Remove RDUST_OFFLINE -- dust should always be on in fullchem and aerosol 
-! simulations (mps, 3/3/19)
-!#if  !defined( TOMAS )
-!             ELSE
-!                CALL RDUST_OFFLINE( am_I_Root,  Input_Opt,  State_Chm,      &
-!                                    State_Diag, State_Grid, State_Met,      &
-!                                    MONTH, YEAR,      WAVELENGTH, RC       )
-!
-!                ! Trap potential errors
-!                IF ( RC /= GC_SUCCESS ) THEN
-!                   ErrMsg = 'Error encountered in "Rdust_Offline"!'
-!                   CALL GC_Error( ErrMsg, RC, ThisLoc )
-!                   RETURN
-!                ENDIF
-!#endif
-!------------------------------------------------------------------------------
              ENDIF
 
              !### Debug
@@ -1359,16 +1208,8 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY: 
-!  04 Sep 2015 - C. Keller   - Initial version 
-!  03 Nov 2016 - C. Keller   - Moved to chemistry_mod
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!  14 Jul 2017 - E. Lundgren - Remove dependency on passive_species_mod.F90
-!  02 Aug 2017 - R. Yantosca - Turn off debug print unless ND70 is activated
-!  13 Dec 2017 - R. Yantosca - Now apply decay only to those passive species
-!                              with finite atmospheric lifetimes
-!  04 Jan 2019 - M. Sulprizio- Add capability to specify TAU in half-life;
-!                              e-folding time will always be used for now
-!  29 Jan 2019 - R. Yantosca - Bug fix: State_Chm should be INTENT(INOUT)
+!  04 Sep 2015 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1521,11 +1362,8 @@ CONTAINS
     INTEGER,        INTENT(INOUT)  :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
-!  19 May 2014 - C. Keller   - Initial version (stripped from do_chemistry
-!                              and chemdr.F)
-!  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to INIT_FJX
-!  23 Jun 2016 - R. Yantosca - Remove call to SETTRACE, it's obsolete
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  19 May 2014 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -21,20 +21,20 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
-      USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
-      USE DIAG_MOD
-#endif
-      USE DIAG_OH_MOD,        ONLY : INIT_DIAG_OH
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR,   ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
+#ifdef BPCH_DIAG
+      USE CMN_DIAG_MOD
+      USE CMN_SIZE_MOD
+      USE DIAG_MOD
+      USE DIAG_OH_MOD,        ONLY : INIT_DIAG_OH
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ALLOC_ERR,   ERROR_STOP
+      USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
+#endif
 #ifdef TOMAS
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
 #endif
@@ -55,6 +55,12 @@
 !
       INTEGER,        INTENT(OUT)    :: RC          ! Success or failure?
 ! 
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 ! !REVISION HISTORY:
 !  16 Jun 1998 - I. Bey, R. Yantosca - Initial version
 !  See the Git history with the gitk browser!
@@ -64,6 +70,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#ifdef BPCH_DIAG
       INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect, NFAM
       LOGICAL :: IT_IS_A_FULLCHEM_SIM
       LOGICAL :: IT_IS_A_MERCURY_SIM
@@ -81,7 +88,6 @@
       ! Assume successful return
       RC = GC_SUCCESS
 
-#ifdef BPCH_DIAG
       nAdvect = State_Chm%nAdvect
       LDUST   = Input_Opt%LDUST
       LCARB   = Input_Opt%LCARB

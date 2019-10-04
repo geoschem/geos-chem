@@ -11,6 +11,7 @@
 ! !INTERFACE: 
 !
       MODULE DEPO_MERCURY_MOD
+#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -54,6 +55,12 @@
 !
       CHARACTER(LEN=255)   :: GTMM_RST_FILE
       LOGICAL              :: LHGSNOW
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Initial version
@@ -281,9 +288,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
-#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03
-#endif
       USE Time_Mod,           ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
@@ -396,7 +401,6 @@
      7                               FRAC_SNOW_OR_ICE
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
-#ifdef BPCH_DIAG
 !----------------------------------------------------------------------------
 ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
 !
@@ -427,7 +431,6 @@
      &                                    FRAC_SNOW_OR_ICE *
      &                                    MAX(DEP_HG2, 0e+0_fp) 
 !----------------------------------------------------------------------------
-#endif
 
          !--------------------------------------------------------------
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -879,7 +882,6 @@
       SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
 
-!#ifdef BPCH_DIAG
 !      ! Hg2 total wet deposition at the surface
 !      HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
 !     &                          SUM(AD39(:,:,:,NN), DIM=3) )
@@ -892,7 +894,6 @@
 !      ! Hg2 total dry deposition at the surface
 !      N         = id_Hg2
 !      HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
-!#endif
 
       END SUBROUTINE UPDATE_DEP
 !EOC
@@ -1163,6 +1164,6 @@
       IF ( ASSOCIATED( Hg2_Cat ) ) DEALLOCATE( Hg2_CAT )
 
       END SUBROUTINE CLEANUP_DEPO_MERCURY
-
-      END MODULE DEPO_MERCURY_MOD
 !EOC
+#endif
+      END MODULE DEPO_MERCURY_MOD

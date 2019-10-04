@@ -13,6 +13,7 @@
 ! !INTERFACE:
 !
       MODULE GAMAP_MOD
+#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -23,7 +24,6 @@
 
       IMPLICIT NONE
       PRIVATE
-
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -117,9 +117,9 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE TIME_MOD,           ONLY : SYSTEM_TIMESTAMP
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE TIME_MOD,       ONLY : SYSTEM_TIMESTAMP
 !
 ! !INPUT PARAMETERS:
 !
@@ -1031,15 +1031,12 @@
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
 #ifdef RRTMG
       USE CMN_DIAG_MOD,       ONLY : PD72R
 #endif
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
       USE DIAG53_MOD,         ONLY : ND53, PD53
-      USE DIAG56_MOD,         ONLY : ND56
       USE CMN_FJX_MOD,        ONLY : W_
-#endif
 
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1090,7 +1087,6 @@
       RC      = GC_SUCCESS
       SpcInfo => NULL()
 
-#ifdef BPCH_DIAG
       ! Initialization
       DUM = 1.0
 
@@ -4198,47 +4194,6 @@
          ENDDO
       ENDIF
 
-      !-------------------------------------      
-      ! Lightning flash rates (ND56)
-      !-------------------------------------      
-      IF ( ND56 > 0 ) THEN 
-
-         ! Number of tracers
-         NTRAC(56) = 4
-
-         ! Loop over tracers
-         DO T = 1, NTRAC(56)
-
-            ! Get name and long name for each met field
-            SELECT CASE( T )
-               CASE( 1 )
-                  NAME (T,56) = 'L_RATE'
-                  FNAME(T,56) = 'Total lightning flash rate'
-                  UNIT (T,56) = 'flashes/min/km2'
-               CASE( 2 )
-                  NAME (T,56) = 'IC_RATE'
-                  FNAME(T,56) = 'Intra-cloud flash rate'
-                  UNIT (T,56) = 'flashes/min/km2'
-               CASE( 3 )
-                  NAME (T,56) = 'CG_RATE'
-                  FNAME(T,56) = 'Cloud-ground flash rate'
-                  UNIT (T,56) = 'flashes/min/km2'
-               CASE( 4 )
-                  NAME (T,56) = 'L_TOP'
-                  FNAME(T,56) = 'Lightning cloud top height'
-                  UNIT (T,56) = 'level'
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Define the rest of the quantities
-            INDEX(T,56) = T + ( SPACING * 42 )
-            MOLC (T,56) = 1
-            MWT  (T,56) = 0e0
-            SCALE(T,56) = 1e0
-         ENDDO
-      ENDIF
-
 #ifdef TOMAS
       !-------------------------------------
       ! TOMAS 3-D rate (ND60)
@@ -4548,11 +4503,10 @@
 
           ENDDO
       ENDIF
+#endif
 
       ! Nullify pointer
       SpcInfo  => NULL()
-#endif
-#endif
 
       END SUBROUTINE INIT_TRACERINFO
 !EOC
@@ -4575,15 +4529,6 @@
 !
       USE ErrCode_Mod
       USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE HDF_MOD,       ONLY : INIT_HDF
-      USE HDF_MOD,       ONLY : HDFCATEGORY
-      USE HDF_MOD,       ONLY : HDFDESCRIPT
-      USE HDF_MOD,       ONLY : HDFNAME
-      USE HDF_MOD,       ONLY : HDFFNAME
-      USE HDF_MOD,       ONLY : HDFUNIT
-      USE HDF_MOD,       ONLY : HDFMOLC
-      USE HDF_MOD,       ONLY : HDFMWT
-      USE HDF_MOD,       ONLY : HDFSCALE
       USE Input_Opt_Mod, ONLY : OptInput
       USE State_Chm_Mod, ONLY : ChmState
       USE State_Chm_Mod, ONLY : Ind_
@@ -4600,29 +4545,8 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  22 Apr 2005 - R. Yantosca - Initial version 
-!  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
-!  (2 ) Added HCN & CH3CN source & sink info for ND09 (bmy, 6/27/05)
-!  (3 ) Bug fix: removed duplicate category names.  Updated for CO2-SRCE 
-!        diagnostic.  Now references ND04 from "diag04_mod.f. 
-!        (pns, bmy, 7/25/05)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Now save MBO as tracer #5 for ND46 (tmf, bmy, 10/20/05)
-!  (6 ) Now add categories CV-FLX-$, TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
-!        which had been inadvertently omitted.  Also add OCEAN-HG category.
-!        Rewrote do loop and case statement to add new diagnostics to ND03. 
-!        Now make units of Hg tracers "pptv", not "ppbv".  Now remove 
-!        restriction on printing out cloud mass flux in GEOS-4 for the ND66 
-!        diagnostic.  Added new sea salt category. (cdh, eck, bmy, 4/6/06)
-!  (7 ) Now references ND56 from "diag56_mod.f" (ltm, bmy, 5/5/06) 
-!  (8 ) Now references ND42 from "diag42_mod.f".  Also updated for extra SOA
-!        tracers in ND07 diagnostic. (dkh, bmy, 5/22/06)
-!  (9 ) Updated ND36 for CH3I simulation (bmy, 7/25/06)
-!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (11) Split into INIT_DIAGINFO, INIT_TRACERINFO for clarity (bmy, 9/28/06)
-!  (12) Save output to HDF_MOD (amv, bmy, 12/18/09)
-!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  22 Apr 2005 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4790,24 +4714,6 @@
       ! Initialize arrays for "tracerinfo.dat"
       CALL INIT_TRACERINFO( am_I_Root, Input_Opt, State_Chm, RC )
 
-! HDF output is obsolete now (bmy, 9/20/19)
-!      ! Store values for hdf output
-!      IF ( Input_Opt%LND51_HDF    .or. 
-!     &     Input_Opt%LND51b_HDF ) THEN
-!
-!         CALL INIT_HDF(MAXCAT, MAXTRACER, MAXDIAG)
-!
-!         HDFCATEGORY(:) = CATEGORY(:)
-!         HDFDESCRIPT(:) = DESCRIPT(:)
-!         HDFNAME(:,:)   = NAME(:,:)
-!         HDFFNAME(:,:)  = FNAME(:,:)
-!         HDFUNIT(:,:)   = UNIT(:,:)
-!         HDFMOLC(:,:)   = MOLC(:,:)
-!         HDFMWT(:,:)    = MWT(:,:)
-!         HDFSCALE(:,:)  = SCALE(:,:)
-!         
-!      ENDIF
-
       END SUBROUTINE INIT_GAMAP
 !EOC
 !------------------------------------------------------------------------------
@@ -4847,4 +4753,5 @@
 
       END SUBROUTINE CLEANUP_GAMAP
 !EOC
+#endif
       END MODULE GAMAP_MOD

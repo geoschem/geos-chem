@@ -64,8 +64,10 @@
       USE AEROSOL_MOD,  ONLY : Set_AerMass_Diagnostic
       USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
+#ifdef BPCH_DIAG
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
+#endif
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
@@ -75,7 +77,9 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem deposition modules
       !-----------------------------------------------------------------
+#ifdef BPCH_DIAG
       USE DEPO_MERCURY_MOD      ! Deposition for offline Hg simulation
+#endif
       USE DRYDEP_MOD            ! For dry deposition
       USE WETSCAV_MOD           ! For wet deposition (rainout & washout)
 
@@ -87,11 +91,11 @@
       USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
       USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
+      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 #endif
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE OBSPACK_MOD           ! For ObsPack diagnostics
-      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
       USE GOSAT_CH4_MOD         ! For GOSAT observation operator
       USE TCCON_CH4_MOD         ! For TCCON observation operator
       USE HCOI_GC_MAIN_MOD      ! Writes out HEMCO diagnostics (C. Keller)
@@ -224,7 +228,7 @@
       INTEGER                  :: JDAY,          N_DYN
       INTEGER                  :: NNN,           N_DYN_STEPS, NSECb 
       INTEGER                  :: N_STEP,        YEAR,        MONTH
-      INTEGER                  :: DAY,           DAY_OF_YEAR, SEASON
+      INTEGER                  :: DAY,           DAY_OF_YEAR
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
@@ -342,7 +346,9 @@
 #endif
       CALL GEOS_Timer_Add( "All diagnostics",                      RC )
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
+#ifdef BPCH_DIAG
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
+#endif
       CALL GEOS_Timer_Add( "=> ObsPack diagnostics",               RC )
       CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
       CALL GEOS_Timer_Add( "Input",                                RC )
@@ -539,7 +545,7 @@
          ENDIF
       ENDIF
          
-#if defined( RRTMG )
+#ifdef RRTMG
       !-----------------------------------------------------------------
       ! Initializations for the RRTMG radiative transfer model
       !-----------------------------------------------------------------
@@ -867,7 +873,6 @@
          SECOND        = GET_SECOND()
          TAU           = GET_TAU()
          YEAR          = GET_YEAR()
-         SEASON        = GET_SEASON()
          ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 ) + SECOND
 
          !### Debug
@@ -875,6 +880,7 @@
             CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
          ENDIF
 
+#ifdef BPCH_DIAG
          !--------------------------------------------------------------
          ! %%%%% HISTORY (netCDF diagnostics) %%%%%
          !
@@ -883,6 +889,12 @@
          ! start each timestep, before operations like drydep, wetdep,
          ! and convection are executed.  Call a routine to do this.
          ! (bmy, 10/25/18)
+         !
+         ! NOTE: Mercury_mod.F90 is now only compiled if BPCH_DIAG=y,
+         ! as the Hg simulation depends on the bpch diagnostics.
+         ! We are awaiting on an update of the Hg simulation so that
+         ! the chemistry will be handled by KPP.  For now, block this
+         ! out with #ifdef BPCH_DIAG. (bmy, 10/4/19)
          !--------------------------------------------------------------
          IF ( ITS_A_MERCURY_SIM ) THEN
 #ifdef USE_TIMERS
@@ -901,6 +913,7 @@
             CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
          ENDIF
+#endif
 
          !==============================================================
          !       ***** R U N   H E M C O   P H A S E   1 *****
@@ -990,10 +1003,9 @@
 #endif
          ENDIF
 
-         ! Original diagnostics
+#ifdef BPCH_DIAG
          IF ( ITS_TIME_FOR_BPCH( Input_Opt ) ) THEN
 
-#ifdef BPCH_DIAG
             !===========================================================
             ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
             !===========================================================
@@ -1023,8 +1035,6 @@
             CALL GEOS_Timer_End( "Output",                       RC )
 #endif
 
-#endif
-
             !===========================================================
             !    ***** W R I T E   H E M C O   R E S T A R T S *****
             !===========================================================
@@ -1050,16 +1060,15 @@
             ! Set time at beginning of next diagnostic timestep
             CALL SET_DIAGb( TAU )
 
-#ifdef BPCH_DIAG
             !===========================================================
             !   ***** Z E R O   B P C H   D I A G N O S T I C S *****
             !===========================================================
             CALL INITIALIZE( am_I_Root, Input_Opt, State_Grid, 2, RC )
             CALL INITIALIZE( am_I_Root, Input_Opt, State_Grid, 3, RC )
-#endif
 
          ENDIF
 
+#ifdef GTMM_Hg
          !=============================================================
          !   ***** W R I T E   G T M M   R E S T A R T   F I L E *****
          !     ***** MUST be done after call to diag3 ****
@@ -1090,6 +1099,8 @@
             CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, State_Grid,
      &                              NYMD, NHMS, TAU, RC )
          ENDIF
+#endif
+#endif
 
          !==============================================================
          !       ***** T E S T   F O R   E N D   O F   R U N *****
@@ -1240,6 +1251,7 @@
 
             ENDIF
 
+#ifdef BPCH_DIAG
             ! Read data required for Hg2 gas-particle partitioning 
             ! (H Amos, 25 Oct 2011)
             IF ( ITS_A_MERCURY_SIM ) THEN 
@@ -1258,6 +1270,7 @@
                  CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
                ENDIF
             ENDIF
+#endif
          ENDIF
 
          ! Prescribe methane surface concentrations throughout PBL
@@ -1678,7 +1691,7 @@
 #endif
          ENDIF
 
-#if defined( RRTMG )
+#ifdef RRTMG
          !==============================================================
          !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
          !
@@ -2320,20 +2333,7 @@
       SUBROUTINE Display_Model_Info()
 ! 
 ! !REVISION HISTORY: 
-!  02 Dec 2003 - R. Yantosca - Initial version
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Added extra output
-!  02 Feb 2012 - R. Yantosca - Added output for GEOS-5.7.x met fields
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
-!  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
-!  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
-!  01 Mar 2017 - R. Yantosca - Now echo info if netCDF can do compression
-!  16 Mar 2017 - M. Sulprizio- Print model version to log file
-!  26 Jul 2018 - R. Yantosca - Now get version # from gc_classic_version.H
-!  06 Jan 2019 - M. Sulprizio- Rename from Display_Grid_and_Model to
-!                              Display_Model_Info and remove references to grid
-!                              options, which are now specified in input.geos
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2421,6 +2421,7 @@
  190  FORMAT( /, '===> SIMULATION START TIME: ',      a, ' <===', / )
 
       END SUBROUTINE Display_Model_Info
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2448,20 +2449,18 @@
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  06 Aug 2012 - R. Yantosca - IU_BPCH is only global file LUN still needed
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#ifdef BPCH_DIAG
       ! NOTE: Block out with an #ifdef, so that we don't interfere
       ! with file units in GCHP, or when using GEOS-Chem as an
       ! instance in other models like CESM or ECMWF (bmy, 1/12/18)
       CALL FLUSH( IU_BPCH )  
-#endif
 
       END SUBROUTINE CTM_Flush
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2480,7 +2479,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2529,10 +2528,7 @@
 !
 ! !REVISION HISTORY: 
 !  07 Mar 2012 - R. Yantosca - Initial version
-!  14 Nov 2013 - R. Yantosca - For GEOS-FP, read O3 from met field files
-!  13 Dec 2013 - M. Sulprizio- Moved USE_O3_FROM_MET to the Input_Opt object and
-!                              set in initialization stage of GEOS_CHEM
-!  22 Oct 2014 - C. Keller   - Added am_I_Root
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

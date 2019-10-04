@@ -209,13 +209,6 @@ unitconv_mod.o	    : unitconv_mod.F90      \
 
 geos_timers_mod.o   : geos_timers_mod.F90
 
-#%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
-# NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
-# in the HDF5 include path (bmy, 12/21/09)
-hdf_mod.o           : hdf_mod.F             \
-                      error_mod.o           \
-                      gc_grid_mod.o
-
 ifeq ($(HDF5),yes)
 	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<
 endif

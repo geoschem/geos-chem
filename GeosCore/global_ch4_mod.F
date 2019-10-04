@@ -1699,13 +1699,13 @@
       ! Deallocate variables
       IF ( ALLOCATED( BAIRDENS ) ) THEN
          DEALLOCATE( BAIRDENS, STAT=RC )     
-         CALL GC_CheckVar( 'global_br_mod.F:BAIRDENS', 2, RC )
+         CALL GC_CheckVar( 'global_ch4_mod.F:BAIRDENS', 2, RC )
          RETURN
       ENDIF
 
       IF ( ALLOCATED( CH4_EMIS ) ) THEN
          DEALLOCATE( CH4_EMIS, STAT=RC )     
-         CALL GC_CheckVar( 'global_br_mod.F:CH4_EMIS', 2, RC )
+         CALL GC_CheckVar( 'global_ch4_mod.F:CH4_EMIS', 2, RC )
          RETURN
       ENDIF
 

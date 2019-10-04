@@ -80,16 +80,16 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD,       ONLY : Init_CMN_DIAG
-#endif
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
-    USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
     USE ErrCode_Mod  
     USE Input_Opt_Mod
     USE State_Grid_Mod,     ONLY : GrdState
     USE VDIFF_PRE_Mod,      ONLY : Init_Vdiff_Pre
+#ifdef BPCH_DIAG
+    USE CMN_DIAG_MOD,       ONLY : Init_CMN_DIAG
+    USE CMN_O3_Mod,         ONLY : Init_CMN_O3
+#endif
 
     IMPLICIT NONE
 !
@@ -157,28 +157,6 @@ CONTAINS
        RETURN
     ENDIF
 
-#ifdef BPCH_DIAG
-    ! Set dimensions in CMN_DEP_mod.F and allocate arrays
-    CALL Init_CMN_DIAG( am_I_Root, State_Grid, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_CMN_DIAG"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
-
-    ! Initialize CMN_O3_mod.F
-    CALL Init_CMN_O3( am_I_Root, State_Grid, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_CMN_O3"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
     ! Initialize vdiff_pre_mod.F90
     CALL Init_VDIFF_PRE( am_I_Root, RC )
 
@@ -198,6 +176,32 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+#ifdef BPCH_DIAG
+    !=======================================================================
+    ! THESE ROUTINES ARE ONLY USED WHEN COMPILING GEOS-CHEM w/ BPCH_DIAG=y
+    !=======================================================================
+
+    ! Set dimensions in CMN_DEP_mod.F and allocate arrays
+    CALL Init_CMN_DIAG( am_I_Root, State_Grid, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_DIAG"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Initialize CMN_O3_mod.F
+    CALL Init_CMN_O3( am_I_Root, State_Grid, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_CMN_O3"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
           
   END SUBROUTINE GC_Allocate_All
 !EOC
@@ -431,26 +435,16 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE CO2_Mod,            ONLY : Init_CO2
-    USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
-    USE Diag03_Mod,         ONLY : Init_Diag03
-    USE Diag51_Mod,         ONLY : Init_Diag51
-    USE Diag51b_Mod,        ONLY : Init_Diag51b
-    USE Diag53_Mod,         ONLY : Init_Diag53
     USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
     USE Dust_Mod,           ONLY : Init_Dust
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Debug_Msg
-    USE Gamap_Mod,          ONLY : Do_Gamap
     USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
     USE Global_CH4_Mod,     ONLY : Init_Global_CH4
     USE Input_Mod,          ONLY : Do_Error_Checks
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
-    USE Mercury_Mod,        ONLY : Init_Mercury
-    USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
-    USE POPs_Mod,           ONLY : Init_POPs
     USE Seasalt_Mod,        ONLY : Init_SeaSalt
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -461,6 +455,18 @@ CONTAINS
     USE Toms_Mod,           ONLY : Init_Toms
     USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
     USE WetScav_Mod,        ONLY : Init_WetScav
+#ifdef BPCH_DIAG
+    USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
+    USE Diag03_Mod,         ONLY : Init_Diag03
+    USE Diag51_Mod,         ONLY : Init_Diag51
+    USE Diag51b_Mod,        ONLY : Init_Diag51b
+    USE Diag53_Mod,         ONLY : Init_Diag53
+    USE Gamap_Mod,          ONLY : Do_Gamap
+    USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
+    USE Mercury_Mod,        ONLY : Init_Mercury
+    USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
+    USE POPs_Mod,           ONLY : Init_POPs
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -729,17 +735,24 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Enable Mean OH (or CH3CCl3) diag for runs which need it
+    CALL Init_Diag_OH( am_I_Root, Input_Opt, State_Grid, RC )
+
+#ifdef BPCH_DIAG
+    !=================================================================
+    ! These routines are only needed when compiling GEOS-Chem
+    ! with BPCH_DIAG=y. (bmy, 10/4/19)
+    !=================================================================
+
+#ifdef TOMAS
     !-----------------------------------------------------------------
-    ! POPs
+    ! TOMAS
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-       CALL Init_POPs( am_I_Root, Input_Opt, State_Chm, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_POPs"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
+
+    ! Initialize the TOMAS microphysics package, if necessary
+    CALL Init_Tomas_Microphysics( am_I_Root,  Input_Opt, State_Chm, &
+                                  State_Grid, RC )    
+#endif
 
     !-----------------------------------------------------------------
     ! Mercury
@@ -781,26 +794,24 @@ CONTAINS
        ENDIF
     ENDIF
 
-#ifdef TOMAS
     !-----------------------------------------------------------------
-    ! TOMAS
+    ! POPs
     !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
+       CALL Init_POPs( am_I_Root, Input_Opt, State_Chm, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_POPs"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
-    ! Initialize the TOMAS microphysics package, if necessary
-    CALL Init_Tomas_Microphysics( am_I_Root,  Input_Opt, State_Chm, &
-                                  State_Grid, RC )    
-#endif
-
-    !=================================================================
-    ! Call setup routines for certain GEOS-Chem diagnostics
-    ! This allows us to use the species database object.
-    !=================================================================
+    !-----------------------------------------------------------------
+    ! Diagnostics
+    !-----------------------------------------------------------------
 
     ! Allocate and initialize variables
     CALL Ndxx_Setup( am_I_Root, Input_Opt, State_Chm, State_Grid, RC )
-
-    ! Allocate diagnostic arrays
-#ifdef BPCH_DIAG
 
     ! Initialize the Hg diagnostics (bpch)
     CALL Init_Diag03( State_Chm, State_Grid )
@@ -816,12 +827,6 @@ CONTAINS
     ! POPs (bpch)
     CALL Init_Diag53( State_Grid )
 
-#endif
-
-    ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-    CALL Init_Diag_OH( am_I_Root, Input_Opt, State_Grid, RC )
-
-#ifdef BPCH_DIAG
 #ifndef ESMF_
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation

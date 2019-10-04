@@ -1,10 +1,15 @@
-! $Id: ocean_mercury_mod.f,v 1.11 2009/09/01 19:21:18 cdh Exp $
       MODULE OCEAN_MERCURY_MOD
+#ifdef BPCH_DIAG
 !
 !******************************************************************************
 !  Module OCEAN_MERCURY_MOD contains variables and routines needed to compute
 !  the oceanic flux of mercury.  Original code by Sarah Strode at UWA/Seattle.
 !  (sas, bmy, 1/21/05, 4/17/06)
+!
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Module Variables:
 !  ============================================================================
@@ -101,42 +106,7 @@
 !  (3 ) HgP               : Particulate mercury
 !
 !  NOTES:
-!  (1 ) Modified ocean flux w/ Sarah's new Ks value (sas, bmy, 2/24/05)
-!  (2 ) Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
-!  (3 ) Now can read data for both GCAP or GEOS grids (bmy, 8/16/05)
-!  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 4/6/06)
-!  (5 ) Change HgC (colloidal) to HgP (particulate) or HgPaq. (ccc, 7/20/10)
-!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
-!  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
-!  25 Oct 2011 - H. Amos     - bring in code for Hg2 gas-particle partitioning
-!  07 Feb 2012 - E. Corbitt  - Imported tagged tracers
-!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 data
-!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  19 Apr 2012 - E. Corbitt  - Added LGCBROMINE to use GEOS-Chem bromine.
-!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
-!  05 Aug 2015 - J. Fisher   - Compute ocean chemistry in all ocean boxes
-!			       irrespective of ice cover and reduce radiation,
-!			       Hg deposition accordingly in partial-ice boxes
-!                              (orig. 28/11/11)
-!  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
-!  11 Aug 2015 - J. Fisher   - Remove obsolete parameters LOCEANFIX, FUDGE
-!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
-!                              (orig. 8/12/11)
-!  17 Aug 2015 - J. Fisher   - Add Arctic NPP, Chl from Anne Soerensen
-!                              (orig. 3/19/13)
-!  28 Mar 2016 - E. Lundgren - Read/write nc restart file from restart_mod.F
-!  26 Apr 2016 - R. Yantosca - Now store Hg indexing variables locally
-!  22 Jun 2016 - R. Yantosca - Now reference the Hg0_Id_List, Hg2_Id_List,
-!                              and HgP_Id_List fields of State_Chm
-!  12 Jul 2016 - E. Lundgren - Remove bpch restart file option and associated 
-!                              routines. Now use netcdf in restart_mod.F.
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  27 Feb 2018 - C. Thackray - added L_ADD_MBL_BR and LRED_CLOUDONLY switches
-!  01 Nov 2018 - M. Sulprizio- Move Hg0aq, Hg2aq, and HgPaq arrays to State_Chm
+!  See the Git history with the gitk browser!
 !******************************************************************************
 !
       USE inquireMod,    ONLY : findFreeLUN
@@ -402,10 +372,9 @@
 ! !USES:
 !     
       USE CMN_SIZE_MOD
-#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
       USE DIAG03_MOD,         ONLY : ND03                
-#endif
+      USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
@@ -413,7 +382,6 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
 !
 ! !INPUT PARAMETERS:
 !
@@ -655,10 +623,8 @@
 !$OMP END PARALLEL DO
 
 
-#ifdef BPCH_DIAG
       ! Increment diagnostic timestep counter. 
       CALL SET_Hg2_DIAG( INCREMENT=.TRUE. )
-#endif
 
       ! Free pointers
       ARRAYso4  => NULL()
@@ -693,9 +659,7 @@
 !
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE,  IS_LAND
-#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03,    ND03 
-#endif
       USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -783,7 +747,6 @@
             SNOW_Hg2aq(NN) =
      &            ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
                   
-#ifdef BPCH_DIAG
             !===========================================================
             ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
             !
@@ -791,7 +754,6 @@
             !===========================================================
             IF ( ND03 > 0 ) AD03(I,J,19,1) = AD03(I,J,19,1) +
      &         ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
-#endif
 
             !===========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -970,61 +932,14 @@
 !____________________________________________________________________________
 !
 !  NOTES:
-!  (1 ) Change Ks to make ocean flux for 2001 = 2.03e6 kg/year.
-!        (sas, bmy, 2/24/05)
-!  (2 ) Rewritten to include Sarah Strode's latest ocean Hg model code.
-!        Also now accounts for 2x25 grid. (sas, cdh, bmy, 4/6/06)
-!  (3 ) Ocean parameterizations are rewritten entirely to account for actual
-!        processes in the ocean. Different subsurface conc. are included
-!        (anls, 20/10/09)
-!  (4 ) Now use MERRA land fraction information (jaf, 4/26/11)
-!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
-!  27 Jul 2011 - R. Yantosca - Use the D exponent in the defnition of KD_PART, 
-!                              or else the PGI compiler will crash
-!  09 Nov 2011 - H. Amos     - Apply Anne's bug fix for the Hg(0) evasion 
-!                              and uptake diagnostics
-!  08 Feb 2012 - R. Yantosca - Now treat GEOS-5.7.2 in the same way as MERRA
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
-!
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-!  05 Aug 2015 - J. Fisher   - Compute ocean chemistry in all ocean boxes
-!			       irrespective of ice cover and reduce radiation,
-!			       Hg deposition accordingly in partial-ice boxes
-!                              (orig. 28/11/11)
-!  06 Aug 2015 - J. Fisher   - Added delivery of snow Hg to ocean (orig. 28/11/11)
-!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
-!                              (orig. 8/12/11)
-!  14 Aug 2015 - J. Fisher   - Reduce partitioning coefficient Kd in Arctic 
-!                              (orig. 3/23/12)
-!  17 Aug 2015 - J. Fisher   - Add scaling of reducible HgII based on UV-B
-!                              (orig. 3/24/12)
-!  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
-!                              database field emMW_g (emitted species g/mol)
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  19 Sep 2016 - R. Yantosca - Cast IF expressions to LOGICAL for Gfortran
+!  See the Git history with the gitk browser!
 !******************************************************************************
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_WATER, IS_ICE
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
-#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
@@ -1259,10 +1174,12 @@
       dMLD = dMLD1 
       dFLOW = dFLOW1 
 
+#ifdef BPCH_DIAG
       IF ( ITS_MIDMONTH() ) THEN
          dMLD = dMLD2
          dFLOW = dFLOW2
       ENDIF
+#endif
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS()
@@ -1921,7 +1838,6 @@
                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG *
      &                            A_M2 * DTSRCE * FRAC_O
 
-#ifdef BPCH_DIAG
                   !-----------------------------------------------------
                   ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
                   !
@@ -1931,7 +1847,6 @@
                   IF ( ( ND03 > 0 ) .and. ( NN == ID_Hg_tot ) )
      &                AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG *
      &                                A_M2 * DTSRCE * FRAC_O
-#endif
 
                   !-----------------------------------------------------
                   ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
@@ -2088,7 +2003,6 @@
 
                   HgPaq(I,J,NN)   = MAX ( HgPaq(I,J,NN) , 0e+0_fpp )    
 
-#ifdef BPCH_DIAG
                   !-----------------------------------------------------
                   ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
                   !
@@ -2097,7 +2011,6 @@
                   IF ( ND03 > 0 ) THEN
                      AD03(I,J,12,1) = AD03(I,J,12,1) + JorgC_kg
                   ENDIF
-#endif
 
                   !-----------------------------------------------------
                   ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
@@ -2405,17 +2318,7 @@
 !  (1 ) THISMONTH (INTEGER) : Month to read fields (1-12)
 !
 !  NOTES:
-!  (1 ) Modified for S. Strode's latest ocean Hg code.  Now read files
-!        from DATA_DIR_1x1/mercury_200511. (sas, cdh, bmy, 3/28/06)
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path
-!  13 Mar 2015 - R. Yantosca - Now read netCDF data via HEMCO
-!  23 Feb 2015 - J. Fisher   - Add Arctic MLD (orig. 28/11/11)
-!  12 Aug 2015 - J. Fisher   - Added input of Hg from Arctic rivers to ocean
-!                              (orig. 8/12/11)
-!  17 Aug 2015 - J. Fisher   - Added Arctic NPP, Chl from Anne Soerensen
-!                              (orig. 3/19/13)
+!  See the Git history with the gitk browser!
 !******************************************************************************
 !
 ! !USES:
@@ -2699,22 +2602,7 @@
 !  (4 ) MLDnew (REAL(fpp)): New ocean mixed layer depth [m]
 !
 !  NOTES:
-!  (1 ) Now use MERRA land fraction information (jaf, 4/26/11)
-!   8 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now use logical fields from Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  05 Aug 2015 - J. Fisher   - Compute MLD adjustment in all ocean boxes
-!			       irrespective of ice cover and reduce radiation,
-!			       Hg deposition accordingly in partial-ice boxes
-!                              (orig. 28/11/11)
-!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
-!  26 May 2016 - E. Lundgren - Replace input_opt TRACER_MW_KG with species
-!                              database field emMW_g (emitted species g/mol)
+!  See the Git history with the gitk browser!
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -3552,23 +3440,7 @@
 !  (sas, cdh, bmy, 1/19/05, 3/28/06)
 !
 !  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (2 ) Now just allocates arrays.  We have moved the reading of the ocean
-!        Hg restart file to READ_OCEAN_Hg_RESTART.  Now make Hg0aq and Hg2aq
-!        3-D arrays. Now pass Hg_RST_FILE and USE_CHECKS from "input_mod.f"
-!        via the argument list. (cdh, sas, bmy, 2/27/06)
-!  29 Nov 2011 - R. Yantosca - Updated erroneous comment.  "Southern Ocean"
-!                               should be "South Atlantic Ocean".
-!  23 Feb 2015 - J. Fisher   - change intermediate water Hg2/HgP speciation in
-!			        Arctic so Hg2 dominates over HgP (orig. 28/11/11)
-!  12 Aug 2015 - J. Fisher   - Added interannual river flow variability
-!                              (orig. 23/3/12)
-!  17 Aug 2015 - J. Fisher   - Added interannual Arctic NPP variability
-!                              (orig. 22/3/13)
-!  27 Aug 2015 - E. Lundgren - Hard-code interannual scaling of riverflow
-!                              and NPP to avoid reading ASCII
-!  25 Apr 2016 - R. Yantosca - Now handle all Hg indexing locally
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  See the Git history with the gitk browser!
 !******************************************************************************
 !
 ! !USES:
@@ -3924,8 +3796,5 @@
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY
-
-!------------------------------------------------------------------------------
-     
-      ! End of module
+#endif
       END MODULE OCEAN_MERCURY_MOD

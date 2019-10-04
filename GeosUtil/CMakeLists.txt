@@ -12,12 +12,11 @@ add_library(GeosUtil STATIC EXCLUDE_FROM_ALL
 	gc_grid_mod.F90
 	geos_timers_mod.F90
 	grid_registry_mod.F90
-	hdf_mod.F
-	henry_mod.F
+        henry_mod.F
 	ifort_errmsg.F
 	pressure_mod.F
 	regrid_a2a_mod.F90
-	roundoff_mod.F90
+        roundoff_mod.F90
 	time_mod.F
 	transfer_mod.F
 	unitconv_mod.F90

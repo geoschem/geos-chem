@@ -16,33 +16,27 @@
 !
 ! !USES:
 !
+#ifdef BPCH_DIAG
       ! Modules from Headers directory
+      USE Precision_Mod                      ! For GEOS-Chem Precision (fp)
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
       USE CMN_O3_MOD                         ! FMOL
       USE CMN_SIZE_MOD                       ! Size parameters
-      USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : AVO     ! Avogadro's #
-      USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Grid_Mod,     ONLY : GrdState
-      USE State_Met_Mod,      ONLY : MetState
-
-      ! Modules from GeosUtil directory
-      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE PhysConstants,  ONLY : AVO         ! Avogadro's #
+      USE ERROR_MOD,      ONLY : ERROR_STOP
       USE FILE_MOD                           
       USE TIME_MOD
-
-      ! Modules from GeosCore directory
-#ifdef BPCH_DIAG
       USE BPCH2_MOD                          ! For binary punch I/O routines
       USE DIAG_MOD                           ! For diagnostic arrays
       USE DIAG03_MOD                         ! For Hg diagnostic
       USE DIAG53_MOD                         ! For POPs diag
-      USE DIAG56_MOD                         ! For time in tropopause diag
-#endif
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
       USE WETSCAV_MOD                        ! For wet deposition
@@ -89,17 +83,8 @@
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  ROUTINE diag3.F SAVES TIME-AVERAGED QUANTITIES TO THE BPCH FILE.   %%%
-!  %%%  THE BPCH FILE FORMAT IS DEPRECATED.  DIAGNOSTIC OUTPUT WILL        %%%
-!  %%%  EVENTUALLY BE REPLACED BY netCDF OUTPUT IN A FUTURE RELEASE.       %%%
-!  %%%  FOR NOW, WE SHALL KEEP BPCH OUTPUT IN ORDER TO PRESERVE BACKWARDS  %%%
-!  %%%  COMPATIBILITY WITH THE EXISTING VISUALIZATION SOFTWARE.            %%%
-!  %%%                                                                     %%%
-!  %%%  ALSO NOTE: MANY EMISSIONS DIAGNOSTICS ARE NOW ARCHIVED IN HEMCO,   %%%
-!  %%%  AND ARE WRITTEN OUT TO BPCH FILE HERE.  THIS IS MEANT TO PRESERVE  %%%
-!  %%%  THE EXISTING DIAGNOSTIC CAPABILITY FOR THE TIME BEING.             %%%
-!  %%%                                                                     %%%
-!  %%%     -- Bob Yantosca (14 Aug 2014)                                   %%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED      %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                        %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY: 
@@ -219,8 +204,6 @@
       ! Assume success
       RC         = GC_SUCCESS
 
-#ifdef BPCH_DIAG
-
       ! Number of advected species
       nAdvect    = State_Chm%nAdvect
 
@@ -244,7 +227,6 @@
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1e-32_fp
       SCALE_I3   = DBLE( GET_CT_I3()   ) + 1e-32_fp
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1e-32_fp
-
 !
 !******************************************************************************
 !  Now define local tracer flags for certain specialty simulations
@@ -583,9 +565,6 @@
          ENDIF
 
       ENDIF     
-#endif
-
-#ifdef TOMAS
 !
 !*****************************************************************************
 !  ND59: Size-resolved primary aerosol emission (win, 8/22/07)
@@ -1111,7 +1090,6 @@
       ENDIF
       ENDIF
 #endif
-#endif
 
       CONTAINS
 !EOC
@@ -1200,7 +1178,6 @@
       !=================================================================
       ! DIAG2BPCH begins here!
       !=================================================================
-#ifdef BPCH_DIAG
 
       ! Initialize
       ARRAY    = 0e0
@@ -1270,8 +1247,7 @@
       ! Nullify pointer
       DgnCont => NULL()
 
-#endif
-
       END SUBROUTINE DIAG2BPCH
 !EOC
+#endif
       END SUBROUTINE DIAG3    

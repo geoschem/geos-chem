@@ -29,17 +29,7 @@
       PUBLIC  :: SET_CURRENT_TIME
       PUBLIC  :: SET_BEGIN_TIME
       PUBLIC  :: SET_END_TIME
-      PUBLIC  :: SET_DIAGb
-      PUBLIC  :: SET_DIAGe
       PUBLIC  :: SET_TIMESTEPS
-      PUBLIC  :: SET_CT_CHEM
-      PUBLIC  :: SET_CT_CONV
-      PUBLIC  :: SET_CT_DYN
-      PUBLIC  :: SET_CT_EMIS
-      PUBLIC  :: SET_CT_DIAG
-      PUBLIC  :: SET_CT_RAD
-      PUBLIC  :: SET_CT_A3
-      PUBLIC  :: SET_CT_I3
       PUBLIC  :: SET_ELAPSED_SEC
       PUBLIC  :: GET_JD
       PUBLIC  :: GET_ELAPSED_SEC
@@ -61,11 +51,8 @@
       PUBLIC  :: GET_TAU
       PUBLIC  :: GET_TAUb
       PUBLIC  :: GET_TAUe
-      PUBLIC  :: GET_DIAGb
-      PUBLIC  :: GET_DIAGe
       PUBLIC  :: GET_LOCALTIME
       PUBLIC  :: GET_LOCALTIME_IN_SEC
-      PUBLIC  :: GET_SEASON
       PUBLIC  :: GET_TS_CHEM
       PUBLIC  :: GET_TS_CONV
       PUBLIC  :: GET_TS_DIAG
@@ -73,14 +60,6 @@
       PUBLIC  :: GET_TS_EMIS
       PUBLIC  :: GET_TS_UNIT
       PUBLIC  :: GET_TS_RAD
-      PUBLIC  :: GET_CT_CHEM
-      PUBLIC  :: GET_CT_CONV
-      PUBLIC  :: GET_CT_DYN
-      PUBLIC  :: GET_CT_EMIS
-      PUBLIC  :: GET_CT_RAD
-      PUBLIC  :: GET_CT_A3
-      PUBLIC  :: GET_CT_I3
-      PUBLIC  :: GET_CT_DIAG
       PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
       PUBLIC  :: GET_I3_TIME
@@ -93,22 +72,17 @@
       PUBLIC  :: ITS_TIME_FOR_EMIS
       PUBLIC  :: ITS_TIME_FOR_EXCH
       PUBLIC  :: ITS_TIME_FOR_UNIT
-      PUBLIC  :: ITS_TIME_FOR_DIAG
       PUBLIC  :: ITS_TIME_FOR_RT
       PUBLIC  :: ITS_TIME_FOR_SURFACE_RAD
       PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_I3
       PUBLIC  :: ITS_TIME_FOR_EXIT
-      PUBLIC  :: ITS_TIME_FOR_BPCH
       PUBLIC  :: ITS_A_LEAPYEAR
       PUBLIC  :: ITS_A_NEW_YEAR
       PUBLIC  :: ITS_A_NEW_MONTH
-      PUBLIC  :: ITS_MIDMONTH
       PUBLIC  :: ITS_A_NEW_DAY
-      ! Add for FLAMBE compatibility (skim, 6/21/13)
       PUBLIC  :: ITS_A_NEW_HOUR
-      PUBLIC  :: ITS_A_NEW_SEASON
       PUBLIC  :: PRINT_CURRENT_TIME
       PUBLIC  :: TIMESTAMP_STRING
       PUBLIC  :: YMD_EXTRACT
@@ -118,15 +92,44 @@
       PUBLIC  :: SYSTEM_DATE_TIME
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
-      PUBLIC  :: GET_NYMD_DIAG
-      PUBLIC  :: GET_Hg2_DIAG !hma, 25 Oct 2011
-      PUBLIC  :: SET_Hg2_DIAG !hma, 25 Oct 2011
-![eml
-      PUBLIC  :: SET_HISTYR
-      PUBLIC  :: GET_HISTYR
-!eml]
 #if defined( ESMF_ ) || defined( MODEL_ )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
+      !%%%  IS COMPILED FOR GCHP OR FOR CONNECTION TO EXTERNAL ESMs   %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       PUBLIC  :: Accept_External_Date_Time
+#endif
+#ifdef BPCH_DIAG
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
+      !%%%  IS COMPILED WITH BPCH_DIAG=y (bmy, 10/4/19)               %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      PUBLIC  :: GET_DIAGb
+      PUBLIC  :: GET_DIAGe
+      PUBLIC  :: GET_CT_CHEM
+      PUBLIC  :: GET_CT_CONV
+      PUBLIC  :: GET_CT_DYN
+      PUBLIC  :: GET_CT_EMIS
+      PUBLIC  :: GET_CT_RAD
+      PUBLIC  :: GET_CT_A3
+      PUBLIC  :: GET_CT_I3
+      PUBLIC  :: GET_CT_DIAG
+      PUBLIC  :: GET_NYMD_DIAG
+      PUBLIC  :: ITS_MIDMONTH
+      PUBLIC  :: SET_CT_CHEM
+      PUBLIC  :: SET_CT_CONV
+      PUBLIC  :: SET_CT_DYN
+      PUBLIC  :: SET_CT_EMIS
+      PUBLIC  :: SET_CT_DIAG
+      PUBLIC  :: SET_CT_RAD
+      PUBLIC  :: SET_CT_A3
+      PUBLIC  :: SET_CT_I3
+      PUBLIC  :: SET_DIAGb
+      PUBLIC  :: SET_DIAGe
+      PUBLIC  :: SET_Hg2_DIAG
+      PUBLIC  :: ITS_TIME_FOR_BPCH
+      PUBLIC  :: ITS_TIME_FOR_DIAG
+      PUBLIC  :: GET_Hg2_DIAG
 #endif
 !
 ! !REMARKS:
@@ -254,20 +257,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2006 - R. Yantosca - Initial Version
-!  (1 ) GCAP/GISS fields don't have leap years, so if JULDAY says it's 
-!        Feb 29th, reset MONTH, DAY, JD1 to Mar 1st. (swu, bmy, 8/29/05)
-!  (2 ) Now references "define.h".  Now add special handling to skip from
-!        Feb 28th to Mar 1st for GCAP model. (swu, bmy, 4/24/06)
-!  (3 ) Fix bug in case of GCAP fields for runs that start during leap year
-!       and after February 29 (phs, 9/27/06)  
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2011 - R. Yantosca - Bug fix: For GCAP, we need to skip over the
-!                              # of leap-year-days that have already occurred
-!                              when going from Julian date to Y/M/D date
-!  14 Jun 2013 - R. Yantosca - Now move the day of week computation here
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  06 Feb 2018 - E. Lundgren - Update Julian Data calc to use new minimum time
-!                              unit of seconds (previously minutes)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,10 +385,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
-!                              MERRA met data goes back prior to 1985
-!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -479,10 +466,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
-!                              MERRA met data goes back prior to 1985
-!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -551,13 +535,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       DIAGb = THISDIAGb
 
       END SUBROUTINE SET_DIAGb
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -580,13 +565,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       DIAGe = THISDIAGe
 
       END SUBROUTINE SET_DIAGe
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -620,17 +606,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  (1 ) Suppress some output lines (bmy, 7/20/04)
-!  (2 ) Also zero CT_XTRA (tmf, bmy, 10/20/05)
-!  (3 ) Add TS_DIAG as the diagnostic timestep. (ccc, 5/13/09)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Apr 2010 - R. Yantosca - Now add SUNCOS argument to set 1/2 of the
-!                              interval for computing the cosine of the
-!                              solar zenith angle.
-!  07 Oct 2011 - R. Yantosca - Remove obsolete SUNCOS argument
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  06 Feb 2018 - E. Lundgren - Update timestep unit from min to sec
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -644,6 +620,7 @@
       TS_RAD   = RADIATION
 
       ! Zero timestep counters
+#ifdef BPCH_DIAG
       CT_CHEM  = 0
       CT_CONV  = 0
       CT_DYN   = 0
@@ -653,6 +630,7 @@
       CT_I3    = 0
       CT_DIAG  = 0
       Hg2_DIAG = 0
+#endif
 
       ! Echo to stdout
       IF ( am_I_Root ) THEN
@@ -668,6 +646,7 @@
       ENDIF
 
       END SUBROUTINE SET_TIMESTEPS
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -691,7 +670,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -725,6 +704,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -757,8 +737,8 @@
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 ! 
 ! !REVISION HISTORY:
-!  18 Feb 2012 - H. Amos     - Initial version 
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  18 Feb 2012 - H. Amos     - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -793,7 +773,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -827,7 +807,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -861,7 +841,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -895,7 +875,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  13 May 2009 - C. Carouge  - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -929,7 +909,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -963,6 +943,7 @@
 ! 
 ! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -973,6 +954,7 @@
       ENDIF
 
       END SUBROUTINE SET_CT_I3
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -991,7 +973,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !  06 Feb 2018 - E. lundgren - Rename from SET_ELAPSED_MIN to SET_ELAPSED_SEC;
 !                              update minimum time unit from min to sec
 !EOP
@@ -1032,7 +1014,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1084,7 +1066,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1113,7 +1095,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1142,7 +1124,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1171,7 +1153,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1200,7 +1182,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1228,7 +1210,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1256,7 +1238,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1294,11 +1276,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  17 Dec 2010 - R. Yantosca - Added fix in case HHMMSS is returned as 240000
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  06 Feb 2018 - E. Lundgren - Change passed units from minutes to seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1357,7 +1335,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1385,7 +1363,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1413,71 +1391,13 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THISYEAR = YEAR
 
       END FUNCTION GET_YEAR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_histyr
-!
-! !DESCRIPTION: Function SET\_HISTYR returns the year stored in HISTYR w/o
-!  needing to include the CMN\_O3 common block (eml, 8/20/08)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_HISTYR( YEARIN )
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN) :: YEARIN
-! 
-! !REVISION HISTORY:
-!  20 Aug 2008 - E. Leibensperger - Initial version
-!  07 Mar 2012 - M. Payer         - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      HISTYRA = YEARIN
-      
-      END SUBROUTINE SET_HISTYR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_histyr
-!
-! !DESCRIPTION: Function GET\_HISTYR returns the year stored in HISTYR w/o
-!  needing to include the CMN\_O3 common block (eml, 8/20/08)
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_HISTYR() RESULT( HISTYEAR )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: HISTYEAR
-! 
-! !REVISION HISTORY:
-!  20 Aug 2008 - E. Leibensperger - Initial version
-!  07 Mar 2012 - M. Payer         - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      HISTYEAR = HISTYRA
-
-      END FUNCTION GET_HISTYR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1499,7 +1419,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1527,7 +1447,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1556,7 +1476,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1585,7 +1505,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1614,7 +1534,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1644,7 +1564,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1673,7 +1593,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1702,13 +1622,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THISTAUe = TAUe
 
       END FUNCTION GET_TAUe
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1731,8 +1652,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGb needs to be REAL(fp)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1761,14 +1681,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGe needs to be REAL(fp)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THISDIAGe = DIAGe
 
       END FUNCTION GET_DIAGe
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1808,14 +1728,7 @@
 !
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Apr 2010 - R. Yantosca - Add OFFSET to argument list, to allow the
-!                              local time to be computed at an arbitrary time
-!                              (e.g. at the halfway point of an interval)
-!  05 Oct 2011 - R. Yantosca - Now add GMT as an optional argument
-!  07 Oct 2011 - R. Yantosca - Removed obsolete OFFSET argument
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90, and
-!                              add J, L indices to the argument list
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1884,6 +1797,7 @@
 !
 ! !REVISION HISTORY: 
 !  18 Apr 2019 - R. Yantosca - Initial Version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1918,35 +1832,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_season
-!
-! !DESCRIPTION: Function GET\_SEASON returns the climatological season number 
-!  (1=DJF, 2=MAM, 3=JJA, 4=SON) to the calling program.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_SEASON() RESULT( THISSEASON )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THISSEASON   ! Current season
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THISSEASON = NSEASON
-
-      END FUNCTION GET_SEASON
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Get_ts_chem
 !
 ! !DESCRIPTION: Function GET\_TS\_CHEM returns the chemistry timestep in 
@@ -1963,7 +1848,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1992,6 +1877,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2020,7 +1906,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2049,7 +1935,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2078,7 +1964,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2107,7 +1993,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2136,13 +2022,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THIS_TS_UNIT = TS_UNIT
 
       END FUNCTION GET_TS_UNIT
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2165,7 +2052,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2194,6 +2081,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2222,7 +2110,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2251,7 +2139,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2281,7 +2169,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2310,7 +2198,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2340,6 +2228,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2368,7 +2257,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 May 2009 - C. Carouge  - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2397,13 +2286,14 @@
 ! 
 ! !REVISION HISTORY:
 !  18 Feb 2012 - H. Amos     - Initial version 
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THIS_Hg2_DIAG = Hg2_DIAG
 
       END FUNCTION GET_Hg2_DIAG
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2426,11 +2316,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version
-!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  11 Aug 2015 - R. Yantosca - Return DATE for MERRA2 the same as for GEOS-FP
-!  06 Feb 2017 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2462,14 +2348,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Now return proper time for GEOS-4/fvDAS fields (bmy, 6/19/03)
-!  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
-!  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
-!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  06 Feb 2017 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2506,7 +2385,7 @@
 !
 ! !REVISION HISTORY: 
 !  06 Feb 2012 - R. Yantosca - Initial version
-!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2577,10 +2456,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  26 Jun 2003 - R. Yantosca - Initial Version
-!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2611,13 +2487,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  26 Jun 2003 - R. Yantosca - Initial Version
-!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2665,7 +2535,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
-!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2713,11 +2583,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Sep 2011 - M. Payer    - Modifications for centralizing the chemistry
-!                              time step (lzh)
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2764,10 +2630,7 @@
 !
 ! !REVISION HISTORY:
 !  04 Oct 2012 - D. Ridley   - Initial Version
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
-!  18 May 2018 - C. Holmes   - Call radiation the first time after half-interval,
-!                              without requiring an exact time match.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2815,6 +2678,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial Version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2856,9 +2720,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2888,7 +2750,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
 !                              timestep units of seconds
 !EOP
@@ -2920,11 +2782,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  07 Oct 2011 - R. Yantosca - Modifications for centralizing the chemistry
-!                              time step (lzh)
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2971,8 +2829,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Mar 2014 - Y.Y. Yan    - Initial Version
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3019,9 +2876,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3030,6 +2885,7 @@
       FLAG = ( MOD( ELAPSED_SEC, TS_DYN ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_UNIT
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3052,10 +2908,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  20 Jul 2009 - C. Carouge  - Use TS_DIAG now and not 60 minutes
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3063,6 +2916,7 @@
       FLAG = ( MOD( ELAPSED_SEC, TS_DIAG ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_DIAG
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3085,6 +2939,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3114,7 +2969,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3144,6 +2999,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3180,7 +3036,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3189,6 +3045,7 @@
       FLAG = ( TAU >= TAUe )
 
       END FUNCTION ITS_TIME_FOR_EXIT
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3223,7 +3080,7 @@
 !
 ! !REVISION HISTORY: 
 !  02 Feb 2007 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3260,6 +3117,7 @@
       ENDIF
 
       END FUNCTION ITS_TIME_FOR_BPCH
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3287,14 +3145,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  17 Mar 1999 - R. Yantosca - Initial Version
-!  (1 ) Now remove YEAR from ARG list; use the module variable (bmy, 3/21/03)
-!  (2 ) Now add YEAR_IN as an optional argument.  If YEAR_IN is not passed,
-!        then test if the current year is a leapyear (bmy, 9/25/03)
-!  (3 ) Now always return FALSE for GCAP (swu, bmy, 8/29/05)
-!  (4 ) Now add FORCE argument to force ITS_A_LEAPYEAR to return a value
-!        instead of just returning with FALSE for the GCAP met fields.
-!        (swu, bmy, 4/24/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3401,10 +3252,7 @@
 !
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Yantosca - Initial Version
-!  01 Nov 2005 - R. Yantosca - Bug fix: Need month & day to be 1
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep
-!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3542,10 +3390,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  12 Oct 2011 - R. Yantosca - Modified for central chemistry timestep option
-!  27 Apr 2016 - E. Lundgren - Include minute condition for first day of month
-!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3633,6 +3478,7 @@
       ENDIF
       
       END FUNCTION ITS_A_NEW_MONTH
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3655,8 +3501,7 @@
 !
 ! !REVISION HISTORY: 
 !  10 Oct 2005 - S. Strode   - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep 
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3665,6 +3510,7 @@
       IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
 
       END FUNCTION ITS_MIDMONTH
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3714,10 +3560,7 @@
 !
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep
-!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
-!
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3819,7 +3662,7 @@
 !
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Yantosca - Initial Version
-!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3854,46 +3697,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Its_A_New_Season
-!
-! !DESCRIPTION: Function ITS\_A\_NEW\_SEASON returns TRUE if it's a new season 
-!  or FALSE if it's not a new season.  Seasons are (1=DJF, 2=MAM, 3=JJA, 
-!  4=SON).
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_A_NEW_SEASON( ) RESULT( IS_NEW_SEASON )
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: IS_NEW_SEASON  
-!
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER, SAVE :: LAST_SEASON = -1
-      
-      IF ( NSEASON /= LAST_SEASON ) THEN
-         IS_NEW_SEASON = .TRUE.
-         LAST_SEASON   = NSEASON
-      ELSE
-         IS_NEW_SEASON = .FALSE.
-      ENDIF
-
-      END FUNCTION ITS_A_NEW_SEASON
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Print_Current_Time
 !
 ! !DESCRIPTION: Subroutine PRINT\_CURRENT\_TIME prints the date, GMT time, and 
@@ -3906,10 +3709,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  10 Oct 2017 - R. Yantosca - Now print 6 decimal digits for elapsed time
-!  10 Oct 2017 - R. Yantosca - Change "GMT" to "UTC", which is more standard
-!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3958,11 +3758,7 @@
 !
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
-!  (2 ) Now add optional arguments YYYYMMDD and HHMMSS (bmy, 10/27/03)
-!  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4026,7 +3822,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Nov 2001 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4079,14 +3875,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  27 Jun 2002 - R. Yantosca - Initial Version
-!  (1 ) Bug fix for Linux: use ENCODE statement to convert number to string 
-!        instead of F90 internal read. (bmy, 9/29/03)
-!  (2 ) Now replace 2 and 4 digit year strings for all models (bmy, 10/23/03)
-!  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
-!  (4 ) Now do not replace "ss" with seconds, as the smallest GEOS-Chem
-!        timestep is in minutes. (bmy, 7/20/04)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4158,6 +3947,7 @@
 !
 ! !REVISION HISTORY: 
 !  06 Jul 2018 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4238,6 +4028,7 @@
 !
 ! !REVISION HISTORY: 
 !  06 Jul 2018 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4301,7 +4092,7 @@
 !
 ! !REVISION HISTORY: 
 !  02 May 2005 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4354,7 +4145,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4394,7 +4185,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  12 Aug 2009 - C. Carouge  - Initial version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4402,6 +4193,7 @@
       NYMD_DIAG = GET_NYMD()
 
       END SUBROUTINE TIMESTAMP_DIAG
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4424,7 +4216,7 @@
 ! 
 ! !REVISION HISTORY:
 !  12 Aug 2009 - C. Carouge  - Initial version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4432,6 +4224,7 @@
       THISNYMD = NYMD_DIAG
 
       END FUNCTION GET_NYMD_DIAG
+#endif
 !EOC
 #if defined( ESMF_ ) || defined( MODEL_ )
 !------------------------------------------------------------------------------
@@ -4496,9 +4289,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  06 Dec 2012 - Initial version
-!  11 Dec 2012 - R. Yantosca - Renamed to ACCEPT_EXTERNAL_DATE_TIME
-!  18 Jun 2013 - R. Yantosca - Now compute day of week w/r/t GMT, which is
-!                              the same modification made in SET_CURRENT_TIME
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

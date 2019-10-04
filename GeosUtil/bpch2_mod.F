@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -42,10 +43,10 @@
       PRIVATE :: GET_TAU0_6A
 !
 ! !REMARKS:
-!  ###########################################################################
-!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
-!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
-!  ###########################################################################
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  (1 ) Added routine GET_TAU0 (bmy, 7/20/00)
@@ -145,7 +146,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG
       INTEGER                                  :: IOS
       CHARACTER(LEN=40)                        :: FTI
       CHARACTER(LEN=80)                        :: TMP_TITLE
@@ -199,7 +199,6 @@
       ! Copy value of TMP_TITLE to TITLE for return 
       IF ( PRESENT( TITLE ) ) TITLE = TMP_TITLE
 
-#endif
       ! Return to calling program
       END SUBROUTINE OPEN_BPCH2_FOR_READ
 !EOC
@@ -249,8 +248,6 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-#ifdef BPCH_DIAG
-
       INTEGER           :: IOS
       CHARACTER(LEN=80) :: TMP_TITLE
 
@@ -280,7 +277,6 @@
       ! Write the top-of-file title to disk
       CALL BPCH2_HDR( IUNIT, TMP_TITLE )
 
-#endif
       ! Return to calling program
       END SUBROUTINE OPEN_BPCH2_FOR_WRITE
 !EOC
@@ -325,8 +321,6 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-#ifdef BPCH_DIAG
-
       INTEGER                       :: IOS
       CHARACTER(LEN=40)             :: FTI = 'CTM bin 02'
 
@@ -341,8 +335,6 @@
 
       WRITE ( IUNIT, IOSTAT=IOS ) TITLE
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'bpch2_hdr:2' )
-
-#endif
 
       ! Return to calling program    
       END SUBROUTINE BPCH2_HDR
@@ -406,7 +398,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#ifdef BPCH_DIAG
 !
 ! !LOCAL VARIABLES:
 ! 
@@ -449,7 +440,7 @@
       !=================================================================
       ! Return to calling program      
       !=================================================================
-#endif
+
       END SUBROUTINE BPCH2
 !EOC
 !------------------------------------------------------------------------------
@@ -520,7 +511,6 @@
       ELSE
          MODELNAME = TRIM(Input_Opt%MetField)
       ENDIF
-
 #endif
 
       ! Return to calling program
@@ -671,6 +661,6 @@
       ! Return to calling program
       END FUNCTION GET_TAU0_6A
 !EOC
-
       ! End of module
       END MODULE BPCH2_MOD
+#endif

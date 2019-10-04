@@ -1238,10 +1238,6 @@
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-#ifdef MODEL_GEOS
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD21
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -1477,117 +1473,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#ifdef MODEL_GEOS
-      !=================================================================
-      ! ND21 Diagnostic: 
-      !
-      ! Tracer #1: Cloud optical depths    (from "optdepth_mod.f")
-      ! Tracer #2: Max Overlap Cld Frac    (from "optdepth_mod.f")
-      ! Tracer #3: Random Overlap Cld Frac (from "optdepth_mod.f")
-      ! Tracer #4: Dust optical depths (total all size bins)
-      ! Tracer #5: Dust surface areas (from all size bins)
-      ! Tracers #31-37: Dust AOD for each size bin
-      ! Tracers #38-44: Dust SSA for each size bin
-      ! Tracers #45-51: Dust ASYM for each size bin
-      !==============================================================
-      IF ( Input_Opt%ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
-
-!#############################################################################
-!### Prior to 4/6/15
-!### NOTE: Activating this parallel loop causes differences in the ND21
-!### diagnostic outputs for some reason.  We have not been able to diagnose
-!### this.  The cheap solution is to disable the parallelization, and then
-!### we get identical results between single and multiprocessor runs.
-!### (bmy, 4/6/15)
-!###
-!###!$OMP PARALLEL DO
-!###!$OMP+DEFAULT( SHARED )
-!###!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
-!#############################################################################
-         DO N=1, NDUST
-         DO W = 1, Input_Opt%NWVSELECT !loop over number of wavelengths
-            IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
-               LINTERP=.FALSE.
-            ELSE
-               LINTERP=.TRUE.
-            ENDIF
-            NOUT = 5 + (NRHAER*3) + ((NRHAER+NDUST)*(W-1)) + N
-            ! equivalent to getting 21-27 in the loop for W = 1
-            ! etc for W = 2 and W=3 (fills OD dust bins 1-7 for each lambda)
-
-            DO L = 1, Input_Opt%LD21
-            DO J = 1, State_Grid%NY
-            DO I = 1, State_Grid%NX
-
-               IF ( .not. LINTERP ) THEN
-
-                  !--------------------------------------
-                  ! ND21 tracer #4: Dust optical depths (clh)
-                  !--------------------------------------
-                  AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &                            ODMDUST(I,J,L,IWVSELECT(1,W),N)
-
-                  !--------------------------------------
-                  ! ND21 tracer #21-27: size-resolved dust optical depths
-                  !--------------------------------------
-                  AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) + 
-     &                               ODMDUST(I,J,L,IWVSELECT(1,W),N)
-
-               ELSE
-
-                  ! Interpolated using angstrom exponent between
-                  ! Closest available wavelengths
-                  ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
-                  ! AOD sometimes zero (if Q zero), must catch this
-                  IF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
-     &                (ODMDUST(I,J,L,IWVSELECT(2,W),N).GT.0)) THEN
-
-                     !--------------------------------------
-                     ! ND21 tracer #4: Dust optical depths (clh)
-                     !--------------------------------------
-                     AD21(I,J,L,4) = AD21(I,J,L,4) +
-     &                             ODMDUST(I,J,L,IWVSELECT(2,W),N)*
-     &                             ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
-     &                             ODMDUST(I,J,L,IWVSELECT(1,W),N)/
-     &                             ODMDUST(I,J,L,IWVSELECT(2,W),N)))
-
-                     AD21(I,J,L,NOUT) = AD21(I,J,L,NOUT) +
-     &                                ODMDUST(I,J,L,IWVSELECT(2,W),N)*
-     &                                ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
-     &                                ODMDUST(I,J,L,IWVSELECT(1,W),N)/
-     &                                ODMDUST(I,J,L,IWVSELECT(2,W),N)))
-
-
-                  ENDIF
-               ENDIF
-
-               !--------------------------------------
-               ! ND21 tracer #5: Dust surface areas
-               !--------------------------------------
-               IF ( L <= State_Grid%MaxChemLev ) THEN
-                           
-                  ! Add to AD21
-                  AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(I,J,L,N)
-
-               ENDIF
-            ENDDO
-            ENDDO
-            ENDDO
-         ENDDO
-         ENDDO
-!#############################################################################
-!### Prior to 4/6/15
-!### NOTE: Activating this parallel loop causes differences in the ND21
-!### diagnostic outputs for some reason.  We have not been able to diagnose
-!### this.  The cheap solution is to disable the parallelization, and then
-!### we get identical results between single and multiprocessor runs.
-!### (bmy, 4/6/15)
-!###
-!###!$OMP END PARALLEL DO
-!#############################################################################
-      ENDIF
-#endif
 
       IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          

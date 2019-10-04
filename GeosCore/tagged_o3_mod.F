@@ -89,46 +89,8 @@
 !      equal the total O3 species (#1).
 !
 ! !REVISION HISTORY:
-!  20 Aug 2003 - A. Fiore    - Initial version  
-!  (1 ) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
-!  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
-!  (3 ) Now bracket AD44 with an !$OMP CRITICAL block (bmy, 3/24/04)
-!  (4 ) Now define regions w/ levels in GET_REGIONAL_POX (amf,rch,bmy,5/27/04)
-!  (5 ) Bug fix-avoid seg fault if PBLFRAC isn't allocated (bdf, bmy, 10/12/04)
-!  (6 ) Now reference "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (10) Modified for variable tropopause (phs, bmy, 1/19/07)
-!  (11) Now use LLTROP instead of LLTROP_FIX everywhere (bmy, 12/4/07)
-!  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
-!  (13) Updates for LINOZ (dbj, jliu, bmy, 10/26/09)
-!  19 Nov 2010 - R. Yantosca - Added ProTeX headers
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  14 Mar 2013 - M. Payer    - Replace Ox with O3 as part of removal of NOx-Ox
-!                              partitioning
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  23 Jan 2014 - M. Sulprizio- Now use LLTROP instead of LD65 or LLTROP_FIX
-!                              everywhere (hyl, bmy, 11/3/11)
-!  11 Apr 2014 - R. Yantosca - Add #ifdef USE_ALL_TAGO3_SPECIES to select
-!                              between the simple and extended simulations
-!  11 Apr 2014 - R. Yantosca - Updated comments
-!  11 Apr 2014 - R. Yantosca - Now make the O3Strt tracer #2 for both the
-!                              simple and extended tagged O3 simulations
-!  11 Apr 2014 - R. Yantosca - Now make INIT_TAGGED_OX a public routine
-!  17 Sep 2014 - C. Keller   - Now use HEMCO for prod./loss rates. This makes
-!                              subroutine READ_POX_LOX obsolete.
-!  06 Nov 2014 - R. Yantosca - Removed code orphaned by HEMCO
-!  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  04 Mar 2015 - R. Yantosca - Declare pointer args to HCO_GetPtr with REAL(f4)
-!  16 Jun 2016 - M. Sulprizio- Replace IDTO3Strt from tracerid_mod.F with
-!                              a local definition (module variable id_O3Strat)
-!  12 Jul 2016 - R. Yantosca - Remove routine ADD_STRAT_POX, we now just
-!                              directly add into State_Chm%Species in 
-!                              strat_chm_mod.F90
-!  10 Aug 2016 - M. Sulprizio- Rename from tagged_ox_mod.F to tagged_o3_mod.F
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  20 Aug 2003 - A. Fiore    - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -681,7 +643,6 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput

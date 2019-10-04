@@ -39,7 +39,6 @@ MODULE HCOI_GC_Diagn_Mod
   USE CMN_DIAG_Mod
   USE DIAG_Mod
   USE DIAG53_Mod
-  USE DIAG56_Mod
 #endif
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod

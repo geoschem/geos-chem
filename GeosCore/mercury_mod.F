@@ -14,6 +14,7 @@
 ! !INTERFACE:
 !
       MODULE MERCURY_MOD
+#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -80,6 +81,11 @@
       PRIVATE :: GET_HOCl
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 !  Nomenclature: 
 !  ============================================================================
 !  (1 ) Hg(0)  a.k.a. Hg0  : Elemental   mercury
@@ -363,7 +369,6 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
-#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Br,  AD03_Hg2_OH
@@ -372,7 +377,6 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -1347,7 +1351,6 @@
             ENDIF           
 !$OMP END CRITICAL
 
-#ifdef BPCH_DIAG
             !==============================================================
             ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
             !
@@ -1426,7 +1429,6 @@
                ENDIF
                
             ENDIF  
-#endif
 
             !===========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -2942,9 +2944,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_nat
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -3732,7 +3732,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
          ENDDO
         
-#ifdef BPCH_DIAG
          !==============================================================
          ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
          !
@@ -3802,7 +3801,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
             
          ENDIF
-#endif
 
          !==============================================================
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -3898,9 +3896,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -4155,9 +4151,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -4351,7 +4345,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
             ENDDO
 
-#ifdef BPCH_DIAG
             !-----------------------------------------------------------
             ! %%%%% ND03 (bpch) diagnostics
             !
@@ -4362,7 +4355,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             IF ( ND03 > 0 ) THEN
                AD03(I,J,9,1) = AD03(I,J,9,1) + (EHgP_an(I,J) * DTSRCE)
             ENDIF
-#endif
 
          ENDDO 
          ENDDO
@@ -5280,9 +5272,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : GET_OBK
       USE DAO_MOD,            ONLY : IS_WATER
-#ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
-#endif
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
       USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
@@ -5572,7 +5562,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             BR_PPTV  = BR_PPTV  + Br_POLAR
             BrO_PPTV = BrO_PPTV + BrO_POLAR
 
-#ifdef BPCH_DIAG
             !==============================================================
             ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
             !
@@ -5583,7 +5572,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                AD03_Br(I,J,L,4) = AD03_Br(I,J,L,4) + BRO_POLAR
                AD03_Br(I,J,L,5) = AD03_Br(I,J,L,5) + O3_POLAR_PPB
             ENDIF ! ND03
-#endif
 
             !==============================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -6617,7 +6605,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                FUP(I,J,NN) = MAX(FUP(I,J,NN), SMALLNUM )
                FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
 
-#ifdef BPCH_DIAG
                !--------------------------------------------------------
                ! %%%%% ND03 (bpch) DIAGNOSTICS %%%%%
                !
@@ -6629,7 +6616,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                   AD03(I,J,17,NN) = AD03(I,J,17,NN) 
      &                 + FDOWN(I,J,NN) *DTSRCE
                ENDIF
-#endif
 
                !--------------------------------------------------------
                ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -7787,4 +7773,5 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       END SUBROUTINE CLEANUP_MERCURY
 !EOC
+#endif
       END MODULE MERCURY_MOD
