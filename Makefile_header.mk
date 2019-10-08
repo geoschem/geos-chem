@@ -145,7 +145,6 @@ endif
 # %%%%% Test if mpif90/mpifort is selected (for now assume ifort) %%%%%
 REGEXP               :=(^[Mm][Pp][Ii])
 ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DLINUX_IFORT
   REG_GNU            :=(^[Gg][Nn][Uu])
   REG_INTEL          :=(^[Ii][Ff][Oo][Rr][Tt])
   DISCRIM            :=$(word 1,$(shell $(FC) --version ) )
