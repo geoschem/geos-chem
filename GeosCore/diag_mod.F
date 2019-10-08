@@ -58,10 +58,6 @@
       ! For ND72 -- Radiation output diagnostic
       REAL*4,  ALLOCATABLE :: AD72(:,:,:)
 #endif
-
-      !%%%%%% THIS SHOUDL GO INTO State_Chm!!
-      ! For ND23 -- CH3CCl3 lifetime diagnostic
-      REAL(fp),  ALLOCATABLE :: DIAGCHLORO(:,:,:,:)
 !
 ! !REVISION HISTORY:
 !  30 Nov 1999 - A. Fiore - Initial version
@@ -93,7 +89,6 @@
       !=================================================================
       ! CLEANUP_DIAG begins here!
       !=================================================================
-      IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )
 #ifdef TOMAS
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
       IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   ) 

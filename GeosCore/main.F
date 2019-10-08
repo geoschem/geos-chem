@@ -2149,6 +2149,35 @@
 #ifdef USE_TIMERS
       CALL GEOS_Timer_End ( "Timesteps", RC )
 #endif
+
+#ifndef BPCH_DIAG
+      !-----------------------------------------------------------------
+      !      ***** W R I T E   H E M C O   R E S T A R T S *****
+      !
+      ! NOTE: If BPCH_DIAG=y, then this is done above whenever
+      ! ITS_TIME_FOR_BPCH is TRUE.   If BPCH_DIAG=n, then we have to
+      ! add this here to make sure we get HEMCO restart otuput.
+      !-----------------------------------------------------------------
+#ifdef USE_TIMERS
+      CALL GEOS_Timer_Start( "HEMCO",  RC )
+      CALL GEOS_Timer_Start( "Output", RC )
+#endif
+
+      ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
+      CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .TRUE., RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "HCOI_GC_WriteDiagn"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
+#ifdef USE_TIMERS
+      CALL GEOS_Timer_End( "HEMCO",  RC )
+      CALL GEOS_Timer_End( "Output", RC )
+#endif
+#endif
+
       !-----------------------------------------------------------------
       !         ***** O B S P A C K   D I A G N O S T I C S *****
       !
