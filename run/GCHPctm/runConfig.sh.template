@@ -367,11 +367,15 @@ replace_val() {
     mv tmp ${FILE}
 }
 
-#### Define function to replace met-field read frequency in ExtData.rc
+#### Define function to replace met-field read frequency in ExtData.rc given var name
 update_dyn_freq() {
 
-    # Check number of matches. Should be one; otherwise exit with an error.
-    numlines=$(grep -c "$1.*MetDir" $2)
+    # String to search for
+    str="^[\t ]*$1.*MetDir"
+
+    # Check number of matches where first string is start of line, allowing for
+    # whitespace. # matches should be one; otherwise exit with an error.
+    numlines=$(grep -c "$str" $2)
     if [[ ${numlines} == "0" ]]; then
        echo "ERROR: met-field $1 missing in $2"
        #exit 1
@@ -381,11 +385,11 @@ update_dyn_freq() {
     fi
     
     # Get line number
-    x=$(grep -n "$1.*MetDir" $2)
+    x=$(grep -n "$str" $2)
     linenum=${x%%:*}
     
     # Get current ExtData.rc frequency read string
-    x=$(grep "$1.*MetDir" $2)
+    x=$(grep "$str" $2)
     z=${x%%;*}
     charnum=${#z}
     currentstr=${x[0]:${charnum}+1:6}
