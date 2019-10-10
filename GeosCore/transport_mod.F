@@ -379,10 +379,6 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters        
       USE DAO_MOD,            ONLY : AIRQNT
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD             ! NDxx flags
-      USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -508,15 +504,9 @@
       D_DYN       =  DBLE( N_DYN )
 
       ! Define shadow variables for ND24, ND25, ND26
-#if defined( BPCH_DIAG )
-      ND24x       = ND24
-      ND25x       = ND25
-      ND26x       = ND26
-#else
       ND24x       = 0
       ND25x       = 0
       ND26x       = 0
-#endif
 
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -585,14 +575,6 @@
       ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
       p_Spc     => State_Chm%Species(:,:,State_Grid%NZ:1:-1,1:nAdvect)
 
-      ! Diagnostic arrays are vertically flipped at writeout
-#if defined( BPCH_DIAG )
-      ! Point to global diag_mod arrays for bpch
-      p_MFLEW   => MASSFLEW
-      p_MFLNS   => MASSFLNS
-      p_MFLUP   => MASSFLUP
-#endif
-
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,     Re,      
      &                   State_Grid%NX,
@@ -604,9 +586,6 @@
      &                   P_TEMP,    p_Spc,    IORD,     JORD,      
      &                   KORD,      N_ADJ,    p_XMASS,  p_YMASS,
      &                   LFILL,
-#if defined( BPCH_DIAG )
-     &                   p_MFLEW,   p_MFLNS,  p_MFLUP,
-#endif
      &                   A_M2,      ND24x,    ND25x,    ND26x,
      &                   State_Diag                            )
 
@@ -670,10 +649,6 @@
 !
       USE CMN_SIZE_MOD               ! Size parameters
       USE DAO_MOD,              ONLY : AIRQNT
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD               ! NDxx flags
-      USE DIAG_MOD,             ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,        ONLY : OptInput
@@ -825,15 +800,9 @@
       J0_W1       =  State_Grid%SouthBuffer - BUFF_SIZE
 
       ! Define shadow variables for ND24, ND25, ND26
-#if defined( BPCH_DIAG )
-      ND24x       = ND24
-      ND25x       = ND25
-      ND26x       = ND26
-#else
       ND24x       = 0
       ND25x       = 0
       ND26x       = 0
-#endif
 
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
@@ -924,46 +893,6 @@
       p_P_TEMP => P_TEMP(           I0_W1+1 : I0_W1+IM_W1,
      &                              J0_W1+1 : J0_W1+JM_W1        )
                                    
-#if defined( BPCH_DIAG )
-      !---------------------------------------------------------------------
-      ! NOTE: If ND24 is off, then MASSFLEW is sized (1,1,1,1), and
-      !       If ND25 is off, then MASSFLNS is sized (1,1,1,1), and
-      !       If ND26 is off, then MASSFLUP is sized (1,1,1,1).
-      !
-      ! Using the window offsets (which are greater than 1) will cause
-      ! an array-out-of-bounds error.  For now if any of ND24, ND25,
-      ! or ND26 is off, just point to the whole array and don't try
-      ! to subset it
-      !
-      ! NOTE: BPCH diagnostics are going away really soon!!! 
-      ! (bmy, 7/11/17)
-      !---------------------------------------------------------------------
-      IF ( Input_Opt%ND24 > 0 ) THEN
-         p_MFLEW => MASSFLEW(       I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ELSE
-         p_MFLEW => MASSFLEW
-      ENDIF
-
-      IF ( Input_Opt%ND25 > 0 ) THEN
-         p_MFLNS => MASSFLNS(       I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ELSE
-         p_MFLNS => MASSFLNS
-      ENDIF
-
-      IF ( Input_Opt%ND26 > 0 ) THEN
-         p_MFLUP => MASSFLUP(       I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ELSE
-         p_MFLUP => MASSFLUP
-      ENDIF
-#endif
-
-
       p_A_M2  => A_M2( J0_W1+1 : J0_W1+JM_W1                     )
 
       ! Do the advection
@@ -973,9 +902,6 @@
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_Spc,   IORD,    JORD, 
      &      KORD,    N_ADJ,    p_XMASS, p_YMASS,
-#if defined( BPCH_DIAG )
-     &      p_MFLEW, p_MFLNS,  p_MFLUP,
-#endif
      &      p_A_M2,  ND24x,    ND25x,   ND26x                    ) 
 
       ! Free pointer memory

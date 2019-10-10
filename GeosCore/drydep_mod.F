@@ -17,12 +17,8 @@
 !
       USE CMN_SIZE_MOD                          ! Size parameters
       USE DAO_MOD                               ! Met field subroutines
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD                          ! Diag counters & flags
-      USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
-#endif
       USE ERROR_MOD                             ! Error handling routines
-#if defined( TOMAS )
+#ifdef TOMAS
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
       USE PhysConstants                         ! Physical constants
@@ -639,14 +635,6 @@
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
-#if defined( BPCH_DIAG )
-            ! ND44 diagnostic
-            IF ( ND44 > 0 ) THEN 
-               ! Drydep velocity [cm/s]
-               AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
-            ENDIF
-#endif
-
             ! Archive dry dep velocity [cm/s]
             IF ( State_Diag%Archive_DryDepVel ) THEN
                State_Diag%DryDepVel(I,J,D) = DVZ
@@ -879,7 +867,7 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-#if defined( APM )
+#ifdef APM
       USE APM_INIT_MOD,       ONLY : APMIDS
       USE APM_INIT_MOD,       ONLY : RDRY, RSALT, RDST, DENDST
       USE APM_DRIV_MOD,       ONLY : GFTOT3D, DENWET3D, MWSIZE3D
@@ -1251,7 +1239,7 @@
 !*    Begin section for computing deposition velocities           
 !*                                 
 *                                 
-#if   defined( TOMAS )
+#ifdef TOMAS
       !=================================================================
       ! FOR TOMAS MICROPHYSICS:
       !
@@ -1290,10 +1278,10 @@
 !$OMP+PRIVATE( DUMMY1,  DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB       )
 !$OMP+PRIVATE( C1X,     VK,      I,       J,      IW                )
 !$OMP+PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP )
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
 !$OMP+PRIVATE( RA2M,    Z0OBK2M, RA10M, Z0OBK10M                    )
 #endif
-#if defined( TOMAS )
+#ifdef TOMAS
 !$OMP+PRIVATE( BIN                                                  )
 #endif
 !$OMP+PRIVATE( SpcId,  SpcInfo                                      )
@@ -1595,7 +1583,7 @@
                   ! dust aerosols only.  Do not account for hygroscopic
                   ! growth of the dust aerosol particles.
                   !=====================================================  
-#if defined( TOMAS ) 
+#ifdef TOMAS 
 
                   !-------------------------------
                   !%%% TOMAS SIMULATIONS %%%
@@ -1637,7 +1625,7 @@
 
 #endif
 
-#if defined( APM )
+#ifdef APM
                   IF(SpcInfo%Name(1:8)=='APMSPBIN')THEN
                     DIAM = RDRY(SpcId-APMIDS%id_SO4BIN1+1)*
      &                     GFTOT3D(I,J,1,1)*2.D0

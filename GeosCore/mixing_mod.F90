@@ -374,11 +374,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if defined( BPCH_DIAG )
-    USE CMN_DIAG_MOD,       ONLY : ND44
-    USE DIAG_MOD,           ONLY : AD44
-#endif
-#if defined( USE_TEND )
+#ifdef USE_TEND
     USE TENDENCIES_MOD
 #endif
 !
@@ -825,29 +821,6 @@ CONTAINS
                    IF ( Input_Opt%LSOILNOX ) THEN
                       CALL SOIL_DRYDEP( I, J, L, N, FLUX, State_Chm )
                    ENDIF
-
-#if defined( BPCH_DIAG )
-                   !--------------------------------------------------------
-                   ! DIAGNOSTICS: Drydep flux loss [molec/cm2/s] (ND44)
-                   !
-                   ! For bpch diagnostic, store data in global AD44 array.
-                   !
-                   ! NOTE: WE are adding vertical levels into the 1st
-                   ! level of AD44.  This makes it difficult to separate
-                   ! out the drydep flux by each level, but this is what
-                   ! was done historically.
-                   !
-                   ! ALSO NOTE: The ratio TS_CONV / TS_CHEM accounts for
-                   ! this routine being called on each dynamic timestep,
-                   ! which is half the chemistry timestep.  This prevents
-                   ! us double-counting in the ND44 diagnostic, which is
-                   ! updated each chemistry timestep.
-                   !--------------------------------------------------------
-                   IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
-                      AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX &
-                                             * GET_TS_CONV() / GET_TS_CHEM() 
-                   ENDIF
-#endif
 
                    !--------------------------------------------------------
                    ! HISTORY: Archive drydep flux loss from mixing 

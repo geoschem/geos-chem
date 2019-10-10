@@ -145,10 +145,6 @@
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
       USE IsorropiaII_Main_Mod, ONLY : Isorropia
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD,         ONLY : LD73,   ND73
-      USE DIAG_MOD,             ONLY : AD73
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -725,23 +721,6 @@
          ! Value if DEN_SAV and NUM_SAV too small.
          State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
      &                                          0e+0_fp, 999e+0_fp)
-
-         !==============================================================
-         ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
-         !==============================================================
-
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND73: bpch diagnostic (eam, 04/2015)
-         !--------------------------------------------------------------
-         IF ( ND73 > 0 ) THEN
-            IF ( L <= LD73 ) THEN
-               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Chm%pHSav(   I,J,L)
-               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Chm%HplusSav(I,J,L)
-               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Chm%WaterSav(I,J,L)
-            ENDIF
-         ENDIF
-#endif
 
       ENDDO
       ENDDO

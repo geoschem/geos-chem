@@ -1,4 +1,4 @@
-#if   defined ( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -35,7 +35,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
 #endif
@@ -355,7 +355,7 @@ cdbg  print *, dryd(:)
             ENDDO
 
 
-#if defined( BPCH_DIAG ) 
+#ifdef BPCH_DIAG 
             !========================================================      
             ! ND44: Dry deposition diagnostic [#/cm2/s]
             !========================================================
@@ -485,7 +485,7 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             ENDIF
 ! ******************************************************************************
                
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             !==============================================================
             ! ND44 Diagnostic: Drydep flux of bin1,..,bin30 [molec/cm2/s]
             !==============================================================
@@ -541,7 +541,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
      &         State_Met%F_UNDER_PBLTOP(I,J,L)
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          !==============================================================
          ! ND44 Diagnostic: Drydep flux of H2SO4 [molec/cm2/s]
          !==============================================================

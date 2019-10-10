@@ -2353,75 +2353,75 @@ CONTAINS
 
        CASE ( 'AEROAREAMDUST1' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.15 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAMDUST2' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.25 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAMDUST3' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.4 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAMDUST4' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.8 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAMDUST5' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (1.5 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAMDUST6' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (2.5 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAMDUST7' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (4.0 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREASULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for black carbon'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREABC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for black carbon'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAOC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for organic carbon'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREASSA' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for sea salt,' &
                                  // ' accumulation mode'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREASSC' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for sea salt, coarse mode'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for background' &
                                  // ' stratospheric sulfate'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROAREAICEI' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for irregular ice cloud' &
                                  // ' (Mischenko)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AERORADIMDUST1' )
@@ -2499,75 +2499,75 @@ CONTAINS
 
        CASE ( 'WETAEROAREAMDUST1' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.15 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREAMDUST2' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.25 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREAMDUST3' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.4 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREAMDUST4' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (0.8 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREAMDUST5' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (1.5 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREAMDUST6' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (2.5 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREAMDUST7' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for mineral dust (4.0 um)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREASULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for tropospheric sulfate'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREABC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for black carbon'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREAOC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for organic carbon'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREASSA' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for sea salt,' &
                                  // ' accumulation mode'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREASSC' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for sea salt, coarse mode'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for background' &
                                  // ' stratospheric sulfate'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAEROAREAICEI' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for irregular ice cloud' &
                                  // ' (Mischenko)'
-          IF ( isUnits ) Units = 'cm2/cm3'
+          IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAERORADIMDUST1' )
@@ -2645,75 +2645,75 @@ CONTAINS
 
        CASE ( 'AEROH2OMDUST1' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (0.15 um)'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OMDUST2' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (0.25 um)'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OMDUST3' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (0.4 um)'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OMDUST4' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (0.8 um)'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OMDUST5' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (1.5 um)'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OMDUST6' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (2.5 um)'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OMDUST7' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (4.0 um)'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OSULF' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for tropospheric sulfate'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OBC' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for black carbon'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OOC' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for organic carbon'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OSSA' )
           IF ( isDesc  ) Desc= 'Aerosol H2O content for sea salt,' &
                                // ' accumulation mode'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OSSC' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for sea salt, coarse mode'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OBGSULF' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for background' &
                                 // ' stratospheric sulfate'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'AEROH2OICEI' )
           IF ( isDesc  ) Desc  = 'Aerosol H2O content for irregular ice cloud' &
                                 // ' (Mischenko)'
-          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isUnits ) Units = 'cm3(H2O) cm-3(air)'
           IF ( isRank  ) Rank  = 3
 
        
@@ -2821,7 +2821,7 @@ CONTAINS
 
        CASE( 'HPLUSSAV' )
           IF ( isDesc  ) Desc  = 'ISORROPIA H+ concentration'
-          IF ( isUnits ) Units = 'mol/L'
+          IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
        CASE( 'WATERSAV' )
@@ -2831,23 +2831,23 @@ CONTAINS
 
        CASE( 'SULRATSAV' )
           IF ( isDesc  ) Desc  = 'ISORROPIA sulfate concentration'
-          IF ( isUnits ) Units = 'mol/L'
+          IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
        CASE( 'NARATSAV' )
           IF ( isDesc  ) Desc  = 'ISORROPIA Na+ concentration'
-          IF ( isUnits ) Units = 'mol/L'
+          IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
        CASE( 'ACIDPURSAV' )
           IF ( isDesc  ) Desc  = 'ISORROPIA ACIDPUR'
-          IF ( isUnits ) Units = 'mol/L'
+          IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
        CASE( 'BISULSAV' )
           IF ( isDesc  ) Desc  = 'ISORROPIA Bisulfate (general acid)' &
                                  // ' concentration'
-          IF ( isUnits ) Units = 'mol/L'
+          IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  =  3
 
        CASE( 'PHCLOUD' )
@@ -2872,12 +2872,12 @@ CONTAINS
 
        CASE ( 'HSO3AQ' )
           IF ( isDesc  ) Desc  = 'Cloud bisulfite concentration'
-          IF ( isUnits ) Units = 'mol/L'
+          IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  =  3
 
        CASE ( 'SO3AQ' )
           IF ( isDesc  ) Desc  = 'Cloud sulfite concentration'
-          IF ( isUnits ) Units = 'mol/L'
+          IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  =  3
 
        CASE ( 'FUPDATEHOBR' )
@@ -2887,22 +2887,22 @@ CONTAINS
 
        CASE ( 'H2O2AFTERCHEM' )
           IF ( isDesc  ) Desc  = 'H2O2 after sulfate chemistry'
-          IF ( isUnits ) Units = 'v/v'
+          IF ( isUnits ) Units = 'mol mol-1'
           IF ( isRank  ) Rank  =  3
 
        CASE ( 'SO2AFTERCHEM' )
           IF ( isDesc  ) Desc  = 'SO2 after sulfate chemistry'
-          IF ( isUnits ) Units = 'v/v'
+          IF ( isUnits ) Units = 'mol mol-1'
           IF ( isRank  ) Rank  =  3
 
        CASE ( 'DRYDEPNITROGEN' )
           IF ( isDesc  ) Desc  = 'Dry deposited nitrogen'
-          IF ( isUnits ) Units = 'molec/cm2/s'
+          IF ( isUnits ) Units = 'molec cm-2 s-1'
           IF ( isRank  ) Rank  =  2
 
        CASE ( 'WETDEPNITROGEN' )
           IF ( isDesc  ) Desc  = 'Wet deposited nitrogen'
-          IF ( isUnits ) Units = 'molec/cm2/s'
+          IF ( isUnits ) Units = 'molec cm-2 s-1'
           IF ( isRank  ) Rank  =  2
 
        CASE( 'OCEANHG0' )

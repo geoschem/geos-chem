@@ -32,32 +32,15 @@ MODULE GC_Grid_Mod
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
   PUBLIC  :: Compute_Grid
 #endif
-  PUBLIC  :: Get_Bounding_Box
+  PUBLIC  :: GET_IJ
   PUBLIC  :: SetGridFromCtr
-#if defined ( MODEL_WRF )
+#ifdef MODEL_WRF
   PUBLIC  :: SetGridFromCtrEdges
 #endif
-  PUBLIC  :: GET_IJ
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
-!  01 Mar 2012 - R. Yantosca - Validated for nested grids
-!  03 Apr 2012 - M. Payer    - Added ySin for map_a2a regrid (M. Cooper)
-!  04 Dec 2012 - R. Yantosca - Modified for GIGC running in ESMF environment
-!  26 Feb 2013 - R. Yantosca - Fixed bug in computation of lons & lats when
-!                              connecting GEOS-Chem to the GEOS-5 GCM
-!  19 May 2013 - C. Keller   - Added wrapper routine DoGridComputation so that
-!                              module can also be used by HEMCO.
-!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  26 Mar 2015 - R. Yantosca - Removed obsolete, commented-out code
-!  29 Nov 2016 - R. Yantosca - Renamed to gc_grid_mod.F90 to avoid namespace
-!                              conflicts when interfacing GCHP to the BCC model
-!  09 Aug 2017 - R. Yantosca - Now register lon (slice of XMID), lat (slice of
-!                              YMID) and AREA_M2.  Added registry routines etc.
-!  18 Aug 2017 - R. Yantosca - Move roundoff routines to roundoff_mod.F90
-!  23 Aug 2017 - R. Yantosca - Registry is now moved to grid_registry_mod.F90
-!  11 Nov 2018 - H.P. Lin    - Added SetGridFromCtrEdges for running in WRF environment
-!  10 Mar 2019 - M. Sulprizio- Move module arrays to fields in State_Grid
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -104,6 +87,7 @@ CONTAINS
 !  22 May 2019 - M. Sulprizio- Initial version: Consolidated Compute_Grid and
 !                              DoGridComputation into single routine that
 !                              computes fields in State_Grid.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -525,10 +509,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Jan 2014 - C. Keller   - Initial version
-!  26 Mar 2015 - R. Yantosca - Fix apparent optimization error by using 
-!                              scalars in call to the SIN function
-!  03 Sep 2015 - C. Keller   - Bug fix: need to explicitly calculate adjacent
-!                              mid-point to calculate first xedge and yedge. 
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -603,7 +584,7 @@ CONTAINS
 
   END SUBROUTINE SetGridFromCtr
 !EOC
-#if defined ( MODEL_WRF )
+#ifdef MODEL_WRF
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -611,9 +592,9 @@ CONTAINS
 !
 ! !IROUTINE: SetGridFromCtrEdges
 !
-! !DESCRIPTION: Subroutine SetGridFromCtrEdges sets the grid based upon the passed
-! mid-points and edge-points given an external grid. This interface is primarily
-! used for GEOS-Chem to interface with the WRF model.
+! !DESCRIPTION: Subroutine SetGridFromCtrEdges sets the grid based upon the 
+!  passed mid-points and edge-points given an external grid. This interface 
+!  is primarily used for GEOS-Chem to interface with the WRF model.
 !\\
 !\\
 ! This routine does not update the grid box areas (AREA\_M2) of grid\_mod.F90.
@@ -644,6 +625,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Nov 2018 - H.P. Lin    - Initial version based on SetGridFromCtr
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -702,118 +684,7 @@ CONTAINS
     RC = GC_SUCCESS
 
   END SUBROUTINE SetGridFromCtrEdges
-!EOC
 #endif
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Bounding_Box
-!
-! !DESCRIPTION: Subroutine GET\_BOUNDING\_BOX returns the indices which 
-!  specify the lower left (LL) and upper right (UR) corners of a rectangular 
-!  region, given the corresponding longitude and latitude values. 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Get_Bounding_Box( I1, I2, J1, J2, L, COORDS, State_Grid, &
-                               INDICES )
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER,        INTENT(IN)  :: I1, I2     ! Lon indices
-    INTEGER,        INTENT(IN)  :: J1, J2     ! Lat indices
-    INTEGER,        INTENT(IN)  :: L
-    REAL(fp),       INTENT(IN)  :: COORDS(4)  ! (LON_LL,LAT_LL,LON_UR,LAT_UR)
-    TYPE(GrdState), INTENT(IN)  :: State_Grid ! Grid State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    INTEGER,        INTENT(OUT) :: INDICES(4) ! (I_LL,J_LL,I_UR,J_UR)
-!
-! !REMARKS:
-!  For now, this only works with the surface layer (which is OK since this
-!  routine is mostly just called to find a window for surface emissions) 
-! 
-! !REVISION HISTORY:
-!  24 Feb 2012 - R. Yantosca - Initial version
-!  01 Mar 2012 - R. Yantosca - Modified for  grids, added input parameters
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    INTEGER            :: I, J
-    CHARACTER(LEN=255) :: LOCATION
-
-    !=================================================================
-    ! Initialization
-    !=================================================================
-      
-    ! Location
-    LOCATION = 'GET_BOUNDING_BOX (grid_mod.f)'
-
-    ! Initialize
-    INDICES(:) = 0
-
-    !=================================================================
-    ! Longitude search
-    !=================================================================
-    DO J = 1,  1
-    DO I = I1, I2
-
-       ! Locate index corresponding to the lower-left longitude
-       IF ( COORDS(1) >  State_Grid%XEdge(I,  J)   .and.          &
-            COORDS(1) <= State_Grid%XEdge(I+1,J) ) INDICES(1) = I
-
-         ! Locate index corresponding to upper-right longitude
-       IF ( COORDS(3) >  State_Grid%XEdge(I,  J)   .and.          &
-            COORDS(3) <= State_Grid%XEdge(I+1,J) ) INDICES(3) = I
-
-    ENDDO
-    ENDDO
-
-    ! Error check lower-left longitude
-    IF ( INDICES(1) == 0 ) THEN
-       CALL ERROR_STOP( 'Invalid lower-left lon index!',  LOCATION )
-    ENDIF
-    
-    ! Error check upper-right longitude
-    IF ( INDICES(3) == 0 ) THEN
-       CALL ERROR_STOP( 'Invalid upper-right lon index!', LOCATION )
-    ENDIF
-      
-    !=================================================================
-    ! Latitude search
-    !=================================================================
-    DO J = J1, J2
-    DO I = 1,  1
-
-       ! Locate index corresponding to the lower-left latitude
-       IF ( COORDS(2) >  State_Grid%YEdge(I,J  )   .and.          &
-            COORDS(2) <= State_Grid%YEdge(I,J+1) ) INDICES(2) = J
-
-       ! Locate index corresponding to the upper-right latitude
-       IF ( COORDS(4) >  State_Grid%YEdge(I,J  )   .and.          &
-            COORDS(4) <= State_Grid%YEdge(I,J+1) ) INDICES(4) = J
-
-    ENDDO
-    ENDDO
-
-    ! Error check lower-left longitude
-    IF ( INDICES(2) == 0 ) THEN
-       CALL ERROR_STOP( 'Invalid lower-left lat index!',  LOCATION )
-    ENDIF
-
-    ! Error check upper-right longitude
-    IF ( INDICES(4) == 0 ) THEN
-       CALL ERROR_STOP( 'Invalid upper-right lat index!', LOCATION )
-    ENDIF
-
-  END SUBROUTINE Get_Bounding_Box
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -848,6 +719,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - M. Sulprizio- Initial version based on routine from adjoint
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

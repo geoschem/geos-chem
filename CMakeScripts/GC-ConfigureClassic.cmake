@@ -108,16 +108,18 @@ function(configureGCClassic)
         message(FATAL_ERROR "The value of MECH, \"${MECH}\", is an invalid chemistry mechanism! Select one of: ${VALID_MECHS}.")
     endif()
 
-    # Build with BPCH diagnostics?
-    set(BPCH_OPTIONS "DIAG" "TIMESER" "TPBC")
-    set(BPCH ${BPCH_OPTIONS} CACHE STRING "BPCH definitions for building GEOS-Chem")
-    gc_pretty_print(VARIABLE BPCH OPTIONS ${BPCH_OPTIONS}) # print BPCH to console
-    foreach(BPCH_DEFINE ${BPCH})
-        if(NOT "${BPCH_DEFINE}" IN_LIST BPCH_OPTIONS)
-            message(FATAL_ERROR "The BPCH definition \"BPCH_${BPCH_DEFINE}\" is not a valid BPCH definition.")
-        endif()
-        target_compile_definitions(BaseTarget INTERFACE BPCH_${BPCH_DEFINE})
-    endforeach()
+    # Only turn on bpch diagnostics for a few simulations that still need it
+    set(BPCH_ON_SIM "RRTMG" "TOMAS12" "TOMAS15" "TOMAS30" "TOMAS40" "Hg" "tagHg" "POPs")
+    if("${RUNDIR_SIM}" IN_LIST BPCH_ON_SIM)
+      set(BPCH_DIAG_DEFAULT "ON")
+    else()
+      set(BPCH_DIAG_DEFAULT "OFF")
+    endif()
+    set(BPCH_DIAG "${BPCH_DIAG_DEFAULT}" CACHE BOOL "Switch to enable GEOS-Chem's bpch diagnostics")
+    gc_pretty_print(VARIABLE BPCH_DIAG IS_BOOLEAN)
+    if(${BPCH_DIAG})
+        target_compile_definitions(BaseTarget INTERFACE "BPCH_DIAG")
+    endif()
 
     # Always set USE_REAL8. See https://github.com/geoschem/geos-chem/issues/43.
     target_compile_definitions(BaseTarget INTERFACE "USE_REAL8")

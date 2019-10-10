@@ -54,6 +54,9 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies 
 #if !defined(ESMF_) && !defined( MODEL_WRF )
+  !=========================================================================
+  ! These are only needed for GEOS-Chem "Classic"
+  !=========================================================================
   PRIVATE :: Get_GC_Restart
   PRIVATE :: Get_Met_Fields
   PRIVATE :: Get_Boundary_Conditions
@@ -63,31 +66,8 @@ MODULE HCOI_GC_Main_Mod
 !  This module is ignored if you are using HEMCO in an ESMF environment.
 !
 ! !REVISION HISTORY:
-!  20 Aug 2013 - C. Keller   - Initial version. 
-!  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  30 Jul 2014 - C. Keller   - Added GetHcoState 
-!  20 Aug 2014 - M. Sulprizio- Modify for POPs simulation
-!  21 Aug 2014 - R. Yantosca - Added routine EmissRnPbBe; cosmetic changes
-!  06 Oct 2014 - C. Keller   - Removed PCENTER. Now calculate from pressure edges
-!  21 Oct 2014 - C. Keller   - Removed obsolete routines MAP_HCO2GC and 
-!                              Regrid_Emis2Sim. Added wrapper routine GetHcoID
-!  18 Feb 2015 - C. Keller   - Added routine CheckSettings.
-!  04 Mar 2015 - C. Keller   - Now register all GEOS-Chem species as HEMCO
-!                              species. 
-!  11 Mar 2015 - R. Yantosca - Now move computation of SUMCOSZA here from 
-!                              the obsolete global_oh_mod.F.  Add routines
-!                              GET_SZAFACT and CALC_SUMCOSA.
-!  01 Sep 2015 - R. Yantosca - Remove routine SetSpcMw; we now get parameters
-!                              for species from the species database object.
-!  27 Feb 2016 - C. Keller   - Update to HEMCO v2.0
-!  02 May 2016 - R. Yantosca - Now define IDTPOPG as a module variable
-!  16 Jun 2016 - J. Sheng    - Add species index retriever
-!  20 Jun 2016 - R. Yantosca - Now define species ID's as module variables
-!                              so that we can define them in HCOI_GC_INIT
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
-!  16 Jan 2019 - L. Murray   - Add offline lightning flash rates for LNOx emissions
+!  20 Aug 2013 - C. Keller   - Initial version.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,7 +145,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( TOMAS ) 
+#ifdef TOMAS
     USE TOMAS_MOD,          ONLY : IBINS
     USE TOMAS_MOD,          ONLY : Xk
 #endif
@@ -193,17 +173,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller   - Initial version 
-!  07 Jul 2014 - C. Keller   - Now match species and set species properties
-!                              via module variables.
-!  30 Sep 2014 - R. Yantosca - Now pass fields for aerosol and microphysics
-!                              options to extensions via HcoState
-!  13 Feb 2015 - C. Keller   - Now read configuration file in two steps.
-!  04 Apr 2016 - C. Keller   - Now accept optional input argument HcoConfig.
-!  16 Jun 2016 - J. Sheng    - Add species index retriever
-!  20 Jun 2016 - R. Yantosca - Now initialize all species ID's here
-!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  12 Sep 2013 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -432,7 +403,7 @@ CONTAINS
     ! compared to a stand-alone version: in ESMF, the source file name
     ! is set to the container name since this is the identifying name
     ! used by ExtData.
-#if defined(ESMF_)
+#ifdef ESMF_
     HcoState%isESMF = .TRUE.
 #else 
     HcoState%isESMF = .FALSE.
@@ -464,7 +435,7 @@ CONTAINS
     ! Save # of defined dust species in HcoState
     HcoState%nDust                     =  NDSTBIN
 
-#if defined( TOMAS )
+#ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
     HcoState%MicroPhys%nBins           =  IBINS
@@ -473,13 +444,13 @@ CONTAINS
     HcoState%MicroPhys%BinBound        => Xk
 
     ! Save # of TOMAS active mode bins in HcoState
-# if defined( TOMAS40 )
+#if defined( TOMAS40 )
     HcoState%MicroPhys%nActiveModeBins =  10
-# elif defined( TOMAS15 )
+#elif defined( TOMAS15 )
     HcoState%MicroPhys%nActiveModeBins =  3
-# else 
+#else 
     HcoState%MicroPhys%nActiveModeBins =  0
-# endif
+#endif
 #endif
 
     !=======================================================================
@@ -662,14 +633,8 @@ CONTAINS
 !  Phase  2 : Perform emissions calculation
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller   - Initial version 
-!  22 Aug 2014 - R. Yantosca - Now pass State_Met to MAP_HCO2GC
-!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
-!  13 Jan 2015 - C. Keller   - Now check if it's time for emissions. Added
-!                              call to HcoClock_EmissionsDone.
-!  06 Mar 2015 - R. Yantosca - Now create splash page for HEMC
-!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  12 Sep 2013 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -813,7 +778,7 @@ CONTAINS
 
 #if !defined(ESMF_) && !defined( MODEL_WRF )
     !=======================================================================
-    ! Get met fields from HEMCO
+    ! Get met fields from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
     IF ( Phase == 0 .or. PHASE == 1 ) THEN
        CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Chm, State_Grid, &
@@ -821,7 +786,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Get fields from GEOS-Chem restart file
+    ! Get fields from GEOS-Chem restart file (GEOS-Chem "Classic" only)
     !=======================================================================
     IF ( Phase == 0 ) THEN
        CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Chm, State_Grid, &
@@ -829,7 +794,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Get boundary conditions from HEMCO
+    ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
     IF ( State_Grid%NestedGrid .and. (Phase == 0 .or. PHASE == 1) ) THEN
        CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
@@ -975,9 +940,8 @@ CONTAINS
     INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller   - Initial version 
-!  19 Feb 2015 - R. Yantosca - Change restart file name back to HEMCO_restart
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  12 Sep 2013 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1116,9 +1080,8 @@ CONTAINS
     INTEGER,        INTENT(INOUT) :: RC           ! Success or failure?
 !
 ! !REVISION HISTORY: 
-!  01 Apr 2015 - C. Keller   - Initial version 
-!  06 Jan 2017 - R. Yantosca - Now tell user to check HEMCO log for err msgs
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  01 Apr 2015 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1214,13 +1177,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller    - Initial Version
-!  20 Aug 2014 - M. Sulprizio - Add PBL_MAX and FRAC_OF_PBL for POPs simulation
-!  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
-!  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
-!                               internally in Paranox.
-!  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
-!  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
-!  19 Jan 2018 - R. Yantosca  - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1427,11 +1384,8 @@ CONTAINS
     USE ErrCode_Mod
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
-
-    ! For SoilNox
     USE Drydep_Mod,     ONLY : DryCoeff
-
-#if defined(ESMF_)
+#ifdef ESMF_
     USE HCOI_Esmf_Mod,  ONLY : HCO_SetExtState_ESMF
 #endif
 !
@@ -1449,23 +1403,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller    - Initial Version
-!  20 Aug 2014 - M. Sulprizio - Add PBL_MAX and FRAC_OF_PBL for POPs simulation
-!  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
-!  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
-!                               internally in Paranox.
-!  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
-!  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
-!  03 Apr 2015 - C. Keller    - Now call down to ExtDat_Set for all fields
-!  14 Mar 2016 - C. Keller    - Append '_FOR_EMIS' to all HEMCO met field names
-!                               to avoid conflict if met-fields are read via
-!                               HEMCO.
-!  02 May 2016 - R. Yantosca  - Now define IDTPOPG locally
-!  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
-!                               species ID from State_Chm%Map_Advect.
-!  06 Jan 2017 - R. Yantosca  - Now tell user to look at HEMCO log for err msgs
-!  23 May 2017 - R. Yantosca  - Fixed typo for MERRA2 in #ifdef at line 1193
-!  02 Jun 2017 - C. Keller    - Call HCO_SetExtState_ESMF every time.
-!  19 Jan 2018 - R. Yantosca  - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2096,7 +2034,7 @@ CONTAINS
     ! ckeller, 06/02/17: now call this on every time step. Routine
     ! HCO_SetExtState_ESMF copies the fields to ExtState.
     ! ----------------------------------------------------------------
-#if defined( ESMF_ )
+#ifdef ESMF_
     ! IF ( FIRST ) THEN
     CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
 
@@ -2146,7 +2084,7 @@ CONTAINS
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
-#if defined(ESMF_) 
+#ifdef ESMF_
     USE HCOI_ESMF_MOD,    ONLY : HCO_SetExtState_ESMF
 #endif
 !
@@ -2166,18 +2104,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller   - Initial Version
-!  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
-!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
-!  11 Mar 2015 - R. Yantosca - Now call GET_SZAFACT in this module
-!  11 Sep 2015 - E. Lundgren - Remove State_Chm from passed args since not used
-!  20 Apr 2016 - M. Sulprizio- Change JO1D to JOH to reflect that the array now
-!                              holds the effective O3 + hv -> 2OH rates
-!  27 Jun 2016 - M. Sulprizio- Obtain photolysis rate directly from ZPJ array
-!                              and remove reference to FJXFUNC and obsolete
-!                              SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
-!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
-!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2350,13 +2277,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Oct 2014 - C. Keller   - Initial version
-!  28 Sep 2015 - C. Keller   - Now call HCO_CalcVertGrid
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  06 Jun 2016 - R. Yantosca - Now declar PEDGE array for edge pressures [Pa]
-!  06 Jun 2016 - R. Yantosca - PSFC now points to PEDGE(:,:,1)
-!  06 Jun 2016 - R. Yantosca - Now add error traps
-!  26 Oct 2016 - R. Yantosca - Now improve error traps for PBLM
-!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2535,12 +2456,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Mar 2015 - C. Keller   - Initial Version
-!  01 Sep 2015 - R. Yantosca - Remove reference to GET_HENRY_CONSTANT; we now
-!                              get Henry constants from the species database
-!  02 May 2016 - R. Yantosca - Now initialize IDTPOPG here
-!  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
-!                              fast-species lookup from the species database
-!  20 Jun 2016 - R. Yantosca - All species IDs are now set in the init phase
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2781,9 +2697,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller   - Initial Version
-!  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  28 Sep 2015 - C. Keller   - Now use HCO_VertGrid_Mod for vertical grid
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2925,17 +2839,7 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  18 Feb 2015 - C. Keller   - Initial Version
-!  04 Mar 2015 - R. Yantosca - Now determine if we need to read UV albedo
-!                              data from the settings in input.geos
-!  16 Mar 2015 - R. Yantosca - Now also toggle TOMS_SBUV_O3 based on
-!                              met field type and input.geos settings
-!  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
-!  27 Aug 2015 - E. Lundgren - Now always read TOMS for mercury simulation when
-!                              photo-reducible HgII(aq) to UV-B radiation is on
-!  11 Sep 2015 - E. Lundgren - Remove State_Met and State_Chm from passed args
-!  03 Dec 2015 - R. Yantosca - Bug fix: pass am_I_Root to AddExtOpt
-!  19 Sep 2016 - R. Yantosca - Now compare LOGICALs with .eqv. and .neqv.
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3063,7 +2967,7 @@ CONTAINS
     ENDIF
 
     IF ( FOUND ) THEN
-#if defined( ESMF_ )
+#ifdef ESMF_
        ! If this is in an ESMF environment, then we should not get STATE_PSC
        ! through HEMCO - instead it is an internal restart variable
        If (LTMP) Then
@@ -3081,7 +2985,7 @@ CONTAINS
        ENDIF
 #endif
     ELSE
-#if defined( ESMF_ )
+#ifdef ESMF_
        OptName = '+STATE_PSC+ : false'
 #else
        IF ( Input_Opt%LUCX ) THEN
@@ -3101,7 +3005,7 @@ CONTAINS
        ENDIF
     ENDIF 
 
-#if defined( ESMF_ )
+#ifdef ESMF_
     ! Also check that HEMCO_RESTART is not set
     CALL GetExtOpt( HcoConfig,       -999,        'HEMCO_RESTART',           &
                     OptValBool=LTMP, FOUND=FOUND,  RC=HMRC                  )
@@ -3373,10 +3277,7 @@ CONTAINS
 !  Moved here from the obsolete global_oh_mod.F.
 !
 ! !REVISION HISTORY: 
-!  01 Mar 2013 - C. Keller   - Imported from carbon_mod.F, where these
-!                              calculations are done w/in GET_OH
-!  06 Feb 2018 - E. Lundgren - Update unit conversion factor for timestep
-!                              unit changed from min to sec
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3432,13 +3333,8 @@ CONTAINS
 ! !REMARKS:
 !  Moved here from the obsolete global_oh_mod.F.
 !
-! !REVISION HISTORY: 
-!  01 Mar 2013 - C. Keller   - Imported from carbon_mod.F, where it's
-!                              called OHNO3TIME
-!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
-!                              from (MAXIJ) to (IIPAR,JJPAR)
-!  06 Feb 2018 - E. Lundgren - Update time conversion factors for timestep
-!                              unit change from min to sec
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3598,15 +3494,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
-!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_MERRA_A3_FIELDS
-!  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
-!  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
-!  12 Aug 2015 - R. Yantosca - Call routines for reading MERRA2 fields
-!  25 Oct 2018 - M. Sulprizio- Move READ_INITIAL_MET_FIELDS to hcoi_gc_main_mod
-!                              and rename Get_Met_Fields
-!  16 Nov 2018 - M. Sulprizio- Do not get met fields on last timestep
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3877,7 +3765,6 @@ CONTAINS
    USE Error_Mod
    USE HCO_INTERFACE_MOD,  ONLY : HcoState
    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
-   USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
    USE PHYSCONSTANTS,      ONLY : AIRMW
    USE Input_Opt_Mod,      ONLY : OptInput
    USE Species_Mod,        ONLY : Species
@@ -3886,10 +3773,12 @@ CONTAINS
    USE State_Met_Mod,      ONLY : MetState
    USE TIME_MOD,           ONLY : EXPAND_DATE
    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if defined( APM )
+#ifdef APM
    USE APM_INIT_MOD,       ONLY : APMIDS
 #endif
-
+#ifdef BPCH_DIAG
+   USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3909,26 +3798,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !
 !  09 Feb 2016 - E. Lundgren - Initial version
-!  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
-!                              database field emMW_g (emitted species g/mol)
-!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with SpcInfo%Name from species database
-!  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
-!                              HgP_Id_List fields of State_Chm
-!  11 Jul 2016 - E. Lundgren - Remove tracers and read only species
-!  12 Jul 2016 - E. Lundgren - Rename from read_gc_restart_nc
-!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN, MMN, CFCX, and
-!                              HCFCX. Family tracers have been eliminated.
-!  25 Jul 2016 - E. Lundgren - Store whether species in rst file in species db
-!                              rather than module-level variable
-!  03 Aug 2016 - E. Lundgren - Remove tracers; now only use species
-!  11 Aug 2016 - E. Lundgren - Move source of background values to spc database
-!  28 Nov 2017 - R. Yantosca - Now only replace tokens in filename but not
-!                              in the rest of the path
-!  24 Oct 2018 - M. Sulprizio- Move READ_GC_RESTART to hcoi_gc_main_mod.F90
-!                              and rename GET_GC_RESTART
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4189,7 +4059,7 @@ CONTAINS
          ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( APM )
+#ifdef APM
          !================================================================
          ! APM MICROPHYSICS
          !================================================================
@@ -4529,7 +4399,7 @@ CONTAINS
          ENDIF
       ELSE
          IF ( am_I_Root ) THEN
-#if defined(ESMF_)
+#ifdef ESMF_
             ! ExtData and HEMCO behave ambiguously - if the file was found
             ! but was full of zeros throughout the domain of interest, it
             ! will result in the same output from ExtData as if the field
@@ -4550,7 +4420,8 @@ CONTAINS
       Ptr3D => NULL()
 
    ENDIF
-   
+  
+#ifdef BPCH_DIAG 
    !=================================================================
    ! Read ocean mercury variables
    !=================================================================
@@ -4755,6 +4626,7 @@ CONTAINS
       Hg_Cat_Name => NULL()
 
    ENDIF
+#endif
 
    !=================================================================
    ! Clean up
@@ -4767,6 +4639,7 @@ CONTAINS
    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
  END SUBROUTINE Get_GC_Restart
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4812,6 +4685,8 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  14 Apr 2019 - M. Sulprizio- Initial version
+!  See the Git history with the gitk browser!
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !

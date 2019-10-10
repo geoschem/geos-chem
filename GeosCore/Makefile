@@ -72,98 +72,7 @@
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
-#  18 Sep 2009 - P. Le Sager - Removed -lKppInt
-#  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
-#                              display the help screen options
-#  19 Nov 2009 - R. Yantosca - Now compile the various GEOS-Chem utility
-#                              modules in the GeosUtil subdirectory
-#  19 Nov 2009 - R. Yantosca - Now compile the GEOS-Chem bpch module 
-#                              separately in the GeosBpch subdirectory
-#  19 Nov 2009 - R. Yantosca - Now list all object dependencies explicitly,
-#                              to be able to use "make -j" (parallel make)
-#  23 Nov 2009 - R. Yantosca - Remove "main.o" explicitly form the "exe"
-#                              makefile target.  This will be now compiled in
-#                              the proper sequence given the dependency
-#                              ordering.  This allows "make -j" to work. 
-#  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
-#                              automatically written to the mod directory
-#  23 Nov 2009 - R. Yantosca - Removed libbpch; bundled that into libutil
-#  23 Nov 2009 - R. Yantosca - Added separate target libcore.  lib is now
-#                              a synonym for "libkpp libutil libcore"
-#  01 Dec 2009 - R. Yantosca - Modified the "exe" target for SunStudio compiler
-#                              which chokes at link time if the list of object
-#                              files is not explicitly passed
-#  02 Dec 2009 - R. Yantosca - Add conditional statements in dependencies list
-#                              for the SunStudio compiler
-#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
-#  21 Dec 2009 - R. Yantosca - Now get LINK from Makefile_header.mk
-#  25 Jan 2010 - R. Yantosca - Whem making "realclean", also call "clean" in
-#                              the $(GEOSTOM)/Makefile.  Also make sure to 
-#                              remove executables in the $(BIN) directory.
-#  28 Jan 2010 - C. Carouge  - Modifications for ISORROPIA II
-#  08 Feb 2010 - C. Carouge  - Modifications for F. Paulot's isoprene scheme
-#  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
-#  14 May 2010 - C. Carouge  - Updates for mercury simulation
-#  20 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
-#  16 Feb 2011 - R. Yantosca - Add modifications for APM (G. Luo)
-#  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
-#  04 Nov 2011 - R. Yantosca - Remove references to ESMF subdirectory
-#  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions routines
-#  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
-#  25 Jan 2012 - R. Yantosca - Add ncdfcheck target to check netCDF install
-#  05 Apr 2012 - R. Yantosca - Now assume netCDF will always be used
-#  05 Apr 2012 - R. Yantosca - Now retire rdlai.F, readlai.F
-#  11 Apr 2012 - R. Yantosca - Now retire obsolete lai_mod.F
-#  11 Apr 2012 - R. Yantosca - Reference modis_lai_mod.F90 in timeseries diag
-#  11 Apr 2012 - R. Yantosca - Remove all references to obsolete lai_mod.F
-#  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
-#  19 Apr 2012 - R. Yantosca - Remove reference to rd_prof.F
-#  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
-#  27 Nov 2012 - R. Yantosca - Remove reference to getifsun.F
-#  27 Mar 2013 - S.D. Eastham- Rolled photolysis functions together
-#  30 May 2013 - R. Yantosca - Remove reference to GEOS-3 TPCORE routines 
-#  13 Aug 2013 - M. Sulprizio- Remove reference to soaprod_mod.F (no longer
-#                              needed) (SOAupdate, hotp 7/25/10)
-#  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
-#  20 Sep 2013 - R. Yantosca - Bug fix for make realclean: Don't try to make
-#                              clean unless we compile for target hpc
-#  27 Jan 2014 - R. Yantosca - Add tomas_mod.o to wetscav_mod dependency list
-#  03 Feb 2014 - R. Yantosca - Add linoz_mod.o to input_mod.o dependency list
-#  21 Feb 2014 - M. Sulprizio- Removed reference to tropopause_mod.F. It is now
-#                              obsolete because of the UCX updates.
-#  18 Mar 2014 - R. Yantosca - Add tauclean target to remove TAU profile files
-#  19 Mar 2014 - R. Yantosca - Now restore GTMM functionality
-#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
-#  11 Apr 2014 - R. Yantosca - Add modules to input_mod.o dependencies list
-#  23 Jun 2014 - R. Yantosca - Remove references to obsolete logical_mod.o
-#  21 Jul 2014 - R. Yantosca - Now build HEMCO emissions modules after
-#                              NcdfUtil and GeosUtil, but before GeosCore
-#  22 Jul 2014 - R. Yantosca - Move hcox_paranox_mod.F90, paranox_util_mod.F90
-#                              and hcox_driver_mod.F90 back to HEMCO/Extensions
-#  24 Jul 2014 - R. Yantosca - Remove canopy_nox_mod.F, readfert.F, readclim.F,
-#                              and readsoil.F. HEMCO makes all these obsolete.
-#  15 Sep 2014 - M. Sulprizio- Remove global_oc_mod.F and global_bc_mod.F.
-#                              HEMCO makes these obsolete.
-#  23 Sep 2014 - M. Sulprizio- Removed global_hno3_mod.F and global_no3_mod.F.
-#                              HEMCO makes these obsolete.
-#  04 Jun 2015 - R. Yantosca - Add wipeout target to remove any leftover
-#                              library, module, or executable files
-#  03 Sep 2015 - R. Yantosca - Add gamap_mod.o dependency to input_mod.o
-#  03 Dec 2015 - R. Yantosca - cleanup.o now depends on geosfp_read_mod.o
-#                              and merra2_read_mod.o
-#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
-#  07 Dec 2015 - R. Yantosca - Add "realclean_except_rrtmg" target
-#  18 May 2016 - M. Sulprizio- Remove comode_mod.F, setemis.F, and several
-#                              leftover routines from SMVGEAR
-#  23 Jun 2016 - R. Yantosca - Remove references to tracerid_mod
-#  23 Jun 2016 - R. Yantosca - Remove references to GeosApm
-#  30 Jun 2016 - M. Sulprizio- Remove readchem.F, reader.F, jsparse.F, ksparse.F
-#  09 Aug 2016 - M. Sulprizio- Remove diag_pl_mod and add diag20_mod
-#  13 Jul 2017 - E. Lundgren - Remove passive_species_mod.F90
-#  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
-#  23 Aug 2018 - H.P. Lin    - If NO_EXE is set (i.e. EXE_NEEDED=0) for coupled
-#                              model driving G-C do not build "geos" but instead
-#                              "libGeosCore.a"
+#  See the Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -467,8 +376,6 @@ aerosol_mod.o               : aerosol_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               tomas_mod.o             ucx_mod.o
 
-benchmark_mod.o             : benchmark_mod.F                              
-
 bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
                               pbl_mix_mod.o
 
@@ -497,10 +404,8 @@ cleanup.o                   : cleanup.F                                      \
                               carbon_mod.o            co2_mod.o              \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag_mod.o              diag03_mod.o           \
-                              diag04_mod.o            diag41_mod.o           \
-                              diag50_mod.o            diag51_mod.o           \
-                              diag51b_mod.o           diag53_mod.o           \
-                              diag_oh_mod.o           diag20_mod.o           \
+                              diag51_mod.o            diag51b_mod.o          \
+                              diag53_mod.o            diag_oh_mod.o          \
                               drydep_mod.o            dust_mod.o             \
                               global_ch4_mod.o        wetscav_mod.o          \
                               isorropiaII_mod.o       land_mercury_mod.o     \
@@ -520,7 +425,7 @@ cleanup.o                   : cleanup.F                                      \
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
 co2_mod.o                   : co2_mod.F                                      \
-                              diag04_mod.o            hco_interface_mod.o
+                              hco_interface_mod.o
 
 convection_mod.o            : convection_mod.F                               \
                               diag_mod.o              depo_mercury_mod.o     \
@@ -536,37 +441,16 @@ depo_mercury_mod.o          : depo_mercury_mod.F                             \
 
 diag03_mod.o                : diag03_mod.F
 
-diag04_mod.o                : diag04_mod.F
-
 diag1.o                     : diag1.F                                        \
                               hco_interface_mod.o     dao_mod.o              \
                               diag03_mod.o            diag_mod.o
 
 diag3.o                     : diag3.F                                        \
                               diag_mod.o              diag03_mod.o           \
-                              diag04_mod.o            diag41_mod.o           \
-                              diag42_mod.o            diag53_mod.o           \
-                              diag56_mod.o            depo_mercury_mod.o     \
+                              diag53_mod.o            depo_mercury_mod.o     \
                               drydep_mod.o            hco_interface_mod.o    \
                               apm_driv_mod.o          wetscav_mod.o          \
                               tomas_mod.o             
-
-diag20_mod.o                : diag20_mod.F
-
-diag41_mod.o                : diag41_mod.F                                   \
-                              pbl_mix_mod.o
-
-diag42_mod.o                : diag42_mod.F                                   \
-                              aerosol_mod.o           carbon_mod.o            
-
-diag48_mod.o                : diag48_mod.F                                   \
-                              pbl_mix_mod.o           
-
-diag49_mod.o                : diag49_mod.F                                   \
-                              modis_lai_mod.o         pbl_mix_mod.o
-
-diag50_mod.o                : diag50_mod.F                                   \
-                              pbl_mix_mod.o           aerosol_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
                               pbl_mix_mod.o           
@@ -575,15 +459,6 @@ diag51b_mod.o               : diag51b_mod.F                                  \
                               pbl_mix_mod.o           
 
 diag53_mod.o                : diag53_mod.F
-
-diag56_mod.o                : diag56_mod.F
-
-diag63_mod.o                : diag63_mod.F                                   \
-                              diag_mod.o              pbl_mix_mod.o          \
-                              hco_interface_mod.o
-
-diag_2pm.o                  : diag_2pm.F                                     \
-                              diag_mod.o
 
 diag_mod.o                  : diag_mod.F
 
@@ -617,9 +492,8 @@ fast_jx_mod.o               : fast_jx_mod.F                                  \
                               dao_mod.o               toms_mod.o              
 
 flexchem_mod.o              : flexchem_mod.F90                               \
-                              aerosol_mod.o                                  \
-                              diag_mod.o              diag_oh_mod.o          \
-                              diag20_mod.o            dust_mod.o             \
+                              aerosol_mod.o           diag_mod.o             \
+                              diag_oh_mod.o           dust_mod.o             \
                               fast_jx_mod.o           strat_chem_mod.o       \
                               tomas_mod.o
 
@@ -631,24 +505,16 @@ fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
                               diag_mod.o              depo_mercury_mod.o
 
 gamap_mod.o                 : gamap_mod.F                                    \
-                              diag03_mod.o            diag04_mod.o           \
-                              diag41_mod.o            diag42_mod.o           \
-                              diag48_mod.o            diag49_mod.o           \
-                              diag50_mod.o            diag51_mod.o           \
+                              diag03_mod.o            diag51_mod.o           \
                               diag51b_mod.o           diag53_mod.o           \
-                              diag56_mod.o            diag63_mod.o           \
-                              drydep_mod.o            tomas_mod.o            \
-                              wetscav_mod.o
+                              drydep_mod.o            tomas_mod.o            
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
-                              aerosol_mod.o           benchmark_mod.o        \
-                              carbon_mod.o                                   \
+                              aerosol_mod.o           carbon_mod.o           \
                               co2_mod.o               diagnostics_mod.o      \
                               depo_mercury_mod.o      diag03_mod.o           \
-                              diag20_mod.o            diag48_mod.o           \
-                              diag49_mod.o            diag50_mod.o           \
                               diag51_mod.o            diag51b_mod.o          \
-                              diag63_mod.o            diag_oh_mod.o          \
+                              diag_oh_mod.o           wetscav_mod.o          \
                               drydep_mod.o            dust_mod.o             \
                               gamap_mod.o             get_ndep_mod.o         \
                               global_ch4_mod.o        input_mod.o            \
@@ -658,7 +524,7 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
                               seasalt_mod.o           sulfate_mod.o          \
                               tagged_co_mod.o         tagged_o3_mod.o        \
                               toms_mod.o                                     \
-                              vdiff_pre_mod.o         wetscav_mod.o
+                              vdiff_pre_mod.o         
 
 get_met_mod.o               : get_met_mod.F90                                \
                               hco_interface_mod.o
@@ -679,8 +545,7 @@ hco_interface_mod.o         : hco_interface_mod.F90
 hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
                               hco_interface_mod.o                            \
-                              diag_mod.o              diag53_mod.o           \
-                              diag56_mod.o 
+                              diag_mod.o              diag53_mod.o
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               get_ndep_mod.o          drydep_mod.o           \
@@ -691,14 +556,10 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
-                              diag04_mod.o            diag41_mod.o           \
-                              diag42_mod.o            diag53_mod.o           \
-                              diag56_mod.o
+                              diag53_mod.o
 
 input_mod.o                 : input_mod.F                                    \
-                              diag03_mod.o            diag04_mod.o           \
-                              diag41_mod.o            diag42_mod.o  	     \
-                              diag53_mod.o            diag56_mod.o           \
+                              diag03_mod.o            diag53_mod.o           \
                               drydep_mod.o            planeflight_mod.o
 
 isorropiaII_mod.o           : isorropiaII_mod.F                              \
@@ -711,12 +572,9 @@ land_mercury_mod.o          : land_mercury_mod.F      modis_lai_mod.o        \
 linoz_mod.o                 : linoz_mod.F
 
 main.o                      : main.F                                         \
-                              benchmark_mod.o         chemistry_mod.o        \
+                              chemistry_mod.o                                \
                               carbon_mod.o            convection_mod.o       \
-                              diag41_mod.o            diag42_mod.o           \
-                              diag48_mod.o            diag49_mod.o           \
-                              diag50_mod.o            diag51_mod.o           \
-                              diag51b_mod.o           diag63_mod.o           \
+                              diag51_mod.o            diag51b_mod.o           \
                               diag_oh_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      drydep_mod.o           \
                               diagnostics_mod.o       toms_mod.o             \
@@ -756,8 +614,7 @@ modis_lai_mod.o             : modis_lai_mod.F90                              \
                               hco_interface_mod.o
 
 ndxx_setup.o                : ndxx_setup.F                                   \
-                              diag_mod.o                                     \
-                              diag63_mod.o            diag_oh_mod.o          \
+                              diag_mod.o              diag_oh_mod.o          \
                               drydep_mod.o            planeflight_mod.o      \
                               tomas_mod.o             wetscav_mod.o
 

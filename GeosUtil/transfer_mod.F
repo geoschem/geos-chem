@@ -14,6 +14,7 @@
 ! !INTERFACE: 
 !
       MODULE TRANSFER_MOD
+#ifdef EXCHANGE
 ! 
 ! !USES:
 !
@@ -34,6 +35,10 @@
       PUBLIC  :: CLEANUP_TRANSFER
 ! 
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE EXCHANGE=y OPTION. (bmy, 10/4/19)                       %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/11/15)
 !  ============================================================================
@@ -364,5 +369,6 @@
       IF ( ALLOCATED( EDGE_IN ) ) DEALLOCATE( EDGE_IN )
 
       END SUBROUTINE CLEANUP_TRANSFER
+#endif
 !EOC
       END MODULE TRANSFER_MOD

@@ -12,6 +12,7 @@
 ! !INTERFACE: 
 !
       MODULE DIAG03_MOD
+#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -121,7 +122,6 @@
       !=================================================================
       ! ZERO_DIAG03 begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
 
       ! Exit if ND03 is turned off
       IF ( ND03 == 0 ) RETURN
@@ -142,7 +142,6 @@
       AD03_RGM       = 0e+0_fp     
       AD03_PBM       = 0e+0_fp
       AD03_RIV       = 0e+0_fp
-#endif
 
       END SUBROUTINE ZERO_DIAG03
 !EOC
@@ -278,8 +277,6 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ! Exit if ND03 is turned off
       IF ( ND03 == 0 ) RETURN
@@ -1041,7 +1038,6 @@
          ENDDO
 
       END IF
-#endif
 
       END SUBROUTINE WRITE_DIAG03
 !EOC
@@ -1091,7 +1087,6 @@
       !=================================================================
       ! INIT_DIAG03 begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
 
       ! Exit if ND03 is turned off
       IF ( ND03 == 0 ) THEN
@@ -1174,7 +1169,6 @@
 
       ! Zero arrays
       CALL ZERO_DIAG03
-#endif
 
       END SUBROUTINE INIT_DIAG03
 !EOC
@@ -1203,7 +1197,6 @@
       !=================================================================
       ! CLEANUP_DIAG03 begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD03          ) ) DEALLOCATE( AD03          ) 
       IF ( ALLOCATED( AD03_Hg2_Hg0  ) ) DEALLOCATE( AD03_Hg2_Hg0  )
       IF ( ALLOCATED( AD03_Hg2_OH   ) ) DEALLOCATE( AD03_Hg2_OH   )
@@ -1221,8 +1214,8 @@
       IF ( ALLOCATED( AD03_RGM      ) ) DEALLOCATE( AD03_RGM      )
 !------------------------------------------------------------------------------
       IF ( ALLOCATED( AD03_RIV      ) ) DEALLOCATE( AD03_RIV      )
-#endif
 
       END SUBROUTINE CLEANUP_DIAG03
 !EOC
+#endif
       END MODULE DIAG03_MOD

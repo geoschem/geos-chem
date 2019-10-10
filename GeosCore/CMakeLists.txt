@@ -23,7 +23,6 @@ endif()
 add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	aero_drydep.F
 	aerosol_mod.F
-	benchmark_mod.F
 	bromocarb_mod.F
 	carbon_mod.F
 	chemistry_mod.F90
@@ -33,21 +32,11 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	convection_mod.F
 	depo_mercury_mod.F
 	diag03_mod.F
-	diag04_mod.F
 	diag1.F
-	diag20_mod.F
-	diag_2pm.F
 	diag3.F
-	diag41_mod.F
-	diag42_mod.F
-	diag48_mod.F
-	diag49_mod.F
-	diag50_mod.F
 	diag51b_mod.F
 	diag51_mod.F
 	diag53_mod.F
-	diag56_mod.F
-	diag63_mod.F
 	diag_oh_mod.F
 	drydep_mod.F
 	dust_mod.F

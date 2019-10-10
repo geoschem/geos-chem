@@ -15,12 +15,13 @@
 !
 ! !USES:
 !
+      USE State_Grid_Mod,     ONLY : GrdState
+#ifdef BPCH_DIAG
       USE AEROSOL_MOD,        ONLY : OCPI, OCPO
       USE AEROSOL_MOD,        ONLY : TSOA, ASOA, OPOA, ISOAAQ
-      USE CMN_O3_MOD,         ONLY : SAVEOA
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
-      USE State_Grid_Mod,     ONLY : GrdState
-
+      USE CMN_O3_MOD,         ONLY : SAVEOA
+#endif
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -37,6 +38,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#ifdef BPCH_DIAG
       INTEGER  :: I, J, L
       REAL(fp) :: FACTOR
 
@@ -67,6 +69,7 @@
       ENDDO
 
 !$OMP END PARALLEL DO
-
+#endif
       END SUBROUTINE OASAVE
 !EOC
+

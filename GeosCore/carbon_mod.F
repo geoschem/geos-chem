@@ -34,7 +34,7 @@
       PRIVATE :: BCDRY_SETTLINGBIN
       PRIVATE :: OCDRY_SETTLINGBIN
 #endif
-#if defined ( TOMAS )
+#ifdef TOMAS
       PUBLIC :: EMISSCARBONTOMAS
 #endif
 !
@@ -142,82 +142,7 @@
 !      Base Year is 2000. More at http://www.hiwater.org
 !
 ! !REVISION HISTORY:
-!  (1 ) Added code from the Caltech group for SOA chemistry (rjp, bmy, 7/15/04)
-!  (2 ) Now references "directory_mod.f", "logical_mod.f", "tracer_mod.f".
-!        (bmy, 7/20/04)
-!  (3 ) Now read data from carbon_200411/ subdir of DATA_DIR.  Also added
-!        some extra debug output.  Now read T. Bond yearly emissions as 
-!        default, but overwrite N. America with the monthly Cooke/RJP 
-!        emissions.  Added module variables I1_NA, I2_NA, J1_NA, J2_NA.
-!        (rjp, bmy, 12/1/04)
-!  (4 ) Now can read seasonal or interannual BCPO, OCPO biomass emissions.
-!        Also parallelize loop in OHNO3TIME. (rjp, bmy, 1/18/05)
-!  (5 ) Now references "pbl_mix_mod.f".  Bug fix: now make sure only to save
-!        up to LD07 levels for the ND07 diagnostic in SOA_LUMP. (bmy, 3/4/05)
-!  (6 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Now references "megan_mod.f".  Also now references XNUMOL and 
-!        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05)
-!  (9 ) Bug fix for GCAP in BIOGENIC_OC (bmy, 4/11/06)
-!  (10) Updated for SOA production from ISOP (dkh, bmy, 5/22/06)
-!  (11) Updated for IPCC future emission scale factors.  Also added function
-!        GET_DOH to return ISOP that has reacted w/ OH. (swu, dkh, bmy, 6/1/06)
-!  (12) Now add SOG condensation onto SO4, NH4, NIT (rjp, bmy, 8/3/06)
-!  (13) Minor fix for 20 carbon tracers. (phs, 9/14/06)
-!  (14) Now remove reading of biomass emissions from "carbon_mod.f", since
-!        they are better done in gc_biomass_mod.f.  This will allow us to
-!        standardize treatment of GFED2 or default BB emissions.  Also applied
-!        a typo fix in SOA_LUMP. (tmf, bmy, 10/16/06)
-!  (15) Prevent seg fault error in BIOMASS_CARB_GEOS (bmy, 11/3/06)
-!  (16) Corrected typos in SOA_LUMP.  Now also save GPROD and APROD to disk
-!        for each new diagnostic interval. (dkh, tmv, havala, bmy, 2/6/07)
-!  (17) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
-!  (18) Now account for various GFED2 products (yc, phs, 12/23/08) 
-!  (19) Now add future scaling to BIOMASS_CARB_GEOS (hotp, swu, 2/19/09)
-!  (20) Added SOA production from dicarbonyls (tmf, 3/2/09)
-!  (21) Bugfix: cleanup ORVC_TERP and ORVC_SESQ (tmf, 3/2/09)
-!  (22) Replace USE_MONTHLY_BIOB with USE_BOND_BIOBURN, since this hardwired
-!        flag is a switc b/w annual Bond biomass burning emissions, and default
-!        GC source, which can be monthly/8 days/3hr.
-!        Implement changes for reading new Bond files (eml, phs, 5/18/09)
-!  (23) Add option for non-local PBL scheme (lin, 06/09/08)
-!  (24) Now added NESTED_EU grid.  Updated formulation of SOG condensation 
-!        onto OC aerosol, according to recommendations of Aerosol Working 
-!        Group. (amv, clh, bmy, 12/21/09)
-!  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
-!  (26) Modifications for TOMAS (win, bmy, 1/25/10)
-!  (27) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
-!  (28) Modified to include GFED3 (psk, 1/5/11)
-!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
-!  28 Nov 2012 - R. Yantosca - Replace SUNCOS array with State_Met%SUNCOS and
-!                              SUNCOS_MID array with State_Met%SUNCOSmid
-!  04 Mar 2013 - R. Yantosca - Now call INIT_CARBON from the init stage
-!                              which facilitates connection to GEOS-5 GCM
-!  05 Mar 2013 - R. Yantosca - Remove reference to LNLPBL from logical_mod.F
-!                              and replace with Input_Opt%LNLPBL
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
-!                              semivolatile POA simulations (H. Pye)
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  20 Jun 2014 - R. Yantosca - Removed obsolete code; we now use HEMCO
-!  23 Sep 2014 - M. Sulprizio- Get OH, NO3, and O3 fields for offline aerosol
-!                              simulation from HEMCO 
-!  06 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  13 Nov 2014 - C. Keller   - Added EMISSCARBON to make sure that SESQ and POA
-!                              emissions are properly passed from HEMCO.
-!  05 Jan 2016 - E. Lundgren - Use global physical parameters (AIRMW and AVO)
-!  14 Jan 2016 - M. Sulprizio- POAEMISS(:,:,:,1) now represents POG1 and
-!                              POAEMISS(:,:,:,2) now represents POG2
-!  17 Jun 2016 - J.D.Maaasakkers - Now use Ind_ to define species ID's  
-!  17 Jun 2016 - R. Yantosca - Now declare all species ID's as module
-!                              variables, and initialize them at startup
-!  28 Jun 2016 - M. Sulprizio- Add species ID's for L*RO2N/H and LISOP* to
-!                              replace uses of IL*RO2N/H and ILISOP* from
-!                              comode_loop_mod.F
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
-!                              MERRA; Also remove functions GET_VCLDF and
-!                              GET_LWC, they're no longer needed
+!  See the Git version history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,7 +225,7 @@
       REAL(fp), ALLOCATABLE :: ORVC_SESQ(:,:,:)
       REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
 
-#if defined( TOMAS )
+#ifdef TOMAS
       REAL(fp), ALLOCATABLE, TARGET :: BCFF(:,:,:,:)
       REAL(fp), ALLOCATABLE, TARGET :: OCFF(:,:,:,:)
       REAL(fp), ALLOCATABLE, TARGET :: BCBF(:,:,:,:)
@@ -399,7 +324,6 @@
 !
 ! !USES:
 !
-      USE CMN_O3_MOD,         ONLY : SAVEOA
       USE CMN_SIZE_MOD 
       USE ErrCode_Mod 
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -413,7 +337,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( APM )
+#ifdef APM
       USE APM_INIT_MOD,       ONLY : APMIDS
       USE APM_INIT_MOD,       ONLY : NBCOC,CEMITBCOC1
       USE HCO_DIAGN_MOD
@@ -422,7 +346,10 @@
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
 #endif
-#if   defined( TOMAS )
+#ifdef BPCH_DIAG
+      USE CMN_O3_MOD,         ONLY : SAVEOA
+#endif
+#ifdef TOMAS
       USE TOMAS_MOD,          ONLY : SOACOND, IBINS              !(win, 1/25/10)
       USE TOMAS_MOD,          ONLY : CHECKMN                     !(sfarina)
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
@@ -448,41 +375,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 1994 - R. Park - Initial version
-!  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
-!        reference "global_oh_mod.f", "global_o3_mod.f", "global_no3_mod.f".
-!        (rjp, bmy, 7/8/04)
-!  (2 ) Now reference LSOA and LEMIS from CMN_SETUP.  Now only call OHNO3TIME
-!        if it hasn't been done before w/in EMISSCARBON. (rjp, bmy, 7/15/04)
-!  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
-!        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Now updated for SOA production from ISOP. (dkh, bmy, 6/1/06)
-!  (6 ) Bug fix for aerosol sim w/ 20 tracers (phs, 9/14/06)
-!  (7 ) Add subroutine call AGING_CARB for converting H-phobic 30-bin EC or OC
-!        to H-philic EC or OC. (win, 1/25/10)
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  15 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  04 Mar 2013 - R. Yantosca - Remove call to INIT_CARBON
-!  04 Mar 2013 - R. Yantosca - Now pass Input_Opt to SOA_CHEMISTRY
-!  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
-!                              semivolatile POA simulations (H. Pye)
-!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
-!  23 Sep 2014 - M. Sulprizio- Get OH, NO3, and O3 fields for offline aerosol
-!                              simulation from HEMCO
-!  16 Jun 2016 - J.D.Maasakkers- Now define species ID's with Ind_ function
-!  23 Jun 2016 - R. Yantosca - Add more error checks to make sure each id_*
-!                              species flag is defined before using it
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  14 Oct 2016 - S. Farina   - Added 1-day e-folding "chemistry" for
-!                              SOA Simplified and SOA Precursor
-!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,7 +395,7 @@
       REAL(fp)           :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
       INTEGER            :: L
 
-#if defined ( TOMAS )
+#ifdef TOMAS
       INTEGER            :: I, J
       REAL*4             :: BOXVOL, TEMPTMS, PRES
 #endif
@@ -514,7 +407,7 @@
       LOGICAL            :: aIR
       CHARACTER(LEN=255) :: LOC = 'CHEMCARBON (carbon_mod.F)'
 
-#if defined( APM )
+#ifdef APM
       TYPE(DiagnCont), POINTER :: DiagnCnt
       INTEGER            :: FLAG,I,J,N,IDCARBON
       REAL(fp)           :: A_M2, E_CARBON, DTSRCE
@@ -654,7 +547,7 @@
          ENDIF
       ENDIF
 
-#if defined( APM )
+#ifdef APM
       !=====================================================================
       ! APM Microphysics 
       !=====================================================================   
@@ -906,7 +799,7 @@
       ENDIF
 #endif
 
-#if   defined( TOMAS )
+#ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, 
      &              State_Met, 'CHECKMN from chemcarbon', RC)
       ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
@@ -931,7 +824,7 @@
       IF ( id_SOAP > 0 ) THEN
       ! AGE SOAP -> SOA
 
-#if defined ( TOMAS )
+#ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
      &              State_Met, 'CHECKMN from chemcarbon', RC)
 !$OMP PARALLEL DO
@@ -1011,10 +904,12 @@
             CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
          ENDIF
 
+#ifdef BPCH_DIAG
+         ! NOTE: This is only needed for ND51, ND51b (bmy, 10/4/19)
          ! Get total organic aerosol:
          CALL OASAVE( SAVEOA,    am_I_Root,  Input_Opt,
      &                State_Chm, State_Grid, State_Met, RC )
-
+#endif
       ENDIF
 
       END SUBROUTINE CHEMCARBON
@@ -1038,10 +933,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD07_BC
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
@@ -1070,22 +961,7 @@
 ! 
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP 
-!        from "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (4 ) Add option for non-local PBL scheme (lin, 06/09/08)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
-!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
-!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
-!                              so we can greatly collapse this code
-!  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPO, it's obsolete
-!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1150,15 +1026,6 @@
 
          ! Amount of BCPO converted to BCPI [kg/timestep]
          BCCONV(I,J,L) = ( TC0 - CNEW ) * KBC / ( KBC + FREQ )
-
-#if defined( BPCH_DIAG )
-         !==============================================================
-         ! ND07 diagnostic: H-philic BC from H_phobic BC [kg/timestep]
-         !==============================================================
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-             AD07_BC(I,J,L) = AD07_BC(I,J,L) + BCCONV(I,J,L)
-         ENDIF
-#endif
 
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
@@ -1227,21 +1094,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Park - Initial version
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  26 Nov 2012 - R. Yantosca - Added ProTeX Headers
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90
-!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
-!  12 Jun 2015 - R. Yantosca - Drydep is now handled in mixing_mod.F90,
-!                              so we can greatly collapse this code
-!  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPI, it's obsolete
-!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1313,10 +1166,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )      
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD07_OC
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
@@ -1344,19 +1193,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Park - Initial version
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
-!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
-!  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPO, it's obsolete
-!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1420,15 +1257,6 @@
 
          ! Amount of OCPO converted to OCPI [kg/timestep]
          OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
-
-#if defined( BPCH_DIAG )
-         !==============================================================
-         ! ND07 diagnostic: H-Philic OC from H-phobic [kg/timestep]
-         !==============================================================
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_OC(I,J,L) = AD07_OC(I,J,L) + OCCONV(I,J,L) 
-         ENDIF
-#endif
 
          !=================================================================
          ! HISTORY (aka netCDF diagnostics)
@@ -1497,21 +1325,8 @@
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY:
-!  01 Apr 2004 - R. Park - Initial version 
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
-!  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
-!        "pbl_mix_mod.f" (bmy, 2/17/05)
-!  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
-!  (4 ) Now refrerences XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  14 Nov 2012 - R. Yantosca - Add am_I_Root, Input_Opt, RC as arguments
-!  26 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  05 Mar 2013 - R. Yantosca - Now use Input_Opt%LNLPBL
-!  19 Mar 2013 - R. Yantosca - Now copy Input_Opt%XNUMOL(1:N_TRACERS)
-!  04 Mar 2015 - C. Keller   - Now do dry dep in mixing_mod.F90 
-!  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
-!  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPI, it's obsolete
-!  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  01 Apr 2004 - R. Park - Initial version
+!  See the Git history with the gitk browser! 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1564,7 +1379,7 @@
 
       END SUBROUTINE CHEM_OCPI
 !EOC
-#if   defined( TOMAS )
+#ifdef TOMAS
 !-------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1645,7 +1460,6 @@
 !
 ! !USES:
 !
-      USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : DEBUG_MSG
@@ -1654,7 +1468,10 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Grid_Mod, ONLY : GrdState
-#if defined( APM )
+#ifdef BPCH_DIAG
+      USE CMN_O3_MOD
+#endif
+#ifdef APM
       USE APM_INIT_MOD,   ONLY : APMIDS
       USE APM_INIT_MOD,   ONLY : NGCOND,NSO4,NSEA,NBCOC
       USE APM_INIT_MOD,   ONLY : NCTSO4,NCTBC,NCTOC,NCTDST,NCTSEA
@@ -1877,7 +1694,7 @@
       ! Debug
       Integer           :: IIDebug, JJDebug
 
-#if defined( APM )
+#ifdef APM
       INTEGER           :: IFINORG
       INTEGER           :: NTEMP
 #endif
@@ -2006,7 +1823,7 @@
 !$OMP+PRIVATE( MPRODUCT, MSOA_OLD, VALUE, UPPER, LOWER, MNEW, TOL  )
 !$OMP+PRIVATE( ORG_AER,  ORG_GAS,  KOM,   MPOC                     )
 !$OMP+PRIVATE( KRO2NO,   KRO2HO2,  JSV                             )  
-#if defined( APM )
+#ifdef APM
 !$OMP+PRIVATE( N, NTEMP)
 #endif
       DO L = 1, State_Grid%MaxChemLev
@@ -2111,7 +1928,7 @@
          !
          ! (Colette Heald, 12/3/09)
          !-----------------------------------------------------------
-#if defined( APM )
+#ifdef APM
          MPOC = FAC *
      &    SUM(Spc(I,J,L,APMIDS%id_OCBIN1:(APMIDS%id_OCBIN1+NBCOC-1)))
 
@@ -3601,10 +3418,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD07_HC
-#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -3988,18 +3801,6 @@
 
             ENDDO
             ENDDO
-
-#if defined( BPCH_DIAG )
-            ! semivolpoa4: add diagnostic information on POG ox (hotp 3/28/09)
-            ! units: kgC cumulative
-            IF ( ND07 > 0 .and. L <= LD07 ) THEN
-               ! move POGRXN after all JSV (hotp 5/24/10)
-               AD07_HC(I,J,L,MSV+1) = AD07_HC(I,J,L,MSV+1) +
-     &                                GLOB_POGRXN(I,J,L,1) +
-     &                                GLOB_POGRXN(I,J,L,2)
-            ENDIF
-#endif
-
          ENDIF 
 
       ENDDO  ! JHC                  
@@ -4229,10 +4030,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD07_HC 
-#endif
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
 !
@@ -4306,16 +4103,6 @@
       !-----------------------------
       ! SOA net production [kg]
       !-----------------------------
-#if defined( BPCH_DIAG )
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                    + ( AERMASS - 
-     &                        Spc(I,J,L,id_TSOA1) -
-     &                        Spc(I,J,L,id_TSOA2) -
-     &                        Spc(I,J,L,id_TSOA3) -
-     &                        Spc(I,J,L,id_TSOA0)  )
-      ENDIF
-#endif
 
       !-----------------------------
       ! Transient mass bal prod/evap
@@ -4402,7 +4189,7 @@
 !      !-----------------------------
 !      ! SOA net production [kg]
 !      !-----------------------------
-!#if defined( BPCH_DIAG )
+!#ifdef BPCH_DIAG
 !      IF ( ND07 > 0 .and. L <= LD07 ) THEN
 !         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
 !     &                    + ( AERMASS - 
@@ -4480,20 +4267,6 @@
          GASMASS = GASMASS + GM0(IPR,JSV)
          AERMASS = AERMASS + AM0(IPR,JSV)
       ENDDO
-
-      !-----------------------------
-      ! SOA net production [kg]
-      !-----------------------------
-#if defined( BPCH_DIAG )
-      IF ( ND07 > 0 .and. L <= LD07 ) THEN
-         AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                    + ( AERMASS - 
-     &                        Spc(I,J,L,id_ASOAN) -
-     &                        Spc(I,J,L,id_ASOA1) -
-     &                        Spc(I,J,L,id_ASOA2) -
-     &                        Spc(I,J,L,id_ASOA3)   )
-      ENDIF
-#endif
 
       !-----------------------------
       ! Transient mass bal prod/evap
@@ -4584,17 +4357,6 @@
          ENDDO
 
          !---------------------------
-         ! POA net emission (kg)
-         !---------------------------
-#if defined( BPCH_DIAG )
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                         + ( AERMASS - Spc(I,J,L,id_POA1) -
-     &                                       Spc(I,J,L,id_POA2) )
-         ENDIF
-#endif
-
-         !---------------------------
          ! Transient SOA PROD/EVAP
          ! (hotp 6/5/10)
          !---------------------------
@@ -4653,17 +4415,6 @@
          ENDDO
 
          !---------------------------
-         ! OPOA net production (kg)
-         !---------------------------
-#if defined( BPCH_DIAG )
-         IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_HC(I,J,L,JSV) = AD07_HC(I,J,L,JSV)
-     &                         + ( AERMASS - Spc(I,J,L,id_OPOA1) -
-     &                                       Spc(I,J,L,id_OPOA2) )
-         ENDIF
-#endif
-
-         !---------------------------
          ! Transient SOA PROD/EVAP
          ! (hotp 6/5/10)
          !---------------------------
@@ -4706,7 +4457,7 @@
 
       END SUBROUTINE SOA_LUMP
 !EOC
-#if   defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4726,7 +4477,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND59
       USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
       USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
@@ -4966,7 +4717,7 @@ ccc
       !                 [kg/box/timestep] and the corresponding
       !                  number emission [no./box/timestep]
       !=======================================================================
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       IF ( ND59 > 0 ) THEN 
          DO L = 1, PBL_MAX
          DO K = 1, IBINS
@@ -5306,7 +5057,7 @@ ccc
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
 #endif
       USE CMN_SIZE_MOD
@@ -5610,7 +5361,7 @@ ccc
 
 !end anthro emissions
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
       !%%%% which is only called if BPCH_DIAG=y.(bmy, 8/7/18)          %%%%
@@ -5618,14 +5369,14 @@ ccc
       ! READ IN directly emitted SOAS (sfarina / jkodros)
       Ptr2D => NULL()
       DgnName = 'BIOGENIC_SOAS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
-         CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
-!         print*, 'NOT ASSOCIATED TERP_ORGC'
+         CALL GC_Error('Not found: '//TRIM(DgnName), RC, THISLOC=LOC)
+         RETURN
       ENDIF
       TERP_ORGC = Ptr2D(:,:)
-      Ptr2D => NULL()
       TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
+      Ptr2D => NULL()
 #endif
 
 !$OMP PARALLEL DO
@@ -5661,7 +5412,7 @@ ccc
       END SUBROUTINE EMISSCARBONTOMAS
 #endif
 !EOC
-#if defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -6395,7 +6146,6 @@ ccc
 !
 ! !USES:
 !
-      USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -8263,7 +8013,7 @@ ccc
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
-#if defined( TOMAS )
+#ifdef TOMAS
       USE TOMAS_MOD,          ONLY : IBINS
 #endif
 !
@@ -8445,7 +8195,7 @@ ccc
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
       POAEMISS = 0e+0_fp
 
-#if defined( APM )
+#ifdef APM
       ALLOCATE( BCCONVNEW( State_Grid%NX, 
      &                     State_Grid%NY, 
      &                     State_Grid%NZ ), STAT=AS )
@@ -8458,7 +8208,7 @@ ccc
       OCCONVNEW = 0d0
 #endif
       ! JKODROS
-#if defined( TOMAS )
+#ifdef TOMAS
       !SFARINA the next six are introduced with the idea that 
       ! emisscarbontomas needs to be restructured and these
       ! data structures eliminated
@@ -8634,11 +8384,11 @@ ccc
       IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
       IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
       IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
-#if defined( APM )
+#ifdef APM
       IF ( ALLOCATED( BCCONVNEW ) ) DEALLOCATE( BCCONVNEW )
       IF ( ALLOCATED( OCCONVNEW ) ) DEALLOCATE( OCCONVNEW )
 #endif
-#if defined ( TOMAS )
+#ifdef TOMAS
       IF ( ALLOCATED( BCFF           )) DEALLOCATE( BCFF          )
       IF ( ALLOCATED( OCFF           )) DEALLOCATE( OCFF          )
       IF ( ALLOCATED( BCBF           )) DEALLOCATE( BCBF          )

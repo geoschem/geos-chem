@@ -12,6 +12,7 @@
 ! !INTERFACE: 
 !
       MODULE POPS_MOD
+#ifdef BPCH_DIAG
 ! 
 ! !USES:
 !
@@ -29,6 +30,11 @@
       PUBLIC :: Cleanup_POPs
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 !  POPs Tracers
 !  ============================================================================
 !  (1 ) POPG   : Gaseous POP - total tracer  
@@ -816,11 +822,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
-      USE DIAG_MOD,       ONLY : AD44
       USE DIAG53_MOD
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE ERROR_MOD,      ONLY : SAFE_DIV
@@ -1413,7 +1416,6 @@
          ! Sum of differences should equal zero
          SUM_DIFF = MAX(DIFF_G + DIFF_OC + DIFF_BC, SMALLNUM)
 
-#if defined( BPCH_DIAG )
          !==============================================================
          ! %%%%% ND53 (bpch) DIAGNOSTIC %%%%%
          ! ND53 diagnostic: Differences in distribution of gas and
@@ -1438,7 +1440,6 @@
             ENDIF
 
          ENDIF
-#endif
 
          !==============================================================
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -1841,69 +1842,6 @@
             DEP_POPP_BCPI_DRY  = DEP_POPP_BCPI 
          ENDIF
 
-#if defined( BPCH_DIAG )
-         !==============================================================
-         ! %%%%% ND44 (bpch) DIAGNOSTIC %%%%%
-         !
-         ! Drydep flux of POPG and POPP [molec/cm2/s]
-         ! Also not using non-local PBL mode yet (clf, 1/27/2011)
-         !
-         ! NOTE: Only archive drydep within the PBL (bmy, 10/23/18)
-         !==============================================================
-         IF ( ( ND44 > 0               )   .and. 
-     &        ( .not. Input_Opt%LNLPBL )   .and.
-     &        ( F_PBL > 0.0_fp         ) ) THEN
-
-            ! Grid box surface area [cm2]
-            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-            ! Amt of POPG lost to drydep [molec/cm2/s]
-            DEP_DRY_FLXG  = DEP_POPG_DRY * AVO / ( 1.e-3_fp *
-     &                      State_Chm%SpcData(id_POPG)%Info%emMW_g ) / 
-     &                      ( AREA_CM2 * DTCHEM )
-
-            ! Archive POPG drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,id_POPG,1) = AD44(I,J,id_POPG,1) +
-     &                            DEP_DRY_FLXG
-
-            ! Amt of POPPOC lost to drydep [molec/cm2/s]
-            DEP_DRY_FLXP_OCPO = DEP_POPP_OCPO_DRY * AVO / (1.e-3_fp *
-     &                    State_Chm%SpcData(id_POPPOCPO)%Info%emMW_g ) /
-     &                    ( AREA_CM2 * DTCHEM )        
-
-            ! Archive POPPOC drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,id_POPPOCPO,1) = AD44(I,J,id_POPPOCPO,1) +
-     &                                DEP_DRY_FLXP_OCPO
-
-            ! Amt of POPPBC lost to drydep [molec/cm2/s] 
-            DEP_DRY_FLXP_BCPO = DEP_POPP_BCPO_DRY * AVO / (1.e-3_fp * 
-     &                    State_Chm%SpcData(id_POPPBCPO)%Info%emMW_g ) /
-     &                    ( AREA_CM2 * DTCHEM )        
-
-            ! Archive POPPBC drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,id_POPPBCPO,1) = AD44(I,J,id_POPPBCPO,1) +
-     &                                DEP_DRY_FLXP_BCPO
-
-            ! Amt of POPPOC lost to drydep [molec/cm2/s]
-            DEP_DRY_FLXP_OCPI = DEP_POPP_OCPI_DRY * AVO / (1.e-3_fp * 
-     &                    State_Chm%SpcData(id_POPPOCPI)%Info%emMW_g ) /
-     &                    ( AREA_CM2 * DTCHEM )        
-
-            ! Archive POPPOC drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,id_POPPOCPI,1) = AD44(I,J,id_POPPOCPI,1) +
-     &                                DEP_DRY_FLXP_OCPI
-
-            ! Amt of POPPBC lost to drydep [molec/cm2/s] 
-            DEP_DRY_FLXP_BCPI = DEP_POPP_BCPI_DRY * AVO / (1.e-3_fp * 
-     &                    State_Chm%SpcData(id_POPPBCPI)%Info%emMW_g ) /
-     &                    ( AREA_CM2 * DTCHEM )        
-
-            ! Archive POPPBC drydep flux in AD44 array [molec/cm2/s]
-            AD44(I,J,id_POPPBCPI,1) = AD44(I,J,id_POPPBCPI,1) +
-     &                                DEP_DRY_FLXP_BCPI
-
-         ENDIF
-
          !==============================================================
          ! %%%% ND53 (bpch) DIAGNOSTIC %%%%
          ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg/s]
@@ -1935,7 +1873,6 @@
      &                                  GROSS_OX_NO3_BCPI / DTCHEM
 
          ENDIF
-#endif
 
          !==============================================================
          ! %%%%% HISTORY (netCDF DIAGNOSTICS) %%%%%
@@ -2727,5 +2664,5 @@
 
       END SUBROUTINE CLEANUP_POPS
 !EOC
+#endif
       END MODULE POPS_MOD
-

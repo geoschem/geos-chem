@@ -171,13 +171,16 @@ MODULE HCOX_LightNOx_Mod
    INTEGER                       :: Instance
    INTEGER                       :: IDTNO     ! NO tracer ID
    INTEGER                       :: ExtNr     ! HEMCO Extension ID
-   LOGICAL                       :: DoDiagn
    LOGICAL                       :: LCNVFRC   ! Use convective fractions? 
    LOGICAL                       :: LLFR      ! Use GEOS-5 flash rates 
 
    ! Arrays
    REAL(dp), POINTER             :: PROFILE(:,:)
    REAL(hp), POINTER             :: SLBASE(:,:,:)
+   REAL(sp), POINTER             :: FLASH_DENS_TOT(:,:)
+   REAL(sp), POINTER             :: FLASH_DENS_IC(:,:)
+   REAL(sp), POINTER             :: FLASH_DENS_CG(:,:)
+   REAL(sp), POINTER             :: CONV_DEPTH(:,:)
 
    ! Overall scale factor to be applied to lightning NOx emissions. Must
    ! be defined in the HEMCO configuration file as extension attribute 
@@ -328,7 +331,6 @@ CONTAINS
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
     USE HCO_Clock_Mod,    ONLY : HcoClock_First
     USE HCO_ExtList_Mod,  ONLY : GetExtOpt
-    USE HCO_Types_Mod,    ONLY : DiagnCont
 !
 ! !INPUT PARAMETERS:
 !
@@ -403,11 +405,6 @@ CONTAINS
     INTEGER           :: LMAX
     INTEGER           :: LNDTYPE
     INTEGER           :: SFCTYPE
-    INTEGER           :: DiagnID
-    REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
-    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY)
-    REAL(hp), POINTER :: Arr2D(:,:)
-    TYPE(DiagnCont), POINTER :: TmpCnt
     REAL(hp)          :: TROPP
     REAL(dp)          :: TmpScale
 
@@ -419,26 +416,12 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'LightNOx (hcox_lightnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Init
-    Arr2D  => NULL() 
-    TmpCnt => NULL()
-
-    ! ----------------------------------------------------------------
-    ! First call routines
-    ! ----------------------------------------------------------------
-    IF ( HcoClock_First( HcoState%Clock, .TRUE. ) ) THEN
-
-       ! ckeller, 8/30/18: Always write out diagnostics
-       Inst%DoDiagn = .TRUE.
-
-    ENDIF
-
     ! Reset arrays 
-    Inst%SLBASE = 0.0_hp
-    IF (Inst%DoDiagn) THEN
-       DIAGN    = 0.0_hp
-       TOPDIAGN = 0.0_hp
-    ENDIF
+    Inst%SLBASE         = 0.0_hp
+    Inst%FLASH_DENS_TOT = 0.0_sp
+    Inst%FLASH_DENS_IC  = 0.0_sp
+    Inst%FLASH_DENS_CG  = 0.0_sp
+    Inst%CONV_DEPTH     = 0.0_sp
 
     ! LMAX: the highest L-level to look for lightning NOx (usually LLPAR-1)
     LMAX   = HcoState%NZ - 1
@@ -564,10 +547,8 @@ CONTAINS
           H0 = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP))
        ENDIF
 
-       ! Diagnose used LTOP
-       IF ( Inst%DoDiagn ) THEN
-          TOPDIAGN(I,J) = LTOP
-       ENDIF
+       ! Save out convective cloud depth
+       Inst%CONV_DEPTH(I,J) = LTOP
        
        !===========================================================       
        ! (3) Compute ratio of CG vs total flashes
@@ -577,17 +558,17 @@ CONTAINS
        X    = 1d0 / ( 1d0 + IC_CG_RATIO )
        
        !-----------------------------------------------------------
-       ! Store flash rates [flashes/km2/min] for BPCH diagnostics
+       ! Store flash rates [flashes/km2/min]
        !-----------------------------------------------------------
-       IF ( Inst%DoDiagn .AND. RATE > 0d0 ) THEN
+       IF ( RATE > 0d0 ) THEN
 
-          ! AD56 diagnostic historically is flashes per km2 per minute
+          ! Flashes per km2 per minute
           RATE_SAVE   = RATE / 360d0
           
-          ! Store total, IC, and CG flash rates in AD56
-          DIAGN(I,J,1) = RATE_SAVE
-          DIAGN(I,J,3) = RATE_SAVE * X 
-          DIAGN(I,J,2) = H0 * 1d-3
+          ! Store total, IC, and CG flash rates
+          Inst%FLASH_DENS_TOT(I,J) = RATE_SAVE
+          Inst%FLASH_DENS_IC(I,J)  = RATE_SAVE * X 
+          Inst%FLASH_DENS_CG(I,J)  = H0 * 1d-3
 
        ENDIF
        
@@ -695,47 +676,6 @@ CONTAINS
     CALL HCOX_SCALE ( am_I_Root, HcoState, Inst%SLBASE, &
                       TRIM(Inst%SpcScalFldNme(1)), RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------
-    ! Eventually add diagnostics 
-    !-----------------------------------------------------------------
-
-    ! Eventually add individual diagnostics. These go by names!
-    IF ( Inst%DoDiagn ) THEN
-       ! Total flash rates
-       Arr2D   => DIAGN(:,:,1)
-        CALL Diagn_Update( am_I_Root, HcoState,               &
-                          cName='LIGHTNING_TOTAL_FLASHRATE',  &
-                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
-
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-   
-       ! Intracloud flash rates 
-       Arr2D     => DIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root, HcoState,                    &
-                          cName='LIGHTNING_INTRACLOUD_FLASHRATE', &
-                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-   
-       ! Cloud to ground flash rates
-       Arr2D     => DIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root, HcoState,                     &
-                          cName='LIGHTNING_CLOUDGROUND_FLASHRATE', &
-                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-
-       ! Cloud top height
-       Arr2D     => TOPDIAGN(:,:)
-       CALL Diagn_Update( am_I_Root,   HcoState,       &
-                          cName='LIGHTNING_CLOUD_TOP', &
-                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-
-    ENDIF
 
     ! Return w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
@@ -1025,11 +965,11 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_LightNOx_Init (hcox_lightnox_mod.F90)', RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Create AeroCom instance for this simulation
+    ! Create LightNOx instance for this simulation
     Inst => NULL()
     CALL InstCreate ( ExtNr, ExtState%LightNOx, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create AeroCom instance', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create LightNOx instance', RC )
        RETURN
     ENDIF
 
@@ -1081,25 +1021,51 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 
-    !-----------------
+    !=======================================================================
     ! Allocate arrays
-    !-----------------
+    !=======================================================================
 
-    ! Allocate PROFILE (holds the CDF table)
     ALLOCATE( Inst%PROFILE( NNLIGHT, NLTYPE ), STAT=AS )
     IF( AS /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'PROFILE', RC )
        RETURN
     ENDIF
-    Inst%PROFILE = 0d0
+    Inst%PROFILE = 0.0_hp
 
-    ! Allocate SLBASE (holds NO emissins from lightning)
     ALLOCATE( Inst%SLBASE(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
     IF( AS /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'SLBASE', RC )
        RETURN
     ENDIF
-    Inst%SLBASE = 0d0
+    Inst%SLBASE = 0.0_hp
+
+    ALLOCATE ( Inst%FLASH_DENS_TOT( HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( HcoState%Config%Err, 'FLASH_DENS_TOT', RC )
+       RETURN
+    ENDIF
+    Inst%FLASH_DENS_TOT = 0.0_sp
+
+    ALLOCATE ( Inst%FLASH_DENS_IC( HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( HcoState%Config%Err, 'FLASH_DENS_IC', RC )
+       RETURN
+    ENDIF
+    Inst%FLASH_DENS_IC = 0.0_sp
+
+    ALLOCATE ( Inst%FLASH_DENS_CG( HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( HcoState%Config%Err, 'FLASH_DENS_CG', RC )
+       RETURN
+    ENDIF
+    Inst%FLASH_DENS_CG = 0.0_sp
+
+    ALLOCATE ( Inst%CONV_DEPTH( HcoState%NX, HcoState%NY), STAT=AS )
+    IF ( AS/=0 ) THEN
+       CALL HCO_ERROR( HcoState%Config%Err, 'CONV_DEPTH', RC )
+       RETURN
+    ENDIF
+    Inst%CONV_DEPTH = 0.0_sp
 
     !=======================================================================
     ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
@@ -1158,10 +1124,67 @@ CONTAINS
     CLOSE( IU_FILE )
 
     !=======================================================================
-    ! Further HEMCO setup
+    ! Create diagnostics for lightning flash rates and convective cloud height
     !=======================================================================
+    CALL Diagn_Create( am_I_Root,                                   & 
+                       HcoState  = HcoState,                        &
+                       cName     = 'LightningFlashRate_Total' ,     &
+                       ExtNr     = ExtNr,                           &
+                       Cat       = -1,                              &
+                       Hier      = -1,                              &
+                       HcoID     = -1,                              &
+                       SpaceDim  = 2,                               &
+                       OutUnit   = 'flashes/min/km2',               &
+                       AutoFill  = 0,                               &
+                       Trgt2D    = Inst%FLASH_DENS_TOT,             &
+                       RC        = RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Activate met. fields required by this module
+    CALL Diagn_Create( am_I_Root,                                   & 
+                       HcoState  = HcoState,                        &
+                       cName     = 'LightningFlashRate_IntraCloud', &
+                       ExtNr     = ExtNr,                           &
+                       Cat       = -1,                              &
+                       Hier      = -1,                              &
+                       HcoID     = -1,                              &
+                       SpaceDim  = 2,                               &
+                       OutUnit   = 'flashes/min/km2',               &
+                       AutoFill  = 0,                               &
+                       Trgt2D    = Inst%FLASH_DENS_IC,              &
+                       RC        = RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL Diagn_Create( am_I_Root,                                    & 
+                       HcoState  = HcoState,                         &
+                       cName     = 'LightningFlashRate_CloudGround', &
+                       ExtNr     = ExtNr,                            &
+                       Cat       = -1,                               &
+                       Hier      = -1,                               &
+                       HcoID     = -1,                               &
+                       SpaceDim  = 2,                                &
+                       OutUnit   = 'flashes/min/km2',                &
+                       AutoFill  = 0,                                &
+                       Trgt2D    = Inst%FLASH_DENS_CG,               &
+                       RC        = RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL Diagn_Create( am_I_Root,                                    & 
+                       HcoState  = HcoState,                         &
+                       cName     = 'ConvectiveCloudTopHeight',       &
+                       ExtNr     = ExtNr,                            &
+                       Cat       = -1,                               &
+                       Hier      = -1,                               &
+                       HcoID     = -1,                               &
+                       SpaceDim  = 2,                                &
+                       OutUnit   = '1',                              &
+                       AutoFill  = 0,                                &
+                       Trgt2D    = Inst%CONV_DEPTH,                  &
+                       RC        = RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !=======================================================================
+    ! Activate met fields required by this module
+    !=======================================================================
     ExtState%TK%DoUse         = .TRUE.
     ExtState%TROPP%DoUse      = .TRUE.
     ExtState%CNV_MFC%DoUse    = .TRUE.
@@ -1169,7 +1192,6 @@ CONTAINS
     ExtState%ALBD%DoUse       = .TRUE.
     ExtState%WLI%DoUse        = .TRUE.
     ExtState%LFR%DoUse        = .TRUE.
-
     ExtState%FLASH_DENS%DoUse = .TRUE.
     ExtState%CONV_DEPTH%DoUse = .TRUE.
     
@@ -1353,11 +1375,6 @@ CONTAINS
     ! Update output instance
     Instance = Inst%Instance
 
-    ! ----------------------------------------------------------------
-    ! Type specific initialization statements follow below
-    ! ----------------------------------------------------------------
-    Inst%DoDiagn = .FALSE.
-
     ! Return w/ success
     RC = HCO_SUCCESS
 
@@ -1406,6 +1423,10 @@ CONTAINS
        ! Free pointer
        IF ( ASSOCIATED( Inst%PROFILE       ) ) DEALLOCATE ( Inst%PROFILE       )
        IF ( ASSOCIATED( Inst%SLBASE        ) ) DEALLOCATE ( Inst%SLBASE        )
+       IF ( ASSOCIATED( Inst%FLASH_DENS_TOT) ) DEALLOCATE ( Inst%FLASH_DENS_TOT)
+       IF ( ASSOCIATED( Inst%FLASH_DENS_IC ) ) DEALLOCATE ( Inst%FLASH_DENS_IC )
+       IF ( ASSOCIATED( Inst%FLASH_DENS_CG ) ) DEALLOCATE ( Inst%FLASH_DENS_CG )
+       IF ( ASSOCIATED( Inst%CONV_DEPTH    ) ) DEALLOCATE ( Inst%CONV_DEPTH    )
        IF ( ALLOCATED ( Inst%SpcScalVal    ) ) DEALLOCATE ( Inst%SpcScalVal    )
        IF ( ALLOCATED ( Inst%SpcScalFldNme ) ) DEALLOCATE ( Inst%SpcScalFldNme )
    

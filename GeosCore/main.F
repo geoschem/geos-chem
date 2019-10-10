@@ -64,8 +64,10 @@
       USE AEROSOL_MOD,  ONLY : Set_AerMass_Diagnostic
       USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
+#ifdef BPCH_DIAG
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
+#endif
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
@@ -75,32 +77,25 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem deposition modules
       !-----------------------------------------------------------------
+#ifdef BPCH_DIAG
       USE DEPO_MERCURY_MOD      ! Deposition for offline Hg simulation
+#endif
       USE DRYDEP_MOD            ! For dry deposition
       USE WETSCAV_MOD           ! For wet deposition (rainout & washout)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem diagnostics modules
       !-----------------------------------------------------------------
-#if defined( BPCH_DIAG )
-      USE BENCHMARK_MOD         ! For the 1-month benchmark simulations
+#ifdef BPCH_DIAG
       USE DIAG_MOD              ! G-C diagnostic arrays & counters
-      USE DIAG41_MOD            ! For ND41  (afternoon PBL       ) diag
-      USE DIAG42_MOD            ! For ND42  (SOA products        ) diag
-#endif
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
-      USE DIAG48_MOD            ! For ND48  (station timeseries  ) diag
-      USE DIAG49_MOD            ! For ND49  (inst. timeseries    ) diag
-      USE DIAG50_MOD            ! For ND50  (24h avg timeseries  ) diag
       USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
-      USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
+      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 #endif
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE OBSPACK_MOD           ! For ObsPack diagnostics
-      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
       USE GOSAT_CH4_MOD         ! For GOSAT observation operator
       USE TCCON_CH4_MOD         ! For TCCON observation operator
       USE HCOI_GC_MAIN_MOD      ! Writes out HEMCO diagnostics (C. Keller)
@@ -126,13 +121,13 @@
       !-----------------------------------------------------------------
       USE DAO_MOD               ! Met field definitions
       USE FLEXGRID_READ_MOD     ! For reading FLEXGRID data 
-#if defined( EXCHANGE )
+#ifdef EXCHANGE
       USE EXCHANGE_MOD          ! For two-way coupled simulations
 #endif
 
-#if defined( RRTMG )
+#ifdef RRTMG
       !-----------------------------------------------------------------
-      ! Radiation modules
+      ! Radiation modules (RRTMG)
       !-----------------------------------------------------------------
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : Do_RRTMG_Rad_Transfer
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_RRTMG_Rad_Transfer
@@ -140,9 +135,12 @@
       USE RRTMG_LW_Init,          ONLY : RRTMG_LW_Ini
       USE RRTMG_SW_Init,          ONLY : RRTMG_SW_Ini
 #endif
-#if defined( APM )
+
+#ifdef APM
+      !-----------------------------------------------------------------
       ! For APM aerosol microphysics simulation, 
       ! see apm_driv_mod.f for more information
+      !-----------------------------------------------------------------
       USE APM_INIT_MOD,      ONLY : APM_NTRACERS
       USE APM_INIT_MOD,      ONLY : APM_INIT
       USE APM_INIT_MOD,      ONLY : CLEANUP_APMARRAYS
@@ -230,7 +228,7 @@
       INTEGER                  :: JDAY,          N_DYN
       INTEGER                  :: NNN,           N_DYN_STEPS, NSECb 
       INTEGER                  :: N_STEP,        YEAR,        MONTH
-      INTEGER                  :: DAY,           DAY_OF_YEAR, SEASON
+      INTEGER                  :: DAY,           DAY_OF_YEAR
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
@@ -246,7 +244,7 @@
       CHARACTER(LEN=512)       :: ErrMsg
       CHARACTER(LEN=512)       :: Instr
 
-#if defined( RRTMG )
+#ifdef RRTMG
       !-----------------------------
       ! Scalars specific to RRTMG
       !-----------------------------
@@ -289,7 +287,7 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
-#if defined( TOMAS )
+#ifdef TOMAS
       !(sfarina, 6/19/2013) It may seem strange, but this welcome message
       !                     fixes an issue where geoschem crashes with a
       !                     sigsegv immediately after starting.
@@ -319,7 +317,7 @@
       !            ***** I N I T I A L I Z A T I O N *****
       !=================================================================
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       !-----------------------------------------------------------------
       ! Initialize GEOS-Chem timers (if compiled with TIMERS=1)
       !-----------------------------------------------------------------
@@ -343,12 +341,14 @@
       CALL GEOS_Timer_Add( "Boundary layer mixing",                RC )
       CALL GEOS_Timer_Add( "Dry deposition",                       RC )
       CALL GEOS_Timer_Add( "Wet deposition",                       RC )
-#if defined( RRTMG )
+#ifdef RRTMG
       CALL GEOS_Timer_Add( "RRTMG",                                RC )
 #endif
       CALL GEOS_Timer_Add( "All diagnostics",                      RC )
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
+#ifdef BPCH_DIAG
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
+#endif
       CALL GEOS_Timer_Add( "=> ObsPack diagnostics",               RC )
       CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
       CALL GEOS_Timer_Add( "Input",                                RC )
@@ -400,10 +400,6 @@
          ErrMsg = 'Error encountered in "GC_Allocate_All"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
-#ifdef BPCH_DIAG
-      ! BMY KLUDGE: Define PD64 here 
-      PD64 = W_
-#endif
 
       ! Store shadow copies of am_I_Root, Input_Opt in error_mod.F
       CALL Init_Error( am_I_Root, Input_Opt, RC )
@@ -453,7 +449,7 @@
       ! want to replicate that behavior in GCC in the future. 
       ! (ewl, 9/26/17)
       !-----------------------------------------------------------------
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_Start( "All diagnostics",           RC )
       CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif      
@@ -468,7 +464,7 @@
       !### Print diagnostic list if needed for debugging 
       IF ( prtDebug ) CALL Print_DiagList( am_I_Root, Diag_List, RC )
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_End( "All diagnostics",           RC )
       CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
@@ -549,7 +545,7 @@
          ENDIF
       ENDIF
          
-#if defined( RRTMG )
+#ifdef RRTMG
       !-----------------------------------------------------------------
       ! Initializations for the RRTMG radiative transfer model
       !-----------------------------------------------------------------
@@ -573,7 +569,7 @@
       iSeed = 10
 #endif
 
-#if defined( APM )
+#ifdef APM
       !-----------------------------------------------------------------
       ! Initializations for the APM aerosol microphysics package
       !-----------------------------------------------------------------
@@ -590,7 +586,7 @@
       ENDIF
 #endif
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       !-----------------------------------------------------------------
       ! Initialize bpch diagnostic arrays and counters
       !-----------------------------------------------------------------
@@ -643,7 +639,7 @@
       !-----------------------------------------------------------------
       !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
       !-----------------------------------------------------------------
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_Start( "All diagnostics",           RC )
       CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif   
@@ -661,7 +657,7 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_End( "All diagnostics",           RC )
       CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif   
@@ -686,7 +682,7 @@
       ! 
       ! This call will also initialize the three built-in HEMCO 
       ! diagnostics (default, manual, restart).
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_Start( "HEMCO", RC )
 #endif
 
@@ -714,7 +710,7 @@
          CALL Error_Stop( ErrMsg, ThisLoc, Instr )
       ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
@@ -785,39 +781,6 @@
          ENDIF
       ENDIF
 
-#if defined( BPCH_DIAG )
-      !-----------------------------------------------------------------
-      ! Write initial conditions for benchmark simulations
-      !-----------------------------------------------------------------
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "All diagnostics",             RC )
-      CALL GEOS_Timer_Start( "=> Binary punch diagnostics", RC )
-      CALL GEOS_Timer_Start( "Output",                      RC )
-#endif 
-
-      ! Save initial tracer mass [kg] to disk for model benchmarking
-      ! for Rn-Pb-Be and full-chem benchmark simulations
-      ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
-      ! and are converted locally to [kg] (mps, 11/29/16)
-      IF ( LSTDRUN ) THEN 
-         CALL StdRun( am_I_Root,  Input_Opt, State_Chm, State_Diag,
-     &                State_Grid, State_Met, RC,        LBEGIN=.TRUE. )
-
-         ! Trap potential errors
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "StdRun"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
-      ENDIF
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "All diagnostics",             RC )
-      CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC )
-      CALL GEOS_Timer_End( "Output",                      RC )
-#endif 
-
-#endif
-
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
 ! This is only invoked when compiling GEOS-Chem with COUPLE=y
@@ -847,7 +810,7 @@
 #endif
 !-----------------------------------------------------------------------------
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_End( "Initialization", RC )
 #endif
 
@@ -855,7 +818,7 @@
       !        ***** O U T E R   T I M E S T E P   L O O P  *****
       !=================================================================      
  
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_Start( "Timesteps", RC )
 #endif
 
@@ -910,7 +873,6 @@
          SECOND        = GET_SECOND()
          TAU           = GET_TAU()
          YEAR          = GET_YEAR()
-         SEASON        = GET_SEASON()
          ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 ) + SECOND
 
          !### Debug
@@ -918,6 +880,7 @@
             CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
          ENDIF
 
+#ifdef BPCH_DIAG
          !--------------------------------------------------------------
          ! %%%%% HISTORY (netCDF diagnostics) %%%%%
          !
@@ -926,23 +889,30 @@
          ! start each timestep, before operations like drydep, wetdep,
          ! and convection are executed.  Call a routine to do this.
          ! (bmy, 10/25/18)
+         !
+         ! NOTE: Mercury_mod.F90 is now only compiled if BPCH_DIAG=y,
+         ! as the Hg simulation depends on the bpch diagnostics.
+         ! We are awaiting on an update of the Hg simulation so that
+         ! the chemistry will be handled by KPP.  For now, block this
+         ! out with #ifdef BPCH_DIAG. (bmy, 10/4/19)
          !--------------------------------------------------------------
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "All diagnostics",           RC )
-         CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
+         IF ( ITS_A_MERCURY_SIM ) THEN
+#ifdef USE_TIMERS
+            CALL GEOS_Timer_Start( "All diagnostics",           RC )
+            CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
 
-         IF ( ITS_A_MERCURY_SIM ) THEN
             CALL Reset_Hg_Diags( am_I_Root, Input_Opt, State_Diag, RC  )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error encountered in "Reset_Hg_Diags!"'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
-         ENDIF
 
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "All diagnostics",           RC )
-         CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
+#ifdef USE_TIMERS
+            CALL GEOS_Timer_End( "All diagnostics",           RC )
+            CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
+#endif
+         ENDIF
 #endif
 
          !==============================================================
@@ -954,7 +924,7 @@
          !    and before using any of the HEMCO data list fields.
          !    (ckeller, 4/1/15)
          !==============================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
         CALL GEOS_Timer_Start( "HEMCO", RC ) 
         CALL GEOS_Timer_Start( "Input", RC )
 #endif
@@ -973,7 +943,8 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
+         CALL GEOS_Timer_End( "HEMCO", RC )
          CALL GEOS_Timer_End( "Input", RC )
 #endif
 
@@ -985,7 +956,7 @@
          !==============================================================
          !  ***** W R I T E   H E M C O   D I A G N O S T I C S *****
          !==============================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "All diagnostics",       RC )
          CALL GEOS_Timer_Start( "=> HEMCO diagnostics",  RC )
          CALL GEOS_Timer_Start( "Output",                RC )
@@ -1001,10 +972,9 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_End( "All diagnostics",      RC ) 
          CALL GEOS_Timer_End( "=> HEMCO diagnostics", RC )
-         CALL GEOS_Timer_End( "HEMCO",                RC )
          CALL GEOS_Timer_End( "Output",               RC )
 #endif
 
@@ -1013,7 +983,7 @@
          !==============================================================
          IF ( Input_Opt%Do_ObsPack .and. ( ELAPSED_TODAY == 0 ) ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "All diagnostics",        RC )
             CALL GEOS_Timer_Start( "=> ObsPack diagnostics",  RC )
 #endif
@@ -1027,20 +997,19 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "All diagnostics",         RC )
             CALL GEOS_Timer_End( "=> ObsPack diagnostics",  RC )
 #endif
          ENDIF
 
-         ! Original diagnostics
+#ifdef BPCH_DIAG
          IF ( ITS_TIME_FOR_BPCH( Input_Opt ) ) THEN
 
-#if defined( BPCH_DIAG )
             !===========================================================
             ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
             !===========================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "All diagnostics",              RC ) 
             CALL GEOS_Timer_Start( "=> Binary punch diagnostics",  RC )
             CALL GEOS_Timer_Start( "Output",                       RC )
@@ -1060,20 +1029,18 @@
                CALL CTM_FLUSH()
             ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "All diagnostics",              RC ) 
             CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
             CALL GEOS_Timer_End( "Output",                       RC )
 #endif
 
-#endif
-
             !===========================================================
             !    ***** W R I T E   H E M C O   R E S T A R T S *****
             !===========================================================
-#if defined( USE_TIMERS )
-            CALL GEOS_Timer_Start( "Output", RC )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "HEMCO",  RC )
+            CALL GEOS_Timer_Start( "Output", RC )
 #endif
 
             ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
@@ -1085,7 +1052,7 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "HEMCO",  RC )
             CALL GEOS_Timer_End( "Output", RC )
 #endif
@@ -1093,16 +1060,15 @@
             ! Set time at beginning of next diagnostic timestep
             CALL SET_DIAGb( TAU )
 
-#if defined( BPCH_DIAG )
             !===========================================================
             !   ***** Z E R O   B P C H   D I A G N O S T I C S *****
             !===========================================================
             CALL INITIALIZE( am_I_Root, Input_Opt, State_Grid, 2, RC )
             CALL INITIALIZE( am_I_Root, Input_Opt, State_Grid, 3, RC )
-#endif
 
          ENDIF
 
+#ifdef GTMM_Hg
          !=============================================================
          !   ***** W R I T E   G T M M   R E S T A R T   F I L E *****
          !     ***** MUST be done after call to diag3 ****
@@ -1133,6 +1099,8 @@
             CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, State_Grid,
      &                              NYMD, NHMS, TAU, RC )
          ENDIF
+#endif
+#endif
 
          !==============================================================
          !       ***** T E S T   F O R   E N D   O F   R U N *****
@@ -1238,48 +1206,6 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         !   ***** B P C H   D I A G N O S T I C   U P D A T E *****
-         !--------------------------------------------------------------
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "All diagnostics",              RC )
-         CALL GEOS_Timer_Start( "=> Binary punch diagnostics",  RC )
-#endif
-
-         !-------------------------------------------------------------
-         ! ND55 (bpch) DIAGNOSTIC
-         !
-         ! Tropopause level, height [km], and pressure [hPa]
-         !
-         ! NOTE: Attach here because this is where the call to
-         ! obsolete routine DIAG_TROPOPAUSE was.  This should
-         ! replicate results w/ prior versions. (bmy, 1/17/18)
-         !-------------------------------------------------------------
-         IF ( ND55 > 0 ) THEN
-            AD55(:,:,1) = AD55(:,:,1) + State_Met%TropLev
-            AD55(:,:,2) = AD55(:,:,2) + State_Met%TropHt
-            AD55(:,:,3) = AD55(:,:,3) + State_Met%TropP
-         ENDIF
-
-         ! Update dynamic timestep (for bpch diagnostics
-         CALL SET_CT_DYN( INCREMENT=.TRUE. )
-
-         !-------------------------------------------------------------
-         ! Get averaging intervals for local-time diagnostics
-         ! (NOTE: maybe improve this later on)
-         ! Placed after interpolation to get correct value of TROPP. 
-         ! (ccc, 12/9/08)
-         !-------------------------------------------------------------
-         CALL DIAG_2PM( State_Grid, State_Met )
-
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "All diagnostics",              RC )
-         CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
-#endif
-
-#endif
-
          !### Debug
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INTERP, etc' )
 
@@ -1325,6 +1251,7 @@
 
             ENDIF
 
+#ifdef BPCH_DIAG
             ! Read data required for Hg2 gas-particle partitioning 
             ! (H Amos, 25 Oct 2011)
             IF ( ITS_A_MERCURY_SIM ) THEN 
@@ -1343,6 +1270,7 @@
                  CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
                ENDIF
             ENDIF
+#endif
          ENDIF
 
          ! Prescribe methane surface concentrations throughout PBL
@@ -1369,7 +1297,7 @@
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "Transport", RC )
 #endif
 
@@ -1427,7 +1355,7 @@
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
-#if defined ( TOMAS )
+#ifdef TOMAS
             ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
             CALL Setup_WetScav( am_I_Root, Input_Opt, State_Chm,
      &                          State_Grid, State_Met, RC )
@@ -1461,7 +1389,7 @@
 
 #endif
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "Transport", RC )
 #endif
 
@@ -1473,7 +1401,7 @@
          !==============================================================
          !     ***** C O M P U T E   P B L   H E I G H T  etc. *****
          !==============================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "Boundary layer mixing", RC )
 #endif
 
@@ -1488,7 +1416,7 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_End( "Boundary layer mixing", RC )
 #endif
 
@@ -1504,7 +1432,7 @@
          !--------------------------------------------------------------
          IF ( ITS_TIME_FOR_EMIS() ) THEN
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             ! Increment emission counter
             CALL Set_Ct_Emis( INCREMENT=.TRUE. )
 #endif
@@ -1514,7 +1442,7 @@
             !===========================================================
             IF ( LDRYD ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
                ! Compute drydep velocities
@@ -1527,7 +1455,7 @@
                   CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
                CALL GEOS_Timer_End ( "Dry deposition", RC )
 #endif
 
@@ -1546,7 +1474,7 @@
             !
             ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
             !===========================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "HEMCO", RC )
 #endif
             
@@ -1573,7 +1501,7 @@
                CALL Debug_Msg( '### MAIN: a HEMCO PHASE 2' )
             ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
          ENDIF
@@ -1583,7 +1511,7 @@
          !-------------------------------
          IF ( ITS_TIME_FOR_CONV() ) THEN
             
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             ! Increment the convection timestep
             CALL Set_Ct_Conv( INCREMENT=.TRUE. )
 #endif
@@ -1591,7 +1519,7 @@
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "Boundary layer mixing", RC )
 #endif
 
@@ -1616,7 +1544,7 @@
                CALL ERror_Stop( ErrMsg, ThisLoc )
             ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "Boundary layer mixing", RC )
 #endif
 
@@ -1626,8 +1554,7 @@
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
             IF ( LCONV ) THEN
-
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
                CALL GEOS_Timer_Start( "Convection", RC )
 #endif
 
@@ -1649,7 +1576,7 @@
                   CALL Debug_Msg( '### MAIN: a CONVECTION' )
                ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
                CALL GEOS_Timer_End( "Convection", RC )
 #endif
             ENDIF 
@@ -1659,7 +1586,7 @@
          !==============================================================
          !               ***** C H E M I S T R Y *****
          !============================================================== 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "All chemistry", RC )
 #endif
 
@@ -1671,7 +1598,7 @@
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             ! Increment chemistry timestep counter
             CALL Set_Ct_Chem( INCREMENT=.TRUE. )
 #endif
@@ -1703,7 +1630,7 @@
 
          ENDIF 
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_End( "All chemistry", RC )
 #endif
 
@@ -1712,7 +1639,7 @@
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "Wet deposition", RC )
 #endif
 
@@ -1729,7 +1656,7 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "Wet deposition", RC )
 #endif
 
@@ -1740,7 +1667,7 @@
          !==============================================================
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "All chemistry",       RC )
             CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
 #endif
@@ -1758,13 +1685,13 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "All chemistry",       RC )
             CALL GEOS_Timer_End( "=> All aerosol chem", RC )
 #endif
          ENDIF
 
-#if defined( RRTMG )
+#ifdef RRTMG
          !==============================================================
          !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
          !
@@ -1774,7 +1701,7 @@
          !==============================================================
          IF ( Input_opt%LRAD .and. ITS_TIME_FOR_RT() ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "RRTMG", RC )
 #endif
 
@@ -1852,7 +1779,7 @@
                ENDIF
             ENDDO
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             ! Increment radiation timestep counter
             CALL Set_Ct_Rad( INCREMENT=.TRUE. )
 #endif
@@ -1862,13 +1789,13 @@
                CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
             ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "RRTMG", RC )
 #endif
          ENDIF
 #endif
 
-#if defined( DIAG_DEVEL )
+#ifdef DIAG_DEVEL
          ! Eventually write dobson columns into diagnostics array
          CALL CalcDobsonColumn ( am_I_Root, Input_Opt,
      &                           State_Met, State_Chm, RC )
@@ -1881,7 +1808,7 @@
          !--------------------------------------------------------------
          !           ***** H I S T O R Y   U P D A T E  *****
          !--------------------------------------------------------------
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "All diagnostics",           RC ) 
          CALL GEOS_Timer_Start( "Output",                    RC )
          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
@@ -1937,7 +1864,7 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_End( "All diagnostics",           RC ) 
          CALL GEOS_Timer_End( "Output",                    RC )
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
@@ -1948,7 +1875,7 @@
          !--------------------------------------------------------------
          IF ( Input_Opt%Do_ObsPack ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "All diagnostics",        RC ) 
             CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
 #endif
@@ -1958,14 +1885,14 @@
      &                           Input_Opt,  State_Chm, State_Diag,
      &                           State_Grid, State_Met, RC        )
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
             CALL GEOS_Timer_End( "All diagnostics",        RC ) 
             CALL GEOS_Timer_End( "=> ObsPack diagnostics", RC )
 #endif
 
          ENDIF
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
          !--------------------------------------------------------------
          !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
          !
@@ -1976,7 +1903,7 @@
          IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
             IF ( ITS_A_NEW_DAY() ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
                CALL GEOS_Timer_Start( "All diagnostics",             RC) 
                CALL GEOS_Timer_Start( "Output",                      RC)
                CALL GEOS_Timer_Start( "=> Binary punch diagnostics", RC)
@@ -1992,7 +1919,7 @@
                   CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
                CALL GEOS_Timer_End( "All diagnostics",             RC ) 
                CALL GEOS_Timer_End( "Output",                      RC )
                CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC )
@@ -2000,9 +1927,7 @@
 
             ENDIF
          ENDIF
-#endif
 
-#if defined( BPCH_DIAG )
          !--------------------------------------------------------------
          ! **** C H 4   S I M U L A T I O N   D I A G N O S I C S ****
          !
@@ -2054,7 +1979,6 @@
 !------------------------------------------------------------------------------
             ENDIF
          ENDIF
-
 #endif
 
          !==============================================================
@@ -2070,13 +1994,13 @@
             CALL Debug_Msg( '### MAIN: after SET_ELAPSED_SEC' )
          ENDIF
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+#ifdef BPCH_DIAG
          !==============================================================
          !      ***** D I A G N O S T I C S   A R C H I V A L *****
          !
          !                ***** C O N T I N U E D *****
          !==============================================================
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "All diagnostics",              RC )
          CALL GEOS_Timer_Start( "Output",                       RC )
          CALL GEOS_Timer_Start( "=> Binary punch diagnostics",  RC )
@@ -2121,40 +2045,7 @@
                ErrMsg = 'Error encountered in "Diag1"!'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
-
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG1' )
-
-#if defined( BPCH_DIAG )
-            ! ND41: save PBL height in 1200-1600 LT (amf)
-            ! (for comparison w/ Holzworth, 1967)
-            IF ( ND41 > 0 ) CALL DIAG41( State_Grid, State_Met )
-            IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG41' )
-
-            ! ND42: SOA concentrations [ug/m3]
-            IF ( ND42 > 0 ) THEN
-               CALL Diag42( am_I_Root,  Input_Opt, State_Chm,
-     &                      State_Grid, State_Met, RC                )
-
-               ! Trap potential errors
-               IF ( RC /= GC_SUCCESS ) THEN
-                  ErrMsg = 'Error encountered in "Diag42"!'
-                  CALL Error_Stop( ErrMsg, ThisLoc )
-               ENDIF
-            ENDIF
-            IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG42' )
-#endif
-
-            ! 24-hr timeseries
-            IF ( Input_Opt%DO_ND50 ) THEN
-               CALL DIAG50( am_I_Root, Input_Opt, State_Chm, State_Grid,
-     &                      State_Met, RC )
-
-               ! Trap potential errors
-               IF ( RC /= GC_SUCCESS ) THEN
-                  ErrMsg = 'Error encountered in "Diag50"!'
-                  CALL Error_Stop( ErrMsg, ThisLoc )
-               ENDIF
-            ENDIF
 
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL Set_Ct_Diag( INCREMENT=.TRUE. )
@@ -2171,44 +2062,6 @@
          !       the ND40, ND49, and ND52 timeseries diagnostics
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !--------------------------------------------------------------
-
-         ! Station timeseries
-         IF ( ITS_TIME_FOR_DIAG48( Input_Opt ) ) THEN
-            CALL DIAG48( am_I_Root,  Input_Opt, State_Chm, 
-     &                   State_Grid, State_Met, RC )
-
-            ! Trap potential errors
-            IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Diag48"!'
-               CALL Error_Stop( ErrMsg, ThisLoc )
-            ENDIF
-         ENDIF
-         IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG48' )
-
-         ! 3-D timeseries
-         IF ( ITS_TIME_FOR_DIAG49( Input_Opt ) ) THEN
-            CALL DIAG49( am_I_Root,  Input_Opt,  State_Chm,
-     &                   State_Diag, State_Grid, State_Met, RC )
-
-            ! Trap potential errors
-            IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Diag49"!'
-               CALL Error_Stop( ErrMsg, ThisLoc )
-            ENDIF
-         ENDIF
-         IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG49' )
-
-         ! Ship timeseries
-         IF ( ITS_TIME_FOR_DIAG63( Input_Opt ) ) THEN
-            CALL DIAG63( am_I_Root, Input_Opt, State_Chm, RC )
-
-            ! Trap potential errors
-            IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Diag63"!'
-               CALL Error_Stop( ErrMsg, ThisLoc )
-            ENDIF
-         ENDIF
-         IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries
          IF ( Input_Opt%DO_ND51 ) THEN
@@ -2234,17 +2087,10 @@
          ENDIF
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG51' )
 
-         ! Comment out for now 
-         !! Column timeseries
-         !IF ( ND52 > 0 .and. ITS_TIME_FOR_ND52() ) THEN
-         !   CALL DIAG52
-         !   IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a ND52' )
-         !ENDIF
-
          !### After diagnostics
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after TIMESERIES' )
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_End( "All diagnostics",              RC )
          CALL GEOS_Timer_End( "Output",                       RC )
          CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
@@ -2255,7 +2101,7 @@
          !--------------------------------------------------------------
          !            ***** H I S T O R Y   W R I T E *****
          !--------------------------------------------------------------
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "All diagnostics",           RC )
          CALL GEOS_Timer_Start( "Output",                    RC )
          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
@@ -2271,7 +2117,7 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_End( "All diagnostics",           RC )
          CALL GEOS_Timer_End( "Output",                    RC )
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
@@ -2300,9 +2146,38 @@
       !=================================================================
  9999 CONTINUE
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_End ( "Timesteps", RC )
 #endif
+
+#ifndef BPCH_DIAG
+      !-----------------------------------------------------------------
+      !      ***** W R I T E   H E M C O   R E S T A R T S *****
+      !
+      ! NOTE: If BPCH_DIAG=y, then this is done above whenever
+      ! ITS_TIME_FOR_BPCH is TRUE.   If BPCH_DIAG=n, then we have to
+      ! add this here to make sure we get HEMCO restart otuput.
+      !-----------------------------------------------------------------
+#ifdef USE_TIMERS
+      CALL GEOS_Timer_Start( "HEMCO",  RC )
+      CALL GEOS_Timer_Start( "Output", RC )
+#endif
+
+      ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
+      CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .TRUE., RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "HCOI_GC_WriteDiagn"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
+#ifdef USE_TIMERS
+      CALL GEOS_Timer_End( "HEMCO",  RC )
+      CALL GEOS_Timer_End( "Output", RC )
+#endif
+#endif
+
       !-----------------------------------------------------------------
       !         ***** O B S P A C K   D I A G N O S T I C S *****
       !
@@ -2310,7 +2185,7 @@
       !-----------------------------------------------------------------
       IF ( Input_Opt%Do_ObsPack ) THEN
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "All diagnostics",        RC )
          CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
 #endif
@@ -2335,7 +2210,7 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
          CALL GEOS_Timer_End( "All diagnostics",        RC ) 
          CALL GEOS_Timer_End( "=> ObsPack diagnostics", RC )
 #endif      
@@ -2352,43 +2227,10 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-#if defined( BPCH_DIAG )
-      !-----------------------------------------------------------------
-      ! Write final conditions for benchmark simulations
-      !-----------------------------------------------------------------
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "All diagnostics",             RC )
-      CALL GEOS_Timer_Start( "=> Binary punch diagnostics", RC )
-      CALL GEOS_Timer_Start( "Output",                      RC )
-#endif 
-
-      ! Save final tracer mass [kg] to disk for model benchmarking
-      ! for Rn-Pb-Be and full-chem benchmark simulations
-      ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
-      ! and are converted locally to [kg] (mps, 11/29/16)
-      IF ( LSTDRUN ) THEN 
-         CALL StdRun( am_I_Root,  Input_Opt, State_Chm, State_Diag,
-     &                State_Grid, State_Met, RC,        Lbegin=.FALSE. )
-
-         ! Trap potential errors
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "StdRun"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
-      ENDIF
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "All diagnostics",             RC )
-      CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC )
-      CALL GEOS_Timer_End( "Output",                      RC )
-#endif 
-
-#endif
-
       !-----------------------------------------------------------------
       ! Finalize GEOS-Chem
       !-----------------------------------------------------------------
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       CALL GEOS_Timer_Start( "Finalization", RC )
 #endif 
 
@@ -2454,7 +2296,7 @@
       ENDIF
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup Diag_List' )
 
-#if defined( APM )
+#ifdef APM
       ! Clean up arrays for APM microphysics, etc.
       CALL CLEANUP_APMARRAYS()
       CALL CLEANUP_APM3D( am_I_Root, Input_Opt, RC )
@@ -2470,7 +2312,7 @@
 ! %%%%%  --  Bob Yantosca (22 Jan 2018)                                  %%%%%
 ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
-#if defined( EXCHANGE )
+#ifdef EXCHANGE
       ! Finalize the two-way nesting
       CALL Cleanup_Exchange( am_I_Root )
 #endif
@@ -2479,14 +2321,14 @@
       ! Free the shadow variables in error_mod.F
       CALL Cleanup_Error()
 
-#if defined( GTMM_Hg )
+#ifdef GTMM_Hg
       ! Deallocate arrays from GTMM model for mercury simulation
       IF ( LGTMM ) CALL CleanupCASAarrays()
 #endif
 
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a CLEANUP' )
 
-#if defined( USE_TIMERS )
+#ifdef USE_TIMERS
       ! Stop remaining timers
       CALL GEOS_Timer_End( "Finalization", RC )
       CALL GEOS_Timer_End( "GEOS-Chem",    RC )
@@ -2520,20 +2362,7 @@
       SUBROUTINE Display_Model_Info()
 ! 
 ! !REVISION HISTORY: 
-!  02 Dec 2003 - R. Yantosca - Initial version
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Added extra output
-!  02 Feb 2012 - R. Yantosca - Added output for GEOS-5.7.x met fields
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
-!  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
-!  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
-!  01 Mar 2017 - R. Yantosca - Now echo info if netCDF can do compression
-!  16 Mar 2017 - M. Sulprizio- Print model version to log file
-!  26 Jul 2018 - R. Yantosca - Now get version # from gc_classic_version.H
-!  06 Jan 2019 - M. Sulprizio- Rename from Display_Grid_and_Model to
-!                              Display_Model_Info and remove references to grid
-!                              options, which are now specified in input.geos
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2581,7 +2410,7 @@
       !-----------------------------------------------------------------
       ! Print status of binary punch (bpch) diagnostics
       !-----------------------------------------------------------------
-#if defined( BPCH_DIAG ) 
+#ifdef BPCH_DIAG 
       WRITE( 6, 160 ) 'ON'
 #else
       WRITE( 6, 160 ) 'OFF'
@@ -2621,6 +2450,7 @@
  190  FORMAT( /, '===> SIMULATION START TIME: ',      a, ' <===', / )
 
       END SUBROUTINE Display_Model_Info
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2648,20 +2478,18 @@
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  06 Aug 2012 - R. Yantosca - IU_BPCH is only global file LUN still needed
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( BPCH_DIAG )
       ! NOTE: Block out with an #ifdef, so that we don't interfere
       ! with file units in GCHP, or when using GEOS-Chem as an
       ! instance in other models like CESM or ECMWF (bmy, 1/12/18)
       CALL FLUSH( IU_BPCH )  
-#endif
 
       END SUBROUTINE CTM_Flush
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2680,7 +2508,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2729,10 +2557,7 @@
 !
 ! !REVISION HISTORY: 
 !  07 Mar 2012 - R. Yantosca - Initial version
-!  14 Nov 2013 - R. Yantosca - For GEOS-FP, read O3 from met field files
-!  13 Dec 2013 - M. Sulprizio- Moved USE_O3_FROM_MET to the Input_Opt object and
-!                              set in initialization stage of GEOS_CHEM
-!  22 Oct 2014 - C. Keller   - Added am_I_Root
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

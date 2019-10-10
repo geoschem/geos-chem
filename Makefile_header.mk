@@ -288,27 +288,14 @@ endif
 # Diagnostic settings
 #------------------------------------------------------------------------------
 
-# Turn on bpch diagnostics UNLESS specified otherwis
+# Turn OFF bpch diagnostics UNLESS specified otherwise
 ifdef BPCH_DIAG
-  BPCH_DIAG          :=yes
+  BPCH_DIAG          :=no
 endif
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DBPCH_DIAG
 endif
-
-# If we are compiling GEOS-Chem "Classic", then also activate all bpch
-# timeseries diagnostics.  At this point (v11-02) there are some special
-# timeseries diagnostics that require local-time binning, which is not
-# yet available in the netCDF diagnostic output.  This will preserve
-# backwards compatibility for the time being. (bmy, 4/11/18)
-ifeq ($(IS_HPC),0)
-   USER_DEFS         += -DBPCH_TIMESER
-endif
-
-# Turn on bpch code for nested-grid BC's by default
-# Needed for both global and nested simulations
-USER_DEFS            += -DBPCH_TPBC
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 

@@ -35,7 +35,7 @@
       PRIVATE :: WET_SETTLING
       PRIVATE :: CHEM_MOPO
       PRIVATE :: CHEM_MOPI
-#if defined( APM )
+#ifdef APM
       PRIVATE :: WET_SETTLINGBIN
 #endif
 !
@@ -123,7 +123,7 @@
       INTEGER,  PARAMETER   :: NSALT    = 2
       INTEGER,  PARAMETER   :: NR_MAX   = 200
       REAL(fp), PARAMETER   :: SMALLNUM = 1e-20_fp
-#if defined( APM )
+#ifdef APM
       INTEGER,  PARAMETER   :: NSALTBIN = 20
 #endif
 !
@@ -178,7 +178,7 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-#if defined( APM )
+#ifdef APM
 !APM_GanLuo+
       USE APM_INIT_MOD,       ONLY : APMIDS
 #endif
@@ -304,7 +304,7 @@
 
       ENDIF
 
-#if defined( APM )
+#ifdef APM
       !----------------------------------------
       ! Sea salt emissions for extra APM bins
       !----------------------------------------
@@ -348,10 +348,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD44
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -759,41 +755,6 @@
      &                * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1
      &                *  TC(I,J,L+1) )
          ENDDO
-
-         !==============================================================
-         ! DIAGNOSTIC: Sea salt loss to dry deposition [molec/cm2/s]
-         !==============================================================
-#if defined( BPCH_DIAG )
-         IF ( ND44 > 0 ) THEN
-            !-----------------------------------------------------------
-            ! ND44 DIAGNOSTIC (bpch)
-            ! Dry deposition flux loss [molec/cm2/s]
-            !
-            ! NOTE: Bpch diagnostics are being phased out.
-            !-----------------------------------------------------------
-            ! Initialize
-            TOT1 = 0e+0_fp
-            TOT2 = 0e+0_fp
-
-            ! Compute column totals of TCO(:) and TC(I,J,:,N)
-            DO L = 1, State_Grid%NZ
-               TOT1 = TOT1 + TC0(L)
-               TOT2 = TOT2 + TC(I,J,L)
-            ENDDO
-
-            ! Surface area [cm2]
-            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-            ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
-            FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-            FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW 
-     &                 / State_Chm%SpcData(id_SALA)%Info%emMW_g )
-     &                 * 1.e-3_fp ) / AREA_CM2 
-
-            ND             = IDDEP(N)
-            AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
-         ENDIF
-#endif
 
          !-----------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
@@ -1254,7 +1215,7 @@
 
       END SUBROUTINE CLEANUP_SEASALT
 !EOC
-#if   defined( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1282,7 +1243,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, Xk
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
 #endif
 !
@@ -1479,7 +1440,7 @@
                !==============================================================
                ! ND59 Diagnostic: Sea salt emission in [kg/box/timestep]       
                !==============================================================
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
                IF ( ND59 > 0) THEN
                   AD59_NUMB(I,J,1,k) = AD59_NUMB(I,J,1,k) + NUM
                   AD59_SALT(I,J,1,k) = AD59_SALT(I,J,1,k) + 
@@ -1496,7 +1457,7 @@
       END SUBROUTINE SRCSALT30
 !EOC
 #endif
-#if defined( APM )
+#ifdef APM
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1564,75 +1525,69 @@
       DTEMIS = GET_TS_CHEM()
 
       DO N=1,NSALTBIN
-      ! Initialize source
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, State_Grid%NY
-      DO I = 1, State_Grid%NX
-         SALT(I,J)   = 0d0
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+         SALT = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, A_M2, W10M, FOCEAN, SFCWINDSQR, SST, SCALESST )
 !$OMP+SCHEDULE( DYNAMIC )
 
-      ! Loop over latitudes
+      ! Loop over grid boxes
       DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
-         ! Loop over longitudes
-         DO I = 1, State_Grid%NX
+         ! Initialize
+         SFCWINDSQR = 0.0_fp
+         W10M       = 0.0_fp
+         SST        = 0.0_fp
+         SCALESST   = 0.0_fp
+         A_M2       = State_Grid%AREA_M2(I,J)
 
-            ! Grid box surface area [m2]
-            A_M2 = State_Grid%AREA_M2(I,J)
+         ! Check if over ocean assuming only gridcells that are
+         ! at least 50% water are oceans (J. Pierce, 3/10/14)
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
+            FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
+         ELSE
+            FOCEAN = 0.e+0_fp
+         ENDIF
 
-            ! Check if over ocean assuming only gridcells that are
-            ! at least 50% water are oceans (J. Pierce, 3/10/14)
-            IF ( IS_WATER( I, J, State_Met ) ) THEN
-              FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
-            ELSE
-              FOCEAN = 0.e+0_fp
-            ENDIF
-
-            IF (FOCEAN > 0.5e+0_fp) THEN 
+         IF ( FOCEAN > 0.5e+0_fp ) THEN 
 
             ! Wind speed at 10 m altitude [m/s]
             SFCWINDSQR = State_Met%U10M(I,J)**2  
-     &                 + State_Met%V10M(I,J)**2
+     &                    + State_Met%V10M(I,J)**2
             W10M       = SQRT( SFCWINDSQR )
 
             ! Loop over size bins
-            IF(IFSSTSCALE==1)THEN
-              ! Sea surface temperature in Celcius (jaegle 5/11/11)
-              SST = State_Met%TSKIN(I,J) - 273.15d0
+            IF ( IFSSTSCALE==1 ) THEN
+               ! Sea surface temperature in Celsius (jaegle 5/11/11)
+               SST = State_Met%TSKIN(I,J) - 273.15d0
 
-              ! Limit SST to 0-30C range
-!Yu adjust per disc with Gan              SST = MAX( SST , 0d0 )  ! limit to  0C
-              SST = MAX( SST , 5d0 )  ! limit to  0C
-              SST = MIN( SST , 30d0 ) ! limit to 30C
+               ! Limit SST to 0-30C range
+               ! Yu adjust per disc with Gan SST = MAX( SST , 0d0 )  
+               !  ! limit to  0C
+               SST = MAX( SST, 5d0  ) ! limit to  0C
+               SST = MIN( SST, 30d0 ) ! limit to 30C
 
-              ! Empirical SST scaling factor (jaegle 5/11/11)
-              SCALESST = 0.329d0 + 0.0904d0*SST -
-     &                   0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
-
-              ! Update seasalt source into SALT [kg]
-              SALT(I,J)   = SALT(I,J) +
-              ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) at U10 = 9 m/s
-     &        DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS
-     &                   *FOCEAN*SCALESST
+               ! Empirical SST scaling factor (jaegle 5/11/11)
+               SCALESST = 0.329d0 + 0.0904d0*SST -
+     &              0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
+               
+               ! Update seasalt source into SALT [kg]
+               SALT(I,J)   = SALT(I,J) +
+                  ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) 
+                  ! at U10 = 9 m/s
+     &            DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS
+     &            *FOCEAN*SCALESST
             ELSE
-              ! Update seasalt source into SALT [kg]
-              SALT(I,J)   = SALT(I,J) +
-              ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) at U10 = 9
-              ! m/s
-     &        DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS*FOCEAN
+               ! Update seasalt source into SALT [kg]
+               SALT(I,J)   = SALT(I,J) +
+                  ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) 
+                  ! at U10 = 9  m/s
+     &            DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS*FOCEAN
             ENDIF
-
-            ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 

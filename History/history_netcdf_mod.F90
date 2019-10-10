@@ -663,7 +663,6 @@ CONTAINS
     USE History_Util_Mod
     USE M_Netcdf_Io_Write,  ONLY : NcWr
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
-    USE Roundoff_Mod,       ONLY : RoundOff
 !
 ! !INPUT PARAMETERS: 
 !

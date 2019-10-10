@@ -275,58 +275,7 @@ MODULE State_Met_Mod
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, split off from gc_type_mod.F90
-!  23 Oct 2012 - R. Yantosca - Added QI, QL met fields to the derived type
-!  15 Nov 2012 - M. Payer    - Added all remaining met fields
-!  12 Dec 2012 - R. Yantosca - Add IREG, ILAND, IUSE fields for dry deposition
-!  13 Dec 2012 - R. Yantosca - Add XLAI, XLAI2 fields for dry deposition
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  15 Nov 2013 - R. Yantosca - Now denote that RH fields have units of [%]
-!  10 Oct 2014 - C. Keller   - Added ITY (needed for GIGC). For now, this value
-!                              is just initialized to 1.0 and not modified any
-!                              more.
-!  05 Nov 2014 - M. Yannetti - Changed REAL*8 to REAL(fp)
-!  12 Feb 2015 - C. Keller   - Added UPDVVEL (for use in wet scavenging).
-!  24 Feb 2015 - E. Lundgren - Add PEDGE_DRY, PMID_DRY, and MAIRDEN
-!  03 Mar 2015 - E. Lundgren - Add TV (virtual temperature)
-!  16 Apr 2015 - E. Lundgren - Add mean pressures PMEAN and PMEAN_DRY. Clarify
-!                              definition of PMID as arithmetic average P. 
-!                              Add MOISTMW to use TCVV with moist mixing ratio. 
-!  25 May 2015 - C. Keller   - Removed SUNCOSmid5 (now calculated by HEMCO).
-!  08 Jul 2015 - E. Lundgren - Add XCHLR and XCHLR2 for organic marine aerosols
-!  11 Aug 2015 - R. Yantosca - Extend #ifdefs for MERRA2 met fields
-!  22 Sep 2015 - E. Lundgren - Add SWGDN for incident radiation at ground
-!  28 Oct 2015 - E. Lundgren - Add previous delta-P and specific humidity for
-!                              tracer mass conservation in mixing ratio update
-!  04 Mar 2016 - C. Keller   - Add CNV_FRC for convective fraction. Currently
-!                              not a standard GEOS-FP output, only used in 
-!                              online model (ESMF). 
-!  21 Dec 2015 - M. Sulprizio- Add AIRNUMDEN, which is the same as AIRDEN but
-!                              has units molec/cm3 for the chemistry routines.
-!  17 Mar 2016 - M. Sulprizio- Remove OPTDEP. Instead, we now solely use OPTD.
-!  03 May 2016 - E. Lundgren - Add PSC2_DRY, PS1_DRY, and PS2_DRY
-!  06 Jul 2016 - E. Lundgren - Rename PS1, PS2, and PSC1: add '_WET' suffix
-!  06 Jul 2016 - E. Lundgren - Add DELP_DRY and DP_DRY_PREV
-!  19 Jul 2016 - E. Lundgren - Remove PMEAN, PMEAN_DRY, MOISTMW, and ADMOIST  
-!  16 Aug 2016 - M. Sulprizio- Rename from gigc_state_chm_mod.F90 to
-!                              state_chm_mod.F90. The "gigc" nomenclature is
-!                              no longer used.
-!  18 Oct 2016 - E. Lundgren - Remove XLAI2, CHLR2; add MODISLAI, MODISCHLR to
-!                              replace modis_lai_mod-level GC_LAI and GC_CHLR
-!  19 Oct 2016 - E. Lundgren - Use NSURFTYPE as the # of land types
-!  03 Feb 2017 - M. Sulprizio- Add OMEGA for use in sulfate_mod.F (Q. Chen)
-!  26 Jun 2017 - R. Yantosca - Added StateName and Registry to type MetState
-!  27 Jun 2017 - R. Yantosca - Add fields of State_Met to the registry
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
-!                              and remove obsolete met fields from State_Met
-!  07 Sep 2017 - E. Lundgren - Add Register_MetField interface for init
-!  13 Sep 2017 - M. Sulprizio- Remove DELP_PREV and SPHU_PREV; they're not used
-!  14 Sep 2017 - M. Sulprizio- Comment out met fields that aren't actually used
-!                              in GEOS-Chem (EVAP, GRN, PRECSNO, PV, RADLWG)
-!  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Met and Print_State_Met
-!  07 Nov 2017 - R. Yantosca - Add tropht and troplev fields
-!  08 Jan 2018 - R. Yantosca - Added logical query fields
-!  31 Jan 2018 - E. Lundgren - Remove underscores from diagnostic names
-!  20 Jan 2019 - L. Murray   - Add offline lightning flash rates
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,29 +329,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, based on gc_environment_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now pass all dimensions as arguments
-!  23 Oct 2012 - R. Yantosca - Now allocate QI, QL fields
-!  15 Nov 2012 - M. Payer    - Added all remaining met fields
-!  16 Nov 2012 - R. Yantosca - Now zero all fields after allocating
-!  27 Nov 2012 - R. Yantosca - Now allocate SUNCOS fields (IM,JM)
-!  12 Dec 2012 - R. Yantosca - Now allocate the IREG, ILAND, IUSE fields
-!  13 Dec 2012 - R. Yantosca - Now allocate the XLAI, XLAI2 fields
-!  07 Mar 2013 - R. Yantosca - Now allocate PF*LSAN, PF*CU fields properly
-!                              for GEOS-5.7.x met (they are edged)
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  22 Aug 2014 - R. Yantosca - Allocate PBL_TOP_L field
-!  05 Nov 2014 - R. Yantosca - Now use 0.0_fp instead of 0d0
-!  06 Nov 2014 - R. Yantosca - Now make all fields (IM,JM,LM) instead of 
-!                              (LM,JM,IM), to facilitate use w/in GEOS-5 GCM
-!  05 Oct 2016 - R. Yantosca - Swapped order of HKETA and HKBETA allocation
-!  28 Nov 2016 - R. Yantosca - Nullify fields that may or may not be allocated
-!  01 Jun 2017 - C. Keller   - Initialize UPDVVEL to -999.0 to ensure that 
-!                              GET_VUD (wetscav_mod.F) works properly.
-!  26 Jun 2017 - R. Yantosca - Now register each variable after it's allocated
-!  24 Aug 2017 - R. Yantosca - Now register level-edged variables appropriately
-!  07 Sep 2017 - E. Lundgren - Abstract the metadata and method add to registry
-!  16 Nov 2017 - E. Lundgren - Get grid params from CMN_Size_Mod not arguments
-!  05 Nov 2018 - R. Yantosca - Now nullify all fields before allocating
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3303,7 +3230,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  28 Aug 2017 - E. Lundgren - Initial version
-!  01 Nov 2017 - R. Yantosca - Now get To_UpperCase from charpak_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

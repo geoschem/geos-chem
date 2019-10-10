@@ -5407,9 +5407,10 @@ CONTAINS
     !=======================================================================
     ! These diagnostics are only relevant for:
     !
-    ! THE CO SPECIALTY SIMULATION
+    ! THE CO SPECIALTY SIMULATION and
+    ! THE FULL-CHEMISTRY SIMULATIONS (for archiving output for tagCO)
     !=======================================================================
-    IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Production of CO from CH4
@@ -5475,7 +5476,7 @@ CONTAINS
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for the '             // &
-                      'tagged CO specialty simulations.'
+                      'tagged CO or full-chemistry simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -6474,31 +6475,30 @@ CONTAINS
                                    State_Diag%Archive_TotalOC           .or. &
                                    State_Diag%Archive_TotalBiogenicOA       )
 
-     State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1           .or. &
-                                 State_Diag%Archive_AODHygWL2           .or. &
-                                 State_Diag%Archive_AODHygWL3           .or. &
-                                 State_Diag%Archive_AODSOAfromAqIsopWL1 .or. &
-                                 State_Diag%Archive_AODSOAfromAqIsopWL1 .or. &
-                                 State_Diag%Archive_AODSOAfromAqIsopWL1 .or. &
-                                 State_Diag%Archive_AODDust             .or. &
-                                 State_Diag%Archive_AODDustWL1          .or. &
-                                 State_Diag%Archive_AODDustWL2          .or. &
-                                 State_Diag%Archive_AODDustWL3              )
+    State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1            .or. &
+                                State_Diag%Archive_AODHygWL2            .or. &
+                                State_Diag%Archive_AODHygWL3            .or. &
+                                State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
+                                State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
+                                State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
+                                State_Diag%Archive_AODDust              .or. &
+                                State_Diag%Archive_AODDustWL1           .or. &
+                                State_Diag%Archive_AODDustWL2           .or. &
+                                State_Diag%Archive_AODDustWL3               )
 
-     State_Diag%Archive_AODStrat = ( State_Diag%Archive_AODSLAWL1       .or. &
-                                     State_Diag%Archive_AODSLAWL2       .or. &
-                                     State_Diag%Archive_AODSLAWL3       .or. &
-                                     State_Diag%Archive_AODPSCWL1       .or. &  
-                                     State_Diag%Archive_AODPSCWL2       .or. &  
-                                     State_Diag%Archive_AODPSCWL3       .or. &  
-                                     State_Diag%Archive_AerNumDenSLA    .or. &  
-                                     State_Diag%Archive_AerNumDenPSC        ) 
+    State_Diag%Archive_AODStrat = ( State_Diag%Archive_AODSLAWL1        .or. &
+                                    State_Diag%Archive_AODSLAWL2        .or. &
+                                    State_Diag%Archive_AODSLAWL3        .or. &
+                                    State_Diag%Archive_AODPSCWL1        .or. &
+                                    State_Diag%Archive_AODPSCWL2        .or. &
+                                    State_Diag%Archive_AODPSCWL3        .or. &
+                                    State_Diag%Archive_AerNumDenSLA     .or. &
+                                    State_Diag%Archive_AerNumDenPSC        )
 
-
-     State_Diag%Archive_ConcAboveSfc =                                       &
+    State_Diag%Archive_ConcAboveSfc =                                        &
                                  ( State_Diag%Archive_SpeciesConcALT1  .and. &
                                    State_Diag%Archive_DryDepRaALT1     .and. &
-                                   State_Diag%Archive_DryDepVelForALT1     )
+                                   State_Diag%Archive_DryDepVelForALT1      )
      
     !=======================================================================
     ! Set arrays used to calculate budget diagnostics, if needed
@@ -8197,6 +8197,7 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,         ONLY: StrSplit, To_UpperCase
+    USE DiagList_Mod,        ONLY: IsFullChem
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -8784,7 +8785,7 @@ CONTAINS
     ELSE IF ( TRIM(Name_AllCaps) == 'AODHYG' // TRIM(RadWL(1)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  =  'Optical depth for hygroscopic aerosol ' // &
                                  'at ' // TRIM(RadWL(1)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId = 'HYG'
 
@@ -9358,14 +9359,26 @@ CONTAINS
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCOFROMCH4' ) THEN
-       IF ( isDesc    ) Desc  = 'Porduction of CO by CH4'
-       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isDesc    ) Desc  = 'Production of CO by CH4'
        IF ( isRank    ) Rank  =  3
+       IF ( isUnits   ) THEN
+          IF ( isFullChem ) THEN
+             Units = 'molec cm-3 s-1'
+          ELSE
+             Units = 'kg s-1'
+          ENDIF
+       ENDIF
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCOFROMNMVOC' ) THEN
        IF ( isDesc    ) Desc  = 'Porduction of CO by NMVOC'
-       IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3 
+       IF ( isUnits   ) THEN
+          IF ( isFullChem ) THEN
+             Units = 'molec cm-3 s-1'
+          ELSE
+             Units = 'kg s-1'
+          ENDIF
+       ENDIF
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0ANTHRO' ) THEN
        IF ( isDesc    ) Desc  = 'Anthropogenic emissions of Hg0'
@@ -10265,8 +10278,6 @@ CONTAINS
                                   type=type,   vloc=vloc,                    &
                                   tagID=tagID                               )
     
-    print*, '### NAME, RC: ', TRIM(metadataID), RC
-
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &

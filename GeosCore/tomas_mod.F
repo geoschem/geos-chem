@@ -1,4 +1,4 @@
-#if defined ( TOMAS )
+#ifdef TOMAS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -454,7 +454,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD61,  AD61_INST
 #endif
@@ -687,7 +687,7 @@
       DO J = 1, State_Grid%NY
       DO L = 1, State_Grid%NZ
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          ! Reset the AD61_INST array used for tracking instantaneous 
          ! certain rates.  As of now, tracking nucleation (win, 10/7/08)
          AD61_INST(I,J,L,:) = 0e0
@@ -840,7 +840,7 @@
          ENDIF
 
          MPNUM = 5    
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
@@ -944,7 +944,7 @@
             ENDDO
 
             MPNUM = 3
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                        State_Grid )
@@ -952,7 +952,7 @@
 #endif
 
             MPNUM = 7
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             IF ( ND61 > 0 )  THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                        State_Grid )
@@ -974,7 +974,7 @@
             Gc(srtso4)=Gcout(srtso4)
 
             MPNUM = 1
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                        State_Grid )
@@ -989,7 +989,7 @@
             nucrate1(j,l)=nucrate1(j,l)+fn1
             
             ! Write nucleation rate to diagnostric ND61 (win, 10/6/08)
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             IF ( ND61 > 0 ) THEN
                IF ( L <= LD61 ) 
      &              AD61(I,J,L,2) = AD61(I,J,L,2) + fn
@@ -1040,7 +1040,7 @@
          ENDIF
 
          MPNUM = 5    
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
@@ -1067,7 +1067,7 @@
 !     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
             MPNUM = 2
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             IF ( ND60 > 0 ) THEN 
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                        State_Grid )
@@ -1095,7 +1095,7 @@
             ENDIF
 
             MPNUM = 5
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                        State_Grid )
@@ -1138,7 +1138,7 @@
 
          ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
          MPNUM = 5
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
@@ -3494,8 +3494,16 @@ C     and get the nucleation rate and critical cluster size
          print *,'Percent error=',abs((mcond-(tot_f-tot_i))/mcond)*1e2
       endif
 
-      if (mcond.gt.0.e+0_fp.and.
-     &    abs((mcond-(tot_f-tot_i))/mcond).gt.0.e+0_fp) then
+!--------------------------------------------------------------------------
+! Prior to 9/30/19:
+! Split this up into 2 IF statements.  If Mcond == 0, then the 2nd clause
+! in the IF statement will execute and this will cause a floating point
+! error. (bmy, 9/30/19)
+!      if (mcond.gt.0.e+0_fp.and.
+!     &    abs((mcond-(tot_f-tot_i))/mcond).gt.0.e+0_fp) then
+!--------------------------------------------------------------------------
+      if ( mcond > 0.0_fp ) then
+       if ( abs((mcond-(tot_f-tot_i))/mcond).gt.0.e+0_fp) then
          IF(mcond > 1.e-8_fp .and. tot_i > 5.e-2_fp)  THEN  !Add a check to check error if mcond is significant (win, 10/2/08)
 
           IF (abs((mcond-(tot_f-tot_i))/mcond).lt.1.e+0_fp .OR. 
@@ -3548,6 +3556,7 @@ C     and get the nucleation rate and critical cluster size
 !            RETURN
           ENDIF
          ENDIF
+       endif
       endif
 
 !jrp      if (abs(tot_f-tot_fa)/tot_i.gt.1.0D-8)then
@@ -3611,7 +3620,7 @@ C     and get the nucleation rate and critical cluster size
 !*****************************************************************************
 !
       ! References to F90 modules
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND60
 #endif
       USE CMN_SIZE_MOD             ! Size parameters
@@ -3736,7 +3745,7 @@ C     and get the nucleation rate and critical cluster size
      &                   'Beginning AQOXID after MNFIX' )
       ENDIF
       MPNUM = 5
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
@@ -3870,7 +3879,7 @@ C     and get the nucleation rate and critical cluster size
 
       ! Save changes to diagnostic
       MPNUM = 4
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
@@ -3888,7 +3897,7 @@ C     and get the nucleation rate and critical cluster size
      &                   'End of AQOXID after MNFIX' )
       ENDIF
       MPNUM = 5
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
@@ -3953,7 +3962,7 @@ C     and get the nucleation rate and critical cluster size
 !******************************************************************************
 !
       ! Reference to F90 modules
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD
 #endif
       USE CMN_SIZE_MOD
@@ -4001,12 +4010,17 @@ C     and get the nucleation rate and critical cluster size
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
 
+      ! For SOACOND warnings 
+      INTEGER, SAVE       :: SOACOND_WARNING_CT  = -1
+      INTEGER, PARAMETER  :: SOACOND_WARNING_MAX = 20
+
       !=================================================================
       ! SOACOND begins here
       !=================================================================
 
       ! Assume success
-      RC                =  GC_SUCCESS
+      RC                 = GC_SUCCESS
+      SOACOND_WARNING_CT = 0
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -4105,7 +4119,12 @@ C     and get the nucleation rate and critical cluster size
      &                                        'SOACOND:1')
             ENDIF
          ELSE
-            WRITE(*,*) 'SOACOND WARNING: SOA mass is being discarded'
+            ! Put a limit on the amount of screen warnings that we get
+            ! to keep logfile sizes low (bmy, 9/30/19)
+            SOACOND_WARNING_CT = SOACOND_WARNING_CT + 1
+            IF ( SOACOND_WARNING_CT < SOACOND_WARNING_MAX ) THEN
+               WRITE(*,*) 'SOACOND WARNING: SOA mass is being discarded'
+            ENDIF
             GOTO 30
          ENDIF
       ENDIF
@@ -4181,7 +4200,7 @@ C     and get the nucleation rate and critical cluster size
 
       ! Save changes to diagnostic
       MPNUM = 6
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
@@ -6075,7 +6094,7 @@ C     and get the nucleation rate and critical cluster size
 ! !USES:
 !
       USE CMN_SIZE_MOD      ! Size parameters
-#if defined( BPCH_DIAG ) 
+#ifdef BPCH_DIAG 
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD60_COND, AD60_COAG, AD60_NUCL
       USE DIAG_MOD,       ONLY : AD60_AQOX, AD60_ERROR, AD60_SOA
@@ -6120,7 +6139,7 @@ C     and get the nucleation rate and critical cluster size
       !=================================================================
       ! AERODIAG begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
 
       ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1 
       !  Note: This is created to look at 3-D rate for a selected process
@@ -7328,7 +7347,7 @@ C     and get the nucleation rate and critical cluster size
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND60
 #endif
       USE ErrCode_Mod
@@ -7473,7 +7492,7 @@ C     and get the nucleation rate and critical cluster size
          
          ! Save the error fixing to diagnostic AERO-FIX
          MPNUM = 5
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
          IF ( ND60 > 0 )
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
      &                     State_Grid )
@@ -8914,7 +8933,7 @@ C     and get the nucleation rate and critical cluster size
 !                              derived type object
 !*****************************************************************************
 
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND60
 #endif
       USE CMN_SIZE_MOD             ! Size parameters
