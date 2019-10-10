@@ -1153,33 +1153,35 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Compute stratospheric chemical tendency for UCX simulations
        !--------------------------------------------------------------------
+       IF ( Input_Opt%LSCHEM ) THEN
 
-       ! Loop over advected species
-       !$OMP PARALLEL DO               & 
-       !$OMP DEFAULT( SHARED         ) &
-       !$OMP PRIVATE( I, J, L, N, NA )
-       DO NA = 1, State_Chm%nAdvect
+          ! Loop over advected species
+          !$OMP PARALLEL DO               & 
+          !$OMP DEFAULT( SHARED         ) &
+          !$OMP PRIVATE( I, J, L, N, NA )
+          DO NA = 1, State_Chm%nAdvect
+             
+             ! Get the species ID from the advected species ID
+             N = State_Chm%Map_Advect(NA)
 
-          ! Get the species ID from the advected species ID
-          N = State_Chm%Map_Advect(NA)
+             ! Loop over grid boxes
+             DO L = 1, State_Grid%NZ
+             DO J = 1, State_Grid%NY
+             DO I = 1, State_Grid%NX
 
-          ! Loop over grid boxes
-          DO L = 1, State_Grid%NZ
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
+                ! Aggregate stratospheric chemical tendency [kg box-1]
+                ! for tropchem simulations
+                IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                   SChem_Tend(I,J,L,N) = SChem_Tend(I,J,L,N) + &
+                        ( State_Chm%Species(I,J,L,N) - Before(I,J,L,N) )
+                ENDIF
 
-             ! Aggregate stratospheric chemical tendency [kg box-1]
-             ! for tropchem simulations
-             IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                SChem_Tend(I,J,L,N) = SChem_Tend(I,J,L,N) + &
-                     ( State_Chm%Species(I,J,L,N) - Before(I,J,L,N) )
-             ENDIF
-
+             ENDDO
+             ENDDO
+             ENDDO
           ENDDO
-          ENDDO
-          ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
+          !$OMP END PARALLEL DO
+       ENDIF
     ENDIF
 
 #ifdef MODEL_GEOS

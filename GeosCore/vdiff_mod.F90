@@ -778,48 +778,6 @@ contains
     IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy   
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar  
 
-
-    ! NOTE: IS THIS DONE WHEN BPCH_DIAG IS OFF??????
-!#ifdef BPCH_DIAG
-!    !=======================================================
-!    ! ND15 Diagnostic: 
-!    ! mass change due to mixing in the boundary layer
-!    ! ND15 diagnostic moved here to not count the emissions
-!    ! and dry deposition in the Turbulent Flux.
-!    ! Needs to call qvdiff with emis+dep = 0 (dqbot) to 
-!    ! account for all mixing. (ccc, 9/24/10)
-!    !=======================================================
-!    IF ( Input_Opt%ND15 > 0 ) THEN
-!
-!       dqbot = 0e+0_fp
-!       call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
-!            termh, qp1, plonl )
-!
-!!-----------------------------------------------------------------------
-!! Simple bug fix to ensure mass conservation - Jintai Lin 20180809
-!!   Without this fix, mass is almost but not completed conserved,
-!!   which is OK for full chemistry simulations but a big problem
-!!   for long lived species such as CH4 and CO2
-!!-----------------------------------------------------------------------
-!       DO M = 1, pcnst
-!       do I = 1, plonl
-!
-!          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
-!          sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
-!                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
-!
-!          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
-!          sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
-!                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
-!
-!          qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
-!                                 sum_qp0 / sum_qp1
-!
-!       enddo
-!       ENDDO
-!    ENDIF
-!#endif
-
   end subroutine vdiff
 !EOC
 !------------------------------------------------------------------------------
