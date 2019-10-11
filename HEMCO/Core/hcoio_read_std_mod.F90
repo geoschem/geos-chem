@@ -4329,7 +4329,8 @@ CONTAINS
 ! by the actual expression. Each expression must include at least one 
 ! variable (evaluated at runtime). The following variables are currently 
 ! supported: YYYY (year), MM (month), DD (day), HH (hour), LH (local hour), 
-! NN (minute), SS (second), WD (weekday), LWD (local weekday), DOY (day of year). 
+! NN (minute), SS (second), WD (weekday), LWD (local weekday),
+! DOY (day of year), ELH (elapsed hours), ELS (elapsed seconds). 
 ! In addition, the following variables can be used: PI (3.141...), DOM
 ! (\# of days of current month).
 ! For example, the following expression would yield a continuous sine
@@ -4370,6 +4371,8 @@ CONTAINS
 !  07 Jul 2017 - C. Keller - Parse function before evaluation to allow
 !                            the usage of user-defined tokens within the
 !                            function.
+!  27 Aug 2019 - C. Keller - Add tokens 'ELS' and 'ELH' for elapsed seconds
+!                            and hours, respectively.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4381,6 +4384,8 @@ CONTAINS
     INTEGER            :: I, NVAL, LHIDX, LWDIDX 
     INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
     INTEGER            :: prefWD, prefDOY, prefS, LMD, cHr
+    INTEGER            :: nSteps
+    REAL(hp)           :: ELH, ELS
     REAL(hp)           :: Val
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'ReadMath (hcoio_dataread_mod.F90)'
@@ -4416,7 +4421,8 @@ CONTAINS
  
     ! Get some other current time stamps 
     CALL HcoClock_Get( am_I_Root, HcoState%Clock, cS=prefS, cH=cHr, &
-                       cWEEKDAY=prefWD, cDOY=prefDOY, LMD=LMD, RC=RC ) 
+                       cWEEKDAY=prefWD, cDOY=prefDOY, LMD=LMD,      &
+                       nSteps=nSteps, RC=RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     ! GetPrefTimeAttr can return -999 for hour. In this case set to current
@@ -4429,8 +4435,12 @@ CONTAINS
                          prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
  
+    ! Elapsed hours and seconds since start time
+    ELS = HcoState%TS_DYN * nSteps
+    ELH = ELS / 3600.0_hp
+
     ! Check which variables are in string. 
-    ! Possible variables are YYYY, MM, DD, WD, HH, NN, SS, DOY 
+    ! Possible variables are YYYY, MM, DD, WD, HH, NN, SS, DOY, ELH, ELS
     NVAL   = 0
     LHIDX  = -1
     LWDIDX = -1
@@ -4497,12 +4507,22 @@ CONTAINS
        all_variables(NVAL)       = 'dom'
        all_variablesvalues(NVAL) = LMD 
     ENDIF
+    IF ( INDEX(func,'ELH') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'elh'
+       all_variablesvalues(NVAL) = ELH
+    ENDIF
+    IF ( INDEX(func,'ELS') > 0 ) THEN
+       NVAL                      = NVAL + 1
+       all_variables(NVAL)       = 'els'
+       all_variablesvalues(NVAL) = ELS
+    ENDIF
 
     ! Need at least one expression
     IF ( NVAL == 0 ) THEN
        MSG = 'No valid time expression found - '//&
              'the function should contain at least one of '//&
-             'YYYY,MM,DD,HH,NN,SS,DOY,WD; '//TRIM(func)
+             'YYYY,MM,DD,HH,NN,SS,DOY,WD,ELH,ELS; '//TRIM(func)
        CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
        RETURN
     ENDIF 

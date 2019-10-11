@@ -384,6 +384,8 @@ MODULE Input_Opt_Mod
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
 #if defined( MODEL_GEOS )
+     LOGICAL                     :: LCAPTROP     = .FALSE.
+     !REAL(fp)                    :: OZONOPAUSE   = -999.0
      LOGICAL                     :: haveImpRst   = .FALSE.
      LOGICAL                     :: AlwaysSetH2O = .TRUE.
      LOGICAL                     :: UseOnlineVUD = .FALSE.
@@ -397,9 +399,13 @@ MODULE Input_Opt_Mod
      INTEGER                     :: FJX_EXTRAL_ITERMAX = 5
      LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE.
      LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
+     ! Toggle for het rates. If true, turns off three Cl producing het reactions
+     ! in the stratosphere. In MODEL_GEOS, this flag is set in GEOSCHEMchem_GridComp.rc
+     LOGICAL                     :: TurnOffHetRates = .FALSE.
 #else
      LOGICAL                     :: haveImpRst
      LOGICAL                     :: AlwaysSetH2O
+     LOGICAL                     :: TurnOffHetRates
 #endif
 
      !----------------------------------------
@@ -912,6 +918,7 @@ CONTAINS
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
 #if defined( MODEL_GEOS )
+!    Input_Opt%OZONOPAUSE             = -999.0
 !    Input_Opt%haveImpRst             = .FALSE.
 !    Input_Opt%AlwaysSetH2O           = .FALSE.
 !    Input_Opt%LLFASTJX               = -999
@@ -924,6 +931,7 @@ CONTAINS
 #else
     Input_Opt%haveImpRst             = .FALSE.
     Input_Opt%AlwaysSetH2O           = .FALSE.
+    Input_Opt%TurnOffHetRates        = .FALSE.
 #endif
 
     !----------------------------------------

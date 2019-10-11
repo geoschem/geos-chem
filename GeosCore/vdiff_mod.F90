@@ -2055,7 +2055,7 @@ contains
 #ifdef USE_TEND
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
-    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, &
+    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, State_Grid, &
                       State_Met, 'PBLMIX', RC )
 #endif
 

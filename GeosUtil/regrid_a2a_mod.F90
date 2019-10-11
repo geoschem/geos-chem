@@ -2801,16 +2801,25 @@ CONTAINS
 !
 ! !USES:
 !
+#if defined(ESMF_)
+    USE ESMF
+    USE MAPL_Mod
+#else
     ! Modules for netCDF read
     USE m_netcdf_io_open
     USE m_netcdf_io_get_dimlen
     USE m_netcdf_io_read
     USE m_netcdf_io_readattr
     USE m_netcdf_io_close
+#endif
 
     IMPLICIT NONE
 
+#if defined(ESMF_)
+#   include "MAPL_Generic.h"
+#else
 #   include "netcdf.inc"
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -2829,6 +2838,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2012 - R. Yantosca - Initial version
+!  26 Aug 2019 - C. Keller   - (Re)added ESMF_ wrapper
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2841,6 +2851,15 @@ CONTAINS
     ! Arrays
     INTEGER            :: st1d(1), ct1d(1)             ! netCDF start & count
 
+#if defined(ESMF_)
+    INTEGER            :: RC
+    __Iam__( 'Read_Input_Grid (regrid_a2a_mod.F90)' )
+
+    IF ( MAPL_am_I_Root() ) THEN
+       WRITE(*,*) 'Subroutine `Read_Input_Grid` currently not ESMF-ready!'
+    ENDIF
+    ASSERT_(.FALSE.)
+#else
     !======================================================================
     ! Read data from file
     !======================================================================
@@ -2860,6 +2879,7 @@ CONTAINS
 
     ! Close netCDF file
     CALL NcCl( fId )
+#endif
 
   END SUBROUTINE Read_Input_Grid
 !EOC

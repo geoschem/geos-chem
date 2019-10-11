@@ -235,7 +235,7 @@ CONTAINS
     !=======================================================================
     ! Archive species concentrations for tendencies (ckeller,7/15/2015)
     !=======================================================================
-    CALL Tend_Stage1( am_I_Root, Input_Opt, State_Chm,                       &
+    CALL Tend_Stage1( am_I_Root, Input_Opt, State_Chm, State_Grid,           &
                       State_Met, 'CHEM', RC                                 )
 #endif
 
