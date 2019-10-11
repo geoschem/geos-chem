@@ -78,16 +78,6 @@
       PRIVATE :: IS_SAFE_DIV_R4
       PRIVATE :: IS_SAFE_DIV_R8
 !
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: "LINUX_IFORT" and "LINUX_PGI" ARE CURRENTLY THE ONLY       %%%
-!  %%%  SUPPORTED COMPILER OPTIONS.  MOST SYSTEMS NOW USE A UNIX VERSION %%%
-!  %%%  BASED ON LINUX, SO OTHER COMPILERS (IBM/AIX, SUN/SPARC, etc.)    %%%
-!  %%%  ARE GENERALLY NOT USED ANYMORE.  LEAVE THE OLDER CODE HERE JUST  %%%
-!  %%%  IN CASE WE NEED TO REVERT TO IT AGAIN IN THE FUTURE.             %%%
-!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 ! !REVISION HISTORY:
 !  08 Mar 2001 - R. Yantosca - Initial version
 !  (1 ) Added subroutines CHECK_REAL_VALUE and CHECK_DBLE_VALUE, which are
@@ -169,12 +159,6 @@
 !
       FUNCTION NAN_FLOAT( VALUE ) RESULT( IT_IS_A_NAN )
 !
-! !USES:
-!
-#if defined( LINUX_PGI )
-      USE IEEE_ARITHMETIC
-#endif
-!
 ! !INPUT PARAMETERS: 
 !
       REAL*4, INTENT(IN) :: VALUE        ! Value to be tested for NaN
@@ -206,11 +190,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( LINUX_IFORT ) || defined( LINUX_GFORTRAN )
       IT_IS_A_NAN = ISNAN( VALUE )    
-#elif defined( LINUX_PGI )
-      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
-#endif
 
       ! Return to calling program
       END FUNCTION NAN_FLOAT
@@ -229,12 +209,6 @@
 ! !INTERFACE:
 !
       FUNCTION NAN_DBLE( VALUE ) RESULT( IT_IS_A_NAN )
-!
-! !USES:
-!
-#if defined( LINUX_PGI )
-      USE IEEE_ARITHMETIC
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -267,11 +241,7 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-#if defined( LINUX_IFORT ) || defined( LINUX_GFORTRAN )
       IT_IS_A_NAN = ISNAN( VALUE )      
-#elif defined( LINUX_PGI )
-      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
-#endif
 
       ! Return to calling program
       END FUNCTION NAN_DBLE
@@ -290,12 +260,6 @@
 ! !INTERFACE:
 !
       FUNCTION FINITE_FLOAT( VALUE ) RESULT( IT_IS_A_FINITE )
-!
-! !USES:
-!
-#if defined( LINUX_PGI )
-      USE IEEE_ARITHMETIC
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -330,7 +294,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( LINUX_GFORTRAN )
+#if defined( LINUX_GFORTRAN )
 
       IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and. 
      &                  (VALUE.lt.HUGE(1.0e0)) .and.
@@ -349,11 +313,6 @@
       ! Also flag an error if VALUE is a signaling or quiet NaN
       IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
      &                   FPC /= SNAN    .and. FPC /= QNAN          )
-
-#elif defined( LINUX_PGI )
-
-      ! PGI compiler
-      IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
 
 #endif
       
@@ -374,12 +333,6 @@
 ! !INTERFACE:
 !
       FUNCTION FINITE_DBLE( VALUE ) RESULT( IT_IS_A_FINITE )
-!
-! !USES:
-!
-#if defined( LINUX_PGI )
-      USE IEEE_ARITHMETIC
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -432,11 +385,6 @@
       ! Also flag an error if VALUE is a signaling or quiet NaN
       IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
      &                   FPC /= SNAN    .and. FPC /= QNAN          )
-
-#elif defined( LINUX_PGI )
-
-      ! PGI compiler
-      IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
 
 #endif
       
@@ -771,7 +719,7 @@
       ! ALLOC_ERR begins here!
       !=================================================================
 
-#if   defined( LINUX_IFORT )
+#if defined( LINUX_IFORT )
      
       !-----------------------
       ! Linux/IFORT compiler 

@@ -17,7 +17,6 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR, LLCHEM
       USE CMN_SIZE_MOD,      ONLY : NDUST, NAER, NRHAER, NSTRATAER, NRH
 
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -41,13 +40,7 @@
 
       INTEGER            :: JVL_           ! Vertical levels for J-values
 
-      !----------------------------------------------------------------------
-      ! NOTE: In GC 12.3.2, it was discovered that ClNO2 was listed twice
-      ! in FJX_j2j.dat.  We have since removed the duplicate ClNO2 entry,
-      ! which reduces the # of photolyzed species by 1, from 130 to 129.
-      ! (bmy, 4/10/19)
-      INTEGER, PARAMETER :: JVN_ = 133     ! Max number of J-values
-      !----------------------------------------------------------------------
+      INTEGER, PARAMETER :: JVN_ = 137     ! Max number of J-values
 
       INTEGER            :: AN_            ! # of separate aerosols per layer
                                            ! Now set in Init_CMN_FJX below
@@ -329,17 +322,19 @@
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE Init_CMN_FJX( am_I_Root, Input_Opt, RC )
+      SUBROUTINE Init_CMN_FJX( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 ! 
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -362,16 +357,15 @@
       ! INIT_CMN_FJX begins here!
       !=================================================================
 
-      L_     = LLPAR    ! Number of CTM layers
-      L1_    = L_+1     ! Number of CTM layer edges
-      L2_    = L1_*2    ! Number of levels in FJX grid that
-                        ! inc. both edges and mid-points
-      JVL_   = LLPAR    ! Vertical levels for J-values
+      L_     = State_Grid%NZ ! Number of CTM layers
+      L1_    = L_+1          ! Number of CTM layer edges
+      L2_    = L1_*2         ! Number of levels in FJX grid that
+                             ! inc. both edges and mid-points
+      JVL_   = State_Grid%NZ ! Vertical levs for J-values
 
-      JXL_   = LLPAR    ! Vertical levels for J-values computed within Fast-JX
-      JXL1_  = JXL_+1   ! Vertical levels edges for J-values
-      JXL2_  = 2*JXL_+2 ! Max # levels in the basic Fast-JX grid (mid-level)
-
+      JXL_   = State_Grid%NZ ! Vertical levs for J-values computed w/in Fast-JX
+      JXL1_  = JXL_+1        ! Vertical levs edges for J-values
+      JXL2_  = 2*JXL_+2      ! Max # levs in the basic Fast-JX grid (mid-level)
       
 #if defined( MODEL_GEOS )
       ! N_  = no. of levels in Mie scattering arrays
@@ -411,15 +405,18 @@
       !  Allocate arrays
       !-----------------------------------------------------------------------
 
-      ALLOCATE( ZPJ( LLPAR, JVN_, IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( ZPJ( State_Grid%NZ, JVN_, State_Grid%NX, State_Grid%NY),
+     &          STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ZPJ = 0e+0_fp
 
-      ALLOCATE( ODMDUST( IIPAR, JJPAR, LLPAR, NWVAA, NDUST), STAT=RC )
+      ALLOCATE( ODMDUST( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                   NWVAA, NDUST), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ODMDUST = 0e+0_fp
 
-      ALLOCATE( ODAER( IIPAR, JJPAR, LLPAR, NWVAA, NAER), STAT=RC )
+      ALLOCATE( ODAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                 NWVAA, NAER), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ODAER = 0e+0_fp
 
@@ -428,7 +425,8 @@
       MIEDX = 0
 
       ! Allocate array for isoprene SOA AOD (eam, 2014):
-      ALLOCATE( ISOPOD( IIPAR, JJPAR, LLPAR, NWVAA), STAT=RC )
+      ALLOCATE( ISOPOD( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                  NWVAA), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ISOPOD = 0e+0_fp
 
@@ -436,7 +434,8 @@
       !  Variables added for RRTMG (dar, mps, 12/5/14)
       !-----------------------------------------------------------------------
 
-      ALLOCATE( IRHARR(IIPAR,JJPAR,LLPAR), STAT=RC )
+      ALLOCATE( IRHARR( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       IRHARR = 0d0
 
@@ -498,15 +497,18 @@
 
 #if defined( RRTMG )
       ! +2 to split SNA into SU, NI and AM
-      ALLOCATE( RTODAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST), STAT=RC )
+      ALLOCATE( RTODAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                  NWVAA,NAER+2+NDUST), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       RTODAER = 0d0
 
-      ALLOCATE( RTSSAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST), STAT=RC )
+      ALLOCATE( RTSSAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                   NWVAA, NAER+2+NDUST ), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       RTSSAER = 0d0
 
-      ALLOCATE( RTASYMAER(IIPAR,JJPAR,LLPAR,NWVAA,NAER+2+NDUST),STAT=RC)
+      ALLOCATE( RTASYMAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                     NWVAA, NAER+2+NDUST ), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       RTASYMAER = 0d0
 #endif

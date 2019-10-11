@@ -1,0 +1,43 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Diagn.rc 
+#
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  Customized for the Transport Tracers simulation.
+#
+# !REVISION HISTORY:
+#  13 Feb 2018 - E. Lundgren - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+# Name               Spec              ExtNr  Cat Hier Dim OutUnit       LongName
+
+###############################################################################
+#####  Rn222 emissions                                                    #####
+###############################################################################
+EmisRn_Soil          Rn222             100    -1  -1   2   kg/m2/s
+
+###############################################################################
+#####  Be emissions                                                       #####
+###############################################################################
+EmisBe7_Cosmic       Be7               100    -1  -1   3   kg/m2/s
+EmisBe7Strat_Cosmic  Be7Strat          100    -1  -1   3   kg/m2/s
+EmisBe10_Cosmic      Be10              100    -1  -1   3   kg/m2/s
+EmisBe10Strat_Cosmic Be10Strat         100    -1  -1   3   kg/m2/s
+
+###############################################################################
+#####  Transport tracer emissions                                         #####
+###############################################################################
+EmisSF6Tracer                SF6Tracer                -1  -1  -1  2  kg/m2/s
+EmisCH3ITracer               CH3ITracer               -1  -1  -1  2  molec/cm2/s
+EmisCOAnthroEmis25dayTracer  COAnthroEmis25dayTracer  -1  -1  -1  2  kg/m2/s
+EmisCOAnthroEmis50dayTracer  COAnthroEmis50dayTracer  -1  -1  -1  2  kg/m2/s
+EmisCOUniformEmis25dayTracer COUniformEmis25dayTracer -1  -1  -1  2  kg/m2/s
+
+#EOC

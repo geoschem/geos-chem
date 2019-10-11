@@ -891,6 +891,7 @@ CONTAINS
                 ! - "R"  : range
                 ! - "RA" : range, average outside 
                 ! - "RF" : range, forced (error if not in range)
+                ! - "RFY": range, forced, always use simulation year
                 ! - "RY" : range, always use simulation year
                 ! - "E"  : exact (read file once)
                 ! - "EF" : exact, forced (error if not exist, read/query once)
@@ -922,6 +923,10 @@ CONTAINS
                 ELSEIF ( TRIM(TmCycle) == "RF" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_RANGE
                    Dta%MustFind  = .TRUE.
+                ELSEIF ( TRIM(TmCycle) == "RFY" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_RANGE
+                   Dta%MustFind  = .TRUE.
+                   Dta%UseSimYear= .TRUE.
                 ELSEIF ( TRIM(TmCycle) == "RY" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_RANGE
                    Dta%UseSimYear= .TRUE.
@@ -1175,6 +1180,7 @@ CONTAINS
              ! - "R"  : range
              ! - "RA" : range, average outside 
              ! - "RF" : range, forced (error if not in range)
+             ! - "RFY": range, forced, always use simulation year
              ! - "RY" : range, always use simulation year
              ! - "E"  : exact (read file once)
              ! - "EF" : exact, forced (error if not exist, read/query once)
@@ -1206,6 +1212,10 @@ CONTAINS
              ELSEIF ( TRIM(TmCycle) == "RF" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_RANGE
                 Dta%MustFind  = .TRUE.
+             ELSEIF ( TRIM(TmCycle) == "RFY" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_RANGE
+                   Dta%MustFind  = .TRUE.
+                   Dta%UseSimYear= .TRUE.
              ELSEIF ( TRIM(TmCycle) == "RY" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_RANGE
                 Dta%UseSimYear= .TRUE.
@@ -4704,6 +4714,8 @@ CONTAINS
     SELECT CASE( TRIM( tagId ) )
        CASE( 'ALL'     )
           numTags = HcoConfig%nModelSpc
+       CASE( 'ADV'     )
+          numTags = HcoConfig%nModelAdv
        CASE DEFAULT
           FOUND = .FALSE.
           ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &

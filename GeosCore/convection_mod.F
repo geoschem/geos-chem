@@ -31,45 +31,7 @@
 !
 ! !REVISION HISTORY:
 !  27 Jan 2004 - R. Yantosca - Initial version
-!  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also now references
-!        "error_mod.f".  Now make F in routine NFCLDMX a 4-D array to avoid
-!        memory problems on the Altix. (bmy, 1/27/04)
-!  (2 ) Bug fix: Now pass NTRACE elements of TCVV to FVDAS_CONVECT in routine 
-!        DO_CONVECTION (bmy, 2/23/04)  
-!  (3 ) Now references "logical_mod.f" and "tracer_mod.f" (bmy, 7/20/04)
-!  (4 ) Now also references "ocean_mercury_mod.f" and "tracerid_mod.f" 
-!        (sas, bmy, 1/19/05)
-!  (5 ) Now added routines DO_GEOS4_CONVECT and DO_GCAP_CONVECT by breaking 
-!        off code from DO_CONVECTION, in order to implement GCAP convection
-!        in a much cleaner way. (swu, bmy, 5/25/05)
-!  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (7 ) Shut off scavenging in shallow convection for GCAP (swu, bmy, 11/1/05)
-!  (8 ) Modified for tagged Hg simulation (cdh, bmy, 1/6/06)
-!  (9 ) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 2/8/07)
-!  (10) Fix for GEOS-5 met fields in routine NFCLDMX (swu, 8/15/07)
-!  (11) Resize DTCSUM array in NFCLDMX to save memory (bmy, 1/31/08)
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
-!  29 Sep 2010 - R. Yantosca - Added modifications for MERRA
-!  05 Oct 2010 - R. Yantosca - Added ND14 and ND38 diagnostics to 
-!                              DO_MERRA_CONVECTION routine
-!  16 Aug 2011 - J. Fisher   - Minor bug fixes in DO_MERRA_CONVECTION
-!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
-!  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  23 Jun 2015 - E. Lundgren - Convert tracer units from v/v dry air to
-!                              kg/kg total air for convection
-!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
-!                              compatible with the FlexChem implementation
-!  06 Jul 2016 - E. Lundgren - Spc units are now kg/kg dry air in convection
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
-!                              and rename routine DO_MERRA_CONVECTION to
-!                              DO_CLOUD_CONVECTION
-!   6 Nov 2017 - R. Yantosca - Now save equivalent of ND14, ND38 to netCDF
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,34 +54,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_CONVECTION( am_I_Root, Input_Opt,  State_Met,
-     &                          State_Chm, State_Diag, RC         )
+      SUBROUTINE DO_CONVECTION( am_I_Root,  Input_Opt,  State_Chm,
+     &                          State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,        ONLY : CONVFLUP
-      USE DIAG_MOD,        ONLY : AD37
-      USE DIAG_MOD,        ONLY : AD38
-#endif
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
       USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
       USE ErrCode_Mod
       USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
-      USE GC_GRID_MOD,     ONLY : GET_AREA_M2
       USE Input_Opt_Mod,   ONLY : OptInput
       USE PhysConstants    
       USE Species_Mod,     ONLY : Species
       USE State_Chm_Mod,   ONLY : ChmState
       USE State_Diag_Mod,  ONLY : DgnState
+      USE State_Grid_Mod,  ONLY : GrdState
       USE State_Met_Mod,   ONLY : MetState
       USE TIME_MOD,        ONLY : GET_TS_DYN
       USE TIME_MOD,        ONLY : GET_TS_CONV
       USE UnitConv_Mod     
       USE WETSCAV_MOD,     ONLY : COMPUTE_F
-#if defined( USE_TEND )    
+#ifdef USE_TEND
       USE TENDENCIES_MOD   
       USE State_Chm_Mod,   ONLY : Ind_
 #endif
@@ -129,6 +85,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -140,69 +97,8 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
-!  25 May 2005 - S. Wu       - Initial version
-!  08 Feb 2007 - R. Yantosca - Now reference "CMN_SIZE".  Now references 
-!                              CLDMAS, CMFMC, DTRAIN from "dao_mod.f" so that 
-!                              we can pass either GEOS-5 or GEOS-3 meteorology
-!                              to NFCLDMX. 
-!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
-!  29 Sep 2010 - R. Yantosca - Now call DO_MERRA_CONVECTION for MERRA met
-!  05 Oct 2010 - R. Yantosca - Now attach diagnostics to MERRA conv routine
-!  06 Oct 2010 - R. Yantosca - Parallelized call to DO_MERRA_CONVECTION
-!  15 Oct 2010 - H. Amos     - Now get BXHEIGHT, T from dao_mod.f
-!  15 Oct 2010 - R. Yantosca - Now get LDYNOCEAN from logical_mod.f
-!  15 Oct 2010 - R. Yantosca - Now get ITS_A_MERCURY_SIM from tracer_mod.f
-!  15 Oct 2010 - R. Yantosca - Now get IDTHg2, IDTHgP from tracerid_mod.f
-!  15 Oct 2010 - R. Yantosca - Now get H2O2s, SO2s from wetscav_mod.f
-!  15 Oct 2010 - H. Amos     - Now pass BXHEIGHT, T, to DO_MERRA_CONVECTION
-!  15 Oct 2010 - R. Yantosca - Now pass H2O2s, SO2s to DO_MERRA_CONVECTION
-!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  29 Aug 2011 - R. Yantosca - Bug fix: reposition #if defined(APM) statement
-!  09 Feb 2012 - R. Yantosca - For GEOS-5.7, PFICU and PFLCU fields are
-!                              defined on level edges.  Pass the top edge
-!                              of each level to DO_MERRA_CONVECTION
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
-!  21 Jun 2012 - R. Yantosca - Now use poiners to pass array slices to routines
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  04 Feb 2013 - S. Kim      - Bug fix: H2O2s, SO2s, STT are not in State_Met
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  31 May 2013 - R. Yantosca - Now pass objects to NFCLDMX
-!  03 Jun 2013 - R. Yantosca - Bug fix: pass State_Chm to DO_MERRA_CONVECTION
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  17 Apr 2014 - R. Yantosca - Speed up MERRA and GEOS-FP convection by
-!                              adding !$OMP+SCHEDULE( DYNAMIC )
-!  17 Apr 2014 - R. Yantosca - Test if (ND14>0) and (ND38>0) outside OMP loop
-!  18 Apr 2014 - R. Yantosca - Now use a pointer to pass a slice of the
-!                              F array to subroutine COMPUTE_F
-!  18 Apr 2014 - R. Yantosca - Clean up call to DO_MERRA_CONVECTION, remove
-!                              stuff that was leftover from the column code
-!  18 Apr 2014 - R. Yantosca - Now use proper # of tracers for APM in the
-!                              call to DO_MERRA_CONVECTION (MERRA & GEOS-FP)
-!  25 Jun 2014 - R. Yantosca - Now pass Input_Opt to COMPUTE_F
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod
-!  28 Apr 2015 - E. Lundgren - Consolidate NFCLDMX arguments to remove 
-!                              passing State_Met array slice
-!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units
-!                              (previously v/v)
-!  10 Aug 2015 - E. Lundgren - Incoming tracer units are now kg/kg dry air
-!  11 Aug 2015 - R. Yantosca - Added support for MERRA2 data
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  06 Jul 2016 - R. Yantosca - Use State_Chm%Map_WetDep to get species ID's
-!  07 Jul 2016 - R. Yantosca - Now dimension DIAG14 and DIAG38 for the #
-!                              of soluble species (State_Chm%nWetDep)
-!  07 Jul 2016 - E. Lundgren - Now use spc kg/kg dry instead of kg/kg total
-!  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  06 Nov 2017 - R. Yantosca - Bug fix: ND14 should use 1..nAdvect species
-!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
-!  27 Aug 2018 - E. Lundgren - Implement budget diagnostics
+!  25 May 2005 - S. Wu - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,11 +117,12 @@
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       ! Arrays        
-      REAL(fp)           :: PEDGE  (          LLPAR+1                  )
-      REAL(fp)           :: DIAG14 (            LLPAR,State_Chm%nAdvect)
-      REAL(fp)           :: DIAG38 (            LLPAR,State_Chm%nWetDep)
-      REAL(fp)           :: F      (            LLPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET   :: FSOL   (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+      REAL(fp)           :: PEDGE (State_Grid%NZ+1)
+      REAL(fp)           :: DIAG14(State_Grid%NZ,State_Chm%nAdvect)
+      REAL(fp)           :: DIAG38(State_Grid%NZ,State_Chm%nWetDep)
+      REAL(fp)           :: F     (State_Grid%NZ,State_Chm%nAdvect)
+      REAL(fp), TARGET   :: FSOL  (State_Grid%NX,State_Grid%NY,
+     &                             State_Grid%NZ,State_Chm%nAdvect)
 
       ! Pointers
       REAL(fp), POINTER  :: p_FSOL (:,:,:)
@@ -248,8 +145,8 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetConvection ) THEN
          ! Get initial column masses
-         CALL Compute_Column_Mass( am_I_Root, 
-     &                          Input_Opt, State_Met, State_Chm, 
+         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+     &                          State_Chm, State_Grid, State_Met, 
      &                          State_Chm%Map_Advect,        
      &                          State_Diag%Archive_BudgetConvectionFull, 
      &                          State_Diag%Archive_BudgetConvectionTrop, 
@@ -269,19 +166,15 @@
       TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [sec]
       DT         = DBLE( TS_DYN )                         ! Dyn timestep [sec]
       FSOL       = 0e+0_fp                                ! Zero the FSOL array
-      DO_ND14    = ( Input_Opt%ND14 > 0                 ) ! Is CONVFLUP alloc'd?
-      DO_ND38    = ( Input_Opt%ND38 > 0                 ) ! Is AD38 alloc'd?
-      DoConvFlux = ( DO_ND14 .or. State_Diag%Archive_CloudConvFlux ) 
-                                                          ! Save mass flux?
-      DoWetLoss  = ( DO_ND38 .or. State_Diag%Archive_WetLossConv   ) 
-                                                          ! Save wet loss?
+      DoConvFlux = State_Diag%Archive_CloudConvFlux       ! Save mass flux?
+      DoWetLoss  = State_Diag%Archive_WetLossConv         ! Save wet loss?
 
-#if defined( USE_TEND )
+#ifdef USE_TEND
       !=================================================================
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CONV', RC )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, 
+     &                  State_Met, 'CONV', RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -311,27 +204,14 @@
          p_FSOL => FSOL(:,:,:,NA)
 
          ! Fraction of soluble species
-         CALL COMPUTE_F( am_I_Root, N,         p_FSOL,    ISOL, 
-     &                   Input_Opt, State_Met, State_Chm, RC=EC ) 
+         CALL COMPUTE_F( am_I_Root, N,         p_FSOL,     ISOL, 
+     &                   Input_Opt, State_Chm, State_Grid, State_Met,
+     &                   RC=EC ) 
 
          ! Trap potential errors (we can't exit an OpenMP loop)
          IF ( EC /= GC_SUCCESS ) THEN
             RC = EC
          ENDIF
-
-#if defined( BPCH_DIAG ) 
-         !--------------------------------------------------------------
-         ! ND37 (bpch) diagnostic
-         !
-         ! Fraction of soluble species lost in convective updrafts
-         ! NOTE: This diagnostic was somehow removed from GEOS-FP
-         ! and MERRA-2 convection, we have now restored it
-         !--------------------------------------------------------------
-         IF ( ND37 > 0 .and. ISOL > 0 ) THEN
-            AD37(:,:,1:LD37,ISOL) = AD37  (:,:,1:LD37,ISOL)
-     &                            + p_FSOL(:,:,1:LD37     )
-         ENDIF
-#endif
 
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
@@ -367,22 +247,22 @@
 !$OMP+PRIVATE( J,      I,      AREA_M2, L, F,  EC ) 
 !$OMP+PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! PRIVATE error trapping variable
          EC = GC_SUCCESS
 
          ! Skip buffer zone for nested grids (lzh, 4/1/15)
-         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
-            IF ( J <=         Input_Opt%NESTED_J0W  ) CYCLE
-            IF ( J >  JJPAR - Input_Opt%NESTED_J0E  ) CYCLE
-            IF ( I <=         Input_Opt%NESTED_I0W  ) CYCLE
-            IF ( I >  IIPAR - Input_Opt%NESTED_I0E  ) CYCLE
+         IF ( State_Grid%NestedGrid ) THEN
+            IF ( J <=                 State_Grid%SouthBuffer ) CYCLE
+            IF ( J >  State_Grid%NY - State_Grid%NorthBuffer ) CYCLE
+            IF ( I <=                 State_Grid%WestBuffer  ) CYCLE
+            IF ( I >  State_Grid%NX - State_Grid%EastBuffer  ) CYCLE
          ENDIF
 
          ! Grid box surface area [m2]
-         AREA_M2 =  GET_AREA_M2( I, J, 1 )
+         AREA_M2 =  State_Grid%Area_M2(I,J)
 
          ! NOTE: For some reason the code chokes when we try
          ! to use a pointer, so we'll use a 2D array here.
@@ -393,9 +273,10 @@
          !--------------------------
          CALL DO_CLOUD_CONVECTION( am_I_Root  = am_I_Root,
      &                             Input_Opt  = Input_Opt,
-     &                             State_Met  = State_Met,
      &                             State_Chm  = State_Chm,
      &                             State_Diag = State_Diag,
+     &                             State_Grid = State_Grid,
+     &                             State_Met  = State_Met,
      &                             I          = I,
      &                             J          = J,
      &                             AREA_M2    = AREA_M2,
@@ -412,36 +293,6 @@
             RC = EC
          ENDIF
          
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND14 (bpch) DIAGNOSTIC 
-         !
-         ! Convective mass flux [kg/s]
-         ! NOTE: May be replaced soon with better flux diagnostics
-         !--------------------------------------------------------------
-         IF ( DO_ND14 ) THEN
-            DO N = 1, State_Chm%nAdvect
-            DO L = 1, Input_Opt%LD14
-               CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
-            ENDDO
-            ENDDO
-         ENDIF
-
-         !--------------------------------------------------------------
-         ! ND38 (bpch) DIAGNOSTIC
-         !
-         ! Loss of soluble species in convective mass flux [kg/s]
-         ! NOTE: May be replaced soon with better flux diagnostics
-         !--------------------------------------------------------------
-         IF ( DO_ND38 ) THEN
-            DO NW = 1, State_Chm%nWetDep
-            DO L  = 1, Input_Opt%LD38
-               AD38(I,J,L,NW) = AD38(I,J,L,NW) + DIAG38(L,NW)
-            ENDDO
-            ENDDO
-         ENDIF
-#endif
-
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -450,7 +301,7 @@
          !--------------------------------------------------------------
          IF ( State_Diag%Archive_CloudConvFlux ) THEN
             DO N = 1, State_Chm%nAdvect
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                State_Diag%CloudConvFlux(I,J,L,N) = Diag14(L,N)
             ENDDO
             ENDDO
@@ -464,7 +315,7 @@
          !--------------------------------------------------------------
          IF ( State_Diag%Archive_WetLossConv ) THEN
             DO NW = 1, State_Chm%nWetDep 
-            DO L  = 1, LLPAR
+            DO L  = 1, State_Grid%NZ
                State_Diag%WetLossConv(I,J,L,NW) = Diag38(L,NW)
             ENDDO
             ENDDO
@@ -484,13 +335,14 @@
       ! Convection timestep [s]
       DT_Conv = GET_TS_CONV()
 
-#if defined( USE_TEND )
+#ifdef USE_TEND
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CONV', DT_Conv, RC )
+      CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm, 
+     &                  State_Grid, State_Met, 'CONV',
+     &                  DT_Conv,    RC )
 
        ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -505,8 +357,8 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetConvection ) THEN
          ! Get final masses and compute diagnostics
-         CALL Compute_Column_Mass( am_I_Root, 
-     &                          Input_Opt, State_Met, State_Chm, 
+         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+     &                          State_Chm, State_Grid, State_Met,
      &                          State_Chm%Map_Advect,        
      &                          State_Diag%Archive_BudgetConvectionFull, 
      &                          State_Diag%Archive_BudgetConvectionTrop, 
@@ -514,6 +366,7 @@
      &                          State_Diag%BudgetMass2, 
      &                          RC )       
          CALL Compute_Budget_Diagnostics( am_I_Root, 
+     &                          State_Grid,
      &                          State_Chm%Map_Advect,
      &                          DT_Conv,                                
      &                          State_Diag%Archive_BudgetConvectionFull, 
@@ -550,9 +403,10 @@
 !
       SUBROUTINE DO_CLOUD_CONVECTION( am_I_Root,  
      &                                Input_Opt,
-     &                                State_Met,  
      &                                State_Chm,
      &                                State_Diag,
+     &                                State_Grid,
+     &                                State_Met,
      &                                I,          
      &                                J,
      &                                AREA_M2,    
@@ -567,9 +421,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE ERROR_MOD,          ONLY : IT_IS_FINITE
@@ -577,16 +428,23 @@
       USE PhysConstants
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE WETSCAV_MOD,        ONLY : WASHOUT
       USE WETSCAV_MOD,        ONLY : LS_K_RAIN
       USE WETSCAV_MOD,        ONLY : LS_F_PRIME
+#ifdef BPCH_DIAG
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
+#endif
 !
 ! !INPUT PARAMETERS:
 !  
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
       REAL(fp),       INTENT(IN)    :: AREA_M2     ! Surface area [m2]
@@ -628,83 +486,7 @@
 !  routines ADD_Hg2_
 !
 ! !REVISION HISTORY:
-!  15 Jul 2009 - R. Yantosca - Columnized and cleaned up.
-!                            - CLDMAS renamed to CMFMC and DTRN renamed
-!                              to DTRAIN for consistency w/ GEOS-5.
-!  17 Jul 2009 - R. Yantosca - Now do unit conversion of Q array from
-!                              [kg] --> [v/v] and vice versa internally
-!  14 Dec 2009 - R. Yantosca - Now remove internal unit conversion, since
-!                              Q now comes in as [mol/mol] (=[v/v]) from the
-!                              calling routine.
-!  14 Dec 2009 - R. Yantosca - Remove COEF from the argument list
-!  06 May 2010 - R. Yantosca - Now add IDENT via the argument list
-!  29 Sep 2010 - R. Yantosca - Modified for MERRA met fields
-!  05 Oct 2010 - R. Yantosca - Now pass COEF via the argument list
-!  05 Oct 2010 - R. Yantosca - Attach ND14 and ND38 diagnostics
-!  15 Oct 2010 - H. Amos     - Added BXHEIGHT and T as arguments
-!  15 Oct 2010 - R. Yantosca - Added I, J, H2O2s and SO2s as arguments
-!  15 Oct 2010 - H. Amos     - Added scavenging below cloud base
-!  06 Apr 2011 - M.Fu, H.Amos- Bug fix: make sure washout adheres to the same
-!                              algorithm as in the wet deposition code.
-!  27 Jul 2011 - R. Yantosca - Declare CLDBASE as INTEGER to avoid PGI errors
-!  16 Aug 2011 - J. Fisher   - Bug fix: use IS_Hg2() and IS_HgP to test if 
-!                              a tracer is Hg2 or HgP (for tagged species)
-!  16 Aug 2011 - J. Fisher   - Now use WETLOSS instead of T0_SUM in the ND38 
-!                              diagnostic below the cloud.  Using T0_SUM leads 
-!                              us to over-count the tracer scavenged out of 
-!                              the column.
-!  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  31 May 2013 - R. Yantosca - Now pass State_Chm to WASHOUT
-!  05 Sep 2013 - R. Yantosca - Bug fix: DT is apparently undefined, but still
-!                              passed to WASHOUT.  Use SDT instead.  This
-!                              avoids a floating-point error.
-!  18 Apr 2014 - R. Yantosca - Now point to 3-D arrays internally
-!  18 Apr 2014 - R. Yantosca - Now also pass N_TRACERS (to facilitate APM)
-!  18 Apr 2014 - R. Yantosca - Remove code that we don't need anymore
-!  04 Feb 2015 - M. Sulprizio- Fix calculation of WETLOSS for non-aerosol 
-!                              tracers below the cloud base (C. Friedman)
-!  20 Apr 2015 - E. Lundgren - Use DELP*100/g instead of AD/area as grid box
-!                              moist mass per area and remove AD from routine
-!  20 May 2015 - M. Sulprizio- Apply bug fixes provided by Viral Shah:
-!                              -- Remove F(K,IC) > 0 condition that prevents
-!                                 archiving of deposited mass in DIAG38
-!                              -- Add statement that subtracts the wet deposited
-!                                 amount from the atmospheric mass
-!                              -- Fix inconsistency in units when T0_SUM is used
-!  04 Jun 2015 - E. Lundgren - Adapt Viral Shah bug fixes to moist mixing ratio
-!  09 Jun 2015 - R. Yantosca - Now deposit Hg2, HgP to snowpack regardless of
-!                              whether the dynamic ocean is used
-!  15 Jun 2015 - E. Lundgren - Now use kg/kg total air as tracer units not v/v
-!  22 Jun 2015 - E. Lundgren - Move QB_NUM calculation to within timestep loop
-!  12 Aug 2015 - R. Yantosca - Treat MERRA2 in same way as we do for GEOS-FP
-!  14 Sep 2015 - E. Lundgren - Apply bug fixes provided by Viral Shah:
-!                              -- Prevent ALPHA > 1 in washout of aerosols 
-!                              -- Add tracer GAINED to Q before WETLOSS
-!                                 calculation in aerosol washout
-!  22 Apr 2016 - R. Yantosca - Now get Is_Hg2 & Is_HgP from species database
-!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* functions
-!  28 Apr 2016 - R. Yantosca - Rewrite Is_Hg block to avoid unassociated
-!                              pointer seg faults
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
-!  05 Jul 2016 - R. Yantosca - Now replace N_TRACERS argument with the
-!                              State_Chm%nAdvect field
-!  06 Jul 2016 - E. Lundgren - Now use kg/kg dry air as spc units, requiring
-!                              use of DELP_DRY instead of DELP and PEDGE_DRY
-!                              for avg mixing ratio 
-!  07 Jul 2016 - R. Yantosca - Bug fix: F and ISOL need to be indexed with
-!                              the advected species index NA
-!  07 Jul 2016 - R. Yantosca - DIAG14 and DIAG38 now are dimensioned with
-!                              of size State_Chm%nWetDep instead of N_TRACERS
-!  20 Sep 2016 - R. Yantosca - Rewrote IF test to avoid Gfortran compiler error
-!  24 Aug 2017 - M. Sulprizio- Rename routine from DO_MERRA_CONVECTION to
-!                              DO_CLOUD_CONVECTION
-!  06 Nov 2017 - R. Yantosca - Bug fix: ND14 should use 1..nAdvect species
-!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -738,8 +520,8 @@
       CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
 
       ! Arrays               
-      REAL(fp)               :: BMASS    (LLPAR    )    
-      REAL(fp)               :: PDOWN    (LLPAR    )
+      REAL(fp)               :: BMASS    (State_Grid%NZ)    
+      REAL(fp)               :: PDOWN    (State_Grid%NZ)
 
       ! Pointers
       REAL(fp),      POINTER :: BXHEIGHT (:        )
@@ -768,7 +550,8 @@
       
       ! Point to columns of derived-type object fields
       BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
-      CMFMC    => State_Met%CMFMC   (I,J,2:LLPAR+1) ! Cloud mass flux [kg/m2/s] 
+      CMFMC    => State_Met%CMFMC   (I,J,2:State_Grid%NZ+1) ! Cloud mass flux
+                                                            ! [kg/m2/s] 
       DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
       DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
@@ -781,13 +564,15 @@
       SpcInfo  => NULL()                            ! Species database entry
 
       ! PFICU and PFLCU are on level edges
-      PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
-                                                    !  ice precip [kg/m2/s]
-      PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   
-                                                    !  liquid precip [kg/m2/s]
+      PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv 
+                                                            !  ice precip
+                                                            !  [kg/m2/s]
+      PFLCU    => State_Met%PFLCU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flux of conv
+                                                            !  liquid precip
+                                                            !  [kg/m2/s]
         
       ! # of levels and # of species
-      NLAY     = LLPAR
+      NLAY     = State_Grid%NZ
       NC       = State_Chm%nAdvect
 
       ! Top level for convection
@@ -1333,7 +1118,7 @@
      &                          T(K),      QDOWN,      SDT,
      &                          F_WASHOUT, H2O2s(K),   SO2s(K),
      &                          WASHFRAC,  AER,        Input_Opt,
-     &                          State_Met, State_Chm,  RC           )
+     &                          State_Chm, State_Grid, State_Met,  RC )
 
                   ! Trap potential errors
                   IF ( RC /= GC_SUCCESS ) THEN
@@ -1499,6 +1284,7 @@
                ENDIF
             ENDDO     ! End of loop over levels below cloud base  
 
+#ifdef BPCH_DIAG
             !==================================================================
             ! (5)  M e r c u r y   O c e a n   M o d e l   A r c h i v a l
             !
@@ -1545,6 +1331,7 @@
      &                              State_Met, State_Chm, State_Diag )
                ENDIF
             ENDIF
+#endif
          ENDDO               ! End internal timestep loop
 
          ! Free pointer

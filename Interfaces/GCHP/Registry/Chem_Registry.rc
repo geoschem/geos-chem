@@ -1,0 +1,161 @@
+#
+# This the GEOS-CHEM Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva   First Version
+#  30Jun2012  Nielsen    For Ganymed
+#  10Oct2012  Yantosca   Updated for GEOS-Chem v9-01-03, which has new
+#                        Bromine compounds as advected tracers & species
+#  25Sep2013  Keller     Updated for GEOS-Chem v9-02l (NOx and Ox not lumped anymore, Isoprene                         update) 
+# See git history for rest of revision history
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: GIGCchem
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  MAPL_REGISTRY_VERSION: 1.00
+
+#				------------
+#				Import State
+#				------------
+
+<ImportSpec name="GEOSCHEMCHEM", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,default,long_name">
+# -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
+#  Short	     |  	   |	 | V |Item|Intervl| Sub | Def  |	Long
+#  Name 	     |   Units     | Dim |Loc|Type| R | A |Tiles| ault |	Name
+# -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
+  AIRDENS            |  kg m-3     | xyz | C |    |   |   |     |      | air_density
+  AREA               |     m2      | xy  |   |    |   |   |	|      | 
+  FRLAKE             |     1	   | xy  |   |    |   |   |	|      | 
+  FRLAND             |     1	   | xy  |   |    |   |   |	|      | 
+  FRLANDIC           |     1	   | xy  |   |    |   |   |	|      | 
+  FROCEAN            |     1	   | xy  |   |    |   |   |	|      | 
+  PHIS               |     1	   | xy  |   |    |   |   |	|      | 
+  ALBD               |     1	   | xy  |   |    |   |   |	|      | surface_albedo_for_visible_diffuse
+  CLDFRC             |     1	   | xy  |   |    |   |   |	|      | 
+  EFLUX              |     1	   | xy  |   |    |   |   |	|      | 
+  EVAP               |     1	   | xy  |   |    |   |   |	|      | 
+  FRSEAICE           |     1	   | xy  |   |    |   |   |	|      | 
+  FRSNO              |     1	   | xy  |   |    |   |   |	|      | 
+  GRN                |     1	   | xy  |   |    |   |   |	|      | 
+  GWETROOT           |     1	   | xy  |   |    |   |   |	|      | 
+  GWETTOP            |     1	   | xy  |   |    |   |   |	|      | 
+  HFLUX              |     1	   | xy  |   |    |   |   |	|      | 
+  LAI                |     1	   | xy  |   |    |   |   |	|      | 
+  RADLWG             |     1	   | xy  |   |    |   |   |	|      | 
+  PARDF              |     1	   | xy  |   |    |   |   |	|      | 
+  PARDR              |     1	   | xy  |   |    |   |   |	|      | 
+  PBLH               |     1	   | xy  |   |    |   |   |	|      | 
+# PLE                |     1       | xyz | E |    |   |   |     |      |
+# DryPLE             |     1       | xyz | E |    |   |   |     |      |
+  SEAICE00           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE10           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE20           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE30           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE40           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE50           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE60           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE70           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE80           |     1	   | xy  |   |    |   |   |	|      | 
+  SEAICE90           |     1	   | xy  |   |    |   |   |	|      | 
+  SLP                |     1	   | xy  |   |    |   |   |	|      | 
+  SNODP              |     1	   | xy  |   |    |   |   |	|      | 
+  SNOMAS             |     1	   | xy  |   |    |   |   |	|      | 
+  RADSWG             |     1	   | xy  |   |    |   |   |	|      | 
+  TO3                |     1	   | xy  |   |    |   |   |	|      | 
+  TROPP              |     1	   | xy  |   |    |   |   |	|      | 
+  TSKIN              |     1	   | xy  |   |    |   |   |	|      | 
+  TS                 |     1	   | xy  |   |    |   |   |	|      | 
+  U10M               |     1	   | xy  |   |    |   |   |	|      | 
+  USTAR              |     1	   | xy  |   |    |   |   |	|      | 
+  V10M               |     1	   | xy  |   |    |   |   |	|      | 
+  Z0                 |     1	   | xy  |   |    |   |   |	|      | 
+  PS1                |     1	   | xy  | E |    |   |   |	|      | 
+  PS2                |     1	   | xy  | E |    |   |   |	|      | 
+  OPTDEP             |     1	   | xyz | C |    |   |   |	|      | 
+  CLDF               |     1	   | xyz | C |    |   |   |	|      | 
+  QI                 |     1	   | xyz | C |    |   |   |	|      | 
+  QL                 |     1	   | xyz | C |    |   |   |	|      | 
+  TAUCLI             |     1	   | xyz | C |    |   |   |	|      | 
+  TAUCLW             |     1	   | xyz | C |    |   |   |	|      | 
+  CMFMC              |     1	   | xyz | E |    |   |   |	|      | 
+  DTRAIN             |     1	   | xyz | C |    |   |   |	|      | 
+  OMEGA              |     1	   | xyz | C |    |   |   |	|      | 
+  RH                 |     1	   | xyz | C |    |   |   |	|      | 
+  ULL                |     1	   | xyz | C |    |   |   |	|      | 
+  VLL                |     1	   | xyz | C |    |   |   |	|      | 
+  DQRCU              |     1	   | xyz | C |    |   |   |	|      | 
+  DQRLSAN            |     1	   | xyz | C |    |   |   |	|      | 
+  REEVAPCN           |     1	   | xyz | C |    |   |   |	|      | 
+  REEVAPLS           |     1	   | xyz | C |    |   |   |	|      | 
+  PFICU              |     1	   | xyz | E |    |   |   |	|      | 
+  PFILSAN            |     1	   | xyz | E |    |   |   |	|      | 
+  PFLCU              |     1	   | xyz | E |    |   |   |	|      | 
+  PFLLSAN            |     1	   | xyz | E |    |   |   |	|      | 
+  SPHU1              |     1	   | xyz | C |    |   |   |	|      | 
+  TMPU1              |     1	   | xyz | C |    |   |   |	|      | 
+  SPHU2              |     1	   | xyz | C |    |   |   |	|      | 
+  TMPU2              |     1	   | xyz | C |    |   |   |	|      | 
+  FLASH_DENS         |     1       | xy  |   |    |   |   |     |      | lightning_flash_density
+  CONV_DEPTH         |     1       | xy  |   |    |   |   |     |      | convective_cloud_depth
+# -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
+</ImportSpec>
+
+#				------------
+#				Export State
+#				------------
+
+<ExportSpec name="GEOSCHEMCHEM", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,long_name">
+# ------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+#  Short	    |		     |     | V |Item|Intervl| Sub |	     Long
+#  Name 	    |   Units	     | Dim |Loc|Type| R | A |Tiles|	     Name
+# ------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+#  OX                | mol mol-1      | xyz | C |    |   |   |     | ozone_volume_mixing_ratio
+  O3_EXP            | kg kg-1        | xyz | C |    |   |   |     | ozone_mass_mixing_ratio
+  O3PPMV    	    | ppmv           | xyz | C |    |	|   |	  | ozone_volume_mixing_ratio_in_ppm
+  OX_TEND    	    | kg kg-1 s-1    | xyz | C |    |	|   |	  | tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry
+  H2O_TEND    	    | kg kg-1 s-1    | xyz | C |    |	|   |	  | tendency_of_water_vapor_mixing_ratio_due_to_chemistry
+  GCCTO3    	    | dobsons        | xy  |   |    |	|   |	  | total_ozone 
+  GCCTTO3           | dobsons        | xy  |   |    |	|   |	  | total_tropospheric_ozone 
+  DEPVEL_O3         |                | xy  |   |    |   |   |     |
+  DEPFLUX_O3        |                | xy  |   |    |   |   |     |
+  WETDEP_LOSS_H2O2  |                | xy  |   |    |   |   |     |
+# ------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+</ExportSpec>
+#                               --------------
+#                               Internal State
+#                               --------------
+#
+# Note: 1) For friendlies, use "D" for dynamics, "T" for turbulence, "C" for convection, S=self (adds to export); leave blank otherwise
+#       2) If quantity requires no restart, put an 'x' in the No Rst column
+#       3) RO = Alkoxy radical, RO2 = Organic peroxy radical
+<InternalSpec name="GEOSCHEMCHEM", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,default,norestart,halowidth,friendlyto,long_name">
+# ----------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+#  Short          |            |     | V |Item|Intervl| Sub | Def  | No | Ha | Friends |            Long
+#  Name           |   Units    | Dim |Loc|Type| R | A |Tiles| ault | Rst| lo |         |            Name
+# ----------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+   GCCTROPP       |    Pa      | xy  |   |    |   |   |     |      |    |    | S       | tropopause_pressure_used_in_GEOS-Chem
+   STATE_PSC      |   1        | xyz | C |    |   |   |     |0.0   |    |    | S       | polar_stratospheric_clouds
+   ARCHV_DRY_TOTN | cm-2s-1    | xy  |   |    |   |   |     |0.0   |    |    | S       | dry_deposited_nitrogen
+   ARCHV_WET_TOTN | cm-2s-1    | xy  |   |    |   |   |     |0.0   |    |    | S       | wet_deposited_nitrogen
+   PFACTOR        | 1          | xy  |   |    |   |   |     |1.0   |    |    | S       | soilnox_pfactor_restart
+   DRYPERIOD      | 1          | xy  |   |    |   |   |     |0.0   |    |    | S       | soilnox_dryperiod_restart
+   GWET_PREV      | 1          | xy  |   |    |   |   |     |0.0   |    |    | S       | soilnox_gwet_prev_restart
+   DEP_RESERVOIR  | kg m-3     | xy  |   |    |   |   |     |1e-4  |    |    | S       | soilnox_dep_reservoir_restart
+   T_DAVG         |   1        | xy  |   |    |   |   |     |273.1 |    |    | S       | megan_t_davg_restart
+   T_PREVDAY      |   1        | xy  |   |    |   |   |     |273.1 |    |    | S       | megan_t_prevday_restart
+   LAI_PREVDAY    |   1        | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_lai_prevday_restart
+   PARDR_DAVG     |   W/m2     | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_pardr_davg_restart
+   PARDF_DAVG     |   W/m2     | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_pardf_davg_restart
+   DryDepNitrogen | cm-2s-1    | xy  |   |    |   |   |     |0.0   |    |    | S       | dry_deposited_nitrogen
+   WetDepNitrogen | cm-2s-1    | xy  |   |    |   |   |     |0.0   |    |    | S       | wet_deposited_nitrogen
+   H2O2AfterChem  |   vv-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | soluble_fraction_H2O2
+   SO2AfterChem   |   vv-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | soluble_fraction_SO2
+   KPPHvalue      |   1        | xyz | C |    |   |   |     |0.0   |    |    | S       | HSAVE_for_KPP 
+# --------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+</InternalSpec>

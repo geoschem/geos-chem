@@ -25,10 +25,10 @@ netCDF FileName       = GEOS572.YYYYMMDD.A3dyn.4x5.nc
 
 
 ### !DIMENSIONS:       
-lon                   = IIPAR
-lat                   = JJPAR
-lev                   = LLPAR
-ap                    = LLPAR+1
+lon                   = State_Grid%NX
+lat                   = State_Grid%NY
+lev                   = State_Grid%NZ
+ap                    = State_Grid%NZ+1
 time                  = 1
 
 

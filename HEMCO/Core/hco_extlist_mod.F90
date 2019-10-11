@@ -110,48 +110,13 @@ MODULE HCO_ExtList_Mod
   CHARACTER(LEN=1),    PARAMETER :: DEF_SEPARATOR = '/'
   CHARACTER(LEN=1),    PARAMETER :: DEF_WILDCARD  = '*'
 
-  ! Default met field token
-#if defined( GEOS_FP )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'GEOSFP'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'geosfp'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = '2011'  ! Constant met fld year
-  CHARACTER(LEN=15),   PARAMETER :: DEF_NC_VER = 'nc'    ! NetCDF extension
-#elif defined( MERRA2 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'MERRA2'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'merra2'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = '2015'  ! Constant met fld year
-  CHARACTER(LEN=15),   PARAMETER :: DEF_NC_VER = 'nc4'   ! NetCDF extension
-#else
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'UNKNOWN_MET'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'unknown_met'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = 'unknown_year'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_EXT= 'unknown_extension'
-#endif 
-
-  ! Default resolution token
-#if defined( GRID4x5 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '4x5'
-#elif defined( GRID2x25 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '2x25'
-#elif defined( GRID05x0625 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '05x0625'
-#elif defined( GRID025x03125 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = '025x03125'
-#else
-  CHARACTER(LEN=15),   PARAMETER :: DEF_RES = 'unknown_res'
-#endif
-
-#if defined( NESTED_AS )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'AS'
-#elif defined( NESTED_CH )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'CH'
-#elif defined( NESTED_EU )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'EU'
-#elif defined( NESTED_NA )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'NA'
-#else
-  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'unknown_nest'
-#endif
+  ! Met field and grid tokens
+  CHARACTER(LEN=15)              :: DEF_MET_UC = 'UNKNOWN_MET'
+  CHARACTER(LEN=15)              :: DEF_MET_LC = 'unknown_met'
+  CHARACTER(LEN=15)              :: DEF_MET_EXT= 'unknown_extension'
+  CHARACTER(LEN=15)              :: DEF_CN_YR  = 'unknown_year'
+  CHARACTER(LEN=15)              :: DEF_RES    = 'unknown_res'
+  CHARACTER(LEN=15)              :: DEF_NC_VER = 'nc'
   
   INTERFACE GetExtSpcVal 
      MODULE PROCEDURE GetExtSpcVal_Char
@@ -1511,7 +1476,7 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
-    TYPE(ConfigObj),  POINTER                 :: CF
+    TYPE(ConfigObj),  POINTER                 :: CF         ! Config object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1531,6 +1496,28 @@ CONTAINS
     !=================================================================
     ! HCO_SetDefaultToken begins here!
     !=================================================================
+
+    IF ( Trim(CF%MetField) == 'GEOSFP' ) THEN
+       DEF_MET_UC = 'GEOSFP'
+       DEF_MET_LC = 'geosfp'
+       DEF_CN_YR  = '2011'  ! Constant met fld year
+       DEF_NC_VER = 'nc'    ! NetCDF extension
+    ELSE IF ( TRIM(CF%MetField) == 'MERRA2' ) THEN
+       DEF_MET_UC = 'MERRA2'
+       DEF_MET_LC = 'merra2'
+       DEF_CN_YR  = '2015'  ! Constant met fld year
+       DEF_NC_VER = 'nc4'   ! NetCDF extension
+    ENDIF
+
+    IF ( TRIM(CF%GridRes) == '4.0x5.0' ) THEN
+       DEF_RES = '4x5'
+    ELSE IF ( TRIM(CF%GridRes) == '2.0x2.5' ) THEN
+       DEF_RES = '2x25'
+    ELSE IF ( TRIM(CF%GridRes) == '0.5x0.625' ) THEN
+       DEF_RES = '05x0625'
+    ELSE IF ( TRIM(CF%GridRes) == '0.25x0.3125' ) THEN
+       DEF_RES = '025x03125'
+    ENDIF
 
     ! Wildcard character
     CALL GetExtOpt( CF, CoreNr, 'Wildcard', OptValChar=DUM, Found=FOUND, RC=RC )
@@ -1576,12 +1563,6 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_CN_YR
     CALL HCO_AddOpt( am_I_Root, CF, 'CNYR', DUM, CoreNr, RC, VERB=.FALSE. )
-    
-    ! Nested grid token
-    CALL GetExtOpt( CF, CoreNr, 'NEST', OptValChar=DUM, Found=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND) DUM = DEF_NEST
-    CALL HCO_AddOpt( am_I_Root, CF, 'NEST', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! NetCDF version extension
     CALL GetExtOpt( CF, CoreNr, 'NC', OptValChar=DUM, Found=FOUND, RC=RC )

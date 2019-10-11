@@ -14,6 +14,7 @@
 ! !INTERFACE: 
 !
       MODULE DIAG51_MOD
+#if defined BPCH_DIAG
 !
 ! !USES:
 !
@@ -21,7 +22,7 @@
 
       IMPLICIT NONE
       PRIVATE
-!
+
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: CLEANUP_DIAG51
@@ -36,6 +37,11 @@
       PRIVATE :: WRITE_DIAG51             
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 !  NOTE by Melissa Sulprizio, 26 May 2015
 !  ----------------------------------------------------------------------------
 !  The emission options in the timeseries diagnostics were removed 
@@ -109,52 +115,13 @@
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Rewritten for clarity (bmy, 7/20/04)
-!  (2 ) Added extra counters for NO, NO2, OH, O3.  Also all diagnostic counter
-!        arrays are 1-D since they only depend on longitude. (bmy, 10/25/04)
-!  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
-!  (4 ) Now only archive AODs once per chemistry timestep (bmy, 1/14/05)
-!  (5 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
-!  (6 ) Now save cld frac and grid box heights (bmy, 4/20/05)
-!  (7 ) Remove TRCOFFSET since it is always zero  Also now get HALFPOLAR for
-!        both GCAP and GEOS grids.  (bmy, 6/28/05)
-!  (8 ) Bug fix: do not save SLP if it is not allocated (bmy, 8/2/05)
-!  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (10) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (11) Modified INIT_DIAG51 to save out transects (cdh, bmy, 11/30/06)
-!  (12) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
-!  (13) Renumber RH in WRITE_DIAG50 (bmy, 2/11/08)
-!  (14) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
-!  (15) Bug fix in GET_LOCAL_TIME (ccc, 12/10/08)
-!  (16) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
-!  (17) Updates in WRITE_DIAG51 (ccc, tai, bmy, 10/13/09)
-!  (18) Add GOOD_EMIS and GOOD_CT_EMIS to manage emission outputs
-!       (ccc, 11/20/09)
-!  (16) Updates to AOD output.  Also have the option to write to HDF 
-!        (amv, bmy, 12/21/09)
-!  (17) Modify AOD output to wavelength specified in jv_spec_aod.dat 
-!       (clh, 05/07/10)
-!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
-!                              rather than Psurface - PTOP
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
-!                              (recalculated in RDAER AND DUST_MOD)
-!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
-!  06 Aug 2012 - R. Yantosca - Now make IU_ND51 a local module variable
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  19 Mar 2014 - M. Sulprizio- Updated to allow for more than 75 tracers
-!  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  15 Apr 2015 - M. Sulprizio- Comment out emission diagnostics for now. These
-!                              are now handled by the HEMCO.
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! MODULE VARIABLES
       !
@@ -231,7 +198,6 @@
       !REAL(fp),  PARAMETER   :: HR2        = 12d0
       !CHARACTER(LEN=255)   :: FILENAME   ='ts10_12pm.bpch'
       !=================================================================
-#endif
 
       CONTAINS
 !EOC
@@ -249,20 +215,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG51( am_I_Root, Input_Opt,
-     &                   State_Met, State_Chm, RC )
+      SUBROUTINE DIAG51( am_I_Root,  Input_Opt, State_Chm,
+     &                   State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -275,20 +243,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Rewritten for clarity (bmy, 7/20/04)
-!  (2 ) Added TAU_W as a local variable (bmy, 9/28/04)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       REAL(fp) :: TAU_W
-#endif
 
       !=================================================================
       ! DIAG51 begins here!
@@ -297,22 +259,20 @@
       ! Assume success
       RC =  GC_SUCCESS      
 
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Construct array of where local times are between HR1, HR2
-      CALL GET_LOCAL_TIME( Input_Opt )
+      CALL GET_LOCAL_TIME( Input_Opt, State_Grid )
 
       ! Accumulate data in the Q array
-      CALL ACCUMULATE_DIAG51
-     &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      CALL ACCUMULATE_DIAG51( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, RC )
 
       ! Write data to disk at the proper time
       IF ( ITS_TIME_FOR_WRITE_DIAG51( Input_Opt, TAU_W )  .and. 
      &     Input_Opt%DO_DIAG_WRITE            ) THEN
-         CALL WRITE_DIAG51( am_I_Root, Input_Opt, State_Chm, TAU_W, RC )
+         CALL WRITE_DIAG51( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Grid, TAU_W, RC )
       ENDIF
-
-#endif
 
       END SUBROUTINE DIAG51
 !EOC
@@ -330,20 +290,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_LOCAL_TIME( Input_Opt )
+      SUBROUTINE GET_LOCAL_TIME( Input_Opt, State_Grid )
 !
 ! !USES:
 !
-      USE Input_Opt_Mod, ONLY : OptInput
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE TIME_MOD,      ONLY : GET_LOCALTIME
-      USE TIME_MOD,      ONLY : GET_TS_DYN
-#endif
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+      USE TIME_MOD,       ONLY : GET_LOCALTIME
+      USE TIME_MOD,       ONLY : GET_TS_DYN
 !
 ! !INPUT ARGUMENTS
 !
-      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input opts 
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input options
+      TYPE(GrdState), INTENT(IN) :: State_Grid ! Gris State object
 ! 
 ! !REMARKS:
 !  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
@@ -352,38 +311,25 @@
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) The 1d-3 in the computation of XLOCTM is to remove roundoff ambiguity 
-!        if a the local time should fall exactly on an hour boundary.
-!        (bmy, 11/29/00)
-!  (2 ) Bug fix: XMID(I) should be XMID(II).  Also updated comments.
-!        (bmy, 7/6/01)
-!  (3 ) Updated comments (rvm, bmy, 2/27/02)
-!  (4 ) Now uses function GET_LOCALTIME of "time_mod.f" (bmy, 3/27/03) 
-!  (5 ) Removed reference to CMN (bmy, 7/20/04)
-!  (6 ) Bug fix: LT should be REAL(fp) and not INTEGER (ccarouge, 12/10/08)
-!  (7 ) We need to substract TS_DYN to the time to get the local time at 
-!        the beginning of previous time step. (ccc, 8/11/09)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !   
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      INTEGER :: I
-      REAL(fp)  :: LT, TS_DYN
+      INTEGER  :: I
+      REAL(fp) :: LT, TS_DYN
 
       !=================================================================
       ! GET_LOCAL_TIME begins here!
       !=================================================================
       TS_DYN = GET_TS_DYN() / 3600e+0_fp
 
-      DO I = 1, IIPAR
+      DO I = 1, State_Grid%NX
 
          ! Get local time
-         LT = GET_LOCALTIME( I, 1, 1 ) - TS_DYN
+         LT = GET_LOCALTIME( I, 1, 1, State_Grid ) - TS_DYN
          IF ( LT < 0  ) LT = LT + 24e+0_fp
 
          ! GOOD indicates which boxes have local times between HR1 and HR2
@@ -392,7 +338,6 @@
             GOOD(I) = 1
          ENDIF
       ENDDO
-#endif
 
       END SUBROUTINE GET_LOCAL_TIME
 !EOC
@@ -409,32 +354,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ACCUMULATE_DIAG51( am_I_Root, Input_Opt,
-     &                              State_Met, State_Chm, RC )
+      SUBROUTINE ACCUMULATE_DIAG51( am_I_Root,  Input_Opt, State_Chm,
+     &                              State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_FJX_MOD,        ONLY : ISOPOD
       USE CMN_O3_MOD               ! SAVEOH, SAVEOA
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG, GET_TS_EMIS
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -447,65 +391,13 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
-!        diagnostics and updated numbering scheme.  Now scale optical depths
-!        to 400 nm (which is usually what QAA(2,*) is.  (bmy, 7/20/04) 
-!  (2 ) Now reference GET_ELAPSED_MIN and GET_TS_CHEM from "time_mod.f".  
-!        Also now all diagnostic counters are 1-D since they only depend on 
-!        longitude. Now only archive NO, NO2, OH, O3 on every chemistry 
-!        timestep (i.e. only when fullchem is called). (bmy, 10/25/04)
-!  (3 ) Only archive AODs when it is a chem timestep (bmy, 1/14/05)
-!  (4 ) Remove reference to "CMN".  Also now get PBL heights in meters and 
-!        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
-!        (bmy, 2/16/05)
-!  (5 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
-!        fraction as tracer #79 and box height as tracer #93.  Now remove 
-!        references to CLMOSW, CLROSW, and PBL from "dao_mod.f". (bmy, 4/20/05)
-!  (6 ) Remove TRCOFFSET since it is always zero  Also now get HALFPOLAR for
-!        both GCAP and GEOS grids.  (bmy, 6/28/05)
-!  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
-!  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (10) Now account for time spent in the trop for non-tracers (phs, 1/24/07)
-!  (11) We determine points corresponding to the time window at each timestep.
-!       But accumulate only when it is time for diagnostic (longest t.s.)
-!       (ccc, 8/12/09)
-!  (12) Add outputs ("DAO-FLDS" and "BIOGSRCE" categories). Add GOOD_EMIS and 
-!       GOOD_CT_EMIS to manage emission outputs. (ccc, 11/20/09)
-!  (13) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
-!        bin individual AOD (amv, bmy, 12/21/09)
-!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
-!                              rather than Psurface - PTOP
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  14 Mar 2013 - M. Payer    - Replace NOx and Ox with NO, NO2, and O3 as part
-!                              of removal of NOx-Ox partitioning
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%OPTD(I,J,L)
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
-!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
-!                              remove AD pointer
-!  16 Jun 2016 - K. Yu       - Now define species IDs with the Ind_ function
-!  17 Jun 2016 - R. Yantosca - Only define species IDs on the first call
-!  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
-!                              match new timestep unit of seconds
-!  04 Oct 2018 - R. Yantosca - Now accumulate most quantities on every
-!                              dynamic "heartbeat" timestep.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
@@ -515,7 +407,6 @@
       INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
       INTEGER, SAVE     :: id_IPMN,     id_SOAIE,  id_SOAME
       INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA, id_ISN1OA
-      INTEGER, SAVE     :: id_ISOA1,    id_ISOA2,  id_ISOA3
       INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
       INTEGER, SAVE     :: id_BCPI,     id_BCPO,   id_OH
 
@@ -533,7 +424,6 @@
 
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
-#endif
 
       !=================================================================
       ! ACCUMULATE_DIAG51 begins here!
@@ -541,8 +431,6 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
-
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Copy values from INPUT_OPT
       LSOA      = Input_Opt%LSOA
@@ -573,9 +461,6 @@
          id_INDIOL  = Ind_('INDIOL' )
          id_LVOCOA  = Ind_('LVOCOA' )
          id_ISN1OA  = Ind_('ISN1OA' )
-         id_ISOA1   = Ind_('ISOA1'  )
-         id_ISOA2   = Ind_('ISOA2'  )
-         id_ISOA3   = Ind_('ISOA3'  )
          id_SO4     = Ind_('SO4'    )
          id_NH4     = Ind_('NH4'    )
          id_NIT     = Ind_('NIT'    )
@@ -615,7 +500,7 @@
       ! Archive counter array of good points 
       IF ( IS_DIAG ) THEN
          DO X = 1, ND51_NI
-            I          = GET_I( X )
+            I          = GET_I( X, State_Grid )
             GOOD_CT(X) = GOOD_CT(X) + GOOD(I)
          ENDDO
       ENDIF
@@ -636,7 +521,7 @@
 
          ! Loop over longitudes
          DO X = 1, ND51_NI
-            I = GET_I( X )
+            I = GET_I( X, State_Grid )
 
             ! Only increment if we are in the chemistry grid
             IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -686,7 +571,7 @@
 
          ! Loop over longitudes
          DO X = 1, ND51_NI
-            I = GET_I( X )
+            I = GET_I( X, State_Grid )
 
             ! Archive by simulation 
             IF ( N <= nAdvect ) THEN
@@ -835,7 +720,7 @@
                !--------------------------------------
                IF ( K == 1 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( GET_PBL_TOP_m( I, J ) * GOOD(I) )  
+     &                         ( State_Met%PBL_TOP_m(I,J) * GOOD(I) )  
                ENDIF
 
             ELSE IF ( N == 510 ) THEN
@@ -845,7 +730,7 @@
                !--------------------------------------
                IF ( K == 1 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                         ( GET_PBL_TOP_L( I, J ) * GOOD(I) )
+     &                         ( State_Met%PBL_TOP_L(I,J) * GOOD(I) )
                ENDIF
 
             ELSE IF ( N == 511 ) THEN
@@ -1212,28 +1097,6 @@
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                ENDIF
 
-               !---------------------------------
-               ! Reversible partitioning scheme
-               !---------------------------------
-
-               ! ISOA1 (ug/m3)
-               IF ( id_ISOA1 > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_ISOA1)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
-               ! ISOA2 (ug/m3)
-               IF ( id_ISOA2 > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_ISOA2)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
-               ! ISOA3 (ug/m3)
-               IF ( id_ISOA3 > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_ISOA3)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
 
@@ -1283,11 +1146,6 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
 
-!-----------------------------------------------------------------------------
-! Prior to 5/11/18:
-! Only archive ISOPRENE AOD for Complex SOA (bmy, 5/11/18)
-!            ELSE IF ( N == 538 ) THEN
-!-----------------------------------------------------------------------------
             ELSE IF ( N == 538 .and. Input_Opt%LSOA ) THEN
 
                !--------------------------------------
@@ -1327,7 +1185,6 @@
          Spc => NULL()
 
       ENDIF
-#endif
 
       END SUBROUTINE ACCUMULATE_DIAG51
 !EOC
@@ -1351,7 +1208,6 @@
 ! !USES:
 !
       USE Input_Opt_Mod, ONLY : OptInput
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_HOUR
       USE TIME_MOD,      ONLY : GET_MINUTE
@@ -1361,7 +1217,6 @@
       USE TIME_MOD,      ONLY : GET_TAUe
       USE TIME_MOD,      ONLY : GET_TS_DYN
       USE TIME_MOD,      ONLY : GET_TS_DIAG
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1373,9 +1228,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Added TAU_W so to make sure the timestamp is accurate. (bmy, 9/28/04)
-!  (2 ) Add check with TS_DIAG. (ccc, 7/21/09)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1383,7 +1236,6 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL  :: ITS_TIME
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       REAL(fp) :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
@@ -1430,7 +1282,6 @@
          TAU_W    = TAU + DYN
          RETURN
       ENDIF
-#endif
 
       END FUNCTION ITS_TIME_FOR_WRITE_DIAG51
 !EOC
@@ -1449,15 +1300,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG51( am_I_Root, Input_Opt, 
-     &                         State_Chm, TAU_W, RC )
+      SUBROUTINE WRITE_DIAG51( am_I_Root, Input_Opt, State_Chm,
+     &                         State_Grid, TAU_W, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+      USE State_Grid_Mod,     ONLY : GrdState
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_SIZE_MOD             ! Size Parameters
@@ -1468,27 +1319,13 @@
       USE TIME_MOD,           ONLY : GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-
-#if   defined( USE_HDF5 )
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%%% NOTE: THIS IS PROBABLY BROKEN, WE WILL NOT REPLACE IT
-      !%%%%% BECAUSE WE ARE GOING TO MOVE TO netCDF OUTPUT (bmy, 4/11/18)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-      USE HDF_MOD,            ONLY : OPEN_HDF
-      USE HDF_MOD,            ONLY : CLOSE_HDF
-      USE HDF_MOD,            ONLY : WRITE_HDF
-      USE HDF5,               ONLY : HID_T
-      INTEGER(HID_T)              :: IU_ND51_HDF
-#endif
-
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       REAL(fp),       INTENT(IN)    :: TAU_W       ! TAU value at time of write
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1500,49 +1337,19 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Rewrote to` remove hardwiring and for better efficiency.  Added extra
-!        diagnostics and updated numbering scheme. (bmy, 7/20/04) 
-!  (2 ) Added TAU_W to the arg list.  Now use TAU_W to set TAU0 and TAU0.
-!        Also now all diagnostic counters are 1-D since they only depend on 
-!        longitude.  Now only archive NO, NO2, OH, O3 on every chemistry
-!        timestep (i.e. only when fullchem is called).  Also remove reference
-!        to FIRST. (bmy, 10/25/04)
-!  (3 ) Now divide tracers 82-87 (i.e. various AOD's) by GOOD_CTjn since
-!        these are only updated once per chemistry timestep (bmy, 1/14/05)
-!  (4 ) Now save grid box heights as tracer #93.  Now save 3-D cloud fraction 
-!        as tracer #79 (bmy, 4/20/05)
-!  (5 ) Remove references to TRCOFFSET because it is always zero (bmy, 6/24/05)
-!  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (7 ) DIVISOR is now a 3-D array.  Now zero COUNT_CHEM3D.  Now use CASE
-!        statement instead of IF statements.  Now zero counter arrays with
-!        array broadcast assignments. (phs, 1/24/07)
-!  (8 ) RH should be tracer #17 under "TIME-SER" category (bmy, 2/11/08)
-!  (9 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
-!  (10) Change timestamp used for filename.  Now save SLP under tracer #18 in 
-!       "DAO-FLDS". (ccc, tai, bmy, 10/13/09)
-!  (11) Add outputs ("DAO-FLDS" and emissions "BIOGSRCE") (ccc, 11/20/09)
-!  (12) Now have the option of saving out to HDF5 format.  NOTE: we have to
-!        bracket HDF-specific code with an #ifdef statement to avoid problems
-!        if the HDF5 libraries are not installed. (amv, bmy, 12/21/09)
-!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER             :: I,   J,  L,  W, N, GMNL, GMTRC, nAdvect
       INTEGER             :: IOS, X, Y, K, NHMS
       CHARACTER(LEN=16)   :: STAMP
       CHARACTER(LEN=40)   :: CATEGORY
       CHARACTER(LEN=40)   :: UNIT 
       CHARACTER(LEN=255)  :: FILENAME
-#endif
 
       !=================================================================
       ! WRITE_DIAG51 begins here!
@@ -1550,8 +1357,6 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
-
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Copy values from Input_Opt
       nAdvect   = State_Chm%nAdvect
@@ -1574,17 +1379,7 @@
  100  FORMAT( '     - DIAG51: Opening file ', a, ' on unit ', i4 )
 
       ! Open output file
-      IF ( Input_Opt%LND51_HDF ) THEN
-#if   defined( USE_HDF5 )
-         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-         CALL OPEN_HDF( IU_ND51_HDF,         FILENAME,
-     &                  Input_Opt%ND51_IMAX, Input_Opt%ND51_IMIN,   
-     &                  Input_Opt%ND51_JMAX, Input_Opt%ND51_JMIN,
-     &                  ND51_NI,             ND51_NJ )
-#endif
-      ELSE
-         CALL OPEN_BPCH2_FOR_WRITE( IU_ND51, FILENAME, TITLE )
-      ENDIF
+      CALL OPEN_BPCH2_FOR_WRITE( IU_ND51, FILENAME, TITLE )
 
       ! Set ENDING TAU for this bpch write 
       TAU1 = TAU_W
@@ -1611,13 +1406,6 @@
 
          SELECT CASE( Input_Opt%ND51_TRACERS(W) )
 
-            !----------------------------------------------------------
-            ! Prior to 10/4/18:
-            ! NOTE: 91 used to be pure O3, 92 used to be NO2, but
-            ! used to be OH, but these are now species and are saved
-            ! at all levels. (bmy, 10/4/18)
-            !CASE( 91, 92, 76, 77 )
-            !----------------------------------------------------------
             CASE( 502 )
                !--------------------------------------------------------
                ! Avoid div by zero for species which are archived each
@@ -2012,31 +1800,15 @@
          !------------------------
          ! Save to bpch file
          !------------------------
-         IF ( Input_Opt%LND51_HDF ) THEN
-#if   defined( USE_HDF5 )
-            ! Only include this if we are linking to HDF5 library 
-            ! (bmy, 12/21/09)
-            CALL WRITE_HDF( IU_ND51_HDF, N,
-     &                  CATEGORY,     GMTRC,        UNIT,
-     &                  TAU0,         TAU1,         RESERVED,
-     &                  ND51_NI,      ND51_NJ,      GMNL,
-     &                  Input_Opt%ND51_IMIN+I0,
-     &                  Input_Opt%ND51_JMIN+J0,
-     &                  Input_Opt%ND51_LMIN,
-     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
-#else
-         ELSE
-            CALL BPCH2( IU_ND51,      MODELNAME,    LONRES,   
-     &                  LATRES,       HALFPOLAR,    CENTER180, 
-     &                  CATEGORY,     GMTRC,        UNIT,      
-     &                  TAU0,         TAU1,         RESERVED,  
-     &                  ND51_NI,      ND51_NJ,      GMNL,     
-     &                  Input_Opt%ND51_IMIN+I0,
-     &                  Input_Opt%ND51_JMIN+J0,
-     &                  Input_Opt%ND51_LMIN, 
-     &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
-#endif
-         ENDIF
+         CALL BPCH2( IU_ND51,      MODELNAME,    LONRES,   
+     &               LATRES,       HALFPOLAR,    CENTER180, 
+     &               CATEGORY,     GMTRC,        UNIT,      
+     &               TAU0,         TAU1,         RESERVED,  
+     &               ND51_NI,      ND51_NJ,      GMNL,     
+     &               Input_Opt%ND51_IMIN+I0,
+     &               Input_Opt%ND51_JMIN+J0,
+     &               Input_Opt%ND51_LMIN, 
+     &               REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
       ENDDO
 
       ! Echo info
@@ -2044,14 +1816,7 @@
  120  FORMAT( '     - DIAG51: Closing file ', a )
 
       ! Close file
-      IF ( Input_Opt%LND51_HDF ) THEN
-#if   defined( USE_HDF5 )
-         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-         CALL CLOSE_HDF( IU_ND51_HDF )
-#endif
-      ELSE
-         CLOSE( IU_ND51 )
-      ENDIF
+      CLOSE( IU_ND51 )
 
       !=================================================================
       ! Re-initialize quantities for next diagnostic cycle
@@ -2071,7 +1836,6 @@
       ! Zero counter arrays
       COUNT_CHEM3D = 0e+0_fp
       GOOD_CT      = 0e+0_fp
-#endif
 
       END SUBROUTINE WRITE_DIAG51
 !EOC
@@ -2088,36 +1852,35 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_I( X ) RESULT( I )
+      FUNCTION GET_I( X, State_Grid ) RESULT( I )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: X   ! Relative longitude index
+      INTEGER,        INTENT(IN) :: X          ! Relative longitude index
+      TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !RETURN VALUE:
 !
-      INTEGER             :: I   ! Absolute longitude index
+      INTEGER                    :: I          ! Absolute longitude index
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  02 Dec 2010 - R. Yantosca - Added dProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Add the offset to X to get I  
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
-      IF ( I > IIPAR ) I = I - IIPAR
-#endif
+      IF ( I > State_Grid%NX ) I = I - State_Grid%NX
 
       END FUNCTION GET_I
 !EOC
@@ -2134,29 +1897,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG51( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DIAG51( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      USE BPCH2_MOD,     ONLY : GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+      USE BPCH2_MOD,      ONLY : GET_MODELNAME
+      USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
-      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE TIME_MOD,      ONLY : GET_TAUb
-#endif
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE TIME_MOD,       ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2164,27 +1924,15 @@
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Diagnostic counter arrays are now only 1-D.  Also add GOOD_CT
-!        which is the counter array of "good" boxes at each chemistry
-!        timesteps.  Now allocate GOOD_CT. (bmy, 10/25/04)
-!  (2 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
-!  (3 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
-!        value for GEOS or GCAP grids. (bmy, 6/28/05)
-!  (4 ) Now allow ND51_IMIN to be equal to ND51_IMAX and ND51_JMIN to be
-!        equal to ND51_JMAX.  This will allow us to save out longitude or
-!        latitude transects.  Allocate COUNT_CHEM3D. (cdh, bmy, phs, 1/24/07)
-!  (5 ) Allocate GOOD_EMIS and GOOD_CT_EMIS (ccc, 11/20/09)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER            :: AS
       CHARACTER(LEN=255) :: LOCATION
-#endif
       
       !=================================================================
       ! INIT_DIAG51 begins here!
@@ -2192,8 +1940,6 @@
 
       ! Assume success
       RC = GC_SUCCESS 
-
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Initialize
       LOCATION               = 'INIT_DIAG51 ("diag51_mod.f")'
@@ -2206,13 +1952,8 @@
       !=================================================================
 
       ! Get grid offsets
-      IF ( ITS_A_NESTED_GRID() ) THEN
-         I0 = GET_XOFFSET()
-         J0 = GET_YOFFSET()
-      ELSE
-         I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-         J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-      ENDIF
+      I0 = State_Grid%XMinOffset
+      J0 = State_Grid%YMinOffset
 
       !-----------
       ! Longitude
@@ -2220,13 +1961,13 @@
 
       ! Error check ND51_IMIN
       IF ( Input_Opt%ND51_IMIN+I0 < 1       .or.
-     &     Input_Opt%ND51_IMIN+I0 > IIPAR ) THEN
+     &     Input_Opt%ND51_IMIN+I0 > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Bad ND51_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND51_IMAX
       IF ( Input_Opt%ND51_IMAX+I0 < 1       .or.
-     &     Input_Opt%ND51_IMAX+I0 > IIPAR ) THEN
+     &     Input_Opt%ND51_IMAX+I0 > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Bad ND51_IMAX value!', LOCATION )
       ENDIF
 
@@ -2235,13 +1976,13 @@
       IF ( Input_Opt%ND51_IMAX >= Input_Opt%ND51_IMIN ) THEN
          ND51_NI = ( Input_Opt%ND51_IMAX - Input_Opt%ND51_IMIN ) + 1
       ELSE 
-         ND51_NI = ( IIPAR - Input_Opt%ND51_IMIN ) + 1 +
+         ND51_NI = ( State_Grid%NX - Input_Opt%ND51_IMIN ) + 1 +
      &               Input_Opt%ND51_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping over the date line!'
       ENDIF
 
-      ! Make sure that ND50_NI <= IIPAR
-      IF ( ND51_NI > IIPAR ) THEN
+      ! Make sure that ND50_NI <= NX
+      IF ( ND51_NI > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Too many longitudes!', LOCATION )
       ENDIF
 
@@ -2251,13 +1992,13 @@
       
       ! Error check JMIN_AREA
       IF ( Input_Opt%ND51_JMIN+J0 < 1       .or.
-     &     Input_Opt%ND51_JMIN+J0 > JJPAR ) THEN
+     &     Input_Opt%ND51_JMIN+J0 > State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Bad ND51_JMIN value!', LOCATION )
       ENDIF
      
       ! Error check JMAX_AREA
       IF ( Input_Opt%ND51_JMAX+J0 < 1       .or.
-     &     Input_Opt%ND51_JMAX+J0 > JJPAR ) THEN
+     &     Input_Opt%ND51_JMAX+J0 > State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Bad ND51_JMAX value!', LOCATION )
       ENDIF
 
@@ -2274,7 +2015,7 @@
 
       ! Error check ND51_LMIN, ND51_LMAX
       IF ( Input_Opt%ND51_LMIN < 1       .or.
-     &     Input_Opt%ND51_LMAX > LLPAR ) THEN 
+     &     Input_Opt%ND51_LMAX > State_Grid%NZ ) THEN 
          CALL ERROR_STOP( 'Bad ND51 altitude values!', LOCATION )
       ENDIF
 
@@ -2297,21 +2038,17 @@
       !-----------
       TAU0      = GET_TAUb()
       TITLE     = 'GEOS-CHEM DIAG51 time series'
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      LATRES    = State_Grid%DY
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
-
-      ! Reset offsets to global values for bpch write
-      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0        = GET_YOFFSET( GLOBAL=.TRUE. ) 
 
       !=================================================================
       ! Allocate arrays
       !=================================================================
 
       ! Array denoting where LT is between HR1 and HR2
-      ALLOCATE( GOOD( IIPAR ), STAT=AS )
+      ALLOCATE( GOOD( State_Grid%NX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD' )
       GOOD = 0
 
@@ -2329,7 +2066,6 @@
       ALLOCATE( COUNT_CHEM3D( ND51_NI, ND51_NJ, ND51_NL ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0
-#endif
 
       END SUBROUTINE INIT_DIAG51
 !EOC
@@ -2349,14 +2085,10 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Now deallocate GOOD_CT (bmy, 10/25/04)
-!  (2 ) Also deallocate COUNT_CHEM3D (phs, 1/24/07)
-!  (3 ) Deallocates GOOD_EMIS and GOOD_CT_EMIS (ccc, 11/20/09)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! CLEANUP_DIAG51 begins here!
       !=================================================================
@@ -2364,8 +2096,8 @@
       IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
       IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
-#endif
 
       END SUBROUTINE CLEANUP_DIAG51
 !EOC
+#endif
       END MODULE DIAG51_MOD

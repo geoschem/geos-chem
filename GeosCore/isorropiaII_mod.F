@@ -124,8 +124,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_ISORROPIAII( am_I_Root, Input_Opt,  State_Met,
-     &                           State_Chm, State_Diag, RC         )
+      SUBROUTINE DO_ISORROPIAII( am_I_Root,  Input_Opt,  State_Chm,
+     &                           State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -140,19 +140,17 @@
       USE State_Chm_Mod,        ONLY : ChmState
       USE State_Diag_Mod,       ONLY : DgnState
       USE State_Chm_Mod,        ONLY : Ind_
+      USE State_Grid_Mod,       ONLY : GrdState
       USE State_Met_Mod,        ONLY : MetState
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
       USE IsorropiaII_Main_Mod, ONLY : Isorropia
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD,         ONLY : LD73,   ND73
-      USE DIAG_MOD,             ONLY : AD73
-#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -285,6 +283,16 @@
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
 
+      ! Zero State_Chm arrays to avoid leftover values from hanging
+      ! around between calls -- especially up near the tropopause
+      State_Chm%pHSav      = 0.0_fp
+      State_Chm%HplusSav   = 0.0_fp
+      State_Chm%WaterSav   = 0.0_fp
+      State_Chm%SulratSav  = 0.0_fp
+      State_Chm%NaRatSav   = 0.0_fp
+      State_Chm%BisulSav   = 0.0_fp
+      State_Chm%AcidPurSav = 0.0_fp
+
       ! First-time initialization
       IF ( FIRST ) THEN
 
@@ -324,7 +332,7 @@
          ENDIF
 
          ! Initialize arrays
-         CALL INIT_ISORROPIAII()
+         CALL INIT_ISORROPIAII( State_Grid )
 
          ! Check to see if we need to get HNO3 from HEMCO
          IF ( id_HNO3 <= 0 ) THEN
@@ -395,9 +403,9 @@
 !$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds                    )
 !$OMP+PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP                     )
 !$OMP+SCHEDULE( DYNAMIC, 1 )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Only applying ISORROPIA II in troposphere
          IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
@@ -676,13 +684,13 @@
          ! in mol/m3 air --> convert to mol/L water
          IF ( AERLIQ(8) < 1e-18_fp ) THEN
             ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
-            ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
-            ! (hotp, ccc, 12/18/09)
+            ! We force HPLUSTEMP to 1d20 (hotp, ccc, 12/18/09)
+            ! Force pHSav to 20e0 (X. Wang, 6/27/19)
             HPLUSTEMP       = 1e+20_fp
             SULFTEMP        = 1e-30_fp
             BISULTEMP       = 1e-30_fp
             NITRTEMP        = 1e-30_fp
-            State_Chm%pHSav(I,J,L) = -999e+0_fp
+            State_Chm%pHSav(I,J,L) = 20e+0_fp
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
             SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp
@@ -694,6 +702,7 @@
          ENDIF
 
          ! Additional Info
+         State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
          State_Chm%HplusSav(I,J,L)  = HPLUSTEMP
          State_Chm%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
          State_Chm%SulratSav(I,J,L) = SULFTEMP
@@ -712,23 +721,6 @@
          ! Value if DEN_SAV and NUM_SAV too small.
          State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
      &                                          0e+0_fp, 999e+0_fp)
-
-         !==============================================================
-         ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
-         !==============================================================
-
-#if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND73: bpch diagnostic (eam, 04/2015)
-         !--------------------------------------------------------------
-         IF ( ND73 > 0 ) THEN
-            IF ( L <= LD73 ) THEN
-               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Chm%pHSav(   I,J,L)
-               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Chm%HplusSav(I,J,L)
-               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Chm%WaterSav(I,J,L)
-            ENDIF
-         ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -954,12 +946,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_ISORROPIAII
+      SUBROUTINE INIT_ISORROPIAII( State_Grid )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version
@@ -977,11 +973,13 @@
       ! INIT_ISORROPIAII begins here!
       !=================================================================
 
-      ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+      ALLOCATE( HNO3_sav( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3_sav' )
       HNO3_sav = 0e+0_fp
 
-      ALLOCATE( GAS_HNO3( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+      ALLOCATE( GAS_HNO3( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
       GAS_HNO3 = 0e+0_fp
 

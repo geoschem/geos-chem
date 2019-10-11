@@ -29,13 +29,14 @@ MODULE History_Netcdf_Mod
   PUBLIC  :: History_Netcdf_Close
   PUBLIC  :: History_Netcdf_Define
   PUBLIC  :: History_Netcdf_Write
-  PUBLIC  :: History_Netcdf_Init
-  PUBLIC  :: History_Netcdf_Cleanup
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Expand_Date_Time
+  PRIVATE :: Get_Number_Of_Levels
   PRIVATE :: Get_Var_DimIds
+  PRIVATE :: IndexVarList_Create
+  PRIVATE :: IndexVarList_Destroy
 !
 ! !REMARKS:
 !
@@ -43,15 +44,11 @@ MODULE History_Netcdf_Mod
 !  10 Aug 2017 - R. Yantosca - Initial version
 !  16 Aug 2017 - R. Yantosca - Reorder placement of routines
 !  16 Aug 2017 - R. Yantosca - Rename History_Expand_Date to Expand_Date_Time
+!  29 May 2019 - R. Yantosca - IndexVarList is now PRIVATE to the routine
+!                              History_Netcdf_Define
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-  ! Linked list of HISTORY ITEMS for netCDF index varaibles (lon, lat, etc)
-  TYPE(MetaHistItem), POINTER :: IndexVarList => NULL()
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -187,7 +184,7 @@ CONTAINS
     USE History_Util_Mod
     USE MetaHistItem_Mod,    ONLY : MetaHistItem
     USE Ncdf_Mod
-    USE Registry_Params_MOd, ONLY : KINDVAL_F4
+    USE Registry_Params_Mod, ONLY : KINDVAL_F4
 !
 ! !INPUT PARAMETERS: 
 !
@@ -213,6 +210,9 @@ CONTAINS
 !  30 Aug 2017 - R. Yantosca - Now print file write info only on the root CPU
 !  11 Jul 2018 - R. Yantosca - Avoid roundoff errors when computing the
 !                              file reference date and time
+!  29 May 2019 - R. Yantosca - IndexVarList is now local to this routine,
+!                              we compute it for each collection so that we
+!                              can apply the collection subset window
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,12 +245,14 @@ CONTAINS
 
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current
+    TYPE(MetaHistItem), POINTER :: IndexVarList
 
     !=======================================================================
     ! Initialize
     !=======================================================================
     RC          =  GC_SUCCESS
     Current     => NULL()
+    IndexVarList => NULL()
     ErrMsg      =  ''
     ThisLoc     =  ' -> at History_Netcdf_Define (in History/history_mod.F90)'
     FileName    =  ''
@@ -357,14 +359,8 @@ CONTAINS
        Container%ProdDateTime = ''
 !------------------------------------------------------------------------------
 
-       ! Pick the dimensions of the lev and ilev variables properly
-       IF ( Container%OnLevelEdges ) THEN
-          nILev = Container%NZ
-          nLev  = nILev - 1
-       ELSE
-          nLev  = Container%NZ
-          nILev = nLev  + 1
-       ENDIF
+       ! Get the number of levels (nLev) and level interfaces (nIlev)
+       CALL Get_Number_Of_Levels( Container, nLev, nIlev )
 
        ! Do not create netCDF file on first timestep if instantaneous collection
        ! and frequency = duration. This will avoid creation of a netCDF file
@@ -435,6 +431,15 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Define the index variables
        !--------------------------------------------------------------------
+
+       ! Define the linked list of index variables (IndexVarList) that
+       ! have the same dimension subsets as the current container
+       CALL IndexVarList_Create( am_I_Root, Container, IndexVarList, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "History_NetCdf_Init"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
        ! Set CURRENT to the first node in the list of HISTORY ITEMS
        Current => IndexVarList
@@ -623,6 +628,14 @@ CONTAINS
        ! We can now consider this collection to have been "defined"
        !--------------------------------------------------------------------
        Container%IsFileDefined = .TRUE.
+
+       CALL IndexVarList_Destroy( am_I_Root, IndexVarList, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error returned from "History_Netcdf_Cleanup"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
   END SUBROUTINE History_Netcdf_Define
@@ -650,7 +663,6 @@ CONTAINS
     USE History_Util_Mod
     USE M_Netcdf_Io_Write,  ONLY : NcWr
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
-    USE Roundoff_Mod,       ONLY : RoundOff
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1289,36 +1301,47 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: History_Netcdf_Init
+! !IROUTINE: IndexVarList_Create
 !
 ! !DESCRIPTION: Creates a HISTORY ITEM for each netCDF index variable (e.g.
 !  lon, lat, lev, time, area) and adds it to the METAHISTORY ITEM IndexVarList.
+!  Subsets each index variable according to the subset indices from the
+!  given collection (passed via the Container argument).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Init( am_I_Root, RC )
+  SUBROUTINE IndexVarList_Create( am_I_Root, Container, IndexVarList, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Grid_Registry_Mod, ONLY : Lookup_Grid
+    USE HistContainer_Mod, ONLY : HistContainer
     USE HistItem_Mod
     USE MetaHistItem_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root
+    LOGICAL,             INTENT(IN)  :: am_I_Root    ! Are we on the root core?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container    ! Collection object
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER, INTENT(OUT) :: RC
+    TYPE(MetaHistItem),  POINTER     :: IndexVarList ! Linked list of index
+                                                     !  variables for netCDF
+    INTEGER,             INTENT(OUT) :: RC           ! Success or failure?
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
 !  25 Aug 2017 - R. Yantosca - Added index arrays for data on level edges
+!  29 May 2019 - R. Yantosca - Now accept Container, IndexVarList arguments,
+!                              so that we can subset the data region
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1330,7 +1353,16 @@ CONTAINS
     INTEGER                  :: N
     INTEGER                  :: KindVal
     INTEGER                  :: Rank
+    INTEGER                  :: nILev
+    INTEGER                  :: nLev
+
+    ! Arrays
     INTEGER                  :: Dimensions(3)
+    INTEGER                  :: Subset_X(2)
+    INTEGER                  :: Subset_Y(2)
+    INTEGER                  :: Subset_Z(2)
+    INTEGER                  :: Subset_Zc(2)
+    INTEGER                  :: Subset_Ze(2)
 
     ! Strings
     CHARACTER(LEN=20)        :: ItemDimName(11)
@@ -1410,6 +1442,19 @@ CONTAINS
     ItemDimName(11)  = 't'
 
     !=======================================================================
+    ! Pick the dimensions of the lev and ilev variables properly
+    !=======================================================================
+
+    ! Get the number of levels (nLev) and level interfaces (nIlev)
+    CALL Get_Number_Of_Levels( Container, nLev, nIlev ) 
+
+    ! Subset indices
+    Subset_X  = (/ Container%X0, Container%X1 /)
+    Subset_Y  = (/ Container%Y0, Container%Y1 /)
+    Subset_Zc = (/ Container%Z0, nLev         /)
+    Subset_Ze = (/ Container%Z0, nILev        /)
+
+    !=======================================================================
     ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)
     ! of grid_registry_mod.F90 and add them to a METAHISTORY ITEM list
     !=======================================================================
@@ -1439,6 +1484,15 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! Pick proper subset indices for index variables placed on
+       ! edges  (hyai, hybi, ilev) or centers (everything else)
+       SELECT CASE( N )
+          CASE( 3, 4, 9 )
+             Subset_Z = Subset_Ze
+          CASE DEFAULT
+             Subset_Z = Subset_Zc
+       END SELECT
+
        !---------------------------------------------------------------------
        ! Create a HISTORY ITEM for this index field
        !---------------------------------------------------------------------
@@ -1453,6 +1507,9 @@ CONTAINS
                              OnLevelEdges   = OnLevelEdges,                  &
                              DimNames       = ItemDimName(N),                &
                              Operation      = 0,                             &
+                             Subset_X       = Subset_X,                      &
+                             Subset_Y       = Subset_Y,                      &
+                             Subset_Z       = Subset_Z,                      &
                              Source_KindVal = KindVal,                       &
                              Source_0d_8    = Ptr0d_8,                       &
                              Source_1d_8    = Ptr1d_8,                       &
@@ -1487,21 +1544,22 @@ CONTAINS
        ENDIF
     ENDDO
 
-  END SUBROUTINE History_Netcdf_Init
+  END SUBROUTINE IndexVarList_Create
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: History_Netcdf_Cleanup
+! !IROUTINE: IndexVarList_Destroy
 !
-! !DESCRIPTION: Finalizes all module variables (e.g. IndexVarList).
+! !DESCRIPTION: Finalizes the IndexVarList linked list of netCDF
+!  index variables.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Cleanup( am_I_Root, RC )
+  SUBROUTINE IndexVarList_Destroy( am_I_Root, IndexVarList, RC )
 !
 ! !USES:
 !
@@ -1510,16 +1568,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root
+    LOGICAL,             INTENT(IN)  :: am_I_Root    ! Are we on the root core?
 !
-! !OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC
+    TYPE(MetaHistItem),  POINTER     :: IndexVarList ! Linked list of index
+                                                     !  variables for netCDF
 !
-! !REMARKS:
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
+!  29 May 2019 - R. Yantosca - Renamed from History_Netcdf_Cleanup
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1541,11 +1603,63 @@ CONTAINS
     !=======================================================================
     CALL MetaHistItem_Destroy( am_I_Root, IndexVarList, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Cannot deallocate the "IndexVarListt" META HISTORY ITEM!'
+       ErrMsg = 'Cannot deallocate the "IndexVarList" META HISTORY ITEM!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-  END SUBROUTINE History_Netcdf_Cleanup
+  END SUBROUTINE IndexVarList_Destroy
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Number_Of_Levels
+!
+! !DESCRIPTION: Given the vertical dimension of the container, returns the
+!  values NLEV (number of levels) and NILEV (number of level interfaces).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Number_Of_Levels( Container, nLev, nILev )
+!
+! !USES:
+!
+    USE HistContainer_Mod, ONLY : HistContainer
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: nLev      ! Number of levels
+    INTEGER,             INTENT(OUT) :: nIlev     ! Number of level interfaces
+!
+! !REVISION HISTORY:
+!  05 Jun 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=======================================================================
+    ! Pick the dimensions of the lev and ilev variables properly
+    ! so that we can use that for writing to then netCDF files.
+    !
+    ! If the vertical dimension (Container%NZ) is undefined, then
+    ! this indicates that there is only 2-D data in the collection.
+    ! Thus, there will be 1 level (the surface) and 2 level edges.
+    !=======================================================================
+    IF ( Container%OnLevelEdges ) THEN
+       nILev = MAX( Container%NZ, 2 )
+       nLev  = nILev - 1
+    ELSE
+       nLev  = MAX( Container%NZ, 1 )
+       nILev = nLev  + 1
+    ENDIF
+
+  END SUBROUTINE Get_Number_Of_Levels
 !EOC
 END MODULE History_Netcdf_Mod

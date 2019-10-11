@@ -206,19 +206,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Met, RC )
+  SUBROUTINE Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Grid, &
+                                    State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod
+    USE CMN_SIZE_Mod,   ONLY : NSURFTYPE
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE State_Met_Mod, ONLY : MetState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput),  INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState),  INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -261,9 +264,8 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Loop over all grid cells to set State_Met variables
-    !-----------------------------------------------------------------------
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Initialize fraction land for this grid cell
        State_Met%FRCLND(I,J) = 1.e+0_fp ! Initialized as all land
@@ -350,7 +352,7 @@ CONTAINS
 ! !IROUTINE: init_landtypefrac
 !
 ! !DESCRIPTION: Attaches pointers from the MODIS XLAI data read in by
-!  HEMCO to the LandTypeFrac field of State_Met.
+!  HEMCO to the LandTypeFrac field of State\_Met.
 !\\
 !\\
 ! !INTERFACE:
@@ -359,7 +361,7 @@ CONTAINS
 !
 ! !USES: 
 !
-    USE CMN_SIZE_Mod
+    USE CMN_SIZE_Mod,      ONLY : NSURFTYPE
     USE ErrCode_Mod
     USE Hco_Interface_Mod, ONLY : HcoState
     USE Hco_EmisList_Mod,  ONLY : Hco_GetPtr
@@ -392,7 +394,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: T, I, J
+    INTEGER            :: T
 
     ! Strings
     CHARACTER(LEN=10)  :: Name

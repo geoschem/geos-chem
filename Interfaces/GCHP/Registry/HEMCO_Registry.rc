@@ -1,0 +1,67 @@
+#
+# This the HEMCO Grid Component Registry. It defines Import,
+# Internal and Export states for this component.
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva   First Version
+#  30Jun2012  Nielsen    For Ganymed
+#  03Jan2013  Keller     For HEMCO
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: HEMCO 
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  MAPL_REGISTRY_VERSION: 1.00
+
+#				------------
+#				Import State
+#				------------
+
+<ImportSpec name="HEMCO", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,default,long_name">
+# -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
+#  Short	     |  	   |	 | V |Item|Intervl| Sub | Def  |	Long
+#  Name 	     |   Units     | Dim |Loc|Type| R | A |Tiles| ault |	Name
+# -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
+  ALBD               |     1	   | xy  |   |    |   |   |	|      | surface_albedo_for_visible_diffuse
+  LWI                |     1	   | xy  |   |    |   |   |	|      | 
+  TSKIN              |     1	   | xy  |   |    |   |   |	|      | 
+  U10M               |     1	   | xy  |   |    |   |   |	|      | 
+  V10M               |     1	   | xy  |   |    |   |   |	|      | 
+  AREA               |     m2      | xy  |   |    |   |   |	|      | 
+  PEDGE              |    hPa      | xyz | E |    |   |   |	|      |
+  PCENTER            |    hPa      | xyz | C |    |   |   |	|      |
+  BOXHEIGHT          |     m       | xyz | C |    |   |   |	|      |
+# -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
+</ImportSpec>
+
+#				------------
+#				Export State
+#				------------
+
+<ExportSpec name="HEMCO", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,long_name">
+# ------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+#  Short	    |		     |     | V |Item|Intervl| Sub |	     Long
+#  Name 	    |   Units	     | Dim |Loc|Type| R | A |Tiles|	     Name
+# ------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+# ------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+</ExportSpec>
+
+#                               --------------
+#                               Internal State
+#                               --------------
+
+#
+# Note: 1) For friendlies, use "D" for dynamics, "T" for turbulence and "C" for convection; leave blank otherwise
+#       2) If quantity requires no restart, put an 'x' in the No Rst column
+#       3) RO = Alkoxy radical, RO2 = Organic peroxy radical
+
+<InternalSpec name="HEMCO", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,default,norestart,halowidth,friendlyto,long_name">
+# --------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+#  Short        |            |     | V |Item|Intervl| Sub | Def  | No | Ha | Friends |            Long
+#  Name         |   Units    | Dim |Loc|Type| R | A |Tiles| ault | Rst| lo |         |            Name
+# --------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+# --------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+</InternalSpec>

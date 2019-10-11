@@ -12,7 +12,7 @@
 !\\
 ! !INTERFACE:
 !
-      MODULE Pjc_Pfix_Mod
+      MODULE PJC_PFIX_MOD
 !
 ! !USES:
 !
@@ -139,8 +139,8 @@
       ! Scalar variables
       LOGICAL             :: PR_DIAG
       INTEGER             :: LOC_PROC
-      REAL(fp)              :: GEOFAC_PC
-      REAL(fp)              :: DLON_FV
+      REAL(fp)            :: GEOFAC_PC
+      REAL(fp)            :: DLON_FV
 
       ! Dimensions for GMI code (from "imp_dims")
       INTEGER             :: IMP_NBORDER
@@ -176,37 +176,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Do_Pjc_Pfix( D_DYN, P1, P2, UWND, VWND, XMASS, YMASS )
+      SUBROUTINE Do_Pjc_Pfix( State_Grid, D_DYN, P1, P2, 
+     &                        UWND, VWND, XMASS, YMASS )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD    ! Size parameters
       USE PhysConstants   ! Physical constants
+      Use State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Dynamic timestep [s]
-      REAL(fp),  INTENT(IN)  :: D_DYN
-
-      ! True PSurface at middle of dynamic timestep [hPa]
-      REAL(fp),  INTENT(IN)  :: P1(:,:)
-
-      ! True PSurface at end    of dynamic timestep [hPa]
-      REAL(fp),  INTENT(IN)  :: P2(:,:)
-
-      ! Zonal (E-W) wind [m/s]
-      REAL(fp),  INTENT(IN)  :: UWND(IIPAR,JJPAR,LLPAR)
-
-      ! Meridional (N-S) wind [m/s]
-      REAL(fp),  INTENT(IN)  :: VWND(IIPAR,JJPAR,LLPAR)
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+      REAL(fp),       INTENT(IN)  :: D_DYN       ! Dynamic timestep [s]
+      REAL(fp),       INTENT(IN)  :: P1(:,:)     ! True PSurface at middle of
+                                                 ! dynamic timestep [hPa]
+      REAL(fp),       INTENT(IN)  :: P2(:,:)     ! True PSurface at end of 
+                                                 ! dynamic timestep [hPa]
+      REAL(fp),       INTENT(IN)  :: UWND(State_Grid%NX, ! Zonal wind [m/s]
+     &                                    State_Grid%NY,
+     &                                    State_Grid%NZ)
+      REAL(fp),       INTENT(IN)  :: VWND(State_Grid%NX, ! Meridional wind [m/s]
+     &                                    State_Grid%NY,
+     &                                    State_Grid%NZ)
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! E-W mass fluxes [mixing ratio]
-      REAL(fp),  INTENT(OUT) :: XMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),       INTENT(OUT) :: XMASS(State_Grid%NX, ! E-W mass fluxes
+     &                                     State_Grid%NY, !  [mixing ratio]
+     &                                     State_Grid%NZ)
 
-      ! N-S mass fluxes [mixing ratio]
-      REAL(fp),  INTENT(OUT) :: YMASS(IIPAR,JJPAR,LLPAR)
+      REAL(fp),       INTENT(OUT) :: YMASS(State_Grid%NX, ! N-S mass fluxes
+     &                                     State_Grid%NY, !  [mixing ratio]
+     &                                     State_Grid%NZ)
 !
 ! !AUTHOR:
 !  Brendan Field and Bob Yantosca (5/8/03) 
@@ -230,7 +232,7 @@
 ! 
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J, K
-      REAL(fp)               :: P2_TMP(IIPAR,JJPAR)
+      REAL(fp)             :: P2_TMP(State_Grid%NX,State_Grid%NY)
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -248,7 +250,7 @@
       IF ( FIRST ) THEN
 
          ! Initialize/allocate module variables 
-         CALL INIT_PJC_PFIX
+         CALL INIT_PJC_PFIX( State_Grid )
 
          ! Calculate advection surface-area factors
          CALL CALC_ADVECTION_FACTORS( MCOR, REL_AREA, GEOFAC, GEOFAC_PC)
@@ -294,30 +296,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Calc_Pressure( XMASS, YMASS, RGW_FV, PS_NOW, PS_AFTER )
+      SUBROUTINE Calc_Pressure( State_Grid, XMASS, YMASS,
+     &                          RGW_FV, PS_NOW, PS_AFTER )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_Mod,       ONLY : PTOP
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-      ! E-W mass flux from pressure fixer
-      REAL(fp), INTENT(IN)  :: XMASS(IIPAR,JJPAR,LLPAR)
-
-      ! N-S mass flux from pressure fixer
-      REAL(fp), INTENT(IN)  :: YMASS(IIPAR,JJPAR,LLPAR)
-
-      ! Surface pressure - PTOP at current time
-      REAL(fp), INTENT(IN)  :: PS_NOW(IIPAR,JJPAR)
-
-      ! 1 / ( SINE(J+1) - SINE(J) ) -- latitude factor
-      REAL(fp), INTENT(IN)  :: RGW_FV(JJPAR)
+      TYPE(GrdState), INTENT(IN) :: State_Grid      ! Grid State object
+      REAL(fp), INTENT(IN)  :: XMASS(State_Grid%NX, ! E-W mass flux from
+     &                               State_Grid%NY, !  pressure fixer
+     &                               State_Grid%NZ)
+      REAL(fp), INTENT(IN)  :: YMASS(State_Grid%NX, ! N-S mass flux from
+     &                               State_Grid%NY, !  pressure fixer
+     &                               State_Grid%NZ)
+      REAL(fp), INTENT(IN)  :: PS_NOW(State_Grid%NX, ! Surface pressure - PTOP
+     &                                State_Grid%NY) !  at current time
+      REAL(fp), INTENT(IN)  :: RGW_FV(State_Grid%NY) ! Latitude factor
+                                                     ! 1/(SINE(J+1) - SIN(J))
 !
 ! !OUTPUT PARAMETERS:
 !
-      ! Surface pressure - PTOP adjusted by P-fixer
-      REAL(fp), INTENT(OUT) :: PS_AFTER(IIPAR,JJPAR)
+      REAL(fp), INTENT(OUT) :: PS_AFTER(State_Grid%NX, ! Surface pressure - PTOP
+     &                                  State_Grid%NY) !  adjusted by P-fixer
 !
 ! !AUTHOR:
 !   Brendan Field and Bob Yantosca (5/8/03)
@@ -332,69 +336,70 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER             :: I, J, L
-      REAL(fp)              :: DELP(IIPAR,JJPAR,LLPAR)
-      REAL(fp)              :: DELP1(IIPAR,JJPAR,LLPAR)
-      REAL(fp)              :: PE(IIPAR,LLPAR+1,JJPAR)
+      INTEGER  :: I, J, L
+      REAL(fp) :: DELP (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+      REAL(fp) :: DELP1(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+      REAL(fp) :: PE(State_Grid%NX,State_Grid%NZ+1,State_Grid%NY)
 
       !=================================================================
       ! CALC_PRESSURE begins here!
       !=================================================================
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          DELP1(I,J,L) = DAP(L) + ( DBK(L) * PS_NOW(I,J) )
       ENDDO
       ENDDO
       ENDDO
 
-      DO L = 1, LLPAR
-         DO J = 2, JJPAR-1
+      DO L = 1, State_Grid%NZ
+         DO J = 2, State_Grid%NY-1
 
-            DO I =1, IIPAR-1
+            DO I =1, State_Grid%NX-1
                DELP(I,J,L) = DELP1(I,J,L) + 
      &                       XMASS(I,J,L) - XMASS(I+1,J,L) + 
      &                     ( YMASS(I,J,L) - YMASS(I,J+1,L) ) * RGW_FV(J)
             ENDDO
             
-            DELP(IIPAR,J,L) = 
-     &          DELP1(IIPAR,J,L) +
-     &          XMASS(IIPAR,J,L) - XMASS(1,J,L) +
-     &        ( YMASS(IIPAR,J,L) - YMASS(IIPAR,J+1,L) ) * RGW_FV(J)
+            DELP(State_Grid%NX,J,L) = 
+     &          DELP1(State_Grid%NX,J,L) +
+     &          XMASS(State_Grid%NX,J,L) - XMASS(1,J,L) +
+     &        ( YMASS(State_Grid%NX,J,L) - YMASS(State_Grid%NX,J+1,L) )*
+     &          RGW_FV(J)
          ENDDO
 
-         DO I = 1, IIPAR
+         DO I = 1, State_Grid%NX
             DELP(I,1,L) = DELP1(I,1,L) - YMASS(I,2,L) * RGW_FV(1)
          ENDDO
 
          ! Compute average
-         CALL XPAVG( DELP(1,1,L), IIPAR )
+         CALL XPAVG( DELP(1,1,L), State_Grid%NX )
 
-         DO I = 1, IIPAR
-            DELP(I,JJPAR,L) = DELP1(I,JJPAR,L) + 
-     &                        YMASS(I,JJPAR,L) * RGW_FV(JJPAR)
+         DO I = 1, State_Grid%NX
+            DELP(I,State_Grid%NY,L) = DELP1(I,State_Grid%NY,L) + 
+     &          YMASS(I,State_Grid%NY,L) * RGW_FV(State_Grid%NY)
          ENDDO
 
          ! Compute average
-         CALL XPAVG( DELP(1,JJPAR,L), IIPAR )
+         CALL XPAVG( DELP(1,State_Grid%NY,L), State_Grid%NX )
       ENDDO
 
       !=================================================================
       ! Make the pressure
       !=================================================================
-      DO J = 1, JJPAR
-         DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
             PE(I,1,J) = PTOP
          ENDDO
 
-         DO L = 1,LLPAR
-            DO I = 1,IIPAR
+         DO L = 1,State_Grid%NZ
+            DO I = 1,State_Grid%NX
                PE(I,L+1,J) = PE(I,L,J) + DELP(I,J,L)
             ENDDO
          ENDDO
 
-         DO I = 1,IIPAR
-            PS_AFTER(I,J) = PE(I,LLPAR+1,J)
+         DO I = 1,State_Grid%NX
+            PS_AFTER(I,J) = PE(I,State_Grid%NZ+1,J)
          ENDDO
       ENDDO
 
@@ -1909,18 +1914,19 @@ c     --------------------------------------
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_Pjc_Pfix
+      SUBROUTINE Init_Pjc_Pfix( State_Grid )
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE GC_GRID_MOD,  ONLY : GET_AREA_M2, GET_YMID_R
-      USE ERROR_MOD,    ONLY : ALLOC_ERR,   ERROR_STOP
-      USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE PhysConstants ! Re, PI, etc...
-! 
+      USE ERROR_MOD,      ONLY : ALLOC_ERR,   ERROR_STOP
+      USE PRESSURE_MOD,   ONLY : GET_AP,      GET_BP
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE PhysConstants        ! Re, PI, etc...
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN ) :: State_Grid  ! Grid State object
 !
 ! !AUTHOR:
 !   Brendan Field and Bob Yantosca (5/8/03)
@@ -1934,8 +1940,7 @@ c     --------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
-      ! Local variables
+!
       INTEGER :: AS, I, J, L
 
       !=================================================================
@@ -1945,12 +1950,12 @@ c     --------------------------------------
       !=================================================================
       IMP_NBORDER = 0
       I1_GL       = 1 
-      I2_GL       = IIPAR 
+      I2_GL       = State_Grid%NX 
       JU1_GL      = 1 
       JV1_GL      = 1 
-      J2_GL       = JJPAR 
+      J2_GL       = State_Grid%NY
       K1_GL       = 1 
-      K2_GL       = LLPAR 
+      K2_GL       = State_Grid%NZ 
       ILO_GL      = I1_GL  - IMP_NBORDER 
       IHI_GL      = I2_GL  + IMP_NBORDER 
       JULO_GL     = JU1_GL - IMP_NBORDER 
@@ -1975,19 +1980,19 @@ c     --------------------------------------
       J2P         = J2_GL - J1P + 1 
 
       ! Error check longitude
-      IF ( ILONG /= IIPAR ) THEN
+      IF ( ILONG /= State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Invalid longitude dimension ILONG!', 
      &                    'INIT_PJC_FIX ("pjc_pfix_mod.f")' )
       ENDIF
       
       ! Error check latitude
-      IF ( ILAT /= JJPAR ) THEN
+      IF ( ILAT /= State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Invalid latitude dimension ILAT!', 
      &                    'INIT_PJC_FIX ("pjc_pfix_mod.f")' )
       ENDIF
 
       ! Error check altitude
-      IF ( IVERT /= LLPAR ) THEN
+      IF ( IVERT /= State_Grid%NZ ) THEN
          CALL ERROR_STOP( 'Invalid altitude dimension IVERT!', 
      &                    'INIT_PJC_FIX ("pjc_pfix_mod.f")' )
       ENDIF
@@ -2047,7 +2052,7 @@ c     --------------------------------------
       ! Grid box surface areas [m2]
       DO J = JU1_GL, J2_GL
       DO I =  I1_GL, I2_GL
-         MCOR(I,J) = GET_AREA_M2( I, J, 1 )
+         MCOR(I,J) = State_Grid%Area_M2(I,J)
       ENDDO
       ENDDO
 
@@ -2073,7 +2078,7 @@ c     --------------------------------------
          
       ! Grid box center latitudes [radians]
       DO J = JU1_GL, J2_GL
-         CLAT_FV(J) = GET_YMID_R( 1, J, 1 )
+         CLAT_FV(J) = State_Grid%YMid_R(1,J)
       ENDDO
 
       ! Longitude spacing
@@ -2087,7 +2092,7 @@ c     --------------------------------------
       COSE_FV(1) =  0.e+0_fp
          
       ! Latitude edges [radians] (w/ SIN & COS) at intermediate latitudes
-      DO J = JU1_GL+1, J2_GL  !2, JJPAR
+      DO J = JU1_GL+1, J2_GL  !2, State_Grid%NY
          ELAT_FV(J) = 0.5e+0_fp * ( CLAT_FV(J-1) + CLAT_FV(J) )
          SINE_FV(J) = SIN( ELAT_FV(J) )
          COSE_FV(J) = COS( ELAT_FV(J) )
@@ -2103,7 +2108,7 @@ c     --------------------------------------
       DLAT_FV(1) = 2.e+0_fp * ( ELAT_FV(2) - ELAT_FV(1) ) 
 
       ! Latitude extent of boxes at intermediate latitudes [radians]
-      DO J = JU1_GL+1, J2_GL-1  ! 2, JJPAR-1
+      DO J = JU1_GL+1, J2_GL-1  ! 2, State_Grid%NY-1
          DLAT_FV(J) = ELAT_FV(J+1) - ELAT_FV(J)
       ENDDO
 
@@ -2117,7 +2122,6 @@ c     --------------------------------------
          RGW_FV(J)  = 1.e+0_fp         / GW_FV(J)
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE Init_Pjc_Pfix
 !EOC
 !------------------------------------------------------------------------------
@@ -2159,8 +2163,6 @@ c     --------------------------------------
       IF ( ALLOCATED( RGW_FV   ) ) DEALLOCATE( RGW_FV   )
       IF ( ALLOCATED( SINE_FV  ) ) DEALLOCATE( SINE_FV )
 
-      ! Return to calling program
       END SUBROUTINE Cleanup_Pjc_Pfix
-
-      END MODULE Pjc_Pfix_Mod
 !EOC
+      END MODULE Pjc_Pfix_Mod

@@ -50,8 +50,10 @@ MODULE Grid_Registry_Mod
   REAL(f8), ALLOCATABLE, TARGET :: HyAi(:  )  ! Hybrid Ap at level interface
   REAL(f8), ALLOCATABLE, TARGET :: HyBi(:  )  ! Hybrid B  at level interface
   REAL(f8), ALLOCATABLE, TARGET :: ILev(:  )  ! Level interface coordinate
-  REAL(f8), ALLOCATABLE, TARGET :: Lat (:  )  ! Latitude
-  REAL(f8), ALLOCATABLE, TARGET :: Lon (:  )  ! Longitude
+  REAL(f8), ALLOCATABLE, TARGET :: Lat (:  )  ! Latitude centers
+  REAL(f8), ALLOCATABLE, TARGET :: LatE(:  )  ! Latitude edges
+  REAL(f8), ALLOCATABLE, TARGET :: Lon (:  )  ! Longitude centers
+  REAL(f8), ALLOCATABLE, TARGET :: LonE(:  )  ! Longitude edges
   REAL(f8),              TARGET :: P0         ! Reference pressure
 
   ! Registry of variables contained within gc_grid_mod.F90
@@ -74,24 +76,24 @@ CONtAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Grid_Registry( am_I_Root, RC )
+  SUBROUTINE Init_Grid_Registry( am_I_Root, State_Grid, RC )
 !
 ! !USES:
 !
-
-    USE CMN_Size_Mod, ONLY: IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
     USE GC_Grid_Mod
     USE Pressure_Mod   
-    USE Registry_Mod, ONLY : Registry_AddField
+    USE Registry_Mod,   ONLY : Registry_AddField
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REMARKS:
 !
@@ -126,14 +128,14 @@ CONtAINS
     Units    = 'm2'
 
     ! Allocate
-    ALLOCATE( Area( IIPAR, JJPAR ), STAT=RC )
+    ALLOCATE( Area( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'GRID_AREA', 0, RC )  
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
-       Area(I,J) = Get_Area_M2( I, J, 1 )
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+       Area(I,J) = State_Grid%Area_M2(I,J)
     ENDDO
     ENDDO
 
@@ -212,12 +214,12 @@ CONtAINS
     Units    = 'hPa'
 
     ! Allocate
-    ALLOCATE( HyAm( LLPAR ), STAT=RC )
+    ALLOCATE( HyAm( State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'GRID_HYAM', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO L = 1, LLPAR
+    DO L = 1, State_Grid%NZ
        HyAm(L) = ( Get_Ap( L ) + Get_Ap( L+1 ) ) * 0.5_f8
     ENDDO
 
@@ -243,12 +245,12 @@ CONtAINS
     Units    = '1'
 
     ! Allocate
-    ALLOCATE( HyBm( LLPAR ), STAT=RC )
+    ALLOCATE( HyBm( State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'GRID_HYBM', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO L = 1, LLPAR
+    DO L = 1, State_Grid%NZ
        HyBm(L) = ( Get_Bp( L ) + Get_Bp( L+1 ) ) * 0.5_f8
     ENDDO
 
@@ -274,12 +276,12 @@ CONtAINS
     Units    = 'level'
 
     ! Allocate
-    ALLOCATE( Lev( LLPAR ), STAT=RC )
+    ALLOCATE( Lev( State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'GRID_LEV', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO L = 1, LLPAR
+    DO L = 1, State_Grid%NZ
        Lev(L) = ( HyAm(L) / P0 ) + HyBm(L)
     ENDDO
 
@@ -305,12 +307,12 @@ CONtAINS
     Units    = 'hPa'
 
     ! Allocate
-    ALLOCATE( HyAi( LLPAR+1 ), STAT=RC )
+    ALLOCATE( HyAi( State_Grid%NZ+1 ), STAT=RC )
     CALL GC_CheckVar( 'GRID_HYAI', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO L = 1, LLPAR+1
+    DO L = 1, State_Grid%NZ+1
        HyAi(L) = Get_Ap(L)
     ENDDO
 
@@ -337,12 +339,12 @@ CONtAINS
     Units    = '1'
 
     ! Allocate
-    ALLOCATE( HyBi( LLPAR+1 ), STAT=RC )
+    ALLOCATE( HyBi( State_Grid%NZ+1 ), STAT=RC )
     CALL GC_CheckVar( 'GRID_HYBI', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO L = 1, LLPAR+1
+    DO L = 1, State_Grid%NZ+1
        HyBi(L) = Get_Bp(L)
     ENDDO
 
@@ -369,12 +371,12 @@ CONtAINS
     Units    = 'level'
 
     ! Allocate
-    ALLOCATE( ILev( LLPAR+1 ), STAT=RC )
+    ALLOCATE( ILev( State_Grid%NZ+1 ), STAT=RC )
     CALL GC_CheckVar( 'GRID_ILEV', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO L = 1, LLPAR+1
+    DO L = 1, State_Grid%NZ+1
        ILev(L) = ( HyAi(L) / P0 ) + HyBi(L)
     ENDDO
 
@@ -401,13 +403,13 @@ CONtAINS
     Units    = 'degrees_north'
 
     ! Allocate
-    ALLOCATE( Lat( JJPAR ), STAT=RC )
+    ALLOCATE( Lat( State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'GRID_LAT', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO J = 1, JJPAR
-       Lat(J) = Get_YMid( 1, J, 1 )
+    DO J = 1, State_Grid%NY
+       Lat(J) = State_Grid%YMid( 1, J )
     ENDDO
 
     ! Register
@@ -425,6 +427,37 @@ CONtAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !======================================================================
+    ! Allocate and register LATE
+    !======================================================================
+    Variable = 'LATE'
+    Desc     = 'Latitude edges'
+    Units    = 'degrees_north'
+
+    ! Allocate
+    ALLOCATE( LatE( State_Grid%NY+1 ), STAT=RC )
+    CALL GC_CheckVar( 'GRID_LATE', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize
+    DO J = 1, State_Grid%NY+1
+       LatE(J) = State_Grid%YEdge( 1, J )
+    ENDDO
+
+    ! Register
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'y',                              &
+                            Data1d_8     = LatE,                             &
+                            RC           = RC                               )
+
+    CALL GC_CheckVar( 'GRID_LATE', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !======================================================================
     ! Allocate and register LON
     !======================================================================
     Variable = 'LON'
@@ -432,13 +465,13 @@ CONtAINS
     Units    = 'degrees_east'
 
     ! Allocate
-    ALLOCATE( Lon( IIPAR ), STAT=RC )
+    ALLOCATE( Lon( State_Grid%NX ), STAT=RC )
     CALL GC_CheckVar( 'GRID_LON', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
-    DO I = 1, IIPAR
-       Lon(I) = Get_XMid( I, 1, 1 )
+    DO I = 1, State_Grid%NX
+       Lon(I) = State_Grid%XMid( I, 1 )
     ENDDO
 
     ! Register
@@ -453,6 +486,37 @@ CONtAINS
                             RC           = RC                               )
 
     CALL GC_CheckVar( 'GRID_LON', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !======================================================================
+    ! Allocate and register LONE
+    !======================================================================
+    Variable = 'LONE'
+    Desc     = 'Longitude edges'
+    Units    = 'degrees_east'
+
+    ! Allocate
+    ALLOCATE( LonE( State_Grid%NX+1 ), STAT=RC )
+    CALL GC_CheckVar( 'GRID_LONE', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize
+    DO I = 1, State_Grid%NX+1
+       LonE(I) = State_Grid%XEdge( I, 1 )
+    ENDDO
+
+    ! Register
+    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+                            Registry     = Registry,                         &
+                            State        = State,                            &
+                            Variable     = Variable,                         &
+                            Description  = Desc,                             &
+                            Units        = Units,                            &
+                            DimNames     = 'x',                              &
+                            Data1d_8     = LonE,                             &
+                            RC           = RC                               )
+
+    CALL GC_CheckVar( 'GRID_LONE', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !======================================================================
@@ -571,9 +635,21 @@ CONtAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ALLOCATED( LatE ) ) THEN
+       DEALLOCATE( LatE, STAT=RC )
+       CALL GC_CheckVar( 'GRID_LATE', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ALLOCATED( Lon ) ) THEN
        DEALLOCATE( Lon, STAT=RC )
        CALL GC_CheckVar( 'GRID_LON', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ALLOCATED( LonE ) ) THEN
+       DEALLOCATE( LonE, STAT=RC )
+       CALL GC_CheckVar( 'GRID_LONE', 3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -647,10 +723,10 @@ CONtAINS
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
     ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,           &
-                         Registry    = Registry,            &
-                         ShortFormat = ShortFormat,         &
-                         RC          = RC                  )
+    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
+                         Registry    = Registry,                             &
+                         ShortFormat = ShortFormat,                          &
+                         RC          = RC                                   )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN

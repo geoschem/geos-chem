@@ -11,18 +11,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OASAVE
+      SUBROUTINE OASAVE( State_Grid )
 !
 ! !USES:
 !
+      USE State_Grid_Mod,     ONLY : GrdState
+#ifdef BPCH_DIAG
       USE AEROSOL_MOD,        ONLY : OCPI, OCPO
-      USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
-      USE AEROSOL_MOD,        ONLY : ISOAAQ
-      USE CMN_O3_MOD,         ONLY : SAVEOA
-      USE CMN_SIZE_MOD
+      USE AEROSOL_MOD,        ONLY : TSOA, ASOA, OPOA, ISOAAQ
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
-
+      USE CMN_O3_MOD,         ONLY : SAVEOA
+#endif
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REVISION HISTORY: 
 !  10 Jul 2014 - E. A. Marais- Initial version
@@ -34,6 +38,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#ifdef BPCH_DIAG
       INTEGER  :: I, J, L
       REAL(fp) :: FACTOR
 
@@ -49,13 +54,13 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Sum of all organic aerosol [ug/m3]
          SAVEOA(I,J,L) = SAVEOA(I,J,L) +
-     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
+     &                   ( TSOA(I,J,L) + ASOA(I,J,L) +
      &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) +
      &                     ISOAAQ(I,J,L) ) * FACTOR
 
@@ -64,6 +69,7 @@
       ENDDO
 
 !$OMP END PARALLEL DO
-
+#endif
       END SUBROUTINE OASAVE
 !EOC
+

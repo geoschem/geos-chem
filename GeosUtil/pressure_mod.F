@@ -62,9 +62,9 @@
 !                                                                             .
 !  The following are true:
 !  ----------------------------------------------------------------------------
-!  (1) Bp(LLPAR+1) = 0.0          (L=LLPAR+1 is the atmosphere top)
-!  (2) Bp(1)       = 1.0          (L=1       is the surface       )
-!  (3) PTOP        = Ap(LLPAR+1)  (L=LLPAR+1 is the atmosphere top) 
+!  (1) Bp(NZ+1) = 0.0       (L=NZ+1 is the atmosphere top)
+!  (2) Bp(1)    = 1.0       (L=1    is the surface       )
+!  (3) PTOP     = Ap(NZ+1)  (L=NZ+1 is the atmosphere top) 
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot & R. Yantosca - Initial version 
@@ -281,18 +281,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_FLOATING_PRESSURES( am_I_Root, State_Met, RC )
+      SUBROUTINE SET_FLOATING_PRESSURES( am_I_Root, State_Grid,
+     &                                   State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD    ! Size parameters
       USE ERROR_MOD, ONLY : CHECK_VALUE
       USE ErrCode_Mod
-      USE State_Met_Mod, ONLY : MetState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
 !
 ! !OUTPUT ARGUMENTS:
@@ -336,8 +339,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, ERR_LOC, ERR_VAR, ERR_MSG )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Set the floating pressures to the most recently interpolated
          ! instantaneous pressures
@@ -372,7 +375,7 @@
 ! !IROUTINE: Get_Pedge
 !
 ! !DESCRIPTION: Function GET\_PEDGE returns the pressure at the bottom edge 
-!  of level L.  L=1 is the surface, L=LLPAR+1 is the atm top.
+!  of level L.  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -479,7 +482,7 @@
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
 !  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
-!  L=LLLPAR+1 is the atm top.
+!  L=LState\_Grid%NZ+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -526,7 +529,7 @@
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_DRY returns the pressure at the 
 !  bottom edge of level L, reconstructed using the dry surface pressure. 
-!  L=1 is the surface, L=LLPAR+1 is the atm top.
+!  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -571,7 +574,7 @@
 ! !DESCRIPTION: Function GET\_DELP\_DRY returns the delta dry pressure 
 !  between the bottom edge of level L and top edge of level L+1, 
 !  constructed using the dry surface pressure and A and B parameters. 
-!  L=1 is the surface, L=LLPAR+1 is the atm top.
+!  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -624,16 +627,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PRESSURE( am_I_Root )
+      SUBROUTINE INIT_PRESSURE( am_I_Root, State_Grid, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD    ! LLPAR, PTOP
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE CMN_SIZE_MOD         ! PTOP
+      USE ErrCode_Mod
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 
@@ -666,40 +676,48 @@
       INTEGER :: AS
       INTEGER :: L
 
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc, nLev
+
       !=================================================================
       ! INIT_PRESSURE begins here!
       !=================================================================
-      ALLOCATE( PFLT_DRY( IIPAR, JJPAR ), STAT=AS )
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ThisLoc = ' -> at Init_Pressure (in GeosUtil/pressure_mod.F)'
+
+      ALLOCATE( PFLT_DRY( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT_DRY' )
       PFLT_DRY = 0e+0_fp
 
-      ALLOCATE( PFLT_WET( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( PFLT_WET( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT_WET' )
       PFLT_WET = 0e+0_fp
 
-      ALLOCATE( AP( LLPAR+1 ), STAT=AS )
+      ALLOCATE( AP( State_Grid%NZ+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP' )
       AP = 1e+0_fp
 
-      ALLOCATE( BP( LLPAR+1 ), STAT=AS )
+      ALLOCATE( BP( State_Grid%NZ+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
       BP = 0e+0_fp
 
-      ALLOCATE( AP_FULLGRID( LGLOB+1 ), STAT=AS )
+      ALLOCATE( AP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP_FULLGRID' )
       AP = 1e+0_fp
 
-      ALLOCATE( BP_FULLGRID( LGLOB+1 ), STAT=AS )
+      ALLOCATE( BP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0e+0_fp
 
 #if defined( ESMF_ ) || defined( MODEL_ )
-      ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      ALLOCATE( EXTERNAL_PEDGE( State_Grid%NX, State_Grid%NY,
+     &                          State_Grid%NZ+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
       EXTERNAL_PEDGE = 0e+0_fp
 #endif
 
-#if   defined( GRIDREDUCED )
+      IF ( State_Grid%NZ == 47 ) THEN
 
       !-----------------------------------------------------------------
       ! 47-level reduced vertical grid
@@ -805,22 +823,7 @@
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00 /)
 
-#else
-
-#if defined( MODEL_GEOS )
-      !-----------------------------------------------------------------
-      ! 132 level grid
-      !-----------------------------------------------------------------
-    
-      IF ( LLPAR == 132 ) THEN
-         DO L=1,LLPAR+1
-            ! Ap [hPa] for 132 levels (133 edges)
-            AP(L) = a132_loc(LLPAR+2-L)/100.0
-            ! Bp [unitless] for 132 levels (133 edges)
-            BP(L) = b132_loc(LLPAR+2-L)
-         ENDDO
-      ELSE
-#endif
+      ELSE IF (State_Grid%NZ == 72 ) THEN
 
       !-----------------------------------------------------------------
       ! 72 level grid
@@ -867,12 +870,32 @@
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00 /)
-     
+
+      ELSE IF ( State_Grid%NZ == 132 ) THEN
+
 #if defined( MODEL_GEOS )
-      ENDIF
-#endif
+      !-----------------------------------------------------------------
+      ! 132 level grid
+      !-----------------------------------------------------------------
+    
+         DO L=1,State_Grid%NZ+1
+            ! Ap [hPa] for 132 levels (133 edges)
+            AP(L) = a132_loc(State_Grid%NZ+2-L)/100.0
+            ! Bp [unitless] for 132 levels (133 edges)
+            BP(L) = b132_loc(State_Grid%NZ+2-L)
+         ENDDO
 
 #endif
+
+      ELSE
+
+         WRITE( nLev, * ) State_Grid%NZ
+         ErrMSg = 'Ap and Bp not defined for ' // TRIM( nLev ) //
+     &            ' levels. See subroutine INIT_PRESSURE.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+
+      ENDIF
       
 #if ( !defined( ESMF_ ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS )
       ! Echo info to std output (skip if interfacing with external models)
@@ -880,9 +903,9 @@
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
          WRITE( 6, '(a,/)' ) 'INIT_PRESSURE: Vertical coordinates!'
-         WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR+1)
+         WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:State_Grid%NZ+1)
          WRITE( 6, '(a)'   )
-         WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
+         WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:State_Grid%NZ+1)
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       ENDIF
 #endif
@@ -989,18 +1012,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Accept_External_ApBp( am_I_Root, ApIn, BpIn, RC )
+      SUBROUTINE Accept_External_ApBp( am_I_Root, State_Grid, 
+     &                                 ApIn, BpIn, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE CMN_SIZE_MOD,      ONLY : LLPAR
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root       ! Are we on root CPU?
-      REAL(fp),       INTENT(IN)  :: ApIn( LLPAR+1 ) ! "A" term for hybrid grid
-      REAL(fp),       INTENT(IN)  :: BpIn( LLPAR+1 ) ! "B" term for hybrid grid
+      LOGICAL,        INTENT(IN)  :: am_I_Root             ! Are we on root CPU?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid            ! Grid State object
+      REAL(fp),       INTENT(IN)  :: ApIn(State_Grid%NZ+1) ! "A" term for hybrid grid
+      REAL(fp),       INTENT(IN)  :: BpIn(State_Grid%NZ+1) ! "B" term for hybrid grid
 !
 ! !OUTPUT ARGUMENTS:
 !

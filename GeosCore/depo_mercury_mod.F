@@ -11,6 +11,7 @@
 ! !INTERFACE: 
 !
       MODULE DEPO_MERCURY_MOD
+#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -54,6 +55,12 @@
 !
       CHARACTER(LEN=255)   :: GTMM_RST_FILE
       LOGICAL              :: LHGSNOW
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Initial version
@@ -281,9 +288,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
-#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03
-#endif
       USE Time_Mod,           ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
@@ -396,7 +401,6 @@
      7                               FRAC_SNOW_OR_ICE
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
-#if defined( BPCH_DIAG )
 !----------------------------------------------------------------------------
 ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
 !
@@ -427,7 +431,6 @@
      &                                    FRAC_SNOW_OR_ICE *
      &                                    MAX(DEP_HG2, 0e+0_fp) 
 !----------------------------------------------------------------------------
-#endif
 
          !--------------------------------------------------------------
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -496,19 +499,19 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
-     &                              NHMS,      TAU,       RC    )
+      SUBROUTINE MAKE_GTMM_RESTART( am_I_Root, Input_Opt, State_Grid,
+     &                              NYMD, NHMS, TAU, RC )
 ! 
 ! !USES:
 !
       USE BPCH2_MOD
       USE CMN_SIZE_MOD              ! Size parameters
       USE ErrCode_Mod
-      USE GC_GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET
       USE Input_Opt_Mod,       ONLY : OptInput
       USE inquireMod,          ONLY : findFreeLUN
       USE TIME_MOD,            ONLY : EXPAND_DATE
       USE TIME_MOD,            ONLY : GET_CT_DYN, GET_CT_CHEM
+      USE State_Grid_Mod,      ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -517,6 +520,7 @@
       REAL(f8),       INTENT(IN)   :: TAU         ! TAU value: hrs since 1/1/85
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)   :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -537,7 +541,8 @@
       INTEGER               :: IFIRST,    JFIRST,    LFIRST
       INTEGER               :: N,         NN
       REAL(f8)              :: TS_DYN,    TS_CHEM
-      REAL(f4)              :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
+      REAL(f4)              :: LONRES,    LATRES
+      REAL(f4)              :: ARRAY(State_Grid%NX,State_Grid%NY,1)
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY,  UNIT,     RESERVED
       CHARACTER(LEN=255)    :: FILENAME
@@ -550,14 +555,14 @@
       RC = GC_SUCCESS
 
       ! Initialize values
-      IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
-      JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
+      IFIRST    = State_Grid%XMinOffset + 1
+      JFIRST    = State_Grid%YMinOffset + 1
       LFIRST    = 1
       HALFPOLAR = GET_HALFPOLAR()
       CENTER180 = 1
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      LATRES    = State_Grid%DY
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       CATEGORY  = 'DRYD-FLX'
       RESERVED  = ''
       UNIT      = 'molec/cm2/s'
@@ -584,7 +589,7 @@
       CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,         
      &     HALFPOLAR, CENTER180, CATEGORY, N,                     
      &     UNIT,      TAU,       TAU,      RESERVED,              
-     &     IIPAR,     JJPAR,     1,        IFIRST,                
+     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,                
      &     JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
       !---------------------------
@@ -595,8 +600,8 @@
       CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,         
      &     HALFPOLAR, CENTER180, CATEGORY, N,                     
      &     UNIT,      TAU,       TAU,      RESERVED,              
-     &     IIPAR,     JJPAR,     1,        IFIRST,                
-     &    JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,                
+     &     JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
       !---------------------------
       ! Hg(II) wet deposition
@@ -606,8 +611,8 @@
 
       CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,        
      &     HALFPOLAR, CENTER180, CATEGORY, N,                    
-     &     UNIT,      TAU,       TAU,      RESERVED,             
-     &     IIPAR,     JJPAR,     1,        IFIRST,               
+     &     UNIT,      TAU,       TAU,      RESERVED,
+     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,                
      &     JFIRST,    LFIRST,    ARRAY(:,:,1) )
     
       ! Close file
@@ -628,8 +633,8 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   
-     &                              Input_Opt,   State_Chm, 
+      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   Input_Opt,
+     &                              State_Chm,   State_Grid,
      &                              YYYYMMDD,    HHMMSS,     
      &                              Hg0dryGEOS,  HgIIdryGEOS, 
      &                              HgIIwetGEOS, RC           )
@@ -644,13 +649,15 @@
       USE Input_Opt_Mod,        ONLY : OptInput
       USE inquireMod,           ONLY : findFreeLun
       USE State_Chm_Mod,        ONLY : ChmState
+      USE State_Grid_Mod,       ONLY : GrdState
       USE TIME_MOD,             ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN)    :: YYYYMMDD, HHMMSS
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      INTEGER,        INTENT(IN)    :: YYYYMMDD, HHMMSS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -659,9 +666,9 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: Hg0dryGEOS
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
+      REAL(fp), DIMENSION(State_Grid%NX, State_Grid%NY)   :: Hg0dryGEOS
+      REAL(fp), DIMENSION(State_Grid%NX, State_Grid%NY)   :: HgIIdryGEOS
+      REAL(fp), DIMENSION(State_Grid%NX, State_Grid%NY)   :: HgIIwetGEOS     
 !
 ! !REMAKRS:
 !  NOTE: THIS ROUTINE WILL HAVE TO BE UPDATED TO CONVERT TO NETCDF FORMAT!!!
@@ -679,7 +686,7 @@
 !
       INTEGER               :: IOS, I, IU_FILE, J, L, NN, N_gtmm
       INTEGER               :: NCOUNT(State_Chm%nAdvect) 
-      REAL*4                :: FLUX(IIPAR,JJPAR)
+      REAL*4                :: FLUX(State_Grid%NX,State_Grid%NY)
       CHARACTER(LEN=255)    :: FILENAME
 
       ! For binary punch file, version 2.0
@@ -755,8 +762,9 @@
          IF ( CATEGORY(1:8) == 'DRYD-FLX' ) THEN 
           
             ! Make sure array dimensions are of global size
-            ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
-            CALL CHECK_DIMENSIONS( NI, NJ, NL )
+            ! (NI=State_Grid%NX; NJ=State_Grid%NY, NL=State_Grid%NZ),
+            ! or stop the run
+            CALL CHECK_DIMENSIONS( NI, NJ, NL, State_Grid )
           
             ! Save into arrays
             IF ( ANY( Hg0_Id_List == NTRACER ) ) THEN
@@ -796,13 +804,14 @@
          IF ( CATEGORY(1:8) == 'WETDLS-$' ) THEN 
 
             ! Make sure array dimensions are of global size
-            ! (NI=IIPAR; NJ=JJPAR, NL=LLPAR), or stop the run
+            ! (NI=State_Grid%NX; NJ=State_Grid%NY, NL=State_Grid%NZ),
+            ! or stop the run
             ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! %%%% KLUDGE: CHECK_DIMENSIONS only works for NL=1 !!!!
             ! And we are only interested by the surface flux...
             NL = 1
             ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            CALL CHECK_DIMENSIONS( NI, NJ, NL )
+            CALL CHECK_DIMENSIONS( NI, NJ, NL, State_Grid )
           
             IF ( ANY( Hg2_Id_List == NTRACER ) ) THEN
              
@@ -842,13 +851,12 @@
 ! !INTERFACE: 
 !
       SUBROUTINE UPDATE_DEP( NN )
+!#ifdef BPCH_DIAG
+!      USE DIAG_MOD,     ONLY : AD38, AD39, AD44
+!#endif
 ! 
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE DIAG_MOD,     ONLY : AD38,   AD39
-      USE DIAG_MOD,     ONLY : AD44
-#endif
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
 !
 ! !INPUT PARAMETERS:
@@ -874,20 +882,18 @@
       SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
 
-#if defined( BPCH_DIAG )
-      ! Hg2 total wet deposition at the surface
-      HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
-     &                          SUM(AD39(:,:,:,NN), DIM=3) )
-     &                      / SCALEDYN
-
-      ! Hg0 total dry deposition at the surface
-      N         = id_Hg0
-      HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
-
-      ! Hg2 total dry deposition at the surface
-      N         = id_Hg2
-      HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
-#endif
+!      ! Hg2 total wet deposition at the surface
+!      HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
+!     &                          SUM(AD39(:,:,:,NN), DIM=3) )
+!     &                      / SCALEDYN
+!
+!      ! Hg0 total dry deposition at the surface
+!      N         = id_Hg0
+!      HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
+!
+!      ! Hg2 total dry deposition at the surface
+!      N         = id_Hg2
+!      HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
 
       END SUBROUTINE UPDATE_DEP
 !EOC
@@ -904,16 +910,17 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE CHECK_DIMENSIONS( NI, NJ, NL ) 
+      SUBROUTINE CHECK_DIMENSIONS( NI, NJ, NL, State_Grid ) 
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE CMN_SIZE_MOD
+      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: NI, NJ, NL
+      INTEGER,        INTENT(IN) :: NI, NJ, NL
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REVISION HISTORY:
 !  30 Aug 2010 - S. Strode, C. Holmes - Initial version
@@ -925,20 +932,20 @@
       ! CHECK_DIMENSIONS begins here!
       !=================================================================
 
-      ! Error check longitude dimension: NI must equal IIPAR
-      IF ( NI /= IIPAR ) THEN
+      ! Error check longitude dimension: NI must equal State_Grid%NX
+      IF ( NI /= State_Grid%NX ) THEN
          WRITE( 6, 100 ) 
  100     FORMAT( 'ERROR reading in Hg restart file', /
      &           'Wrong number of longitudes encountered', /
      &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
          PRINT*, "NI: ", NI
-         PRINT*, "IIPAR: ", IIPAR
+         PRINT*, "State_Grid%NX: ", State_Grid%NX
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ! Error check latitude dimension: NJ must equal JJPAR
-      IF ( NJ /= JJPAR ) THEN
+      ! Error check latitude dimension: NJ must equal State_Grid%NY
+      IF ( NJ /= State_Grid%NY ) THEN
          WRITE( 6, 110 ) 
  110     FORMAT( 'ERROR reading in Hg restart file', /
      &           'Wrong number of latitudes encountered', /
@@ -947,7 +954,7 @@
          CALL GEOS_CHEM_STOP
       ENDIF
       
-      ! Error check vertical dimension: NL must equal LLPAR
+      ! Error check vertical dimension: NL must equal State_Grid%NZ
       IF ( NL /= 1 ) THEN
          WRITE( 6, 120 ) 
  120     FORMAT( 'ERROR reading in Hg restart file', /
@@ -972,8 +979,8 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE INIT_DEPO_MERCURY( am_I_Root, Input_Opt, 
-     &                              State_Chm, RC         )
+      SUBROUTINE INIT_DEPO_MERCURY( am_I_Root,  Input_Opt, State_Chm,
+     &                              State_Grid, RC         )
 !
 ! !USES
 !
@@ -983,11 +990,13 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1079,32 +1088,36 @@
       !================================================================
       ! Allocate arrays
       !================================================================
-      ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      ALLOCATE( DD_Hg2( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
       DD_Hg2 = 0e+0_fp
 
-      ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      ALLOCATE( DD_HgP( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
       DD_HgP = 0e+0_fp
 
-      ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      ALLOCATE( WD_Hg2( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
       WD_Hg2 = 0e+0_fp
 
-      ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      ALLOCATE( WD_HgP( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
       WD_HgP = 0e+0_fp
 
       IF ( Input_Opt%LGTMM ) THEN
-         ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( HG0mth_dd( State_Grid%NX, State_Grid%NY ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
          HG0mth_dd = 0e+0_fp
          
-         ALLOCATE( HG2mth_dd( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( HG2mth_dd( State_Grid%NX, State_Grid%NY ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
          HG2mth_dd = 0e+0_fp
          
-         ALLOCATE( HG2mth_wd( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( HG2mth_wd( State_Grid%NX, State_Grid%NY ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
          HG2mth_wd = 0e+0_fp
       ENDIF
@@ -1151,6 +1164,6 @@
       IF ( ASSOCIATED( Hg2_Cat ) ) DEALLOCATE( Hg2_CAT )
 
       END SUBROUTINE CLEANUP_DEPO_MERCURY
-
-      END MODULE DEPO_MERCURY_MOD
 !EOC
+#endif
+      END MODULE DEPO_MERCURY_MOD

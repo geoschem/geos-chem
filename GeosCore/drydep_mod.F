@@ -17,14 +17,8 @@
 !
       USE CMN_SIZE_MOD                          ! Size parameters
       USE DAO_MOD                               ! Met field subroutines
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD                          ! Diag counters & flags
-      USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
-#endif
       USE ERROR_MOD                             ! Error handling routines
-      USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
-      USE PBL_MIX_MOD                           ! Boundary layer quantities
-#if   defined( TOMAS )
+#ifdef TOMAS
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
       USE PhysConstants                         ! Physical constants
@@ -92,7 +86,11 @@
 !  (16) Karl, T., Harley, P., Emmons, L., Thornton, B., Guenther, A., Basu, C.,
 !        Turnipseed, A., and Jardine, K.: Efficient Atmospheric Cleansing of
 !        Oxidized Organic Trace Gases by Vegetation, Science, 330, 816-819,
-!        10.1126/science.1192534, 2010. 
+!        10.1126/science.1192534, 2010.
+!  (17) Jaeglé, L., Shah, V.,et al (2018). Nitrogen oxides emissions, chemistry,
+!        deposition,and export over the Northeast United States during the
+!        WINTER aircraft campaign. J Geophys Res: Atmospheres, 123.
+!        https://doi.org/10.1029/2018JD029133
 !
 ! !REVISION HISTORY:
 !  27 Jan 2003 - R. Yantosca - Moved standalone routines into this module
@@ -195,6 +193,7 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  01 Dec 2018 - H.P. Lin    - Move DEPSAV to State_Chm%DryDepSav
 !  09 May 2019 - J. Fisher   - Add special case for MENO3, ETNO3 (ocean flux)
+!  25 Jun 2019 - A. Wong     - Add CO2 effect on stomatal resistance (RIX)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,8 +310,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
-     &                      State_Chm, State_Diag, RC         )
+      SUBROUTINE DO_DRYDEP( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -324,6 +323,7 @@
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE Time_Mod,           ONLY : Get_Ts_Chem
       USE UnitConv_Mod
@@ -332,6 +332,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -430,26 +431,26 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I,   J,   L,   D,   N, NDVZ
+      INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A
       REAL(f8)           :: DVZ, THIK
       CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
 
       ! Arrays
-      LOGICAL       :: LSNOW (IIPAR,JJPAR       ) ! Flag for snow/ice on the sfc
-      REAL(f8)      :: CZ1   (IIPAR,JJPAR       ) ! Midpt ht of 1st model lev[m]
-      REAL(f8)      :: TC0   (IIPAR,JJPAR       ) ! Grid box sfc temperature [K]
-      REAL(f8)      :: ZH    (IIPAR,JJPAR       ) ! PBL height [m]
-      REAL(f8)      :: OBK   (IIPAR,JJPAR       ) ! Monin-Obhukov Length [m]
-      REAL(f8)      :: CFRAC (IIPAR,JJPAR       ) ! Column cloud frac [unitless]
-      REAL(f8)      :: RADIAT(IIPAR,JJPAR       ) ! Solar radiation [W/m2]
-      REAL(f8)      :: USTAR (IIPAR,JJPAR       ) ! Grid box friction vel [m/s]
-      REAL(f8)      :: RHB   (IIPAR,JJPAR       ) ! Relative humidity [unitless]
-      REAL(f8)      :: DVEL  (IIPAR,JJPAR,NUMDEP) ! Drydep velocities [m/s]
-      REAL(f8)      :: PRESSU(IIPAR,JJPAR       ) ! Local surface pressure [Pa]
-      REAL(f8)      :: W10   (IIPAR,JJPAR       ) ! 10m windspeed [m/s]
-      REAL(f8)      :: AZO   (IIPAR,JJPAR)        ! Z0, per (I,J) square
-      REAL(f8)      :: SUNCOS_MID(IIPAR,JJPAR)    ! COS(SZA) @ midpoint of the
+      LOGICAL       :: LSNOW (State_Grid%NX,State_Grid%NY) ! Flag for snow/ice on the sfc
+      REAL(f8)      :: CZ1   (State_Grid%NX,State_Grid%NY) ! Midpt ht of 1st model lev[m]
+      REAL(f8)      :: TC0   (State_Grid%NX,State_Grid%NY) ! Grid box sfc temperature [K]
+      REAL(f8)      :: ZH    (State_Grid%NX,State_Grid%NY) ! PBL height [m]
+      REAL(f8)      :: OBK   (State_Grid%NX,State_Grid%NY) ! Monin-Obhukov Length [m]
+      REAL(f8)      :: CFRAC (State_Grid%NX,State_Grid%NY) ! Column cloud frac [unitless]
+      REAL(f8)      :: RADIAT(State_Grid%NX,State_Grid%NY) ! Solar radiation [W/m2]
+      REAL(f8)      :: USTAR (State_Grid%NX,State_Grid%NY) ! Grid box friction vel [m/s]
+      REAL(f8)      :: RHB   (State_Grid%NX,State_Grid%NY) ! Relative humidity [unitless]
+      REAL(f8)      :: DVEL  (State_Grid%NX,State_Grid%NY,NUMDEP) ! Drydep velocities [m/s]
+      REAL(f8)      :: PRESSU(State_Grid%NX,State_Grid%NY) ! Local surface pressure [Pa]
+      REAL(f8)      :: W10   (State_Grid%NX,State_Grid%NY) ! 10m windspeed [m/s]
+      REAL(f8)      :: AZO   (State_Grid%NX,State_Grid%NY)        ! Z0, per (I,J) square
+      REAL(f8)      :: SUNCOS_MID(State_Grid%NX,State_Grid%NY)    ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
 
       ! Pointers
@@ -485,13 +486,13 @@
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-      CALL METERO( State_Met, CZ1,    TC0,     OBK,       CFRAC,  
-     &             RADIAT,    AZO,    USTAR,   ZH,        LSNOW, 
-     &             RHB,       PRESSU, W10,     SUNCOS_MID          )
+      CALL METERO( State_Grid, State_Met, CZ1,     TC0, OBK,  CFRAC,  
+     &             RADIAT,     AZO,       USTAR,   ZH,        LSNOW, 
+     &             RHB,        PRESSU,    W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
-     &             State_Diag, RADIAT,   TC0,        SUNCOS_MID,
+      CALL DEPVEL( am_I_Root, Input_Opt, State_Chm,  State_Diag,     
+     &             State_Grid, State_Met, RADIAT,    TC0, SUNCOS_MID,
      &             F0,        HSTAR,     XMW,        AIROSOL,           
      &             USTAR,     CZ1,       OBK,        CFRAC,
      &             ZH,        LSNOW,     DVEL,       AZO,              
@@ -509,9 +510,9 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, A )
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! THIK = thickness of surface layer [m]
          THIK   = State_Met%BXHEIGHT(I,J,1)
@@ -532,6 +533,10 @@
 
             ! Get info about this species from the database
             SpcInfo => State_Chm%SpcData(N)%Info
+
+            ! Get the "DryAltID" index, that is used to archive species
+            ! concentrations at a user-defined altitude above the surface
+            A       =  SpcInfo%DryAltID
 
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
@@ -656,23 +661,17 @@
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
-#if defined( BPCH_DIAG )
-            ! ND44 diagnostic
-            IF ( ND44 > 0 ) THEN 
-               ! Drydep velocity [cm/s]
-               AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
-
-!------------------------------------------------------------------------------
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!               ! Instantaneous drydep velocity for ND49 [cm/s]
-!               AD44b(I,J,D)  = DVZ
-!------------------------------------------------------------------------------
-            ENDIF
-#endif
-
             ! Archive dry dep velocity [cm/s]
             IF ( State_Diag%Archive_DryDepVel ) THEN
                State_Diag%DryDepVel(I,J,D) = DVZ
+            ENDIF
+
+            ! Archive dry dep velocity [cm/s] only for those species
+            ! that are requested at a given altitude (e.g. 10m)
+            IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
+               IF ( A > 0 ) THEN
+                  State_Diag%DryDepVelForALT1(I,J,A) = DVZ
+               ENDIF
             ENDIF
 
             ! Free pointer
@@ -706,38 +705,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE METERO( State_Met, CZ1,    TC0,  OBK,       CFRAC,  
+      SUBROUTINE METERO( State_Grid, State_Met, CZ1, TC0, OBK, CFRAC,  
      &                   RADIAT,    AZO,    USTR, ZH,        LSNOW, 
      &                   RHB,       PRESSU, W10,  SUNCOS_MID        )
 !
 ! !USES:
 !
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      LOGICAL,  INTENT(OUT) :: LSNOW (IIPAR,JJPAR)  ! Flag for denoting snow/ice
-      REAL(f8), INTENT(OUT) :: CZ1   (IIPAR,JJPAR)  ! Midpt ht of 1st model lev
-                                                    !  [m]
-      REAL(f8), INTENT(OUT) :: TC0   (IIPAR,JJPAR)  ! Grid box sfc temp [K]
-      REAL(f8), INTENT(OUT) :: OBK   (IIPAR,JJPAR)  ! Monin-Obhukov length [m]
-      REAL(f8), INTENT(OUT) :: CFRAC (IIPAR,JJPAR)  ! Column cloud fraction
-                                                    !  [unitless]
-      REAL(f8), INTENT(OUT) :: RADIAT(IIPAR,JJPAR)  ! Solar radiation @ ground
-                                                    !  [W/m2]
-      REAL(f8), INTENT(OUT) :: RHB   (IIPAR,JJPAR)  ! Rel humidity at sfc
-                                                    !  [unitless]
-      REAL(f8), INTENT(OUT) :: USTR  (IIPAR,JJPAR)  ! Friction velocity [m/s]
-      REAL(f8), INTENT(OUT) :: ZH    (IIPAR,JJPAR)  ! PBL height [m]
-      REAL(f8), INTENT(OUT) :: PRESSU(IIPAR,JJPAR)  ! Local surface press [Pa]
-      REAL(f8), INTENT(OUT) :: W10   (IIPAR,JJPAR)  ! 10 meter windspeed [m/s]
-      REAL(f8), INTENT(OUT) :: SUNCOS_MID(IIPAR,JJPAR) ! COS(SZA) @ midpt of
-                                                       !  current chem timestep
-      REAL(f8), INTENT(OUT) :: AZO(IIPAR,JJPAR) ! Roughness heights, by grid box
+      LOGICAL,  INTENT(OUT) :: LSNOW (State_Grid%NX,State_Grid%NY)  ! Flag for denoting snow/ice
+      REAL(f8), INTENT(OUT) :: CZ1   (State_Grid%NX,State_Grid%NY)  ! Midpt ht of 1st model lev [m]
+      REAL(f8), INTENT(OUT) :: TC0   (State_Grid%NX,State_Grid%NY)  ! Grid box sfc temp [K]
+      REAL(f8), INTENT(OUT) :: OBK   (State_Grid%NX,State_Grid%NY)  ! Monin-Obhukov length [m]
+      REAL(f8), INTENT(OUT) :: CFRAC (State_Grid%NX,State_Grid%NY)  ! Column cloud fraction [unitless]
+      REAL(f8), INTENT(OUT) :: RADIAT(State_Grid%NX,State_Grid%NY)  ! Solar radiation @ ground [W/m2]
+      REAL(f8), INTENT(OUT) :: RHB   (State_Grid%NX,State_Grid%NY)  ! Rel humidity at sfc [unitless]
+      REAL(f8), INTENT(OUT) :: USTR  (State_Grid%NX,State_Grid%NY)  ! Friction velocity [m/s]
+      REAL(f8), INTENT(OUT) :: ZH    (State_Grid%NX,State_Grid%NY)  ! PBL height [m]
+      REAL(f8), INTENT(OUT) :: PRESSU(State_Grid%NX,State_Grid%NY)  ! Local surface press [Pa]
+      REAL(f8), INTENT(OUT) :: W10   (State_Grid%NX,State_Grid%NY)  ! 10 meter windspeed [m/s]
+      REAL(f8), INTENT(OUT) :: SUNCOS_MID(State_Grid%NX,State_Grid%NY) ! COS(SZA) @ midpt of current chem timestep
+      REAL(f8), INTENT(OUT) :: AZO(State_Grid%NX,State_Grid%NY) ! Roughness heights, by grid box
 !
 ! !REMARKS:
 !                                                                             .
@@ -800,8 +796,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, THIK, SP, SFCWINDSQR )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! THIK = thickness of layer 1 [m]
          THIK        = State_Met%BXHEIGHT(I,J,1)
@@ -842,7 +838,7 @@
          USTR(I,J)   = State_Met%USTAR(I,J)
 
          ! Mixed layer depth [m]
-         ZH(I,J)     = GET_PBL_TOP_m( I, J )
+         ZH(I,J)     = State_Met%PBL_TOP_m(I,J)
 
          ! Relative humidity @ surface [unitless] (bec, bmy, 4/13/05)
          !RHB(I,J)    = MIN( 0.99e+0_f8, RH(I,J,1) * 1.d-2 ) 
@@ -879,8 +875,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
-     &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
+      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Chm, State_Diag,    
+     &                   State_Grid, State_Met, RADIAT,   TEMP, SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
@@ -894,34 +890,39 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
+#ifdef APM
+      USE APM_INIT_MOD,       ONLY : APMIDS
+      USE APM_INIT_MOD,       ONLY : RDRY, RSALT, RDST, DENDST
+      USE APM_DRIV_MOD,       ONLY : GFTOT3D, DENWET3D, MWSIZE3D
+#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root      ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology state object
       TYPE(DgnState), INTENT(IN) :: State_Diag     ! Diagnostics state object
+      TYPE(GrdState), INTENT(IN) :: State_Grid     ! Grid state object
+      TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology state object
 
-      REAL(f8), INTENT(IN) :: RADIAT (IIPAR,JJPAR) ! Solar radiation [W/m2]
-      REAL(f8), INTENT(IN) :: TEMP   (IIPAR,JJPAR) ! Temperature [K]
-      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cos of solar zenith angle
+      REAL(f8), INTENT(IN) :: RADIAT (State_Grid%NX,State_Grid%NY) ! Solar radiation [W/m2]
+      REAL(f8), INTENT(IN) :: TEMP   (State_Grid%NX,State_Grid%NY) ! Temperature [K]
+      REAL(f8), INTENT(IN) :: SUNCOS (State_Grid%NX,State_Grid%NY) ! Cos of solar zenith angle
       LOGICAL,  INTENT(IN) :: AIROSOL(NUMDEP)      ! =T denotes aerosol species
       REAL(f8), INTENT(IN) :: F0     (NUMDEP)      ! React. factor for oxidation
                                                    !  of biological substances
       REAL(f8), INTENT(IN) :: HSTAR  (NUMDEP)      ! Henry's law constant
       REAL(f8), INTENT(IN) :: XMW    (NUMDEP)      ! Molecular weight [kg/mol]
-      REAL(f8), INTENT(IN) :: USTAR  (IIPAR,JJPAR) ! Friction velocity [m/s]
-      REAL(f8), INTENT(IN) :: CZ1    (IIPAR,JJPAR) ! Alt @ which Vd is computed
-                                                   !  [m]
-      REAL(f8), INTENT(IN) :: OBK    (IIPAR,JJPAR) ! Monin-Obhukov length [m]
-      REAL(f8), INTENT(IN) :: CFRAC  (IIPAR,JJPAR) ! Surface cloud fraction
-      REAL(f8), INTENT(IN) :: ZH     (IIPAR,JJPAR) ! Roughness height [m]
-      REAL(f8), INTENT(IN) :: RHB    (IIPAR,JJPAR) ! Relative humidity [%]
-      REAL(f8), INTENT(IN) :: PRESSU (IIPAR,JJPAR) ! Surface pressure [hPa]
-      REAL(f8), INTENT(IN) :: W10    (IIPAR,JJPAR) ! Wind speed @ 10m altitude
-                                                   !  [m/s]
+      REAL(f8), INTENT(IN) :: USTAR  (State_Grid%NX,State_Grid%NY) ! Friction velocity [m/s]
+      REAL(f8), INTENT(IN) :: CZ1    (State_Grid%NX,State_Grid%NY) ! Alt @ which Vd is compute [m]
+      REAL(f8), INTENT(IN) :: OBK    (State_Grid%NX,State_Grid%NY) ! Monin-Obhukov length [m]
+      REAL(f8), INTENT(IN) :: CFRAC  (State_Grid%NX,State_Grid%NY) ! Surface cloud fraction
+      REAL(f8), INTENT(IN) :: ZH     (State_Grid%NX,State_Grid%NY) ! Roughness height [m]
+      REAL(f8), INTENT(IN) :: RHB    (State_Grid%NX,State_Grid%NY) ! Relative humidity [%]
+      REAL(f8), INTENT(IN) :: PRESSU (State_Grid%NX,State_Grid%NY) ! Surface pressure [hPa]
+      REAL(f8), INTENT(IN) :: W10    (State_Grid%NX,State_Grid%NY) ! Wind speed @ 10m altitude [m/s]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -930,7 +931,7 @@
 ! !OUTPUT PARAMETERS:
 ! 
       INTEGER,  INTENT(OUT) :: RC                  ! Success or failure?
-      REAL(f8), INTENT(OUT) :: DVEL(IIPAR,JJPAR,NUMDEP) ! Drydep velocity [m/s]
+      REAL(f8), INTENT(OUT) :: DVEL(State_Grid%NX,State_Grid%NY,NUMDEP) ! Drydep velocity [m/s]
 !
 ! !REMARKS:
 !  Need as landtype input for each grid square (I,J); see CMN_DEP_mod.F
@@ -1079,6 +1080,10 @@
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of arrays
 !                              from (MAXIJ) to (IIPAR,JJPAR); Also remove NPTS
 !                              input argument
+!  23 Oct 2018 - V. Shah     - Set HNO3 bulk surface resistance to 1 s/m;
+!                              Limit increases in Rc at low temperature to a
+!                              factor of 2. (Jaegle et al 2018)
+!
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
 !   * We now suppress dry deposition over aerodynamically smooth     ***
@@ -1109,50 +1114,52 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f8)  RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE),
-     1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
-     2        RSURFC(NUMDEP,NTYPE)       
+      REAL(f8) :: RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE)
+      REAL(f8) :: RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE)
+      REAL(f8) :: RSURFC(NUMDEP,NTYPE)       
                                    
-      REAL(f8)  C1X(NUMDEP),VD(NUMDEP),VK(NUMDEP)              
-      REAL(f8)  ZO(IIPAR,JJPAR)           
+      REAL(f8) :: C1X(NUMDEP),VD(NUMDEP),VK(NUMDEP)              
+      REAL(f8) :: ZO(State_Grid%NX,State_Grid%NY)           
 
-!      LOGICAL LDEP(MAXDEP)
-      LOGICAL LDEP(NUMDEP)
-      LOGICAL LRGERA(IIPAR,JJPAR)
+      LOGICAL  :: LDEP(NUMDEP)
+      LOGICAL  :: LRGERA(State_Grid%NX,State_Grid%NY)
 
-      REAL(f8)  VDS
-      REAL(f8)  CZ,C1,RT,XNU,RAD0,RIX,GFACT,GFACI
-      REAL(f8)  RDC,RLUXX,RGSX,RCL,DTMP1,DTMP2,DTMP3,DTMP4
-      REAL(f8)  CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
-      REAL(f8)  RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
-      REAL(f8)  XMWH2O,DAIR,TEMPK,TEMPC
-      REAL(f8)  RAKT,DUMMY2KT, DUMMY4KT, Z0OBKKT ! for corrected O3, krt,11/2017
-      INTEGER IOLSON,II,IW
-      INTEGER K,LDT
-      REAL(f8)  RCLX,RIXX    !,BIOFIT
+      REAL(f8) :: VDS
+      REAL(f8) :: CZ,C1,RT,XNU,RAD0,RIX,GFACT,GFACI
+      REAL(f8) :: RDC,RLUXX,RGSX,RCL,DTMP1,DTMP2,DTMP3,DTMP4
+      REAL(f8) :: CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
+      REAL(f8) :: RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
+      REAL(f8) :: XMWH2O,DAIR,TEMPK,TEMPC
+      INTEGER  :: IOLSON,II,IW
+      INTEGER  :: K,LDT
+      REAL(f8) :: RCLX,RIXX    !,BIOFIT
+
+      ! for corr O3, krt,11/2017
+      REAL(f8) :: RA_Alt, DUMMY2_Alt, DUMMY4_Alt, Z0OBK_Alt 
 
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
-      INTEGER  BIN
-      REAL(f8)   SIZ_DIA(IIPAR,JJPAR, IBINS), SIZ_DEN(IIPAR,JJPAR,IBINS)
+      INTEGER  :: BIN
+      REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
+      REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
 #endif
 
       ! Logical for snow and sea ice
-      LOGICAL LSNOW(IIPAR,JJPAR)
+      LOGICAL  ::LSNOW(State_Grid%NX,State_Grid%NY)
 
       ! Loop indices (bmy, 3/29/12)
-      INTEGER :: I, J
+      INTEGER  :: I, J
 
       ! Size of DRYCOEFF (ckeller, 05/19/14)
-      INTEGER :: NN
+      INTEGER  :: NN
 
       ! Added these to pass particle density & number to DUST_SFCRSII
       ! so as to avoid parallelization errors with TOMAS (bmy, 1/31/14)
-      REAL(f8)  :: DIAM, DEN
+      REAL(f8) :: DIAM, DEN
 
       ! Logical switch for POPS in order to use octanol-air partitioning instead
       ! of Henry's Law for scaling of cuticular resitances (clf, 1/3/2011)
-      LOGICAL :: IS_POPS
+      LOGICAL  :: IS_POPS
 
       ! Pointers to fields in State_Met
       INTEGER,  POINTER :: IREG(:,:)
@@ -1258,7 +1265,7 @@
 !*    Begin section for computing deposition velocities           
 !*                                 
 *                                 
-#if   defined( TOMAS )
+#ifdef TOMAS
       !=================================================================
       ! FOR TOMAS MICROPHYSICS:
       !
@@ -1272,8 +1279,9 @@
       !=================================================================
 
       IF ( id_NK1 > 0 ) THEN
-         CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
-     &                     State_Chm, SIZ_DIA, SIZ_DEN,   RC        )
+         CALL AERO_DIADEN( am_I_Root,  1,         Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, SIZ_DIA,   SIZ_DEN,
+     &                     RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in call to "AERO_DIADEN"!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1285,27 +1293,33 @@
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( CZ,     TEMPK,  TEMPC,  K,      VD             )
-!$OMP+PRIVATE( LDT,    RSURFC, C1,     XNU,    RT,     IOLSON )
-!$OMP+PRIVATE( II,     RI,     RLU,    RAC,    RGSS,   RGSO   )
-!$OMP+PRIVATE( RCLS,   RCLO,   RAD0,   RIX,    GFACT,  GFACI  )
-!$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
-!$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
-!$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
-!$OMP+PRIVATE( Z0OBKKT,RAKT,   DUMMY2KT,       DUMMY4KT       )
-!$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
-!$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
-#if defined( MODEL_GEOS )
-!$OMP+PRIVATE( RA2M,   Z0OBK2M, RA10M, Z0OBK10M               )
+!$OMP+PRIVATE( CZ,      TEMPK,   TEMPC,   K,      VD                )
+!$OMP+PRIVATE( LDT,     RSURFC,  C1,      XNU,    RT,      IOLSON   )
+!$OMP+PRIVATE( II,      RI,      RLU,     RAC,    RGSS,    RGSO     )
+!$OMP+PRIVATE( RCLS,    RCLO,    RAD0,    RIX,    GFACT,   GFACI    )
+!$OMP+PRIVATE( RDC,     XMWH2O,  RIXX,    RLUXX,  RGSX,    RCLX     )
+!$OMP+PRIVATE( DTMP1,   DTMP2,   DTMP3,   DTMP4,  VDS,     CZH      )
+!$OMP+PRIVATE( CKUSTR,  REYNO,   CORR1,   CORR2,  Z0OBK,   RA       )
+!$OMP+PRIVATE( Z0OBK_Alt, RA_Alt,DUMMY2_Alt,      DUMMY4_Alt        )
+!$OMP+PRIVATE( DUMMY1,  DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB       )
+!$OMP+PRIVATE( C1X,     VK,      I,       J,      IW                )
+!$OMP+PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP )
+#ifdef MODEL_GEOS
+!$OMP+PRIVATE( RA2M,    Z0OBK2M, RA10M, Z0OBK10M                    )
 #endif
-#if defined( TOMAS )
-!$OMP+PRIVATE( BIN                                            )
+#ifdef TOMAS
+!$OMP+PRIVATE( BIN                                                  )
 #endif
-!$OMP+PRIVATE( SpcId,  SpcInfo                                )
+!$OMP+PRIVATE( SpcId,  SpcInfo                                      )
 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         ! Initialize
+         Z0OBK_Alt  = 0.0_f8
+         DUMMY2_Alt = 0.0_f8
+         DUMMY4_Alt = 0.0_f8
+         RA_Alt     = 0.0_f8
 
 !** CZ is Altitude (m) at which deposition velocity is computed
          CZ = CZ1(I,J)
@@ -1390,23 +1404,36 @@
             IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.e+0_f8 ) THEN
                RLU(LDT) = 1.e+6_f8
             ELSE
-               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
+               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT)
+               ! Additional resistance at low temperatures.
+               ! Limit increase to a factor of 2.
+               ! V. Shah 23 Oct 18
+               ! Ref Jaegle et al. 2018
+               RLU(LDT) = MIN( RLU(LDT) + RT, 2.e+0_f8 * RLU(LDT) )
             ENDIF
 !** The following are the remaining resistances for the Wesely
 !** resistance-in-series model for a surface canopy
-!** (see Atmos. Environ. paper, Fig.1).  
+!** (see Atmos. Environ. paper, Fig.1).
             RAC(LDT)  = MAX(DBLE(IRAC(II)), 1.e+0_f8)
             IF (RAC(LDT)  .GE. 9999.e+0_f8) RAC(LDT)  = 1.e+12_f8
-            RGSS(LDT) = MAX(DBLE(IRGSS(II)) + RT ,1.e+0_f8)
+            RGSS(LDT) = MAX(DBLE(IRGSS(II)), 1.e+0_f8)
+            ! Additional resistance at low temperatures.
+            ! Limit increase of RGSS, RGSO, RCLS, & RCLO to a factor of 2.
+            ! V. Shah 23 Oct 18
+            ! Ref Jaegle et al. 2018
+            RGSS(LDT) = MIN( RGSS(LDT) + RT, 2.e+0_f8 * RGSS(LDT) )
             IF (RGSS(LDT) .GE. 9999.e+0_f8) RGSS(LDT) = 1.e12_f8
-            RGSO(LDT) = MAX(DBLE(IRGSO(II)) + RT ,1.e+0_f8) 
+            RGSO(LDT) = MAX(DBLE(IRGSO(II)) ,1.e+0_f8)
+            RGSO(LDT) = MIN( RGSO(LDT) + RT, 2.e+0_f8 * RGSO(LDT) )
             IF (RGSO(LDT) .GE. 9999.e+0_f8) RGSO(LDT) = 1.e+12_f8
-            RCLS(LDT) = DBLE(IRCLS(II)) + RT           
+            RCLS(LDT) = DBLE(IRCLS(II))
+            RCLS(LDT) = MIN( RCLS(LDT) + RT, 2.e+0_f8 * RCLS(LDT) )
             IF (RCLS(LDT) .GE. 9999.e+0_f8) RCLS(LDT) = 1.e+12_f8
-            RCLO(LDT) = DBLE(IRCLO(II)) + RT          
+            RCLO(LDT) = DBLE(IRCLO(II))
+            RCLO(LDT) = MIN( RCLO(LDT) + RT, 2.e+0_f8 * RCLO(LDT) )
             IF (RCLO(LDT) .GE. 9999.e+0_f8) RCLO(LDT) = 1.e+12_f8
 !***************************************************************************
-!*                                 
+!*
 !*    Adjust stomatal resistances for insolation and temperature:  
 !*
 !*     Temperature adjustment is from Wesely [1989], equation (3).
@@ -1450,6 +1477,13 @@
             ENDIF
             
             RIX = RIX*GFACT*GFACI
+            
+            ! Apply scaling factor to RIX when CO2 effect is turned on
+            ! (ayhwong, 6/25/19)
+            IF (Input_Opt%CO2_EFFECT) THEN
+               RIX = RIX*Input_Opt%RS_SCALE
+            ENDIF
+
  150        CONTINUE
 !*                                 
 !*    Compute aerodynamic resistance to lower elements in lower part           
@@ -1575,21 +1609,35 @@
                   ! dust aerosols only.  Do not account for hygroscopic
                   ! growth of the dust aerosol particles.
                   !=====================================================  
-#if defined( TOMAS ) 
+#ifdef TOMAS 
 
                   !-------------------------------
                   !%%% TOMAS SIMULATIONS %%%
                   !-------------------------------
 
-                  ! Get current aerosol diameter and density
-                  ! NOTE: In TOMAS the aerosol diameter and density
-                  ! evolves with time.  We have to save these in the 
-                  ! DIAM and DEN variables so that we can hold these
-                  ! PRIVATE for the parallel loop.
-                  BIN  = NTRAIND(K) - id_NK1 + 1
-                  DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
-                  DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
+                  IF ( TRIM(SpcInfo%Name) == 'DST1' .or.
+     &                 TRIM(SpcInfo%Name) == 'DST2' .or.
+     &                 TRIM(SpcInfo%Name) == 'DST3' .or.
+     &                 TRIM(SpcInfo%Name) == 'DST4' ) THEN
 
+                     ! Particle diameter, convert [m] -> [um]
+                     DIAM  = A_RADI(K) * 2.e+0_f8 
+
+                     ! Particle density [kg/m3]
+                     DEN   = A_DEN(K)
+
+                  ELSE
+
+                     ! Get current aerosol diameter and density
+                     ! NOTE: In TOMAS the aerosol diameter and density
+                     ! evolves with time.  We have to save these in the 
+                     ! DIAM and DEN variables so that we can hold these
+                     ! PRIVATE for the parallel loop.
+                     BIN  = NTRAIND(K) - id_NK1 + 1
+                     DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
+                     DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
+
+                  ENDIF
 #else
                   !-------------------------------
                   !%%% NON-TOMAS SIMULATIONS %%%
@@ -1601,6 +1649,35 @@
                   ! Particle density [kg/m3]
                   DEN   = A_DEN(K)             
 
+#endif
+
+#ifdef APM
+                  IF(SpcInfo%Name(1:8)=='APMSPBIN')THEN
+                    DIAM = RDRY(SpcId-APMIDS%id_SO4BIN1+1)*
+     &                     GFTOT3D(I,J,1,1)*2.D0
+                    DEN = DENWET3D(I,J,1,1)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:9)=='APMSEABIN')THEN
+                    DIAM = RSALT(SpcId-APMIDS%id_SEABIN1+1)*
+     &                     GFTOT3D(I,J,1,2)*2.D0
+                    DEN = DENWET3D(I,J,1,2)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:9)=='APMDSTBIN')THEN
+                    DIAM = RDST(SpcId-APMIDS%id_DSTBIN1+1)*2.D0
+                    DEN = DENDST(SpcId-APMIDS%id_DSTBIN1+1)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:8)=='APMLVSOA')THEN
+                    DIAM = MWSIZE3D(I,J,1,1)*2.D0
+                    DEN = DENWET3D(I,J,1,1)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:8)=='APMCTSEA')THEN
+                    DIAM = MWSIZE3D(I,J,1,2)*2.D0
+                    DEN = DENWET3D(I,J,1,2)*1.D3
+                  ENDIF
+                  IF(SpcInfo%Name(1:8)=='APMCTDST')THEN
+                    DIAM = MWSIZE3D(I,J,1,3)*2.D0
+                    DEN = DENDST(12)*1.D3
+                  ENDIF
 #endif
 
                   ! [Zhang et al., 2001]
@@ -1658,11 +1735,17 @@
             IF (.NOT.LDEP(K)) GOTO 190
             DO 180 LDT = 1, IREG(I,J)
                IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
-               RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT), 
+               RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT),
      &                        9999.e+0_f8))
+              ! Set Rc for strong acids (HNO3,HCl,HBr) to 1 s/m
+              ! V. Shah (23 Oct 18)
+              ! Ref. Jaegle et al. 2018, cf. Erisman,van Pul,Ayers 1994
+              IF ( HSTAR(K) .gt. 1.e+10_f8 ) THEN
+                  RSURFC(K,LDT)= 1.e+0_f8
+              ENDIF
  180        CONTINUE
  190     CONTINUE
-!*                                 
+!*
 !*    Loop through the different landuse types present in the grid square     
 !*           
          DO 500 LDT = 1, IREG(I,J)
@@ -1762,16 +1845,18 @@
 
             ! Define Z0OBK
             Z0OBK = ZO(I,J)/OBK(I,J) 
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!            ! Set CASTNET height at 10m (krt, 11/2017)
 #if defined( MODEL_GEOS )
             Z0OBK2M  = MAX(Z0OBK,  2e+0_fp/OBK(I,J) )
             Z0OBK10M = MAX(Z0OBK, 10e+0_fp/OBK(I,J) )
-#else
-!            Z0OBKKT = 10e+0_fp/OBK(I,J)
 #endif
-!==============================================================================
+            !--------------------------------------------------------
+            ! Z0OBK_Alt is Z0OBK for a user-specified height above 
+            ! the surface.  This is required for diagnostics.
+            ! (krt, bmy, 7/10/19).
+            !--------------------------------------------------------
+            IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+               Z0OBK_Alt = Input_Opt%RA_Alt_Above_Sfc / OBK(I,J)
+            ENDIF
 
             LRGERA(I,J) = .FALSE.
             ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -1824,11 +1909,10 @@
 !*                                 
                IF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .LT. -1.e+0_f8)THEN
 !*... unstable condition; set RA to zero. (first implemented in V. 3.2)
-                  RA    = 0.e+0_f8
+                  RA     = 0.e+0_f8
 #if defined( MODEL_GEOS )
-                  !RAKT  = 0.e+0_f8
-                  RA2M  = 0.e+0_f8
-                  RA10M = 0.e+0_f8
+                  RA2M   = 0.e+0_f8
+                  RA10M  = 0.e+0_f8
 #endif
 
 !*... error trap: prevent CORR1 or Z0OBK from being zero or close to
@@ -1836,7 +1920,6 @@
                ELSEIF ( ABS(CORR1)<=SMALL .OR. ABS(Z0OBK)<=SMALL ) THEN
                   RA = 0.e+0_f8
 #if defined( MODEL_GEOS )
-                  !RAKT  = 0.e+0_f8
                   RA2M  = 0.e+0_f8
                   RA10M = 0.e+0_f8
 #endif
@@ -1851,11 +1934,6 @@
                   RA = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * 
      &                 LOG(DUMMY3/DUMMY4)
 #if defined( MODEL_GEOS )
-!*... correct ozone to 10m for diagnostic (krt, 11/2017)
-                  !DUMMY2KT=(1.e+0_f8 - 9e+0_f8*Z0OBKKT)**0.5e+0_f8
-                  !DUMMY4KT=ABS((DUMMY2KT-1.e+0_f8)/(DUMMY2KT+1.e+0_f8))
-                  !RAKT = 0.74e+0_f8* (1.e+0_f8/CKUSTR) *
-     &            !     LOG(DUMMY3/DUMMY4KT)
                   ! 2M
                   DUMMY1 = (1.e+0_f8 - 9e+0_f8*Z0OBK2M)**0.5e+0_f8
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
@@ -1866,14 +1944,13 @@
                   RA10M  = 0.74e+0_f8* (1.e+0_f8/CKUSTR) *
      &                     LOG(DUMMY3/DUMMY4)
 #endif                       
-          
+
                ELSEIF((CORR1.GT.0.0e+0_f8).AND.(.NOT.LRGERA(I,J)))
      &          THEN
 !*...moderately stable conditions (z/zMO <1); compute Ra as described above
                   RA = (1e+0_f8/CKUSTR) * 
      &            (.74e+0_f8*LOG(CORR1/Z0OBK) + 4.7e+0_f8*(CORR1-Z0OBK))
 #if defined( MODEL_GEOS )
-     &            !(.74_f8*LOG(CORR1/Z0OBKKT)+4.7_f8*(CORR1-Z0OBKKT))
                   RA2M = (1e+0_f8/CKUSTR) *
      &            (0.74_f8*LOG(Z0OBK2M/Z0OBK)+4.7_f8*(Z0OBK2M-Z0OBK))
                   RA10M = (1e+0_f8/CKUSTR) *
@@ -1882,11 +1959,10 @@
 
                ELSEIF(LRGERA(I,J)) THEN
 !*... very stable conditions
-                  RA    = 1.e+04_f8
+                  RA     = 1.e+04_f8
 #if defined( MODEL_GEOS )
-                  !RAKT = 1.e+04_f8
-                  RA2M  = 1.e+04_f8
-                  RA10M = 1.e+04_f8
+                  RA2M   = 1.e+04_f8
+                  RA10M  = 1.e+04_f8
 #endif
                ENDIF
 !* check that RA is positive; if RA is negative (as occasionally
@@ -1903,15 +1979,6 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!!*... correct ozone to 10m for diagnostic (krt, 11/2017)
-!                  DUMMY2KT = (1.D0 - 15.e+0_f8*Z0OBKKT)**0.5e+0_f8
-!                  DUMMY4KT = ABS((DUMMY2KT - 1.e+0_f8)/
-!     &                 (DUMMY2KT + 1.e+0_f8))
-!                  RAKT = 1.e+0_f8 * (1.e+0_f8/CKUSTR) *
-!     &                 LOG(DUMMY3/DUMMY4KT)
-!==============================================================================
 #if defined( MODEL_GEOS )
                   ! 2M
                   DUMMY1 = (1.D0 - 15.e+0_f8*Z0OBK2M)**0.5e+0_f8
@@ -1922,6 +1989,17 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   RA10M= 1.e+0_f8 * (1.e+0_f8/CKUSTR)*LOG(DUMMY3/DUMMY4)
 #endif
+                  !----------------------------------------------------
+                  ! Compute RA at user-defined altitude above surface
+                  ! (krt, bmy, 7/10/19)
+                  !----------------------------------------------------
+                  IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+                     DUMMY2_Alt = SQRT( 1.0_f8 - 15.0_f8 * Z0OBK_Alt )
+                     DUMMY4_Alt = ABS( ( DUMMY2_Alt - 1.0_f8 )
+     &                          /      ( DUMMY2_Alt + 1.0_f8 ) )
+                     RA_Alt     = ( 1.0_f8 / CKUSTR )
+     &                          * LOG( DUMMY3 / DUMMY4_Alt )
+                  ENDIF
 
                ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
      &          THEN
@@ -1929,75 +2007,88 @@
                   !coef_b=5.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!                  RAKT = (1D0/CKUSTR) *
-!     &          (1.e+0_f8*LOG(CORR1/Z0OBKKT) + 5.e+0_f8*(CORR1-Z0OBKKT))
-!==============================================================================
 #if defined( MODEL_GEOS )
                   RA2M = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(Z0OBK2M/Z0OBK)+5.e+0_f8*(Z0OBK2M-Z0OBK))
                   RA10M = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(Z0OBK10M/Z0OBK)+5.e+0_f8*(Z0OBK10M-Z0OBK))
 #endif
+                  !----------------------------------------------------
+                  ! Compute RA at user-defined altitude above surface
+                  ! for diagnostic output (krt, bmy, 7/10/19)
+                  !----------------------------------------------------
+                  IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+                     RA_Alt = ( 1.0_fp / CKUSTR ) 
+     &                      * ( 1.0_f8 * LOG( CORR1 / Z0OBK_Alt ) 
+     &                                 + 5.0_f8 * ( CORR1 - Z0OBK_Alt ))
+                  ENDIF
 
                ELSE ! CORR1 .GT. 1.0D0
                   !coef_a=5e+0_f8
                   !coef_b=1.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!                  RAKT = (1D0/CKUSTR) *
-!     &          (5.e+0_f8*LOG(CORR1/Z0OBKKT) +1.e+0_f8*(CORR1-Z0OBKKT))
-!==============================================================================
 #if defined( MODEL_GEOS )
                   RA2M = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(Z0OBK2M/Z0OBK)+1.e+0_f8*(Z0OBK2M-Z0OBK))
                   RA10M = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(Z0OBK10M/z0OBK)+1.e+0_f8*(Z0OBK10M-Z0OBK))
 #endif
-
+                  !----------------------------------------------------
+                  ! Compute RA at user-defined altitude above surface
+                  ! for diagnostic output (krt, bmy, 7/10/19)
+                  !----------------------------------------------------
+                  IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+                     RA_Alt = ( 1.0_f8 / CKUSTR ) 
+     &                      * ( 5.0_f8 * LOG( CORR1 / Z0OBK_Alt ) 
+     &                                 + 1.0_f8 *( CORR1 - Z0OBK_Alt ) )
+                  ENDIF
                ENDIF
 
             ENDIF
 
             RA   = MIN(RA,1.e+4_f8)
-!==============================================================================
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!            RAKT = MIN(RAKT,1.e+4_f8)
-!==============================================================================
 #if defined( MODEL_GEOS )
             RA2M   = MIN(RA2M,  1.e+4_f8)
             RA10M  = MIN(RA10M, 1.e+4_f8)
 #endif
-
             ! If RA is < 0, set RA = 0 (bmy, 11/12/99)
             IF (RA .LT. 0.e+0_f8) THEN
                WRITE (6,1001) I,J,RA,CZ,ZO(I,J),OBK(I,J)  
                RA = 0.0e+0_f8
             ENDIF
-
 #if defined( MODEL_GEOS )
             ! Adjust 2M Ra if needed
             IF ( RA2M  < 0.e+0_f8 ) RA2M  = 0.e+0_f8
             IF ( RA10M < 0.e+0_f8 ) RA10M = 0.e+0_f8
-#endif
+#endif            
+            !----------------------------------------------------
+            ! Compute RA at user-defined altitude above surface
+            ! for diagnostic output (krt, bmy, 7/10/19)
+            !----------------------------------------------------
+            IF ( State_Diag%Archive_ConcAboveSfc ) THEN
+               RA_Alt = MIN( RA_Alt, 1.0e+4_f8 )
 
-!==============================================================================
-!#if defined ( BPCH_DIAG )
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!            IF (RAKT .LT. 0.e+0_f8) THEN
-!               WRITE (6,1001) I,J,RAKT,CZ,ZO(I,J),OBK(I,J)  
-!               RAKT = 0.0e+0_f8
-!            ENDIF
-!            ! Store Ra for diagnostic
-!            AD_RA(I,J) = RAKT
-!            ! Store z/L to determine if M/O theory applies
-!            AD_ZL(I,J) = CZ1(I,J)/OBK(I,J)
-!#endif
-!==============================================================================
-            
+               ! Make sure RA_Alt is not negative
+               IF ( RA_Alt <  0.0_f8 ) THEN
+                  IF ( am_I_Root ) THEN 
+                     WRITE (6,1001) I,J, RA_Alt, CZ, ZO(I,J) ,OBK(I,J)  
+                  ENDIF
+                  RA_Alt = 0.0_f8
+               ENDIF
+
+               !--------------------------------------------------------
+               ! HISTORY (aka netCDF diagnostics)
+               !
+               ! Store drydep resistance RA at user-defined
+               ! altitude above surface into State_Diag
+               !--------------------------------------------------------
+               IF ( State_Diag%Archive_DryDepRaALT1 ) THEN
+                  State_Diag%DryDepRaALT1(I,J) = RA_Alt
+               ENDIF
+
+            ENDIF
+
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             2I4,4(1X,E12.5))
 !* Get total resistance for deposition - loop over species.
@@ -4029,8 +4120,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, 
-     &                        State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_DRYDEP( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -4040,10 +4131,12 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4170,7 +4263,7 @@
       ! This is necessary for integrating GEOS-Chem with a variable
       ! domain model like WRF-GC, where multiple instances of GEOS-Chem
       ! run in the same CPU. (hplin, 2/16/2019)
-      IF ( ALLOCATED( A_DEN ) ) RETURN
+      !GanLuoIF ( ALLOCATED( A_DEN ) ) RETURN
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species

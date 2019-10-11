@@ -171,7 +171,7 @@ module TPCORE_WINDOW_MOD
 CONTAINS
 
 !-------------------------------------------------------------------------
- subroutine init_WINDOW(im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
+ subroutine init_WINDOW(State_Grid, im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
 !-------------------------------------------------------------------------
 
 #if defined(SPMD)
@@ -183,6 +183,7 @@ CONTAINS
  use mod_comm, only : gid, y_decomp
 #endif
 #endif
+ USE State_Grid_Mod, ONLY : GrdState
 
  implicit none
 
@@ -190,6 +191,7 @@ CONTAINS
 ! Input
 !-------
 
+ TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
  integer, intent(in):: im       ! Global E-W dimension
  integer, intent(in):: jm       ! Global N-S dimension
  integer, intent(in):: km       ! Vertical dimension
@@ -299,11 +301,11 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
-#if   defined( GRID025x03125 )
- dlon = 2.*pi / float(1152)      !(dan)
-#elif defined( GRID05x0625 )
- dlon = 2.*pi / float(576)       !(dan)
-#endif
+ IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+    dlon = 2.*pi / float(1152)      !(dan)
+ ELSEIF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    dlon = 2.*pi / float(576)       !(dan)
+ ENDIF
 
     ! dan for window
     !elat(1) = -0.5*pi         ! S. Pole
@@ -445,21 +447,6 @@ CONTAINS
  !%%% pressure fixer (bdf, bmy, 5/7/03) 
  !%%%
                            XMASS,    YMASS,                       &
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group         
- !%%%
- !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, and 
- !%%% ND26 to arg list of TPCORE_FVDAS for GEOS-CHEM mass-flux diagnostics 
- !%%% (bdf, bmy, 9/28/04). 
- !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
- !%%% Added DiagnArrays for writing diagnostics to netcdf (ewl, 1/11/16).
- !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative. NetCDF diagnostic
- !%%% arrays are instantaneous since cumulative sum is abstracted to
- !%%% to high-level diagnostic container update code.
- !%%%
-#if defined( BPCH_DIAG )
-                        MASSFLEW, MASSFLNS, MASSFLUP,                   &
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         AREA_M2, ND24, ND25, ND26   ) 
 !----------------------------------------------------------------------------
@@ -578,11 +565,6 @@ CONTAINS
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% Added netcdf diagnostic arrays (ewl, 1/11/16)
  !%%%
-#if defined( BPCH_DIAG )
- REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
- REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
- REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
-#endif
  REAL,    INTENT(IN)    :: AREA_M2(JM)       ! box area for mass flux diag
  INTEGER, INTENT(IN)    :: ND24              ! E/W flux diag switch
  INTEGER, INTENT(IN)    :: ND25              ! N/S flux diag switch
@@ -608,7 +590,7 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG )
+#ifdef BPCH_DIAG
 ! Local arrays for mass fluxes to save memory if diagnostics not used.
 ! (ccc, 9/9/10)
  real MFLEW(im, jm), MFLNS(im, jm)
@@ -775,12 +757,8 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG )
-!$omp private( i, j, k, q2, MFLEW, MFLNS )
-#else
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$omp private( i, j, k, q2 ) 
-#endif
 
 ! Vertical_OMP:  
 
@@ -788,17 +766,6 @@ CONTAINS
 
 
     q2(:,:) = 0.d0
-
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code (ewl, 1/11/2016)
- !%%%
-#if defined( BPCH_DIAG )
-    MFLEW(:,:) = 0.d0
-    MFLNS(:,:) = 0.d0
-#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ! Copying q to 2d work array for transport. This allows q to be dimensioned
 ! differently from the calling routine.
@@ -809,28 +776,6 @@ CONTAINS
        enddo
     enddo
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-#if defined( BPCH_DIAG )
-    IF ( ND24 > 0 ) THEN 
-       MFLEW = MASSFLEW(:,:,K,IQ)
-    ELSE
-       MFLEW(1,1) = MASSFLEW(1,1,1,1)
-    ENDIF
-
-    IF ( ND25 > 0 ) THEN 
-       MFLNS = MASSFLNS(:,:,K,IQ)
-    ELSE
-       MFLNS(1,1) = MASSFLNS(1,1,1,1)
-    ENDIF
-#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    
 !--- Previous to (ccc, 9/9/10)
 !    call tp2g( q2(1,jfirst-ng),    va(1,jfirst,k),          &
 !               cx(1,jfirst-ng,k),  cy(1,jfirst,k),          &
@@ -855,37 +800,7 @@ CONTAINS
                ng,  mg,  fx(1,jfirst,k), fy(1,jfirst,k),    &
                ffsl(jfirst-ng,k),    jfirst,   jlast,       &
                delp1(1,jfirst-mg,k),    delp(1,jfirst,k),   &
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Now pass MASSFLEW, MASSFLNS, AREA_M2, TCVV, ND24, ND25, DT as 
- !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
- !%%% (bdf, bmy, 9/28/04). 
- !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
- !%%%
-#if defined( BPCH_DIAG )
-               MFLEW, MFLNS,                                &
-#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                AREA_M2, ND24, ND25, DT )
-
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-#if defined( BPCH_DIAG )
-    ! Save mass flux diagnostics (clb, 7/2/12)
-    IF ( ND24 > 0 ) THEN
-       MASSFLEW(:,:,K,IQ) = MFLEW
-    ENDIF
-
-    IF ( ND25 > 0 ) THEN
-       MASSFLNS(:,:,K,IQ) = MFLNS
-    ENDIF
-#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !------------------------------------------------------------------------------
 ! Prior to 4/1/15:
@@ -988,10 +903,10 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG )
-       MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
-
-#endif
+!#if defined( BPCH_DIAG )
+!       MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
+!
+!#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ENDDO
@@ -1347,18 +1262,6 @@ CONTAINS
  subroutine tp2g(h,  va, crx, cry, im, jm, iv,         &
                 iord, jord, ng, mg, xfx, yfx, ffsl,    &
                 jfirst, jlast, dp, dpp,                & 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%% 
- !%%% Add MFLEW, MFLNS, AREA_M2, TCVV, ND24, ND25, DT as arguments
- !%%% to subroutine TP2G for mass-flux diagnostics (bmy, 9/28/04)
- !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
- !%%% Add diagnostics for writing to netcdf (ewl, 1/11/16)
- !%%%
-#if defined( BPCH_DIAG )
-                MFLEW, MFLNS,                          &
-#endif 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 AREA_M2, ND24, ND25, DT )
 
 ! Uses:
@@ -1393,10 +1296,10 @@ CONTAINS
  !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% 
-#if defined( BPCH_DIAG )
-   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)   ! E/W mass flux array
-   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)   ! N/S mass flux array
-#endif
+!#if defined( BPCH_DIAG )
+!   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)   ! E/W mass flux array
+!   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)   ! N/S mass flux array
+!#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
    REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
@@ -1475,9 +1378,9 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG )
-            MFLEW(I,J) = MFLEW(I,J) + DTC
-#endif
+!#if defined( BPCH_DIAG )
+!            MFLEW(I,J) = MFLEW(I,J) + DTC
+!#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
@@ -1490,9 +1393,9 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG )
-         MFLEW(IM,J) = MFLEW(I,J) + DTC
-#endif
+!#if defined( BPCH_DIAG )
+!         MFLEW(IM,J) = MFLEW(I,J) + DTC
+!#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO
@@ -1516,9 +1419,9 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG )
-         MFLNS(I,J) = MFLNS(I,J) + DTC
-#endif
+!#if defined( BPCH_DIAG )
+!         MFLNS(I,J) = MFLNS(I,J) + DTC
+!#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO
@@ -1536,9 +1439,9 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG )
-            MFLNS(I,1) = MFLNS(I,1) + DTC
-#endif
+!#if defined( BPCH_DIAG )
+!            MFLNS(I,1) = MFLNS(I,1) + DTC
+!#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
@@ -1556,9 +1459,9 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG )
-            MFLNS(I,JM) = MFLNS(I,JM) + DTC
-#endif
+!#if defined( BPCH_DIAG )
+!            MFLNS(I,JM) = MFLNS(I,JM) + DTC
+!#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO

@@ -1,0 +1,79 @@
+add_library(GeosRad STATIC EXCLUDE_FROM_ALL
+	mcica_random_numbers.F90
+	mcica_subcol_gen_lw.F90
+	mcica_subcol_gen_sw.F90
+	parkind.F90
+	parrrsw.F90
+	parrrtm.F90
+	rrlw_cld.F90
+	rrlw_con.F90
+	rrlw_kg01.F90
+	rrlw_kg02.F90
+	rrlw_kg03.F90
+	rrlw_kg04.F90
+	rrlw_kg05.F90
+	rrlw_kg06.F90
+	rrlw_kg07.F90
+	rrlw_kg08.F90
+	rrlw_kg09.F90
+	rrlw_kg10.F90
+	rrlw_kg11.F90
+	rrlw_kg12.F90
+	rrlw_kg13.F90
+	rrlw_kg14.F90
+	rrlw_kg15.F90
+	rrlw_kg16.F90
+	rrlw_ncpar.F90
+	rrlw_ref.F90
+	rrlw_tbl.F90
+	rrlw_vsn.F90
+	rrlw_wvn.F90
+	rrsw_aer.F90
+	rrsw_cld.F90
+	rrsw_con.F90
+	rrsw_kg16.F90
+	rrsw_kg17.F90
+	rrsw_kg18.F90
+	rrsw_kg19.F90
+	rrsw_kg20.F90
+	rrsw_kg21.F90
+	rrsw_kg22.F90
+	rrsw_kg23.F90
+	rrsw_kg24.F90
+	rrsw_kg25.F90
+	rrsw_kg26.F90
+	rrsw_kg27.F90
+	rrsw_kg28.F90
+	rrsw_kg29.F90
+	rrsw_ref.F90
+	rrsw_tbl.F90
+	rrsw_vsn.F90
+	rrsw_wvn.F90
+	rrtmg_lw_cldprmc.F90
+	rrtmg_lw_init.F90
+	rrtmg_lw_k_g.F90
+	rrtmg_lw_rad.F90
+	rrtmg_lw_rtrnmc.F90
+	rrtmg_lw_setcoef.F90
+	rrtmg_lw_taumol.F90
+	rrtmg_sw_cldprmc.F90
+	rrtmg_sw_init.F90
+	rrtmg_sw_k_g.F90
+	rrtmg_sw_rad.F90
+	rrtmg_sw_reftra.F90
+	rrtmg_sw_setcoef.F90
+	rrtmg_sw_spcvmc.F90
+	rrtmg_sw_taumol.F90
+	rrtmg_sw_vrtqdr.F90
+	test_arr_mult.F90
+)
+target_link_libraries(GeosRad
+	PUBLIC BaseTarget
+)
+target_compile_options(GeosRad 
+	PRIVATE 
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
+        -O1 -override-limits
+)
+

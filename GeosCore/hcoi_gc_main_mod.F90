@@ -50,42 +50,24 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: ExtState_UpdateFields
   PRIVATE :: Get_SzaFact
   PRIVATE :: GridEdge_Set
-  PRIVATE :: Set_Grid
   PRIVATE :: CheckSettings
+  PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies 
 #if !defined(ESMF_) && !defined( MODEL_WRF )
+  !=========================================================================
+  ! These are only needed for GEOS-Chem "Classic"
+  !=========================================================================
   PRIVATE :: Get_GC_Restart
   PRIVATE :: Get_Met_Fields
+  PRIVATE :: Get_Boundary_Conditions
 #endif
 !
 ! !REMARKS:
 !  This module is ignored if you are using HEMCO in an ESMF environment.
 !
 ! !REVISION HISTORY:
-!  20 Aug 2013 - C. Keller   - Initial version. 
-!  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  30 Jul 2014 - C. Keller   - Added GetHcoState 
-!  20 Aug 2014 - M. Sulprizio- Modify for POPs simulation
-!  21 Aug 2014 - R. Yantosca - Added routine EmissRnPbBe; cosmetic changes
-!  06 Oct 2014 - C. Keller   - Removed PCENTER. Now calculate from pressure edges
-!  21 Oct 2014 - C. Keller   - Removed obsolete routines MAP_HCO2GC and 
-!                              Regrid_Emis2Sim. Added wrapper routine GetHcoID
-!  18 Feb 2015 - C. Keller   - Added routine CheckSettings.
-!  04 Mar 2015 - C. Keller   - Now register all GEOS-Chem species as HEMCO
-!                              species. 
-!  11 Mar 2015 - R. Yantosca - Now move computation of SUMCOSZA here from 
-!                              the obsolete global_oh_mod.F.  Add routines
-!                              GET_SZAFACT and CALC_SUMCOSA.
-!  01 Sep 2015 - R. Yantosca - Remove routine SetSpcMw; we now get parameters
-!                              for species from the species database object.
-!  27 Feb 2016 - C. Keller   - Update to HEMCO v2.0
-!  02 May 2016 - R. Yantosca - Now define IDTPOPG as a module variable
-!  16 Jun 2016 - J. Sheng    - Add species index retriever
-!  20 Jun 2016 - R. Yantosca - Now define species ID's as module variables
-!                              so that we can define them in HCOI_GC_INIT
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  20 Aug 2013 - C. Keller   - Initial version.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,8 +130,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Init( am_I_Root, Input_Opt, State_Met,                  &
-                           State_Chm, RC,        HcoConfig                  ) 
+  SUBROUTINE HCOI_GC_Init( am_I_Root,  Input_Opt, State_Chm,                  &
+                           State_Grid, State_Met, RC,        HcoConfig       )
 !
 ! !USES:
 !
@@ -157,12 +139,13 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
-    USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-#if defined( TOMAS ) 
+#ifdef TOMAS
     USE TOMAS_MOD,          ONLY : IBINS
     USE TOMAS_MOD,          ONLY : Xk
 #endif
@@ -179,8 +162,9 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )          :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state 
+    TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid state 
+    TYPE(MetState),   INTENT(IN   )          :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -189,17 +173,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller   - Initial version 
-!  07 Jul 2014 - C. Keller   - Now match species and set species properties
-!                              via module variables.
-!  30 Sep 2014 - R. Yantosca - Now pass fields for aerosol and microphysics
-!                              options to extensions via HcoState
-!  13 Feb 2015 - C. Keller   - Now read configuration file in two steps.
-!  04 Apr 2016 - C. Keller   - Now accept optional input argument HcoConfig.
-!  16 Jun 2016 - J. Sheng    - Add species index retriever
-!  20 Jun 2016 - R. Yantosca - Now initialize all species ID's here
-!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  12 Sep 2013 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -269,9 +244,14 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
     ENDIF
     
+    ! Met and grid parameters
+    iHcoConfig%MetField = Input_Opt%MetField
+    iHcoConfig%GridRes  = State_Grid%GridRes
+
     ! Pass GEOS-Chem species information to HEMCO config object to
     ! facilitate reading GEOS-Chem restart file via HEMCO
     iHcoConfig%nModelSpc = State_Chm%nSpecies
+    iHcoConfig%nModelAdv = State_Chm%nAdvect
     DO N = 1, State_Chm%nSpecies
        ! Get info for this species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info
@@ -395,9 +375,9 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Set the grid
+    ! Set the HEMCO grid
     !-----------------------------------------------------------------------
-    CALL Set_Grid( am_I_Root, State_Met, HcoState, RC                       )
+    CALL SetHcoGrid( am_I_Root, State_Grid, State_Met, HcoState, RC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -423,7 +403,7 @@ CONTAINS
     ! compared to a stand-alone version: in ESMF, the source file name
     ! is set to the container name since this is the identifying name
     ! used by ExtData.
-#if defined(ESMF_)
+#ifdef ESMF_
     HcoState%isESMF = .TRUE.
 #else 
     HcoState%isESMF = .FALSE.
@@ -455,7 +435,7 @@ CONTAINS
     ! Save # of defined dust species in HcoState
     HcoState%nDust                     =  NDSTBIN
 
-#if defined( TOMAS )
+#ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
     HcoState%MicroPhys%nBins           =  IBINS
@@ -464,13 +444,13 @@ CONTAINS
     HcoState%MicroPhys%BinBound        => Xk
 
     ! Save # of TOMAS active mode bins in HcoState
-# if defined( TOMAS40 )
+#if defined( TOMAS40 )
     HcoState%MicroPhys%nActiveModeBins =  10
-# elif defined( TOMAS15 )
+#elif defined( TOMAS15 )
     HcoState%MicroPhys%nActiveModeBins =  3
-# else 
+#else 
     HcoState%MicroPhys%nActiveModeBins =  0
-# endif
+#endif
 #endif
 
     !=======================================================================
@@ -557,7 +537,8 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly 
     ! connected.
     !-----------------------------------------------------------------------
-    CALL ExtState_InitTargets( am_I_Root, HcoState, ExtState, HMRC          )
+    CALL ExtState_InitTargets( am_I_Root, HcoState, ExtState, State_Grid,    &
+                               HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -611,16 +592,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Run( am_I_Root, Input_Opt, State_Met,                   &
-                          State_Chm, EmisTime,  Phase,     RC               )
+  SUBROUTINE HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid,       &
+                          State_Met, EmisTime,  Phase,     RC               )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Get_Ndep_Mod,    ONLY : Reset_Dep_N   ! For soilnox
     USE Input_Opt_Mod,   ONLY : OptInput
-    USE State_Met_Mod,   ONLY : MetState
     USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Grid_Mod,  ONLY : GrdState
+    USE State_Met_Mod,   ONLY : MetState
 
     ! HEMCO routines 
     USE HCO_Clock_Mod,   ONLY : HcoClock_Get
@@ -635,6 +617,7 @@ CONTAINS
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,          INTENT(IN   )  :: EmisTime   ! Is this an emission time step? 
     INTEGER,          INTENT(IN   )  :: Phase      ! Run phase (see remarks)
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -650,14 +633,8 @@ CONTAINS
 !  Phase  2 : Perform emissions calculation
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller   - Initial version 
-!  22 Aug 2014 - R. Yantosca - Now pass State_Met to MAP_HCO2GC
-!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
-!  13 Jan 2015 - C. Keller   - Now check if it's time for emissions. Added
-!                              call to HcoClock_EmissionsDone.
-!  06 Mar 2015 - R. Yantosca - Now create splash page for HEMC
-!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  12 Sep 2013 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -754,7 +731,7 @@ CONTAINS
     ! At Phase 0, the pressure field is not known yet.
     !=======================================================================
     IF ( Phase /= 0 ) THEN
-       CALL GridEdge_Set( am_I_Root, State_Met, HcoState, HMRC              )
+       CALL GridEdge_Set( am_I_Root, State_Grid, State_Met, HcoState, HMRC  )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -801,19 +778,29 @@ CONTAINS
 
 #if !defined(ESMF_) && !defined( MODEL_WRF )
     !=======================================================================
-    ! Get met fields from HEMCO
+    ! Get met fields from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
     IF ( Phase == 0 .or. PHASE == 1 ) THEN
-       CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                            Phase, RC )
+       CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                            State_Met, Phase, RC )
     ENDIF
 
     !=======================================================================
-    ! Get fields from GEOS-Chem restart file
+    ! Get fields from GEOS-Chem restart file (GEOS-Chem "Classic" only)
     !=======================================================================
     IF ( Phase == 0 ) THEN
-       CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                            State_Met, RC )
     ENDIF
+
+    !=======================================================================
+    ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
+    !=======================================================================
+    IF ( State_Grid%NestedGrid .and. (Phase == 0 .or. PHASE == 1) ) THEN
+       CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
+                                     State_Grid, State_Met, RC )
+    ENDIF
+    
 #endif
 
     !=======================================================================
@@ -829,7 +816,7 @@ CONTAINS
        ! Here, we need to make sure that these pointers are properly 
        ! connected.
        !--------------------------------------------------------------------
-       CALL ExtState_SetFields( am_I_Root, State_Met, State_Chm,             &
+       CALL ExtState_SetFields( am_I_Root, State_Chm, State_Met,             &
                                 HcoState,  ExtState,  HMRC                  )
 
        ! Trap potential errors
@@ -841,8 +828,9 @@ CONTAINS
           RETURN
        ENDIF
    
-       CALL ExtState_UpdateFields( am_I_Root, Input_Opt, State_Met, State_Chm,&
-                                   HcoState,  ExtState,  HMRC               )
+       CALL ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,         &
+                                   State_Grid, State_Met, HcoState,          &
+                                   ExtState,   HMRC                         )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -936,7 +924,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,     ONLY : IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
     USE HCO_Driver_Mod,   ONLY : HCO_Final
     USE HCO_Diagn_Mod,    ONLY : DiagnBundle_Cleanup
@@ -953,9 +940,8 @@ CONTAINS
     INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller   - Initial version 
-!  19 Feb 2015 - R. Yantosca - Change restart file name back to HEMCO_restart
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  12 Sep 2013 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1094,9 +1080,8 @@ CONTAINS
     INTEGER,        INTENT(INOUT) :: RC           ! Success or failure?
 !
 ! !REVISION HISTORY: 
-!  01 Apr 2015 - C. Keller   - Initial version 
-!  06 Jan 2017 - R. Yantosca - Now tell user to check HEMCO log for err msgs
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  01 Apr 2015 - C. Keller   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1170,17 +1155,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_InitTargets( am_I_Root, HcoState, ExtState, RC ) 
+  SUBROUTINE ExtState_InitTargets( am_I_Root,  HcoState, ExtState, &
+                                   State_Grid, RC ) 
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod, ONLY : IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
-    USE HCO_Arr_Mod,  ONLY : HCO_ArrAssert
+    USE HCO_Arr_Mod,    ONLY : HCO_ArrAssert
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1190,13 +1177,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller    - Initial Version
-!  20 Aug 2014 - M. Sulprizio - Add PBL_MAX and FRAC_OF_PBL for POPs simulation
-!  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
-!  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
-!                               internally in Paranox.
-!  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
-!  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
-!  19 Jan 2018 - R. Yantosca  - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1232,12 +1213,12 @@ CONTAINS
     ! ----------------------------------------------------------------------
     IF ( ExtState%SZAFACT%DoUse ) THEN 
 
-       ALLOCATE( SUMCOSZA( IIPAR, JJPAR ), STAT=RC )
+       ALLOCATE( SUMCOSZA( State_Grid%NX, State_Grid%NY ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:SUMCOSZA', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        SUMCOSZA = 0.0_fp
 
-       ALLOCATE( HCO_SZAFACT( IIPAR, JJPAR ), STAT=RC )
+       ALLOCATE( HCO_SZAFACT( State_Grid%NX, State_Grid%NY ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_SZAFACT', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        HCO_SZAFACT = 0e0_hp
@@ -1245,7 +1226,8 @@ CONTAINS
     ENDIF
 
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN 
-       ALLOCATE( HCO_FRAC_OF_PBL( IIPAR, JJPAR, LLPAR ), STAT=RC )
+       ALLOCATE( HCO_FRAC_OF_PBL( State_Grid%NX, State_Grid%NY, &
+                                  State_Grid%NZ ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_FRAC_OF_PBL', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        HCO_FRAC_OF_PBL = 0.0_hp
@@ -1259,14 +1241,14 @@ CONTAINS
     ! need to compute them separately. 
     ! ----------------------------------------------------------------------
     IF ( ExtState%JNO2%DoUse ) THEN 
-       ALLOCATE( JNO2( IIPAR, JJPAR ), STAT=RC )
+       ALLOCATE( JNO2( State_Grid%NX, State_Grid%NY ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JNO2', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        JNO2 = 0.0e0_hp
     ENDIF
 
     IF ( ExtState%JOH%DoUse ) THEN 
-       ALLOCATE( JOH( IIPAR, JJPAR ), STAT=RC )
+       ALLOCATE( JOH( State_Grid%NX, State_Grid%NY ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JOH', 0, RC )
        JOH = 0.0e0_hp
     ENDIF
@@ -1278,7 +1260,8 @@ CONTAINS
 
     ! TROPP: GEOS-Chem TROPP is in hPa, while HEMCO uses Pa.
     IF ( ExtState%TROPP%DoUse ) THEN
-       CALL HCO_ArrAssert( ExtState%TROPP%Arr, IIPAR, JJPAR, HMRC )
+       CALL HCO_ArrAssert( ExtState%TROPP%Arr, State_Grid%NX, State_Grid%NY, &
+                           HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1293,7 +1276,8 @@ CONTAINS
     ! SPHU: GEOS-Chem SPHU is in g/kg, while HEMCO uses kg/kg.
     ! NOTE: HEMCO only uses SPHU surface values.
     IF ( ExtState%SPHU%DoUse ) THEN
-       CALL HCO_ArrAssert( ExtState%SPHU%Arr, IIPAR, JJPAR, 1, HMRC )
+       CALL HCO_ArrAssert( ExtState%SPHU%Arr, State_Grid%NX, State_Grid%NY, &
+                           1, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1305,10 +1289,41 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! FLASH_DENS
+    IF ( ExtState%FLASH_DENS%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%FLASH_DENS%Arr, State_Grid%NX, &
+                           State_Grid%NY, HMRC )
+
+       ! Trap potential errors
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "HCO_ArrAssert( FLASH_DENS )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! CONV_DEPTH
+    IF ( ExtState%CONV_DEPTH%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%CONV_DEPTH%Arr, State_Grid%NX, &
+                           State_Grid%NY, HMRC )
+    
+       ! Trap potential errors
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC 
+          ErrMsg = 'Error encountered in "HCO_ArrAssert( CONV_DEPTH )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! SUNCOS: HEMCO now calculates SUNCOS values based on its own
     ! subroutine 
     IF ( ExtState%SUNCOS%DoUse ) THEN
-       CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, IIPAR, JJPAR, HMRC )
+       CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, State_Grid%NX, State_Grid%NY, &
+                           HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1360,7 +1375,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields( am_I_Root, State_Met, State_Chm,            &
+  SUBROUTINE ExtState_SetFields( am_I_Root, State_Chm, State_Met,            &
                                  HcoState,  ExtState,  RC                   ) 
 !
 ! !USES:
@@ -1369,11 +1384,8 @@ CONTAINS
     USE ErrCode_Mod
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
-
-    ! For SoilNox
     USE Drydep_Mod,     ONLY : DryCoeff
-
-#if defined(ESMF_)
+#ifdef ESMF_
     USE HCOI_Esmf_Mod,  ONLY : HCO_SetExtState_ESMF
 #endif
 !
@@ -1391,23 +1403,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller    - Initial Version
-!  20 Aug 2014 - M. Sulprizio - Add PBL_MAX and FRAC_OF_PBL for POPs simulation
-!  02 Oct 2014 - C. Keller    - PEDGE is now in HcoState%Grid
-!  16 Oct 2014 - C. Keller    - Removed SUNCOSmid5. This is now calculated
-!                               internally in Paranox.
-!  12 Mar 2015 - R. Yantosca  - Allocate SUMCOSZA array for SZAFACT
-!  12 Mar 2015 - R. Yantosca  - Use 0.0e0_hp when zeroing REAL(hp) variables
-!  03 Apr 2015 - C. Keller    - Now call down to ExtDat_Set for all fields
-!  14 Mar 2016 - C. Keller    - Append '_FOR_EMIS' to all HEMCO met field names
-!                               to avoid conflict if met-fields are read via
-!                               HEMCO.
-!  02 May 2016 - R. Yantosca  - Now define IDTPOPG locally
-!  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
-!                               species ID from State_Chm%Map_Advect.
-!  06 Jan 2017 - R. Yantosca  - Now tell user to look at HEMCO log for err msgs
-!  23 May 2017 - R. Yantosca  - Fixed typo for MERRA2 in #ifdef at line 1193
-!  02 Jun 2017 - C. Keller    - Call HCO_SetExtState_ESMF every time.
-!  19 Jan 2018 - R. Yantosca  - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2038,7 +2034,7 @@ CONTAINS
     ! ckeller, 06/02/17: now call this on every time step. Routine
     ! HCO_SetExtState_ESMF copies the fields to ExtState.
     ! ----------------------------------------------------------------
-#if defined( ESMF_ )
+#ifdef ESMF_
     ! IF ( FIRST ) THEN
     CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
 
@@ -2074,31 +2070,31 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields( am_I_Root, Input_Opt, State_Met,  &
-                                    State_Chm, HcoState,  ExtState,  RC ) 
+  SUBROUTINE ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,  &
+                                    State_Grid, State_Met, HcoState,   &
+                                    ExtState,   RC ) 
 !
 ! !USES:
 !
     USE CMN_FJX_MOD,      ONLY : ZPJ
-    USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
     USE FAST_JX_MOD,      ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod, ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,    ONLY : OptInput
-    USE PBL_MIX_MOD,      ONLY : GET_FRAC_OF_PBL
-    USE PBL_MIX_MOD,      ONLY : GET_PBL_MAX_L
-    USE State_Met_Mod,    ONLY : MetState
     USE State_Chm_Mod,    ONLY : ChmState
-#if defined(ESMF_) 
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
+#ifdef ESMF_
     USE HCOI_ESMF_MOD,    ONLY : HCO_SetExtState_ESMF
 #endif
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
-    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chm state
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input options
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
+    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Meteorology state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2108,18 +2104,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller   - Initial Version
-!  20 Aug 2014 - M. Sulprizio- Add PBL_MAX and FRAC_OF_PBL for POPs simulation
-!  02 Oct 2014 - C. Keller   - PEDGE is now in HcoState%Grid
-!  11 Mar 2015 - R. Yantosca - Now call GET_SZAFACT in this module
-!  11 Sep 2015 - E. Lundgren - Remove State_Chm from passed args since not used
-!  20 Apr 2016 - M. Sulprizio- Change JO1D to JOH to reflect that the array now
-!                              holds the effective O3 + hv -> 2OH rates
-!  27 Jun 2016 - M. Sulprizio- Obtain photolysis rate directly from ZPJ array
-!                              and remove reference to FJXFUNC and obsolete
-!                              SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
-!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
-!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2161,6 +2146,16 @@ CONTAINS
        ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
     ENDIF
 
+    ! FLASH_DENS: flash density [#/km2/s]
+    IF ( ExtState%FLASH_DENS%DoUse ) THEN
+       ExtState%FLASH_DENS%Arr%Val = State_Met%FLASH_DENS
+    ENDIF
+
+    ! CONV_DEPTH: convective cloud depth [m]
+    IF ( ExtState%CONV_DEPTH%DoUse ) THEN
+       ExtState%CONV_DEPTH%Arr%Val = State_Met%CONV_DEPTH
+    ENDIF    
+
     ! SUNCOS
     IF ( ExtState%SUNCOS%DoUse ) THEN
        CALL HCO_GetSUNCOS( am_I_Root,               HcoState,                &
@@ -2181,16 +2176,16 @@ CONTAINS
     ! angle over a 24 hour day, as well as the total length of daylight.
     ! This information is required by GET_SZAFACT. (bmy, 3/11/15)
     IF ( ExtState%SZAFACT%DoUse ) THEN
-       CALL Calc_SumCosZa()
+       CALL Calc_SumCosZa( State_Grid )
     ENDIF
 
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L )
     ! Loop over all grid boxes
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Current SZA divided by total daily SZA (2D field only)
        ! (This is mostly needed for offline simulations where a diurnal
@@ -2201,11 +2196,11 @@ CONTAINS
 
        ! Fraction of PBL for each box [unitless]
        IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
-          HCO_FRAC_OF_PBL(I,J,L) = GET_FRAC_OF_PBL(I,J,L)
+          HCO_FRAC_OF_PBL(I,J,L) = State_Met%F_OF_PBL(I,J,L)
        ENDIF
 
        ! Maximum extent of the PBL [model level]
-       HCO_PBL_MAX = GET_PBL_MAX_L()
+       HCO_PBL_MAX = State_Met%PBL_MAX_L
 
        ! J-values for NO2 and O3 (2D field only)
        ! This code was moved from hcox_paranox_mod.F90 to break
@@ -2254,21 +2249,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GridEdge_Set( am_I_Root, State_Met, HcoState, RC )
+  SUBROUTINE GridEdge_Set( am_I_Root, State_Grid, State_Met, HcoState, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE State_Met_Mod,    ONLY : MetState
     USE HCOX_STATE_MOD,   ONLY : ExtDat_Set
     USE HCO_GeoTools_Mod, ONLY : HCO_CalcVertGrid
     USE HCO_GeoTools_Mod, ONLY : HCO_SetPBLm
-    USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR, LLPAR
-    USE PBL_MIX_MOD,      ONLY : GET_PBL_TOP_M
+    USE State_Grid_Mod,   ONLY : GrdState
+    USE State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root 
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
 !
@@ -2282,13 +2277,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Oct 2014 - C. Keller   - Initial version
-!  28 Sep 2015 - C. Keller   - Now call HCO_CalcVertGrid
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  06 Jun 2016 - R. Yantosca - Now declar PEDGE array for edge pressures [Pa]
-!  06 Jun 2016 - R. Yantosca - PSFC now points to PEDGE(:,:,1)
-!  06 Jun 2016 - R. Yantosca - Now add error traps
-!  26 Oct 2016 - R. Yantosca - Now improve error traps for PBLM
-!  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2329,7 +2318,7 @@ CONTAINS
     ! NOTE: Hco_CalcVertGrid expects pointer-based arguments, so we must
     ! make PEDGE be a pointer and allocate/deallocate it on each call.
     !-----------------------------------------------------------------------
-    ALLOCATE( PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=RC )
+    ALLOCATE( PEDGE( State_Grid%NX, State_Grid%NY, State_Grid%NZ+1 ), STAT=RC )
     CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PEDGE', 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -2359,16 +2348,16 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set PBL heights
     !-----------------------------------------------------------------------
-    ALLOCATE( PBLM( IIPAR, JJPAR ), STAT=RC )
+    ALLOCATE( PBLM( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:GridEdge_Set:PBLM', 0, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J )
-    DO J=1,JJPAR
-    DO I=1,IIPAR
-       PBLM(I,J) = GET_PBL_TOP_m(I,J)
+    DO J=1,State_Grid%NY
+    DO I=1,State_Grid%NX
+       PBLM(I,J) = State_Met%PBL_TOP_m(I,J)
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
@@ -2467,12 +2456,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Mar 2015 - C. Keller   - Initial Version
-!  01 Sep 2015 - R. Yantosca - Remove reference to GET_HENRY_CONSTANT; we now
-!                              get Henry constants from the species database
-!  02 May 2016 - R. Yantosca - Now initialize IDTPOPG here
-!  06 Jun 2016 - M. Sulprizio- Replace Get_Indx with Spc_GetIndx to use the
-!                              fast-species lookup from the species database
-!  20 Jun 2016 - R. Yantosca - All species IDs are now set in the init phase
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2681,31 +2665,29 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_Grid 
+! !IROUTINE: SetHcoGrid
 !
-! !DESCRIPTION: Subroutine Set\_Grid tells HEMCO about the grid that is being
+! !DESCRIPTION: Subroutine SetHcoGrid tells HEMCO about the grid that is being
 !  used by the GEOS-Chem simulation.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Grid( am_I_Root, State_Met, HcoState, RC ) 
+  SUBROUTINE SetHcoGrid( am_I_Root, State_Grid, State_Met, HcoState, RC ) 
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
-    USE GC_GRID_MOD,        ONLY : XMID,  YMID
-    USE GC_GRID_MOD,        ONLY : XEDGE, YEDGE, YSIN
-    USE GC_GRID_MOD,        ONLY : AREA_M2
     USE HCO_ARR_MOD,        ONLY : HCO_ArrInit
     USE HCO_VERTGRID_MOD,   ONLY : HCO_VertGrid_Define
     USE PRESSURE_MOD,       ONLY : GET_AP, GET_BP
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT ARGUMENTS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT ARGUMENTS:
@@ -2715,9 +2697,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Sep 2013 - C. Keller   - Initial Version
-!  14 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
-!  28 Sep 2015 - C. Keller   - Now use HCO_VertGrid_Mod for vertical grid
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2736,7 +2716,7 @@ CONTAINS
     CHARACTER(LEN=512)    :: ErrMsg
 
     !=======================================================================
-    ! SET_Grid begins here!
+    ! SetHcoGrid begins here!
     !=======================================================================
 
     ! Initialize
@@ -2744,7 +2724,7 @@ CONTAINS
     HMRC     = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at Set_Grid (in module GeosCore/hcoi_gc_main_mod.F90)'
+       ' -> at SetHcoGrid (in module GeosCore/hcoi_gc_main_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
 
@@ -2758,22 +2738,22 @@ CONTAINS
     !=======================================================================
 
     ! Grid dimensions
-    HcoState%NX = IIPAR
-    HcoState%NY = JJPAR
-    HcoState%NZ = LLPAR
+    HcoState%NX = State_Grid%NX
+    HcoState%NY = State_Grid%NY
+    HcoState%NZ = State_Grid%NZ
 
     ! Allocate Ap array
-    ALLOCATE( Ap( LLPAR+1 ), STAT=RC )
-    CALL GC_CheckVar( 'hcoi_gc_main_mod:Set_Grid:Ap', 0, RC )
+    ALLOCATE( Ap( State_Grid%NZ+1 ), STAT=RC )
+    CALL GC_CheckVar( 'hcoi_gc_main_mod:SetHcoGrid:Ap', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Allocate Bp array
-    ALLOCATE( Bp( LLPAR+1 ), STAT=RC )
-    CALL GC_CheckVar( 'hcoi_gc_main_mod:Set_Grid:Bp', 0, RC )
+    ALLOCATE( Bp( State_Grid%NZ+1 ), STAT=RC )
+    CALL GC_CheckVar( 'hcoi_gc_main_mod:SetHcoGrid:Bp', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Get Ap and Bp values from GEOS-Chem
-    DO L = 1, LLPAR+1
+    DO L = 1, State_Grid%NZ+1
        Ap(L) = GET_AP(L) * 100_hp ! hPa to Pa 
        Bp(L) = GET_BP(L)          ! unitless
     ENDDO
@@ -2781,7 +2761,7 @@ CONTAINS
     ! Define the vertical grid
     CALL HCO_VertGrid_Define( am_I_Root, HcoState%Config,                    &
                               zGrid      = HcoState%Grid%zGrid,              &
-                              nz         = LLPAR,                            &
+                              nz         = State_Grid%NZ,                    &
                               Ap         = Ap,                               & 
                               Bp         = Bp,                               & 
                               RC         = HMRC                             )
@@ -2795,12 +2775,12 @@ CONTAINS
     ENDIF
 
     ! Set pointers to grid variables
-    HcoState%Grid%XMID%Val       => XMID   (:,:,1)
-    HcoState%Grid%YMID%Val       => YMID   (:,:,1)
-    HcoState%Grid%XEDGE%Val      => XEDGE  (:,:,1)
-    HcoState%Grid%YEDGE%Val      => YEDGE  (:,:,1)
-    HcoState%Grid%YSIN%Val       => YSIN   (:,:,1)
-    HcoState%Grid%AREA_M2%Val    => AREA_M2(:,:,1)
+    HcoState%Grid%XMID%Val       => State_Grid%XMid   (:,:)
+    HcoState%Grid%YMID%Val       => State_Grid%YMid   (:,:)
+    HcoState%Grid%XEDGE%Val      => State_Grid%XEdge  (:,:)
+    HcoState%Grid%YEDGE%Val      => State_Grid%YEdge  (:,:)
+    HcoState%Grid%YSIN%Val       => State_Grid%YSIN   (:,:)
+    HcoState%Grid%AREA_M2%Val    => State_Grid%Area_M2(:,:)
 !    HcoState%Grid%ZSFC%Val       => State_Met%PHIS      ! Surface geopotential height
 !    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT  ! Grid box heights
 
@@ -2811,7 +2791,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-    END SUBROUTINE Set_Grid
+    END SUBROUTINE SetHcoGrid
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2859,17 +2839,7 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  18 Feb 2015 - C. Keller   - Initial Version
-!  04 Mar 2015 - R. Yantosca - Now determine if we need to read UV albedo
-!                              data from the settings in input.geos
-!  16 Mar 2015 - R. Yantosca - Now also toggle TOMS_SBUV_O3 based on
-!                              met field type and input.geos settings
-!  25 Mar 2015 - C. Keller   - Added switch for STATE_PSC (for UCX)
-!  27 Aug 2015 - E. Lundgren - Now always read TOMS for mercury simulation when
-!                              photo-reducible HgII(aq) to UV-B radiation is on
-!  11 Sep 2015 - E. Lundgren - Remove State_Met and State_Chm from passed args
-!  03 Dec 2015 - R. Yantosca - Bug fix: pass am_I_Root to AddExtOpt
-!  19 Sep 2016 - R. Yantosca - Now compare LOGICALs with .eqv. and .neqv.
-!  19 Jan 2018 - R. Yantosca - Now return error code to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2997,7 +2967,7 @@ CONTAINS
     ENDIF
 
     IF ( FOUND ) THEN
-#if defined( ESMF_ )
+#ifdef ESMF_
        ! If this is in an ESMF environment, then we should not get STATE_PSC
        ! through HEMCO - instead it is an internal restart variable
        If (LTMP) Then
@@ -3015,7 +2985,7 @@ CONTAINS
        ENDIF
 #endif
     ELSE
-#if defined( ESMF_ )
+#ifdef ESMF_
        OptName = '+STATE_PSC+ : false'
 #else
        IF ( Input_Opt%LUCX ) THEN
@@ -3035,7 +3005,7 @@ CONTAINS
        ENDIF
     ENDIF 
 
-#if defined( ESMF_ )
+#ifdef ESMF_
     ! Also check that HEMCO_RESTART is not set
     CALL GetExtOpt( HcoConfig,       -999,        'HEMCO_RESTART',           &
                     OptValBool=LTMP, FOUND=FOUND,  RC=HMRC                  )
@@ -3307,10 +3277,7 @@ CONTAINS
 !  Moved here from the obsolete global_oh_mod.F.
 !
 ! !REVISION HISTORY: 
-!  01 Mar 2013 - C. Keller   - Imported from carbon_mod.F, where these
-!                              calculations are done w/in GET_OH
-!  06 Feb 2018 - E. Lundgren - Update unit conversion factor for timestep
-!                              unit changed from min to sec
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3350,26 +3317,24 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Calc_SumCosZa()
+  SUBROUTINE Calc_SumCosZa( State_Grid )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD        ! Size parameters
-    USE GC_GRID_MOD,   ONLY : GET_XMID,    GET_YMID_R
     USE PhysConstants
-    USE TIME_MOD,      ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-    USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+    USE State_Grid_Mod, ONLY : GrdState
+    USE TIME_MOD,       ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+    USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REMARKS:
 !  Moved here from the obsolete global_oh_mod.F.
 !
-! !REVISION HISTORY: 
-!  01 Mar 2013 - C. Keller   - Imported from carbon_mod.F, where it's
-!                              called OHNO3TIME
-!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
-!                              from (MAXIJ) to (IIPAR,JJPAR)
-!  06 Feb 2018 - E. Lundgren - Update time conversion factors for timestep
-!                              unit change from min to sec
+! !REVISION HISTORY:
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3380,7 +3345,7 @@ CONTAINS
     INTEGER       :: I, J, L, N, NT, NDYSTEP
     REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
     REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-    REAL(fp)      :: SUNTMP(IIPAR,JJPAR)
+    REAL(fp)      :: SUNTMP(State_Grid%NX,State_Grid%NY)
 
     !=======================================================================
     ! CALC_SUMCOSZA begins here!
@@ -3424,14 +3389,14 @@ CONTAINS
 !!$OMP PARALLEL DO
 !!$OMP DEFAULT( SHARED )
 !!$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR )
-          DO J = 1, JJPAR
-          DO I = 1, IIPAR
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
 
              ! Grid box latitude center [radians]
-             YMID_R = GET_YMID_R( I, J, 1 )
+             YMID_R = State_Grid%YMid_R(I,J)
 
              TIMLOC = real(LHR0) + real(NT)/3600.0 + &
-                      GET_XMID( I, J, 1 ) / 15.0
+                      State_Grid%XMid(I,J) / 15.0
          
              DO WHILE (TIMLOC .lt. 0)
                 TIMLOC = TIMLOC + 24.0
@@ -3495,8 +3460,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                            Phase,     RC )
+ SUBROUTINE Get_Met_Fields( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                            State_Met, Phase,     RC )
 !
 ! ! USES:
 !
@@ -3508,34 +3473,28 @@ CONTAINS
    USE Input_Opt_Mod,          ONLY : OptInput
    USE Pressure_Mod,           ONLY : Set_Floating_Pressures
    USE State_Chm_Mod,          ONLY : ChmState
+   USE State_Grid_Mod,         ONLY : GrdState
    USE State_Met_Mod,          ONLY : MetState
    USE Time_Mod
 !
 ! !INPUT PARAMETERS:
 !
    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
-   TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input opts
+   TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
+   TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
    INTEGER,          INTENT(IN   )          :: Phase      ! Run phase
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Met state
-   TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry state
+   TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Meteorology State
+   TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry State
    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 ! 
 ! !REMARKS:
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
-!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_MERRA_A3_FIELDS
-!  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
-!  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
-!  12 Aug 2015 - R. Yantosca - Call routines for reading MERRA2 fields
-!  25 Oct 2018 - M. Sulprizio- Move READ_INITIAL_MET_FIELDS to hcoi_gc_main_mod
-!                              and rename Get_Met_Fields
-!  16 Nov 2018 - M. Sulprizio- Do not get met fields on last timestep
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3568,7 +3527,7 @@ CONTAINS
    ! Read time-invariant data (Phase 0 only)
    !----------------------------------
    IF ( PHASE == 0 ) THEN
-      CALL FlexGrid_Read_CN( Input_Opt, State_Met )
+      CALL FlexGrid_Read_CN( Input_Opt, State_Grid, State_Met )
    ENDIF
       
    !----------------------------------
@@ -3581,7 +3540,7 @@ CONTAINS
    ENDIF
    IF ( PHASE == 0 .or. ITS_TIME_FOR_A1() .and. &
         .not. ITS_TIME_FOR_EXIT() ) THEN
-      CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
+      CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Grid, State_Met )
    ENDIF
    
    !----------------------------------
@@ -3594,7 +3553,7 @@ CONTAINS
    ENDIF
    IF ( PHASE == 0 .or. ITS_TIME_FOR_A3() .and. &
         .not. ITS_TIME_FOR_EXIT() ) THEN
-      CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
+      CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Grid, State_Met )
    ENDIF
 
    !----------------------------------
@@ -3602,7 +3561,7 @@ CONTAINS
    !----------------------------------
    IF ( PHASE == 0 ) THEN
       D = GET_FIRST_I3_TIME()
-      CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
+      CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
       ! On first call, attempt to get instantaneous met fields for prior
       ! timestep from the GEOS-Chem restart file. Otherwise, initialize
@@ -3740,38 +3699,38 @@ CONTAINS
 
       ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
       ! and compute avg dry pressure near polar caps
-      CALL Set_Dry_Surface_Pressure( State_Met, 1 )
-      CALL AvgPole( State_Met%PS1_DRY )
+      CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
+      CALL AvgPole( State_Grid, State_Met%PS1_DRY )
 
       ! Compute avg moist pressure near polar caps
-      CALL AvgPole( State_Met%PS1_WET ) 
+      CALL AvgPole( State_Grid, State_Met%PS1_WET ) 
 
       ! Initialize surface pressures prior to interpolation
       ! to allow initialization of floating pressures
       State_Met%PSC2_WET = State_Met%PS1_WET
       State_Met%PSC2_DRY = State_Met%PS1_DRY
-      CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
+      CALL Set_Floating_Pressures( am_I_Root, State_Grid, State_Met, RC )
 
       ! Call AIRQNT to compute initial air mass quantities
       ! Do not update initial tracer concentrations since not read 
       ! from restart file yet (ewl, 10/28/15)
-      CALL AirQnt( am_I_Root, Input_Opt, State_Met, State_Chm, RC, &
-                   update_mixing_ratio=.FALSE. )
+      CALL AirQnt( am_I_Root, Input_Opt, State_Chm, State_Grid, State_Met, &
+                   RC,        update_mixing_ratio=.FALSE. )
 
    ELSE
 
       IF ( ITS_TIME_FOR_I3() .and. .not. ITS_TIME_FOR_EXIT() ) THEN
 
          D = GET_I3_TIME()
-         CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Met )
+         CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
          ! and compute avg dry pressure near polar caps
-         CALL Set_Dry_Surface_Pressure( State_Met, 2 )
-         CALL AvgPole( State_Met%PS2_DRY )
+         CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
+         CALL AvgPole( State_Grid, State_Met%PS2_DRY )
 
          ! Compute avg moist pressure near polar caps
-         CALL AvgPole( State_Met%PS2_WET ) 
+         CALL AvgPole( State_Grid, State_Met%PS2_WET ) 
 
       ENDIF
 
@@ -3795,7 +3754,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE Get_GC_Restart( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+ SUBROUTINE Get_GC_Restart( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                            State_Met, RC ) 
 !
 ! !USES:
 !     
@@ -3805,19 +3765,26 @@ CONTAINS
    USE Error_Mod
    USE HCO_INTERFACE_MOD,  ONLY : HcoState
    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
-   USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
-   USE PHYSCONSTANTS,      ONLY : BOLTZ, AIRMW
+   USE PHYSCONSTANTS,      ONLY : AIRMW
    USE Input_Opt_Mod,      ONLY : OptInput
    USE Species_Mod,        ONLY : Species
    USE State_Chm_Mod,      ONLY : ChmState
+   USE State_Grid_Mod,     ONLY : GrdState
    USE State_Met_Mod,      ONLY : MetState
    USE TIME_MOD,           ONLY : EXPAND_DATE
    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#ifdef APM
+   USE APM_INIT_MOD,       ONLY : APMIDS
+#endif
+#ifdef BPCH_DIAG
+   USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+   TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -3831,26 +3798,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !
 !  09 Feb 2016 - E. Lundgren - Initial version
-!  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
-!                              database field emMW_g (emitted species g/mol)
-!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with SpcInfo%Name from species database
-!  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
-!                              HgP_Id_List fields of State_Chm
-!  11 Jul 2016 - E. Lundgren - Remove tracers and read only species
-!  12 Jul 2016 - E. Lundgren - Rename from read_gc_restart_nc
-!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN, MMN, CFCX, and
-!                              HCFCX. Family tracers have been eliminated.
-!  25 Jul 2016 - E. Lundgren - Store whether species in rst file in species db
-!                              rather than module-level variable
-!  03 Aug 2016 - E. Lundgren - Remove tracers; now only use species
-!  11 Aug 2016 - E. Lundgren - Move source of background values to spc database
-!  28 Nov 2017 - R. Yantosca - Now only replace tokens in filename but not
-!                              in the rest of the path
-!  24 Oct 2018 - M. Sulprizio- Move READ_GC_RESTART to hcoi_gc_main_mod.F90
-!                              and rename GET_GC_RESTART
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3868,8 +3816,9 @@ CONTAINS
    CHARACTER(LEN=63)    :: OrigUnit
 
    ! Temporary arrays and pointers
-   REAL*4,  TARGET           :: Temp2D(IIPAR,JJPAR) 
-   REAL*4,  TARGET           :: Temp3D(IIPAR,JJPAR,LLPAR)
+   REAL*4,  TARGET           :: Temp2D(State_Grid%NX,State_Grid%NY) 
+   REAL*4,  TARGET           :: Temp3D(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ)
    REAL*4,  POINTER          :: Ptr2D(:,:  )
    REAL*4,  POINTER          :: Ptr3D(:,:,:)
 
@@ -3977,8 +3926,8 @@ CONTAINS
       ! If data is in file, read in as [mol/mol] and convert to 
       ! [kg/kg dry]. Otherwise, set to background value [mol/mol]
       ! either stored in species database (advected species all levels and
-      ! non-advected species levels up to LLCHEM) or a small number
-      ! (non-advected species levels above LLCHEM) converted to 
+      ! non-advected species levels in the chemistry grid) or a small number
+      ! (non-advected species levels above the chemistry grid) converted to 
       ! [kg/kg dry]
       IF ( SpcInfo%Is_InRestart ) THEN
 
@@ -3995,9 +3944,9 @@ CONTAINS
 !$OMP PARALLEL DO                                                       &
 !$OMP DEFAULT( SHARED )                                                 &
 !$OMP PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
             ! Apply minimum value threshold where input conc is very low
             IF ( Ptr3D(I,J,L) < SMALL_NUM ) THEN
                  Ptr3D(I,J,L) = SMALL_NUM
@@ -4015,9 +3964,9 @@ CONTAINS
 !$OMP DEFAULT( SHARED )                                                 &
 !$OMP PRIVATE( I, J, L )
          ! Loop over all grid boxes
-         DO L = 1, LLPAR 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ 
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
                
             ! Special handling for MOH
             IF ( TRIM( SpcInfo%Name ) == 'MOH' ) THEN
@@ -4081,10 +4030,10 @@ CONTAINS
                          ': see READ_GC_RESTART for special MOH values')
                ENDIF
 
-            ! For non-advected species at levels above LLCHEM, use a 
-            ! small number for background
-            ELSEIF ( L > LLCHEM .AND. &
-                   ( .NOT. SpcInfo%Is_Advected ) ) THEN
+            ! For non-advected species at levels above chemistry grid,
+            ! use a small number for background
+            ELSEIF ( L > State_Grid%MaxChemLev .and. &
+                     .NOT. SpcInfo%Is_Advected ) THEN
 
                State_Chm%Species(I,J,L,N) = SMALL_NUM * MW_g / AIRMW 
 
@@ -4110,6 +4059,120 @@ CONTAINS
          ENDDO
 !$OMP END PARALLEL DO
 
+#ifdef APM
+         !================================================================
+         ! APM MICROPHYSICS
+         !================================================================
+         WRITE(*,*)'APM run does not find '// TRIM( SpcInfo%Name ),N
+         IF(SpcInfo%Name(1:9)=='APMSPBIN2')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SO4)/20.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:9)=='APMSPBIN3')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SO4)/20.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+!GanLuotest
+           IF(SpcInfo%Name(1:10)=='APMSEABIN0')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SALA)/9.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:10)=='APMSEABIN1')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SALC)/10.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:10)=='APMDSTBIN1')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = &
+               SUM(State_Chm%Species(I,J,L,APMIDS%id_DST1:APMIDS%id_DST4))/6.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:8)=='APMBCBIN')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = 1.D-30
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:8)=='APMOCBIN')THEN
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED  ) &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = 1.D-30
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+#endif
       ENDIF
 
       ! Free pointer
@@ -4126,9 +4189,9 @@ CONTAINS
       ! Convert units
       PRINT *, " "
       PRINT *, "Species min and max in molec/cm3"
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                              State_Chm, 'molec/cm3', RC,       &
-                              OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
+                              State_Grid, State_Met, 'molec/cm3', &
+                              RC,         OrigUnit=OrigUnit )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -4149,8 +4212,8 @@ CONTAINS
       ENDDO
 
       ! Convert units back
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                              State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                              State_Grid, State_Met, OrigUnit,  RC )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -4336,7 +4399,7 @@ CONTAINS
          ENDIF
       ELSE
          IF ( am_I_Root ) THEN
-#if defined(ESMF_)
+#ifdef ESMF_
             ! ExtData and HEMCO behave ambiguously - if the file was found
             ! but was full of zeros throughout the domain of interest, it
             ! will result in the same output from ExtData as if the field
@@ -4357,7 +4420,8 @@ CONTAINS
       Ptr3D => NULL()
 
    ENDIF
-   
+  
+#ifdef BPCH_DIAG 
    !=================================================================
    ! Read ocean mercury variables
    !=================================================================
@@ -4391,8 +4455,8 @@ CONTAINS
          IF ( FOUND ) THEN
 
             ! Check for negative concentrations (jaf, 7/6/11)
-            DO I = 1, IIPAR
-            DO J = 1, JJPAR
+            DO I = 1, State_Grid%NX
+            DO J = 1, State_Grid%NY
                IF ( Ptr2D(I,J) < 0.0d4 ) THEN
                   Ptr2D(I,J) = 0.0d4
                ENDIF
@@ -4478,7 +4542,8 @@ CONTAINS
 
          ! Make sure tagged & total species sum up
          IF ( Input_Opt%USE_CHECKS ) THEN
-            CALL CHECK_OCEAN_MERCURY( State_Chm, 'end of READ_GC_RESTART' )
+            CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
+                                      'end of READ_GC_RESTART' )
          ENDIF
       ENDIF
 
@@ -4561,6 +4626,7 @@ CONTAINS
       Hg_Cat_Name => NULL()
 
    ENDIF
+#endif
 
    !=================================================================
    ! Clean up
@@ -4573,6 +4639,204 @@ CONTAINS
    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
  END SUBROUTINE Get_GC_Restart
-#endif
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_boundary_conditions
+!
+! !DESCRIPTION: Subroutine GET\_BOUNDARY\_CONDITIONS calls the various routines
+! to get boundary conditions from HEMCO for nested grid simulations.
+!\\
+!\\
+! !INTERFACE:
+!
+ SUBROUTINE Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
+                                     State_Grid, State_Met, RC )
+!
+! ! USES:
+!
+   USE ErrCode_Mod
+   USE HCO_INTERFACE_MOD,      ONLY : HcoState
+   USE HCO_EMISLIST_MOD,       ONLY : HCO_GetPtr 
+   USE Input_Opt_Mod,          ONLY : OptInput
+   USE PHYSCONSTANTS,          ONLY : AIRMW
+   USE Species_Mod,            ONLY : Species
+   USE State_Chm_Mod,          ONLY : ChmState
+   USE State_Grid_Mod,         ONLY : GrdState
+   USE State_Met_Mod,          ONLY : MetState
+   USE Time_Mod
+!
+! !INPUT PARAMETERS:
+!
+   LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
+   TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
+   TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Meteorology State
+   TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry State
+   INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
+! 
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Apr 2019 - M. Sulprizio- Initial version
+!  See the Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   INTEGER              :: I, J, L, N, NA     ! lon, lat, lev, spc indexes
+   LOGICAL              :: FOUND              ! Found in restart file?
+   CHARACTER(LEN=60)    :: Prefix             ! utility string
+   CHARACTER(LEN=255)   :: LOC                ! routine location
+   CHARACTER(LEN=255)   :: MSG                ! message 
+   CHARACTER(LEN=255)   :: v_name             ! variable name 
+   REAL(fp)             :: MW_g               ! species molecular weight
+   REAL(fp)             :: SMALL_NUM          ! small number threshold
+   CHARACTER(LEN=16)    :: STAMP
+   
+   ! Temporary arrays and pointers
+   REAL*4,  TARGET      :: Temp3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+   REAL*4,  POINTER     :: Ptr3D(:,:,:)
+   REAL(fp), POINTER    :: Spc(:,:,:,:)
+
+   ! Objects
+   TYPE(Species), POINTER :: SpcInfo
+   
+   !=================================================================
+   ! READ_BOUNDARY_CONDITIONS begins here!
+   !=================================================================
+
+   ! Assume success
+   RC        = GC_SUCCESS
+   
+   ! Initialize pointers
+   Ptr3D     => NULL()
+   SpcInfo   => NULL()
+
+   ! Point to species array [kg/kg]
+   Spc       => State_Chm%Species
+   
+   ! Name of this routine
+   LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F)'
+
+   ! Set minimum value threshold for [mol/mol]
+   SMALL_NUM = 1.0e-30_fp
+
+   !=================================================================
+   ! Read species concentrations from NetCDF [mol/mol] and
+   ! store in State_Chm%BoundaryCond in [kg/kg dry]
+   !=================================================================
+
+   ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
+   ! the molecular weight stored in the species database which is
+   ! a meaningful value for advected species but is a bad value (-1)
+   ! for all others. Non-advected species should NOT be used when 
+   ! State_Chm%Species units are in mass mixing ratio. Current
+   ! units can be determined at any point by looking at 
+   ! State_Chm%Spc_Units. (ewl, 8/11/16)
+   
+   ! Initialize BCs to all zeroes
+   State_Chm%BoundaryCond = 0.e+0_fp
+
+   ! Loop over advected species
+   DO NA = 1, State_Chm%nAdvect
+
+      ! Get the species ID from the advected species ID
+      N = State_Chm%Map_Advect(NA)
+      
+      ! Get info about this species from the species database
+      SpcInfo => State_Chm%SpcData(N)%Info
+      MW_g    =  SpcInfo%emMW_g
+
+      ! Define variable name
+      v_name = 'BC_' // TRIM( SpcInfo%Name )
+
+      ! Initialize temporary array for this species and point to it
+      Temp3D = 0.0_fp
+      Ptr3D => Temp3D
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D,     RC,       FOUND=FOUND )
+
+      ! Check if BCs are found
+      IF ( FOUND ) THEN
+
+         ! Copy data from file to State_Chm%BoundaryCond
+         ! and convert from [mol/mol] to [kg/kg dry]
+         State_Chm%BoundaryCond(:,:,:,N) = Ptr3D(:,:,:) * MW_g / AIRMW
+
+         ! Debug
+!         Print*, 'BCs found for ', TRIM( SpcInfo%Name ), &
+!                 MINVAL(State_Chm%BoundaryCond(:,:,:,N)), &
+!                 MAXVAL(State_Chm%BoundaryCond(:,:,:,N))
+
+         ! Loop over grid boxes and apply BCs to the specified buffer zone
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+         DO L = 1, State_Grid%NZ
+
+            ! First loop over all latitudes of the nested domain
+            DO J = 1, State_Grid%NY
+
+               ! West BC 
+               DO I = 1, State_Grid%WestBuffer
+                  State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               ENDDO
+
+               ! East BC
+               DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
+                  State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               ENDDO
+         
+            ENDDO
+            
+            ! Then loop over the longitudes of the nested domain
+            DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
+              
+               ! South BC
+               DO J = 1, State_Grid%SouthBuffer
+                  Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               ENDDO
+
+               ! North BC
+               DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
+                  Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               ENDDO
+            ENDDO
+            
+         ENDDO
+!OMP END PARALLEL DO
+         
+      ELSE
+
+         MSG = 'No boundary condition found for '// TRIM( SpcInfo%Name )
+         CALL GC_Error( MSG, RC, LOC)
+         RETURN
+
+      ENDIF
+
+      ! Free pointer
+      SpcInfo => NULL()
+
+   ENDDO
+      
+   ! Echo output
+   STAMP = TIMESTAMP_STRING()
+   WRITE( 6, 110 ) STAMP
+110 FORMAT( 'GET_BOUNDARY_CONDITIONS: Found All BCs at ', a )
+
+      
+ END SUBROUTINE Get_Boundary_Conditions
+!EOC 
+#endif
 END MODULE Hcoi_GC_Main_Mod

@@ -915,10 +915,6 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
     INTEGER            :: IOS, LUN, FREELUN
     LOGICAL            :: isopen, exists
-#if defined( LINUX_PGI )
-    ! Add reference to SETVBUF3F function for PGI compiler (bmy, 1/22/16)
-    INTEGER, EXTERNAL  :: SETVBUF3F
-#endif
 
     !======================================================================
     ! HCO_LOGFILE_OPEN begins here 
@@ -967,11 +963,6 @@ CONTAINS
                 RC = HCO_FAIL
                 RETURN
              ENDIF
-#if defined( LINUX_PGI )
-             ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
-             ! can see the results while GC is running. (bmy, 1/22/16)
-             RC = SETVBUF3F( FREELUN, 1, 80 )
-#endif
 
        ! File exists and is opened ==> nothing to do
 
@@ -986,11 +977,6 @@ CONTAINS
                 RC = HCO_FAIL
                 RETURN
              ENDIF
-#if defined( LINUX_PGI )
-             ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
-             ! can see the results while GC is running. (bmy, 1/22/16)
-             RC = SETVBUF3F( FREELUN, 1, 80 )
-#endif
           ENDIF
 
           Err%LUN       = FREELUN
@@ -1006,11 +992,6 @@ CONTAINS
              RC = HCO_FAIL
              RETURN
           ENDIF
-#if defined( LINUX_PGI )
-          ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
-          ! can see the results while GC is running. (bmy, 1/22/16)
-          RC = SETVBUF3F( FREELUN, 1, 80 )
-#endif
           Err%LUN       = FREELUN
           Err%LogIsOpen = .TRUE.
        ENDIF

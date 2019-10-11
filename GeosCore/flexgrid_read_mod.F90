@@ -19,12 +19,6 @@ MODULE FlexGrid_Read_Mod
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
-#if defined( BPCH_DIAG )
-  USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
-  USE DIAG_MOD,      ONLY : AD21          ! Array for ND21 diagnostic  
-  USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
-  USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
-#endif
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
   USE PhysConstants                       ! Physical constants
   USE TIME_MOD                            ! Date & time routines
@@ -56,26 +50,10 @@ MODULE FlexGrid_Read_Mod
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  03 Feb 2012 - R. Yantosca - Add Geos57_Read_A3 wrapper function
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Add function Get_Resolution_String
-!  05 Apr 2012 - R. Yantosca - Convert units for specific humidity properly
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields via Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to geosfp_read_mod.F90
-!  14 Jan 2014 - R. Yantosca - Remove "define GEOS572_FILES #ifdef blocks
-!  14 Aug 2014 - R. Yantosca - Compute CLDTOPS field in GeosFp_Read_A3mstE
-!  03 Dec 2015 - R. Yantosca - Add file ID's as module variables
-!  03 Dec 2015 - R. Yantosca - Add CLEANUP_GEOSFP_READ to close any open 
-!                              netCDF files left at the end of a simulation
-!  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -91,17 +69,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_CN( Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_CN( Input_Opt, State_Grid, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! State Grid object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -118,14 +98,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_CN
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -137,31 +110,31 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name
                                 
     ! Arrays                                 
-    REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY)     ! Temporary data arrray
 
     ! Read FRLAKE
     v_name = "FRLAKE"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAKE = Q
 
     ! Read FRLAND
     v_name = "FRLAND"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAND = Q
 
     ! Read FRLANDIC
     v_name = "FRLANDIC"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRLANDIC = Q
     
     ! Read FROCEAN
     v_name = "FROCEAN"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FROCEAN = Q
     
     ! Read PHIS
     v_name = "PHIS"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PHIS = Q
 
     ! Echo info
@@ -175,13 +148,6 @@ CONTAINS
 
     ! Convert PHIS from [m2/s2] to [m]
     State_Met%PHIS = State_Met%PHIS / g0
-
-#if defined( BPCH_DIAG )
-    ! ND67 diagnostic 
-    IF ( ND67 > 0 ) THEN
-       AD67(:,:,15) = AD67(:,:,15) + State_Met%PHIS  ! Sfc geopotential [m]
-    ENDIF
-#endif
 
   END SUBROUTINE FlexGrid_Read_CN
 !EOC
@@ -198,11 +164,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A1( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                               State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -211,6 +179,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -244,19 +213,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  04 Jan 2013 - M. Payer    - Bug fix: Use State_Met%TSKIN for ND67 surface
-!                              skin temperature diagnostic, not State_MET%TS
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  02 Dec 2013 - S. Philip   - Correction for GEOS-FP boundary layer height
-!  04 Dec 2013 - R. Yantosca - Now comment out GEOS-FP BL height correction
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  23 Sep 2015 - E. Lundgren - Now assign SWGDN to State_Met SWGDN not RADSWG
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,7 +229,7 @@ CONTAINS
     INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
                 
     ! Arrays                                 
-    REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY) ! Temporary data arrray
 
     !======================================================================
     ! Skip if we have already read data for this date & time
@@ -291,75 +248,75 @@ CONTAINS
     
     ! Read ALBEDO
     v_name = "ALBEDO"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%ALBD = Q
 
     ! Read CLDTOT
     v_name = "CLDTOT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%CLDFRC = Q
 
     ! Read EFLUX
     v_name = "EFLUX"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%EFLUX = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading EVAP. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read EVAP
     !v_name = "EVAP"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%EVAP = Q
     !--------------------------------------------------------------------------
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRSEAICE = Q
 
     ! Read FRSNO
     v_name = "FRSNO"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRSNO = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read GRN
     !v_name = "GRN"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%GRN = Q
     !--------------------------------------------------------------------------
 
     ! Read GWETROOT
     v_name = "GWETROOT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%GWETROOT = Q
 
     ! Read GWETTOP
     v_name = "GWETTOP"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%GWETTOP = Q
 
     ! Read HFLUX from file
     v_name = "HFLUX"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%HFLUX = Q
 
     ! Read LAI
     v_name = "LAI"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%LAI = Q
 
     ! Read LWI
     v_name = "LWI"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%LWI = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading RADLWG. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read LWGNT 
     !v_name = "LWGNT"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%RADLWG = Q
     !--------------------------------------------------------------------------
 
@@ -367,169 +324,169 @@ CONTAINS
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read LWTUP
     !v_name = "LWTUP"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%LWTUP = Q
     !-----------------------------------------------------------------------
 
     ! Read PARDF
     v_name = "PARDF"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PARDF = Q
 
     ! Read PARDR
     v_name = "PARDR"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PARDR = Q
 
     ! Read PBLH
     v_name = "PBLH"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PBLH = Q
 
     ! Read PRECANV
     v_name = "PRECANV"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PRECANV = Q
 
     ! Read PRECCON
     v_name = "PRECCON"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PRECCON = Q
 
     ! Read PRECLSC
     v_name = "PRECLSC"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PRECLSC = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading PRECSNO. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read PRECSNO
     !v_name = "PRECSNO"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%PRECSNO = Q
     !--------------------------------------------------------------------------
 
     ! Read PRECTOT
     v_name = "PRECTOT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PRECTOT = Q
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read QV2M
     !v_name = "QV2M"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%QV2M = Q
     !-----------------------------------------------------------------------
 
     ! Read SEAICE00
     v_name = "SEAICE00"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE00 = Q
 
     ! Read SEAICE10
     v_name = "SEAICE10"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE10 = Q
 
     ! Read SEAICE20
     v_name = "SEAICE20"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE20 = Q
 
     ! Read SEAICE30
     v_name = "SEAICE30"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE30 = Q
 
     ! Read SEAICE40
     v_name = "SEAICE40"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE40 = Q
 
     ! Read SEAICE50
     v_name = "SEAICE50"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE50 = Q
 
     ! Read SEAICE60 
     v_name = "SEAICE60"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE60 = Q
 
     ! Read SEAICE70
     v_name = "SEAICE70"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE70 = Q
 
     ! Read SEAICE80
     v_name = "SEAICE80"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE80 = Q
 
     ! Read SEAICE90
     v_name = "SEAICE90"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE90 = Q
 
     ! Read SLP
     v_name = "SLP"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SLP = Q
 
     ! Read SNODP
     v_name = "SNODP"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SNODP = Q
 
     ! Read SNOMAS
     v_name = "SNOMAS"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SNOMAS = Q
 
     ! Read SWGDN
     v_name = "SWGDN"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SWGDN  = Q
 
     ! Read TO3
     v_name = "TO3"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%TO3 = Q
 
     ! Read TROPPT
     v_name = "TROPPT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%TROPP = Q
 
     ! Read TS
     v_name = "TS"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%TSKIN = Q
 
     ! Read T2M
     v_name = "T2M"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%TS = Q
 
     ! Read U10M
     v_name = "U10M"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%U10M = Q
 
     ! Read USTAR
     v_name = "USTAR"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%USTAR = Q
 
     ! Read V10M
     v_name = "V10M"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met% V10M = Q
 
     ! Read Z0M
     v_name = "Z0M"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%Z0 = Q
 
     ! Echo info
@@ -538,49 +495,20 @@ CONTAINS
  10 FORMAT( '     - Found all A1     met fields for ', a )
 
     !======================================================================
-    ! Diagnostics, cleanup, and quit
+    ! Cleanup and quit
     !======================================================================
 
-    ! Increment the # of times A1 fields are read from disk
-    CALL Set_Ct_A1( INCREMENT=.TRUE. )
-      
     ! Convert surface precip fields from [kg/m2/s] --> [mm/day]
     State_Met%PRECANV = State_Met%PRECANV * 86400d0
     State_Met%PRECCON = State_Met%PRECCON * 86400d0
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
 
-#if defined( MERRA2 )
-    ! Convert pressure quantities from [Pa] -> [hPa]
-    State_Met%SLP     = State_Met%SLP     * 1e-2_fp
-    State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
-#endif
-
-#if defined( BPCH_DIAG )
-    ! ND67 diagnostic: surface fields
-    IF ( ND67 > 0 ) THEN
-       AD67(:,:,1 ) = AD67(:,:,1 ) + State_Met%HFLUX    ! Sens heat flux [W/m2]
-       AD67(:,:,2 ) = AD67(:,:,2 ) + State_Met%SWGDN    ! SW rad @ sfc [W/m2]
-       AD67(:,:,3 ) = AD67(:,:,3 ) + State_Met%PRECTOT  ! Tot prec [kg/m2/s]
-       AD67(:,:,4 ) = AD67(:,:,4 ) + State_Met%PRECCON  ! Sfc conv prec[kg/m2/s]
-       AD67(:,:,5 ) = AD67(:,:,5 ) + State_Met%TS       ! T @ 2m height [K]
-       AD67(:,:,6 ) = AD67(:,:,6 ) + 0e0                !
-       AD67(:,:,7 ) = AD67(:,:,7 ) + State_Met%USTAR    ! Friction vel [m/s]
-       AD67(:,:,8 ) = AD67(:,:,8 ) + State_Met%Z0       ! Roughness height [m]
-       AD67(:,:,9 ) = AD67(:,:,9 ) + State_Met%PBLH     ! PBL height [m]
-       AD67(:,:,10) = AD67(:,:,10) + State_Met%CLDFRC   ! Column cld fraction
-       AD67(:,:,11) = AD67(:,:,11) + State_Met%U10M     ! U-wind @ 10m [m/s]
-       AD67(:,:,12) = AD67(:,:,12) + State_Met%V10M     ! V-wind @ 10m [m/s]
-       AD67(:,:,14) = AD67(:,:,14) + State_Met%ALBD     ! Sfc albedo [unitless]
-       AD67(:,:,17) = AD67(:,:,17) + State_Met%TROPP    ! T'pause pressure [hPa]
-       AD67(:,:,18) = AD67(:,:,18) + State_Met%SLP      ! Sea level prs [hPa]
-       AD67(:,:,19) = AD67(:,:,19) + State_Met%TSKIN    ! Sfc skin temp [K]
-       AD67(:,:,20) = AD67(:,:,20) + State_Met%PARDF    ! Diffuse PAR [W/m2]
-       AD67(:,:,21) = AD67(:,:,21) + State_Met%PARDR    ! Direct PAR [W/m2]
-       AD67(:,:,22) = AD67(:,:,22) + State_Met%GWETTOP  ! Topsoil wetness [frac]
-       AD67(:,:,23) = AD67(:,:,23) + State_Met%EFLUX    ! Latent heat flux [W/m2]
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+       ! Convert pressure quantities from [Pa] -> [hPa]
+       State_Met%SLP     = State_Met%SLP     * 1e-2_fp
+       State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
     ENDIF
-#endif
 
     ! Save date & time for next iteration
     lastDate = YYYYMMDD
@@ -606,18 +534,24 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                               State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+#ifdef BPCH_DIAG
+    USE Time_Mod,           ONLY : Set_Ct_A3
+#endif
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -625,8 +559,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -658,17 +591,23 @@ CONTAINS
     lastTime = HHMMSS
 
     ! Read all the diffeent A3 files
-    CALL FlexGrid_Read_A3cld ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL FlexGrid_Read_A3dyn ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL FlexGrid_Read_A3cld ( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3dyn ( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3mstC( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3mstE( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
 
     !======================================================================
     ! Cleanup and quit
     !======================================================================
 
+#ifdef BPCH_DIAG
     ! Increment the # of times that A3 fields have been read
     CALL Set_Ct_A3( INCREMENT=.TRUE. )
+#endif
 
     ! Save date & time for next iteration
     lastDate = YYYYMMDD
@@ -689,11 +628,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3cld( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3cld( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                  State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -702,6 +643,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -718,18 +660,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  05 Apr 2012 - R. Yantosca - Fixed bug: TAUCLI was overwritten w/ TAUCLW
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3Cld
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_A6 with TRANSFER_3D
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
-!  17 Mar 2016 - M. Sulprizio- Read optical depth into State_Met%OPTD instead of
-!                              State_Met%OPTDEP (obsolete).
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -741,7 +672,7 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                   
     ! Arrays                                 
-    REAL*4             :: Q(IIPAR,JJPAR,LLPAR)     ! Temporary data arrray
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY,State_Grid%NZ)     ! Temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -749,50 +680,38 @@ CONTAINS
     
     ! Read CLOUD
     v_name = "CLOUD"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%CLDF = Q
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%OPTD = Q
 
     ! Read QI
     v_name = "QI"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%QI = Q
 
     ! Read QL
     v_name = "QL"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%QL = Q
 
     ! Read TAUCLI
     v_name = "TAUCLI"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%TAUCLI = Q
 
     ! Read TAUCLW
     v_name = "TAUCLW"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%TAUCLW = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
  10 FORMAT( '     - Found all A3cld  met fields for ', a )
-
-    !======================================================================
-    ! Diagnostics, cleanup, and quit
-    !======================================================================
-
-#if defined( BPCH_DIAG )
-    ! ND21 diagnostic: OPTD and CLDF
-    IF ( ND21 > 0 ) THEN
-       AD21(:,:,1:LD21,1) = AD21(:,:,1:LD21,1) + State_Met%OPTD(:,:,1:LD21)
-       AD21(:,:,1:LD21,2) = AD21(:,:,1:LD21,2) + State_Met%CLDF(:,:,1:LD21)
-    ENDIF
-#endif
 
   END SUBROUTINE FlexGrid_Read_A3cld
 !EOC
@@ -809,12 +728,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                  State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput  
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
@@ -822,6 +743,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -838,18 +760,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directories with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3dyn
-!  15 Nov 2013 - R. Yantosca - Now convert RH from [1] to [%], in order
-!                              to be consistent with GEOS-Chem convention
-!  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS in GeosFP_Read_A3mstE
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
-!  03 Feb 2017 - M. Sulprizio- Activate reading OMEGA fields from file
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -861,7 +772,7 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
 
     ! Arrays                                 
-    REAL*4             :: Q (IIPAR,JJPAR,LLPAR  )  ! Temporary data arrray
+    REAL*4             :: Q (State_Grid%NX,State_Grid%NY,State_Grid%NZ  )  ! Temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -869,27 +780,27 @@ CONTAINS
 
     ! Read DTRAIN
     v_name = "DTRAIN"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%DTRAIN = Q
 
     ! Read OMEGA
     v_name = "OMEGA"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%OMEGA = Q
 
     ! Read RH
     v_name = "RH"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%RH = Q
 
     ! Read U
     v_name = "U"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%U = Q
 
     ! Read V
     v_name = "V"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%V = Q
 
     ! Echo info
@@ -903,21 +814,6 @@ CONTAINS
     
     ! Convert RH from [1] to [%]
     State_Met%RH = State_Met%RH * 100d0
-
-#if defined( BPCH_DIAG )
-    ! ND66 diagnostic: U, V, DTRAIN, OMEGA met fields
-    IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + State_Met%U     (:,:,1:LD66)
-       AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + State_Met%V     (:,:,1:LD66)
-       AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + State_Met%DTRAIN(:,:,1:LD66)
-       AD66(:,:,1:LD66,7) = AD66(:,:,1:LD66,7) + State_Met%OMEGA (:,:,1:LD66)
-    ENDIF
-
-    ! ND67 diagnostic: CLDTOPS
-    IF ( ND67 > 0 ) THEN
-       AD67(:,:,16) = AD67(:,:,16) + State_Met%CLDTOPS         ! [levels]
-    ENDIF
-#endif
 
   END SUBROUTINE FlexGrid_Read_A3dyn
 !EOC
@@ -935,11 +831,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                   State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -948,6 +846,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! State Grid object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -964,14 +863,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3mstC
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -983,7 +875,7 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                     
     ! Arrays                                 
-    REAL*4             :: Q (IIPAR,JJPAR,LLPAR)    ! Temporary data arrray
+    REAL*4             :: Q (State_Grid%NX,State_Grid%NY,State_Grid%NZ)    ! Temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -991,22 +883,22 @@ CONTAINS
     
     ! Read DQRCU  from file
     v_name = "DQRCU"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%DQRCU = Q
 
     ! Read DQRLSAN
     v_name = "DQRLSAN"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%DQRLSAN = Q
 
     ! Read REEVAPCN
     v_name = "REEVAPCN"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%REEVAPCN = Q
 
     ! Read  from file
     v_name = "REEVAPLS"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%REEVAPLS = Q
 
     ! Echo info
@@ -1034,11 +926,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                   State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -1047,6 +941,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1063,16 +958,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_A3mstE
-!  26 Sep 2013 - R. Yantosca - Now read CMFMC from GEOSFP*.nc files
-!  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS here; it depends on CMFMC
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1084,8 +970,9 @@ CONTAINS
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                              
-    ! Arrays                                 
-    REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
+    ! Arrays
+    REAL*4             :: Qe(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1)
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY                )
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1093,29 +980,39 @@ CONTAINS
     
     ! Read CMFMC (only in GEOSFP*.nc files)
     v_name = "CMFMC"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%CMFMC = Qe
 
     ! Read PFICU
     v_name = "PFICU"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%PFICU = Qe
 
     ! Read PFILSAN
     v_name = "PFILSAN"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%PFILSAN = Qe
 
     ! Read PFLCU
     v_name = "PFLCU"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%PFLCU = Qe
 
-    ! Read  from file
+    ! Read PLLSAN
     v_name = "PFLLSAN"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%PFLLSAN = Qe
 
+    ! Read FLASH_DENS
+    v_name = "FLASH_DENS"
+    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
+    State_Met%FLASH_DENS = Q2
+
+    ! Read CONV_DEPTH
+    v_name = "CONV_DEPTH"
+    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
+    State_Met%CONV_DEPTH = Q2
+    
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
@@ -1126,10 +1023,10 @@ CONTAINS
     !=================================================================
 
     ! CLDTOPS = highest location of CMFMC in the column (I,J)
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
        State_Met%CLDTOPS(I,J) = 1
-       DO L = LLPAR, 1, -1
+       DO L = State_Grid%NZ, 1, -1
           IF ( State_Met%CMFMC(I,J,L) > 0d0 ) THEN
              State_Met%CLDTOPS(I,J) = L + 1
              EXIT
@@ -1137,13 +1034,6 @@ CONTAINS
        ENDDO
     ENDDO
     ENDDO
-
-#if defined( BPCH_DIAG )
-    ! ND66 diagnostic: CMFMC met field
-    IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + State_Met%CMFMC(:,:,1:LD66)
-    ENDIF
-#endif
 
   END SUBROUTINE FlexGrid_Read_A3mstE
 !EOC
@@ -1160,19 +1050,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                 State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
+#ifdef BPCH_DIAG
+    USE Time_Mod,           ONLY : Set_Ct_I3
+#endif
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1189,22 +1085,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  05 Apr 2012 - R. Yantosca - Now convert QV1 from [kg/kg] to [g/kg]
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  06 Sep 2013 - R. Yantosca - Bug fix: we need to initialize State_Met%T
-!                              with State_Met%TMPU1 to avoid errors.  The
-!                              State_Met%T field will be set again in INTERP.
-!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_I3_1
-!  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_1 for offline simulations
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
-!  12 Jun 2015 - E. Lundgren - Initialize State_MET%SPHU with State_Met%SPHU1
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1216,8 +1097,8 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                     
     ! Arrays                                 
-    REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
-    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY      )    ! 2D temporary data arrray
+    REAL*4             :: Q3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)    ! 3D temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1229,7 +1110,7 @@ CONTAINS
 
     ! Read PS
     v_name = "PS1"
-    CALL Get_Met_2D( Q2, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
     State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
@@ -1241,19 +1122,19 @@ CONTAINS
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
-    !CALL Get_Met_3D( Q3, TRIM(v_name) )
+    !CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
     !State_Met%PV = Q3
     !----------------------------------------------------------------
 
     ! Read QV
     v_name = "SPHU1"
-    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     State_Met%SPHU1 = Q3
 
     ! Read T
     v_name = "TMPU1"
-    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     State_Met%TMPU1 = Q3
 
     ! Echo info
@@ -1277,10 +1158,10 @@ CONTAINS
 
     ENDWHERE
 
-#if defined( MERRA2 )
-    ! Convert PS1_WET from [Pa] to [hPa]
-    State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
-#endif
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+       ! Convert PS1_WET from [Pa] to [hPa]
+       State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
+    ENDIF
 
     ! Initialize State_Met%T to State_Met%TMPU1 and State_Met%SPHU to
     ! State_Met%SPHU1.  After all future MET field reads (geosfp_read_i3_2)
@@ -1294,15 +1175,9 @@ CONTAINS
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
+#ifdef BPCH_DIAG
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
-
-#if defined( BPCH_DIAG )
-    ! ND66 diagnostic: T1, QV1 met fields
-    IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU1(:,:,1:LD66)
-       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU1(:,:,1:LD66)
-    ENDIF
 #endif
 
   END SUBROUTINE FlexGrid_Read_I3_1
@@ -1320,19 +1195,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                 State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
+#ifdef BPCH_DIAG
+    USE Time_Mod,           ONLY : Set_Ct_I3
+#endif
 !
 ! !INPUT PARAMETERS:
 ! 
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1349,18 +1230,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
-!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
-!  05 Apr 2012 - R. Yantosca - Now convert QV2 from [kg/kg] to [g/kg]
-!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
-!                              object
-!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
-!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
-!  26 Sep 2013 - R. Yantosca - Rename to GeosFp_Read_I3_2
-!  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_2 for offline simulations
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  03 Dec 2015 - R. Yantosca - Now open file only once per day
-!  20 Sep 2016 - R. Yantosca - Bug fix: FIRST must be declared as LOGICAL
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1374,8 +1244,8 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                     
     ! Arrays                                 
-    REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
-    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY      )    ! 2D temporary data arrray
+    REAL*4             :: Q3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)    ! 3D temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1387,7 +1257,7 @@ CONTAINS
 
     ! Read PS
     v_name = "PS2"
-    CALL Get_Met_2D( Q2, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
     State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
@@ -1399,19 +1269,19 @@ CONTAINS
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
-    !CALL Get_Met_3D( Q3, TRIM(v_name) )
+    !CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
     !State_Met%PV = Q3
     !----------------------------------------------------------------
 
     ! Read QV
     v_name = "SPHU2"
-    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     State_Met%SPHU2 = Q3
 
     ! Read T
     v_name = "TMPU2"
-    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     State_Met%TMPU2 = Q3
 
     ! Echo info
@@ -1435,24 +1305,18 @@ CONTAINS
 
     ENDWHERE
 
-#if defined( MERRA2 )
-    ! Convert PS2_WET from [Pa] to [hPa]
-    State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
-#endif
-    
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+       ! Convert PS2_WET from [Pa] to [hPa]
+       State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
+    ENDIF
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
 
+#ifdef BPCH_DIAG
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
-
-#if defined( BPCH_DIAG )
-    ! ND66 diagnostic: T2, QV2 met fields
-    IF ( ND66 > 0 ) THEN
-       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU2(:,:,1:LD66)
-       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU2(:,:,1:LD66)
-    ENDIF
 #endif
 
   END SUBROUTINE FlexGrid_Read_I3_2
@@ -1483,23 +1347,7 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  13 Apr 2004 - R. Yantosca - Initial version
-!  (1 ) Added parallel DO-loops (bmy, 4/13/04)
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (3 ) Added TROPP (phs 11/10/06)
-!  (4 ) Don't copy TROPP2 to TROPP1 for GEOS-5 (bmy, 1/17/07) 
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2010 - R. Yantosca - Rewrite #if block for clarity
-!  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
-!  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
-!  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  11 Aug 2015 - R. Yantosca - MERRA2 behaves in the same way as GEOS-FP
-!  03 May 2016 - E. Lundgren - Add PS1_DRY update
-!  26 Oct 2018 - M. Sulprizio- Moved this routine from dao_mod.F to
-!                              flexgrid_read_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

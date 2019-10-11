@@ -1,0 +1,45 @@
+add_library(HCO STATIC EXCLUDE_FROM_ALL
+	hco_arr_mod.F90
+	hco_calc_mod.F90
+	hco_chartools_mod.F90
+	hco_clock_mod.F90
+	hco_config_mod.F90
+	hco_datacont_mod.F90
+	hco_diagn_mod.F90
+	hco_driver_mod.F90
+	hco_emislist_mod.F90
+	hco_error_mod.F90
+	hco_extlist_mod.F90
+	hco_filedata_mod.F90
+	hco_fluxarr_mod.F90
+	hco_geotools_mod.F90
+	hco_interp_mod.F90
+	hco_logfile_mod.F90
+	hco_readlist_mod.F90
+	hco_restart_mod.F90
+	hco_scale_mod.F90
+	hco_state_mod.F90
+	hco_tidx_mod.F90
+	hco_timeshift_mod.F90
+	hco_types_mod.F90
+	hco_unit_mod.F90
+	hco_vertgrid_mod.F90
+	hcoio_dataread_mod.F90
+	hcoio_diagn_mod.F90
+	hcoio_messy_mod.F90
+	hcoio_read_esmf_mod.F90
+	hcoio_read_std_mod.F90
+	hcoio_write_esmf_mod.F90
+	hcoio_write_std_mod.F90
+	interpreter.F90
+	messy_ncregrid_base.F90
+	messy_ncregrid_mpi.F90
+)
+target_link_libraries(HCO
+	PUBLIC GeosUtil
+)
+target_compile_options(HCO
+	PRIVATE
+		""
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-ffree-line-length-none>
+)

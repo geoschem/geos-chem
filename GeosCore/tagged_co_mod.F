@@ -28,11 +28,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEM_TAGGED_CO
-!----------------------------------------
-! Prior to 10/11/18:
-! Comment out for now (bmy, 10/11/18)
-!      PUBLIC  :: GET_ALPHA_ISOP
-!----------------------------------------
       PUBLIC  :: INIT_TAGGED_CO
       PUBLIC  :: CLEANUP_TAGGED_CO
 !
@@ -59,74 +54,7 @@
 !
 ! !REVISION HISTORY:
 !  28 Jul 2000- R. Yantosca - Initial version
-!  (1 ) Removed obsolete code from CHEM_TAGGED_CO (bmy, 12/21/00)
-!  (2 ) Added CO sources from oxidation of biofuel VOC's, biomass burning
-!        VOC's, fossil fuel VOC's, and natural VOC's (bnd, bmy, 1/2/01)
-!  (3 ) Added chemical P(CO) from CH3OH and MONOTERPENES (bnd, bmy, 1/2/01)
-!  (4 ) Now cap SCALEYEAR at 1997 in "emiss_tagged_co" (bnd, bmy, 4/6/01) 
-!  (5 ) Removed obsolete commented-out code (bmy, 4/23/01)
-!  (6 ) Added new module variables SUMACETCO, EMACET, CO_PRODS, CO_LOSSS,
-!        ISOP96, MONO96, and MEOH96.  Also added new module routines 
-!        GET_ALPHA_ISOP, READ_PCO_LCO_STRAT, GET_PCO_LCO_STRAT, 
-!        READ_ACETONE, and READ_BIOG_FOR_GEOS3. (bnd, bmy, 6/14/01)
-!  (7 ) Now read files from DATA_DIR/tagged_CO_200106/ (bmy, 6/19/01) 
-!  (8 ) Removed ISOP96, MONO96, and CH3OH96 since we now use the new GEOS-3
-!        fields and no longer have to correct for the surface temperature.
-!        (bmy, 8/21/01)
-!  (9 ) Bug fix: don't call GLOBAL_NOX_MOD in routine CHEM_TAGGED_CO 
-!        unless a logical switch is set (bmy, 8/28/01)
-!  (10) Updated comments (bmy, 9/6/01)
-!  (11) Deleted obsolete code for 1998 GEOS-3 fix.  Also now archive ND46
-!        diagnostic as [atoms C/cm2/s] (bmy, 9/13/01)
-!  (12) Bug fix in CHEM_TAGGED_CO: now save CO sources/sinks into the
-!        Total CO tracer (N=1). (qli, bmy, 9/21/01)
-!  (13) Resize arrays of (IIPAR,JJPAR) to (IIPAR,JJPAR) (bmy, 9/28/01)
-!  (14) Removed obsolete code from 9/28/01 (bmy, 10/23/01)
-!  (15) Updated comments (bmy, 2/15/02)
-!  (16) Removed double definition of SUMCH3OHCO (bmy, 3/20/02)
-!  (17) Now use P(I,J) + PTOP instead of PS(I,J) (bmy, 4/11/02)
-!  (18) Now divide module header into MODULE PRIVATE, MODULE VARIABLES, and
-!        MODULE ROUTINES sections.  Updated comments (bmy, 5/28/02)  
-!  (19) Now references "pressure_mod.f" (dsa, bdf, bmy, 8/21/02)
-!  (20) Now reference AD, BXHEIGHT, T and SUNCOS from "dao_mod.f".  Also 
-!        removed obsolete code from various routines.  Now references
-!        ERROR_STOP from "error_mod.f". (bmy, 10/15/02)
-!  (21) Now references "grid_mod.f" and the new "time_mod.f". (bmy, 2/3/03)
-!  (22) Bug fix for NTAU in EMISS_TAGGED_CO.  Bug fix for FILENAME in routine
-!        READ_PCO_LCO_STRAT. (ave, bnd, bmy, 6/3/03)
-!  (23) Updated arg list in call to EMISOP in EMISS_TAGGED_CO (bmy, 12/9/03)
-!  (24) Now references "directory_mod.f", "logical_mod.f", "tracer_mod.f".
-!        Now remove IJLOOP_CO. (bmy, 7/20/04)
-!  (25) Fixed bug in CHEM_TAGGED_CO (bmy, 3/7/05)
-!  (26) Now reads data from both GEOS and GCAP grids.  Now also references
-!        "tropopause_mod.f". (bmy, 8/16/05)
-!  (27) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
-!  (28) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
-!        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
-!  (29) Routines GET_ALPHA_ISOP, GET_PCO_LCO_STRAT, READ_PCO_LCO_STRAT,
-!        READ_ACETONE and INIT_TAGGED_CO are public now. Variable
-!        EMACET is public now.  (phs, 9/18/07)
-!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
-!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
-!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  23 Oct 2012 - R. Yantosca - Update prod/loss for new GMI strat chem
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  10 Apr 2014 - R. Yantosca - Now change CO_PRODS and CO_LOSSS to REAL*4
-!  11 Jun 2014 - J.A. Fisher - Replace SUNCOS with SUNCOSmid for MEGAN
-!  11 Jun 2014 - J.A. Fisher - Treat monoterpenes as in full chemistry
-!  12 Jun 2014 - J.A. Fisher - Add option for non-local PBL mixing
-!  10 Jul 2014 - J.A. Fisher - Add diurnal cycle for OH
-!  10 Jul 2014 - J.A. Fisher - Change FIRSTEMISS to FIRSTTIME to allow
-!                              initialisation when emissions are off
-!  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  11 Mar 2015 - R. Yantosca - Add OH pointer for HEMCO data input
-!  06 Jan 2016 - E. Lundgren - Use global physical parameters
-!  21 Mar 2016 - R. Yantosca - Removed CO_PRODS and CO_LOSSS, we now get
-!                              GMI strat P(CO) and L(CO) directly from HEMCO
-!  21 Mar 2016 - R. Yantosca - Removed GET_PCO_LCO_STRAT, it was obsolete
-!  21 Mar 2016 - R. Yantosca - Get rid of READ_PCO_LCO_STRAT, it's obsolete
-!  28 Jun 2016 - R. Yantosca - Add extra error checks; remove EMACET array\
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,19 +92,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,  State_Met,
-     &                           State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEM_TAGGED_CO( am_I_Root,  Input_Opt,  State_Chm,
+     &                           State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD65
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_Error_Mod
       USE HCO_Interface_Mod,  ONLY : HcoState, GetHcoID
@@ -184,6 +107,7 @@
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -193,6 +117,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -206,89 +131,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Oct 1999 - Q. Li, B. Duncan, B. Field - Initial version
-!  (1 ) Now do chemistry all the way to the model top. 
-!  (2 ) Use monthly mean OH fields for oxidation.
-!  (3 ) Now reference the monthly mean OH array and the routine which reads
-!        it from disk in "global_oh_mod.f" (bmy, 7/28/00)
-!  (4 ) Removed obsolete code from 10/6/00 (bmy, 12/21/00)
-!  (5 ) Added P(CO) from CH3OH and MONOTERPENES.  Also account for the 
-!        variation of CH4 conc. w/ latitude and year (bnd, bmy, 1/2/01)
-!  (6 ) Removed obsolete commented-out code (bmy, 4/23/01)
-!  (7 ) Updated with new stuff from bnd.  Also references module routines
-!        & arrays from "global_nox_mod.f" and "error_mod.f".  Removed
-!        THISMONTH as an argument since we can use the MONTH value
-!        from the "CMN" include file. (bmy, 6/14/01)
-!  (8 ) Remove GEOS-3 fix for biogenic fields (ISOP96, MONO96, CH3OH96),
-!        since we now use updated met fields w/o the surface temperature
-!        problem (bmy, 8/21/01)
-!  (9 ) Now only call GLOBAL_NOX_MOD to define the BNOX array, if switch
-!        ALPHA_ISOP_FROM_NOX is set.  The NOx concentrations used to compute
-!        the CO yield from isoprene are currently only at 4x5 (bmy, 8/28/01)
-!  (10) Bug fix: now make sure to add CO production and loss into the 
-!        STT(:,:,:,1), which is the Total CO tracer. (qli, bmy, 9/21/01)
-!  (11) Updated comments.  Bug fix: multiply CO_OH (after using it to update 
-!        tagged tracers) by GCO (the initial value of STT in molec/cm3) to 
-!        convert it to an amount of CO lost by OH [molec/cm3]. (bmy, 2/19/02)
-!  (12) Removed PS as an argument; use P(I,J) + PTOP instead of PS, in order
-!        to ensure that we use P and AD computed from the same preesure
-!        by AIRQNT. (bmy, 4/11/02)
-!  (13) Now use GET_PCENTER from "pressure_mod.f" to compute the pressure
-!        at the midpoint of box (I,J,L).  Also deleted obsolete, commented-out
-!        code. (dsa, bdf, bmy, 8/21/02)
-!  (14) Now reference AD and T from "dao_mod.f".  Now make FIRSTCHEM a local
-!        SAVEd variable. (bmy, 11/15/02)
-!  (15) Now replace YLMID(J) with routine GET_YMID of "grid_mod.f".  Now
-!        uses functions GET_TS_CHEM, GET_MONTH, GET_YEAR from the new
-!        "time_mod.f".  (bmy, 2/10/03) 
-!  (16) Now reference STT & N_TRACERS from "tracer_mod.f".  Now references
-!        LSPLIT from "logical_mod.f".  Now references AD65 from 
-!        "diag_pl_mod.f".  Updated comments. (bmy, 7/20/04)
-!  (17) Bug fix: re-insert ELSE between (1a-1) and (1a-2); it appears to have
-!        been mistakenly deleted. (bmy, 3/7/05)
-!  (18) Now references ITS_IN_THE_STRAT from "tropopause_mod.f".  Now remove
-!        reference to "CMN", it's obsolete. (bmy, 8/22/05)
-!  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (20) Remove reference to "global_ch4_mod.f" (bmy, 5/31/06)
-!  (21) Use newest JPL 2006 rate constant for CO+OH (jaf, jmao, 3/4/09)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  22 Oct 2012 - R. Yantosca - Now pass am_I_Root=.TRUE. to GET_GLOBAL_CH4
-!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  11 Apr 2013 - R. Yantosca - Now pass Input_Opt to GET_GLOBAL_NOX
-!  10 Jun 2013 - R. Yantosca - Avoid array temporaries in CHECK_VALUE
-!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
-!  10 Apr 2014 - R. Yantosca - Now use pointers to fields in State_Met
-!  10 Apr 2014 - R. Yantosca - Bug fix: DTSRCE should be DTCHEM
-!  10 Jul 2014 - J.A. Fisher - Add diurnal cycle for OH
-!  10 Jul 2014 - J.A. Fisher - Restore assignment of DTCHEM
-!  10 Jul 2014 - J.A. Fisher - Remove unused DTSRCE, PCO, and AREA_CM2
-!  10 Jul 2014 - J.A. Fisher - Moved ALPHA definitions out of code
-!  27 Aug 2014 - R. Yantosca - Bug fix: pass Input_Opt to GET_GLOBAL_CH4
-!  21 Oct 2014 - C. Keller   - Now use GetHcoVal instead ot Trac_Tend array
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID.
-!  11 Mar 2015 - R. Yantosca - Remove references to global_nox_mod.F
-!  11 Mar 2015 - R. Yantosca - Now get OH via the HEMCO data structure
-!  06 Jan 2016 - E. Lundgren - Use global physical parameters
-!  21 Mar 2016 - R. Yantosca - Now define FMOL_CO from the species database
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  28 Jun 2016 - R. Yantosca - Add error traps to make sure that the ISOP,
-!                              ACET, MONX non-advected species are all found
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  11 Oct 2016 - R. Yantosca - If emissions are turned off, do not update
-!                              the SUM*CO arrays, they will remain zeroed out.
-!  12 Oct 2016 - R. Yantosca - Bug fix: convert OH from kg/m3 (which HEMCO
-!                              brings in from disk) to molec/cm3.
-!  27 Mar 2017 - R. Yantosca - Now compute 
-!                              loss to the CO tagged species 
-!  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  18 Jan 2018 - M. Sulprizio- Remove call to GET_GLOBAL_CH4 and obtain monthly
-!                              CH4 concentrations from HEMCO instead
-!  10 Oct 2018 - R. Yantosca - Replace ERROR_STOP with GC_ERROR
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -401,7 +244,7 @@
 
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
-      CALL CALC_DIURNAL()
+      CALL CALC_DIURNAL( State_Grid )
 
       ! Check HEMCO state object
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
@@ -593,12 +436,12 @@
 !$OMP+PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC ) 
 !$OMP+PRIVATE( PCO_CH4_MCM3S,         PCO_NMVOC_MCM3S,         CO_NMVOC)
 !$OMP+PRIVATE( ERR_VAR, ERR_MSG,      BOXVL                            )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          
          ! Latitude of grid box
-         YMID     = GET_YMID( I, J, L )
+         YMID     = State_Grid%YMid(I,J)
 
          ! Grid box volume [cm3]
          BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -807,16 +650,6 @@
                ! as a constant. (bnd, bmy, 6/14/01)
                !=======================================================
 
-               !--------------------------------------------------------
-               ! Prior to 10/11/18:
-               ! Disable this routine for now, to avoid a call
-               ! to ERROR_STOP within a parallel loop.  We currently
-               ! set ALPHA_ISOP to a constant value anyway.
-               ! (bmy, 10/11/18)
-               !! Get CO yield from isoprene
-               !ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
-               !--------------------------------------------------------
-                             
                ! Get CO yield from ISOPRENE
                ! Use a 30% yield from Miyoshi et al., 1994.
                ! They estimate globally 105 Tg C/yr of CO is produced
@@ -1035,20 +868,6 @@
                   !
                   !------------------------------------------------------
 
-#if defined( BPCH_DIAG )
-                  !-----------------------------------------------------
-                  ! ND65 (bpch) diagnostic
-                  !
-                  ! Loss of CO by OH for "tagged" species
-                  !-----------------------------------------------------
-
-                  ! Units: [molec CO/cm3/s]
-                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) +
-     &                               ( CORATE * Spc(I,J,L,N) * STTCO)
-                  ENDIF
-#endif
-
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   !
@@ -1173,20 +992,6 @@
                   !    -- Jenny Fisher (27 Mar 2017)
                   !-----------------------------------------------------
 
-#if defined( BPCH_DIAG )
-                  !-----------------------------------------------------
-                  ! ND65 (bpch) diagnostic
-                  !
-                  ! Loss of CO by OH for "tagged" species
-                  !-----------------------------------------------------
-
-                  ! Units: [molec CO/cm3/s]
-                  IF ( ND65 > 0 .and. L <= LD65 ) THEN
-                     AD65(I,J,L,N) = AD65(I,J,L,N) + 
-     &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
-                  ENDIF
-#endif
-
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   !
@@ -1228,44 +1033,6 @@
          ! State_Chm%Species
          Spc(I,J,L,1) = GCO / STTCO
 
-#if defined( BPCH_DIAG )
-         !==============================================================
-         ! ND65 (bpch) diagnostics -- Production & Loss of CO
-         ! Also save P(CO) from CH3OH and MONOTERPENES (bmy, 1/2/01)
-         !==============================================================
-         IF ( ND65 > 0 .and. L <= LD65 ) THEN
-
-            ! Loss of CO by OH (global) [molec CO/cm3/s]
-            N             = 1
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
-
-            ! Production of CO from CH4 [molec CO/cm3/s]
-            N             = nAdvect + 1
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH4 / DTCHEM )
-
-            ! Production of CO from NMVOCs [molec CO/cm3/s]
-            N             = nAdvect + 2
-            AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_NMVOC / DTCHEM )
-   
-            IF ( .not. LPCO_NMVOC ) THEN
-               ! Production of CO from Isoprene [molec CO/cm3/s]
-               N             = nAdvect + 3
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ISOP / DTCHEM )
-   
-               ! Production of CO from CH3OH [molec CO/cm3/s]            
-               N             = nAdvect + 4
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_CH3OH / DTCHEM )
-   
-               ! Production of CO from MONO [molec CO/cm3/s]
-               N             = nAdvect + 5
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_MONO / DTCHEM )    
-   
-               ! Production of CO from ACET [molec CO/cm3/s]
-               N             = nAdvect + 6 
-               AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
-            ENDIF
-         ENDIF
-#endif
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -1322,15 +1089,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_DIURNAL
+      SUBROUTINE CALC_DIURNAL( State_Grid )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GC_GRID_MOD, ONLY : GET_YMID_R
+      USE State_Grid_Mod, ONLY : GrdState
       USE TIME_MOD, ONLY : ITS_A_NEW_DAY
       USE TIME_MOD, ONLY : GET_MINUTE,    GET_SECOND,      GET_HOUR
       USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
@@ -1402,17 +1173,17 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR, SUNTMP_MID )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
 
                ! Zero SUNTMP_MID
                SUNTMP_MID = 0d0
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R(I,J)
 
                ! Local time at box (I,J) [hours]
-               TIMLOC = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
+               TIMLOC = GET_LOCALTIME( I, J, 1, State_Grid, GMT=GMT_MID)
 
                ! Hour angle at box (I,J) [radians]
                AHR = ABS( TIMLOC - 12d0 ) * 15d00 * PI_180
@@ -1452,94 +1223,6 @@
 
 !EOC
 !------------------------------------------------------------------------------
-! Prior to 10/11/18:
-! Comment out this subroutine for now, it's not used (bmy, 10/11/18)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_alpha_isop
-!!
-!! !DESCRIPTION: Function GET\_ALPHA\_ISOP returns the CO yield from 
-!!  Isoprene (ALPHA\_ISOP) either as a function of NOx or as a constant. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_ALPHA_ISOP( FROM_NOX, NOX ) RESULT( ALPHA_ISOP )
-!!
-!! !USES:
-!!
-!      USE ERROR_MOD, ONLY : ERROR_STOP
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      LOGICAL,  INTENT(IN)           :: FROM_NOX   ! If =T, will take ALPHA_ISOP
-!                                                   ! as f(NOx).  If =F, will set
-!                                                   ! ALPHA_ISOP to a constant
-!      REAL(fp), INTENT(IN), OPTIONAL :: NOX        ! NOx concentration [ppbv]
-!!
-!!
-!! !RETURN VALUE:
-!!
-!      REAL(fp)                       :: ALPHA_ISOP  ! CO yield from ISOP
-!! 
-!! !REVISION HISTORY: 
-!!  13 Jun 2001 - B. Duncan - Initial version
-!!  01 Oct 1995 - R. Yantosca - Initial version
-!!  (1 ) Now make NOx an optional argument (bmy, 8/28/01)
-!!  (2 ) Now reference ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
-!!  (3 ) Updated comments (bmy, 7/20/04)
-!!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!      
-!      ! Assume success
-!      RC = GC_SUCCESS
-!
-!      !=================================================================
-!      ! If FROM_NOX = T, then we are taking the CO yield from Isoprene 
-!      ! as a function of NOx.  Otherwise, we set it to a constant.
-!      !=================================================================
-!      IF ( FROM_NOX ) THEN
-!
-!         ! Make sure NOX is passed if FROM_NOX = TRUE
-!         IF ( PRESENT( NOX ) ) THEN
-!
-!            ! The CO yield here is taken from acf's calculation 
-!            ! (from group meeting (1-20-99).  Assumming linearity, 
-!            ! ALPHA=0.8*[NOx]+0.6, with an upper and lower limit of 2.1 
-!            ! and 0.8, respectively. [NOx] is concentration in ppbv !!
-!            ALPHA_ISOP = ( 0.8e+0_fp * NOX ) + 0.6e+0_fp
-!
-!            ! Force lower & upper limits
-!            IF ( NOX < 0.5e+0_fp ) ALPHA_ISOP = 0.8e+0_fp
-!            IF ( NOX > 1.8e+0_fp ) ALPHA_ISOP = 2.1e+0_fp
-!         
-!         ELSE
-!
-!            ! Stop w/ error message
-!            CALL ERROR_STOP( 'NOx argument not passed!',
-!     &                       ' -> at GET_ALPHA_ISOP (tagged_co_mod.f)' )
-!            RETURN
-!
-!         ENDIF
-!   
-!      ELSE
-!
-!         ! Otherwise, use a 30% yield from Miyoshi et al., 1994.
-!         ! They estimate globally 105 Tg C/yr of CO is produced
-!         ! from isoprene oxidation.
-!         ! ALPHA_ISOP = (0.3 molec CO/atoms C) x (5 atoms C/molec ISOP)
-!         ALPHA_ISOP = 1.5e+0_fp
-!
-!      ENDIF
-!      
-!      END FUNCTION GET_ALPHA_ISOP
-!EOC
-!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -1551,7 +1234,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_CO( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE INIT_TAGGED_CO( am_I_Root,  Input_Opt, State_Diag,
+     &                           State_Grid, RC )
 !
 ! !USES:
 !
@@ -1559,12 +1243,14 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostic state object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1610,31 +1296,31 @@
      &     ' -> at Init_Tagged_CO (in module GeosCore/tagged_co_mod.F)'
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMISOPCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMISOPCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMISOPCO = 0.0_fp 
 
       ! Allocate SUMMONOCO -- array for CO from monoterpenes
-      ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMMONOCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMMONOCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMMONOCO = 0.0_fp 
 
       ! Allocate SUMCH3OH -- array for CO from CH3OH
-      ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMCH3OHCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMCH3OHCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMCH3OHCO = 0.0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
-      ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMACETCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMACETCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMACETCO = 0.0_fp 
 
       ! Allocate TCOSZ -- array for sum of COS(SZA)
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( TCOSZ( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:TCOSZ', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0.0_fp

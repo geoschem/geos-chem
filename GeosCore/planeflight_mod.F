@@ -13,6 +13,7 @@
 ! !INTERFACE:
 !
       MODULE PLANEFLIGHT_MOD
+#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -47,48 +48,17 @@
       PRIVATE :: WRITE_VARS_TO_FILE
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 !  The quantities that are saved to disk by the planeflight diagnostic were
 !  requested by GEOS-Chem users.  If you would like to save out a new quantity,
 !  then you will have to make your own modifications in this module.
 !
 ! !REVISION HISTORY:
-!  (1 ) Now references "pressure_mod.f" (dsa, bdf, bmy, 8/21/02)
-!  (2 ) Now reference AD from "dao_mod.f".  Now also references "error_mod.f".
-!        (bmy, 10/15/02)
-!  (3 ) Bug fix: replace missing commas in FORMAT statement (bmy, 3/23/03)
-!  (4 ) Now references "time_mod.f". (bmy, 3/27/03)
-!  (5 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
-!  (6 ) Bug fix: use NAMEGAS instead of NAMESPEC (lyj, bmy, 7/9/03)
-!  (7 ) Bug fix: avoid referencing JLOP for non-SMVGEAR runs (bmy, 7/18/03)
-!  (8 ) Bug fix: Use T instead of T3 for GMAO temperature.  Also replace
-!        NAMESPEC w/ NAMEGAS in RO2_SETUP.  Now locate reordered rxn 
-!        numbers for SMVGEAR II.(tdf, mje, bmy, 8/1/03)
-!  (9 ) Now print out N2O5 hydrolysis rxn as a special case.   Also rename
-!        output file. (bmy, 8/8/03)
-!  (10) Changed "DAO" to "GMAO" for met field variable names.  Now can save 
-!        aerosol optical depths.  Bug fix in TEST_VALID. (bmy, 4/23/03)
-!  (11) Now references "tracer_mod.f" (bmy, 7/20/04)
-!  (12) Bug fix in READ_VARIABLES (1/7/05)
-!  (13) Modified the plane flight diagnostic so that it writes output files
-!        for each day where flight track files are defined. (bmy, 3/24/05)
-!  (14) Minor bug fix in ARCHIVE_RXNS_FOR_PF (bmy, 5/20/05)
-!  (15) Now split AOD's into column AOD's and AOD's below plane.  Also scale
-!        AOD's to 400nm. (bmy, 10/25/05)
-!  (16) Bug fixes in READ_VARIABLES (bmy, 10/16/06)
-!  (17) Bug fix in PLANEFLIGHT (cdh, bmy, 12/12/06)
-!  (18) Bug fix in RO2_SETUP (tmf, bmy, 4/23/07)
-!  (19) Set very small values to zero.  (tmf, 1/7/09)
-!  (20) Add new RO2 species according to 'globchem.dat' (tmf, 1/7/09) 
-!  (21) Make sure we have 3 spaces in the exponential format (phs, 7/13/09)
-!  (22) Output the grid cell indexes (kjw, 8/18/09)
-!  (23) Add AN and NOy species. (fp, 3/10/10)
-!  (24) Now scale AODs to wavelength specified in jv_spec_aod.dat(clh, 5/14/09)
-!  29 Jul 2011 - R. Yantosca - Now also archive MERRA SEAICExx fields
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  19 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,8 +180,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, State_Chm,
-     &                              State_Met, RC )
+      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root,  Input_Opt, State_Chm,
+     &                              State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -220,6 +190,7 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput 
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD
@@ -230,6 +201,7 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -240,21 +212,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  30 Jul 2002 - M. Evans    - Initial version
-!  (1 ) Rename from "plane.dat" to "plane.log", since "*.dat" implies an input
-!        file name. (bmy, 8/8/03)
-!  (2 ) Add fancy output string (bmy, 4/26/04)
-!  (3 ) Now references GET_NYMD, GET_NHMS, and EXPAND_DATE from "time_mod.f".
-!        Now also replaces date & time tokens in the filenames. (bmy, 7/20/04)
-!  (4 ) Now references FILE_EXISTS from "file_mod.f".  Modified so that we
-!        check if a flight track file exists on each day.  Open file for 
-!        output on each day and write header. (bmy, 3/25/05)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  06 Aug 2012 - R. Yantosca - Now use local IU_PLANE and not from file_mod.F
-!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!  25 Jun 2014 - R. Yantosca - Now accept Input_Opt & RC via the arg list
-!  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -306,7 +264,7 @@
       ENDIF
 
       ! Compute # of species and # of points & allocate arrays
-      CALL INIT_PLANEFLIGHT( am_I_Root )
+      CALL INIT_PLANEFLIGHT( am_I_Root, State_Grid )
 
       ! Return if there are no flight track points for today
       IF ( NPOINTS == 0 ) THEN
@@ -330,7 +288,8 @@
      &                     IU_FILE,   RC )
 
       ! Read information about each point (date/time/lon/lat/alt)
-      CALL READ_POINTS( am_I_Root, Input_Opt, State_Met, IU_FILE, RC)
+      CALL READ_POINTS( am_I_Root, Input_Opt, State_Grid, State_Met,
+     &                  IU_FILE,   RC)
 
       ! Close the file
       CLOSE( IU_FILE )
@@ -438,29 +397,7 @@
 ! 
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
-!  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run. (bmy, 10/15/02)
-!  (2 ) Bug fix: replace missing commas in FORMAT statement (bmy, 3/23/03)
-!  (3 ) Bug fix: replace NAMESPEC w/ NAMEGAS for SMVGEAR II (lyj, bmy, 7/9/09)
-!  (4 ) Now locate reordered rxn numbers for SMVGEAR II. (mje, bmy, 8/1/03)
-!  (5 ) Now flag N2O5 hydrolysis rxn as a special case (bmy, 8/8/03)
-!  (6 ) Changed variable name prefix "DAO" to "GMAO".  Also added aerosol
-!        optical depths w/ tracer offset 2000. (bmy, 4/23/04)
-!  (7 ) Now references N_TRACERS & ITS_A_FULLCHEM_SIM from "tracer_mod.f"
-!        (bmy, 7/20/04)
-!  (8 ) Bug fix: extract tracer # when reading rxn rates (bmy, 1/7/05)
-!  (9 ) Now computes column AOD's and AOD's below plane (bmy, 10/24/05)
-!  (10) We need to trim NAMEGAS before comparing to LINE so that comparisons 
-!        for species like "O3" will work.  Also set NCS=NCSURBAN at the top
-!        of the subroutine, to avoid out of bounds error. (dbm, bmy, 10/16/06)
-!  (11) Add tracer TMS_?? for TOMAS microphysics rate diagnostic (win, 7/28/09)
-!  29 Jul 2011 - R. Yantosca - Also search for MERRA SEAICExx met fields
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with SpcInfo%Name from species database
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -560,7 +497,7 @@
                ! Save in PVAR -- add offset of 100000
                PVAR(N) = 100000 + NUM
 
-#if   defined( TOMAS )
+#ifdef TOMAS
             ! Add case matching for TOMAS microphysics rates (win, 7/28/09)
             !===========================================================
             ! GEOS-CHEM tracer: listed as "TMS_001", etc.
@@ -894,8 +831,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, State_Met,
-     &                        IU_FILE,   RC )
+      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, State_Grid,
+     &                        State_Met, IU_FILE,   RC )
 !
 ! !USES:
 !
@@ -907,12 +844,14 @@
       USE GC_GRID_MOD,        ONLY : GET_IJ
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : g0
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       INTEGER,        INTENT(IN)  :: IU_FILE     ! Logical unit # of file
 !
@@ -922,11 +861,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  30 Jul 2002 - M. Evans    - Initial version
-!  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run. (bmy, 10/15/02)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1059,55 +994,13 @@
             CALL GEOS_CHEM_STOP
          ENDIF
         
-         ! Skip observations outside the nested domain
-         ! Now consider all nest domains, lei, 11/24/18
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_AS)
-         IF ( LAT < -11e0 .OR. LAT > 55e0  .OR.
-     &        LON < 60e0 .OR. LON > 150e0 ) THEN
-            PRINT*, ' Outside the AS nested domain, skipping record ', N
+         ! Skip observations outside the domain
+         IF ( LAT < State_Grid%YMin .OR. LAT > State_Grid%YMax .OR. 
+     &        LON < State_Grid%XMin .OR. LON > State_Grid%XMax ) THEN
+            PRINT*, ' Outside nested domain, skipping record ', N
             CYCLE
          ENDIF
-#endif
-
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_NA)
-         IF ( LAT <   10e0 .OR. LAT >  70e0  .OR.
-     &        LON < -140e0 .OR. LON > -40e0 ) THEN
-            PRINT*, ' Outside the NA nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif
-
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_EU)
-         IF ( LAT <   30e0 .OR. LAT >  70e0  .OR.
-     &        LON < -30e0 .OR. LON > 50e0 ) THEN
-            PRINT*, ' Outside the EU nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_CH)
-         IF ( LAT <   15e0 .OR. LAT >  55e0  .OR.
-     &        LON < 70e0 .OR. LON > 140e0 ) THEN
-            PRINT*, ' Outside the CH nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_NA)
-         IF ( LAT <   9.75e0 .OR. LAT >  60e0  .OR.
-     &        LON < -130e0 .OR. LON > -60e0 ) THEN
-            PRINT*, ' Outside the NA nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_EU)
-         IF ( LAT <   32.75e0 .OR. LAT >  61.25e0  .OR.
-     &        LON < -15e0 .OR. LON > 40e0 ) THEN
-            PRINT*, ' Outside the EU nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif         
+ 
          ! Convert from altitude to pressure if we have CCCG data or
          ! tower data
          NAME = ADJUSTL(PTYPE(N))
@@ -1148,8 +1041,8 @@
      &        TRIM(NAME) .EQ. 'Twkt' ) THEN ! NOAA Tower
             ! Change units
             L_ALT = 0
-            IJ = GET_IJ(LON,LAT)
-            DO L = 1, LLPAR
+            IJ = GET_IJ( LON, LAT, State_Grid )
+            DO L = 1, State_Grid%NZ
                MOD_ELEV = State_Met%PHIS(IJ(1),IJ(2))/ g0
      &                  + SUM( State_Met%BXHEIGHT(IJ(1),IJ(2),1:L) )
                IF ( (L_ALT    .EQ.    0)  .AND.
@@ -1218,18 +1111,7 @@
 !
 ! !REVISION HISTORY: 
 !  01 Aug 2003 - M. Evans    - Initial version
-!  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run. (bmy, 10/15/02)
-!  (2 ) Now replace NAMESPEC w/ NAMEGAS for SMVGEAR II (bmy, 8/1/03)
-!  (3 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
-!  (4 ) Bug fix: PO3 should be PO2 (tmf, bmy, 4/23/07)
-!  (5 ) NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09)
-!  (6 ) Add new RO2 species according to 'globchem.dat' (tmf, 3/10/09)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with SpcInfo%Name from species database
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1340,11 +1222,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2009 - F. Paulot   - Initial version
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with SpcInfo%Name from species database
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1454,11 +1332,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2009 - F. Paulot   - Initial version
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
-!  20 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
-!                              NAMEGAS with SpcInfo%Name from species database
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1540,8 +1414,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
-     &                        State_Chm, State_Diag, RC         )
+      SUBROUTINE PLANEFLIGHT( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1557,11 +1431,12 @@
       USE PhysConstants,      ONLY : CONSVAP, AIRMW
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
       USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
-#if defined( BPCH_DIAG ) && defined( TOMAS )
+#ifdef TOMAS
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
 #endif
 !
@@ -1569,6 +1444,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1582,48 +1458,7 @@
 !
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
-!  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
-!        "error_mod.f", which frees memory before stopping. (bmy, 10/15/02)
-!  (2 ) Now uses functions GET_TAU, GET_TS_CHEM from "time_mod.f".
-!        (bmy, 3/27/03)
-!  (3 ) Updated comments, cosmetic changes (bmy, 7/18/03)
-!  (4 ) Now references T from "dao_mod.f", so that we can save out temperature
-!        for non-SMVGEAR runs. (bmy, 8/1/03)
-!  (5 ) Now references UWND and VWND from "dao_mod.f".  Now references
-!        GET_PEDGE from "pressure_mod.f".  Added CASEs for surface pressure,
-!        UWND, VWND to the CASE statement (bmy, 4/23/04)
-!  (6 ) Now references STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
-!  (7 ) Now return if DO_PF = .FALSE. (bmy, 3/24/05)
-!  (8 ) Now compute column AOD's and AOD's below plane.  Also now scale
-!        AOD's to 400nm. (bmy, 10/24/05)
-!  (9 ) Bug fix: exit if PTAU(M) == PTAUE, so that we write out on the next !
-!        planeflight timestep (cdh, bmy, 12/12/06)
-!  (10) Change planeflight output time step. (ccc, 8/27/09)
-!  (11) Add case matching for TOMAS rates (win, 7/28/09)
-!  (12) Modify PTAUE calculation w/ ref to GET_TS_DYN  (win, 7/28/09)
-!  (13) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  19 Nov 2014 - M. Yannetti - Edited OCEAN_MERCURY_MOD Fp to OMMFP
-!  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod. 
-!  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
-!  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
-!  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
-!  22 Dec 2015 - M. Sulprizio- Replace CSPEC with State_Chm%Species
-!  21 Apr 2016 - M. Sulprizio- Get CONSVAP from PhysConstants instead of
-!                              computing locally
-!  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
-!  22 Jun 2016 - M. Yannetti - Replaced references to TCVV with spec db
-!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
-!                              match new timestep unit of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1634,7 +1469,7 @@
       LOGICAL             :: IS_FULLCHEM, LINTERP
       INTEGER             :: I, J, L, M, N, R, PR, V
       INTEGER             :: LL     !eds
-      INTEGER             :: LPLANE, IWV, ISPC, K
+      INTEGER             :: IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
       LOGICAL             :: CHEMSTEP
@@ -1744,7 +1579,7 @@
 !            PRINT*, PTAU(M), PTAUS
 
             ! Write all missing values to disk for point #M
-            CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )      
+            CALL WRITE_VARS_TO_FILE( State_Grid, State_Met, M, VARI )      
 
             ! Increment pointer
             PPOINT = PPOINT + 1
@@ -1772,7 +1607,8 @@
  100        FORMAT( '     - PLANEFLIGHT: Archived ',a7,1x,i8.8,1x,i4.4 )
 
             ! Return grid box indices for the chemistry region
-            CALL TEST_VALID( M, I, J, L, Input_Opt, State_Met )
+            CALL TEST_VALID( M, I, J, L, Input_Opt, State_Grid,
+     &                       State_Met, RC )
 
             ! If this is a surface observation, set L=1
             !
@@ -1804,9 +1640,9 @@
             PR = 0
 
             ! Convert species units to [v/v]
-            CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                              State_Chm, 'v/v dry', RC, 
-     &                              OrigUnit=OrigUnit )
+            CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                              State_Grid, State_Met, 'v/v dry',
+     &                              RC,         OrigUnit=OrigUnit )
 
             ! Initialize GEOS-Chem species array
             Spc => State_Chm%Species
@@ -2058,13 +1894,13 @@
                    ! Loop over RH bins
                    DO  ISPC= 1, NAER
                     IF ( .not. LINTERP ) THEN
-                     DO LL = 1, LLPAR
+                     DO LL = 1, State_Grid%NZ
                       ! Accumulate
                       VARI(V) = VARI(V) +
      &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
                      ENDDO
                     ELSE
-                     DO LL = 1, LLPAR
+                     DO LL = 1, State_Grid%NZ
                       ! Interpolated using angstrom exponent between
                       ! Closest available wavelengths
                       ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -2082,7 +1918,7 @@
 
                    !now add in the dust
                    IF ( .not. LINTERP ) THEN
-                    DO LL = 1, LLPAR
+                    DO LL = 1, State_Grid%NZ
                      DO ISPC = 1, NDUST
                       ! Accumulate
                       VARI(V) = VARI(V) +
@@ -2090,7 +1926,7 @@
                      ENDDO
                     ENDDO
                    ELSE
-                    DO LL = 1, LLPAR
+                    DO LL = 1, State_Grid%NZ
                      ! Interpolated using angstrom exponent between
                      ! Closest available wavelengths
                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -2119,24 +1955,23 @@
                    ! Aerosol number
                    N = PVAR(V) - 3000
 
-                   ! Level of the plane.  AOD's are only computed
-                   ! up to the tropopause, so if the plane goes into
-                   ! the stratosphere, the AOD below plane will be
-                   ! the same as the trop column at that point.
-                   ! (bmy, 10/24/05)
-                   LPLANE  = MIN( L, LLTROP )
-
                    ! Loop over RH bins
                    DO  ISPC= 1, NAER
 
                     IF ( .not. LINTERP ) THEN
-                     DO LL = 1, LPLANE
+                     DO LL = 1, State_Grid%NZ
+                      ! Skip non-tropospheric boxes
+                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
+
                       ! Accumulate
                       VARI(V) = VARI(V) +
      &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
                      ENDDO
                     ELSE
-                     DO LL = 1, LPLANE
+                     DO LL = 1, State_Grid%NZ
+                      ! Skip non-tropospheric boxes
+                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
+
                       ! Interpolated using angstrom exponent between
                       ! Closest available wavelengths
                       ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -2154,7 +1989,9 @@
 
                    !now add in the dust
                    IF ( .not. LINTERP ) THEN
-                    DO LL = 1, LPLANE
+                    DO LL = 1, State_Grid%NZ
+                     ! Skip non-tropospheric boxes
+                     IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
                      DO ISPC = 1, NDUST
                       ! Accumulate
                       VARI(V) = VARI(V) +
@@ -2162,7 +1999,10 @@
                       ENDDO
                      ENDDO
                     ELSE
-                     DO LL = 1, LPLANE
+                     DO LL = 1, State_grid%NZ
+                      ! Skip non-tropospheric boxes
+                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
+
                       ! Interpolated using angstrom exponent between
                       ! Closest available wavelengths
                       ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -2212,7 +2052,7 @@
                      ! change format from HHMM to HH.MM:
                      FLTGMT = REAL(PTIME(M))*1.d-2
 
-                     VARI(V) = GET_LOCALTIME(I,J,L,FLTGMT)
+                     VARI(V) = GET_LOCALTIME(I,J,L,State_Grid,FLTGMT)
 
                   !--------------------------
                   ! Aqueous aerosol properties (eam, 08/2015)
@@ -2292,7 +2132,7 @@
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
-#if   defined( TOMAS ) && defined( BPCH_DIAG )
+#ifdef TOMAS
                   !-------------------------------
                   ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
                   !-------------------------------
@@ -2308,7 +2148,6 @@
      &                    'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
 
 #endif
-
                   !--------------------------
                   ! Otherwise it's an error!
                   !--------------------------
@@ -2323,14 +2162,15 @@
             ENDDO
 
            ! Convert species units back to original unit 
-           CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                            State_Chm, OrigUnit,  RC )
+           CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                             State_Grid, State_Met, OrigUnit,
+     &                             RC )
 
             ! Free pointer
             NULLIFY( Spc )
 
             ! Write data for the Mth plane point out to disk
-            CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )
+            CALL WRITE_VARS_TO_FILE( State_Grid, State_Met, M, VARI )
 
             ! Increment the record pointer
             PPOINT = PPOINT + 1
@@ -2353,47 +2193,33 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TEST_VALID( IND, I, J, L, Input_Opt, State_Met ) 
+      SUBROUTINE TEST_VALID( IND, I, J, L, Input_Opt, State_Grid,
+     &                       State_Met, RC ) 
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: IND         ! # of the flight track point
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN ) :: IND         ! # of the flight track point
+      TYPE(OptInput), INTENT(IN ) :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN ) :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN ) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: I       ! GEOS-Chem longitude index
-      INTEGER, INTENT(OUT) :: J       ! GEOS-Chem latitude index
-      INTEGER, INTENT(OUT) :: L       ! GEOS-Chem level index
+      INTEGER,        INTENT(OUT) :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(OUT) :: J           ! GEOS-Chem latitude index
+      INTEGER,        INTENT(OUT) :: L           ! GEOS-Chem level index
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
-!  (1 ) Now use GET_PEDGE of "pressure_mod.f" to return the pressure at the
-!        bottom edge of box (I,J,L), for hybrid grid. (dsa, bdf, bmy, 8/21/02)
-!  (2 ) Since JLOP is not allocated for non-SMVGEAR runs, set PCHEM=F and 
-!        JLOOP=0 even if we are in the troposphere. (bmy, 7/18/03)
-!  (3 ) Bug fix: add 0.5 in expression for I so that the rounding will
-!        be done correctly.  Also make sure that I is computed correctly
-!	 for points near the date line.  (bmy, 4/23/04)
-!  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
-!  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
-!  (6 ) Reference GET_XOFFSET and GET_YOFFSET from "grid_mod.f" and also 
-!        add for the case of nested-grid simulation (win, 7/28/09)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
-!                              based on nested regions
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod.
-!  17 May 2016 - M. Sulprizio- Remove PCHEM and JLOOP arguments
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2402,7 +2228,6 @@
 !
       INTEGER :: IL
       LOGICAL :: FOUND
-      INTEGER :: I0, J0 
       
       !=================================================================
       ! TEST_VALID begins here!
@@ -2411,25 +2236,22 @@
       ! We have not found a valid point
       FOUND = .FALSE.
 
-      ! Added correct definitions for I and J based on nested regions 
-      ! (lds, 8/25/11)
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-
       ! Get I corresponding to PLON(IND)
-      I = INT( ( PLON(IND) + 180e+0_fp - (I0 * DISIZE) ) / DISIZE 
+      I = INT( ( PLON(IND) + 180e+0_fp -
+     &    ( State_Grid%XMinOffset * State_Grid%DX ) ) / State_Grid%DX
      &     + 1.5e+0_fp )
 
       ! Handle date line correctly (bmy, 4/23/04)
-      IF ( I > IIPAR ) I = I - IIPAR
+      IF ( I > State_Grid%nx ) I = I - State_Grid%NX
 
       ! Get J corresponding to PLAT(IND)
-      J = INT( ( PLAT(IND) +  90e+0_fp - (J0 * DJSIZE) ) / DJSIZE 
+      J = INT( ( PLAT(IND) +  90e+0_fp -
+     &    ( State_Grid%YMinOffset * State_Grid%DY ) ) / State_Grid%DY 
      &     + 1.5e+0_fp )
 
       ! Get L corresponding to PRESS(IND)
       L = 1
-      DO IL = 1, LLPAR
+      DO IL = 1, State_Grid%NZ
          IF ( State_Met%PEDGE(I,J,IL) <= PPRESS(IND) 
      &                            .AND..NOT. FOUND ) THEN
             L     = IL-1
@@ -2456,30 +2278,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_VARS_TO_FILE( State_Met, IND, VARI )
+      SUBROUTINE WRITE_VARS_TO_FILE( State_Grid, State_Met, IND, VARI )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE FILE_MOD,      ONLY : IOERROR
-      USE GC_GRID_MOD,   ONLY : GET_IJ
-      USE State_Met_Mod, ONLY : MetState
+      USE FILE_MOD,       ONLY : IOERROR
+      USE GC_GRID_MOD,    ONLY : GET_IJ
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(GrdState), INTENT(IN) :: State_Grid    ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
       INTEGER,        INTENT(IN) :: IND           ! # of the flight track point
       REAL(fp),       INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
-!  (1 ) The max line length for output seems to be 1024 characters.  Adjust
-!        MAXVARS accordingly so that we don't exceed this. (bmy, 7/8/02)
-!  (2 ) Now do not write file header -- this is now done in subroutine
-!        SETUP_PLANEFLIGHT at the start of each day (bmy, 3/25/05)
-!  (3 ) Bug fix: make sure we have 3 spaces in exponential (phs, 7/13/09)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2498,67 +2317,26 @@
       LON_TMP = REAL(PLON(IND),4)
       LAT_TMP = REAL(PLAT(IND),4)
 
-      ! Skip observations outside the nested domain
-      ! Add all nested domain, lei, 11/24/18
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_AS)
-      IF ( LAT_TMP < -11e0 .OR. LAT_TMP > 55e0  .OR.
-     &     LON_TMP < 60e0 .OR. LON_TMP > 150e0 ) THEN
-         PRINT*, ' Outside the AS nested domain, skipping record ', IND
+      ! Skip observations outside the domain
+      IF ( LAT_TMP < State_Grid%YMin .OR.
+     &     LAT_TMP > State_Grid%YMax .OR. 
+     &     LON_TMP < State_Grid%XMin .OR.
+     &     LON_TMP > State_Grid%XMax ) THEN
+         PRINT*, ' Outside nested domain, skipping record ', IND
          RETURN
       ENDIF
-#endif
-
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_NA)
-      IF ( LAT_TMP <   10e0 .OR. LAT_TMP >  70e0  .OR.
-     &     LON_TMP < -140e0 .OR. LON_TMP > -40e0 ) THEN
-         PRINT*, ' Outside the NA nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
-
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_EU)
-      IF ( LAT_TMP <   30e0 .OR. LAT_TMP >  70e0  .OR.
-     &     LON_TMP < -30e0 .OR. LON_TMP > 50e0 ) THEN
-         PRINT*, ' Outside the EU nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_CH)
-      IF ( LAT_TMP <   15e0 .OR. LAT_TMP >  55e0  .OR.
-     &     LON_TMP < 70e0 .OR. LON_TMP > 140e0 ) THEN
-         PRINT*, ' Outside the CH nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_NA)
-      IF ( LAT_TMP <   9.75e0 .OR. LAT_TMP >  60e0  .OR.
-     &     LON_TMP < -130e0 .OR. LON_TMP > -60e0 ) THEN
-         PRINT*, ' Outside the NA nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_EU)
-      IF ( LAT_TMP <   32.75e0 .OR. LAT_TMP >  61.25e0  .OR.
-     &     LON_TMP < -15e0 .OR. LON_TMP > 40e0 ) THEN
-         PRINT*, ' Outside the EU nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
 
       ! Get Lat, Lon, and Pressure indicies (ajt, 5/26/13)
-      IIJJ = GET_IJ( LON_TMP, LAT_TMP )
+      IIJJ = GET_IJ( LON_TMP, LAT_TMP, State_Grid )
       II = IIJJ(1)      
       JJ = IIJJ(2)    
       LL = 0
       IF ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,1) ) LL = 1
-      DO L = 1, LLPAR
+      DO L = 1, State_Grid%NZ
          IF ( ( PPRESS(IND) .LT. State_Met%PEDGE(II,JJ,L)   ) .AND.
      &        ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,L+1) ) ) LL = L
       ENDDO
-      IF (LL .EQ. 0) LL = LLPAR
+      IF (LL .EQ. 0) LL = State_Grid%NZ
 
 
       ! Write data to file
@@ -2573,7 +2351,7 @@
       ! FP replace 95 by 200
 ! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
 !     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
-#if   defined( TOMAS )
+#ifdef TOMAS
  110  FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3,
      $       X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,250(es11.3e3,x))
 #else
@@ -2589,240 +2367,6 @@
 
       END SUBROUTINE WRITE_VARS_TO_FILE
 !EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! Prior to 5/12/16:
-! This routine does not work with the FlexChem implementation. We need to
-! rewrite this code to get the necessary information from KPP (mps, 5/12/16)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: archive_rxns_for_PF
-!!
-!! !DESCRIPTION: Subroutine ARCHIVE\_RXNS\_FOR\_PF is called from "calcrate.f" 
-!!  to pass reaction rates from the SMVGEAR solver for the planeflight 
-!!  diagnostic. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D, N2O5, EPOX, IMAE, ISOPN,
-!     &                                DHDN, GLYX )
-!!
-!! !USES:
-!!
-!      USE COMODE_MOD, ONLY : IXSAVE
-!      USE COMODE_MOD, ONLY : IYSAVE
-!      USE COMODE_MOD, ONLY : IZSAVE
-!      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-!
-!      USE CMN_SIZE_MOD                     ! Size parameters
-!      USE COMODE_LOOP_MOD                  ! RRATE, JLOOPLO, KBLOOP
-!      USE CMN_DIAG_MOD                     ! ND40 switch
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      REAL(fp), INTENT(INOUT) :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
-!      REAL(fp), INTENT(INOUT) :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
-!      REAL(fp), INTENT(INOUT)  :: EPOX(KBLOOP)  ! EPOX uptake coefficient [unitless]
-!      REAL(fp), INTENT(INOUT)  :: IMAE(KBLOOP)  ! IMAE uptake coefficient [unitless]
-!      REAL(fp), INTENT(INOUT)  :: ISOPN(KBLOOP) ! ISOPN uptake coefficient [unitless]
-!      REAL(fp), INTENT(INOUT)  :: DHDN(KBLOOP)  ! DHDN uptake coefficient [unitless]
-!      REAL(fp), INTENT(INOUT)  :: GLYX(KBLOOP)  ! GLYX uptake coefficient [unitless]
-!! 
-!! !REVISION HISTORY: 
-!!  08 Jul 2002 - M. Evans    - Initial version
-!!  (1 ) Now avoid overflow/underflow errors in PRATE (bmy, 7/8/02)
-!!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!!        allocated memory before stopping the run (bmy, 10/15/02)
-!!  (3 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
-!!  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.  
-!!        Also bug fix: replace TMP with RATE in under/overflow checking
-!!        for JO1D and N2O5. (bmy, 8/8/03)      
-!!  (5 ) Bug fix: Replace with DO_PF since this variable is reset to either T 
-!!        or F each day depending on whether there is plane flight data 
-!!        available (bmy, 5/20/05)
-!!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
-!      REAL(fp)             :: RATE
-!!
-!! !DEFINED PARAMETERS:
-!!
-!      ! Smallest, largest REAL*4 #'s representable on this machine
-!      REAL*4, PARAMETER  :: SMALLEST=TINY(1e0), LARGEST=HUGE(1e0)
-!
-!      !=================================================================
-!      ! ARCHIVE_RXNS_FOR_PF begins here!
-!      !=================================================================
-!      IF ( DO_PF ) THEN
-!
-!         ! Loop over SMVGEAR reactions
-!         DO R = 1, NPREAC
-!
-!            ! Test SMVGEAR rxn number
-!            SELECT CASE ( PREAC(R) ) 
-!
-!               !-----------------------
-!               ! All except JO1D, N2O5, and
-!               ! uptake coefficients of EPOX, IMAE, ORGN
-!               !-----------------------
-!               CASE( 10000:19999 )
-!                         
-!                  ! Store rate in PRRATE
-!                  DO KLOOP = 1, KTLOOP
-!                     JLOOP = JLOOPLO + KLOOP
-!                     RATE  = RRATE(KLOOP,PREAC(R)-10000)
-!
-!                     ! Avoid overflow/underflow
-!                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST
-!
-!                     PRRATE(JLOOP,R) = RATE
-!                  ENDDO
-!
-!               !-----------------------
-!               ! JO1D photolysis rxn 
-!               !-----------------------
-!               CASE ( 20000 )
-!
-!                  ! Store rate in PRATE
-!                  DO KLOOP = 1, KTLOOP
-!                     JLOOP = JLOOPLO + KLOOP
-!                     RATE  = JO1D(KLOOP)
-!
-!                     ! Avoid overflow/underflow
-!                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-!
-!                     PRRATE(JLOOP,R) = RATE
-!                  ENDDO
-!                 
-!               !-----------------------
-!               ! N2O5 hydrolysis rxn
-!               !-----------------------
-!               CASE ( 21000 ) 
-!
-!                  ! Store rate in PRATE
-!                  DO KLOOP = 1, KTLOOP
-!                     JLOOP = JLOOPLO + KLOOP
-!                     RATE  = N2O5(KLOOP)
-!
-!                     ! Avoid overflow/underflow
-!                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-!
-!                     PRRATE(JLOOP,R) = RATE
-!                  ENDDO
-!
-!               !-----------------------
-!               ! EPOX reactive uptake
-!               !-----------------------
-!               CASE ( 22001 ) 
-!
-!                  ! Store rate in PRATE
-!                  DO KLOOP = 1, KTLOOP
-!                     JLOOP = JLOOPLO + KLOOP
-!                     RATE  = EPOX(KLOOP)
-!
-!                     ! Avoid overflow/underflow
-!                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-!
-!                     PRRATE(JLOOP,R) = RATE
-!                  ENDDO
-!
-!               !-----------------------
-!               ! IMAE reactive uptake
-!               !-----------------------
-!               CASE ( 22002 ) 
-!
-!                  ! Store rate in PRATE
-!                  DO KLOOP = 1, KTLOOP
-!                     JLOOP = JLOOPLO + KLOOP
-!                     RATE  = IMAE(KLOOP)
-!
-!                     ! Avoid overflow/underflow
-!                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-!
-!                     PRRATE(JLOOP,R) = RATE
-!                  ENDDO
-!
-!               !-----------------------
-!               ! Isoprene nitrate gamma
-!               !-----------------------
-!               CASE ( 22003 ) 
-!
-!                  ! Store rate in PRATE
-!                  DO KLOOP = 1, KTLOOP
-!                     JLOOP = JLOOPLO + KLOOP
-!                     RATE  = ISOPN(KLOOP)
-!
-!                     ! Avoid overflow/underflow
-!                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-!
-!                     PRRATE(JLOOP,R) = RATE
-!                  ENDDO
-!
-!               !-----------------------
-!               ! DHDN gamma
-!               !-----------------------
-!               CASE ( 22004 ) 
-!
-!                  ! Store rate in PRATE
-!                  DO KLOOP = 1, KTLOOP
-!                     JLOOP = JLOOPLO + KLOOP
-!                     RATE  = DHDN(KLOOP)
-!
-!                     ! Avoid overflow/underflow
-!                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-!
-!                     PRRATE(JLOOP,R) = RATE
-!                  ENDDO
-!
-!               !-----------------------
-!               ! Glyoxal gamma
-!               !-----------------------
-!               CASE ( 22005 ) 
-!
-!                  ! Store rate in PRATE
-!                  DO KLOOP = 1, KTLOOP
-!                     JLOOP = JLOOPLO + KLOOP
-!                     RATE  = GLYX(KLOOP)
-!
-!                     ! Avoid overflow/underflow
-!                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
-!
-!                     PRRATE(JLOOP,R) = RATE
-!                  ENDDO
-!
-!               !-----------------------
-!               ! Error: invalid rxn
-!               !-----------------------
-!               CASE DEFAULT
-!                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!                  WRITE( 6, '(a)' ) 'ERROR -- Invalid SMVGEAR rxn #!'
-!                  WRITE( 6, '(a)' ) 'STOP in ARCHIVE_RXNS_FOR_PF!'
-!                  WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!                  CALL GEOS_CHEM_STOP
-!
-!            END SELECT
-!         ENDDO
-!      ENDIF
-!
-!      END SUBROUTINE ARCHIVE_RXNS_FOR_PF
-!!EOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2846,7 +2390,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2871,33 +2415,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PLANEFLIGHT( am_I_Root )
+      SUBROUTINE INIT_PLANEFLIGHT( am_I_Root, State_Grid )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD    ! Size Parameters
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IOERROR
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,       ONLY : IOERROR
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
-!  (1 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run.  Also reference ALLOC_ERR
-!        from "error_mod.f" (bmy, 10/15/02)
-!  (2 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
-!  (3 ) INIT_PLANEFLIGHT is now called each day but the arrays are only
-!        allocated once.  Arrays are now allocated to the maximum size.
-!        (bmy, 3/25/05)
-!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  20 Jun 2016 - M. Sulprizio- Change PRRATE array dimensions from
-!                              (ITLOOP,NPREAC) to (IIPAR,JJPAR,LLPAR,NPREAC)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3036,8 +2570,8 @@
          ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREAC' )
 
-         ALLOCATE( PRRATE( IIPAR, JJPAR, LLPAR, MAX( NPREAC, 1 ) ),
-     &             STAT=AS )
+         ALLOCATE( PRRATE( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &             MAX( NPREAC, 1 ) ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
 
          ! ---------------------
@@ -3144,4 +2678,5 @@
 
       END SUBROUTINE CLEANUP_PLANEFLIGHT
 !EOC
+#endif
       END MODULE PLANEFLIGHT_MOD

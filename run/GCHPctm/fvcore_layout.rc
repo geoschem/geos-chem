@@ -1,0 +1,30 @@
+         npx: 24
+         npy: 24
+         npz: 72
+          dt: 600
+     n_sponge: -1
+   ADIABATIC: .true.
+ hydrostatic: .true.
+        nord: 0
+       d2_bg: 0.0075
+       d4_bg: 0.0
+       dddmp: 0.2
+      ksplit: 1
+      nsplit: 0
+      msplit: 0
+     hord_mt: 10
+     hord_vt: 10
+     hord_tm: 10
+     hord_dp: 13
+     hord_tr: 13
+     kord_tm: -9
+     kord_mt:  9
+     kord_wz:  9
+     kord_tr:  9
+
+      FV_OFF: .false.
+    fv_debug: .false.
+    inline_q: .false.
+    z_tracer: .false.
+    chk_mass: .false.
+
