@@ -1842,6 +1842,116 @@ CONTAINS
              Henry_CR      = 4600.0_f8
              WD_RetFactor  = 2.0e-2_fp
 
+          CASE( 'ICHE' )
+             ! Deposition parameterized like IEPOX
+             FullName      = 'isoprene hydroxy-carbonyl-epoxides'
+             Formula       = 'C5H8O3'
+             MW_g          = 116.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 8.00e+7_fp
+             Henry_K0      = 8.00e+7_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+
+          CASE( 'ICN' )
+             FullName      = 'lumped isoprene carbonyl-nitrates'
+             Formula       = 'C5H7NO4'
+             MW_g          = 145.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 1.70e+4_f8
+             Henry_CR      = 9200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+
+          CASE( 'ICPDH' )
+             FullName      = 'isoprene dihydroxy hydroperoxycarbonyl'
+             Formula       = 'C5H10O5'
+             MW_g          = 150.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.00e+8_fp
+             Henry_K0      = 1.00e+8_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
+          CASE( 'IDC' )
+             ! Deposition parameterized like HPALD
+             FullName      = 'lumped isoprene dicarbonyls'
+             Formula       = 'C5H6O2'
+             MW_g          = 98.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 4.0e+4_fp
+             
+          CASE( 'IDCHP' )
+             FullName      = 'isoprene dicarbonyl hydroxy dihydroperoxide'
+             Formula       = 'C5H8O5'
+             MW_g          = 148.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.00e+8_fp
+             Henry_K0      = 1.00e+8_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
+          CASE( 'IDHDP' )
+             FullName      = 'isoprene dihydroxy dihydroperoxide'
+             Formula       = 'C5H12O6'
+             MW_g          = 168.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.00e+8_fp
+             Henry_K0      = 1.00e+8_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
+          CASE( 'IDHPE' )
+             FullName      = 'isoprene dihydroxy hydroperoxy epoxide'
+             Formula       = 'C5H10O5'
+             MW_g          = 150.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.00e+8_fp
+             Henry_K0      = 1.00e+8_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
+          CASE( 'IDN' )
+             FullName      = 'lumped isoprene dinitrates'
+             Formula       = 'C5H8N2O6'
+             MW_g          = 208.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.00e+8_fp
+             Henry_K0      = 1.00e+8_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+
           CASE( 'IEPOXA' )
              FullName      = 'trans-Beta isoprene epoxydiol'
              Formula       = 'C5H10O3'
@@ -1976,6 +2086,42 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
+          CASE( 'INPB' )
+             FullName      = 'lumped b-hydroperoxy isoprene nitrates'
+             Formula       = 'C5H9NO5'
+             MW_g          = 163.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+#if defined( NEW_HENRY_CONSTANTS )
+             Henry_K0      = 1.97e+4_f8 * To_M_atm
+#else
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 1.70e+4_f8
+             Henry_CR      = 9200.0_f8
+#endif
+             WD_RetFactor  = 2.0e-2_fp
+
+          CASE( 'INPD' )
+             FullName      = 'lumped d-hydroperoxy isoprene nitrates'
+             Formula       = 'C5H9NO5'
+             MW_g          = 163.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+#if defined( NEW_HENRY_CONSTANTS )
+             Henry_K0      = 1.97e+4_f8 * To_M_atm
+#else
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 1.70e+4_f8
+             Henry_CR      = 9200.0_f8
+#endif
+             WD_RetFactor  = 2.0e-2_fp
+
           CASE( 'IONITA' )
              FullName      = 'Aer-phase organic nitrate from isoprene precursors'
 
@@ -2052,6 +2198,34 @@ CONTAINS
              Henry_CR      = 4400.0_f8
 #endif
 
+          CASE( 'ITCN' )
+             FullName      = 'lumped isoprene tetrafunctional carbonylnitrates'
+             Formula       = 'C5H9NO7'
+             MW_g          = 195.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.00e+8_fp
+             Henry_K0      = 1.00e+8_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
+          CASE( 'ITHN' )
+             FullName      = 'lumped isoprene tetrafunctional hydroxynitrates'
+             Formula       = 'C5H11NO7'
+             MW_g          = 197.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.00e+8_fp
+             Henry_K0      = 1.00e+8_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
           CASE( 'LIMO' )
              FullName      = 'Limonene'
              Formula       = 'C10H16'
@@ -2119,25 +2293,117 @@ CONTAINS
              Henry_CR      = 4300.0_f8
 #endif
 
+          CASE( 'MACR1OOH' )
+             FullName      = 'Peracid from MACR'
+             Formula       = 'CH2=C(CH3)C(O)OOH'
+             MW_g          = 102.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.94e+2_fp
+             Henry_K0      = 2.94e+2_f8
+             Henry_CR      = 5200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+           
           CASE( 'MAP' )
-              FullName      = 'Peroxyacetic acid'
-              Formula       = 'CH3C(O)OOH'
-              MW_g          = 76.0_fp
-              Is_Gas        = T
-              Is_Drydep     = T
-              Is_Wetdep     = T
-              Is_Photolysis = T
-              DD_F0         = 1.0_fp
+             FullName      = 'Peroxyacetic acid'
+             Formula       = 'CH3C(O)OOH'
+             MW_g          = 76.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-              Henry_K0      = 8.30e+0_f8 * To_M_atm
-              Henry_CR      = 5300.0_f8
+             Henry_K0      = 8.30e+0_f8 * To_M_atm
+             Henry_CR      = 5300.0_f8
 #else
-              DD_Hstar_old  = 8.40e+2_fp
-              Henry_K0      = 8.40e+2_f8
-              Henry_CR      = 5300.0_f8
+             DD_Hstar_old  = 8.40e+2_fp
+             Henry_K0      = 8.40e+2_f8
+             Henry_CR      = 5300.0_f8
 #endif
-              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
+          CASE( 'MCRDH' )
+             FullName      = 'Dihydroxy-methacrolein'
+             Formula       = 'C4H8O3'
+             MW_g          = 104.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.40e+6_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+           
+          CASE( 'MCRENOL' )
+             FullName      = 'Lumped enos from MVK/MACR'
+             Formula       = 'C4H6O2'
+             MW_g          = 86.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.94e+2_fp
+             Henry_K0      = 2.94e+2_f8
+             Henry_CR      = 5200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+           
+          CASE( 'MCRHN' )
+             FullName      = 'Nitrate from MACR'
+             Formula       = 'HOCH2C(ONO2)(CH3)CHO'
+             MW_g          = 149.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+#if defined( NEW_HENRY_CONSTANTS )
+             Henry_K0      = 1.97e+4_f8 * To_M_atm
+#else
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 1.70e+4_f8
+             Henry_CR      = 9200.0_f8
+#endif
+             WD_RetFactor  = 2.0e-2_fp
+           
+          CASE( 'MCRHNB' )
+             FullName      = 'Nitrate from MACR'
+             Formula       = 'O2NOCH2C(OH)(CH3)CHO'
+             MW_g          = 149.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+#if defined( NEW_HENRY_CONSTANTS )
+             Henry_K0      = 1.97e+4_f8 * To_M_atm
+#else
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 1.70e+4_f8
+             Henry_CR      = 9200.0_f8
+#endif
+             WD_RetFactor  = 2.0e-2_fp
+           
+          CASE( 'MCRHP' )
+             FullName      = 'Hydroxy-hydroperoxy-methacrolein'
+             Formula       = 'HOCH2C(OOH)(CH3)CHO'
+             MW_g          = 120.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.40e+6_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+           
           CASE( 'MEK' )
              FullName      = 'Methyl Ethyl Ketone'
              Formula       = 'RC(O)R'
@@ -2304,6 +2570,20 @@ CONTAINS
 #endif
              WD_RetFactor  = 2.0e-2_fp
 
+          CASE( 'MPAN' )
+             FullName      = 'Peroxymethacroyl nitrate (PMN)'
+             Formula       = 'CH2=C(CH3)C(O)OONO2'
+             MW_g          = 147.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.72e+0_fp
+             Henry_K0      = 1.72e+0_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
           CASE( 'MPN' )
              FullName      = 'Methyl peroxy nitrate'
              Formula       = 'CH3O2NO2'
@@ -2389,6 +2669,61 @@ CONTAINS
              Henry_CR      = 4800.0_f8
 #endif
 
+          CASE( 'MVKDH' )
+             FullName      = 'dihydroxy-MVK'
+             Formula       = 'HOCH2CH2OHC(O)CH3'
+             MW_g          = 104.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.40e+6_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
+          CASE( 'MVKHC' )
+             FullName      = 'MVK hydroxy-carbonyl'
+             Formula       = 'C4H6O3'
+             MW_g          = 102.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.40e+6_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
+          CASE( 'MVKHCB' )
+             FullName      = 'MVK hydroxy-carbonyl'
+             Formula       = 'C4H6O3'
+             MW_g          = 102.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.40e+6_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
+          CASE( 'MVKHP' )
+             FullName      = 'MVK hydroxy-hydroperoxide'
+             Formula       = 'C4H8O4'
+             MW_g          = 120.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.40e+6_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+             
           CASE( 'MVKN' )
              FullName      = 'Nitrate from MVK'
              Formula       = 'HOCH2CH(ONO2)C(=O)CH3'
@@ -2416,9 +2751,9 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-             DD_Hstar_old  = 2.94e+2_fp
-             Henry_K0      = 2.94e+2_f8
-             Henry_CR      = 5200.0_f8
+             DD_Hstar_old  = 1.40e+6_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 7200.0_f8
              WD_RetFactor  = 2.0e-2_fp
              
           CASE( 'N2O' )
