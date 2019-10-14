@@ -1400,6 +1400,19 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
+          CASE( 'MOH' )
+             FullName      = 'Methanol'
+             Formula       = 'CH3OH'
+             MW_g          = 32.04_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.03e+2_fp
+             Henry_K0      = 2.03e+2_f8
+             Henry_CR      = 5600.0_f8
+             WD_RetFactor  = 2.0e-2_fp
+
           CASE( 'EOH' )
              FullName      = 'Ethanol'
              Formula       = 'C2H5OH'
