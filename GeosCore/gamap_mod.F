@@ -142,7 +142,7 @@
       INTEGER :: id_OCPI,  id_OCPO,  id_OPOA1, id_OPOG1
       INTEGER :: id_PAN,   id_POA1,  id_PRPE  
       INTEGER :: id_SO2,   id_TSOA1, id_POG1,  id_POG2  
-      INTEGER :: id_TOLU,  id_XYLE,  id_HNO3
+      INTEGER :: id_TOLU,  id_XYLE,  id_HNO3,  id_MOH
 
       CONTAINS
 !EOC
@@ -5975,6 +5975,17 @@
             UNIT (T,28) = 'atoms C/cm2/s' 
             SCALE(T,28) = 1e0
          ENDIF
+         IF ( id_MOH > 0 ) THEN
+            T           = T         + 1
+            NTRAC(  28) = NTRAC(28) + 1
+            NAME (T,28) = 'MOH'
+            FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
+            INDEX(T,28) = id_MOH + ( SPACING * 45 )
+            MWT  (T,28) = 32e-3
+            MOLC (T,28) = 1
+            UNIT (T,28) = 'molec/cm2/s'
+            SCALE(T,28) = 1e0
+         ENDIF
          !evf, 1/13/2012, eoh
          IF ( id_EOH > 0 ) THEN
             T           = T         + 1
@@ -6559,7 +6570,7 @@
       !-------------------------------------      
       IF ( ND46 > 0 .or. DO_TIMESERIES ) THEN 
 
-         NTRAC(46) = 29
+         NTRAC(46) = 30 !increase from 29 (v12.5.0 default) to 30 for MOH ocean emis
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -6632,8 +6643,8 @@
                ! Methanol in ppb and molec/cm2/s
                CASE( 18)
                   INDEX(T,46) = T + ( SPACING * 21 )
-                  NAME(T,46) = 'MOHX'
-                  FNAME(T,46)= 'MOHX emissions'
+                  NAME(T,46) = 'MOH'
+                  FNAME(T,46)= 'MOH biogneic emissions (MEGAN)'
                   MOLC(T,46) = 1
                   UNIT(T,46) = 'molec/cm2/s'
                   MWT (T,46) = 32d-3
@@ -6692,6 +6703,14 @@
                CASE( 29)
                   NAME (T,46) = 'ALD2osr'
                   MOLC (T,46) = 2
+               CASE( 30)
+                  INDEX(T,46) = T + ( SPACING * 21 )
+                  NAME(T,46) = 'MOHosr'
+                  FNAME(T,46)= 'MOH ocean source (gross)'
+                  MOLC(T,46) = 1
+                  UNIT(T,46) = 'molec/cm2/s'
+                  MWT (T,46) = 32d-3
+                  SCALE (T,46) = 1e0
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -6699,7 +6718,7 @@
             !jpp, 9/6/07: preventing these default quantities
             !             from overwriting CHBr3's info.
             IF ( T /= 14 .and. T /= 15 .and. T /= 18 .and. T /= 23 .and.
-     &           T /= 24 .and. T /= 25 .and. T /= 26) THEN
+     &           T /= 24 .and. T /= 25 .and. T /= 26 .and. T /= 30) THEN
                ! Define the rest of the quantities
                INDEX(T,46) = T + ( SPACING * 21 )
                FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
@@ -7903,6 +7922,7 @@
       id_CH2O  = Ind_('CH2O' )
       id_CH4   = Ind_('CH4'  )
       id_CO    = Ind_('CO'   )
+      id_MOH   = Ind_('MOH'  )
       id_EOH   = Ind_('EOH'  )
       id_GLYC  = Ind_('GLYC' )
       id_GLYX  = Ind_('GLYX' )

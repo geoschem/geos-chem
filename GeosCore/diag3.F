@@ -381,7 +381,7 @@
       INTEGER, SAVE            :: id_ECIL1, id_ECOB1, id_OCIL1, id_OCOB1
       INTEGER, SAVE            :: id_CH2BR2
       INTEGER, SAVE            :: id_PAN,   id_HNO3,  id_EOH,   id_MGLY
-      INTEGER, SAVE            :: id_BENZ,  id_TOLU,  id_XYLE
+      INTEGER, SAVE            :: id_BENZ,  id_TOLU,  id_XYLE,  id_MOH
       INTEGER, SAVE            :: id_NAP,   id_POG1,  id_POG2
  
 !
@@ -495,6 +495,7 @@
          id_OCOB1     = Ind_('OCOB1'   )
          id_PAN       = Ind_('PAN'     )
          id_HNO3      = Ind_('HNO3'    )
+         id_MOH       = Ind_('MOH'     )
          id_EOH       = Ind_('EOH'     )
          id_MGLY      = Ind_('MGLY'    )
          id_BENZ      = Ind_('BENZ'    )
@@ -2766,6 +2767,18 @@
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF
 
+         !%%%%% MOH %%%%%
+         IF ( id_MOH > 0 ) THEN
+            DiagnName = 'BIOMASS_MOH'
+            UNIT      = 'molec/cm2/s'
+            N         = id_MOH
+            SpcInfo => State_Chm%SpcData(N)%Info
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, -1, .TRUE., FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF
+
          !%%%%% EOH %%%%%
          IF ( id_EOH > 0 ) THEN
             DiagnName = 'BIOMASS_EOH'
@@ -3435,6 +3448,12 @@
                   N         = SpcInfo%ModelId
                   FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
      &                        CM2PERM2
+               CASE( 'MOH'     )
+                  DiagnName = 'ANTHROPOGENIC_MOH'
+                  UNIT      = 'molec/cm2/s'
+                  N         = SpcInfo%ModelId
+                  FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) /
+     &                        CM2PERM2
                CASE( 'EOH'     )
                   DiagnName = 'ANTHROPOGENIC_EOH'
                   UNIT      = 'atoms C/cm2/s'
@@ -3980,6 +3999,7 @@
 !  (27) ALD2   : ALD2 from decaying plants  : atoms C/cm2/s : SCALESRCE
 !  (28) EOH    : EOH  from decaying plants  : atoms C/cm2/s : SCALESRCE
 !  (29) ALD2   : ALD2 ocean emissions       : atoms C/cm2/s : SCALESRCE
+!  (30) MOH    : Methanol ocean emissions   :   molec/cm2/s : SCALESRCE
 !
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -4294,14 +4314,20 @@
          !-----------------------------------------------------------
          !%%%%% METHANOL %%%%%
          !-----------------------------------------------------------
-         DiagnName = 'BIOGENIC_MOHX'
-         UNIT      = 'molec/cm2/s'
-         N         = 18
-         ! Conversion factor from kg/m2/s to molec/cm2/s
-         FACTOR    =  ( AVO / 32.042e+0_fp )/ CM2PERM2
-         CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         IF ( id_MOH > 0 ) THEN
+            DiagnName = 'BIOGENIC_MOHX'
+            UNIT      = 'molec/cm2/s'
+            N         = 18
+            SpcInfo => State_Chm%SpcData(id_moh)%Info
+            ! Conversion factor from kg/m2/s to molec/cm2/s
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
+         ENDIF
 
          !-----------------------------------------------------------
          !%%%%% ETHANOL %%%%%
@@ -4535,6 +4561,24 @@
             N         = 29
             SpcInfo  => State_Chm%SpcData(id_ALD2)%Info
             ! Conversion factor from kgC/m2/s to atoms C/cm2/s
+            FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) / CM2PERM2
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+
+            ! Free pointer
+            SpcInfo => NULL()
+         ENDIF
+
+         !-----------------------------------------------------------
+         !%%%%% METHANOL OCEAN SOURCE %%%%%
+         !-----------------------------------------------------------
+         IF ( id_MOH > 0 ) THEN
+            DiagnName = 'MOH_OCEAN_SOURCE'
+            UNIT      = 'molec/cm2/s'
+            N         = 30
+            SpcInfo  => State_Chm%SpcData(id_MOH)%Info
+            ! Conversion factor from kg/m2/s to molec/cm2/s
             FACTOR    = AVO / ( SpcInfo%emMW_g * 1.e-3_fp ) / CM2PERM2
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE.,    FACTOR, RC )
