@@ -179,6 +179,7 @@ DHMOB      = IGNORE; {HOCH2C(CH3)(OH)C(=O)CHO; See Paulot et al., ACP, 2009}
 DHPCARP    = IGNORE; {C5H9O7; Dihydroxy a-formyl peroxy radical}
 DIBOO      = IGNORE; {Dibble peroxy radical}
 DMS        = IGNORE; {(CH3)2S; Dimethylsulfide}
+MOH        = IGNORE; {CH3OH; Methanol}
 EOH        = IGNORE; {C2H5OH; Ethanol}
 ETHLN      = IGNORE; {CHOCH2ONO2; Ethanal nitrate}
 ETO2       = IGNORE; {CH3CH2OO; Ethylperoxy radical}
@@ -349,7 +350,6 @@ H          = IGNORE; {H; Atomic hydrogen}
 H2         = IGNORE; {H2; Molecular hydrogen}
 H2O        = IGNORE; {H2O; Water vapor}
 MNO3       = IGNORE; {CH3ONO2; Methylnitrate}
-MOH        = IGNORE; {CH3OH; Methanol}
 N2         = IGNORE; {N2; Molecular nitrogen}
 NH2        = IGNORE; {NH2; Ammonia radical}
 NH3        = IGNORE; {NH3; Ammonia}
