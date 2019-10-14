@@ -224,6 +224,7 @@
          INTEGER                 :: IDTPRPE
          INTEGER                 :: IDTC2H4
          INTEGER                 :: IDTALD2
+         INTEGER                 :: IDTMOH
          INTEGER                 :: IDTEOH
 !         INTEGER                 :: IDTOCPI
          INTEGER                 :: IDTLIMO
@@ -886,6 +887,22 @@
          ENDIF
 
          ! ---------------------------------------------------
+         ! MEGAN Methanol
+         IF ( Inst%IDTMOH > 0 ) THEN
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, 
+     &                                Inst, I, J, 'MOHX', EMIS_MOHX, RC)
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_MOHX', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+
+            ! Add to tracer tendency array [kg/m2/s]
+            FLUXMOHX(I,J) = EMIS_MOHX
+         ENDIF
+
+         ! ---------------------------------------------------
          ! MEGAN Ethanol
          IF ( Inst%IDTEOH > 0 ) THEN
             CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
@@ -906,19 +923,6 @@
          ! Calls included here for future incorporation or
          ! specialized simulations. (dbm, 12/2012)
          !--------------------------------------------------------------------
-
-         ! ---------------------------------------------------
-         ! MEGAN Methanol
-         ! Uncomment this to compute biogenic methanol emissions
-!         CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, 
-!     &                             Inst, I, J, 'MOHX', EMIS_MOHX, RC )
-!         IF ( RC /= HCO_SUCCESS ) THEN 
-!            CALL HCO_ERROR( HcoState%Config%Err, 
-!     &                        'GET_MEGAN_EMISSIONS_MOHX', RC )
-!            ERR = .TRUE.
-!            EXIT
-!         ENDIF 
-!         FLUXMOHX(I,J) = EMIS_MOHX
 
          ! ---------------------------------------------------
          ! MEGAN Formic acid
@@ -1372,6 +1376,20 @@
       ENDIF
 
       ! ----------------------------------------------------------------
+      ! METHANOL
+      IF ( Inst%IDTMOH > 0 ) THEN
+
+         ! Add flux to emission array
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOHX, Inst%IDTMOH,
+     &                     RC,        ExtNr=Inst%ExtNr )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( HcoState%Config%Err,
+     &                  'HCO_EmisAdd error: FLUXMOHX', RC )
+            RETURN 
+         ENDIF
+      ENDIF
+
+      ! ----------------------------------------------------------------
       ! ETHANOL
       IF ( Inst%IDTEOH > 0 ) THEN
 
@@ -1646,15 +1664,8 @@
       ! Calls included here for future incorporation or
       ! specialized simulations. (dbm, 12/2012)
       !
-      ! These diagnostics will be zero because FLUXMOHX, FLUXFAXX,
+      ! These diagnostics will be zero because FLUXFAXX,
       !  and FLUXAAXX are commented out above (mps, 2/19/15)
-      ! ----------------------------------------------------------------
-      ! Methanol
-      DiagnName =  'BIOGENIC_MOHX'
-      CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, 
-     &   cName=TRIM(DiagnName), Array2D=FLUXMOHX, RC=RC)
-      IF ( RC /= HCO_SUCCESS ) RETURN 
-
       ! ----------------------------------------------------------------
       ! Formic acid
       DiagnName =  'BIOGENIC_FAXX'
@@ -4191,6 +4202,7 @@
       Inst%IDTPRPE = -1
       Inst%IDTC2H4 = -1
       Inst%IDTALD2 = -1
+      Inst%IDTMOH  = -1
       Inst%IDTEOH  = -1
       Inst%IDTSOAP = -1
       Inst%IDTSOAS = -1
@@ -4212,6 +4224,10 @@
                Inst%IDTALD2 = HcoIDs(I)
                WRITE(MSG,*) '   ALD2       = ',
      &                      TRIM(SpcNames(I)),Inst%IDTALD2
+            CASE( 'MOH' )
+               Inst%IDTMOH  = HcoIDs(I)
+               WRITE(MSG,*) '   MOH        = ',
+     &                      TRIM(SpcNames(I)),Inst%IDTMOH
             CASE( 'EOH' )
                Inst%IDTEOH  = HcoIDs(I)
                WRITE(MSG,*) '   EOH        = ',

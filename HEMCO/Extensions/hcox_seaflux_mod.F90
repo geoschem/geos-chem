@@ -704,7 +704,7 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
     
     ! # of species for which air-sea exchange will be calculated
-    Inst%nOcSpc = 4
+    Inst%nOcSpc = 5 ! increase from 4 (v12.5.0 default) to 5 for MOH
 
     ! Initialize vector w/ species information
     ALLOCATE ( Inst%OcSpecs(Inst%nOcSpc) ) 
@@ -763,6 +763,21 @@ CONTAINS
     Inst%OcSpecs(I)%OcDataName = 'ACET_SEAWATER'
     Inst%OcSpecs(I)%LiqVol     = 3d0*7d0 + 6d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
     Inst%OcSpecs(I)%SCWPAR     = 3 ! Schmidt number of acetone
+
+    ! ----------------------------------------------------------------------
+    ! Methanol:
+    ! ----------------------------------------------------------------------
+
+    I = I + 1
+    IF ( I > Inst%nOcSpc ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, ERR, RC )
+       RETURN
+    ENDIF
+
+    Inst%OcSpecs(I)%OcSpcName  = 'MOH'
+    Inst%OcSpecs(I)%OcDataName = 'MOH_SEAWATER'
+    Inst%OcSpecs(I)%LiqVol     = 1d0*7d0 + 4d0*7d0 + 1d0*7d0 ! Johnson, 2010
+    Inst%OcSpecs(I)%SCWPAR     = 1 ! Schmidt number of methanol
 
     ! ----------------------------------------------------------------------
     ! Acetaldehyde:
