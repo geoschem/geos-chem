@@ -6,6 +6,7 @@ Run directory           : ./
 Root data directory     : {DATA_ROOT}
 Met field               : {MET}
 Simulation name         : standard
+Turn on debug printout? : F
 ------------------------+------------------------------------------------------
 %%% TIMESTEP MENU %%%   :
 Tran/conv timestep [sec]: 600
