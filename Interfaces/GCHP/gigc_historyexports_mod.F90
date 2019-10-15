@@ -252,7 +252,7 @@ CONTAINS
        ENDIF
 #else
        ! Skip State_Chm%Species entries since in internal state.
-       IF ( INDEX( current%name,  TRIM(TPFX) ) == 1 ) THEN
+       IF ( INDEX( current%name,  TRIM(SPFX) ) == 1 ) THEN
           current => current%next
           CYCLE
        ENDIF

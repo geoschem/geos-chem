@@ -493,11 +493,13 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    TYPE(ESMF_STATE)               :: INTSTATE
     TYPE(MAPL_MetaComp), POINTER   :: STATE
     TYPE(ESMF_VM)                  :: VM            ! ESMF VM object
+    TYPE(ESMF_Field)               :: IntField
     REAL*8                         :: DT
     CHARACTER(LEN=ESMF_MAXSTR)     :: Iam, OrigUnit
-    INTEGER                        :: STATUS, HCO_PHASE
+    INTEGER                        :: STATUS, HCO_PHASE, RST
 #if defined( MODEL_GEOS )
     INTEGER                        :: N, I, J, L
 #endif
@@ -525,6 +527,9 @@ CONTAINS
 #if defined( MODEL_GEOS )
     LOGICAL, SAVE                  :: LSETH2O_orig
 #endif
+
+    ! Whether to scale mixing ratio with meteorology update in AirQnt
+    LOGICAL, SAVE                  :: scaleMR = .FALSE.
 
     !=======================================================================
     ! GIGC_CHUNK_RUN begins here 
@@ -687,13 +692,29 @@ CONTAINS
     CALL SET_FLOATING_PRESSURES( am_I_Root, State_Grid, State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    ! Define airmass and related quantities. Do not scale mixing ratio
-    ! since mass conservation across timesteps is handled in FV3 advection.
-    ! Beware that this means tracer mass will not be conserved across timesteps
-    ! if advection is turned off.
+    ! Define airmass and related quantities
+#if defined( MODEL_GEOS )
     CALL AirQnt( am_I_Root, Input_opt, State_Chm, State_Grid, &
                  State_Met, RC, .FALSE. )
-    IF ( RC /= GC_SUCCESS ) RETURN
+#else
+    ! Scale mixing ratio with changing met only if FV advection is off.
+    ! Only do this the first timestep if DELP_DRY found in restart.
+    IF ( FIRST .and. .not. Input_Opt%LTRAN ) THEN
+       CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
+       CALL ESMF_StateGet( INTSTATE, 'DELP_DRY', IntField, RC=STATUS )
+       _VERIFY(STATUS)
+       CALL ESMF_AttributeGet( IntField, NAME="RESTART", VALUE=RST, RC=STATUS )
+       _VERIFY(STATUS)
+       IF ( .not. ( RST == MAPL_RestartBootstrap .OR. &
+                    RST == MAPL_RestartSkipInitial ) ) scaleMR = .TRUE.
+       CALL AirQnt( am_I_Root, Input_opt, State_Chm, State_Grid, &
+                    State_Met, RC, scaleMR )
+       scaleMR = .TRUE.
+    ELSE
+       CALL AirQnt( am_I_Root, Input_opt, State_Chm, State_Grid, &
+                    State_Met, RC, scaleMR )
+    ENDIF
+#endif
 
     ! Cap the polar tropopause pressures at 200 hPa, in order to avoid
     ! tropospheric chemistry from happening too high up (cf. J. Logan)

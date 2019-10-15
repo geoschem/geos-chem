@@ -3774,7 +3774,7 @@ CONTAINS
        ENDIF
 
        !=======================================================================
-       ! On first call, initialize certain other State_Chm arrays from 
+       ! On first call, initialize certain State_Chm and State_Met arrays from
        ! imports if they are found (ewl, 12/13/18)
        !=======================================================================
        IF ( FIRST ) THEN
@@ -3815,6 +3815,16 @@ CONTAINS
           IF ( ASSOCIATED(Ptr3d) .AND. &
                ASSOCIATED(State_Chm%KPPHvalue) ) THEN
              State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev) =  REAL( &
+             Ptr3d(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1),&
+             KIND=ESMF_KIND_R8)
+          ENDIF
+          Ptr3d => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'DELP_DRY' ,     &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d) .AND. &
+               ASSOCIATED(State_Met%DELP_DRY) ) THEN
+             State_Met%DELP_DRY(:,:,1:State_Grid%MaxChemLev) =  REAL( &
              Ptr3d(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1),&
              KIND=ESMF_KIND_R8)
           ENDIF
@@ -4818,10 +4828,8 @@ CONTAINS
 
 #if !defined( MODEL_GEOS )
     !=========================================================================
-    ! Archive species in internal state. Do this only for species that are
-    ! not advected, since those need to be included in the restart file.
-    ! ckeller, 10/27/2014
-    ! Also archive certain State_Chm arrays in internal state (ewl, 12/13/18)
+    ! Archive species in internal state. Also include certain State_Chm
+    ! and State_Met arrays needed for continuity across runs (ewl, 12/13/18)
     !=========================================================================
 
     ! Get Internal state
@@ -4896,6 +4904,15 @@ CONTAINS
           KIND=ESMF_KIND_R4)
     ENDIF
 
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'DELP_DRY' ,     &
+                          notFoundOK=.TRUE., __RC__ ) 
+    IF ( ASSOCIATED(Ptr3d) .AND. &
+         ASSOCIATED(State_Met%DELP_DRY) ) THEN
+       Ptr3d(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
+       Ptr3d(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1) = &
+          REAL(State_Met%DELP_DRY(:,:,1:State_Grid%MaxChemLev), &
+          KIND=ESMF_KIND_R4)
+    ENDIF
 #endif
 
 #if defined( MODEL_GEOS )
