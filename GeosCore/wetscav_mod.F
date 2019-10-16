@@ -2060,7 +2060,7 @@
 
          ! Compute washout fraction
 !GanLuo         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-         IF(SpcInfo%WD_RainoutEff(3)<0.999d0)THEN !GanLuo
+         IF(SpcInfo%WD_RainoutEff(3)<0.999e+0_fp)THEN !GanLuo
 
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
@@ -2280,12 +2280,13 @@
          IF ( F > 0e+0_fp ) THEN
 !GanLuo            WASHFRAC = F *(1e+0_fp - EXP( -K_WASH *
 !GanLuo     &              (PP / F*3.6e+4_fp )**0.61e+0_fp * DT / 3.6e+3_fp ))
-            RATE = 10.D0**(274.35758D0+
-     &             332839.59273D0*(log10(0.5D-6))**-4.D0+
-     &             226656.57259D0*(log10(0.5D-6))**-3.D0+
-     &             58005.91340D0*(log10(0.5D-6))**-2.D0+
-     &             6588.38582D0*(log10(0.5D-6))**-1.D0+
-     &             0.244984D0*SQRT(MIN(20.D0,(PP*36000.D0/F))))
+            RATE = 10.e+0_fp**(274.35758e+0_fp+
+     &             332839.59273e+0_fp*(log10(0.5e-6_fp))**(-4.e+0_fp)+
+     &             226656.57259e+0_fp*(log10(0.5e-6_fp))**(-3.e+0_fp)+
+     &             58005.91340e+0_fp*(log10(0.5e-6_fp))**-(2.e+0_fp)+
+     &             6588.38582e+0_fp*(log10(0.5e-6_fp))**(-1.e+0_fp)+
+     &             0.244984e+0_fp*
+     &             SQRT(MIN(20.e+0_fp,(PP*36000.e+0_fp/F))))
             WASHFRAC = F * (1e+0_fp - EXP(-RATE * DT))
          ELSE
             WASHFRAC = 0e+0_fp
@@ -2578,7 +2579,7 @@
          !------------------------
          IF ( F > 0e+0_fp ) THEN
 !GanLuo            WASHFRAC = F * (1e+0_fp - EXP(-K_WASH * (PP / F) * DT))
-            RATE = 2.D0*((PP/F)**0.62)
+            RATE = 2.e+0_fp*((PP/F)**(0.62e+0_fp))
             WASHFRAC = F * (1e+0_fp - EXP( - RATE * DT ))
          ELSE
             WASHFRAC = 0e+0_fp
@@ -3054,7 +3055,7 @@
             ! Q is the new precip that is forming within grid box (I,J,L)
             Q = QQ(L,I,J)
 !GanLuo
-            COND_WATER_CONTENT = MAX(1.D-30,(QQ(L,I,J)*DT+
+            COND_WATER_CONTENT = MAX(1.e-30_fp,(QQ(L,I,J)*DT+
      &      State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1e-3_fp))
 
             ! Compute K_RAIN and F_RAINOUT for large-scale 
@@ -3062,8 +3063,8 @@
             !GanLuoK_RAIN  = LS_K_RAIN( Q )
             !GanLuoF_RAINOUT = LS_F_PRIME( Q, K_RAIN )
             K_RAIN = LS_K_RAIN( QQ(L,I,J), COND_WATER_CONTENT )
-            F_RAINOUT = MAX(1.D-4,State_Met%CLDF(I,J,L))
-            F_RAINOUT = F_RAINOUT*MIN(1.D0,QQ(L,I,J)/
+            F_RAINOUT = MAX(1.e-4_fp,State_Met%CLDF(I,J,L))
+            F_RAINOUT = F_RAINOUT*MIN(1.e+0_fp,QQ(L,I,J)/
      &                 (COND_WATER_CONTENT*K_RAIN))
             
             ! Set F = F_RAINOUT, since there is no FTOP at L = State_Grid%NZ
@@ -3134,14 +3135,14 @@
                ! experiencing rainout.
                !GanLuoK_RAIN  = LS_K_RAIN( QQ(L,I,J) )
                !GanLuoF_PRIME = LS_F_PRIME( QQ(L,I,J), K_RAIN )
-               COND_WATER_CONTENT = MAX(1.D-30,(QQ(L,I,J)*DT+
+               COND_WATER_CONTENT = MAX(1.e-30_fp,(QQ(L,I,J)*DT+
      &         State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1e-3_fp))
 
                ! Compute K_RAIN and F_PRIME for large-scale
                ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000)
                K_RAIN = LS_K_RAIN( QQ(L,I,J), COND_WATER_CONTENT )
-               F_PRIME = MAX(1.D-4,State_Met%CLDF(I,J,L))
-               F_PRIME = F_PRIME*MIN(1.D0,QQ(L,I,J)/
+               F_PRIME = MAX(1.e-4_fp,State_Met%CLDF(I,J,L))
+               F_PRIME = F_PRIME*MIN(1.e+0_fp,QQ(L,I,J)/
      &                  (K_RAIN*COND_WATER_CONTENT))
             ELSE
                
@@ -5601,7 +5602,7 @@
      &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:REEVAP', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
-         REEVAP = 0d0
+         REEVAP = 0e+0_fp
 
          ! Allocate C_H2O on first call
          ALLOCATE( C_H2O( State_Grid%NX, State_Grid%NY, State_Grid%NZ),

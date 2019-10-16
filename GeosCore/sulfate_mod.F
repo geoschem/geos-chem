@@ -2780,7 +2780,7 @@
       DTCHEM   = GET_TS_CHEM()
 
 !GanLuo
-      PSO4s = 0.D0
+      PSO4s = 0.0e+0_fp
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
       F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -3071,12 +3071,12 @@
 !GanLuo     &             1e-3_fp
          IF(SIZE(QQ3D)>1)THEN
            LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) *
-     &             1e-3_fp +MAX(0.d0, QQ3D(L,I,J)*DTCHEM)
+     &             1e-3_fp +MAX(0.0e+0_fp, QQ3D(L,I,J)*DTCHEM)
          ELSE
            LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) *
      &             1e-3_fp
          ENDIF
-         LWC     = MAX(0.d0, LWC)
+         LWC     = MAX(0.0e+0_fp, LWC)
 
          ! LWC is a grid-box averaged quantity. To improve the representation 
          ! of sulfate chemistry, we divide LWC by the cloud fraction and 
@@ -3819,12 +3819,12 @@
          ! Add L5S (qjc, 11/04/16)
          PSO4_SO2(I,J,L) = L1 + L2S + L3S + L4S + L5S + PSO4E + SR
 !GanLuo
-         IF((PSO4_SO2(I,J,L)+Spc(I,J,L,id_SO4))>1.D-30)THEN
+         IF((PSO4_SO2(I,J,L)+Spc(I,J,L,id_SO4))>1.0e-30_fp)THEN
            PSO4s(I,J,L)  = L2S + L3S + L4S + L5S + SR
            PSO4s(I,J,L)  = PSO4s(I,J,L)/(PSO4_SO2(I,J,L)+
      &                     Spc(I,J,L,id_SO4))
          ELSE
-           PSO4s(I,J,L)  = 0.D0
+           PSO4s(I,J,L)  = 0.0e+0_fp
          ENDIF
 
          ! Production of sulfate on sea salt
