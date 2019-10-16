@@ -9,6 +9,13 @@ assignees: ''
 
 # Report a GEOS-Chem bug or technical issue
 
+## First check to see if your issue has already been resolved
+Before submitting a GEOS-Chem bug/issue report, please take a moment to check if a solution for your issue has already been reported at:
+
+1. [The issue tracker attached to this Github repository](https://github.com/geoschem/geos-chem/issues);
+2. Our [Guide to GEOS-Chem error messages](http://wiki.geos-chem.org/Guide_to_GEOS-Chem_error_messages) on the GEOS-Chem wiki; and/or
+3. Our [list of GEOS-Chem bugs and fixes](http://wiki.geos-chem.org/Bugs_and_fixes) on the GEOS-Chem wiki.
+
 ## Describe the bug
 Include a clear and concise description of the bug or issue that you have encountered.
 
