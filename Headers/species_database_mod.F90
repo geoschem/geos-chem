@@ -745,7 +745,8 @@ CONTAINS
              KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             !GanLuoRainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff  = (/ 0.5_fp, 0.0_fp, 0.5_fp /)
 
              Formula       = ''
              MW_g          = 12.01_fp
@@ -767,7 +768,8 @@ CONTAINS
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range T > 258 K
-             KcScale  = (/ 1.0_fp, 1.0_fp, 0.5_fp /)
+             !GanLuoKcScale  = (/ 1.0_fp, 1.0_fp, 0.5_fp /)
+             KcScale  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
              ! Allow rainout of BCPO when T < 258 K, because
              ! BCPO is considered to be IN.
@@ -1663,11 +1665,13 @@ CONTAINS
              !%%% with both gas-phase and aerosol parameters. (bmy, 9/28/15)
 
              ! Do not reduce the Kc (cloud condensate -> precip) rate
-             KcScale       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             !GanLuoKcScale       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Allow rainout of HNO3 when T < 258K, becasue HNO3
              ! is considered to be IN.
-             RainEff       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             !GanLuo, no remove in mixing cloud RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              FullName      = 'Nitric acid'
              Formula       = 'HNO3'
@@ -2712,10 +2716,12 @@ CONTAINS
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             !GanLuoKcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale  = (/ 0.5_fp, 0.25_fp, 0.5_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             !GanLuoRainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff  = (/ 0.5_fp, 0.0_fp, 0.5_fp /)
 
              Formula       = ''
              MW_g          = 12.01_fp
@@ -2738,7 +2744,8 @@ CONTAINS
              ! For all temperatures:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) Turn off rainout (OCPO is hydrophobic)
-             KcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             !GanLuoKcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             KcScale       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
              RainEff       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
              Formula       = ''
@@ -2848,7 +2855,8 @@ CONTAINS
              ! For all temperatures:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) Turn off rainout (these are hydrophobic species)
-             KcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             !GanLuoKcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             KcScale       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
              RainEff       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
              FullName      ='Lumped aerosol primary SVOCs'
@@ -2873,7 +2881,8 @@ CONTAINS
              ! For all temperatures:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) Turn off rainout (these are hydrophobic species)
-             KcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             !GanLuoKcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             KcScale       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
              RainEff       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
              FullName      ='Lumped aerosol primary SVOCs'
