@@ -1,6 +1,6 @@
 ---
 name: Start an extended discussion about a GEOS-Chem-related topic
-about: This template allows users to open an extended discussion about a particular GEOS-Chem topic.
+about: Use this template to start a discussion about an ongoing research matter or open-ended development project.
 title: "[DISCUSSION]"
 labels: discussion
 assignees: ''
