@@ -2,7 +2,7 @@
 name: Start an extended discussion about a GEOS-Chem-related topic
 about: This template allows users to open an extended discussion about a particular GEOS-Chem topic.
 title: "[DISCUSSION]"
-labels: ''
+labels: discussion
 assignees: ''
 
 ---

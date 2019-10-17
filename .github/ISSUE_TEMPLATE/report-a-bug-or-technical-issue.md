@@ -2,7 +2,7 @@
 name: Report a bug or technical issue
 about: This template allows users to report GEOS-Chem bugs and technical issues in the Github issue tracker.
 title: "[BUG/ISSUE]"
-labels: ''
+labels: bug
 assignees: ''
 
 ---
