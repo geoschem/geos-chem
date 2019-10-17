@@ -32,10 +32,6 @@ MODULE GIGC_Chunk_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-#if defined( MODEL_GEOS )
-  PRIVATE :: SET_OZONOPAUSE
-#endif
-
   INTEGER  ::  MemDebugLevel
 !
 ! !REVISION HISTORY:
@@ -196,10 +192,6 @@ CONTAINS
     RC = GC_SUCCESS
 
 #if defined( MODEL_GEOS )
-    ! ckeller, 01/16/17
-    ! ewl to do: revisit if we need these here
-    Input_Opt%MAX_DIAG      = 1 
-    Input_Opt%MAX_FAM       = 250
     Input_Opt%LINOZ_NLAT    = 18
     Input_Opt%LINOZ_NMONTHS = 12
     Input_Opt%LINOZ_NFIELDS = 7
@@ -337,7 +329,8 @@ CONTAINS
     ! allocated accordingly when initializing State_Diag. Here, we thus 
     ! only need to initialize the tendencies, which have not been initialized
     ! yet (ckeller, 11/29/17). 
-    CALL Tend_Init ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+    CALL Tend_Init ( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                     State_Grid, RC ) 
     _ASSERT(RC==GC_SUCCESS, 'informative message here')
 #endif
 
@@ -420,9 +413,7 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
 #if defined( MODEL_GEOS )
-    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
     USE DAO_MOD,            ONLY : GET_COSINE_SZA
-    USE DIAG_MOD,           ONLY : AD21
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn
 #endif
 !
@@ -502,11 +493,13 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    TYPE(ESMF_STATE)               :: INTSTATE
     TYPE(MAPL_MetaComp), POINTER   :: STATE
     TYPE(ESMF_VM)                  :: VM            ! ESMF VM object
+    TYPE(ESMF_Field)               :: IntField
     REAL*8                         :: DT
     CHARACTER(LEN=ESMF_MAXSTR)     :: Iam, OrigUnit
-    INTEGER                        :: STATUS, HCO_PHASE
+    INTEGER                        :: STATUS, HCO_PHASE, RST
 #if defined( MODEL_GEOS )
     INTEGER                        :: N, I, J, L
 #endif
@@ -534,6 +527,9 @@ CONTAINS
 #if defined( MODEL_GEOS )
     LOGICAL, SAVE                  :: LSETH2O_orig
 #endif
+
+    ! Whether to scale mixing ratio with meteorology update in AirQnt
+    LOGICAL, SAVE                  :: scaleMR = .FALSE.
 
     !=======================================================================
     ! GIGC_CHUNK_RUN begins here 
@@ -684,14 +680,6 @@ CONTAINS
                                     State_Met      = State_Met,  &
                                     RC             = RC         )
 
-#if defined( MODEL_GEOS )
-    ! Eventually set tropopause pressure according to ozone values
-    ! (use ozonopause) 
-    CALL SET_OZONOPAUSE ( am_I_Root,  Input_Opt, State_Chm, &
-                          State_Grid, State_Met, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN 
-#endif
-
     ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
     CALL SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, 1 )
 
@@ -704,13 +692,29 @@ CONTAINS
     CALL SET_FLOATING_PRESSURES( am_I_Root, State_Grid, State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    ! Define airmass and related quantities. Do not scale mixing ratio
-    ! since mass conservation across timesteps is handled in FV3 advection.
-    ! Beware that this means tracer mass will not be conserved across timesteps
-    ! if advection is turned off.
+    ! Define airmass and related quantities
+#if defined( MODEL_GEOS )
     CALL AirQnt( am_I_Root, Input_opt, State_Chm, State_Grid, &
                  State_Met, RC, .FALSE. )
-    IF ( RC /= GC_SUCCESS ) RETURN
+#else
+    ! Scale mixing ratio with changing met only if FV advection is off.
+    ! Only do this the first timestep if DELP_DRY found in restart.
+    IF ( FIRST .and. .not. Input_Opt%LTRAN ) THEN
+       CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
+       CALL ESMF_StateGet( INTSTATE, 'DELP_DRY', IntField, RC=STATUS )
+       _VERIFY(STATUS)
+       CALL ESMF_AttributeGet( IntField, NAME="RESTART", VALUE=RST, RC=STATUS )
+       _VERIFY(STATUS)
+       IF ( .not. ( RST == MAPL_RestartBootstrap .OR. &
+                    RST == MAPL_RestartSkipInitial ) ) scaleMR = .TRUE.
+       CALL AirQnt( am_I_Root, Input_opt, State_Chm, State_Grid, &
+                    State_Met, RC, scaleMR )
+       scaleMR = .TRUE.
+    ELSE
+       CALL AirQnt( am_I_Root, Input_opt, State_Chm, State_Grid, &
+                    State_Met, RC, scaleMR )
+    ENDIF
+#endif
 
     ! Cap the polar tropopause pressures at 200 hPa, in order to avoid
     ! tropospheric chemistry from happening too high up (cf. J. Logan)
@@ -731,20 +735,21 @@ CONTAINS
     ! humidity and dry air mass since end of last timestep. Always skip
     ! first step and do not apply if transport is turned on. May need to
     ! further adjust conditional if this does not catch all cases (ewl, 11/8/18)
-    IF ( (.NOT. FIRST) .AND. ( .NOT. Input_Opt%LTRAN ) ) THEN
-       DO N = 1, State_Chm%nSpecies
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-         State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)          &
-                 / ( 1e0_fp - ( State_Met%SPHU_PREV(I,J,L) * 1e-3_fp ) )  &
-                 * ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )       &
-                 * State_Met%DP_DRY_PREV(I,J,L) / State_Met%DELP_DRY(I,J,L)    
-       ENDDO
-       ENDDO
-       ENDDO
-       ENDDO
-    ENDIF
+    ! Comment this out until first testing is done (ewl, 6/11/19)
+    !IF ( (.NOT. FIRST) .AND. ( .NOT. Input_Opt%LTRAN ) ) THEN
+    !   DO N = 1, State_Chm%nSpecies
+    !   DO L = 1, State_Grid%NZ
+    !   DO J = 1, State_Grid%NY
+    !   DO I = 1, State_Grid%NX
+    !     State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)          &
+    !             / ( 1e0_fp - ( State_Met%SPHU_PREV(I,J,L) * 1e-3_fp ) )  &
+    !             * ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )       &
+    !             * State_Met%DP_DRY_PREV(I,J,L) / State_Met%DELP_DRY(I,J,L)    
+    !   ENDDO
+    !   ENDDO
+    !   ENDDO
+    !   ENDDO
+    !ENDIF
 #endif
     
     ! Convert to dry mixing ratio
@@ -949,9 +954,7 @@ CONTAINS
     ! Set tropospheric CH4 concentrations and fill species array with
     ! current values. 
 #if defined( MODEL_GEOS )
-!    IF ( DoTurb .OR. DoTend ) THEN
-!      IF ( Input_Opt%LCH4SBC ) THEN
-    IF ( Phase /= 2 ) THEN
+    IF ( .NOT. Input_Opt%LCH4EMIS .AND. ( DoTurb .OR. DoTend ) ) THEN
 #else
     IF ( Phase /= 2 .AND. Input_Opt%ITS_A_FULLCHEM_SIM  &
          .AND. IND_('CH4','A') > 0 ) THEN
@@ -1036,30 +1039,11 @@ CONTAINS
     ! in the Radiation Menu. This must be done before the call to any
     ! diagnostic and only on a chemistry timestep.
     ! (skim, 02/05/11)
-#if defined( MODEL_GEOS )
-    ! RECOMPUTE_OD also contains a call to AEROSOL_CONC, which updates
-    ! the PM25 diagnostics.
-    !IF ( DoChem .AND. ND21 > 0 ) THEN
-    !IF ( DoChem ) THEN
-    ! Recompute_OD populates the AD21 diagnostics. Make sure to flush
-    ! them first (ckeller, 8/9/17)
-    ! Will need to come up with an alternative since all AD arrays
-    ! will be removed with binary diagnostics (ewl, 12/1/18)
-    IF ( Input_Opt%ND21 > 0 ) THEN
-          AD21(:,:,:,:) = 0.0
-    ENDIF
-#else
     IF ( DoChem ) THEN
-#endif
        CALL RECOMPUTE_OD ( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
                            State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'informative message here')
-#if defined( MODEL_GEOS )
-    !ENDIF
-    !ENDIF
-#else
     ENDIF
-#endif
 
     if(am_I_Root.and.NCALLS<10) write(*,*) ' --- Do diagnostics now'
     CALL MAPL_TimerOn( STATE, 'GC_DIAGN' )
@@ -1236,112 +1220,4 @@ CONTAINS
 
   END SUBROUTINE GIGC_Chunk_Final
 !EOC
-#if defined( MODEL_GEOS )
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: set_ozonopause
-!
-! !DESCRIPTION: 
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE SET_OZONOPAUSE ( am_I_Root,  Input_Opt, State_Chm, &
-                              State_Grid, State_Met, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState, Ind_
-    USE State_Grid_Mod, ONLY : GrdState
-    USE State_Met_Mod,  ONLY : MetState
-    USE PRESSURE_MOD,   ONLY : GET_PCENTER
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chem state object
-    TYPE(MetState), INTENT(INOUT) :: State_Met     ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure
-!
-! !REMARKS:
-! 
-! !REVISION HISTORY: 
-!  10 Nov 2015 - C. Keller   - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: I, J, L, N, IDTO3
-    LOGICAL            :: IsInStrat
-    REAL(fp)           :: O3val
-    INTEGER, PARAMETER :: NLEVEL = 3
-
-    ! Assume success
-    RC = GC_SUCCESS
-
-    ! Species index
-    IDTO3 = Ind_('O3')
-
-    ! Return here if ozonopause parameter has invalid value
-    IF ( Input_Opt%OZONOPAUSE <= 0.0_fp .OR. IDTO3 < 0 ) RETURN
-
-    ! Reset tropopause pressures
-    State_Met%TROPP(:,:) = 0.0_fp
-
-    ! ozonopause value (ppb --> v/v) 
-    O3val = Input_Opt%OZONOPAUSE * 1.0e-9_fp
-
-    ! Loop over grid boxes on this PET
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       IsInStrat = .FALSE.
-
-       ! Find first level where ozone concentration exceeds threshold 
-       DO L = 1, State_Grid%NZ
-          IF ( State_Chm%Species(I,J,L,IDTO3) >= O3val ) THEN
-             ! Sanity check: level above should have higher ozone and  
-             ! pressure should be above 500hPa
-             IF ( L > ( LM-NLEVEL+1 ) ) THEN
-                IsInStrat = .TRUE.
-             ELSEIF ( GET_PCENTER(I,J,L) >= 500.0_fp ) THEN
-                IsInStrat = .FALSE.
-             ELSE
-                IsInStrat = .TRUE.
-                DO N = 1, NLEVEL
-                   IF ( State_Chm%Species(I,J,L+N,IDTO3) < State_Chm%Species(I,J,L,IDTO3) ) THEN
-                      IsInStrat = .FALSE.
-                      EXIT
-                   ENDIF
-                ENDDO
-             ENDIF
-          ENDIF
-
-          ! Set TROPP to value in middle of this grid box
-          IF ( IsInStrat ) THEN
-                State_Met%TROPP(I,J) = GET_PCENTER(I,J,L) 
-             EXIT ! End L loop
-          ENDIF
-       ENDDO
-    ENDDO
-    ENDDO
-
-  END SUBROUTINE SET_OZONOPAUSE
-!EOC
-#endif
 END MODULE GIGC_Chunk_Mod

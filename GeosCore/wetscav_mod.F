@@ -246,7 +246,7 @@
       !=================================================================
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, 
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, State_Grid,
      &                  State_Met, 'WETD',    RC )
 
       ! Trap potential errors
@@ -2079,6 +2079,10 @@
 !  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F 
 !                              multiplies the whole expression for WASHFRAC,
 !                              WASHFRAC=0 whenever F=0 anyway.
+#if defined ( MODEL_GEOS )
+!  27 Jun 2019 - C. Keller - Change threshold from 268K to 240K, as recommended
+!                            by Eric Fleming (NASA GSFC)
+#endif
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2369,6 +2373,10 @@
 !  04 Sep 2013 - R. Yantosca - Bug fix: Prevent div-by-zero if F=0.  Because F 
 !                              multiplies the whole expression for WASHFRAC,
 !                              WASHFRAC=0 whenever F=0 anyway.
+#if defined ( MODEL_GEOS )
+!  27 Jun 2019 - C. Keller   - Change threshold from 268K to 240K, as
+!                              recommended by NASA GSFC (Eric Fleming).
+#endif
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2381,7 +2389,11 @@
       !=================================================================
       ! WASHFRAC_HNO3 begins here!
       !=================================================================
+#if defined(MODEL_GEOS)
+      IF ( TK >= 240e+0_fp  ) THEN
+#else
       IF ( TK >= 268e+0_fp  ) THEN
+#endif
 
          !------------------------
          ! T >= 268K: Do washout
@@ -2395,7 +2407,7 @@
       ELSE
 
          !------------------------
-         ! T < 268K: No washout
+         ! T < threshold: No washout
          !------------------------
          WASHFRAC = 0e+0_fp
 

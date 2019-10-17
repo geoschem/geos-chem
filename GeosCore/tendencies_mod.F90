@@ -768,7 +768,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Stage1( am_I_Root, Input_Opt, State_Chm, &
+  SUBROUTINE Tend_Stage1( am_I_Root, Input_Opt, State_Chm, State_Grid, &
                           State_Met, TendName,  RC ) 
 !
 ! !USES:
@@ -780,6 +780,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
+    TYPE(GrdState),   INTENT(IN   ) :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
     CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency name 
 !
@@ -886,7 +887,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Tend_Stage2( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                          State_Met, State_Chm, TendName,  DT, RC ) 
+                          State_Met, TendName,  DT, RC ) 
 !
 ! !USES:
 !

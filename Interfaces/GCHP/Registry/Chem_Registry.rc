@@ -157,5 +157,6 @@
    H2O2AfterChem  |   vv-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | soluble_fraction_H2O2
    SO2AfterChem   |   vv-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | soluble_fraction_SO2
    KPPHvalue      |   1        | xyz | C |    |   |   |     |0.0   |    |    | S       | HSAVE_for_KPP 
+   DELP_DRY       |  hPa       | xyz | C |    |   |   |     |0.0   |    |    | S       | Delta dry pressure across box
 # --------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
 </InternalSpec>

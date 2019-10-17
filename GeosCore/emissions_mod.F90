@@ -204,6 +204,10 @@ CONTAINS
 !  15 Oct 2018 - R. Yantosca - Now call GetPopsDiagsFromHemco to copy manual
 !                              diags for the POPS simulation into State_Diag
 !  18 Oct 2018 - R. Yantosca - Now pass State_Diag to EmissCO2 for nc diags
+#if defined ( MODEL_GEOS )
+!  27 Jun 2019 - C. Keller   - Only set surface CH3Br concentrations if flag is
+!                              set accordingly.
+#endif
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -367,7 +371,12 @@ CONTAINS
        ! Kludge: eventually I want to keep the concentration
        !         entirely fixed! Ask around on how to...
        !========================================================
+#if defined ( MODEL_GEOS )
+        IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) .AND. &
+             .NOT. Input_Opt%LBREMIS ) THEN
+#else
        IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
+#endif
           CALL Set_CH3Br( am_I_Root,  Input_Opt, State_Chm, &
                           State_Grid, State_Met, RC )
 

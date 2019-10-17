@@ -294,8 +294,21 @@ fi
 #### If on, auto-calculate NX and NY to maximize squareness of core regions
 if [[ ${NXNY_AUTO} == 'ON' ]]; then
    Z=$(( ${NUM_NODES}*${NUM_CORES_PER_NODE}/6 ))
-   SQRT=$(echo "sqrt (${Z})" | bc -l)  
-   N=$(echo $SQRT | awk '{print int($1+0.999)}')
+   # Use "bash calculator" if available; Python if not; fail otherwise
+   which bc &> /dev/null; bc_ok=$?
+   which python &> /dev/null; py_ok=$?
+   if [[ $bc_ok -eq 0 ]]; then
+      # Use bash calculator
+      SQRT=$(echo "sqrt (${Z})" | bc -l)  
+      N=$(echo $SQRT | awk '{print int($1+0.999)}')
+   elif [[ $py_ok -eq 0 ]]; then
+      # Use system Python
+      SQRT=$( python -c "import math; print(int(math.sqrt(${Z})))" )
+      N=$SQRT
+   else
+      echo "Cannot auto-determine NX and NY (need either bc or python available)"
+      exit 70
+   fi
    while [[ "${N}" > 0 ]]; do
       if (( ${Z} % ${N} == 0 )); then
          NX=${N}

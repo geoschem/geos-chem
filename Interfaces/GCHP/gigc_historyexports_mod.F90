@@ -107,6 +107,12 @@ MODULE GIGC_HistoryExports_Mod
 !
   ! Prefix of the species names in the internal state and HISTORY.rc
   CHARACTER(LEN=4), PUBLIC, PARAMETER  :: SPFX = 'SPC_'
+
+#if defined( MODEL_GEOS )
+  ! GEOS-Chem advected species in GEOS use prefix TRC_. Use GCD_ for GEOS-only.
+  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: TPFX = 'TRC_'
+  CHARACTER(LEN=4), PUBLIC, PARAMETER  :: GPFX = 'GCD_'
+#endif
 !
 ! !REVISION HISTORY:
 !  01 Sep 2017 - E. Lundgren - Initial version
@@ -235,16 +241,24 @@ CONTAINS
     current => HistoryConfig%DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
 
-       ! Skip State_Chm%Species entries since in internal state
-       ! TODO: In GCHP this would appear with prefix stored in SPFX
-       !       Need to make GCC and GCHP more consistent in future
-       IF ( INDEX( current%name,  TRIM(SPFX) ) > 0 ) THEN
+#if defined ( MODEL_GEOS )
+       ! Skip State_Chm%Species entries since in internal state.
+       ! Also skip GEOS-only diagnostics.
+       IF ( ( INDEX( current%name,  TRIM(TPFX) ) == 1 ) .OR.   &
+            ( INDEX( current%name,  TRIM(SPFX) ) == 1 ) .OR.   &
+            ( INDEX( current%name,  TRIM(GPFX) ) == 1 ) ) THEN
           current => current%next
           CYCLE
        ENDIF
+#else
+       ! Skip State_Chm%Species entries since in internal state.
+       IF ( INDEX( current%name,  TRIM(SPFX) ) == 1 ) THEN
+          current => current%next
+          CYCLE
+       ENDIF
+#endif
 
        ! Skip emissions diagnostics since handled by HEMCO
-       ! Will need to revisit this since name may change
        IF ( INDEX( current%name,  'EMIS' ) == 1 .or. &
             INDEX( current%name,  'INV'  ) == 1 ) THEN
           current => current%next
@@ -730,6 +744,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER                         :: LMAX
     CHARACTER(LEN=255)              :: ErrMsg
     TYPE(HistoryExportObj), POINTER :: current
 
@@ -771,6 +786,13 @@ CONTAINS
              ErrMsg = "No GC 3D pointer found for " // TRIM(current%name)
              EXIT
           ENDIF
+#if defined( MODEL_GEOS )
+          ! If using GEOS-5, flip the data vertically to match model
+          ! convention
+          LMAX = SIZE(current%ExportData3d, 3)
+          current%ExportData3d(:,:,1:LMAX) =  &
+                              current%ExportData3d(:,:,LMAX:1:-1)
+#endif
        ENDIF
 
        current => current%next    

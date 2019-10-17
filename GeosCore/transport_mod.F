@@ -255,7 +255,7 @@
       !=================================================================
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, 
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, State_Grid,
      &                  State_Met, 'ADV',     RC         )
 
       ! Trap potential errors
