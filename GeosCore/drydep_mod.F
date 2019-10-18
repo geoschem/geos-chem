@@ -450,8 +450,6 @@
       REAL(f8)      :: AZO   (IIPAR,JJPAR       ) ! Z0, per (I,J) square
       REAL(f8)      :: SUNCOS_MID(IIPAR,JJPAR   ) ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
-      REAL(f8)      :: O3_DIAGS(IIPAR,JJPAR,0:9 )  ! text file diagnostics
-      !REAL(f8)      :: Iodide_Conc(IIPAR,JJPAR  )  
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
@@ -496,8 +494,7 @@
      &             F0,        HSTAR,     XMW,        AIROSOL,           
      &             USTAR,     CZ1,       OBK,        CFRAC,
      &             ZH,        LSNOW,     DVEL,       AZO,              
-     &             RHB,       PRESSU,    W10,        RC,            
-     &             ID_O3,     O3_DIAGS                           )
+     &             RHB,       PRESSU,    W10,        RC           )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -662,86 +659,12 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !Write out the values for the updated agriculture values
-      !CALL DIAGS_TO_TEXT( O3_DIAGS )
-
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
       ENDIF
 
       END SUBROUTINE DO_DRYDEP
-
-      SUBROUTINE DIAGS_TO_TEXT( VARS )
-
-      USE TIME_MOD
-      USE FILE_MOD,      ONLY : IOERROR
-      USE inquireMod,    ONLY : findFreeLUN
-      USE GC_GRID_MOD,   ONLY : GET_XOFFSET,     GET_YOFFSET
-
-      IMPLICIT NONE
-      
-      !input parameters
-      REAL(f8), INTENT(IN) :: VARS(IIPAR,JJPAR,0:9)
-
-      !time variables
-      INTEGER              :: YEAR, MONTH, DAY, HOUR, MINUTE 
-      !file variables
-      INTEGER              :: IU_OUT, IOS
-      CHARACTER(LEN=24)    :: filename
-      REAL                 :: LAT,LON
-      !loop variables
-      INTEGER              :: I,J,I0,J0,N
-      
-      ! Get date & time values
-      YEAR   = GET_YEAR()
-      MONTH  = GET_MONTH()
-      DAY    = GET_DAY()
-      HOUR   = GET_HOUR()
-      MINUTE = GET_MINUTE()
-
-      !set up the variables for the file
-      IU_OUT = findFreeLun()
-      WRITE(filename,1000) "Ocean_surface_",YEAR,".dat"
-
- 1000 FORMAT(A14,I4,A4)
-
-      !open the file to be written to
-      OPEN( IU_OUT, FILE=TRIM(filename)
-     &     , STATUS='UNKNOWN',POSITION='APPEND', IOSTAT=IOS )
-
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      !loop over each grid box
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-!     convert I,J to LON,LAT
-         LAT = REAL(J)*(DJSIZE)+(REAL(J0)*DJSIZE)-91.5
-         LON = REAL(I)*(DISIZE)+(REAL(I0)*DISIZE)-181.5
-      IF (VARS(I,J,9) .GT. 0.0_f8) THEN 
-!     write the values to file
-      WRITE( IU_OUT, 1010, IOSTAT=IOS ) YEAR, MONTH, DAY, HOUR, 
-     &        MINUTE, LAT, LON ,REAL(VARS(I,J,0))*100.0,
-     &        REAL(VARS(I,J,1))*100.0,REAL(VARS(I,J,2)),
-     &        REAL(VARS(I,J,3)),REAL(VARS(I,J,4)),
-     &        REAL(VARS(I,J,5)),REAL(VARS(I,J,6)),
-     &        REAL(VARS(I,J,7)),REAL(VARS(I,J,8)),
-     &        REAL(VARS(I,J,9))
-      ENDIF
-      ENDDO
-      ENDDO
-
- 1010 FORMAT(I4,4(X,I2.2),2(X,F7.2),3(X,F12.8),X,F12.4,2(X,F12.8)
-     &     ,X,F14.13,3(X,F12.8))
-
-      ! Flush the file to disk
-      CALL FLUSH( IU_OUT )
-
-      !close the file
-      CLOSE( IU_OUT )
-
-      END SUBROUTINE DIAGS_TO_TEXT
 
 !EOC
 !------------------------------------------------------------------------------
@@ -752,31 +675,30 @@
 ! !IROUTINE: OceanO3
 !
 ! !DESCRIPTION: Function OCEANO3 calculates the dry deposition velcoity of O3
-!     to the ocean using equation 16 from Luhar et.al 2017(2)[1*]. Will
-!     account for the turbulence of the surface, Iodide concentration
+!     to the ocean using method described in Pound et.al (2019)
+!     currently unpublished. Will account for the turbulence of the surface, 
+!     Iodide concentration
 !     and surface temperature effects on the dry deposition velocity.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEANO3(TEMPK, USTAR, DEPV, O3_DIAGS, I, J, 
-     &     Input_Opt,State_Met)
+      SUBROUTINE OCEANO3(TEMPK, USTAR, DEPV, I, J, 
+     &                   Input_Opt,State_Met)
 
-      USE Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
 
       IMPLICIT NONE
 !     
 ! !INPUT PARAMETERS: 
 !
-      REAL(f8), INTENT(IN)  :: TEMPK  ! Temperature [K]
-      REAL(f8), INTENT(IN)  :: USTAR ! Fictional Velocity [m/s]
-      !REAL(f8), INTENT(IN)  :: Iodide_Conc(IIPAR,JJPAR  )
-      INTEGER,  INTENT(IN)  :: I,J
-      TYPE(OptInput), INTENT(IN) :: Input_Opt
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      REAL(f8), INTENT(OUT) :: DEPV(0:2)  ! the new deposition vel [cm/s]
-      REAL(f8), INTENT(INOUT) :: O3_DIAGS(IIPAR,JJPAR,0:9)  ! text file diagnostics
+      REAL(f8), INTENT(IN)         :: TEMPK  ! Temperature [K]
+      REAL(f8), INTENT(IN)         :: USTAR ! Fictional Velocity [m/s]
+      INTEGER,  INTENT(IN)         :: I,J
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt
+      TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
+      REAL(f8), INTENT(OUT)        :: DEPV  ! the new deposition vel [cm/s]
 ! !REMARKS:
 !     Initial implemenentaion of an improved parameterisation of dry
 !     deposition of ozone to the ocean, currently under development.
@@ -800,87 +722,38 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f8) :: a,D,DelM,b,PSI,LAM,EP,USTARWater,K0,K1,Garland,
-     &     Iodide,TEMPK1
+      REAL(f8) :: a,D,DelM,b,PSI,LAM,EP,USTARWater,K0,K1,Iodide
 !
 ! !DEFINED PARAMETERS:
 !
-      TEMPK1 = 289!TEMPK!+2.0
       !=================================================================
       ! OCEANO3 begins here!
       !=================================================================
       
-      USTARWater = 0.01!0.0345_f8*USTAR
+      USTARWater = 0.0345_f8*USTAR
     
-      IF (Input_Opt%IodideNETCDF .EQ. .FALSE.) THEN
-         IF (Input_Opt%IodideScheme .EQ. 'MACDO') THEN
-            Iodide = 1.46E6*EXP(-9134.0/TEMPK)
-         ELSEIF (Input_Opt%IodideScheme .EQ. 'CHANC') THEN
-            Iodide = 1.0E-9_f8*((0.225*(TEMPK-273.16)**2)+19)
-         ENDIF
-      ELSE
-         !print*, 'Iodide', Iodide_Conc(I,J)*1.0E-9_f8
-         !Iodide = State_Met%Iodide_Conc(I,J,GET_MONTH())*1.0E-9_f8
-         Iodide = 106*1.0E-9_f8
-      ENDIF
+      Iodide = State_Met%Iodide_Conc(I,J,GET_MONTH())*1.0E-9_f8
      
-      IF (Input_Opt%ReactCoeff .EQ. 'MAGI') THEN
-         a = Iodide*EXP((-8772.2/TEMPK1)+51.5)
-      ELSEIF (Input_Opt%ReactCoeff .EQ. 'GARL') THEN
-         a = Iodide*2.0E9_f8
-      ELSEIF (Input_Opt%ReactCoeff .EQ. 'LIU_') THEN
-         a = Iodide*1.2E9_f8
-      ELSEIF (Input_Opt%ReactCoeff .EQ. 'HU__') THEN
-         a = Iodide*4.0E9_f8
-      ELSEIF (Input_Opt%ReactCoeff .EQ. 'LOW_') THEN
-         a = Iodide*EXP((-8796.2/TEMPK1)+50.8)
-      ELSEIF (Input_Opt%ReactCoeff .EQ. 'HIGH') THEN
-         a = Iodide*EXP((-9261.6/TEMPK1)+53.6)
-      ENDIF
-      !a = Iodide*EXP((-8772.2/289.15)+51.5)
+      a = Iodide*EXP((-8772.2/TEMPK)+51.5)
 
-      D = -1896.0/TEMPK1
-      !D = -1896.0/289.15
+      D = 1.1E-6*EXP(-1896.0/TEMPK)
 
-      D = 1.1E-6*EXP(D)
-
-      IF (Input_Opt%FixedMicroLayer .EQ. .TRUE.) THEN
-         DelM = Input_Opt%MicroLayerSize
-      ELSE
-         DelM = Input_Opt%C0ScaleFactor*SQRT(D/a)
-      ENDIF
+      DelM = SQRT(D/a)
       
       b = 2.0_f8/(0.4_f8*USTARWater)
-      
-      LAM = a/D
-      LAM = DelM*SQRT(LAM)
+   
+      LAM = DelM*SQRT(a/D)
 
 !     LUHAR EPSILON EQN
-      EP = 2.0_f8*a*b*(DelM+(b*D/2.0_f8))
-      EP = SQRT(EP)
+      EP = SQRT(2.0_f8*a*b*(DelM+(b*D/2.0_f8)))
 
-      PSI = a*b**2*D
-      PSI = EP/SQRT(PSI)
+      PSI = EP/SQRT(a*b**2*D)
 
       CALL K0K1_APROX(EP,K0,K1)
 
-      Garland = SQRT(a*D)
-      DEPV(1) = Garland
-
-      DEPV(0) = Garland*((PSI*K1*COSH(LAM)+K0*SINH(LAM))/(PSI*K1* 
-     &     SINH(LAM)+K0*COSH(LAM)))
-
-!     FAIRALL EPSILON EQN
-      EP = b*Garland
-      CALL K0K1_APROX(EP,K0,K1)
-      DEPV(2) = Garland*(K1/K0)
-      !print*, 'Dv', DEPV(2)
-      O3_DIAGS(I,J,2) = Iodide
-      O3_DIAGS(I,J,3) = a
-      O3_DIAGS(I,J,4) = TEMPK
-      O3_DIAGS(I,J,6) = D
-      O3_DIAGS(I,J,8) = DelM
-      
+      DEPV = SQRT(a*D)*((PSI*K1*COSH(LAM)+K0*SINH(LAM))/(PSI*K1* 
+     &                   SINH(LAM)+K0*COSH(LAM)))
+   
       END SUBROUTINE OCEANO3
 
 !EOC
@@ -1252,10 +1125,9 @@
       SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
      &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
-     &                   USTAR,     CZ1,       OBK,       CFRAC,           
-     &                   ZH,        LSNOW,     DVEL,      ZO,            
-     &                   RHB,       PRESSU,    W10,       RC,          
-     &                   ID_O3,      O3_DIAGS                      )
+     &                   USTAR,     CZ1,       OBK,       CFRAC,        
+     &                   ZH,        LSNOW,     DVEL,      ZO,           
+     &                   RHB,       PRESSU,    W10,       RC          )
 
 !
 ! !USES:
@@ -1294,8 +1166,6 @@
       REAL(f8), INTENT(IN) :: PRESSU (IIPAR,JJPAR) ! Surface pressure [hPa]
       REAL(f8), INTENT(IN) :: W10    (IIPAR,JJPAR) ! Wind speed @ 10m altitude
                                                    !  [m/s]
-      !REAL(f8), INTENT(IN) :: Iodide_Conc(IIPAR,JJPAR)
-      INTEGER, INTENT(IN)  :: ID_O3                ! GC species number for O3
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1305,7 +1175,6 @@
 ! 
       INTEGER,  INTENT(OUT) :: RC                  ! Success or failure?
       REAL(f8), INTENT(OUT) :: DVEL(IIPAR,JJPAR,NUMDEP) ! Drydep velocity [m/s]
-      REAL(f8), INTENT(OUT) :: O3_DIAGS(IIPAR,JJPAR,0:9) ! text file diagnostics
 !
 ! !REMARKS:
 !  Need as landtype input for each grid square (I,J); see CMN_DEP_mod.F
@@ -1518,10 +1387,10 @@
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
 
-      ! Integer for the GEOS-CHEM species number ocean O3 special case
+      ! Integer for the GEOS-CHEM species number
       INTEGER  :: N_SPC
-      REAL(f8) :: DEPVw(0:2)
       REAL(f8) :: alpha
+      REAL(f8) :: DEPVw
 
       ! Size of DRYCOEFF (ckeller, 05/19/14)
       INTEGER :: NN
@@ -1611,8 +1480,6 @@
       !ENDIF
 #endif
 
-      O3_DIAGS = 0.0_f8
-
 
 !***********************************************************************       
 !
@@ -1680,7 +1547,7 @@
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
-!$OMP+PRIVATE( N_SPC,  DEPVw,  alpha                          )
+!$OMP+PRIVATE( N_SPC,  alpha,  DEPVw                          )
 #if defined( MODEL_GEOS )
 !$OMP+PRIVATE( RA2M,   Z0OBK2M, RA10M, Z0OBK10M               )
 #endif
@@ -1859,18 +1726,16 @@
 !     Now apply the Luhar et al. [2018] equations for the special treatment 
 !     of O3 dry deposition to the ocean surface 
                      CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
-     &                    O3_DIAGS,I,J,Input_Opt,State_Met)
+     &                            I,J,Input_Opt,State_Met)
 !     now convert to the new rc value(s) can probably tidy this up a bit
                      alpha = 10.0_f8**(-0.25-0.013*(
-     &                    289-273.16_f8))
-!     &                    State_Met%TSKIN(I,J)-273.16_f8))
-                     RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw(0))
-                     O3_DIAGS(I,J,5) = W10(I,J)
-                     O3_DIAGS(I,J,7) = alpha
+     &                                 State_Met%TSKIN(I,J)-273.16_f8))
+                     RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw)
                   ELSE
+!    its not 'ocean' so we instead don't change it from 'default' rc                     
                      RSURFC(K,LDT) = 2000.0_f8
                   ENDIF
-               ENDIF
+               ELSE
 
                !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
                XMWH2O = H2OMW * 1.e-3_f8
@@ -1908,12 +1773,9 @@
                DTMP2=1.e+0_f8/RLUXX
                DTMP3=1.e+0_f8/(RAC(LDT)+RGSX)
                DTMP4=1.e+0_f8/(RDC+RCLX)
-               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
-                 O3_DIAGS(I,J,0) = 1.e+0_f8/(DTMP1 + DTMP2 +
-     &                 DTMP3 + DTMP4)
-               ELSE
-                  RSURFC(K,LDT) = 1.e+0_f8/(DTMP1 + DTMP2 + 
-     &                 DTMP3 + DTMP4) 
+              
+               RSURFC(K,LDT) = 1.e+0_f8/(DTMP1 + DTMP2 + 
+     &                                   DTMP3 + DTMP4) 
                ENDIF
 !** get surface deposition velocity for aerosols if needed;
 !** equations (15)-(17) of Walcek et al. [1986]
@@ -2071,10 +1933,10 @@
             IF (.NOT.LDEP(K)) GOTO 190
             DO 180 LDT = 1, IREG(I,J)
                IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
-                  
+!    because of high resistance values, different rule applied for ocean
+!    ozone               
                N_SPC = State_Chm%Map_DryDep(K)
                IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
-
                   RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT), 
      &                 999999.e+0_f8))
                ELSE
@@ -2431,14 +2293,6 @@
      &              (DAIR/DIFFG(TEMPK,PRESSU(I,J),XMW(K)))
      &              **0.667e+0_f8
                IF (AIROSOL(K)) RB=0.e+0_f8
-               N_SPC = State_Chm%Map_DryDep(K)
-               II = IDEP(ILAND(I,J,LDT)+1)
-               IF(LSNOW(I,J)) II=1
-               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
-                  O3_DIAGS(I,J,0) = 1.0_f8/(RA + RB + O3_DIAGS(I,J,0))
-                  O3_DIAGS(I,J,1) = 1.0_f8/(RA + RB + RSURFC(K,LDT))
-                  O3_DIAGS(I,J,9) = IUSE(I,J,LDT)/10.0_f8
-               ENDIF
                C1X(K) = RA + RB + RSURFC(K,LDT)
  215        CONTINUE
             GOTO 240
@@ -2454,14 +2308,6 @@
                   RA2M   = 1.0D4
                   RA10M  = 1.0D4
 #endif
-                  N_SPC = State_Chm%Map_DryDep(K)
-                  II = IDEP(ILAND(I,J,LDT)+1)
-                  IF(LSNOW(I,J)) II=1
-                  IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
-                     O3_DIAGS(I,J,0) = 1.0_f8/(RA + O3_DIAGS(I,J,0))
-                     O3_DIAGS(I,J,1) = 1.0_f8/(RA + RSURFC(K,LDT))
-                     O3_DIAGS(I,J,9) = IUSE(I,J,LDT)/10.0_f8
-                  ENDIF
                   C1X(K) = RA + RSURFC(K,LDT)
                ENDIF
  230        CONTINUE
