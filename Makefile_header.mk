@@ -79,8 +79,8 @@ ERR_COUPLENA         :="Select a coupled grid for North America: COUPLENA=2x25na
 ERR_COUPLEEU         :="Select a coupled grid for Europe       : COUPLEEU=2x25eu, COUPLEEU=4x5eu"
 ERR_COUPLE           :="Select a coupled choice: COUPLE=yes"
 
-# Error message for bad GIGC config
-ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
+# Error message for bad GCHP config
+ERR_GCHP             :="Unable to find the GCHP configuration file GIGC.mk. Make sure you have cloned the GCHP repository into the GEOS-Chem repository as subdirectory GCHP."
 
 ###############################################################################
 ###                                                                         ###
@@ -685,7 +685,7 @@ ifeq ($(IS_HPC),1)
   ifneq ("$(wildcard $(CURDIR)/../../GCHP/GIGC.mk)","")
     include $(CURDIR)/../../GCHP/GIGC.mk
   else
-    $(error $(ERR_GIGC))
+    $(error $(ERR_GCHP))
   endif
   endif
   #FFLAGS             += -double-size 32 -real-size 32 -r4
