@@ -132,7 +132,7 @@ Warnings:                    1
     --> +LinStratChem+         :       true
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
-101     SeaFlux                : on    DMS/ACET/ALD2
+101     SeaFlux                : on    DMS/ACET/ALD2/MENO3/ETNO3
 102     ParaNOx                : on    NO/NO2/O3/HNO3
     --> LUT data format        :       txt
     --> LUT source dir         :       $ROOT/PARANOX/v2015-02
@@ -2189,6 +2189,8 @@ Warnings:                    1
 101 DMS_SEAWATER    $ROOT/DMS/v2015-07/DMS_lana.geos.1x1.nc          DMS_OCEAN  1985/1-12/1/0 C xy kg/m3 DMS  - 1 1
 101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc ACET       2005/1/1/0    C xy kg/m3 ACET - 1 1
 101 ALD2_SEAWATER   $ROOT/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc   ALD2       1985/1-12/1/0 C xy kg/m3 ALD2 - 1 1
+101 MENO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc MENO3      2013/1-12/1/0 C xy kg/m3 MENO3 - 1 1
+101 ETNO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc ETNO3      2013/1-12/1/0 C xy kg/m3 ETNO3 - 1 1
 
 #==============================================================================
 # --- SOILNOX emissions (Extension 104) ---

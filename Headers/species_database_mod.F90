@@ -172,6 +172,7 @@ CONTAINS
 !                              as hygroscopic growth species for cloud diags
 !  14 Sep 2018 - C. Keller   - Now get species info from Spc_Info.
 !  23 Oct 2018 - R. Yantosca - Cosmetic changes
+!  08 May 2019 - J. Fisher   - Add species for C1-C3 RONO2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1439,6 +1440,18 @@ CONTAINS
              Henry_CR      = 9200.0_f8
              WD_RetFactor  = 2.0e-2_fp
 
+          CASE( 'ETNO3' )
+             FullName      = 'Ethyl nitrate'
+             Formula       = 'C2H5ONO2'
+             MW_g          = 91.07_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             DD_F0         = 0.1_fp
+             DD_Hstar_old  = 1.6_fp
+             Henry_K0      = 1.6_f8
+             Henry_CR      = 5400.0_f8
+
 
           CASE( 'GLYC' )
              FullName      = 'Glycoaldehyde'
@@ -1896,6 +1909,19 @@ CONTAINS
              DD_Hstar_old  = 3.60_fp
 #endif
 
+          CASE( 'IPRNO3' )
+             FullName = 'Isopropyl nitrate'
+             Formula       = 'C3H7ONO2'
+             MW_g          = 105.09_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             DD_F0         = 0.1_fp
+             DD_Hstar_old  = 7.9e-1_fp
+             Henry_K0      = 7.9e-1_f8
+             Henry_CR      = 5400.0_f8
+
+
           CASE( 'ISN1' )
              ! ISN1 uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
@@ -2114,6 +2140,18 @@ CONTAINS
              Henry_K0      = 2.90e+02_f8 * To_M_atm
              Henry_CR      = 5700.0_f8
 #endif
+
+          CASE( 'MENO3' )
+             FullName      = 'Methyl nitrate'
+             Formula       = 'CH3ONO2'
+             MW_g          = 77.04_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             DD_F0         = 0.1_fp
+             DD_Hstar_old  = 2.0_fp
+             Henry_K0      = 1.1e+1_f8
+             Henry_CR      = 4700.0_f8
 
           CASE( 'MGLY' )
              FullName      = 'Methylglyoxal'
@@ -2610,6 +2648,18 @@ CONTAINS
 #else
              DD_Hstar_old  = 3.60_fp
 #endif
+
+          CASE( 'NPRNO3' )
+             FullName = 'n-propyl nitrate'
+             Formula       = 'C3H7ONO2'
+             MW_g          = 105.09_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             DD_F0         = 0.1_fp
+             DD_Hstar_old  = 1.1_fp
+             Henry_K0      = 1.1_f8
+             Henry_CR      = 5500.0_f8
 
           CASE( 'O3',     'O3STRAT', 'O3UT',   'O3MT',   'O3ROW',           &
                 'O3PCBL', 'O3NABL',  'O3ATBL', 'O3EUBL', 'O3AFBL',          &

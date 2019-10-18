@@ -40,7 +40,7 @@
 
       INTEGER            :: JVL_           ! Vertical levels for J-values
 
-      INTEGER, PARAMETER :: JVN_ = 133     ! Max number of J-values
+      INTEGER, PARAMETER :: JVN_ = 137     ! Max number of J-values
 
       INTEGER            :: AN_            ! # of separate aerosols per layer
                                            ! Now set in Init_CMN_FJX below
