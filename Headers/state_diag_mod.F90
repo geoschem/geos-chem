@@ -9173,11 +9173,6 @@ CONTAINS
        IF ( isUnits   ) Units = 'ug C m-3'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
     ELSE IF ( TRIM( Name_AllCaps ) == 'TOTALBIOGENICOA' ) THEN
        IF ( isDesc    ) Desc  = 'Sum of all biogenic organic aerosol (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
