@@ -121,6 +121,7 @@
       USE MIXING_MOD            ! performs tracer mixing
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE HCO_INTERFACE_MOD,  ONLY : HcoState !to get iodide + salinity
+      USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -240,8 +241,8 @@
       ! Reals
       REAL(f8)                 :: TAU,           TAUb      
       REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
-      REAL(fp)                 :: Iodide(:,:,:)
-      REAL(fp)                 :: Salinity(:,:)
+      REAL, ALLOCATABLE        :: Iodide(:,:,:)
+      REAL, ALLOCATABLE        :: Salinity(:,:)
 
       ! Strings
       CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE

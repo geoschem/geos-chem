@@ -28,7 +28,6 @@
       USE PhysConstants                         ! Physical constants
       USE PRECISION_MOD                         ! For GEOS-Chem Precision (fp)
       USE TIME_MOD
-      USE Sea_Surface_Mod
 
       IMPLICIT NONE
       PRIVATE
