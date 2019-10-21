@@ -137,20 +137,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG53
+      SUBROUTINE WRITE_DIAG53( Input_Opt, State_Grid )
 !
 ! !USES:
 !
 #if defined( BPCH_DIAG )
-      USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
+      USE BPCH2_MOD,      ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
 #endif
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GC_GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
-      USE TIME_MOD,     ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
+      USE FILE_MOD,       ONLY : IU_BPCH
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+      USE TIME_MOD,       ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
+      USE TIME_MOD,       ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! TINDEX
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! TINDEX
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+
 !
 ! !REMARKS:
 !   # : Field    : Description                     : Units    : Scale factor
@@ -178,7 +185,9 @@
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER               :: JFIRST,    LFIRST,      LMAX
       INTEGER               :: M,         N,           NN
-      REAL(f4)              :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)              :: ARRAY(State_Grid%NX,
+     &                               State_Grid%NY,
+     &                               State_Grid%NZ)
       REAL(f4)              :: LONRES,    LATRES
       REAL(fp)              :: SCALE,     SECONDS
       REAL(f8)              :: DIAGb,     DIAGe       
@@ -199,12 +208,12 @@
       DIAGb     = GET_DIAGb()
       DIAGe     = GET_DIAGe()
       HALFPOLAR = GET_HALFPOLAR()
-      IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
-      JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
-      LATRES    = DJSIZE
+      IFIRST    = State_Grid%XMinOffset + 1
+      JFIRST    = State_Grid%YMinOffset + 1
+      LATRES    = State_Grid%DY
       LFIRST    = 1
-      LONRES    = DISIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
       NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp )
@@ -381,7 +390,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, NN,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LMAX,     IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
       ENDDO
 #endif
@@ -400,13 +409,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG53
+      SUBROUTINE INIT_DIAG53( State_Grid )
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-   
-      USE CMN_SIZE_MOD
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version
@@ -431,46 +443,59 @@
       ENDIF
 
       ! Get number of levels for 3-D arrays
-      LD53 = MIN( ND53, LLPAR )
+      LD53 = MIN( ND53, State_Grid%NZ )
 
       ! 3-D arrays ("PP-PG-$")
-      ALLOCATE( AD53_PG_OC_NEG( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_PG_OC_NEG( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_OC_NEG' )
 
-      ALLOCATE( AD53_PG_OC_POS( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_PG_OC_POS( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_OC_POS' )
 
-      ALLOCATE( AD53_PG_BC_NEG( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_PG_BC_NEG( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_BC_NEG' )
 
-      ALLOCATE( AD53_PG_BC_POS( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_PG_BC_POS( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_BC_POS' )
 
-      ALLOCATE( AD53_POPG_OH( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPG_OH( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPG_OH' )
 
-      ALLOCATE( AD53_POPP_OCPO_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPP_OCPO_O3( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPO_O3' )
 
-      ALLOCATE( AD53_POPP_OCPI_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPP_OCPI_O3( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPI_O3' )
 
-      ALLOCATE( AD53_POPP_BCPO_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPP_BCPO_O3( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPO_O3' )
 
-      ALLOCATE( AD53_POPP_BCPI_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPP_BCPI_O3( State_Grid%NX, State_Grid%NY, LD53 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPI_O3' )
 
-      ALLOCATE( AD53_POPP_OCPO_NO3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPP_OCPO_NO3( State_Grid%NX, State_Grid%NY, LD53),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPO_NO3' )
 
-      ALLOCATE( AD53_POPP_OCPI_NO3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPP_OCPI_NO3( State_Grid%NX, State_Grid%NY, LD53),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPI_NO3' )
 
-      ALLOCATE( AD53_POPP_BCPO_NO3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPP_BCPO_NO3( State_Grid%NX, State_Grid%NY, LD53),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPO_NO3' )
 
-      ALLOCATE( AD53_POPP_BCPI_NO3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      ALLOCATE( AD53_POPP_BCPI_NO3( State_Grid%NX, State_Grid%NY, LD53),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPI_NO3' )
     
       ! Zero arrays

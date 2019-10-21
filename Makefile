@@ -69,6 +69,9 @@ hpc:
 lib:
 	@$(MAKE) -C $(GEOSDIR) lib
 
+libapm:
+	@$(MAKE) -C $(GEOSDIR) libapm
+
 libcore:
 	@$(MAKE) -C $(GEOSDIR) libcore
 

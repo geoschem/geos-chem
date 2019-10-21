@@ -921,7 +921,7 @@ CONTAINS
     Inst => NULL()
     CALL InstCreate ( ExtNr, ExtState%ParaNOx, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create AeroCom instance', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create ParaNOx instance', RC )
        RETURN
     ENDIF
 
@@ -1236,14 +1236,14 @@ CONTAINS
    Inst%DEPHNO3 = 0.0_sp
    
 !   ! O3 loss and HNO3 deposition
-!   ALLOCATE( Inst%SHIPO3LOSS( IIPAR, JJPAR ), STAT=RC )
+!   ALLOCATE( Inst%SHIPO3LOSS(HcoState%NX,HcoState%NY), STAT=RC )
 !   IF ( RC /= HCO_SUCCESS ) THEN 
 !      CALL HCO_ERROR ( HcoState%Config%Err, 'SHIPO3LOSS', RC )
 !      RETURN
 !   ENDIF
 !   Inst%SHIPO3LOSS = 0d0
 
-!   ALLOCATE( Inst%SHIPHNO3DEP( IIPAR, JJPAR ), STAT=RC )
+!   ALLOCATE( Inst%SHIPHNO3DEP(HcoState%NX,HcoState%NY), STAT=RC )
 !   IF ( RC /= HCO_SUCCESS ) THEN 
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'SHIPHNO3DEP', RC ); RETURN
 !   ENDIF
@@ -1406,7 +1406,7 @@ CONTAINS
    !=================================================================
    ! HCOX_PARANOX_FINAL begins here!
    !=================================================================
-    CALL InstRemove ( ExtState%AeroCom )
+    CALL InstRemove( ExtState%ParaNOx )
 
    RC = HCO_SUCCESS
 

@@ -16,7 +16,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NDXX_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE NDXX_SETUP( am_I_Root,  Input_Opt, State_Chm,
+     &                       State_Grid, RC )
 !
 ! !USES:
 !
@@ -32,6 +33,7 @@
       USE PLANEFLIGHT_MOD,    ONLY : SETUP_PLANEFLIGHT
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 #if   defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
@@ -42,6 +44,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)     :: am_I_Root   ! Are we on the root CPU?
+      TYPE(GrdState), INTENT(IN)     :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -223,11 +226,9 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect, NFAM
-      LOGICAL :: IT_IS_A_CH3I_SIM
       LOGICAL :: IT_IS_A_FULLCHEM_SIM
       LOGICAL :: IT_IS_A_MERCURY_SIM
       LOGICAL :: IT_IS_A_TAGO3_SIM
-      LOGICAL :: IT_IS_A_H2HD_SIM
       LOGICAL :: LDUST
       LOGICAL :: LCARB
       LOGICAL :: LSSALT
@@ -245,11 +246,9 @@
       LSSALT               = Input_Opt%LSSALT
       LDRYD                = Input_Opt%LDRYD
       LGTMM                = Input_Opt%LGTMM
-      IT_IS_A_CH3I_SIM     = Input_Opt%ITS_A_CH3I_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
       IT_IS_A_MERCURY_SIM  = Input_Opt%ITS_A_MERCURY_SIM  
       IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM 
-      IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
 
       ! Assume success
       RC                   = GC_SUCCESS
@@ -292,8 +291,9 @@
       ! ND01: Rn, Pb, Be emissions
       !=================================================================
       IF ( ND01 > 0 ) THEN 
-         LD01 = MIN( ND01, LLPAR )
-         ALLOCATE( AD01( IIPAR, JJPAR, LD01 ), STAT=AS )
+         LD01 = MIN( ND01, State_Grid%NZ )
+         ALLOCATE( AD01( State_Grid%NX, State_Grid%NY, LD01, 2 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
       ENDIF
 
@@ -301,8 +301,9 @@
       ! ND02: Rn, Pb, Be decay
       !=================================================================
       IF ( ND02 > 0 ) THEN 
-         LD02 = MIN( ND02, LLPAR )
-         ALLOCATE( AD02( IIPAR, JJPAR, LD02, nAdvect ), STAT=AS )
+         LD02 = MIN( ND02, State_Grid%NZ )
+         ALLOCATE( AD02( State_Grid%NX, State_Grid%NY, LD02, nAdvect ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD02' )
       ENDIF
 
@@ -314,9 +315,10 @@
       IF ( ND05 > 0 ) THEN
 
          ! Now size ND05 for all vertical levels (bmy, 3/9/18)
-         LD05 = MIN( ND05, LLPAR )
+         LD05 = MIN( ND05, State_Grid%NZ )
 
-         ALLOCATE( AD05( IIPAR, JJPAR, LD05, PD05 ), STAT=AS )
+         ALLOCATE( AD05( State_Grid%NX, State_Grid%NY, LD05, PD05 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
       ENDIF
 
@@ -324,12 +326,14 @@
       ! ND07: Carbonaceous aerosols emissions and chemical conversion
       !=================================================================
       IF ( ND07 > 0 .and. LCARB ) THEN 
-         LD07 = MIN( ND07, LLPAR )
+         LD07 = MIN( ND07, State_Grid%NZ )
 
-         ALLOCATE( AD07_BC( IIPAR, JJPAR, LD07 ), STAT=AS )
+         ALLOCATE( AD07_BC( State_Grid%NX, State_Grid%NY, LD07 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_BC' )
 
-         ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
+         ALLOCATE( AD07_OC( State_Grid%NX, State_Grid%NY, LD07 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
 
          ! SOAupdate (hotp 6/15/09)
@@ -338,31 +342,19 @@
          ! semivolpoa4: add dimension for POG ox to OPOG (hotp 3/28/09)
          ! NAPSOA: increase AD07_HC dimension by one to 9 for production
          ! of SOA from IVOCs (hotp 7/22/09)
-         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
+         ALLOCATE( AD07_HC( State_Grid%NX, State_Grid%NY, LD07, 9 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
       ENDIF  
-
-      !=================================================================
-      ! ND09: HCN / CH3CN source & sink
-      !=================================================================
-      IF ( ND09 > 0 ) THEN
-         LD09 = MIN( ND09, LLPAR )
-
-!         ALLOCATE( AD09( IIPAR, JJPAR, LD09, nAdvect ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09' )
-!
-!         ALLOCATE( AD09_em( IIPAR, JJPAR, PD09 ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD09_em' )
-      ENDIF
 
       !=================================================================
       ! ND12: Distribution of emissions in boundary layer [fraction]
       !       --> uses AD12 array (allocatable)
       !=================================================================
-      LD12 = MIN( ND12, LLPAR )
+      LD12 = MIN( ND12, State_Grid%NZ )
 
       IF ( ND12 > 0 ) THEN 
-         ALLOCATE( AD12( IIPAR, JJPAR, LD12 ), STAT=AS )
+         ALLOCATE( AD12( State_Grid%NX, State_Grid%NY, LD12 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PL24H' )
       ENDIF
 
@@ -371,15 +363,11 @@
       !       --> uses CONVFLUP array (allocatable)
       !=================================================================
       IF ( ND14 > 0 ) THEN
-!------------------------------------------------
-! Prior to 3/19/18:
-! Use LLPAR instead of LLCONVM (bmy, 3/19/18)
-!         LD14 = MIN( ND14, LLCONVM )
-!------------------------------------------------
-         LD14 = MIN( ND14, LLPAR )
+         LD14 = MIN( ND14, State_Grid%NZ )
          NMAX = nAdvect
 
-         ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
+         ALLOCATE( CONVFLUP( State_Grid%NX, State_Grid%NY,
+     &                       State_Grid%NZ, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CONVFLUP' )
       ENDIF
 
@@ -388,10 +376,11 @@
       !       --> uses TURBFLUP array (allocatable)
       !=================================================================
       IF ( ND15 > 0 ) THEN
-         LD15 = MIN( ND15, LLPAR )
+         LD15 = MIN( ND15, State_Grid%NZ )
          NMAX = nAdvect
 
-         ALLOCATE( TURBFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
+         ALLOCATE( TURBFLUP( State_Grid%NX, State_Grid%NY,
+     &                       State_Grid%NZ, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TURBFLUP' )
       ENDIF
 
@@ -400,14 +389,16 @@
       !       convective precipitation --> uses AD16 array (allocatable)
       !=================================================================
       IF ( ND16 > 0 ) THEN
-         LD16 = MIN( ND16, LLPAR )
+         LD16 = MIN( ND16, State_Grid%NZ )
 
          ! Store LS Precip fraction only
-         ALLOCATE( AD16( IIPAR, JJPAR, LD16, 1 ), STAT=AS ) 
+         ALLOCATE( AD16( State_Grid%NX, State_Grid%NY, LD16, 1 ),
+     &             STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD16' )
 
          ! Counter array for AD16
-         ALLOCATE( CT16( IIPAR, JJPAR, LD16, 1 ), STAT=AS ) 
+         ALLOCATE( CT16( State_Grid%NX, State_Grid%NY, LD16, 1 ),
+     &             STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT16' )
       ENDIF
 
@@ -429,14 +420,16 @@
          ENDIF
 
          ! Number of levels
-         LD17 = MIN( ND17, LLPAR )
+         LD17 = MIN( ND17, State_Grid%NZ )
 
          ! Store both LS precip only
-         ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 1 ), STAT=AS ) 
+         ALLOCATE( AD17( State_Grid%NX, State_Grid%NY, LD17, NMAX, 1 ),
+     &             STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD17' )
 
          ! Counter array for AD17
-         ALLOCATE( CT17( IIPAR, JJPAR, LD17, 1 ), STAT=AS ) 
+         ALLOCATE( CT17( State_Grid%NX, State_Grid%NY, LD17, 1 ),
+     &             STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT17' )
       ENDIF
 
@@ -458,14 +451,16 @@
          ENDIF
 
          ! Number of levels
-         LD18 = MIN( ND18, LLPAR )
+         LD18 = MIN( ND18, State_Grid%NZ )
 
          ! Store both LS precip fraction only
-         ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 1 ), STAT=AS) 
+         ALLOCATE( AD18( State_Grid%NX, State_Grid%NY, LD18, NMAX, 1 ),
+     &             STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD18' )
 
          ! Counter array for AD17
-         ALLOCATE( CT18( IIPAR, JJPAR, LD18, 1 ), STAT=AS ) 
+         ALLOCATE( CT18( State_Grid%NX, State_Grid%NY, LD18, 1 ),
+     &             STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT18' )
       ENDIF
 
@@ -473,9 +468,10 @@
       ! ND19: CH4 loss by OH 
       !=================================================================
       IF ( ND19 > 0 ) THEN 
-         LD19 = MIN( ND19, LLPAR )
+         LD19 = MIN( ND19, State_Grid%NZ )
 	 
-         ALLOCATE( AD19( IIPAR, JJPAR, LD19, PD19 ), STAT=AS )
+         ALLOCATE( AD19( State_Grid%NX, State_Grid%NY, LD19, PD19 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19' )
       ENDIF 
 
@@ -498,11 +494,12 @@
       !=================================================================
       IF ( Input_Opt%ND21 > 0 ) THEN
          ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
-         Input_Opt%LD21 = MIN( Input_Opt%ND21, LLCHEM )
+         Input_Opt%LD21 = MIN( Input_Opt%ND21, State_Grid%MaxChemLev )
          LD21 = Input_Opt%LD21
 
          ! For regular 
-         ALLOCATE( AD21( IIPAR, JJPAR, Input_Opt%LD21, PD21 ), STAT=AS )
+         ALLOCATE( AD21( State_Grid%NX, State_Grid%NY, Input_Opt%LD21,
+     &                   PD21 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )
       ENDIF
 #endif
@@ -515,14 +512,15 @@
       IF ( ND22 > 0 ) THEN
 
          ! Now size J-value diagnostic for all vertical levels (bmy, 3/9/18)
-         LD22 = MIN( ND22, LLPAR  )
+         LD22 = MIN( ND22, State_Grid%NZ  )
 
          ! Accumulating diagnostic array
-         ALLOCATE( AD22( IIPAR, JJPAR, LD22, PD22 ), STAT=AS )
+         ALLOCATE( AD22( State_Grid%NX, State_Grid%NY, LD22, PD22 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD22' )
 
          ! Number of times where LT is between HR1_JV and HR2_JV
-         ALLOCATE( CTJV( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( CTJV( State_Grid%NX, State_Grid%NY ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTJV' )         
       ENDIF
 
@@ -530,7 +528,7 @@
       ! NOTE: LTJV is currently used for netCDF diagnostics in flexchem_mod.F90
       ! regardless of the ND22 setting, so we always need to allocate it here
       ! (mps, 1/5/18)
-      ALLOCATE( LTJV( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( LTJV( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTJV' )         
 
       !=================================================================
@@ -538,9 +536,9 @@
       !       ND27 will also turn on ND24, ND25, ND26 diagnostics
       !=================================================================
       IF ( ND27 > 0 ) THEN
-         ND24 = LLPAR
-         ND25 = LLPAR
-         ND26 = LLPAR
+         ND24 = State_Grid%NZ
+         ND25 = State_Grid%NZ
+         ND26 = State_Grid%NZ
       ENDIF
 
       !=================================================================
@@ -548,9 +546,10 @@
       !       --> uses MASSFLEW array (allocatable)
       !=================================================================
       IF ( ND24 > 0 ) THEN
-         LD24 = MIN( ND24, LLPAR )
+         LD24 = MIN( ND24, State_Grid%NZ )
          NMAX = nAdvect
-         ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
+         ALLOCATE( MASSFLEW( State_Grid%NX, State_Grid%NY,
+     &                       State_Grid%NZ, NMAX ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
       ELSE
          ALLOCATE( MASSFLEW( 1, 1, 1, 1 ), STAT=AS) 
@@ -562,9 +561,10 @@
       !       --> uses MASSFLNS array (allocatable)
       !=================================================================
       IF ( ND25 > 0 ) THEN
-         LD25 = MIN( ND25, LLPAR )
+         LD25 = MIN( ND25, State_Grid%NZ )
          NMAX = nAdvect
-         ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
+         ALLOCATE( MASSFLNS( State_Grid%NX, State_Grid%NY,
+     &                       State_Grid%NZ, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
       ELSE
          ALLOCATE( MASSFLNS( 1, 1, 1, 1 ), STAT=AS )
@@ -576,9 +576,10 @@
       !       --> uses MASSFLUP array (allocatable)
       !=================================================================
       IF ( ND26 > 0 ) THEN
-         LD26 = MIN( ND26, LLPAR )
+         LD26 = MIN( ND26, State_Grid%NZ )
          NMAX = nAdvect
-         ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
+         ALLOCATE( MASSFLUP( State_Grid%NX, State_Grid%NY,
+     &                       State_Grid%NZ, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
       ELSE
          ALLOCATE( MASSFLUP( 1, 1, 1, 1 ), STAT=AS )
@@ -589,7 +590,7 @@
       ! ND30: Land/water/ice flags
       !=================================================================      
       IF ( ND30 > 0 ) THEN
-         ALLOCATE( AD30( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( AD30( State_Grid%NX, State_Grid%NY ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD30' )
       ENDIF
 
@@ -597,8 +598,8 @@
       ! ND31: 3-D pressure edges [hPa] --> Uses AD31 array (allocatable)
       !=================================================================
       IF ( ND31 > 0 ) THEN
-         LD31 = MIN( ND31, LLPAR+1 )
-         ALLOCATE( AD31( IIPAR, JJPAR, LD31 ), STAT=AS )
+         LD31 = MIN( ND31, State_Grid%NZ+1 )
+         ALLOCATE( AD31( State_Grid%NX, State_Grid%NY, LD31 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD31' )
       ENDIF
 
@@ -607,7 +608,8 @@
       !       --> uses AD33 array (allocatable)!
       !=================================================================
       IF ( ND33 > 0 ) THEN
-         ALLOCATE( AD33( IIPAR, JJPAR, nAdvect ), STAT=AS )
+         ALLOCATE( AD33( State_Grid%NX, State_Grid%NY, nAdvect ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD33' )
       ENDIF
 
@@ -616,7 +618,8 @@
       !       --> uses AD35 array (allocatable)
       !=================================================================
       IF ( ND35 > 0 ) THEN
-         ALLOCATE( AD35( IIPAR, JJPAR, nAdvect ), STAT=AS )
+         ALLOCATE( AD35( State_Grid%NX, State_Grid%NY, nAdvect ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD35' ) 
       ENDIF
 
@@ -638,11 +641,12 @@
          ENDIF
 
          ! Number of levels
-         LD37 = MIN( ND37, LLPAR )
+         LD37 = MIN( ND37, State_Grid%NZ )
 
          ! Allocate array accordingly
          IF ( NMAX > 0 ) THEN
-            ALLOCATE( AD37( IIPAR, JJPAR, LD37, NMAX ), STAT=AS )
+            ALLOCATE( AD37( State_Grid%NX, State_Grid%NY, LD37, NMAX ),
+     &                STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD37' )
          ENDIF
       ENDIF
@@ -656,14 +660,15 @@
 
          ! Get # of soluble tracers for this simulation
          NMAX = State_Chm%nWetDep
-         LD38 = MIN( ND38, LLPAR )
+         LD38 = MIN( ND38, State_Grid%NZ )
 
-         ! If GTMM on and LD38 off, ND38 should be LLPAR, (ccc, 10/29/09)
-         IF ( ND38 == 0 ) LD38 = LLPAR
+         ! If GTMM on and LD38 off, ND38 should be State_Grid%NZ,(ccc, 10/29/09)
+         IF ( ND38 == 0 ) LD38 = State_Grid%NZ
          
          ! Allocate AD38 array accordingly
          IF ( NMAX > 0 ) THEN
-            ALLOCATE( AD38( IIPAR, JJPAR, LD38, NMAX ), STAT=AS )
+            ALLOCATE( AD38( State_Grid%NX, State_Grid%NY, LD38, NMAX ),
+     &                STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD38' )
          ENDIF
       ENDIF
@@ -675,16 +680,17 @@
       ! Allocate AD39 for LGTMM. (ccc, 10/29/09)
       IF ( ND39 > 0 .OR. LGTMM ) THEN
 
-         LD39 = MIN( ND39, LLPAR )
-         ! If GTMM on and ND38 off, ND38 should be LLPAR, (ccc, 10/29/09)
-         IF ( ND39 == 0 ) LD39 = LLPAR
+         LD39 = MIN( ND39, State_Grid%NZ )
+         ! If GTMM on and ND38 off, ND38 should be State_Grid%NZ,(ccc, 10/29/09)
+         IF ( ND39 == 0 ) LD39 = State_Grid%NZ
 
          ! Get # of soluble tracers for this simulation
          NMAX = State_Chm%nWetDep
 
          ! Allocate AD39 array accordingly
          IF ( NMAX > 0 ) THEN
-            ALLOCATE( AD39( IIPAR, JJPAR, LD39, NMAX ), STAT=AS )
+            ALLOCATE( AD39( State_Grid%NX, State_Grid%NY, LD39, NMAX ),
+     &                STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD39' )
          ENDIF
       ENDIF
@@ -698,26 +704,31 @@
       IF ( ND43 > 0 ) THEN
          
          ! Now size diagnostic arrays with all vertical levels (bmy, 3/9/18)
-         LD43 = MIN( ND43, LLPAR  )
+         LD43 = MIN( ND43, State_Grid%NZ  )
 
          ! Accumulating diagnostic array
-         ALLOCATE( AD43( IIPAR, JJPAR, LD43, PD43 ), STAT=AS )
+         ALLOCATE( AD43( State_Grid%NX, State_Grid%NY, LD43, PD43 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD43' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTOH( IIPAR, JJPAR, LD43 ), STAT=AS )
+         ALLOCATE( CTOH( State_Grid%NX, State_Grid%NY, LD43 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTOH' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTHO2( IIPAR, JJPAR, LD43 ), STAT=AS )
+         ALLOCATE( CTHO2( State_Grid%NX, State_Grid%NY, LD43 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTO1D( IIPAR, JJPAR, LD43 ), STAT=AS )
+         ALLOCATE( CTO1D( State_Grid%NX, State_Grid%NY, LD43 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTO1D' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( CTO3P( IIPAR, JJPAR, LD43 ), STAT=AS )
+         ALLOCATE( CTO3P( State_Grid%NX, State_Grid%NY, LD43 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTO3P' )
       ENDIF
 
@@ -728,19 +739,19 @@
       ! (ewl, 1/5/2018)
 
       ! Locations where LT is between HR1_OH and HR2_OH
-      ALLOCATE( LTOH( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( LTOH( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTOH' )
 
       ! Locations where LT is between HR1_OH and HR2_OH
-      ALLOCATE( LTHO2( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( LTHO2( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
 
       ! Locations where LT is between HR1_OH and HR2_OH
-      ALLOCATE( LTO1D( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( LTO1D( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTO1D' )
 
       ! Locations where LT is between HR1_OH and HR2_OH
-      ALLOCATE( LTO3P( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( LTO3P( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTO3P' )
 
       !=================================================================
@@ -766,18 +777,19 @@
          NMAX = State_Chm%nDryDep
 #endif
          ! Allocate AD44 array
-         ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
+         ALLOCATE( AD44( State_Grid%NX, State_Grid%NY, NMAX, 2 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
 
 !------------------------------------------------------------------------------
 ! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!         ALLOCATE( AD44b( IIPAR, JJPAR, NMAX), STAT=AS )
+!         ALLOCATE( AD44b( State_Grid%NX, State_Grid%NY, NMAX), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44b' )
 !
-!	 ALLOCATE( AD_RA(IIPAR, JJPAR), STAT=AS )
+!	 ALLOCATE( AD_RA(State_Grid%NX, State_Grid%NY), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD_RA')
 !
-!	 ALLOCATE( AD_ZL(IIPAR, JJPAR), STAT=AS )
+!	 ALLOCATE( AD_ZL(State_Grid%NX, State_Grid%NY), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD_ZL')
 !------------------------------------------------------------------------------
 
@@ -788,20 +800,21 @@
       !       --> uses AD45 array (allocatable)
       !=================================================================
       IF ( ND45 > 0 ) THEN
-         LD45 = MIN( ND45, LLPAR )
+         LD45 = MIN( ND45, State_Grid%NZ )
          NMAX = nAdvect
 
          ! Accumulating diagnostic array
          ! Resize to NMAX to save memory (bmy, 10/18/00)
-         ALLOCATE( AD45( IIPAR, JJPAR, LD45, NMAX ), STAT=AS )
+         ALLOCATE( AD45( State_Grid%NX, State_Grid%NY, LD45, NMAX ),
+     &             STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'AD45' )
 
          ! Locations where LT is between HR1_OTH and HR2_OTH
-         ALLOCATE( LTOTH( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( LTOTH( State_Grid%NX, State_Grid%NY ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'LTOTH' )
     
          ! Number of times LT is between HR1_OTH and HR2_OTH
-         ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( CTOTH( State_Grid%NX, State_Grid%NY ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
       ENDIF
 
@@ -813,11 +826,12 @@
       !       can be averaged over any arbitrary time period.
       !=================================================================
       IF ( ND47 > 0 ) THEN
-         LD47 = MIN( ND47, LLPAR   )
+         LD47 = MIN( ND47, State_Grid%NZ   )
          NMAX = nAdvect
 
          ! Resize to NMAX to save memory (bmy, 10/18/00)
-         ALLOCATE( AD47( IIPAR, JJPAR, LD47, NMAX ), STAT=AS )
+         ALLOCATE( AD47( State_Grid%NX, State_Grid%NY, LD47, NMAX ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD47' )
       ENDIF
 
@@ -825,9 +839,10 @@
       ! ND52: gamma values
       !=================================================================
       IF ( ND52 > 0 ) THEN
-         LD52 = MIN( ND52, LLPAR)
+         LD52 = MIN( ND52, State_Grid%NZ)
 
-         ALLOCATE( AD52( IIPAR, JJPAR, LD52, PD52 ), STAT=AS )
+         ALLOCATE( AD52( State_Grid%NX, State_Grid%NY, LD52, PD52 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD52' )
       ENDIF
 
@@ -840,14 +855,9 @@
       IF ( ND54 > 0 ) THEN
 
          ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
-!----------------------------------------------
-! Prior to 3/19/18:
-! Now set max value as LLPAR (bmy, 3/19/18)
-!         LD54 = MIN( ND54, LLCHEM)
-!----------------------------------------------
-         LD54 = MIN( ND54, LLPAR )
+         LD54 = MIN( ND54, State_Grid%NZ )
 
-         ALLOCATE( AD54( IIPAR, JJPAR, LD54 ), STAT=AS )
+         ALLOCATE( AD54( State_Grid%NX, State_Grid%NY, LD54 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD54' )
       ENDIF
 
@@ -856,7 +866,7 @@
       !       --> uses AD55 array (allocatable)
       !=================================================================
       IF ( ND55 > 0 ) THEN
-         ALLOCATE( AD55( IIPAR, JJPAR, PD55 ), STAT=AS )
+         ALLOCATE( AD55( State_Grid%NX, State_Grid%NY, PD55 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD55' )
       ENDIF
 
@@ -869,8 +879,8 @@
       ! ND57: theta
       !=================================================================
       IF ( ND57 > 0 ) THEN
-         LD57 = MIN( ND57, LLPAR)
-         ALLOCATE( AD57( IIPAR, JJPAR, LD57 ), STAT=AS )
+         LD57 = MIN( ND57, State_Grid%NZ)
+         ALLOCATE( AD57( State_Grid%NX, State_Grid%NY, LD57 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD57' )
       ENDIF
 
@@ -881,31 +891,39 @@
       !      ----> save 3-D (I,J,1) or up to (I,J,2) 
       !=================================================================
       IF ( ND59 > 0 ) THEN
-         LD59 = MIN( ND59, LLPAR )
+         LD59 = MIN( ND59, State_Grid%NZ )
 
          ! Number emission
-         ALLOCATE( AD59_NUMB( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         ALLOCATE( AD59_NUMB( State_Grid%NX, State_Grid%NY, 2, IBINS ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_NUMB' )
 
-         ALLOCATE( AD59_SULF( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         ALLOCATE( AD59_SULF( State_Grid%NX, State_Grid%NY, 2, IBINS ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_SULF' )
 
-         ALLOCATE( AD59_SALT( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         ALLOCATE( AD59_SALT( State_Grid%NX, State_Grid%NY, 2, IBINS ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_SALT' )
 
-         ALLOCATE( AD59_ECIL( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         ALLOCATE( AD59_ECIL( State_Grid%NX, State_Grid%NY, 2, IBINS ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_ECIL' )
 
-         ALLOCATE( AD59_ECOB( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         ALLOCATE( AD59_ECOB( State_Grid%NX, State_Grid%NY, 2, IBINS ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_ECOB' )
 
-         ALLOCATE( AD59_OCIL( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         ALLOCATE( AD59_OCIL( State_Grid%NX, State_Grid%NY, 2, IBINS ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_OCIL' )
 
-         ALLOCATE( AD59_OCOB( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         ALLOCATE( AD59_OCOB( State_Grid%NX, State_Grid%NY, 2, IBINS ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_OCOB' )
 
-         ALLOCATE( AD59_DUST( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
+         ALLOCATE( AD59_DUST( State_Grid%NX, State_Grid%NY, 2, IBINS ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_DUST' )
       ENDIF
 
@@ -916,39 +934,39 @@
       !       ---> save 2-D (J,L) for 30-bin of each aerosol species
       !=================================================================
       IF ( ND60 > 0 ) THEN
-         LD60 = MIN( ND60, LLPAR )
+         LD60 = MIN( ND60, State_Grid%NZ )
 
          ! Now the array dimension is IBINS*(ICOMP-IDIAG+1) because
          ! we need it for all prognostic mass species + 1 for number
          ! IDIAG = # of diagnostic species.  (win, 9/27/08)
          !Condensation rate
-         ALLOCATE( AD60_COND( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
-     &             STAT=AS )
+         ALLOCATE(AD60_COND(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), 
+     &            STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_COND' )
 
          !Coagulation rate
-         ALLOCATE( AD60_COAG( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
-     &             STAT=AS )
+         ALLOCATE(AD60_COAG(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), 
+     &            STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_COAG' )
 
          !Nucleation rate
-         ALLOCATE( AD60_NUCL( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
-     &             STAT=AS )
+         ALLOCATE(AD60_NUCL(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), 
+     &            STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_NUCL' )
 
          !Aqueous oxidation rate
-         ALLOCATE( AD60_AQOX( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
-     &             STAT=AS )
+         ALLOCATE(AD60_AQOX(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), 
+     &            STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_AQOX' )
 
          !Accumulated error-fudging 
-         ALLOCATE( AD60_ERROR( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
-     &             STAT=AS )
+         ALLOCATE(AD60_ERROR(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1))
+     &            ,STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_ERROR' )
 
          !SOA Condensation rate 
-         ALLOCATE( AD60_SOA( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
-     &             STAT=AS )
+         ALLOCATE(AD60_SOA(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), 
+     &            STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_SOA' )
       ENDIF
 
@@ -958,7 +976,7 @@
       ! ND60: WETLAND FRACTION 
       !=================================================================
       IF ( ND60 > 0 ) THEN 
-         ALLOCATE( AD60( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( AD60( State_Grid%NX, State_Grid%NY ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60' )
       ENDIF
 #endif
@@ -970,14 +988,16 @@
       !       --> Uses AD61 array (allocatable)
       !  NOTE: ND61 is used for 10-nm particle formation 
       !        rate and cluster-size nucleation rate.  So the array
-      !        is declared for (IIPAR,JJPAR,LD61,2) (win, 10/6/08)
+      !        is declared for (NX,NY,LD61,2) (win, 10/6/08)
       !=================================================================
       IF ( ND61 > 0 ) THEN
-         LD61 = MIN( ND61, LLPAR )
+         LD61 = MIN( ND61, State_Grid%NZ )
 
-         ALLOCATE( AD61( IIPAR, JJPAR, LD61, PD61 ), STAT=AS )
+         ALLOCATE( AD61( State_Grid%NX, State_Grid%NY, LD61, PD61 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61' )
-         ALLOCATE( AD61_INST( IIPAR, JJPAR, LD61, PD61 ), STAT=AS )
+         ALLOCATE( AD61_INST( State_Grid%NX, State_Grid%NY, LD61, PD61),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61_INST' )
       ENDIF
 #endif
@@ -987,9 +1007,10 @@
       !       --> Uses AD64 array (allocatable)
       !=================================================================
       IF ( ND64 > 0 ) THEN
-         LD64 = MIN( ND64, LLPAR+1 )
+         LD64 = MIN( ND64, State_Grid%NZ+1 )
 
-         ALLOCATE( AD64( IIPAR, JJPAR, LD64, PD64, 3 ), STAT=AS )
+         ALLOCATE( AD64( State_Grid%NX, State_Grid%NY, LD64, PD64, 3 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
       ENDIF
 
@@ -1000,7 +1021,7 @@
       IF ( ND65 > 0 ) THEN
          
          ! Now size diagnostic arrays with all vertical levels (bmy, 3/9/18)
-         LD65 = MIN( ND65, LLPAR  )
+         LD65 = MIN( ND65, State_Grid%NZ  )
 
          IF ( Input_Opt%DO_SAVE_PCO ) THEN
             NFAM = Input_Opt%NFAM + 2
@@ -1008,7 +1029,8 @@
             NFAM = Input_Opt%NFAM
          ENDIF
 
-         ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
+         ALLOCATE( AD65( State_Grid%NX, State_Grid%NY, LD65, NFAM ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
       ENDIF
 
@@ -1021,7 +1043,8 @@
          LMAX = MAX( LD47, LD65 )
 
          ! Number of times in the troposphere 
-         ALLOCATE( CTO3_24h( IIPAR, JJPAR, LMAX ), STAT=AS )
+         ALLOCATE( CTO3_24h( State_Grid%NX, State_Grid%NY, LMAX ),
+     &             STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTO3_24h' )
       ENDIF
 
@@ -1030,8 +1053,9 @@
       !       --> uses AD66 array (allocatable)
       !=================================================================
       IF ( ND66 > 0 ) THEN
-         LD66 = MIN( ND66, LLPAR )
-         ALLOCATE( AD66( IIPAR, JJPAR, LD66, PD66 ), STAT=AS )
+         LD66 = MIN( ND66, State_Grid%NZ )
+         ALLOCATE( AD66( State_Grid%NX, State_Grid%NY, LD66, PD66 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
       ENDIF
 
@@ -1040,7 +1064,7 @@
       !       --> Uses AD67 array (allocatable)
       !=================================================================
       IF ( ND67 > 0 ) THEN
-         ALLOCATE( AD67( IIPAR, JJPAR, PD67 ), STAT=AS )
+         ALLOCATE( AD67( State_Grid%NX, State_Grid%NY, PD67 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD67' )
       ENDIF
 
@@ -1049,8 +1073,9 @@
       !       --> uses AD68 array (allocatable)
       !=================================================================
       IF ( ND68 > 0 ) THEN
-         LD68 = MIN( ND68, LLPAR )
-         ALLOCATE( AD68( IIPAR, JJPAR, LD68, PD68 ), STAT=AS )
+         LD68 = MIN( ND68, State_Grid%NZ )
+         ALLOCATE( AD68( State_Grid%NX, State_Grid%NY, LD68, PD68 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD68' )
       ENDIF
 
@@ -1059,7 +1084,7 @@
       !       --> uses AD69 array (allocatable)
       !=================================================================
       IF ( ND69 > 0 ) THEN
-         ALLOCATE( AD69( IIPAR, JJPAR, PD69 ), STAT=AS )
+         ALLOCATE( AD69( State_Grid%NX, State_Grid%NY, PD69 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
 
@@ -1070,13 +1095,15 @@
          NMAX = nAdvect+1
 
          ! Resize to NMAX to save memory (bmy, 10/18/00)
-         ALLOCATE( AD71( IIPAR, JJPAR, NMAX ), STAT=AS )
+         ALLOCATE( AD71( State_Grid%NX, State_Grid%NY, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71' )
 
-         ALLOCATE( AD71_HR( IIPAR, JJPAR, NMAX ), STAT=AS )
+         ALLOCATE( AD71_HR( State_Grid%NX, State_Grid%NY, NMAX ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_HR' )
 
-         ALLOCATE( AD71_DAY( IIPAR, JJPAR, NMAX ), STAT=AS )
+         ALLOCATE( AD71_DAY( State_Grid%NX, State_Grid%NY, NMAX ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_DAY' )
 
       ENDIF
@@ -1088,7 +1115,7 @@
       !       --> uses AD72 array (allocatable)
       !=================================================================
       IF ( ND72 > 0 ) THEN
-         ALLOCATE( AD72( IIPAR, JJPAR, PD72 ), STAT=AS )
+         ALLOCATE( AD72( State_Grid%NX, State_Grid%NY, PD72 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD72' )
       ENDIF
 
@@ -1096,9 +1123,10 @@
       ! ND73: ISORROPIA pH and H+
       !=================================================================
       IF ( ND73 > 0 ) THEN 
-         LD73 = MIN( ND73, LLPAR )
+         LD73 = MIN( ND73, State_Grid%NZ )
 
-         ALLOCATE( AD73( IIPAR, JJPAR, LD73, PD73 ), STAT=AS )
+         ALLOCATE( AD73( State_Grid%NX, State_Grid%NY, LD73, PD73 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD73' )
       ENDIF
 

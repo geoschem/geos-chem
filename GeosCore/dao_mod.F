@@ -33,8 +33,8 @@
       PUBLIC  :: IS_LAND
       PUBLIC  :: IS_WATER
       PUBLIC  :: IS_ICE
-      PUBLIC  :: IS_NEAR      
       PUBLIC  :: SET_DRY_SURFACE_PRESSURE
+      PUBLIC  :: Set_Met_AgeOfAir
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
       PUBLIC  :: GIGC_Cap_Tropopause_Prs
 #endif
@@ -139,6 +139,8 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  08 Mar 2018 - E. Lundgren - Add GIGC_Cap_Tropopause_Prs from GCHP gchp_util
+!  21 Dec 2018 - M. Sulprizio- Add new routine Set_Met_AgeOfAir
+!  17 Feb 2019 - M. Sulprizio- Remove obsolete IS_NEAR function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,21 +154,25 @@
 ! !IROUTINE: avgpole
 !
 ! !DESCRIPTION: Subroutine AVGPOLE computes average quantity near polar caps, 
-!  defined by (J = 1, 2) and (J = JJPAR-1, JJPAR).  
+!  defined by (J = 1, 2) and (J = State\_Grid%NY-1, State\_Grid%NY).  
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AVGPOLE( Z ) 
+      SUBROUTINE AVGPOLE( State_Grid, Z ) 
 !
 ! !USES:
 !
-      USE GC_GRID_MOD, ONLY : GET_AREA_M2
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL(fp), INTENT(INOUT) :: Z(IIPAR,JJPAR)   ! Quantity to be averaged 
-                                                !  over the pole (usually PS)
+      ! Quantity to be averaged over the pole (usually PS)
+      REAL(fp), INTENT(INOUT) :: Z(State_Grid%NX,State_Grid%NY)
 ! 
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -200,13 +206,11 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if defined( GRID05x0625 ) || defined( GRID025x03125 )
-#if defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU   ) || defined( NESTED_AS )
-      ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
-      ! 1x1 window grid does not extend to poles
-      RETURN
-#endif
-#endif
+      IF ( State_Grid%NestedGrid ) THEN
+         ! Nested grids typically do not extend to poles. Add better check
+         ! here is users wish to define custom nested grids near the poles.
+         RETURN
+      ENDIF
 
       TOTAL_Z1 = 0.
       TOTAL_Z2 = 0.
@@ -217,30 +221,33 @@
       TOTAL_A3 = 0.
       TOTAL_A4 = 0.
 
-      DO I = 1, IIPAR
+      DO I = 1, State_Grid%NX
          TOTAL_Z1 = TOTAL_Z1 
-     &            + GET_AREA_M2( I, 1,       1 ) * Z(I,1      )
+     &            + State_Grid%Area_M2(I,1) * Z(I,1      )
 
          TOTAL_Z2 = TOTAL_Z2 
-     &            + GET_AREA_M2( I, 2,       1 ) * Z(I,2      )
+     &            + State_Grid%Area_M2(I,2) * Z(I,2      )
 
          TOTAL_Z3 = TOTAL_Z3 
-     &            + GET_AREA_M2( I, JJPAR-1, 1 ) * Z(I,JJPAR-1)
+     &            + State_Grid%Area_M2(I,State_Grid%NY-1)
+     &            * Z(I,State_Grid%NY-1)
 
          TOTAL_Z4 = TOTAL_Z4 
-     &            + GET_AREA_M2( I, JJPAR,   1 ) * Z(I,JJPAR  )
+     &            + State_Grid%Area_M2(I,State_Grid%NY)
+     &            * Z(I,State_Grid%NY  )
 
-         TOTAL_A1 = TOTAL_A1 + GET_AREA_M2( I, 1,       1 ) 
-         TOTAL_A2 = TOTAL_A2 + GET_AREA_M2( I, 2,       1 )
-         TOTAL_A3 = TOTAL_A3 + GET_AREA_M2( I, JJPAR-1, 1 )
-         TOTAL_A4 = TOTAL_A4 + GET_AREA_M2( I, JJPAR,   1 )
+         TOTAL_A1 = TOTAL_A1 + State_Grid%Area_M2(I,1) 
+         TOTAL_A2 = TOTAL_A2 + State_Grid%Area_M2(I,2)
+         TOTAL_A3 = TOTAL_A3 + State_Grid%Area_M2(I,State_Grid%NY-1)
+         TOTAL_A4 = TOTAL_A4 + State_Grid%Area_M2(I,State_Grid%NY)
       ENDDO
 
-      DO I = 1, IIPAR
+      DO I = 1, State_Grid%NX
          Z(I,      1) = (TOTAL_Z1 + TOTAL_Z2) / (TOTAL_A1 + TOTAL_A2)
          Z(I,      2) = Z(I,1)
-         Z(I,JJPAR-1) = (TOTAL_Z3 + TOTAL_Z4) / (TOTAL_A3 + TOTAL_A4)
-         Z(I,JJPAR  ) = Z(I,JJPAR-1)
+         Z(I,State_Grid%NY-1) = (TOTAL_Z3 + TOTAL_Z4) / 
+     &                          (TOTAL_A3 + TOTAL_A4)
+         Z(I,State_Grid%NY  ) = Z(I,State_Grid%NY-1)
       ENDDO
 
       END SUBROUTINE AVGPOLE
@@ -260,32 +267,36 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT( am_I_Root, Input_Opt, State_Met,
-     &                   State_Chm, RC,        Update_Mixing_Ratio )
+      SUBROUTINE AIRQNT( am_I_Root,  Input_Opt, State_Chm,
+     &                   State_Grid, State_Met, RC,
+     &                   Update_Mixing_Ratio )
 !
 ! !USES:
 !
       USE ErrCode_Mod    
-      USE GC_GRID_MOD,   ONLY : Get_Area_M2
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE State_Met_Mod, ONLY : MetState
-      USE State_Chm_Mod, ONLY : ChmState
-      USE PhysConstants, ONLY : AIRMW, AVO
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
+      USE PhysConstants,  ONLY : AIRMW, AVO
       USE Pressure_Mod
-      USE Time_Mod,      ONLY : Get_LocalTime
+      USE Time_Mod,       ONLY : Get_LocalTime
+      USE Time_Mod,       ONLY : Get_LocalTime_In_Sec
+      USE Time_Mod,       ONLY : Get_Ts_Dyn
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)           :: am_I_Root ! On the root CPU?
-      TYPE(OptInput), INTENT(IN)           :: Input_Opt ! Input Options obj
-      LOGICAL,        INTENT(IN), OPTIONAL :: update_mixing_ratio 
-                                                        ! Update mixing ratio?
-                                                        ! Default is yes
+      LOGICAL,        INTENT(IN)           :: am_I_Root  ! On the root CPU?
+      TYPE(OptInput), INTENT(IN)           :: Input_Opt  ! Input Options object
+      TYPE(GrdState), INTENT(IN)           :: State_Grid ! Grid State object
+      LOGICAL,        INTENT(IN), OPTIONAL :: Update_Mixing_Ratio 
+                                                         ! Update mixing ratio?
+                                                         ! Default is yes
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT)        :: State_Met ! Met State obj
-      TYPE(ChmState), INTENT(INOUT)        :: State_Chm ! Chemistry State obj
+      TYPE(MetState), INTENT(INOUT)        :: State_Met ! Meteorology State obj
+      TYPE(ChmState), INTENT(INOUT)        :: State_Chm ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -386,19 +397,20 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      INTEGER             :: Dt_Sec
       INTEGER             :: I,         J,          L
       INTEGER             :: L_CG,      L_TP,       N
       REAL(fp)            :: PEdge_Top, Esat,       Ev_mid,    Ev_edge
       REAL(fp)            :: Ev_mean,   PMEAN,      PMEAN_DRY, EsatA
-      REAL(fp)            :: EsatB,     EsatC,      EsatD,     AREA_M2
+      REAL(fp)            :: EsatB,     EsatC,      EsatD
       REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
       REAL(fp)            :: Pb,        Pt
-      LOGICAL             :: UpdtMR
+      LOGICAL             :: UpdtMR     
 
       ! Arrays
-      LOGICAL             :: IsLocNoon(IIPAR)
-      REAL(f8)            :: LocTime  (IIPAR)
-      REAL(f8)            :: Nearest  (IIPAR)
+      LOGICAL             :: IsLocNoon (State_Grid%NX,State_Grid%NY)
+      REAL(f8)            :: LocTime   (State_Grid%NX,State_Grid%NY)
+      INTEGER             :: LocTimeSec(State_Grid%NX,State_Grid%NY)
 
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -435,21 +447,33 @@
       RC       = GC_SUCCESS
       ErrMsg   = ''
       ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
+      Dt_Sec   = Get_Ts_Dyn()
 
       ! Shadow variable for mixing ratio update
       UpdtMR = .TRUE.
       IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
       ! Pre-compute local solar time = UTC + Lon/15
-      ! NOTE: Local time only depends on longitude
-      DO I = 1, IIPAR
-         LocTime(I) = GET_LOCALTIME( I, 1, 1 )
-         Nearest(I) = ABS( LocTime(I) - 12.0_fp )
-      ENDDO
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J   )
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
-      ! Find the box that is nearest to local noon
-      IsLocNoon                      = .FALSE.
-      IsLocNoon( MINLOC( Nearest ) ) = .TRUE.
+         ! Local time only depends on longitude, but longitude is a
+         ! function of (I,J) for cubed-sphere grids.  Therefore, use
+         ! (I,J) in the call to GET_LOCALTIME.  Obtain the local time
+         ! both in hours and in seconds (bmy, 4/18/19)
+         LocTime   (I,J) = Get_LocalTime       ( I, J, 1, State_Grid )
+         LocTimeSec(I,J) = Get_LocalTime_In_Sec( I, J, 1, State_Grid )
+
+         ! Pick the boxes that are closest to local noon (12hr = 43200 s).
+         ! Use local time in seconds, which avoids roundoff issues.
+         IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. 
+     &                      LocTimeSec(I,J) + Dt_Sec >= 43200 )
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !=============================================================
       ! Update air quantities
@@ -460,10 +484,10 @@
 !$OMP+PRIVATE( I,       J,         L,       Pedge_Top )
 !$OMP+PRIVATE( EsatA,   EsatB,     EsatC,   EsatD     )
 !$OMP+PRIVATE( Esat,    SPHU_kgkg, Ev_mid,  Ev_edge   )
-!$OMP+PRIVATE( Area_M2, PMean,     Ev_mean, PMean_Dry )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!$OMP+PRIVATE( PMean,   Ev_mean,   PMean_Dry          )
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
                                                                           
          !=============================================================   
          ! Set wet air pressures [hPa]                                    
@@ -476,8 +500,8 @@
          ! Pressure at top edge of grid box [hPa]                         
          PEdge_Top                   = GET_PEDGE( I, J, L+1 )                 
                                                                           
-         ! Pressure at bottom edge of grid box [hPa] (level LLPAR+1 only) 
-         IF ( L == LLPAR ) THEN
+         ! Pressure at bottom edge of grid box [hPa](level State_Grid%NZ+1 only)
+         IF ( L == State_Grid%NZ ) THEN
             State_Met%PEDGE(I,J,L+1) = PEdge_Top
          ENDIF
 
@@ -586,19 +610,7 @@
          State_Met%BXHEIGHT(I,J,L) = Rdg0 * State_Met%TV(I,J,L)
      &                             * LOG( State_Met%PEDGE(I,J,L)
      &                             /      PEdge_Top )
-                                                                          
-         !==============================================================  
-         ! Set grid box surface area [m2]                                 
-         ! NOTE: We intend to gradually remove area use by                
-         ! changing tracer units to mixing ratio                          
-         !==============================================================  
-                                                                          
-#if defined( ESMF_ )                                                      
-            AREA_M2                = State_Met%AREA_M2(I,J,1)
-#else
-            AREA_M2                = GET_AREA_M2( I,J,L )
-#endif                                                                    
-                                                                          
+
          !==============================================================  
          ! Set grid box volume [m3]                                       
          !==============================================================  
@@ -619,7 +631,8 @@
          ! approx. the same as AREA_M2.  Thus we are justified            
          ! in using AREA_M2 for grid boxes (I, J, L > 1)                  
          !                                                                
-         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
+         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * 
+     &                             State_Grid%AREA_M2(I,J)
                                                                           
          !==============================================================
          ! Set grid box dry air partial pressures at grid box edges
@@ -630,8 +643,8 @@
          ! Partial pressure of dry air at lower edge of grid box [hPa]
          State_Met%PEDGE_DRY(I,J,L) = State_Met%PEDGE(I,J,L) - Ev_edge
 
-         ! Set dry air partial pressure for level LLPAR+1 lower edge
-         IF ( L == LLPAR ) THEN
+         ! Set dry air partial pressure for level State_Grid%NZ+1 lower edge
+         IF ( L == State_Grid%NZ ) THEN
             State_Met%PEDGE_DRY(I,J,L+1) = Pedge_Top - Ev_edge
          ENDIF
 
@@ -669,7 +682,7 @@
          ! wet edge pressures. This distinction is important for
          ! mass conservation.
          State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 )
-     &                       * AREA_M2
+     &                       * State_Grid%AREA_M2(I,J)
 
          !==============================================================
          ! Set grid box dry air partial pressures at grid box 
@@ -761,10 +774,11 @@
 
          ! Is this grid box within the stratosphere (but not mesosphere)?
          State_Met%InStratosphere(I,J,L) =
-     &      ( L <= LLSTRAT .and. State_Met%InStratMeso(I,J,L) )
+     &      ( L <= State_Grid%MaxStratLev .and.
+     &        State_Met%InStratMeso(I,J,L) )
 
          ! Is grid box (I,J,L) within the chemistry grid?
-         IF ( L > LLCHEM ) THEN
+         IF ( L > State_Grid%MaxChemLev ) THEN
 
             ! Chemistry is not done higher than the mesopause
             State_Met%InChemGrid(I,J,L) = .FALSE.
@@ -774,7 +788,8 @@
             IF ( Input_Opt%LUCX ) THEN
 
                ! UCX mechanisms: Chemistry grid goes up to stratopause
-               State_Met%InChemGrid(I,J,L) = ( L <= LLSTRAT )
+               State_Met%InChemGrid(I,J,L) =
+     &            ( L <= State_Grid%MaxChemLev )
 
             ELSE
 
@@ -802,14 +817,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED                            )
 !$OMP+PRIVATE( I, J, L_CG, L_TP, H, Pb, Pt, FRAC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          !--------------------------------------------------------------
          ! Local solar time and box that is nearest to local noon
          !--------------------------------------------------------------
-         State_Met%LocalSolarTime(I,J) = LocTime(I)
-         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I)
+         State_Met%LocalSolarTime(I,J) = LocTime(I,J)
+         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I,J)
 
          !--------------------------------------------------------------
          ! Compute highest level of chemistry grid and the troposphere
@@ -892,9 +907,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
             DO N = 1, State_Chm%nSpecies
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
                State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
      &                                    * State_Met%DP_DRY_PREV(I,J,L)
      &                                    / State_Met%DELP_DRY(I,J,L) 
@@ -928,12 +943,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, Input_Opt, State_Met )
+      SUBROUTINE INTERP( NTIME0,    NTIME1,     NTDT,
+     &                   Input_Opt, State_Grid, State_Met )
 !
 ! !USES:
 !
-      USE GC_GRID_MOD,        ONLY : GET_YEDGE
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -944,6 +960,7 @@
                                                   !  current time
       INTEGER,        INTENT(IN)    :: NTDT       ! Dynamic timestep [s]
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid ! State Grid object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1048,9 +1065,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          !----------------------------------------------------
          ! Interpolate 2D variables
@@ -1058,8 +1075,8 @@
          IF ( L == 1 ) THEN
 
             ! North & south edges of box
-            YSOUTH     = GET_YEDGE( I, J,   L )
-            YNORTH     = GET_YEDGE( I, J+1, L )
+            YSOUTH     = State_Grid%YEdge(I,J  )
+            YNORTH     = State_Grid%YEdge(I,J+1)
 
             ! Interpolate wet pressure [hPa] to the end of the dynamic timestep
             State_Met%PSC2_WET(I,J)  = State_Met%PS1_WET(I,J) +
@@ -1121,23 +1138,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GIGC_Cap_Tropopause_Prs( am_I_Root, IM,        JM, 
-     &                                    Input_Opt, State_Met, RC  )
+      SUBROUTINE GIGC_Cap_Tropopause_Prs( am_I_Root,
+     &                                    Input_Opt, State_Grid,
+     &                                    State_Met, RC  )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE State_Met_Mod, ONLY : MetState
-      USE GC_Grid_Mod,   ONLY : Get_XEdge
-      USE GC_Grid_Mod,   ONLY : Get_YEdge
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
-      INTEGER,        INTENT(IN)    :: IM            ! # of lons on this CPU
-      INTEGER,        INTENT(IN)    :: JM            ! # of lats on this CPU
       TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1178,16 +1194,13 @@
       ! Assume success
       RC = GC_SUCCESS
       
-      ! Return if option not set
-      IF ( .NOT. Input_Opt%LCAPTROP ) RETURN
-      
       ! Loop over grid boxes on this PET
-      DO J = 1, JM
-      DO I = 1, IM
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
       
          ! North & south edges of box
-         YSOUTH = GET_YEDGE( I, J,   1 )
-         YNORTH = GET_YEDGE( I, J+1, 1 )
+         YSOUTH = State_Grid%YEdge(I,J  )
+         YNORTH = State_Grid%YEdge(I,J+1)
       
          ! Cap tropopause height at 200 hPa polewards of 60N and 60S
          IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
@@ -1214,22 +1227,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_DRY_SURFACE_PRESSURE( State_Met, PS_ID )
+      SUBROUTINE SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, PS_ID)
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD 
       USE ERROR_MOD,            ONLY : CHECK_VALUE
+      USE State_Grid_Mod,       ONLY : GrdState
       USE State_Met_Mod,        ONLY : MetState
       USE PRESSURE_MOD,         ONLY : GET_AP, GET_BP
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)     :: PS_ID       ! 1 = PS1, 2 = PS2
+      TYPE(GrdState), INTENT(IN)     :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(INOUT)  :: State_Met   ! Object for met fields
+      TYPE(MetState), INTENT(INOUT)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  This subroutine is an adaptation of the GEOS-Chem moisture fix 
@@ -1283,16 +1298,16 @@
       ENDIF
 
       ! Reset dry surface pressure to TOA value
-      PS_DRY = GET_AP(LLPAR+1)
+      PS_DRY = GET_AP(State_Grid%NZ+1)
 
       ! Calculate dry surface pressure from GMAO wet pressure as the 
       ! column sum of wet delta pressures with humidity removed
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PEDGE_BOT, PEDGE_TOP )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-      DO L = 1, LLPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+      DO L = 1, State_Grid%NZ
          PEDGE_BOT   = GET_AP(L) + GET_BP(L) * PS_WET(I,J) 
          PEDGE_TOP   = GET_AP(L+1) + GET_BP(L+1) * PS_WET(I,J)
          PS_DRY(I,J) = PS_DRY(I,J) + ( PEDGE_BOT - PEDGE_TOP ) 
@@ -1306,8 +1321,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          IF ( PS_DRY(I,J) < 0.e+0_fp) THEN
             PS_DRY(I,J) = PS_WET(I,J)
          ENDIF
@@ -1509,124 +1524,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: is_near
-!
-! !DESCRIPTION: Function IS\_NEAR returns TRUE if surface grid box (I,J) 
-!  contains any land above a certain threshold (THRESH) or any of the 
-!  adjacent boxes up to NEIGHBOR boxes away contain land.  
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR, State_Met )
-     &   RESULT ( NEAR )
-!
-! !USES:
-!
-      USE State_Met_Mod,      ONLY : MetState
-!
-! !INPUT PARAMETERS: 
-!
-      ! Arguments
-      INTEGER,        INTENT(IN) :: I, J       ! Lon & lat grid box indices
-      INTEGER,        INTENT(IN) :: NEIGHBOR   ! # of neighbor boxes to consider
-      REAL(fp),         INTENT(IN) :: THRESH     ! LWI threshold for near-land 
-      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
-!
-! !RETURN VALUE:
-!
-      LOGICAL                    :: NEAR       ! # of near land boxes
-!
-! !REMARKS:
-!  Typical values for:
-!     GCAP   : THRESH =  0.2, NEIGHBOR = 1
-!     GEOS-3 : THRESH = 80.0, NEIGHBOR = 1
-!     GEOS-4 : THRESH =  0.2, NEIGHBOR = 1
-!     GEOS-5 : THRESH =  0.2, NEIGHBOR = 1
-!                                                                             .
-!  NOTE: This routine is mostly obsolete now.
-! 
-! !REVISION HISTORY: 
-!  09 May 2006 - R. Yantosca - Initial version
-!  (1 ) Modified for GCAP and GEOS-3 met fields (bmy, 5/16/06)
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  19 Aug 2010 - R. Yantosca - Rewrote logic of #if block for clarity
-!  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
-!  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: NS, EW, LONGI, LATJ
-
-      !=================================================================
-      ! IS_NEAR begins here!
-      !=================================================================
-
-      ! Initialize
-      NEAR = .FALSE.
-
-      ! Loop over neighbor lat positions
-      DO NS = -NEIGHBOR, NEIGHBOR
-
-         ! Lat index of neighbor box
-         LATJ = J + NS
-
-         ! Special handling near poles
-         IF ( LATJ < 1 .or. LATJ > JJPAR ) CYCLE
-
-         ! Loop over neighbor lon positions
-         DO EW = -NEIGHBOR, NEIGHBOR
-
-            ! Lon index of neighbor box
-            LONGI = I + EW
-
-            ! Special handling near date line
-            IF ( LONGI < 1     ) LONGI = LONGI + IIPAR 
-            IF ( LONGI > IIPAR ) LONGI = LONGI - IIPAR
-            
-            ! If it's an ice box, skip to next neighbor
-            IF ( IS_ICE( LONGI, LATJ, State_Met ) ) CYCLE
-
-            !---------------------------------------------------
-            ! LWI = 0.0 is ocean
-            ! LWI = 1.0 is land
-            ! LWI = 2.0 is ice 
-            !
-            ! with fractional values at land-water, land-ice,
-            ! and water-ice boundaries.
-            !
-            ! It's near-land if THRESH <= LWI <= 1.0 
-            !---------------------------------------------------
-            IF ( State_Met%LWI(LONGI,LATJ) >  THRESH  .and.
-     &           State_Met%LWI(LONGI,LATJ) <= 1e+0_fp    ) THEN
-
-               ! We are in a near-land box
-               NEAR = .TRUE.
-
-               ! Break out of loop
-               GOTO 999
-            ENDIF
-
-         ENDDO
-      ENDDO
-
-      ! Exit
- 999  CONTINUE
-
-      END FUNCTION IS_NEAR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: get_obk
 !
 ! !DESCRIPTION: Function GET\_OBK returns the Monin-Obhukov length at a grid 
@@ -1719,13 +1616,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_COSINE_SZA( am_I_Root, Input_Opt, State_Met, RC  )
+      SUBROUTINE GET_COSINE_SZA( am_I_Root, Input_Opt, State_Grid,
+     &                           State_Met, RC  )
 !
 ! USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE JULDAY_MOD,         ONLY : JULDAY
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_DAY
@@ -1740,6 +1639,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1763,9 +1663,8 @@
 ! !LOCAL VARAIBLES
 !
       ! Scalars
-      INTEGER :: DOY,  DOY5, YEAR, MONTH,  DAY, HOUR, HOUR5, MINUTE
-      INTEGER :: SECOND
-      REAL*8  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
+      INTEGER :: DOY, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND
+      REAL*8  :: DDAY, JD,  GMT
 
       !=================================================================
       ! Get cosine(SZA) at the current time (SUNCOS) and at the
@@ -1790,25 +1689,7 @@
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
-      CALL COSSZA( DOY, HOUR,  .FALSE., State_Met )
-
-! The following is now obsolete. SZA 5 hours ago is calculated in HEMCO
-! PARANOx extension (ckeller, 5/22/15).
-!
-!      !=================================================================
-!      ! Get cosine (SZA) at 5 hours behind the current time (SUNCOS_5hr)
-!      ! and at the midpt of the chemistry timestep 5h ago (SUNCOS_MID_5hr)
-!      !=================================================================
-!
-!      ! Time 5h ago
-!      JDJan0 = JULDAY( YEAR, 1, 0d0 )                  ! Julian date on Jan 0
-!      JD5    = JD  - ( 5d0 / 24d0 )                    ! Julian date 5h ago
-!      DOY5   = JD5 - JDJan0                            ! Day of year 5h ago
-!      GMT5   = GMT - 5d0                               ! GMT 5h ago
-!      HOUR5  = INT( GMT5 )
-!
-!      ! Compute cosine(SZA) quantities for 5h ago
-!      CALL COSSZA( DOY5, HOUR5, .TRUE., State_Met )
+      CALL COSSZA( DOY, HOUR,  .FALSE., State_Grid, State_Met )
 
       END SUBROUTINE GET_COSINE_SZA
 !EOC
@@ -1827,11 +1708,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COSSZA( DOY, GMT_HOUR, DO_5hr_AGO, State_Met )
+      SUBROUTINE COSSZA( DOY, GMT_HOUR, DO_5hr_AGO,
+     &                   State_Grid, State_Met )
 !
 ! !USES:
 !
-      USE GC_GRID_MOD,        ONLY : GET_YMID_R
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MINUTE, GET_SECOND
       USE TIME_MOD,           ONLY : GET_LOCALTIME
@@ -1842,6 +1724,7 @@
       INTEGER,        INTENT(IN)    :: DOY          ! Day of the year
       INTEGER,        INTENT(IN)    :: GMT_HOUR     ! Hour of day
       LOGICAL,        INTENT(IN)    :: DO_5hr_AGO   ! Compute 5h ago?
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1961,11 +1844,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,      J,   YMID_R, S_YMID_R,  C_YMID_R )
 !$OMP+PRIVATE( TIMLOC, AHR, SUNCOS, SUNCOS_MID          )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Latitude of grid box [radians]
-         YMID_R     = GET_YMID_R( I, J, 1 )
+         YMID_R     = State_Grid%YMid_R(I,J)
 
          ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
          S_YMID_R   = SIN( YMID_R )
@@ -1976,7 +1859,7 @@
          !==============================================================
 
          ! Local time at box (I,J) [hours]
-         TIMLOC     = GET_LOCALTIME( I, J, 1, GMT=GMT_CUR )
+         TIMLOC     = GET_LOCALTIME( I, J, 1, State_Grid, GMT=GMT_CUR )
 
          ! Hour angle at box (I,J) [radians]
          AHR        = ABS( TIMLOC - 12e+0_fp ) * 15e+0_fp * PI_180
@@ -1991,7 +1874,7 @@
          !==============================================================
 
          ! Local time [hours] at box (I,J) at the midpt of the chem timestep
-         TIMLOC     = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
+         TIMLOC     = GET_LOCALTIME( I, J, 1, State_Grid, GMT=GMT_MID )
 
          ! Hour angle at box (I,J) [radians]
          AHR        = ABS( TIMLOC - 12e+0_fp ) * 15e+0_fp * PI_180
@@ -2024,5 +1907,76 @@
 !$OMP END PARALLEL DO
 
       END SUBROUTINE COSSZA
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_met_ageofair
+!
+! !DESCRIPTION: Subroutine Set\_Met\_AgeOfAir adds the time step (in seconds)
+!  to every grid box every time step with a total sink at the surface every 
+!  time step to reproduce GMI tracer mechanism.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Set_Met_AgeOfAir( State_Grid, State_Met )
+!
+! !USES:
+!
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !REVISION HISTORY: 
+!  21 Dec 2018 - M. Sulprizio- Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER        :: I, J, L
+      REAL(fp), SAVE :: TimeStep
+
+      !=================================================================
+      ! SET_MET_AGEOFAIR begins here!
+      !=================================================================
+
+      ! Get timestep [s]
+      TimeStep = GET_TS_DYN()
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L=1,State_Grid%NZ
+      DO J=1,State_Grid%NY
+      DO I=1,State_Grid%NX
+
+         IF ( L == 1 ) THEN
+            ! Set the surface to a sink
+            State_Met%AgeOfAir(I,J,L) = 0
+         ELSE
+            ! Otherwise add time step [s]
+            State_Met%AgeOfAir(I,J,L) = State_Met%AgeOfAir(I,J,L) + 
+     &                                  TimeStep
+         ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE Set_Met_AgeOfAir
 !EOC
       END MODULE DAO_MOD

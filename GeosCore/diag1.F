@@ -11,8 +11,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG1( am_I_Root, Input_Opt,
-     &                  State_Met, State_Chm, RC )
+      SUBROUTINE DIAG1( am_I_Root,  Input_Opt, State_Chm,
+     &                  State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -34,7 +34,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -43,6 +42,7 @@
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
       USE TIME_MOD,           ONLY : GET_DAY
@@ -55,6 +55,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -232,9 +233,9 @@
          ! so we can just archive this on the first call
          !--------------------------------------------------------------
          IF ( Input_Opt%ND69 > 0 ) THEN
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               AD69(I,J,1) = GET_AREA_M2( I, J, 1 )
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               AD69(I,J,1) = State_Grid%Area_M2(I,J)
             ENDDO
             ENDDO
          ENDIF
@@ -261,9 +262,9 @@
          EmMW_g = State_Chm%SpcData(N)%Info%EmMW_g  ! Emitted MW (g)
 
          ! Loop over grid boxes
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Initialize
             P0      = 0.0_fp
@@ -321,8 +322,8 @@
             IF ( Do_ND31 .and. NA == 1 .and. L <= LD31 ) THEN
                AD31(I,J,L) = AD31(I,J,L) + State_Met%PEDGE(I,J,L) 
 
-               ! Also archive the LLPAR+1th pressure edge
-               IF ( L == LLPAR ) THEN
+               ! Also archive the State_Grid%NZ+1th pressure edge
+               IF ( L == State_Grid%NZ ) THEN
                   AD31(I,J,L+1) = AD31(I,J,L+1) 
      &                          + State_Met%PEDGE(I,J,L+1) 
                ENDIF
@@ -456,8 +457,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, NA )
             DO NA = 1, State_Chm%nAdvect
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
                AD71_DAY(I,J,NA) = MAX(AD71_DAY(I,J,NA),
      &                            (AD71_HR(I,J,N)/(AD71_HRCT)))
             ENDDO   

@@ -51,12 +51,19 @@ v11-02d (Sep 2017)
  (1) Add halogen chemistry from Sherwen2016b/Sherwen2017 (TS,JAS,SDE,LZHU)
  (2) Add HOBr + S(IV) from Chen2017 (QJC)
 
+12.6.0 (Jul 2019)
+-----------------------
+
+ (1) Add photolysis of NITs (off by default) (TMS, PK)
+ (2) Aerosol heterogeneous uptake for NOx (CDH)
+
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
 ===============================================================================
 
 BHH : Barron Henderson;        barronh@gmail.com
 CCM : Christopher Chan Miller; cmiller@fas.harvard.edu
+CDH : Christopher Holmes;      cdholmes@fsu.edu
 DBM : Dylan Millet             dbm@umn.edu
 EAM : Eloise Marais;           e.a.marais@bham.ac.uk
 ECB : Ellie Browne             eleanor.browne@colorado.edu
@@ -74,6 +81,7 @@ LZHU: Lei Zhu;                 leizhu@fas.harvard.edu
 MJE : Mat Evans;               mat.evans@york.ac.uk
 MPS : Melissa Sulprizio;       mpayer@seas.harvard.edu
 MSL : Mike Long;               mlong@seas.harvard.edu
+PK  : Prasad Kasibhatla;       psk9@duke.edu
 QJC : Qianjie Chen;            chenqjie@uw.edu
 RHS : Rebecca Schwantes;       rschwant@caltech.edu
 SAS : Sarah Safieddine;        sarahsaf@mit.edu
@@ -97,6 +105,7 @@ REFERENCES (alphabetical order)
 * Goliff2013:   Goliff et al., Atmos. Environ., doi:10.1016/j.atmosenv.2012.11.038, 2013.
 * Jacobs2014:   Jacobs et al., Atmos. Chem. Phys., doi:10.5194/acp-14-8933-2014, 2014.
 * Jenkin2015:   Jenkin et al., Atmos. Chem. Phys., doi:10.5194/acp-15-11433-2015, 2015.
+* Kasibhatla2018: Kasibhatla et al., Atmos. Chem. Phys., doi:10.5194/acp-18-11185-2018, 2018
 * JPL 10-6:     JPL Publication 10-6, https://jpldataeval.jpl.nasa.gov/previous_evaluations.html, 2011.
 * JPL 15-10:    JPL Publication 15-10, https://jpldataeval.jpl.nasa.gov, 2015.
 * Lee2014:      Lee et al., J. Phys. Chem. A, doi:10.1021/jp4107603, 2014.
@@ -308,6 +317,8 @@ MVKOO      = IGNORE; {Criegee intermediate}
 N          = IGNORE; {N; Atomic nitrogen}
 N2O        = IGNORE; {N2O; Nitrous oxide}
 N2O5       = IGNORE; {N2O5; Dinitrogen pentoxide}
+NITs       = IGNORE; {NITs; Inorganic nitrates on surface of sea salt}
+NIT        = IGNORE; {NITs; Inorganic nitrates}
 NMAO3      = IGNORE; {CH2=C(CH3)C(O)OO; Non-isoprene peroxyacyl from MVK and MACR}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
@@ -390,7 +401,7 @@ OH + OH {+M} = H2O2 :                        GCJPLPR(6.90E-31, 1.0E+00, 0.0, 2.6
 OH + HO2 = H2O + O2 :                        GCARR(4.80E-11, 0.0E+00, 250.0);
 OH + H2O2 = H2O + HO2 :                      GCARR(1.80E-12, 0.0E+00, 0.0);
 HO2 + NO = OH + NO2 :                        GCARR(3.30E-12, 0.0E+00, 270.0);     {2013/02/12; JPL 10-6; BHH,JMAO,EAM}
-HO2 + HO2 = H2O2 + O2 :                      GC_HO2NO3(3.00E-13, 0.0E+00, 460.0, 2.1E-33, 0.0, 920.0); {2014/02/03; Eastham2014; SDE}
+HO2 + HO2 = H2O2 + O2 :                      GC_HO2HO2(3.00E-13, 0.0E+00, 460.0, 2.1E-33, 0.0, 920.0); {2014/02/03; Eastham2014; SDE}
 OH + CO = HO2 + CO2 :                        GC_OHCO(1.50E-13, 0.0E+00, 0.0);     {2017/02/22; JPL 15-10; BHH,MJE}
 OH + CH4 = MO2 + H2O :                       GCARR(2.45E-12, 0.0E+00, -1775.0);
 MO2 + NO = CH2O + HO2 + NO2 :                GCARR(2.80E-12, 0.0E+00, 300.0);
@@ -845,7 +856,7 @@ O1D + HCFC22 = 0.280O + 0.280HCFC22 +
 O1D + CFC11 = 0.120O + 0.120CFC11 +
  0.880ClO + 1.760Cl :                        GCARR(2.30E-10, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
 O1D + CFC12 = 0.140O + 0.140CFC12 +
- 0.860ClO + 1.720Cl :                        GCARR(1.40E-10, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
+ 0.860ClO + 0.860Cl :                        GCARR(1.40E-10, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
 O1D + H1211 = 0.360O + 0.360H1211 +
  0.310BrO + 0.310Cl + 0.330Br + 0.330ClO :   GCARR(1.50E-10, 0.0E+00, 0.0);       {2014/02/03; Eastham2014; SDE}
 O1D + H1301 = 0.590O + 0.590H1301 +
@@ -1168,6 +1179,7 @@ NO3 = HNO3 :                                 HET(ind_NO3,1);
 N2O5 + H2O = 2.000HNO3 :                     HET(ind_N2O5,1);
 N2O5 + HCl = ClNO2 + HNO3 :                  HET(ind_N2O5,2);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 N2O5 = ClNO2 + HNO3 :                        HET(ind_N2O5,3);                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+N2O5 = 2.000HNO3 :                           HET(ind_N2O5,4);                     {2018/10/17; Cloud uptake, CDH}
 BrNO3 + H2O = HOBr + HNO3 :                  HET(ind_BrNO3,1);                    {2014/02/03; Eastham2014; SDE}
 BrNO3 + HCl = BrCl + HNO3 :                  HET(ind_BrNO3,2);                    {2014/02/03; Eastham2014; SDE}
 ClNO3 + H2O = HOCl + HNO3 :                  HET(ind_ClNO3,1);                    {2014/02/03; Eastham2014; SDE}
@@ -1331,30 +1343,30 @@ CFC114 + hv = 2.000Cl :                      PHOTOL(40);     {2014/02/03; Eastha
 CFC115 + hv = Cl :                           PHOTOL(41);     {2014/02/03; Eastham2014; SDE}
 HCFC123 + hv = 2.000Cl :                     PHOTOL(47);     {2014/02/03; Eastham2014; SDE}
 HCFC141b + hv = 2.000Cl :                    PHOTOL(48);     {2014/02/03; Eastham2014; SDE}
-HCFC142b + hv = 2.000Cl :                    PHOTOL(49);     {2014/02/03; Eastham2014; SDE}
-HCFC22 + hv = 2.000Cl :                      PHOTOL(46);     {2014/02/03; Eastham2014; SDE}
+HCFC142b + hv = Cl :                         PHOTOL(49);     {2014/02/03; Eastham2014; SDE}
+HCFC22 + hv = Cl :                           PHOTOL(46);     {2014/02/03; Eastham2014; SDE}
 H1301 + hv = Br :                            PHOTOL(53);     {2014/02/03; Eastham2014; SDE}
 H1211 + hv = Cl + Br :                       PHOTOL(51);     {2014/02/03; Eastham2014; SDE}
 H2402 + hv = 2.000Br :                       PHOTOL(54);     {2014/02/03; Eastham2014; SDE}
-ClOO + hv = Cl + O2 :                        PHOTOL(102);    {2014/02/03; Eastham2014; SDE}
-I2 + hv = 2.000I :                           PHOTOL(115);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HOI + hv = I + OH :                          PHOTOL(116);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IO + hv = I + O :                            PHOTOL(117);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-OIO + hv = I + O2 :                          PHOTOL(118);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-INO + hv = I + NO :                          PHOTOL(119);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO + hv = I + NO2 :                        PHOTOL(120);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO2 + hv = I + NO3 :                       PHOTOL(121);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O2 + hv = I + OIO :                        PHOTOL(122);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-CH3I + hv = I :                              PHOTOL(123);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-CH2I2 + hv = 2.000I :                        PHOTOL(124);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-CH2ICl + hv = I + Cl :                       PHOTOL(125);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-CH2IBr + hv = I + Br :                       PHOTOL(126);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O4 + hv = 2.000OIO :                       PHOTOL(127);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-I2O3 + hv = OIO + IO :                       PHOTOL(128);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IBr + hv = I + Br :                          PHOTOL(129);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-ICl + hv = I + Cl :                          PHOTOL(130);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-MPN + hv = CH2O + NO3 + HO2 :                PHOTOL(104);    {2012/02/12; Browne2011; ECB}
-MPN + hv = MO2 + NO2 :                       PHOTOL(105);    {2012/02/12; Browne2011; ECB}
+ClOO + hv = Cl + O2 :                        PHOTOL(101);    {2014/02/03; Eastham2014; SDE}
+I2 + hv = 2.000I :                           PHOTOL(114);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HOI + hv = I + OH :                          PHOTOL(115);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IO + hv = I + O :                            PHOTOL(116);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+OIO + hv = I + O2 :                          PHOTOL(117);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+INO + hv = I + NO :                          PHOTOL(118);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IONO + hv = I + NO2 :                        PHOTOL(119);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IONO2 + hv = I + NO3 :                       PHOTOL(120);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O2 + hv = I + OIO :                        PHOTOL(121);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+CH3I + hv = I :                              PHOTOL(122);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+CH2I2 + hv = 2.000I :                        PHOTOL(123);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+CH2ICl + hv = I + Cl :                       PHOTOL(124);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+CH2IBr + hv = I + Br :                       PHOTOL(125);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O4 + hv = 2.000OIO :                       PHOTOL(126);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+I2O3 + hv = OIO + IO :                       PHOTOL(127);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IBr + hv = I + Br :                          PHOTOL(128);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+ICl + hv = I + Cl :                          PHOTOL(129);    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+MPN + hv = CH2O + NO3 + HO2 :                PHOTOL(103);    {2012/02/12; Browne2011; ECB}
+MPN + hv = MO2 + NO2 :                       PHOTOL(104);    {2012/02/12; Browne2011; ECB}
 ISOPND + hv = HC5 + NO2 + HO2 :              PHOTOL(95);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 PROPNN + hv = CH2O + NO2 + CO + MO2 :        PHOTOL(96);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 ATOOH + hv = OH + CH2O + MCO3 :              PHOTOL(97);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -1362,17 +1374,21 @@ N2O + hv = N2 + O1D :                        PHOTOL(36);     {2014/02/03; Eastha
 OCS + hv = SO2 + CO :                        PHOTOL(34);     {2014/02/03; Eastham2014; SDE}
 SO4 + hv = SO2 + 2.000OH :                   PHOTOL(100);    {2014/02/03; Eastham2014; SDE}
 NO + hv = O + N :                            PHOTOL(6);      {2014/02/03; Eastham2014; SDE}
-PIP + hv = RCHO + OH + HO2 :                 PHOTOL(106);    {2017/03/23; Fischer2014; EVF}
+PIP + hv = RCHO + OH + HO2 :                 PHOTOL(105);    {2017/03/23; Fischer2014; EVF}
 IPMN + hv = 0.600IMAO3 + 0.600NO2 +
  0.400CO2 + 0.400CH2O + 0.400MCO3 +
- 0.400NO3 :                                  PHOTOL(107);    {2017/06/15; Marais2016; EAM}
-ETHLN + hv = NO2 + CH2O + CO + HO2 :         PHOTOL(108);    {2017/06/15; Marais2016; EAM}
-DHDC + hv = MGLY + GLYX + 2.000OH :          PHOTOL(109);    {2017/07/14; Crounse2012; KRT,JAF,CCM,EAM,KHB,RHS}
+ 0.400NO3 :                                  PHOTOL(106);    {2017/06/15; Marais2016; EAM}
+ETHLN + hv = NO2 + CH2O + CO + HO2 :         PHOTOL(107);    {2017/06/15; Marais2016; EAM}
+DHDC + hv = MGLY + GLYX + 2.000OH :          PHOTOL(108);    {2017/07/14; Crounse2012; KRT,JAF,CCM,EAM,KHB,RHS}
 HPALD + hv = 0.500MGLY + 0.390HAC +
  0.110GLYC + 0.110MCO3 + 1.890CO +
- 0.890HO2 + 2.000OH :                        PHOTOL(110);    {2017/07/14; Peeters2014; KRT,JAF,CCM,EAM,KHB,RHS}
+ 0.890HO2 + 2.000OH :                        PHOTOL(109);    {2017/07/14; Peeters2014; KRT,JAF,CCM,EAM,KHB,RHS}
 ISN1 + hv = NO2 + HO2 + 0.500GLYC +
- 0.250GLYX + 0.250MGLY + CH2O + 0.500HAC :   PHOTOL(111);    {2017/07/14; Muller2014; KRT,JAF,CCM,EAM,KHB,RHS}
-MONITS + hv = MEK + NO2 :                    PHOTOL(112);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
-MONITU + hv = RCHO + NO2 :                   PHOTOL(113);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
-HONIT + hv = HAC + NO2 :                     PHOTOL(114);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
+ 0.250GLYX + 0.250MGLY + CH2O + 0.500HAC :   PHOTOL(110);    {2017/07/14; Muller2014; KRT,JAF,CCM,EAM,KHB,RHS}
+MONITS + hv = MEK + NO2 :                    PHOTOL(111);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
+MONITU + hv = RCHO + NO2 :                   PHOTOL(112);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
+HONIT + hv = HAC + NO2 :                     PHOTOL(113);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
+NITs + hv = HNO2 :                           PHOTOL(130);    {2018/07/19; Kasibhatla2018; PK, TMS}
+NITs + hv = NO2 :                            PHOTOL(131);    {2018/07/19; Kasibhatla2018; PK, TMS}
+NIT + hv = HNO2 :                            PHOTOL(132);    {2018/07/19; Kasibhatla2018; PK, TMS}
+NIT + hv = NO2 :                             PHOTOL(133);    {2018/07/19; Kasibhatla2018; PK, TMS}

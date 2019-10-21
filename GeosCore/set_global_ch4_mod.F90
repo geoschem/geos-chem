@@ -50,8 +50,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_CH4( am_I_Root, Input_Opt,  State_Met, &
-                      State_Chm, State_Diag, RC )
+  SUBROUTINE Set_CH4( am_I_Root,  Input_Opt,  State_Chm, &
+                      State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -62,10 +62,10 @@ CONTAINS
     USE HCO_Error_Mod
     USE HCO_INTERFACE_MOD, ONLY : HcoState
     USE Input_Opt_Mod,     ONLY : OptInput
-    USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
     USE State_Chm_Mod,     ONLY : ChmState, Ind_
-    USE State_Met_Mod,     ONLY : MetState
     USE State_Diag_Mod,    ONLY : DgnState
+    USE State_Grid_Mod,    ONLY : GrdState
+    USE State_Met_Mod,     ONLY : MetState
     USE UnitConv_Mod,      ONLY : Convert_Spc_Units
 #if defined( MODEL_GEOS )
     USE PhysConstants,     ONLY : AIRMW
@@ -76,6 +76,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -155,9 +156,9 @@ CONTAINS
     ENDIF
 
     ! Convert species to [v/v dry] for this routine
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, 'v/v dry', RC, &
-                            OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, 'v/v dry', &
+                            RC,         OrigUnit=OrigUnit )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -181,11 +182,11 @@ CONTAINS
     !$OMP PRIVATE( dCH4 ) &
 #endif
     !$OMP SCHEDULE( DYNAMIC )
-    DO J=1,JJPAR
-    DO I=1,IIPAR
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Top level of boundary layer at (I,J)
-       PBL_TOP = CEILING( GET_PBL_TOP_L(I,J) )
+       PBL_TOP = CEILING( State_Met%PBL_TOP_L(I,J) )
 
        ! Surface CH4 from HEMCO is in units [ppbv], convert to [v/v dry]
        CH4 = SFC_CH4(I,J) * 1e-9_fp
@@ -205,9 +206,10 @@ CONTAINS
              dCH4 = CH4 - State_Chm%Species(I,J,L,id_CH4)
              ! Convert to kg/kg dry
              dCH4 = dCH4 * MWCH4 / AIRMW
-             ! Convert to kg/m2/s
-             dCH4 = dCH4 * State_Met%AIRDEN(I,J,L) &
-                  * State_Met%BXHEIGHT(I,J,L) / DT
+!             ! Convert to kg/m2/s
+!             dCH4 = dCH4 * State_Met%AIRDEN(I,J,L) &
+!                  * State_Met%BXHEIGHT(I,J,L) / DT
+              dCH4 = dCH4 * State_Met%AD(I,J,L) / State_Met%AREA_M2(I,J) / DT
              ! Accumulate statistics 
              State_Diag%CH4pseudoFlux(I,J) = &
                 State_Diag%CH4pseudoFlux(I,J) + dCH4
@@ -222,8 +224,8 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original unit
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, OrigUnit, RC )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, OrigUnit, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

@@ -26,6 +26,10 @@ MODULE Emissions_Mod
   PUBLIC :: Emissions_Run
   PUBLIC :: Emissions_Final
 !
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: MMR_Compute_Flux
+!
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version. 
 !  20 Jun 2016 - R. Yantosca - Declare species ID flags as module variables
@@ -37,6 +41,7 @@ MODULE Emissions_Mod
 !
   ! Species ID flags
   INTEGER :: id_BrO, id_CH4, id_CH3Br
+  LOGICAL :: doMaintainMixRatio
 
 CONTAINS
 !EOC
@@ -53,8 +58,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Init( am_I_Root, Input_Opt, State_Met,                &
-                             State_Chm, RC,        HcoConfig                ) 
+  SUBROUTINE Emissions_Init( am_I_Root,  Input_Opt, State_Chm,                &
+                             State_Grid, State_Met, RC,                       &
+                             HcoConfig                                       ) 
 !
 ! !USES:
 !
@@ -62,21 +68,23 @@ CONTAINS
     USE HCOI_GC_Main_Mod,   ONLY : HCoi_GC_Init
     USE HCO_Types_Mod,      ONLY : ConfigObj
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   )          :: am_I_Root  ! root CPU?
-    TYPE(MetState),  INTENT(IN   )          :: State_Met  ! Met state
     TYPE(ChmState),  INTENT(IN   )          :: State_Chm  ! Chemistry state 
+    TYPE(GrdState),  INTENT(IN   )          :: State_Grid ! Grid state 
+    TYPE(MetState),  INTENT(IN   )          :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(OptInput),  INTENT(INOUT)          :: Input_Opt  ! Input opts
-    TYPE(ConfigObj), POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
     INTEGER,         INTENT(INOUT)          :: RC         ! Failure or success
+    TYPE(ConfigObj), POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller   - Initial version 
@@ -102,11 +110,18 @@ CONTAINS
     ! Define species ID flags for use in routines below
     id_BrO   = Ind_('BrO'  )
     id_CH4   = Ind_('CH4'  )
-    id_CH3Br = Ind_('CH3Br')    
+    id_CH3Br = Ind_('CH3Br')
+
+    ! Are we including a species for which the global mixing ratio should 
+    ! remain constant?
+    doMaintainMixRatio = ( Ind_('GlobEmis90dayTracer') > 0 .OR. &
+                           Ind_('GlobNH90dayTracer'  ) > 0 .OR. &
+                           Ind_('GlobSH90dayTracer'  ) > 0 )
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
-    CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met,                      &
-                       State_Chm, RC,        HcoConfig=HcoConfig            ) 
+    CALL HCOI_GC_Init( am_I_Root,  Input_Opt, State_Chm,                      &
+                       State_Grid, State_Met, RC,                             &
+                       HcoConfig=HcoConfig                                   ) 
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -130,8 +145,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Run( am_I_Root, Input_Opt,  State_Met,                 &
-                            State_Chm, State_Diag, EmisTime,  Phase, RC      ) 
+  SUBROUTINE Emissions_Run( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
+                            State_Grid, State_Met, EmisTime,  Phase, RC   ) 
 !
 ! !USES:
 !
@@ -143,21 +158,18 @@ CONTAINS
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( NC_DIAG )
     USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
     USE Precision_Mod
-#endif
-    USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
 #if defined ( TOMAS )
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
 #endif
-#if defined( NC_DIAG )
     USE Time_Mod,           ONLY : Get_Ts_Emis
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#endif
 
     ! Setting other surface VMRs
     Use sfcVMR_Mod,         Only : fixSfcVMR
@@ -173,14 +185,14 @@ CONTAINS
     LOGICAL,        INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,        INTENT(IN   )  :: EmisTime   ! Emissions in this time step
     INTEGER,        INTENT(IN   )  :: Phase      ! Run phase
- 
+    TYPE(GrdState), INTENT(IN   )  :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT)  :: State_Met  ! Met state
-    TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry state 
-    TYPE(DgnState), INTENT(INOUT)  :: State_Diag  ! Diagnostics State object
-    TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input opts
+    TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry State object 
+    TYPE(DgnState), INTENT(INOUT)  :: State_Diag ! Diagnostics State object
+    TYPE(MetState), INTENT(INOUT)  :: State_Met  ! Meteorology State object
+    TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
     INTEGER,        INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
@@ -216,8 +228,8 @@ CONTAINS
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
     ! HEMCO data list, phase 2 will perform the emission calculations.
-    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Met, State_Chm, & 
-                      EmisTime,  Phase,     RC                     ) 
+    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid, & 
+                      State_Met, EmisTime,  Phase,     RC          ) 
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -235,7 +247,7 @@ CONTAINS
     ! are correctly treated.
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
-       CALL EmissCarbon( am_I_Root, Input_Opt, State_Met, RC )
+       CALL EmissCarbon( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -247,7 +259,8 @@ CONTAINS
 
 #if defined ( TOMAS )
     ! Call TOMAS emission routines (JKodros 6/2/15)
-    CALL EmissCarbonTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    CALL EmissCarbonTomas( am_I_Root,  Input_Opt, State_Chm, &
+                           State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -256,7 +269,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL EmissSulfateTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    CALL EmissSulfateTomas( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -272,8 +286,8 @@ CONTAINS
     ! (as of GEOS-Chem 12.0.2) are now added via HEMCO, and diagnostics for
     ! these quantities are saved out via HEMCO diagnostics. (bmy, 10/18/18)
     IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL EmissCO2( am_I_Root, Input_Opt,  State_Met,                      &
-                      State_Chm, State_Diag, RC                             )
+       CALL EmissCO2( am_I_Root,  Input_Opt,  State_Chm,                     &
+                      State_Diag, State_Grid, State_Met, RC                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -306,7 +320,8 @@ CONTAINS
    
     ! For UCX, use Seb's routines for stratospheric species for now.
     IF ( Input_Opt%LUCX .and. Input_Opt%LBASICEMIS ) THEN
-       CALL Emiss_Basic( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL Emiss_Basic( am_I_Root,  Input_Opt, State_Chm, &
+                         State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -318,8 +333,8 @@ CONTAINS
 
     ! For mercury, use old emissions code for now
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EmissMercury( am_I_Root, Input_Opt,  State_Met,                  &
-                          State_Chm, State_Diag, RC                         )
+       CALL EmissMercury( am_I_Root,  Input_Opt,  State_Chm,                 &
+                          State_Diag, State_Grid, State_Met, RC             )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -329,7 +344,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if defined( NC_DIAG )
     ! For the POPS simulation, copy values from several HEMCO-based manual 
     ! diagnostics (defined in hcoi_gc_diagn_mod.F90) from the HEMCO state 
     ! object into the State_Diag object.  This will allow us to save these
@@ -344,7 +358,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -357,8 +370,8 @@ CONTAINS
        !         entirely fixed! Ask around on how to...
        !========================================================
        IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
-          CALL Set_CH3Br( am_I_Root, Input_Opt, State_Met, &
-                          State_Chm, RC )
+          CALL Set_CH3Br( am_I_Root,  Input_Opt, State_Chm, &
+                          State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -373,8 +386,8 @@ CONTAINS
        ! concentration of BrO equal to 1 pptv during daytime.
        ! ----------------------------------------------------
        IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
-          CALL Set_BrO( am_I_Root, Input_Opt, State_Met, & 
-                        State_Chm, RC          )
+          CALL Set_BrO( am_I_Root,  Input_Opt, State_Chm, & 
+                        State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -386,8 +399,8 @@ CONTAINS
    
        ! Set other (non-UCX) fixed VMRs
        If ( Input_Opt%LEMIS ) Then
-          CALL FixSfcVMR( am_I_Root, Input_Opt, State_Met, & 
-                          State_Chm, RC          )
+          CALL FixSfcVMR( am_I_Root,  Input_Opt, State_Chm, & 
+                          State_Grid, State_Met, RC          )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -400,6 +413,14 @@ CONTAINS
  
     ENDIF
    
+    IF ( doMaintainMixRatio ) THEN
+
+       ! Compute the surface flux needed to restore the total burden
+       CALL MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
+                              State_Grid, State_Met, RC )
+
+    ENDIF
+
    END SUBROUTINE EMISSIONS_RUN
 !EOC
 !------------------------------------------------------------------------------
@@ -458,7 +479,192 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
   END SUBROUTINE Emissions_Final
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: MMR_Compute_Flux
+!
+! !DESCRIPTION: Subroutine MMR\_Compute\_Flux computes the surface flux
+!  needed to maintain a given mixing ratio value.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
+                               State_Grid, State_Met, RC )
+!
+! !USES:
+!
+    USE CMN_SIZE_Mod
+    USE ErrCode_Mod
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+    USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object!
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REVISION HISTORY: 
+!  31 Jan 2019 - M. Sulprizio- Initial version, modified from MMR code in 
+!                              TR_GridCompMod.F90 from GEOS model
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                    :: I, J, L, N, nAdvect
+    REAL(fp)                   :: Total_Spc
+    REAL(fp)                   :: Total_Area
+    REAL(fp)                   :: YMID
+
+    ! Arrays
+    REAL(fp)                   :: Flux(State_Grid%NX,State_Grid%NY)
+    REAL(fp)                   :: Mask(State_Grid%NX,State_Grid%NY)
+
+    ! Strings
+    CHARACTER(LEN=63)          :: OrigUnit
+    CHARACTER(LEN=255)         :: ThisLoc
+    CHARACTER(LEN=512)         :: ErrMsg
+
+    ! Pointers
+    REAL(fp),        POINTER   :: Spc(:,:,:,:)
+    TYPE(Species),   POINTER   :: SpcInfo
+!
+! !DEFINED PARAMETERS:
+!
+    ! Hardcode global burden to 100 ppbv for now
+    REAL(fp),        PARAMETER :: GlobalBurden = 1.0e-7_fp ! [v/v]
+
+    !=================================================================
+    ! MMR_Compute_Flux begins here!
+    !=================================================================
+
+    ! Initialize
+    RC          = GC_SUCCESS
+    ErrMsg      = ''
+    ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F)'
+
+    ! Point to chemical species array [kg/kg dry air]
+    Spc        => State_Chm%Species
+
+    ! Number of advected species
+    nAdvect     = State_Chm%nAdvect
+
+    !=======================================================================
+    ! Convert species units to v/v dry
+    !=======================================================================
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,               &
+                            State_Grid, State_Met, 'v/v dry', RC,           &
+                            OrigUnit=OrigUnit                               )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Compute the surface flux needed to restore the total burden
+    !=======================================================================
+
+    ! Loop over species
+    DO N = 1, nAdvect
+
+       ! Point to the Species Database entry for species N
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! Only do calculation if this is an MMR tracer
+       IF ( TRIM(SpcInfo%Name) == 'GlobEmis90dayTracer' .OR. &
+            TRIM(SpcInfo%Name) == 'NHEmis90dayTracer'   .OR. &
+            TRIM(SpcInfo%Name) == 'SHEmis90dayTracer'   ) THEN
+
+          ! Initialize
+          Total_Spc   = 0.0e+0_fp
+          Total_Area  = 0.0e+0_fp
+          Mask        = 1.0e+0_fp
+
+          ! Loop over grid boxes
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+
+             ! Compute mol of Tracer needed to achieve the desired value
+             Total_Spc = Total_Spc + &
+                ( GlobalBurden - State_Chm%Species(I,J,L,N)) * &
+                (State_Met%AIRNUMDEN(I,J,L)/ AVO) * State_Met%AIRVOL(I,J,1)
+
+             ! To distribute it uniformly on the surface, compute the total
+             ! area [m2]
+             IF ( L == 1 ) THEN
+
+                ! Latitude of grid box
+                YMID = State_Grid%YMid(I,J)
+
+                ! Define mask if needed
+                IF (TRIM(SpcInfo%Name)=='NHEmis90dayTracer') THEN
+                   IF ( YMID <  0.0 ) MASK(I,J) = 0.0e+0_fp
+                ELSE IF (TRIM(SpcInfo%Name)=='SHEmis90dayTracer') THEN
+                   IF ( YMID >= 0.0 ) MASK(I,J) = 0.0e+0_fp
+                ENDIF
+                Total_Area = Total_Area + State_Grid%Area_M2(I,J) * MASK(I,J)
+             ENDIF
+
+          ENDDO
+          ENDDO
+          ENDDO
+
+          ! Compute flux [mol/m2]
+          Flux(:,:) = ( Total_Spc / Total_Area ) * MASK(:,:)
+
+          ! Update species concentrations [mol/mol]
+          Spc(:,:,1,N) = Spc(:,:,1,N) + Flux(:,:) * &
+             AVO / ( State_Met%BXHEIGHT(:,:,1) * State_Met%AIRNUMDEN(:,:,1) )
+
+       ENDIF ! MMR tracer
+
+       ! Free pointers
+       SpcInfo => NULL()
+
+    ENDDO
+
+    !=======================================================================
+    ! Convert species units back to original unit
+    !=======================================================================
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                            State_Met, OrigUnit,  RC                     )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Free pointer
+    Spc => NULL()
+
+  END SUBROUTINE MMR_Compute_Flux
 !EOC
 END MODULE Emissions_Mod

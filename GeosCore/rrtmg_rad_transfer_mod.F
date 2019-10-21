@@ -17,9 +17,8 @@
 ! !USES:
 !
       USE CMN_FJX_MOD,  ONLY : RTODAER, RTSSAER, RTASYMAER,
-     &                         WVAA, SPECMASK, LSPECRADMENU,
-     &                         NSPECRADMENU
-      USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
+     &                         WVAA,    SPECMASK
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
 #endif
@@ -32,15 +31,14 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
-      PUBLIC  :: Cleanup_MCICA_Clouds
-      PUBLIC  :: Cleanup_Strat_Clim
-      PUBLIC  :: Cleanup_Surface_Rad
       PUBLIC  :: Do_RRTMG_Rad_Transfer
-      PUBLIC  :: Init_MCICA_Clouds
-      PUBLIC  :: Init_Surface_Rad
+      PUBLIC  :: Init_RRTMG_Rad_Transfer
+      PUBLIC  :: Cleanup_RRTMG_Rad_Transfer
 !
 ! !PRIVATE:
 !
+      PRIVATE :: Init_MCICA_Clouds
+      PRIVATE :: Init_Surface_Rad
       PRIVATE :: AttachPointersFromHemco
 !
 ! !PUBLIC DATA MEMBERS:
@@ -130,17 +128,19 @@
 !
 ! !IROUTINE: do_rrtmg_rad_transfer
 !
-! !DESCRIPTION: INTERNAL SUBROUTINE 
+! !DESCRIPTION: Interface between GEOS-Chem and the RRTMG radiative
+!  transfer model.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root,  THISDAY,
-     &                                  THISMONTH,  ICLD,
-     &                                  ISPECMENU,  ISEED,
-     &                                  Input_Opt,  State_Met,
+      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root,  ThisDay,
+     &                                  ThisMonth,  iCld,
+     &                                  iSpecMenu,  iNcDiag,
+     &                                  iSeed,      Input_Opt,
      &                                  State_Chm,  State_Diag,
-     &                                  RC                      )
+     &                                  State_Grid, State_Met,
+     &                                  RC )
 !
 ! !USES:
 !
@@ -167,13 +167,13 @@
       USE CMN_FJX_MOD,         ONLY : NWVAA0
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GC_GRID_MOD,         ONLY : GET_YMID
       USE Input_Opt_Mod,       ONLY : OptInput
       USE PhysConstants,       ONLY : AIRMW, PI, AVO
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
       USE State_Chm_Mod,       ONLY : ChmState
       USE State_Chm_Mod,       ONLY : Ind_
       USE State_Diag_Mod,      ONLY : DgnState
+      USE State_Grid_Mod,      ONLY : GrdState
       USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
@@ -184,21 +184,23 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! root CPU?
-      INTEGER,        INTENT(IN)    :: THISDAY     ! CURRENT DAY
-      INTEGER,        INTENT(IN)    :: THISMONTH   ! CURRENT MONTH
-      INTEGER,        INTENT(IN)    :: ISPECMENU   ! THE SPECIES BEING INCLUDED
-                                                   ! NEEDED FOR OUTPUT PURPOSES
-      INTEGER,        INTENT(IN)    :: ISEED  
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root core?
+      INTEGER,        INTENT(IN)    :: ThisDay    ! CURRENT DAY
+      INTEGER,        INTENT(IN)    :: ThisMonth  ! CURRENT MONTH
+      INTEGER,        INTENT(IN)    :: iSpecMenu  ! THE SPECIES BEING INCLUDED
+                                                  ! NEEDED FOR OUTPUT PURPOSES
+      INTEGER,        INTENT(IN)    :: iNcDiag    ! Index for netCDF diag arrays
+      INTEGER,        INTENT(IN)    :: iSeed      ! Seed value
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-      INTEGER,        INTENT(INOUT) :: ICLD        ! CLOUD FLAG FOR RRTMG
-                                                   ! 0-NOCLOUD, 1-GREY CLOUD
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
+      INTEGER,        INTENT(INOUT) :: iCld       ! CLOUD FLAG FOR RRTMG
+                                                  ! 0-NOCLOUD, 1-GREY CLOUD
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -297,46 +299,73 @@
       !-----------------------------------------------------------------
       ! ARRAYS FROM GC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: PCENTER(IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: PEDGE  (IIPAR,JJPAR,LLPAR)
-      LOGICAL                :: INTROP (IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: PCENTER(State_Grid%NX,State_Grid%NY,
+     &                                  State_Grid%NZ)
+      REAL(KIND=RB)          :: PEDGE  (State_Grid%NX,State_Grid%NY,
+     &                                  State_Grid%NZ)
+      LOGICAL                :: INTROP (State_Grid%NX,State_Grid%NY,
+     &                                  State_Grid%NZ)
 
       !-----------------------------------------------------------------
       !ARRAYS FOR RRTMG
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: O3VMR (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CH4VMR(IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: N2OVMR(IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CFC11VMR(IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CFC12VMR(IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CFC22VMR(IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CCL4VMR(IIPAR,JJPAR,LLPAR)
+      REAL(KIND=RB)          :: O3VMR (State_Grid%NX,State_Grid%NY,
+     &                                 State_Grid%NZ)
+      REAL(KIND=RB)          :: CH4VMR(State_Grid%NX,State_Grid%NY,
+     &                                 State_Grid%NZ)
+      REAL(KIND=RB)          :: N2OVMR(State_Grid%NX,State_Grid%NY,
+     &                                 State_Grid%NZ)
+      REAL(KIND=RB)          :: CFC11VMR(State_Grid%NX,State_Grid%NY,
+     &                                   State_Grid%NZ)
+      REAL(KIND=RB)          :: CFC12VMR(State_Grid%NX,State_Grid%NY,
+     &                                   State_Grid%NZ)
+      REAL(KIND=RB)          :: CFC22VMR(State_Grid%NX,State_Grid%NY,
+     &                                   State_Grid%NZ)
+      REAL(KIND=RB)          :: CCL4VMR(State_Grid%NX,State_Grid%NY,
+     &                                  State_Grid%NZ)
 
-      REAL(KIND=RB)          :: TAUCLD(IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CLDFR (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: RELIQ (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: REICE (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CLIQWP (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: CICEWP (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: ALBVIS (IIPAR,JJPAR)
+      REAL(KIND=RB)          :: TAUCLD(State_Grid%NX,State_Grid%NY,
+     &                                 State_Grid%NZ)
+      REAL(KIND=RB)          :: CLDFR (State_Grid%NX,State_Grid%NY,
+     &                                 State_Grid%NZ)
+      REAL(KIND=RB)          :: RELIQ (State_Grid%NX,State_Grid%NY,
+     &                                 State_Grid%NZ)
+      REAL(KIND=RB)          :: REICE (State_Grid%NX,State_Grid%NY,
+     &                                 State_Grid%NZ)
+      REAL(KIND=RB)          :: CLIQWP (State_Grid%NX,State_Grid%NY,
+     &                                  State_Grid%NZ)
+      REAL(KIND=RB)          :: CICEWP (State_Grid%NX,State_Grid%NY,
+     &                                  State_Grid%NZ)
+      REAL(KIND=RB)          :: ALBVIS (State_Grid%NX,State_Grid%NY)
 
-      REAL(KIND=RB)          :: TAUAER_LW (IIPAR,JJPAR,LLPAR,NBNDLW)
-      REAL(KIND=RB)          :: TAUAER_SW (IIPAR,JJPAR,LLPAR,NBNDSW)
-      REAL(KIND=RB)          :: SSAAER (IIPAR,JJPAR,LLPAR,NBNDSW)
-      REAL(KIND=RB)          :: ASMAER (IIPAR,JJPAR,LLPAR,NBNDSW)
+      REAL(KIND=RB)          :: TAUAER_LW (State_Grid%NX,State_Grid%NY,
+     &                                     State_Grid%NZ,NBNDLW)
+      REAL(KIND=RB)          :: TAUAER_SW (State_Grid%NX,State_Grid%NY,
+     &                                     State_Grid%NZ,NBNDSW)
+      REAL(KIND=RB)          :: SSAAER (State_Grid%NX,State_Grid%NY,
+     &                                  State_Grid%NZ,NBNDSW)
+      REAL(KIND=RB)          :: ASMAER (State_Grid%NX,State_Grid%NY,
+     &                                  State_Grid%NZ,NBNDSW)
 
       !-----------------------------------------------------------------
       !TO STORE THE OPTICS FOR THE AEROSOLS WE ARE INTERESTED IN
       !-----------------------------------------------------------------
-      REAL*8                 :: TAUAERDIAG (IIPAR,JJPAR,LLPAR,NBNDSW)
-      REAL*8                 :: SSAAERDIAG (IIPAR,JJPAR,LLPAR,NBNDSW)
-      REAL*8                 :: ASMAERDIAG (IIPAR,JJPAR,LLPAR,NBNDSW)
+      REAL*8                 :: TAUAERDIAG (State_Grid%NX,State_Grid%NY,
+     &                                      State_Grid%NZ,NBNDSW)
+      REAL*8                 :: SSAAERDIAG (State_Grid%NX,State_Grid%NY,
+     &                                      State_Grid%NZ,NBNDSW)
+      REAL*8                 :: ASMAERDIAG (State_Grid%NX,State_Grid%NY,
+     &                                      State_Grid%NZ,NBNDSW)
 
-      REAL(KIND=RB)          :: H2OVMR   (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: TLAY     (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: PLAY     (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: SUNCOS   (IIPAR,JJPAR,LLPAR)
-      REAL(KIND=RB)          :: TSFC     (IIPAR,JJPAR)
+      REAL(KIND=RB)          :: H2OVMR   (State_Grid%NX,State_Grid%NY,
+     &                                    State_Grid%NZ)
+      REAL(KIND=RB)          :: TLAY     (State_Grid%NX,State_Grid%NY,
+     &                                    State_Grid%NZ)
+      REAL(KIND=RB)          :: PLAY     (State_Grid%NX,State_Grid%NY,
+     &                                    State_Grid%NZ)
+      REAL(KIND=RB)          :: SUNCOS   (State_Grid%NX,State_Grid%NY,
+     &                                    State_Grid%NZ)
+      REAL(KIND=RB)          :: TSFC     (State_Grid%NX,State_Grid%NY)
 
       !-----------------------------------------------------------------
       !VARIABLES FOR OBTAINING STRATOSPHERIC VARIABLES
@@ -346,18 +375,20 @@
       !-----------------------------------------------------------------
       !SURFACE
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: ALBDIRVIS (IIPAR,JJPAR)
-      REAL(KIND=RB)          :: ALBDIFVIS (IIPAR,JJPAR)
-      REAL(KIND=RB)          :: ALBDIRNIR (IIPAR,JJPAR)
-      REAL(KIND=RB)          :: ALBDIFNIR (IIPAR,JJPAR)
-      REAL(KIND=RB)          :: RTEMISS   (IIPAR,JJPAR,NBNDLW)
+      REAL(KIND=RB)          :: ALBDIRVIS (State_Grid%NX,State_Grid%NY)
+      REAL(KIND=RB)          :: ALBDIFVIS (State_Grid%NX,State_Grid%NY)
+      REAL(KIND=RB)          :: ALBDIRNIR (State_Grid%NX,State_Grid%NY)
+      REAL(KIND=RB)          :: ALBDIFNIR (State_Grid%NX,State_Grid%NY)
+      REAL(KIND=RB)          :: RTEMISS   (State_Grid%NX,State_Grid%NY,
+     &                                     NBNDLW)
 
       REAL*8                 :: NUMER,DENOM
       REAL*4                 :: AODTMP,AODOUT,SSATMP,SSAOUT
       REAL*4                 :: ASYMTMP,ASYMOUT
-      INTEGER                :: FLG_FIRST_STRAT(IIPAR,JJPAR)
+      INTEGER                :: FLG_FIRST_STRAT(State_Grid%NX,
+     &                                          State_Grid%NY)
       INTEGER                :: ONECOL
-      REAL*4                 :: CH4SCL(IIPAR,JJPAR)
+      REAL*4                 :: CH4SCL(State_Grid%NX,State_Grid%NY)
 
       !-----------------------------------------------------------------
       ! FROM RAD_DRIVER... TO BE MERGED
@@ -370,17 +401,21 @@
       !-----------------------------------------------------------------
       ! PROFILE VARIABLES
       !-----------------------------------------------------------------
-      REAL (KIND=RB)         :: PLEV(IIPAR,JJPAR,LLPAR+1)
-      REAL (KIND=RB)         :: TLEV(IIPAR,JJPAR,LLPAR+1)
-      REAL (KIND=RB)         :: CO2VMR(IIPAR,JJPAR,LLPAR)
-      REAL (KIND=RB)         :: O2VMR(IIPAR,JJPAR,LLPAR)
-      REAL (KIND=RB)         :: T_CTM(LLPAR+1)
-      REAL (KIND=RB)         :: P_CTM(LLPAR+2)
-      REAL (KIND=RB)         :: O3_CTM(LLPAR+1)
-      REAL (KIND=RB)         :: T_CLIM(LLPAR+1)
-      REAL (KIND=RB)         :: O3_CLIM(LLPAR+1)
-      REAL (KIND=RB)         :: Z_CLIM(LLPAR+2)
-      REAL (KIND=RB)         :: AIR_CLIM(LLPAR+1)
+      REAL (KIND=RB)         :: PLEV(State_Grid%NX,State_Grid%NY,
+     &                               State_Grid%NZ+1)
+      REAL (KIND=RB)         :: TLEV(State_Grid%NX,State_Grid%NY,
+     &                               State_Grid%NZ+1)
+      REAL (KIND=RB)         :: CO2VMR(State_Grid%NX,State_Grid%NY,
+     &                                 State_Grid%NZ)
+      REAL (KIND=RB)         :: O2VMR(State_Grid%NX,State_Grid%NY,
+     &                                State_Grid%NZ)
+      REAL (KIND=RB)         :: T_CTM(State_Grid%NZ+1)
+      REAL (KIND=RB)         :: P_CTM(State_Grid%NZ+2)
+      REAL (KIND=RB)         :: O3_CTM(State_Grid%NZ+1)
+      REAL (KIND=RB)         :: T_CLIM(State_Grid%NZ+1)
+      REAL (KIND=RB)         :: O3_CLIM(State_Grid%NZ+1)
+      REAL (KIND=RB)         :: Z_CLIM(State_Grid%NZ+2)
+      REAL (KIND=RB)         :: AIR_CLIM(State_Grid%NZ+1)
 
       !-----------------------------------------------------------------
       ! SW SOLAR VARIABLES
@@ -391,39 +426,44 @@
       !-----------------------------------------------------------------
       ! SW CLOUD VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: TAUCLD_SW(NBNDSW,IIPAR,JJPAR,LLPAR) ! IN-CLOUD OPTICAL DEPTH
-      REAL(KIND=RB)          :: TAUCLD_LW(NBNDLW,IIPAR,JJPAR,LLPAR) ! NOT USED BUT PASSED TO MCICA_LW
-      REAL(KIND=RB)          :: SSACLD(NBNDSW,IIPAR,JJPAR,LLPAR)    ! IN-CLOUD SINGLE SCATTERING ALBEDO
-      REAL(KIND=RB)          :: ASMCLD(NBNDSW,IIPAR,JJPAR,LLPAR)    ! IN-CLOUD ASYMMETRY PARAMETER
-      REAL(KIND=RB)          :: FSFCLD(NBNDSW,IIPAR,JJPAR,LLPAR)    ! IN-CLOUD FORWARD SCATTERING FRACTION
-      REAL(KIND=RB)          :: ECAER(1,LLPAR,NAEREC)               ! AEROSOL OPTICAL DEPTH AT 0.55UM (IAER=6 ONLY)
+      REAL(KIND=RB)          :: TAUCLD_SW(NBNDSW,State_Grid%NX,
+     &                                    State_Grid%NY,State_Grid%NZ) ! IN-CLOUD OPTICAL DEPTH
+      REAL(KIND=RB)          :: TAUCLD_LW(NBNDLW,State_Grid%NX,
+     &                                    State_Grid%NY,State_Grid%NZ) ! NOT USED BUT PASSED TO MCICA_LW
+      REAL(KIND=RB)          :: SSACLD(NBNDSW,State_Grid%NX,
+     &                                 State_Grid%NY,State_Grid%NZ)    ! IN-CLOUD SINGLE SCATTERING ALBEDO
+      REAL(KIND=RB)          :: ASMCLD(NBNDSW,State_Grid%NX,
+     &                                 State_Grid%NY,State_Grid%NZ)    ! IN-CLOUD ASYMMETRY PARAMETER
+      REAL(KIND=RB)          :: FSFCLD(NBNDSW,State_Grid%NX,
+     &                                 State_Grid%NY,State_Grid%NZ)    ! IN-CLOUD FORWARD SCATTERING FRACTION
+      REAL(KIND=RB)          :: ECAER(1,State_Grid%NZ,NAEREC)               ! AEROSOL OPTICAL DEPTH AT 0.55UM (IAER=6 ONLY)
 
       !-----------------------------------------------------------------
       ! LONGWAVE FLUX VARIABLES
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: UFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)          :: DFLX(1,LLPAR+1)  ! TOTAL SKY LONGWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)          :: HR(1,LLPAR)      ! TOTAL SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
-      REAL(KIND=RB)          :: UFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)          :: DFLXC(1,LLPAR+1) ! CLEAR SKY LONGWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)          :: HRC(1,LLPAR)     ! CLEAR SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: UFLX(1,State_Grid%NZ+1)  ! TOTAL SKY LONGWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: DFLX(1,State_Grid%NZ+1)  ! TOTAL SKY LONGWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: HR(1,State_Grid%NZ)      ! TOTAL SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: UFLXC(1,State_Grid%NZ+1) ! CLEAR SKY LONGWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: DFLXC(1,State_Grid%NZ+1) ! CLEAR SKY LONGWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: HRC(1,State_Grid%NZ)     ! CLEAR SKY LONGWAVE RADIATIVE HEATING RATE (K/D)
 
       !-----------------------------------------------------------------
       !- OPTIONAL OUTPUT
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: DUFLX_DT(1,LLPAR) ! CHANGE IN UPWARD LONGWAVE FLUX (W/M2/K)
-      REAL(KIND=RB)          :: DUFLXC_DT(1,LLPAR)! CHANGE IN CLEAR SKY UPWARD LONGWAVE FLUX (W/M2/K)
+      REAL(KIND=RB)          :: DUFLX_DT(1,State_Grid%NZ) ! CHANGE IN UPWARD LONGWAVE FLUX (W/M2/K)
+      REAL(KIND=RB)          :: DUFLXC_DT(1,State_Grid%NZ)! CHANGE IN CLEAR SKY UPWARD LONGWAVE FLUX (W/M2/K)
 
       !-----------------------------------------------------------------
       ! SHORTWAVE FLUX VARIABLES
       !-----------------------------------------------------------------
       ! ----- OUTPUT -----
-      REAL(KIND=RB)          :: SWUFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)          :: SWDFLX(1,LLPAR+1)  ! TOTAL SKY SHORTWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)          :: SWHR(1,LLPAR)      ! TOTAL SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
-      REAL(KIND=RB)          :: SWUFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE UPWARD FLUX (W/M2)
-      REAL(KIND=RB)          :: SWDFLXC(1,LLPAR+1) ! CLEAR SKY SHORTWAVE DOWNWARD FLUX (W/M2)
-      REAL(KIND=RB)          :: SWHRC(1,LLPAR)     ! CLEAR SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: SWUFLX(1,State_Grid%NZ+1)  ! TOTAL SKY SHORTWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWDFLX(1,State_Grid%NZ+1)  ! TOTAL SKY SHORTWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWHR(1,State_Grid%NZ)      ! TOTAL SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
+      REAL(KIND=RB)          :: SWUFLXC(1,State_Grid%NZ+1) ! CLEAR SKY SHORTWAVE UPWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWDFLXC(1,State_Grid%NZ+1) ! CLEAR SKY SHORTWAVE DOWNWARD FLUX (W/M2)
+      REAL(KIND=RB)          :: SWHRC(1,State_Grid%NZ)     ! CLEAR SKY SHORTWAVE RADIATIVE HEATING RATE (K/D)
 
       !-----------------------------------------------------------------
       ! LOCAL VARIABLES
@@ -438,37 +478,37 @@
       INTEGER(KIND=IM)       :: SEEDSW, SEEDLW
       INTEGER(KIND=IM)       :: IRNG=1  ! MERSENNE TWISTER RANDOM NUMBER GENERATOR
       INTEGER(KIND=IM)       :: ICLDMCL
-      REAL(KIND=RB)          :: RELQMCL0(1,LLPAR)
-      REAL(KIND=RB)          :: REICMCL0(1,LLPAR)
+      REAL(KIND=RB)          :: RELQMCL0(1,State_Grid%NZ)
+      REAL(KIND=RB)          :: REICMCL0(1,State_Grid%NZ)
 
       !-----------------------------------------------------------------
       ! MCICA LW SPECIFIC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: CLDFMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)          :: CIWPMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)          :: CLWPMCL_LW0(NGPTLW,1,LLPAR)
-      REAL(KIND=RB)          :: TAUCMCL_LW0(NGPTLW,1,LLPAR)
+      REAL(KIND=RB)          :: CLDFMCL_LW0(NGPTLW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: CIWPMCL_LW0(NGPTLW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: CLWPMCL_LW0(NGPTLW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: TAUCMCL_LW0(NGPTLW,1,State_Grid%NZ)
 
       !-----------------------------------------------------------------
       ! MCICA SW SPECIFIC
       !-----------------------------------------------------------------
-      REAL(KIND=RB)          :: CLDFMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)          :: CIWPMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)          :: CLWPMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)          :: TAUCMCL_SW0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)          :: SSACMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)          :: ASMCMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)          :: FSFCMCL0(NGPTSW,1,LLPAR)
-      REAL(KIND=RB)          :: PCENTER0(1,LLPAR)
-      REAL(KIND=RB)          :: CLDFR0(1,LLPAR)
-      REAL(KIND=RB)          :: CICEWP0(1,LLPAR)
-      REAL(KIND=RB)          :: CLIQWP0(1,LLPAR)
-      REAL(KIND=RB)          :: REICE0(1,LLPAR)
-      REAL(KIND=RB)          :: RELIQ0(1,LLPAR)
-      REAL(KIND=RB)          :: TAUCLD_SW0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)          :: SSACLD0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)          :: ASMCLD0(NBNDSW,1,LLPAR)
-      REAL(KIND=RB)          :: FSFCLD0(NBNDSW,1,LLPAR)
+      REAL(KIND=RB)          :: CLDFMCL_SW0(NGPTSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: CIWPMCL_SW0(NGPTSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: CLWPMCL_SW0(NGPTSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: TAUCMCL_SW0(NGPTSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: SSACMCL0(NGPTSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: ASMCMCL0(NGPTSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: FSFCMCL0(NGPTSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: PCENTER0(1,State_Grid%NZ)
+      REAL(KIND=RB)          :: CLDFR0(1,State_Grid%NZ)
+      REAL(KIND=RB)          :: CICEWP0(1,State_Grid%NZ)
+      REAL(KIND=RB)          :: CLIQWP0(1,State_Grid%NZ)
+      REAL(KIND=RB)          :: REICE0(1,State_Grid%NZ)
+      REAL(KIND=RB)          :: RELIQ0(1,State_Grid%NZ)
+      REAL(KIND=RB)          :: TAUCLD_SW0(NBNDSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: SSACLD0(NBNDSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: ASMCLD0(NBNDSW,1,State_Grid%NZ)
+      REAL(KIND=RB)          :: FSFCLD0(NBNDSW,1,State_Grid%NZ)
 
       !-----------------------------------------------------------------
       ! Variables used to avoid array temporaries (bmy, 6/3/15)
@@ -478,51 +518,51 @@
       !-----------------------------------------------------------------
 
       ! For MCICA_SUBCOL_LW and MCICA_SUBCOL_LW
-      REAL(KIND=RB)          :: p_PCENTER   (         LLPAR  )
-      REAL(KIND=RB)          :: p_CLDFR     (         LLPAR  )
-      REAL(KIND=RB)          :: p_CICEWP    (         LLPAR  )
-      REAL(KIND=RB)          :: p_CLIQWP    (         LLPAR  )
-      REAL(KIND=RB)          :: p_REICE     (         LLPAR  )
-      REAL(KIND=RB)          :: p_RELIQ     (         LLPAR  )
-      REAL(KIND=RB)          :: p_TAUCLD_LW ( NBNDLW, LLPAR  )
-      REAL(KIND=RB)          :: p_TAUCLD_SW ( NBNDSW, LLPAR  )
-      REAL(KIND=RB)          :: p_SSACLD    ( NBNDSW, LLPAR  ) 
-      REAL(KIND=RB)          :: p_ASMCLD    ( NBNDSW, LLPAR  )
-      REAL(KIND=RB)          :: p_FSFCLD    ( NBNDSW, LLPAR  )
+      REAL(KIND=RB)          :: p_PCENTER   (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CLDFR     (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CICEWP    (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CLIQWP    (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_REICE     (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_RELIQ     (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_TAUCLD_LW ( NBNDLW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_TAUCLD_SW ( NBNDSW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_SSACLD    ( NBNDSW, State_Grid%NZ  ) 
+      REAL(KIND=RB)          :: p_ASMCLD    ( NBNDSW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_FSFCLD    ( NBNDSW, State_Grid%NZ  )
 
       ! For RRTMG_LW and RRTMG_SW
-      REAL(KIND=RB)          :: p_PLEV      (         LLPAR+1)
-      REAL(KIND=RB)          :: p_TLAY      (         LLPAR  )
-      REAL(KIND=RB)          :: p_TLEV      (         LLPAR+1)
-      REAL(KIND=RB)          :: p_H2OVMR    (         LLPAR  )
-      REAL(KIND=RB)          :: p_O3VMR     (         LLPAR  )
-      REAL(KIND=RB)          :: p_CO2VMR    (         LLPAR  )
-      REAL(KIND=RB)          :: p_CH4VMR    (         LLPAR  )
-      REAL(KIND=RB)          :: p_N2OVMR    (         LLPAR  ) 
-      REAL(KIND=RB)          :: p_O2VMR     (         LLPAR  )
-      REAL(KIND=RB)          :: p_CFC11VMR  (         LLPAR  )
-      REAL(KIND=RB)          :: p_CFC12VMR  (         LLPAR  )
-      REAL(KIND=RB)          :: p_CFC22VMR  (         LLPAR  )
-      REAL(KIND=RB)          :: p_CCL4VMR   (         LLPAR  )
-      REAL(KIND=RB)          :: p_REICMCL   (         LLPAR  )
-      REAL(KIND=RB)          :: p_RELQMCL   (         LLPAR  ) 
-      REAL(KIND=RB)          :: p_SUNCOS    (         LLPAR  )
-      REAL(KIND=RB)          :: p_CLDFMCL_LW( NGPTLW, LLPAR  )
-      REAL(KIND=RB)          :: p_TAUCMCL_LW( NGPTLW, LLPAR  )
-      REAL(KIND=RB)          :: p_CIWPMCL_LW( NGPTLW, LLPAR  )
-      REAL(KIND=RB)          :: p_CLWPMCL_LW( NGPTLW, LLPAR  )
-      REAL(KIND=RB)          :: p_CLDFMCL_SW( NGPTSW, LLPAR  )
-      REAL(KIND=RB)          :: p_TAUCMCL_SW( NGPTSW, LLPAR  )
-      REAL(KIND=RB)          :: p_SSACMCL   ( NGPTSW, LLPAR  )
-      REAL(KIND=RB)          :: p_ASMCMCL   ( NGPTSW, LLPAR  )
-      REAL(KIND=RB)          :: p_FSFCMCL   ( NGPTSW, LLPAR  )
-      REAL(KIND=RB)          :: p_CIWPMCL_SW( NGPTSW, LLPAR  )
-      REAL(KIND=RB)          :: p_CLWPMCL_SW( NGPTSW, LLPAR  )
+      REAL(KIND=RB)          :: p_PLEV      (         State_Grid%NZ+1)
+      REAL(KIND=RB)          :: p_TLAY      (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_TLEV      (         State_Grid%NZ+1)
+      REAL(KIND=RB)          :: p_H2OVMR    (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_O3VMR     (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CO2VMR    (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CH4VMR    (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_N2OVMR    (         State_Grid%NZ  ) 
+      REAL(KIND=RB)          :: p_O2VMR     (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CFC11VMR  (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CFC12VMR  (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CFC22VMR  (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CCL4VMR   (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_REICMCL   (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_RELQMCL   (         State_Grid%NZ  ) 
+      REAL(KIND=RB)          :: p_SUNCOS    (         State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CLDFMCL_LW( NGPTLW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_TAUCMCL_LW( NGPTLW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CIWPMCL_LW( NGPTLW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CLWPMCL_LW( NGPTLW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CLDFMCL_SW( NGPTSW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_TAUCMCL_SW( NGPTSW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_SSACMCL   ( NGPTSW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_ASMCMCL   ( NGPTSW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_FSFCMCL   ( NGPTSW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CIWPMCL_SW( NGPTSW, State_Grid%NZ  )
+      REAL(KIND=RB)          :: p_CLWPMCL_SW( NGPTSW, State_Grid%NZ  )
       REAL(KIND=RB)          :: p_RTEMISS   (         NBNDLW )
-      REAL(KIND=RB)          :: p_TAUAER_LW ( LLPAR,  NBNDLW )
-      REAL(KIND=RB)          :: p_TAUAER_SW ( LLPAR,  NBNDSW )
-      REAL(KIND=RB)          :: p_SSAAER    ( LLPAR,  NBNDSW )
-      REAL(KIND=RB)          :: p_ASMAER    ( LLPAR,  NBNDSW )
+      REAL(KIND=RB)          :: p_TAUAER_LW ( State_Grid%NZ,  NBNDLW )
+      REAL(KIND=RB)          :: p_TAUAER_SW ( State_Grid%NZ,  NBNDSW )
+      REAL(KIND=RB)          :: p_SSAAER    ( State_Grid%NZ,  NBNDSW )
+      REAL(KIND=RB)          :: p_ASMAER    ( State_Grid%NZ,  NBNDSW )
 
       ! Strings
       CHARACTER(LEN=255)     :: ErrMsg, This Loc
@@ -538,12 +578,21 @@
      & ' -> at DO_RRTMG_RAD_TRANSFER (in rrtmg_rad_transfer_mod.F)'
 
       ! Convert species units to kg/kg dry for RRTMG 
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg/kg dry', RC, 
-     &                        OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, 'kg/kg dry',
+     &                        RC,         OrigUnit=OrigUnit )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Unit conversion error in DO_RRTMG_RAD_TRANSFER!"'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Also make sure that the ncDiag arguement is valid,
+      ! as this is the index for the netCDF diagnostic arrays.
+      IF ( iNcDiag <= 0 ) THEN
+         ErrMsg = 'The iNcDiag argument is <= 0!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
@@ -651,8 +700,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, IB  )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! BROADBAND ALBEDO
          ! Attache the HEMCO pointers to RRTMG albedo variables (bmy, 11/1/18)
@@ -677,14 +726,6 @@
      &       (ALBDIFNIR(I,J).LT.0.001)) THEN
             WRITE(6,*) 'ALBEDO DFNIR OUT OF RANGE',I,J,ALBDIFNIR(I,J)
          ENDIF
-
-         !-------------------------------------------------
-         ! Prior to 11/2/18:
-         ! IB_SW is not used in this loop (bmy, 11/2/18)
-         !DO IB= 1, NBNDS
-         !   IB_SW = IB-NBNDLW
-         !ENDDO
-         !-------------------------------------------------
 
          ! Assign the MODIS emissivity pointers from HEMCO to the
          ! different slots of the RTEMISS array (for each spectral band)
@@ -712,9 +753,9 @@
 
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
       !%%% NOTE: LOOPS ARE GOING IN WRONG ORDER (bmy, 1/8/18)
-      DO I = 1, IIPAR
-      DO J = 1, JJPAR
-      DO L = 1, LLPAR
+      DO I = 1, State_Grid%NX
+      DO J = 1, State_Grid%NY
+      DO L = 1, State_Grid%NZ
          PCENTER(I,J,L) = GET_PCENTER( I, J, L )
          PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
          H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
@@ -738,34 +779,34 @@
 !$OMP+PRIVATE( AIR_TMP, YLAT,   O3COL,  O3_CTM,  T_CTM    )
 !$OMP+PRIVATE( P_CTM,   T_CLIM, Z_CLIM, O3_CLIM, AIR_CLIM )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
-       ALBVIS(I,J)   = State_Met%ALBD(I,J)
+       ALBVIS(I,J) = State_Met%ALBD(I,J)
 
        ! Grid box latitude [degrees]
-       YLAT            = GET_YMID( I, J, 1 )
+       YLAT = State_Grid%YMid(I,J)
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
        ! Define the P array here, using GCM pressures
-       DO L = 1, LLPAR+1
-          P_CTM(L)     = State_Met%PEDGE( I, J, L )
+       DO L = 1, State_Grid%NZ+1
+          P_CTM(L) = State_Met%PEDGE(I,J,L)
        ENDDO
 #else
        ! Define the P array here, using Ap and Bp from GEOS-Chem
-       DO L = 1, LLPAR+1
-          P_CTM(L)     = GET_PEDGE( I, J, L )
+       DO L = 1, State_Grid%NZ+1
+          P_CTM(L) = GET_PEDGE(I,J,L)
        ENDDO
 #endif
 
        ! Top edge of P_CTM is top of atmosphere
-       P_CTM(LLPAR+2)  = 0d0
+       P_CTM(State_Grid%NZ+2)  = 0d0
 
        ! Temperature profile [K]
-       T_CTM(1:LLPAR)  = State_Met%T(I,J,1:LLPAR)
+       T_CTM(1:State_Grid%NZ)  = State_Met%T(I,J,1:State_Grid%NZ)
 
        ! Top of atmosphere
-       T_CTM(LLPAR+1)  = T_CTM(LLPAR)
+       T_CTM(State_Grid%NZ+1)  = T_CTM(State_Grid%NZ)
 
        ! Overhead ozone column [DU]
        ! These values are either from the met fields or TOMS/SBUV,
@@ -779,7 +820,7 @@
           O3_CTM(L)    = State_Chm%Species(I,J,L,id_O3)
        ENDDO
        
-      DO L = 1, LLPAR
+      DO L = 1, State_Grid%NZ
 
             !-----------------------------
             ! GET CLOUD PROPERTIES BY SETTING REASONABLE VALUES FOR REL
@@ -937,7 +978,8 @@
             CALL SET_PROF_O3 (YLAT,THISMONTH,THISDAY,
      &                        T_CTM,  P_CTM,
      &                        O3_CTM, O3COL, T_CLIM,
-     &                        O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt)
+     &                        O3_CLIM,  Z_CLIM,  AIR_CLIM,
+     &                        Input_Opt, State_Grid )
             O3VMR(I,J,L) = O3_CLIM(L)/AIR_TMP
 
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
@@ -994,9 +1036,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
           !if UCX on, we need to go above the tropopause to get 
           !the strat AOD, but only for IS=8 and IS=9
@@ -1059,9 +1101,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
@@ -1110,9 +1152,9 @@
 !$OMP+SCHEDULE( DYNAMIC )
        DO IB= 1, NBNDS
         IB_SW = IB-NBNDLW
-        DO L = 1, LLPAR
-        DO J = 1, JJPAR
-        DO I = 1, IIPAR
+        DO L = 1, State_Grid%NZ
+        DO J = 1, State_Grid%NY
+        DO I = 1, State_Grid%NX
 
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
@@ -1141,9 +1183,9 @@
 ! checking values
        DO IB= NBNDLW+1, NBNDS
         IB_SW = IB-NBNDLW
-        DO L = 1, LLPAR
-        DO J = 1, JJPAR
-        DO I = 1, IIPAR
+        DO L = 1, State_Grid%NZ
+        DO J = 1, State_Grid%NY
+        DO I = 1, State_Grid%NX
               IF (ASMAER(I,J,L,IB_SW).GT.0.999d0) THEN
                ASMAER(I,J,L,IB_SW) = 0.999d0
               ENDIF
@@ -1181,13 +1223,13 @@
 
        ! GET LEVEL VALUES
        GCAIR = 1.0E-3*GASCON/AVOGAD
-       DO J=1,JJPAR
-       DO I=1,IIPAR
+       DO J=1,State_Grid%NY
+       DO I=1,State_Grid%NX
           PLEV(I,J,1) = PEDGE(I,J,1) ! SET LOWEST LEVEL TO SURFACE PRESSURE
           TLEV(I,J,1) = TLAY(I,J,1)  ! SET LOWEST LEVEL TO LAYER TEMPERATURE  (KLUDGE)
-          PLEV(I,J,LLPAR+1) = PCENTER(I,J,LLPAR)
-          TLEV(I,J,LLPAR+1) = TLAY(I,J,LLPAR)
-          DO L=2,LLPAR
+          PLEV(I,J,State_Grid%NZ+1) = PCENTER(I,J,State_Grid%NZ)
+          TLEV(I,J,State_Grid%NZ+1) = TLAY(I,J,State_Grid%NZ)
+          DO L=2,State_Grid%NZ
              RHOA = PCENTER(I,J,L-1)/(GCAIR*TLAY(I,J,L-1))
              RHOB = PCENTER(I,J,L)/(GCAIR*TLAY(I,J,L))
              RHOSUM = RHOA+RHOB
@@ -1265,8 +1307,8 @@
 !$OMP+PRIVATE( p_CLIQWP,    p_REICE,     p_RELIQ,     p_TAUCLD_LW )
 !$OMP+PRIVATE( p_TAUCLD_SW, p_SSACLD,    p_ASMCLD,    p_FSFCLD    )
 !$OMP+SCHEDULE( DYNAMIC )
-       DO J=1, JJPAR
-       DO I=1, IIPAR
+       DO J=1, State_Grid%NY
+       DO I=1, State_Grid%NX
 
           ! Avoid array temporaries in the subroutine call (bmy, 6/3/15)
           ! These arrays are used by both MCICA_SUBCOL_LW and MCICA_SUBCOL_SW
@@ -1291,7 +1333,7 @@
                 !-------------------------------------
                 ! Inputs
      &                             ONECOL,
-     &                             LLPAR,
+     &                             State_Grid%NZ,
      &                             ICLDMCL,
      &                             SEEDLW,
      &                             IRNG,
@@ -1336,7 +1378,7 @@
                 !-------------------------------------
                 ! Inputs
      &                             ONECOL, 
-     &                             LLPAR, 
+     &                             State_Grid%NZ, 
      &                             ICLDMCL,
      &                             SEEDSW, 
      &                             IRNG,
@@ -1407,8 +1449,8 @@
 !$OMP+PRIVATE( p_CLWPMCL_SW, p_TAUAER_SW,  p_SSAAER,     p_ASMAER     )
 !$OMP+PRIVATE( p_SUNCOS                                               )
 !$OMP+SCHEDULE( DYNAMIC ) 
-      DO J=1, JJPAR
-      DO I=1, IIPAR
+      DO J=1, State_Grid%NY
+      DO I=1, State_Grid%NX
  
          ! Avoid arrray temporaries in subroutines (bmy, 6/3/15)
          ! These variables are used in both RRTMG_LW and RRTMG_SW
@@ -1448,7 +1490,7 @@
                 !-------------------------------------
                 ! Inputs
      &                     ONECOL,
-     &                     LLPAR,
+     &                     State_Grid%NZ,
      &                     ICLDMCL,
      &                     IDRV, 
      &                     p_PCENTER,
@@ -1524,7 +1566,7 @@
                 !-------------------------------------
                 ! Inputs
      &                     ONECOL,
-     &                     LLPAR,
+     &                     State_Grid%NZ,
      &                     ICLDMCL, 
      &                     p_PCENTER,
      &                     p_PLEV,
@@ -1577,8 +1619,8 @@
             SW_DFLUXC(I,J,:) = SWDFLXC(1,:)
 
          ENDIF !SW
-      ENDDO !IIPAR
-      ENDDO !JJPAR
+      ENDDO !State_Grid%NX
+      ENDDO !State_Grid%NY
 !$OMP END PARALLEL DO
 
       
@@ -1591,9 +1633,9 @@
 
       !THE NUMBER OF ND72 OUTPUTS PER FIELD
       IF ( Input_Opt%LUCX ) THEN
-         NAD72 = NSPECRADMENU + 1
+         NAD72 = Input_Opt%NSPECRADMENU + 1
       ELSE
-         NAD72 = NSPECRADMENU
+         NAD72 = Input_Opt%NSPECRADMENU
       ENDIF
 
       !FIRST CHECK IF WE HAVE ALREADY OUTPUT AEROSOL DIAGNOSTICS
@@ -1615,8 +1657,8 @@
 !$OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP)
 !$OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT)
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J=1,JJPAR
-      DO I=1,IIPAR
+      DO J=1,State_Grid%NY
+      DO I=1,State_Grid%NX
 #if defined( BPCH_DIAG )
        !================================================================
        ! %%%%% ND72 (bpch) DIAGNOSTIC %%%%%
@@ -1632,7 +1674,7 @@
 
         ! All-sky SW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX) = AD72(I,J,OUTIDX) -  
-     &                     SNGL(SW_UFLUX(I,J,LLPAR+1))
+     &                     SNGL(SW_UFLUX(I,J,State_Grid%NZ+1))
 
         ! All-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+NAD72) = AD72(I,J,OUTIDX+NAD72) +
@@ -1640,7 +1682,7 @@
 
         ! All-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+2*NAD72) = AD72(I,J,OUTIDX+2*NAD72) -
-     &                     SNGL(LW_UFLUX(I,J,LLPAR+1))
+     &                     SNGL(LW_UFLUX(I,J,State_Grid%NZ+1))
 
         ! All-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+3*NAD72) = AD72(I,J,OUTIDX+3*NAD72) +
@@ -1648,7 +1690,7 @@
 
         ! Clear-sky SW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+4*NAD72) = AD72(I,J,OUTIDX+4*NAD72) -
-     &                     SNGL(SW_UFLUXC(I,J,LLPAR+1))
+     &                     SNGL(SW_UFLUXC(I,J,State_Grid%NZ+1))
 
         ! Clear-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+5*NAD72) = AD72(I,J,OUTIDX+5*NAD72) +
@@ -1656,7 +1698,7 @@
 
         ! Clear-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+6*NAD72) = AD72(I,J,OUTIDX+6*NAD72) -
-     &                     SNGL(LW_UFLUXC(I,J,LLPAR+1))
+     &                     SNGL(LW_UFLUXC(I,J,State_Grid%NZ+1))
 
         ! Clear-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
@@ -1668,7 +1710,7 @@
           
         ! Clear-sky SW flux @ TOA [w/m2]
         AD72(I,J,OUTIDX+4*NAD72) = AD72(I,J,OUTIDX+4*NAD72) -
-     &                     SNGL(SW_UFLUX(I,J,LLPAR+1))
+     &                     SNGL(SW_UFLUX(I,J,State_Grid%NZ+1))
 
         ! Clear-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+5*NAD72) = AD72(I,J,OUTIDX+5*NAD72) +
@@ -1676,7 +1718,7 @@
 
         ! Clear-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+6*NAD72) = AD72(I,J,OUTIDX+6*NAD72) -
-     &                     SNGL(LW_UFLUX(I,J,LLPAR+1))
+     &                     SNGL(LW_UFLUX(I,J,State_Grid%NZ+1))
 
         ! Clear-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
@@ -1684,7 +1726,6 @@
        ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
        !================================================================
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
        !
@@ -1699,72 +1740,83 @@
 
           ! All-sky SW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
-             State_Diag%RadAllSkySWTOA(I,J) = -SW_UFLUX(I,J,LLPAR+1)
+             State_Diag%RadAllSkySWTOA(I,J,iNcDiag) =
+     &          -SW_UFLUX(I,J,State_Grid%NZ+1)
           ENDIF
 
           ! All-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
-             State_Diag%RadAllSkySWSurf(I,J) = SW_DFLUX(I,J,1)
+             State_Diag%RadAllSkySWSurf(I,J,iNcDiag) =
+     &          SW_DFLUX(I,J,1)
           ENDIF
 
           ! All-sky LW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
-             State_Diag%RadAllSkyLWTOA(I,J) = -LW_UFLUX(I,J,LLPAR+1)
+             State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) =
+     &         -LW_UFLUX(I,J,State_Grid%NZ+1)
           ENDIF
 
           ! All-sky LW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
-             State_Diag%RadAllSkyLWSurf(I,J) = LW_DFLUX(I,J,1)
+             State_Diag%RadAllSkyLWSurf(I,J,iNcDiag) =
+     &          LW_DFLUX(I,J,1)
           ENDIF
 
           ! Clear-sky SW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
-             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+             State_Diag%RadClrSkySWTOA(I,J,iNcDiag) =
+     &          -SW_UFLUXC(I,J,State_Grid%NZ+1)
           ENDIF
 
           ! Clear-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
-             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+             State_Diag%RadClrSkySWSurf(I,J,iNcDiag) =
+     &          SW_DFLUXC(I,J,1)
           ENDIF
 
           ! Clear-sky LW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
-             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+             State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) =
+     &          -LW_UFLUXC(I,J,State_Grid%NZ+1)
           ENDIF
 
           ! Clear-sky LW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
-             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+             State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) =
+     &          LW_DFLUXC(I,J,1)
           ENDIF
 
        ELSE
-     
+
           !-------------------------------------------------------
           ! CLEAR-SKY (RUNNING WITH CLOUDS OFF)
           !-------------------------------------------------------
 
           ! Clear-sky SW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
-             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+             State_Diag%RadClrSkySWTOA(I,J,iNcDiag) =
+     &          -SW_UFLUXC(I,J,State_Grid%NZ+1)
           ENDIF
 
           ! Clear-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
-             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+             State_Diag%RadClrSkySWSurf(I,J,iNcDiag) =
+     &          SW_DFLUXC(I,J,1)
           ENDIF
 
           ! Clear-sky LW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
-             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+             State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) =
+     &          -LW_UFLUXC(I,J,State_Grid%NZ+1)
           ENDIF
 
           ! Clear-sky LW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
-             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+             State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) =
+     &          LW_DFLUXC(I,J,1)
           ENDIF
 
        ENDIF
-#endif
 
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
@@ -1778,7 +1830,7 @@
          AODOUT  = 0.0D0
          SSAOUT  = 0.0D0
          ASYMOUT = 0.0D0
-         DO LL=1,LLPAR
+         DO LL=1,State_Grid%NZ
           !CHECK AOD IS NON-ZERO BEFORE LOG...
           IF((TAUAERDIAG(I,J,LL,IRTWVSELECT(2,W)).GT.0).AND.
      &       (TAUAERDIAG(I,J,LL,IRTWVSELECT(1,W)).GT.0)) THEN
@@ -1798,7 +1850,7 @@
            SSAOUT=SSAOUT+SSATMP*AODTMP
            ASYMOUT=ASYMOUT+ASYMTMP*SSATMP*AODTMP
           ENDIF
-         ENDDO !LLPAR
+         ENDDO !State_Grid%NZ
          !WE ARE SAVING COLUMN AVERAGED VALUES FOR EACH SPECIES
          !DIVIDE THROUGH BY AOD*SSA (AOD-SSA WEIGHTING ACCOUNTS FOR
          !GRIDBOXES)
@@ -1822,15 +1874,14 @@
 !$OMP END PARALLEL DO
 
       ! Convert species units back to original unit 
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,     
      &                 'DO_RRTMG_RAD_TRANSFER')
          RETURN
       ENDIF
 
-!EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER
 !EOC
 !------------------------------------------------------------------------------
@@ -1852,29 +1903,29 @@
 !\\
 ! !INTERFACE:
 !
-
-      SUBROUTINE SET_SPECMASK(ISPECRADMENU)
+      SUBROUTINE Set_SpecMask( iSpecRadMenu )
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,   ONLY :  SPECMASK,NSPECRAD,NASPECRAD,
-     &                           LSPECRADMENU
+      USE CMN_FJX_MOD, ONLY : SPECMASK, NSPECRAD, NASPECRAD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: ISPECRADMENU
-! 
+      INTEGER, INTENT(IN) :: iSpecRadMenu  ! Index of RRTMG flux output
+!
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
 !  26 Jun 2015 - E. Lundgren - Fix typo in NXTRA definition
+!  06 Nov 2018 - R. Yantosca - Now get LSPECRADMENU from Input_Opt
+!  08 Nov 2018 - R. Yantosca - Cosmetic changes (indentation & whitespace)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: N0,N,I,II,NXTRA
+      INTEGER :: N0,N,I,II,NXTRA
 
       !=================================================================
       ! SET_SPECMASK begins here!
@@ -1882,7 +1933,7 @@
 
       !ISPECRADMENU IS THE INDEX OF THE SPECIES WITHIN THE INPUT MENU
       !THE INDEX OF SPECMASK INDICATES THE POSITION OF THE SPECIES IN
-      !THE RT OPTICS ARRAY FOR THE AEROSOL 
+      !THE RT OPTICS ARRAY FOR THE AEROSOL
       !E.G. SO4 = 1 I.E. RTODAER(*,*,*,*,1)
       !
       !===FUNCTIONALITY FOR ADDING NEW SPECIES===
@@ -1892,67 +1943,212 @@
       !E.G. IF UCX=YES THEN NASPECRAD=18 AND STS AND NAT ARE INCLUDED
       !IN RTODAER INDEX 8 AND 9, BEFORE DUST
       NXTRA=NSPECRAD-16
+
       !CONVERT THE CURRENT SPECIES SELECTION FROM THE INPUT MENU INTO
       !THE REQUIRED SPECIES TO BE INCLUDED IN THE RRTMG CALCULATION
       SPECMASK(:)=1
 
       !IF ISPECRADMENU IS ZERO, WE JUST WANTED BASELINE, I.E. SPECMASK(:)=1
-      IF (ISPECRADMENU.GT.0) THEN
-       !CHECK THIS IS A REQUESTED SPECIES
-       IF(LSPECRADMENU(ISPECRADMENU).EQ.1) THEN 
-       SELECT CASE( ISPECRADMENU )
-       !OZONE
-       CASE( 1 ) 
-        SPECMASK(15+NXTRA)=0
-       !METHANE
-       CASE( 2 )
-        SPECMASK(16+NXTRA)=0
-       !SU
-       CASE( 3 )
-        SPECMASK(1)=3
-       !NI
-       CASE( 4 )
-        SPECMASK(2)=4
-       !AM
-       CASE( 5 )
-        SPECMASK(3)=5
-       !BC
-       CASE( 6 )
-        !Hydrophillic+phobic
-        SPECMASK(4)=6
-       !OA
-       CASE( 7 )
-        !Hydrophillic+phobic
-        SPECMASK(5)=7
-       !SS
-       CASE( 8 )
-        SPECMASK(6)=8
-        SPECMASK(7)=8
-       !DUST
-       CASE( 9 )
-        SPECMASK(8+NXTRA)=9
-        SPECMASK(9+NXTRA)=9
-        SPECMASK(10+NXTRA)=9
-        SPECMASK(11+NXTRA)=9
-        SPECMASK(12+NXTRA)=9
-        SPECMASK(13+NXTRA)=9
-        SPECMASK(14+NXTRA)=9
-       CASE( 10 )
-        !SET ALL BUT GASES TO 10
-        DO II = 1, NASPECRAD
-         SPECMASK(II)=10
-        ENDDO
-       !STRAT AEROSOL 
-       CASE( 11 )
-        !LSA
-        SPECMASK(8) = 11
-        !NAT
-        SPECMASK(9) = 11
-       END SELECT
-       ENDIF    
+      IF ( ISpecRadMenu .GT. 0 ) THEN
+
+         SELECT CASE( ISpecRadMenu )
+
+           ! O3 = Ozone
+           CASE( 1 )
+              SPECMASK(15+NXTRA)=0
+
+           ! ME = Methane
+           CASE( 2 )
+              SPECMASK(16+NXTRA)=0
+
+           ! SU = Sulfate
+           CASE( 3 )
+              SPECMASK(1)=3
+
+           ! NI = Nitrate
+           CASE( 4 )
+              SPECMASK(2)=4
+
+           ! AM = Ammonium
+           CASE( 5 )
+              SPECMASK(3)=5
+
+           ! BC = Black carbon (Hydrophilic+phobic)
+           CASE( 6 )
+              SPECMASK(4)=6
+
+           ! OA = Organic aerosol (!Hydrophilic+phobic)
+           CASE( 7 )
+              SPECMASK(5)=7
+
+           ! SS = Sea salt
+           CASE( 8 )
+              SPECMASK(6)=8
+              SPECMASK(7)=8
+
+           ! DU = Mineral dust
+           CASE( 9 )
+              SPECMASK(8+NXTRA)=9
+              SPECMASK(9+NXTRA)=9
+              SPECMASK(10+NXTRA)=9
+              SPECMASK(11+NXTRA)=9
+              SPECMASK(12+NXTRA)=9
+              SPECMASK(13+NXTRA)=9
+              SPECMASK(14+NXTRA)=9
+
+           ! PM = All particulate matter
+           ! add all aerosols but not gases here
+           CASE( 10 )
+              DO II = 1, NASPECRAD
+                 SPECMASK(II)=10
+              ENDDO
+
+           ! ST = STRAT AEROSOL (UCX only)
+           CASE( 11 )
+
+              !LSA
+              SPECMASK(8) = 11
+
+              !NAT
+              SPECMASK(9) = 11
+
+         END SELECT
       ENDIF
 
-      END SUBROUTINE SET_SPECMASK
+      END SUBROUTINE Set_SpecMask
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_rrtmg_rad_transfer
+!
+! !DESCRIPTION: Initializes all RRTMG module varaiables.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_RRTMG_Rad_Transfer( am_I_Root,  Input_Opt,
+     &                                    State_Diag, State_Grid, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  The index fields Input_Opt%RadFluxCt, Input_Opt%RadFluxName, and
+!  Input_Opt%RadFluxInd are populated from information obtained in
+!  Headers/diaglist_mod.F90.  But the input.geos file is read before
+!  the diaglist is constructed.  Therefore, we have to delay population
+!  of these fields until after the call to Init_DiagList.
+!
+! !REVISION HISTORY:
+!  09 Nov 2018 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER :: N
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc, arrayId
+
+      !=================================================================
+      ! Init_RRTMG_Inputs begins here
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc =
+     &   ' -> at Init_RRTMG_Rad_Transfer (in rrtmg_rad_transfer_mod.F)'
+
+      !=================================================================
+      ! For backwards compatibility with existing RRTMG code, we need
+      ! to populate the Input_Opt%LSpecRadMenu based on the flux
+      ! outputs requested in the HISTORY.rc file.  Loop over all
+      ! possible types of RRTMG flux outputs (excluding baseline,
+      ! which is type 0).
+      !
+      ! Save the name of each flux output in Input_Opt%RadFluxName
+      ! and its expected index value in Input_Opt%RadFluxInd.
+      ! Expected index values for flux ouptuts are:
+      !
+      ! Optional outputs (requested via HISTORY.rc)
+      !   1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
+      !   7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+      !
+      ! This is a bit convoluted but we need to do this in order to
+      ! keep track of the slot of the netCDF diagnostic arrays in
+      ! State_Diag in which to archive the various flux outputs.
+      ! Also this allows us to keep backwards compatibility with the
+      ! existing code to the greatest extent.
+      !
+      ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
+      ! the bpch code is removed from GEOS-Chem.  This array is still
+      ! used in diag3.F, so we need to keep it for the time being.
+      ! (bmy, 11/9/18)
+      !=================================================================
+
+      ! Loop over all of the flux outputs requested in HISTORY.rc
+      DO N = 1, State_Diag%nRadFlux
+
+         SELECT CASE( State_Diag%RadFluxName(N) )
+            CASE( 'O3' )
+               Input_Opt%LSpecRadMenu(1)  = 1
+            CASE( 'ME' )
+               Input_Opt%LSpecRadMenu(2)  = 1
+            CASE( 'SU' )
+               Input_Opt%LSpecRadMenu(3)  = 1
+            CASE( 'NI' )
+               Input_Opt%LSpecRadMenu(4)  = 1
+            CASE( 'AM' )
+               Input_Opt%LSpecRadMenu(5)  = 1
+            CASE( 'BC' )
+               Input_Opt%LSpecRadMenu(6)  = 1
+            CASE( 'OA' )
+               Input_Opt%LSpecRadMenu(7)  = 1
+            CASE( 'SS' )
+               Input_Opt%LSpecRadMenu(8)  = 1
+            CASE( 'DU' )
+               Input_Opt%LSpecRadMenu(9)  = 1
+            CASE( 'PM' )
+               Input_Opt%LSpecRadMenu(10) = 1
+            CASE( 'ST' )
+               Input_Opt%LSpecRadMenu(11) = 1
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+      ENDDO
+
+      !=================================================================
+      ! Allocate arrays
+      !=================================================================
+      CALL Init_Surface_Rad ( State_Grid )
+      CALL Init_MCICA_Clouds( State_Grid )
+
+      END SUBROUTINE Init_RRTMG_Rad_Transfer
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1967,13 +2163,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SURFACE_RAD()
+      SUBROUTINE Init_Surface_Rad( State_Grid )
 !
 ! !USES:
 !
       USE CMN_FJX_MOD
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State objecy
 ! 
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
@@ -1990,35 +2190,43 @@
       ! INIT_SURFACE_RAD begins here!
       !=================================================================
 
-      ALLOCATE( LW_UFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( LW_UFLUX(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_UFLUX' )
       LW_UFLUX = 0D0
 
-      ALLOCATE( LW_DFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( LW_DFLUX(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_DFLUX' )
       LW_DFLUX = 0D0
 
-      ALLOCATE( SW_UFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( SW_UFLUX(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_UFLUX' )
       SW_UFLUX = 0D0
 
-      ALLOCATE( SW_DFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( SW_DFLUX(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_DFLUX' )
       SW_DFLUX = 0D0
 
-      ALLOCATE( LW_UFLUXC(IIPAR,JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( LW_UFLUXC(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_UFLUXC' )
       LW_UFLUXC = 0D0
 
-      ALLOCATE( LW_DFLUXC(IIPAR,JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( LW_DFLUXC(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_DFLUXC' )
       LW_DFLUXC = 0D0
 
-      ALLOCATE( SW_UFLUXC(IIPAR,JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( SW_UFLUXC(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_UFLUXC' )
       SW_UFLUXC = 0D0
 
-      ALLOCATE( SW_DFLUXC(IIPAR,JJPAR,LLPAR+1), STAT=AS )
+      ALLOCATE( SW_DFLUXC(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SW_DFLUXC' )
       SW_DFLUXC = 0D0
 
@@ -2399,15 +2607,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MCICA_CLOUDS()
+      SUBROUTINE INIT_MCICA_CLOUDS( State_Grid )
 !
 ! !USES:
 !
       USE CMN_FJX_MOD
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE PARRRTM,      ONLY : NGPTLW
-      USE PARRRSW,      ONLY : NGPTSW
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE PARRRTM,        ONLY : NGPTLW
+      USE PARRRSW,        ONLY : NGPTSW
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
@@ -2426,55 +2638,68 @@
       ! INIT_MCICA_CLOUDS begins here!
       !=================================================================
 
-      ALLOCATE( CLDFMCL_LW( NGPTLW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CLDFMCL_LW( NGPTLW, State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFMCL_LW' )
       CLDFMCL_LW = 0D0
 
-      ALLOCATE( CIWPMCL_LW( NGPTLW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CIWPMCL_LW( NGPTLW, State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CIWPMCL_LW' )
       CIWPMCL_LW = 0D0
 
-      ALLOCATE( CLWPMCL_LW( NGPTLW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CLWPMCL_LW( NGPTLW, State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLWPMCL_LW' )
       CLWPMCL_LW = 0D0
 
-      ALLOCATE( TAUCMCL_LW( NGPTLW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( TAUCMCL_LW( NGPTLW, State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCMCL_LW' )
       TAUCMCL_LW = 0D0
 
-      ALLOCATE( CLDFMCL_SW( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CLDFMCL_SW( NGPTSW, State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFMCL_SW' )
       CLDFMCL_SW = 0D0
 
-      ALLOCATE( CIWPMCL_SW( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CIWPMCL_SW( NGPTSW, State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CIWPMCL_SW' )
       CIWPMCL_SW = 0D0
 
-      ALLOCATE( CLWPMCL_SW( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CLWPMCL_SW( NGPTSW, State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLWPMCL_SW' )
       CLWPMCL_SW = 0D0
 
-      ALLOCATE( TAUCMCL_SW( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( TAUCMCL_SW( NGPTSW, State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCMCL_SW' )
       TAUCMCL_SW = 0D0
 
-      ALLOCATE( SSACMCL( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( SSACMCL( NGPTSW, State_Grid%NX, State_Grid%NY,
+     &                   State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SSACMCL' )
       SSACMCL = 0D0
 
-      ALLOCATE( ASMCMCL( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( ASMCMCL( NGPTSW, State_Grid%NX, State_Grid%NY,
+     &                   State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ASMCMCL' )
       ASMCMCL = 0D0
 
-      ALLOCATE( FSFCMCL( NGPTSW, IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( FSFCMCL( NGPTSW, State_Grid%NX, State_Grid%NY,
+     &                   State_Grid%NZ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FSFCMCL' )
       FSFCMCL = 0D0
 
-      ALLOCATE( RELQMCL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( RELQMCL( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RELQMCL' )
       RELQMCL = 0D0
 
-      ALLOCATE( REICMCL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( REICMCL( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'REICMCL' )
       REICMCL = 0D0
 
@@ -2485,59 +2710,37 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_surface_rad
+! !IROUTINE: cleanup_rrtmg_rad_transfer
 !
-! !DESCRIPTION: Subroutine CLEANUP\_SURFACE\_RAD deallocates all module arrays.
+! !DESCRIPTION: Deallocates all RRTMG module variables.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_SURFACE_RAD
+      SUBROUTINE Cleanup_RRTMG_Rad_Transfer( am_I_Root, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root core?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
-!  18 Jun 2013 - D.A. Ridley - Initial version
-!  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  09 Nov 2018 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-      !=================================================================
-      ! CLEANUP_SURFACE_RAD begins here!
-      !=================================================================
-      IF ( ALLOCATED( LW_UFLUX        ) ) DEALLOCATE( LW_UFLUX        )
-      IF ( ALLOCATED( LW_DFLUX        ) ) DEALLOCATE( LW_DFLUX        )
-      IF ( ALLOCATED( SW_UFLUX        ) ) DEALLOCATE( SW_UFLUX        )
-      IF ( ALLOCATED( SW_DFLUX        ) ) DEALLOCATE( SW_DFLUX        )
-      IF ( ALLOCATED( LW_UFLUXC       ) ) DEALLOCATE( LW_UFLUXC       )
-      IF ( ALLOCATED( LW_DFLUXC       ) ) DEALLOCATE( LW_DFLUXC       )
-      IF ( ALLOCATED( SW_UFLUXC       ) ) DEALLOCATE( SW_UFLUXC       )
-      IF ( ALLOCATED( SW_DFLUXC       ) ) DEALLOCATE( SW_DFLUXC       )
+      ! Assume success
+      RC = GC_SUCCESS
 
-      END SUBROUTINE CLEANUP_SURFACE_RAD
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_strat_clim
-!
-! !DESCRIPTION: Subroutine CLEANUP\_STRAT\_CLIM deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_STRAT_CLIM
-!
-! !REVISION HISTORY:
-!  18 Jun 2013 - D.A. Ridley - Initial version
-!  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
       !=================================================================
-      ! CLEANUP_STRAT_CLIM begins here!
+      ! Nullify pointers to HEMCO fields
       !=================================================================
 
       ! Climatology
@@ -2572,31 +2775,20 @@
       MODIS_EMISS_15 => NULL() 
       MODIS_EMISS_16 => NULL() 
 
-      END SUBROUTINE CLEANUP_STRAT_CLIM
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_mcica_clouds
-!
-! !DESCRIPTION: Subroutine CLEANUP\_MCICA\_CLOUDS deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_MCICA_CLOUDS
-!
-! !REVISION HISTORY:
-!  18 Jun 2013 - D.A. Ridley - Initial version
-!  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
       !=================================================================
-      ! CLEANUP_MCICA_CLOUDS begins here!
+      ! Deallocate surface radiation arrays
+      !=================================================================
+      IF ( ALLOCATED( LW_UFLUX        ) ) DEALLOCATE( LW_UFLUX        )
+      IF ( ALLOCATED( LW_DFLUX        ) ) DEALLOCATE( LW_DFLUX        )
+      IF ( ALLOCATED( SW_UFLUX        ) ) DEALLOCATE( SW_UFLUX        )
+      IF ( ALLOCATED( SW_DFLUX        ) ) DEALLOCATE( SW_DFLUX        )
+      IF ( ALLOCATED( LW_UFLUXC       ) ) DEALLOCATE( LW_UFLUXC       )
+      IF ( ALLOCATED( LW_DFLUXC       ) ) DEALLOCATE( LW_DFLUXC       )
+      IF ( ALLOCATED( SW_UFLUXC       ) ) DEALLOCATE( SW_UFLUXC       )
+      IF ( ALLOCATED( SW_DFLUXC       ) ) DEALLOCATE( SW_DFLUXC       )
+
+      !=================================================================
+      ! Deallocate MCICA cloud arrays
       !=================================================================
       IF ( ALLOCATED( CLDFMCL_LW     ) ) DEALLOCATE( CLDFMCL_LW       )
       IF ( ALLOCATED( CIWPMCL_LW     ) ) DEALLOCATE( CIWPMCL_LW       )
@@ -2612,7 +2804,7 @@
       IF ( ALLOCATED( REICMCL        ) ) DEALLOCATE( REICMCL          )
       IF ( ALLOCATED( RELQMCL        ) ) DEALLOCATE( RELQMCL          )
 
-      END SUBROUTINE CLEANUP_MCICA_CLOUDS
+      END SUBROUTINE Cleanup_RRTMG_Rad_Transfer
 !EOC
       END MODULE RRTMG_RAD_TRANSFER_MOD
 #endif

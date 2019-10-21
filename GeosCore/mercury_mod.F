@@ -52,9 +52,7 @@
       PUBLIC  :: INIT_MERCURY
       PUBLIC  :: EMISSMERCURY
       PUBLIC  :: PARTITIONHG2
-#if defined( NC_DIAG )
       PUBLIC  :: Reset_Hg_Diags
-#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -353,8 +351,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMMERCURY( am_I_Root, Input_Opt,  State_Met,
-     &                        State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEMMERCURY( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -383,12 +381,11 @@
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -399,6 +396,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -620,7 +618,7 @@
       ! To simplify this code, K_RED_JNO2 should be moved to HEMCO_Config.rc
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
 
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 14.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 16.0e-2_fp
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
@@ -665,7 +663,8 @@
       ! be done in INIT_MERCURY because at that time the HEMCO configuration 
       ! file has not been read yet. (bmy, 3/12/15)
       IF ( FIRST ) THEN
-         CALL SET_OPTIONS_FROM_HEMCO( am_I_Root, Input_Opt, RC )
+         CALL SET_OPTIONS_FROM_HEMCO( am_I_Root, Input_Opt, State_Grid,
+     &                                RC )
 
          FIRST = .FALSE.
       ENDIF
@@ -707,7 +706,8 @@
          ENDIF
 
          ! Br and BrO not directly from HEMCO
-         CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
+         CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Grid,
+     &                       State_Met, MONTH, RC)
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_BR!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -811,17 +811,18 @@
       DTCHEM = GET_TS_CHEM()
 
       ! Compute diurnal scaling for OH
-      CALL OHNO3TIME
+      CALL OHNO3TIME( State_Grid )
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a OHNO3TIME' )
 
       ! Calculate the rate of sea salt aerosol uptake of Hg2
       IF ( LDYNSEASALT .AND. ITS_TIME_FOR_A3() ) THEN
-         CALL CALC_HG2_SEASALT_LOSSRATE( State_Met )
+         CALL CALC_HG2_SEASALT_LOSSRATE( State_Grid, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a SEASALT_LOSSRATE' )
       ENDIF
 
       ! Partition Hg(II) between gas and aerosol
-      CALL PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL PARTITIONHG2( am_I_Root,  Input_Opt, State_Chm,
+     &                   State_Grid, RC )
 
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: before do loop' )
 
@@ -856,9 +857,9 @@
 !%%%% NOTE: LOOP IS IN WRONG ORDER, WILL BE MORE EFFICIENT IF REVERSED %%%%
 !%%%% Putting this loop in the correct order causes differences in the %%%%
 !%%%% AD03_HG2_SS diagnostic array when using mp vs sp (mps, 9/3/15)   %%%%
-      DO I=1, IIPAR
-      DO J=1, JJPAR
-      DO L=1, LLPAR
+      DO I=1, State_Grid%NX
+      DO J=1, State_Grid%NY
+      DO L=1, State_Grid%NZ
 
          !------------------------------------------------------
          ! Dry deposition frequencies, 1/s
@@ -920,7 +921,7 @@
          !------------------------------------------------------
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
-         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
+         F_PBL = State_Met%F_UNDER_PBLTOP(I,J,L)
 
          ! Do dry deposition only for the fraction of the box in the PBL
          IF (F_PBL > 0.1e+0_fp) THEN
@@ -940,18 +941,20 @@
          ! Concentrations of oxidants, molec/cm3
          C_O3        = GET_O3( I, J, L,        State_Met             )
          C_OH        = GET_OH( I, J, L,        State_Met             )
-         C_BR        = GET_BR( I, J, L, C_BRO, State_Met, State_Diag )
+         C_BR        = GET_BR( I, J, L, C_BRO, State_Diag, State_Grid,
+     &                         State_Met )
 
          IF ( LHALOGENCHEM ) THEN
-            C_NO2       = GET_NO2(  I, J, L, State_Met, HEM_NO(I,J,L),
-     &           HEM_NO2(I,J,L), C_O3 )
+            C_NO2       = GET_NO2(  I, J, L, State_Grid, State_Met,
+     &                              HEM_NO(I,J,L), HEM_NO2(I,J,L),
+     &                              C_O3 )
             C_HO2       = GET_HO2(  I, J, L, State_Met )
-            C_CLO       = GET_CLO(  I, J, L, State_Met )
-            C_CL        = GET_CL(   I, J, L, State_Met )
+            C_CLO       = GET_CLO(  I, J, L, State_Grid, State_Met )
+            C_CL        = GET_CL(   I, J, L, State_Grid, State_Met )
          ENDIF
 
          IF ( LHGAQCHEM ) THEN
-            C_HOCL      = GET_HOCl( I, J, L, State_Met )
+            C_HOCL      = GET_HOCl( I, J, L, State_Grid, State_Met )
          ENDIF
             
          IF ( LRED_JNO2 ) THEN
@@ -1116,13 +1119,13 @@
          IF (LRED_JNO2) THEN
             ! Reduction happens to aqueous fraction of Hg2
             K_RED = K_RED_JNO2 * Faq 
-     &              * GET_JNO2( I, J, L, State_Met ) 
+     &              * GET_JNO2( I, J, L, State_Grid, State_Met ) 
      &              * C_OA
 
             IF (RH3 > 35.0e0_fp) THEN
                ! Reduction of HgP (35% RH is for presence of water)
                K_RED2P = K_RED_JNO2 
-     &                   * GET_JNO2( I, J, L, State_Met ) 
+     &                   * GET_JNO2( I, J, L, State_Grid, State_Met ) 
      &                   * C_OA
             ELSE
                K_RED2P = 0e0_fp
@@ -1356,7 +1359,7 @@
      &           ( F_PBL > 0.1_fp      ) ) THEN
 
                ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
+               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
                ! Amt of Hg(0) lost to drydep [molec/cm2/s]
                DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp *
@@ -1397,19 +1400,6 @@
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
 
                ! Store chemistry diagnostics only for total species
-               !--------------------------------------------------------------
-               ! Prior to 10/24/18:
-               ! According to Colin Thackray, these are Hg2 diagnostics,
-               ! that should only get updated once per timestep, for the
-               ! total Hg2 species (i.e. category N==1).  Therefore, these
-               ! diagnostics will not archive the tagged Hg2 species.
-               !
-               ! Also, the IF ( Hg0_Id_List(N) == ID_Hg_TOT ) is confusing,
-               ! but in essence it is just testing if N ==1.  Therefore we
-               ! have replaced that with IF ( N==1 ) which is much clearer
-               ! to the reader. (bmy, 10/24/18)
-               !IF ( Hg0_Id_List(N) == ID_Hg_TOT) THEN
-               !--------------------------------------------------------------
                IF ( N == 1 ) THEN
 
                   ! Net oxidation [kg]
@@ -1480,7 +1470,6 @@
             ENDIF  
 #endif
 
-#if defined( NC_DIAG ) 
             !===========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
@@ -1494,7 +1483,7 @@
             IF ( ( .not. LNLPBL ) .and. ( F_PBL > 0.1_fp ) ) THEN
 
                ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, L )
+               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
                ! Archive Hg(0) drydep flux [molec/cm2/s]
                IF ( State_Diag%Archive_DryDepChm   .or.
@@ -1662,7 +1651,6 @@
                ENDIF
 
             ENDIF
-#endif
          ENDDO
 
       ENDDO
@@ -1670,9 +1658,9 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-
       ! Partition Hg(II) between gas and aerosol
-      CALL PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL PARTITIONHG2( am_I_Root,  Input_Opt, State_Chm,
+     &                   State_Grid, RC )
 
       ! Free pointer memory
       Spc     => NULL()
@@ -2596,8 +2584,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSMERCURY( am_I_Root, Input_Opt,  State_Met, 
-     &                         State_Chm, State_Diag, RC         )
+      SUBROUTINE EMISSMERCURY( am_I_Root,  Input_Opt,  State_Chm, 
+     &                         State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -2605,7 +2593,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE DEPO_MERCURY_MOD,   ONLY : RESET_HG_DEP_ARRAYS
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GC_GRID_MOD,        ONLY : GET_XMID, GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE LAND_MERCURY_MOD,   ONLY : LAND_MERCURY_FLUX, VEGEMIS
       USE LAND_MERCURY_MOD,   ONLY : SOILEMIS, BIOMASSHG
@@ -2613,18 +2600,20 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       ! Added for GTMM (ccc, 11/19/09)
-      USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
+!      USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
 !
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2696,9 +2685,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
-      ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, 'kg',
+     &                        RC,         OrigUnit=OrigUnit )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2744,9 +2733,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! (cdh, 4/30/09)
          EHg0_oc = 0e+0_fp
 
-         CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt,  State_Met, 
-     &                            State_Chm, State_Diag, EHg0_oc,   RC )
-     &                     
+         CALL OCEAN_MERCURY_FLUX( am_I_Root,  Input_Opt,  State_Chm, 
+     &                            State_Diag, State_Grid, State_Met,
+     &                            EHg0_oc,    RC )
+
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered call to "OCEAN_MERCURY_FLUX"!'
@@ -2758,30 +2748,35 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ELSE
          EHg0_oc = 0e+0_fp
-         CALL OFFLINEOCEAN_READMO( EHg0_oc,   RC,        am_I_Root,
-     &                             State_met, State_Chm, State_Diag )
+         CALL OFFLINEOCEAN_READMO( am_I_Root,  State_Chm, State_Diag,
+     &                             State_Grid, State_Met, EHg0_oc, RC )
 
       ENDIF
 
-      IF ( LGTMM ) THEN
-         !--------------------------------------------------------------
-         ! Here we are using the Global Terrstrial Mercury Model ...
-         !--------------------------------------------------------------
-         IF ( ITS_A_NEW_MONTH() ) THEN
+!==============================================================================
+! Disable GTMM until it is brought up-to-date (mps, 3/10/19)
+!      IF ( LGTMM ) THEN
+!         !--------------------------------------------------------------
+!         ! Here we are using the Global Terrstrial Mercury Model ...
+!         !--------------------------------------------------------------
+!         IF ( ITS_A_NEW_MONTH() ) THEN
+!
+!            ! OLD CODE: CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
+!            CALL GTMM_DR
+!     &           ( am_I_Root,  Input_Opt, State_Chm, 
+!     &             State_Grid, State_Met, EHg0_gtm,  RC )
+!
+!            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
+!         ENDIF
+!  
+!      ELSE
+!==============================================================================
 
-            ! OLD CODE: CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
-            CALL GTMM_DR
-     &           ( am_I_Root, Input_Opt, State_Met, 
-     &             State_Chm, EHg0_gtm,  RC )
-
-            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
-         ENDIF
-  
-      ELSE
          !--------------------------------------------------------------
          ! Here we are NOT using the Global Terrstrial Mercury Model ...
          !--------------------------------------------------------------
-         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, State_Met )
+         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, State_Grid,
+     &                            State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
       
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
@@ -2790,13 +2785,15 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
      &                 LVEGEMIS,  EHg0_dist, EHg0_vg,   RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
-         CALL SOILEMIS( EHg0_dist, EHg0_so, State_Met )
+         CALL SOILEMIS( EHg0_dist, EHg0_so, State_Grid, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
 
-      ENDIF
+!==============================================================================
+!      ENDIF
+!==============================================================================
 
-      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met,
-     &                             State_Chm )
+      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow,  LHGSNOW,  State_Chm,
+     &                             State_Grid, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
       
       CALL BIOMASSHG( am_I_Root, Input_Opt, EHg0_bb, RC )
@@ -2805,17 +2802,17 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LnoUSAemis ) THEN
 
          ! No Anthropogenic emissions over USA (cdh, 5/6/2009)
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
-!            IF ( GET_XMID( I, J, 1 ) > -125 .AND. 
-!     &           GET_XMID( I, J, 1 ) < -65  .AND.
-!     &           GET_YMID( I, J, 1 ) >  25  .AND. 
-!     &           GET_YMID( I, J, 1 ) < 50 ) THEN
-            IF ( GET_XMID( I, J, 1 ) > -140 .AND.
-     &           GET_XMID( I, J, 1 ) < -40  .AND.
-     &           GET_YMID( I, J, 1 ) >  10  .AND.
-     &           GET_YMID( I, J, 1 ) <  70 ) THEN
+!            IF ( State_Grid%XMid(I,J) > -125 .AND. 
+!     &           State_Grid%XMid(I,J) < -65  .AND.
+!     &           State_Grid%YMid(I,J) >  25  .AND. 
+!     &           State_Grid%YMid(I,J) < 50 ) THEN
+            IF ( State_Grid%XMid(I,J) > -140 .AND.
+     &           State_Grid%XMid(I,J) < -40  .AND.
+     &           State_Grid%YMid(I,J) >  10  .AND.
+     &           State_Grid%YMid(I,J) <  70 ) THEN
                
                EHg0_An(I,J) = 0e+0_fp
                EHg2_An(I,J) = 0e+0_fp
@@ -2841,20 +2838,23 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
 
       ! Add Hg(0) source into State_Chm%Species [kg]
-      CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
+      CALL SRCHg0( am_I_Root,  Input_Opt, State_Chm, State_Diag,
+     &             State_Grid, State_Met, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
 
       ! Add Hg(II) source into State_Chm%Species [kg]
-      CALL SRCHg2( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
+      CALL SRCHg2( am_I_Root,  Input_Opt, State_Chm, State_Diag, 
+     &             State_Grid, State_Met, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
 
       ! Add HgP source into State_Chm%Species [kg]
-      CALL SRCHgP( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL SRCHgP( am_I_Root,  Input_Opt, State_Chm,
+     &             State_Grid, State_Met, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
       
       ! Convert species units back to original unit 
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine EMISSMERCURY in mercury_mod.F')
@@ -2878,14 +2878,15 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMITHG( I, J, L, ID, E_HG, Input_Opt, State_Chm )
+      SUBROUTINE EMITHG( I, J, L, ID, E_HG, Input_Opt, State_Chm,
+     &                   State_Grid )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
@@ -2893,6 +2894,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       INTEGER,        INTENT(IN)    :: I, J, L, ID ! Grid boxes + species #
       REAL(fp),       INTENT(IN)    :: E_Hg        ! Hg emissions 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2931,7 +2933,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          !--------------------------------------------------------------
 
          ! Surface area [m2]
-         AM2             = GET_AREA_M2(I,J,1)
+         AM2             = State_Grid%Area_M2(I,J)
 
          ! Emission timestep
          TS              = GET_TS_EMIS()
@@ -2976,8 +2978,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHg0( am_I_Root, Input_Opt,
-     &                   State_Chm, State_Diag, RC )
+      SUBROUTINE SRCHg0( am_I_Root,  Input_Opt,  State_Chm,
+     &                   State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -2987,15 +2989,18 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3045,14 +3050,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       DTSRCE    = GET_TS_EMIS()
 
       ! Maximum extent of the PBL [model levels]
-      PBL_MAX   = GET_PBL_MAX_L() 
+      PBL_MAX   = State_Met%PBL_MAX_L
 
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, T_Hg_An, T_Hg, F_OF_PBL, E_Hg, NN)
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          IF ( LPREINDHG ) THEN  !eds
 
@@ -3111,14 +3116,15 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          DO L = 1, PBL_MAX
 
             ! Fraction of box (I,J,L) w/in the PBL [unitless]
-            F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
+            F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
             !-----------------
             ! Total Hg species
             !-----------------
             N    = Hg0_Id_List(ID_Hg_tot)
             E_Hg = F_OF_PBL * T_Hg * DTSRCE
-            CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+            CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                   State_Grid )
 
             !-----------------
             ! Tagged species
@@ -3132,102 +3138,122 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! Anthro Canada Hg0
                N    = Hg0_Id_List(ID_Hg_can)
                E_Hg = F_OF_PBL * EHg0_can(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro United States Hg0
                N    = Hg0_Id_List(ID_Hg_usa)
                E_Hg = F_OF_PBL * EHg0_usa(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Central America Hg0
                N    = Hg0_Id_List(ID_Hg_cam)
                E_Hg = F_OF_PBL * EHg0_cam(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South America Hg0
                N    = Hg0_Id_List(ID_Hg_sam)
                E_Hg = F_OF_PBL * EHg0_sam(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro West Africa Hg0
                N    = Hg0_Id_List(ID_Hg_waf)
                E_Hg = F_OF_PBL * EHg0_waf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Africa Hg0
                N    = Hg0_Id_List(ID_Hg_eaf)
                E_Hg = F_OF_PBL * EHg0_eaf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Africa Hg0
                N    = Hg0_Id_List(ID_Hg_saf)
                E_Hg = F_OF_PBL * EHg0_saf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro North Africa Hg0
                N    = Hg0_Id_List(ID_Hg_naf)
                E_Hg = F_OF_PBL * EHg0_naf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro OECD Europe Hg0
                N    = Hg0_Id_List(ID_Hg_eur)
                E_Hg = F_OF_PBL * EHg0_eur(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Eastern Europe Hg0
                N    = Hg0_Id_List(ID_Hg_eeu)
                E_Hg = F_OF_PBL * EHg0_eeu(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Middle East Hg0
                N    = Hg0_Id_List(ID_Hg_mde)
                E_Hg = F_OF_PBL * EHg0_mde(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Former USSR Hg0
                N    = Hg0_Id_List(ID_Hg_sov)
                E_Hg = F_OF_PBL * EHg0_sov(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Asia Hg0
                N    = Hg0_Id_List(ID_Hg_sas)
                E_Hg = F_OF_PBL * EHg0_sas(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Asia Hg0
                N    = Hg0_Id_List(ID_Hg_eas)
                E_Hg = F_OF_PBL * EHg0_eas(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Southeast Asia Hg0
                N    = Hg0_Id_List(ID_Hg_sea)
                E_Hg = F_OF_PBL * EHg0_sea(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Japan Hg0
                N    = Hg0_Id_List(ID_Hg_jpn)
                E_Hg = F_OF_PBL * EHg0_jpn(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Oceania Hg0
                N    = Hg0_Id_List(ID_Hg_oce)
                E_Hg = F_OF_PBL * EHg0_oce(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Soil emissions
                N    = Hg0_Id_List(ID_Hg_so)
                E_Hg = F_OF_PBL * EHg0_so(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Biomass burning emissions             
                N    = Hg0_Id_List(ID_Hg_bb)
                E_Hg = F_OF_PBL * EHg0_bb(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Geogenic emissions             
                N    = Hg0_Id_List(ID_Hg_geo)
                E_Hg = F_OF_PBL * EHg0_geo(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                !--------------------
                ! Ocean re-emissions
@@ -3236,142 +3262,170 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! Anthro Canada re-emission from ocean
                N    = Hg0_Id_List(ID_Hg_can)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_can) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro United States re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_usa)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_usa) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Central America re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_cam)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_cam) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South America re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_sam)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sam) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro West Africa re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_waf)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_waf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Africa re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_eaf)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eaf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Africa re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_saf)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_saf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro North Africa re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_naf)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_naf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro OECD Europe re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_eur)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eur) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Eastern Europe re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_eeu)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eeu) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Middle East re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_mde)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_mde) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Former Soviet Union re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_sov)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sov) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Asia re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_sas)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sas) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Asia re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_eas)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eas) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Southeast Asia re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_sea)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sea) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Japan re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_jpn)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_jpn) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Oceania re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_oce)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_oce) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Soil re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_so)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_so) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Biomass burning re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_bb)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_bb) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Geogenic re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_geo)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_geo) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_atl)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_atl) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer North Atlantic re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_nat)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_nat) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer South Atlantic re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_sat)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sat) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer North Pacific re-emission from ocean
                N    = Hg0_Id_List(ID_Hg_npa)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_npa) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Arctic re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_arc)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_arc) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt,  State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt,  State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Antarctic re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_ant)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ant) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer All Other Ocean re-emission from ocean
                N    = Hg0_Id_List(ID_Hg_ocn)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ocn) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Residual Stratosphere from Spin-up re-emission from ocean 
                N    = Hg0_Id_List(ID_Hg_str)
                E_Hg = F_OF_PBL * EHg0_oc(I,J,ID_Hg_str) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                !--------------------
                ! Land re-emissions
@@ -3380,142 +3434,170 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! Anthro Canada re-emission from land
                N    = Hg0_Id_List(ID_Hg_can)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_can) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro United States re-emission from land 
                N    = Hg0_Id_List(ID_Hg_usa)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_usa) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Central America re-emission from land 
                N    = Hg0_Id_List(ID_Hg_cam)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_cam) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South America re-emission from land 
                N    = Hg0_Id_List(ID_Hg_sam)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sam) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro West Africa re-emission from land 
                N    = Hg0_Id_List(ID_Hg_waf)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_waf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Africa re-emission from land 
                N    = Hg0_Id_List(ID_Hg_eaf)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eaf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Africa re-emission from land 
                N    = Hg0_Id_List(ID_Hg_saf)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_saf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro North Africa re-emission from land 
                N    = Hg0_Id_List(ID_Hg_naf)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_naf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro OECD Europe re-emission from land 
                N    = Hg0_Id_List(ID_Hg_eur)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eur) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Eastern Europe re-emission from land 
                N    = Hg0_Id_List(ID_Hg_eeu)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eeu) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Middle East re-emission from land 
                N    = Hg0_Id_List(ID_Hg_mde)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_mde) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Former Soviet Union re-emission from land 
                N    = Hg0_Id_List(ID_Hg_sov)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sov) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Asia re-emission from land 
                N    = Hg0_Id_List(ID_Hg_sas)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sas) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Asia re-emission from land 
                N    = Hg0_Id_List(ID_Hg_eas)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eas) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Southeast Asia re-emission from land 
                N    = Hg0_Id_List(ID_Hg_sea)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sea) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Japan re-emission from land 
                N    = Hg0_Id_List(ID_Hg_jpn)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_jpn) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Oceania re-emission from land 
                N    = Hg0_Id_List(ID_Hg_oce)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_oce) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Soil re-emission from land 
                N    = Hg0_Id_List(ID_Hg_so)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_so) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Biomass burning re-emission from land 
                N    = Hg0_Id_List(ID_Hg_bb)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_bb) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Geogenic re-emission from land 
                N    = Hg0_Id_List(ID_Hg_geo)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_geo) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from land 
                N    = Hg0_Id_List(ID_Hg_atl)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_atl) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer North Atlantic re-emission from land 
                N    = Hg0_Id_List(ID_Hg_nat)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nat) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer South Atlantic re-emission from land 
                N    = Hg0_Id_List(ID_Hg_sat)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sat) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer North Pacific re-emission from land
                N    = Hg0_Id_List(ID_Hg_npa)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_npa) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Arctic re-emission from land 
                N    = Hg0_Id_List(ID_Hg_arc)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_arc) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Antarctic re-emission from land 
                N    = Hg0_Id_List(ID_Hg_ant)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ant) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer All Other Ocean re-emission from land
                N    = Hg0_Id_List(ID_Hg_ocn)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ocn) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Residual Stratosphere from Spin-up re-emission from land 
                N    = Hg0_Id_List(ID_Hg_str)
                E_Hg = F_OF_PBL * EHg0_ln(I,J,ID_Hg_str) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
                
                !--------------------
                ! Snow re-emissions
@@ -3524,142 +3606,170 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! Anthro Canada re-emission from snow
                N    = Hg0_Id_List(ID_Hg_can)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_can) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro United States re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_usa)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_usa) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Central America re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_cam)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_cam) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South America re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_sam)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sam) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro West Africa re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_waf)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_waf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Africa re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_eaf)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eaf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Africa re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_saf)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_saf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro North Africa re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_naf)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_naf) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro OECD Europe re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_eur)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eur) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Eastern Europe re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_eeu)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eeu) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Middle East re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_mde)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_mde) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Former Soviet Union re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_sov)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sov) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Asia re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_sas)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sas) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Asia re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_eas)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eas) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Southeast Asia re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_sea)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sea) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Japan re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_jpn)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_jpn) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Oceania re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_oce)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oce) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Soil re-emission from snow
                N    = Hg0_Id_List(ID_Hg_so)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_so) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Biomass burning re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_bb)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_bb) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Geogenic re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_geo)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_geo) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Mid-Atlantic re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_atl)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_atl) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer North Atlantic re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_nat)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nat) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer South Atlantic re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_sat)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sat) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer North Pacific re-emission from snow
                N    = Hg0_Id_List(ID_Hg_npa)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_npa) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Arctic re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_arc)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_arc) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer Antarctic re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_ant)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ant) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Below Mixed Layer All Other Ocean re-emission from snow
                N    = Hg0_Id_List(ID_Hg_ocn)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ocn) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Residual Stratosphere from Spin-up re-emission from snow 
                N    = Hg0_Id_List(ID_Hg_str)
                E_Hg = F_OF_PBL * EHg0_snow(I,J,ID_Hg_str) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
             ENDIF
          ENDDO
@@ -3736,7 +3846,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !==============================================================
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
          !
@@ -3804,7 +3913,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          IF ( State_Diag%Archive_EmisHg0vegetation ) THEN
             State_Diag%EmisHg0vegetation(I,J) = EHg0_vg(I,J)
          ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -3826,8 +3934,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHg2( am_I_Root, Input_Opt, 
-     &                   State_Chm, State_Diag, RC )
+      SUBROUTINE SRCHg2( am_I_Root,  Input_Opt,  State_Chm,
+     &                   State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -3837,9 +3945,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
 !
@@ -3847,6 +3955,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3893,7 +4003,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       DTSRCE    = GET_TS_EMIS()
 
       ! Maximum extent of the PBL [model levels]
-      PBL_MAX   = GET_PBL_MAX_L()
+      PBL_MAX   = State_Met%PBL_MAX_L
 
       IF (.NOT. LPREINDHG ) THEN
 
@@ -3901,14 +4011,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_OF_PBL, E_Hg, N )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Loop up to the max PBL layer
             DO L = 1, PBL_MAX
 
                ! Fraction of box (I,J,L) w/in the PBL [unitless]
-               F_OF_PBL = GET_FRAC_OF_PBL( I, J, L )
+               F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
                ! Partition total Hg2 into box (I,J,L) [kg]
                E_Hg     = F_OF_PBL * EHg2_an(I,J) * DTSRCE
@@ -3917,7 +4027,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! Total anthro Hg(II) [kg]
                !---------------------------
                N    = Hg2_Id_List(ID_Hg_tot)
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                !---------------------------
                ! Tagged anthro Hg(II) [kg]
@@ -3927,87 +4038,104 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                   ! Anthro Canada Hg2
                   N    = Hg2_Id_List(ID_Hg_can)
                   E_Hg = F_OF_PBL * EHg2_can(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
 
                   ! Anthro United States Hg2
                   N    = Hg2_Id_List(ID_Hg_usa)
                   E_Hg = F_OF_PBL * EHg2_usa(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
 
                   ! Anthro Central America Hg2
                   N    = Hg2_Id_List(ID_Hg_cam)
                   E_Hg = F_OF_PBL * EHg2_cam(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
 
                   ! Anthro South America Hg2
                   N    = Hg2_Id_List(ID_Hg_sam)
                   E_Hg = F_OF_PBL * EHg2_sam(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
 
                   ! Anthro West Africa Hg2
                   N    = Hg2_Id_List(ID_Hg_waf)
                   E_Hg = F_OF_PBL * EHg2_waf(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro East Africa Hg2
                   N    = Hg2_Id_List(ID_Hg_eaf)
                   E_Hg = F_OF_PBL * EHg2_eaf(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro South Africa Hg2
                   N    = Hg2_Id_List(ID_Hg_saf)
                   E_Hg = F_OF_PBL * EHg2_saf(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro North Africa Hg2
                   N    = Hg2_Id_List(ID_Hg_naf)
                   E_Hg = F_OF_PBL * EHg2_naf(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro OECD Europe Hg2
                   N    = Hg2_Id_List(ID_Hg_eur)
                   E_Hg = F_OF_PBL * EHg2_eur(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro Eastern Europe Hg2
                   N    = Hg2_Id_List(ID_Hg_eeu)
                   E_Hg = F_OF_PBL * EHg2_eeu(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro Middle East Hg2
                   N    = Hg2_Id_List(ID_Hg_mde)
                   E_Hg = F_OF_PBL * EHg2_mde(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro Former USSR Hg2
                   N    = Hg2_Id_List(ID_Hg_sov)
                   E_Hg = F_OF_PBL * EHg2_sov(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro South Asia Hg2
                   N    = Hg2_Id_List(ID_Hg_sas)
                   E_Hg = F_OF_PBL * EHg2_sas(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro East Asia Hg2
                   N    = Hg2_Id_List(ID_Hg_eas)
                   E_Hg = F_OF_PBL * EHg2_eas(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro Southeast Asia Hg2
                   N    = Hg2_Id_List(ID_Hg_sea)
                   E_Hg = F_OF_PBL * EHg2_sea(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro Japan Hg2
                   N    = Hg2_Id_List(ID_Hg_jpn)
                   E_Hg = F_OF_PBL * EHg2_jpn(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
    
                   ! Anthro Oceania Hg2
                   N    = Hg2_Id_List(ID_Hg_oce)
                   E_Hg = F_OF_PBL * EHg2_oce(I,J) * DTSRCE
-                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+                  CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                         State_Grid )
 
                ENDIF
             ENDDO
@@ -4024,7 +4152,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !==============================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
@@ -4041,7 +4168,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             IF ( State_Diag%Archive_EmisHg2HgPanthro ) THEN
                State_Diag%EmisHg2HgPanthro(I,J) = EHg2_an(I,J)
             ENDIF
-#endif
 
          ENDDO
          ENDDO
@@ -4065,7 +4191,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHgP( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE SRCHgP( am_I_Root,  Input_Opt, State_Chm,
+     &                   State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -4075,8 +4202,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
 !
@@ -4084,6 +4211,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4107,11 +4236,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,      J,        L,    N,   PBL_MAX
-      REAL(fp)  :: DTSRCE, F_OF_PBL, E_Hg 
+      INTEGER  :: I,      J,        L,    N,   PBL_MAX
+      REAL(fp) :: DTSRCE, F_OF_PBL, E_Hg 
 
       ! For values from Input_Opt
-      LOGICAL :: LSPLIT, LPREINDHG
+      LOGICAL  :: LSPLIT, LPREINDHG
 
       !=================================================================
       ! SRCHgP begins here!
@@ -4128,21 +4257,21 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       DTSRCE    = GET_TS_EMIS()
       
       ! Maximum extent of the PBL [model levels]
-      PBL_MAX   = GET_PBL_MAX_L()
+      PBL_MAX   = State_Met%PBL_MAX_L
 
       IF (.NOT. LPREINDHG) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_OF_PBL, E_Hg, N )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Loop up to PBL top layer
             DO L = 1, PBL_MAX
 
                ! Fraction of box (I,J,L) w/in the PBL [unitless]
-               F_OF_PBL           = GET_FRAC_OF_PBL( I, J, L )
+               F_OF_PBL           = State_Met%F_OF_PBL(I,J,L)
 
                ! Partition HgP into box (I,J,L) [kg]
                E_Hg               = F_OF_PBL * EHgP_an(I,J) * DTSRCE
@@ -4151,7 +4280,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! Total anthro HgP [kg]
                !------------------------
                N               = HgP_Id_List(ID_Hg_tot)
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                !------------------------
                ! Tagged anthro HgP [kg]
@@ -4161,87 +4291,104 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! Anthro Canada HgP
                N            = HgP_Id_List(ID_Hg_can)
                E_Hg         = F_OF_PBL * EHgP_can(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro United States HgP
                N            = HgP_Id_List(ID_Hg_usa)
                E_Hg         = F_OF_PBL * EHgP_usa(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Central America HgP
                N            = HgP_Id_List(ID_Hg_cam)
                E_Hg         = F_OF_PBL * EHgP_cam(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South America HgP
                N            = HgP_Id_List(ID_Hg_sam)
                E_Hg         = F_OF_PBL * EHgP_sam(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro West Africa HgP
                N            = HgP_Id_List(ID_Hg_waf)
                E_Hg         = F_OF_PBL * EHgP_waf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Africa HgP
                N            = HgP_Id_List(ID_Hg_eaf)
                E_Hg         = F_OF_PBL * EHgP_eaf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Africa HgP
                N            = HgP_Id_List(ID_Hg_saf)
                E_Hg         = F_OF_PBL * EHgP_saf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro North Africa HgP
                N            = HgP_Id_List(ID_Hg_naf)
                E_Hg         = F_OF_PBL * EHgP_naf(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro OECD Europe HgP
                N            = HgP_Id_List(ID_Hg_eur)
                E_Hg         = F_OF_PBL * EHgP_eur(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Eastern Europe HgP
                N            = HgP_Id_List(ID_Hg_eeu)
                E_Hg         = F_OF_PBL * EHgP_eeu(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Middle East HgP
                N            = HgP_Id_List(ID_Hg_mde)
                E_Hg         = F_OF_PBL * EHgP_mde(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Former USSR HgP
                N            = HgP_Id_List(ID_Hg_sov)
                E_Hg         = F_OF_PBL * EHgP_sov(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro South Asia HgP
                N            = HgP_Id_List(ID_Hg_sas)
                E_Hg         = F_OF_PBL * EHgP_sas(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro East Asia HgP
                N            = HgP_Id_List(ID_Hg_eas)
                E_Hg         = F_OF_PBL * EHgP_eas(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Southeast Asia HgP
                N            = HgP_Id_List(ID_Hg_sea)
                E_Hg         = F_OF_PBL * EHgP_sea(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Japan HgP
                N            = HgP_Id_List(ID_Hg_jpn)
                E_Hg         = F_OF_PBL * EHgP_jpn(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ! Anthro Oceania HgP
                N            = HgP_Id_List(ID_Hg_oce)
                E_Hg         = F_OF_PBL * EHgP_oce(I,J) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm )
+               CALL EMITHG( I, J, L, N, E_Hg, Input_Opt, State_Chm,
+     &                      State_Grid )
 
                ENDIF
             ENDDO
@@ -4757,12 +4904,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\                                                                            
 ! !INTERFACE:                                                                  
 !                                                                              
-      FUNCTION GET_ClO( I, J, L, State_Met ) RESULT( ClO_MOLEC_CM3 )
+      FUNCTION GET_ClO( I, J, L, State_Grid, State_Met )
+     &    RESULT( ClO_MOLEC_CM3 )
 !                                                                              
 ! !USES:                                                                       
 !                                                                              
       USE CMN_SIZE_MOD
-      USE State_Met_Mod, ONLY : MetState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME
 !                                                                              
@@ -4771,15 +4920,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       INTEGER,        INTENT(IN)  :: I              ! Longitude index          
       INTEGER,        INTENT(IN)  :: J              ! Latitude index           
       INTEGER,        INTENT(IN)  :: L              ! Level index              
-      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object 
-
+      TYPE(GrdState), INTENT(IN)  :: State_Grid     ! Grid State object
+      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
 !                                                                              
 ! !RETURN VALUE:                                                               
 !                                                                              
-      REAL(fp)                      :: ClO_PPBV
-      REAL(fp)                      :: ClO_MOLEC_CM3  ! ClO  conc [molec/cm3]    
-
-!  INTENT(OUT)                                                             
+      REAL(fp)                    :: ClO_PPBV
+      REAL(fp)                    :: ClO_MOLEC_CM3  ! ClO  conc [molec/cm3]
 !                                                                              
 ! !REVISION HISTORY:                                                           
 ! 06 Oct 2014 - H. Horowitz - initial version copied from get_br.              
@@ -4815,7 +4962,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ELSE
 
             ! Local time: 0-23.999                                             
-            LOCALTIME = GET_LOCALTIME( I, J, L )
+            LOCALTIME = GET_LOCALTIME( I, J, L, State_Grid )
 
             ! Interpolate the real hour to lie within an equinoctal day        
             ! i.e. between 6-18                                                
@@ -4861,12 +5008,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\                                                                            
 ! !INTERFACE:                                                                  
 !                                                                              
-      FUNCTION GET_Cl( I, J, L, State_Met ) RESULT( Cl_MOLEC_CM3 )
+      FUNCTION GET_Cl( I, J, L, State_Grid, State_Met )
+     &    RESULT( Cl_MOLEC_CM3 )
 !                                                                              
 ! !USES:                                                                       
 !                                                                              
       USE CMN_SIZE_MOD
-      USE State_Met_Mod, ONLY : MetState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME
 !                                                                              
@@ -4874,16 +5023,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       INTEGER,        INTENT(IN)  :: I              ! Longitude index
       INTEGER,        INTENT(IN)  :: J              ! Latitude index           
       INTEGER,        INTENT(IN)  :: L              ! Level index              
-      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object 
-
+      TYPE(GrdState), INTENT(IN)  :: State_Grid     ! Grid State object 
+      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
 !                                                                              
 ! !RETURN VALUE:                                                               
 !             
       REAL(fp)                      :: Cl_PPBV
-      REAL(fp)                      :: Cl_MOLEC_CM3   ! Cl   conc [molec/cm3]    
-
-!  INTENT(OUT)                                                                 
-
+      REAL(fp)                      :: Cl_MOLEC_CM3   ! Cl   conc [molec/cm3]
 !                                                                              
 ! !REVISION HISTORY:                                                           
 ! 19 Nov 2014 - H. Horowitz - initial version copied from get_clO.             
@@ -4920,7 +5066,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ELSE
 
             ! Local time: 0-23.999                                             
-            LOCALTIME = GET_LOCALTIME( I, J, L )
+            LOCALTIME = GET_LOCALTIME( I, J, L, State_Grid )
 
             ! Interpolate the real hour to lie within an equinoctal day        
             ! i.e. between 6-18                                                
@@ -4969,20 +5115,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 
-      FUNCTION GET_HOCl(I,J,L,State_Met)
+      FUNCTION GET_HOCl( I, J, L, State_Grid, State_Met )
      &     RESULT( HOCL_INST )
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : SAFE_DIV
-      USE TIME_MOD,      ONLY : GET_LOCALTIME
-      USE State_Met_Mod, ONLY : MetState
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE TIME_MOD,       ONLY : GET_LOCALTIME
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I,J,L
-      TYPE(MetState), INTENT(IN) :: State_Met
+      INTEGER,        INTENT(IN) :: I, J, L     ! Grid box indices
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY:
 !  ca. 2014 - H. Horowitz - Initial version
@@ -5019,7 +5167,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ELSE
 
             ! Local time: 0-23.999                                             
-            LOCALTIME = GET_LOCALTIME( I, J, L )
+            LOCALTIME = GET_LOCALTIME( I, J, L, State_Grid )
 
             ! Interpolate the real hour to lie within an equinoctal day        
             ! i.e. between 6-18                                                
@@ -5063,18 +5211,19 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 
-      FUNCTION GET_NO2( I, J, L, State_Met, NO_MO, NO2_MO, O3_MO )
-     &     RESULT( NO2_INST )
+      FUNCTION GET_NO2( I, J, L, State_Grid, State_Met,
+     &                  NO_MO, NO2_MO, O3_MO ) RESULT( NO2_INST )
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : SAFE_DIV
-      USE State_Met_Mod, ONLY : MetState
-      USE CMN_SIZE_MOD
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN) :: I,J,L
+      TYPE(GrdState), INTENT(IN) :: State_Grid
       TYPE(MetState), INTENT(IN) :: State_Met
       REAL(4),        INTENT(IN) :: NO_MO
       REAL(4),        INTENT(IN) :: NO2_MO
@@ -5133,7 +5282,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !Get total monthly NOx
       NOx_MO = NO_MO + NO2_MO
 
-      J_NO2 = GET_JNO2(I,J,L,State_Met)
+      J_NO2 = GET_JNO2( I, J, L, State_Grid, State_Met )
       k3_O3_MO_prod = k3*O3_MO
       J_NO2_k3_O3_MO_sum = J_NO2 + k3_O3_MO_prod
       F_NO2 = SAFE_DIV( k3_O3_MO_prod, J_NO2_k3_O3_MO_sum, 0E0_FP )
@@ -5164,7 +5313,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3, State_Met, State_Diag )
+      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3, State_Diag,
+     &                 State_Grid, State_Met )
      &   RESULT( BR_MOLEC_CM3 )
 !
 ! !USES:
@@ -5179,9 +5329,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
       USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
-      USE GC_GRID_MOD,        ONLY : GET_YMID
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
@@ -5191,7 +5340,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       INTEGER,        INTENT(IN)    :: I            ! Longitude index
       INTEGER,        INTENT(IN)    :: J            ! Latitude index
-      INTEGER,        INTENT(IN)    :: L              ! Level index
+      INTEGER,        INTENT(IN)    :: L            ! Level index
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -5295,10 +5445,12 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !----------------------------------------------------------------
       ! Add Br in the MBL
       !----------------------------------------------------------------
+      IF ( (L_ADD_MBL_BR) .OR. (LPOLARBR) ) THEN
+         ! Fraction of grid box mass which is within the mixed layer
+         FPBL = State_Met%F_UNDER_PBLTOP(I,J,L) 
+      ENDIF
       
       IF ( L_ADD_MBL_BR ) THEN
-         ! Fraction of grid box mass which is within the mixed layer
-         FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
 
          IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0e+0_fp) ) THEN
 
@@ -5332,9 +5484,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
 !     &       GET_OBK(I,J,State_Met)  >  0e+0_fp   ) THEN
 !
-!         IF ( ( (GET_YMID(I,J,L) > 60e+0_fp) .AND. 
+!         IF ( ( (State_Grid%YMid(I,J) > 60e+0_fp) .AND. 
 !     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-!     &        ( (GET_YMID(I,J,L) < -50e+0_fp) .AND. 
+!     &        ( (State_Grid%YMid(I,J) < -50e+0_fp) .AND. 
 !     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
 !
 !            ! Br concentration due to bromine explosion, pptv
@@ -5369,7 +5521,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ELSE
 
             ! Local time: 0-23.999
-            LOCALTIME = GET_LOCALTIME( I, J, L )
+            LOCALTIME = GET_LOCALTIME( I, J, L, State_Grid )
       
             ! Interpolate the real hour to lie within an equinoctal day
             ! i.e. between 6-18
@@ -5433,9 +5585,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
      &     (SWRAD > 1e+2_fp) .AND. (State_Met%TS(I,J) <= 273e+0_fp) ) 
      &     THEN 
 
-         IF ( ((GET_YMID(I,J,L) > 0e+0_fp) .AND.
+         IF ( ((State_Grid%YMid(I,J) > 0e+0_fp) .AND.
      &          (GET_MONTH() >= 2) .AND. (GET_MONTH() <= 6)) .OR.
-     &        ((GET_YMID(I,J,L) < 0e+0_fp) .AND.
+     &        ((State_Grid%YMid(I,J) < 0e+0_fp) .AND.
      &          (GET_MONTH() >= 8) .AND. (GET_MONTH() <= 12)) ) THEN
 
             ! [BrO] is a linear function of temperature derived based on
@@ -5475,7 +5627,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF ! ND03
 #endif
 
-#if defined( NC_DIAG )
             !==============================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             ! 
@@ -5492,7 +5643,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             IF ( State_Diag%Archive_PolarConcO3 ) THEN
                State_Diag%PolarConcO3(I,J,L) = O3_Polar_PPB
             ENDIF
-#endif
          ENDIF ! Month
 
       ENDIF ! Polar BrO criteria
@@ -5523,14 +5673,17 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHNO3TIME
+      SUBROUTINE OHNO3TIME( State_Grid )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE State_Grid_Mod, ONLY : GrdState
+      USE TIME_MOD,       ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  16 Dec 2002 - R. Park & R. Yantosca - Initial version
@@ -5562,7 +5715,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       INTEGER       :: I, J, L, N, NT, NDYSTEP
       REAL(fp)      :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)      :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)      :: SUNTMP(IIPAR,JJPAR)
+      REAL(fp)      :: SUNTMP(State_Grid%NX,State_Grid%NY)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -5608,14 +5761,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R( I, J )
 
                TIMLOC = real(LHR0) + real(NT)/3600.0 
-     &                + GET_XMID(I,J,1)/15.0
+     &                + State_Grid%XMid(I,J)/15.0
          
                DO WHILE (TIMLOC < 0)
                   TIMLOC = TIMLOC + 24.0
@@ -5686,17 +5839,17 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_HG2_SEASALT_LOSSRATE( State_Met )
+      SUBROUTINE CALC_HG2_SEASALT_LOSSRATE( State_Grid, State_Met )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_WATER
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_M
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
@@ -5734,8 +5887,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, U10M, S, LOSS_FREQ, SFCWINDSQR )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Only calculate deposition via sea salt over water
          IF ( IS_WATER( I, J, State_Met ) ) THEN
@@ -5797,13 +5950,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_JNO2( I, J, L, State_Met ) RESULT( JNO2_NOW )
+      FUNCTION GET_JNO2( I, J, L, State_Grid, State_Met )
+     &    RESULT( JNO2_NOW )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GC_GRID_MOD,        ONLY : GET_YMID_R
       USE PhysConstants
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR 
 !
@@ -5812,6 +5966,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       INTEGER,        INTENT(IN) :: I           ! Longitude index
       INTEGER,        INTENT(IN) :: J           ! Latitude index
       INTEGER,        INTENT(IN) :: L           ! Level index
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -5867,7 +6022,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
      &            - A3*COS( 3e+0_fp*R ) + B3*SIN( 3e+0_fp*R )
 
          ! Latitude of grid box [radians]
-         YMID_R = GET_YMID_R( I, J, L )
+         YMID_R = State_Grid%YMid_R( I, J )
 
          ! Cosine of solar zenith angle at local noon
          CSZANOON = SIN( YMID_R ) * SIN( DEC ) +
@@ -5914,7 +6069,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE PARTITIONHG2( am_I_Root,  Input_Opt, State_Chm,
+     &                         State_Grid, RC )
 !
 ! !USES:
 !
@@ -5924,12 +6080,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : Fg
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5978,9 +6135,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, FGas, Hg2TOT )
-      DO L=1, LLPAR
-      DO J=1, JJPAR
-      DO I=1, IIPAR
+      DO L=1, State_Grid%NZ
+      DO J=1, State_Grid%NY
+      DO I=1, State_Grid%NX
          
          ! Fraction of Hg(II) as gas
          IF ( LHG2HALFAEROSOL ) THEN
@@ -6081,16 +6238,16 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RED_INPLUME( am_I_Root, Input_Opt, RC )
+      SUBROUTINE DO_RED_INPLUME( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : EXPAND_DATE
 
       IMPLICIT NONE
@@ -6099,6 +6256,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+!
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
@@ -6153,12 +6312,12 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ENDIF
 
       ! Do the reduction
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
              
          ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
          ! Convert [kg/m2/s] --> [kg/s]
-         E_plant = E_ELEC_Hg2(I,J) * GET_AREA_M2(I,J,1)
+         E_plant = E_ELEC_Hg2(I,J) * State_Grid%Area_M2(I,J)
 
          ! Reduce the Hg2 from plume
          CALL RED_INPLUME_GRID( I, J, E_plant )
@@ -6186,8 +6345,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OFFLINEOCEAN_READMO( FLUX,      RC,        am_I_Root,
-     &                                State_Met, State_Chm, State_Diag )
+      SUBROUTINE OFFLINEOCEAN_READMO( am_I_Root,  State_Chm, State_Diag,
+     &                                State_Grid, State_Met, FLUX, RC )
 !
 ! !USES:
 !
@@ -6196,7 +6355,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE TIME_MOD,           ONLY : EXPAND_DATE,GET_YEAR, GET_TS_EMIS !hmh 9/16/15
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, GET_MONTH
       USE CMN_SIZE_MOD
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
 #if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03 ! hmh 9/16/15 for Hg_up/down
 #endif
@@ -6205,17 +6363,18 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_SIZE_MOD             ! Size parameters
       USE State_Chm_Mod,      ONLY : ChmState 
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-
-      !
+!
 ! !INPUT PARAMETERS:
 !
       ! hmh adding 5/17/16
-      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
       LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+      TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6223,7 +6382,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,1) ! hmh 9/14/15
+      REAL*8,         INTENT(OUT)   :: FLUX(State_Grid%NX,
+     &                                      State_Grid%NY,1) ! hmh 9/14/15
       INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 
 ! 
@@ -6255,9 +6415,15 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(fp)                :: TC,       TK,       Kw
       REAL(fp)                :: Sc,       ScCO2,    USQ      
       REAL(fp)                :: FRAC_L,   FRAC_O,   H, D  
-      REAL(fp)                :: FUP(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fp)                :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fp)                :: Hg0aq(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fp)                :: FUP(State_Grid%NX,
+     &                               State_Grid%NY,
+     &                               N_Hg_CATS)
+      REAL(fp)                :: FDOWN(State_Grid%NX,
+     &                                 State_Grid%NY,
+     &                                 N_Hg_CATS)
+      REAL(fp)                :: Hg0aq(State_Grid%NX,
+     &                                 State_Grid%NY,
+     &                                 N_Hg_CATS)
       REAL(fp)                :: MHg0_air
 
       ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
@@ -6297,7 +6463,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! Days in each month (will use later) 9/16/15 hmh
       DN =  (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /)
 
-#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
       !
@@ -6311,7 +6476,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
       ENDIF
-#endif
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! read monthly ocean evasion  !
@@ -6352,11 +6516,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !$OMP+PRIVATE( H,   Kw,  CHg0aq, Hg0aqtemp, MHg0_air )
 !$OMP+PRIVATE( IS_OCEAN_BOX, Sc,  Usq, D )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
-         A_M2       = GET_AREA_M2( I, J, 1 )
+         A_M2       = State_Grid%Area_M2( I, J )
          ! Initialize values
          Kw         = 0e0_fp
          TK         = 0e0_fp
@@ -6509,7 +6673,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
 #endif
 
-#if defined( NC_DIAG )
                !--------------------------------------------------------
                ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
                !
@@ -6530,7 +6693,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                   ENDIF
 
                ENDIF
-#endif
 
             ENDDO
 
@@ -6552,7 +6714,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       END SUBROUTINE OFFLINEOCEAN_READMO
 !EOC
-#if defined( NC_DIAG )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -6670,7 +6831,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       END SUBROUTINE Reset_Hg_Diags
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -6684,7 +6844,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MERCURY( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_MERCURY( am_I_Root,  Input_Opt, State_Chm,
+     &                         State_Grid, RC )
 !
 ! !USES:
 !
@@ -6694,12 +6855,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -6855,52 +7018,54 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !=================================================================
       ! Allocate arrays
       !=================================================================
-      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( COSZM( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:COSZM', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       COSZM = 0e+0_fp
 
-      ALLOCATE( EHg0_an( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( EHg0_an( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHg0_an', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_an = 0e+0_fp
 
-      ALLOCATE( EHg0_am( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( EHg0_am( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHg0_am', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_am = 0e+0_fp
 
-      ALLOCATE( EHg2_an( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( EHg2_an( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHg2_an', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHg2_an = 0e+0_fp
 
-      ALLOCATE( EHgP_an( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( EHgP_an( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHgP_an', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHgP_an = 0e+0_fp
 
-      ALLOCATE( EHg0_oc( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      ALLOCATE( EHg0_oc( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHg0_oc', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_oc = 0e+0_fp
 
-      ALLOCATE( EHg0_dist( IIPAR, JJPAR), STAT=RC )
+      ALLOCATE( EHg0_dist( State_Grid%NX, State_Grid%NY), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHg0_dist', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_dist = 0e+0_fp
 
-      ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( EHg0_geo( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHg0_Geo', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_geo = 0e+0_fp
 
-      ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( EHg0_bb( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHg0_bb', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_bb = 0e+0_fp
 
-      ALLOCATE( EHg0_snow( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      ALLOCATE( EHg0_snow( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:EHg0_snow', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_snow = 0e+0_fp
@@ -6909,259 +7074,259 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LSPLIT ) THEN
 
          ! Tagged Hg0 arrays (eds 8/31/10)
-         ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_can( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_can', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_can = 0e+0_fp
 
-         ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_usa( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_usa', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_usa = 0e+0_fp
 
-         ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_cam( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_cam', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_cam = 0e+0_fp
 
-         ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_sam( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_sam', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sam = 0e+0_fp
 
-         ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_waf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_waf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_waf = 0e+0_fp
 
-         ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_eaf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_eaf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eaf = 0e+0_fp
 
-         ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_saf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_saf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_saf = 0e+0_fp
 
-         ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_naf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_naf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_naf = 0e+0_fp
 
-         ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_eur( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_eur', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eur = 0e+0_fp
 
-         ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_eeu( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_eeu', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eeu = 0e+0_fp
 
-         ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_mde( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_mde', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_mde = 0e+0_fp
 
-         ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_sov( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_sov', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sov = 0e+0_fp
 
-         ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_sas( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_sas', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sas = 0e+0_fp
 
-         ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_eas( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_eas', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eas = 0e+0_fp
 
-         ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_sea( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_sea', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sea = 0e+0_fp
 
-         ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_jpn( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_jpn', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_jpn = 0e+0_fp
 
-         ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_oce( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_oce', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_oce = 0e+0_fp
 
          ! Tagged Hg2 arrays (eds 8/31/10)
-         ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_can( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_can', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_can = 0e+0_fp
 
-         ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_usa( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_usa', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_usa = 0e+0_fp
 
-         ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_cam( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_cam', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_cam = 0e+0_fp
 
-         ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_sam( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_sam', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sam = 0e+0_fp
 
-         ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_waf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_waf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_waf = 0e+0_fp
 
-         ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_eaf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_eaf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eaf = 0e+0_fp
 
-         ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_saf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_saf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_saf = 0e+0_fp
 
-         ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_naf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_naf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_naf = 0e+0_fp
 
-         ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_eur( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_eur', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eur = 0e+0_fp
 
-         ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_eeu( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_eeu', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eeu = 0e+0_fp
 
-         ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_mde( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_mde', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_mde = 0e+0_fp
 
-         ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_sov( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_sov', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sov = 0e+0_fp
 
-         ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_sas( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_sas', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sas = 0e+0_fp
 
-         ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_eas( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:Hg2_eas', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eas = 0e+0_fp
 
-         ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_sea( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_sea', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sea = 0e+0_fp
 
-         ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_jpn( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_jpn', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_jpn = 0e+0_fp
 
-         ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg2_oce( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg2_oce', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_oce = 0e+0_fp
 
          ! Tagged HgP arrays (eds 8/31/10)
-         ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_can( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_can', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_can = 0e+0_fp
 
-         ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_usa( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_usa', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_usa = 0e+0_fp
 
-         ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_cam( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_cam', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_cam = 0e+0_fp
 
-         ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_sam( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_sam', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sam = 0e+0_fp
 
-         ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_waf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_waf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_waf = 0e+0_fp
 
-         ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_eaf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_eaf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eaf = 0e+0_fp
 
-         ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_saf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_saf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_saf = 0e+0_fp
 
-         ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_naf( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_naf', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_naf = 0e+0_fp
 
-         ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_eur( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_eur', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eur = 0e+0_fp
 
-         ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_eeu( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_eeu', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eeu = 0e+0_fp
 
-         ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_mde( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_mde', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_mde = 0e+0_fp
 
-         ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_sov( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_sov', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sov = 0e+0_fp
 
-         ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_sas( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_sas', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sas = 0e+0_fp
 
-         ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_eas( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_eas', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eas = 0e+0_fp
 
-         ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_sea( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_sea', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sea = 0e+0_fp
 
-         ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_jpn( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_jpn', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_jpn = 0e+0_fp
 
-         ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHgP_oce( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHgP_oce', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_oce = 0e+0_fp
@@ -7170,36 +7335,37 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       IF ( LGTMM ) THEN
 
-         ALLOCATE( EHg0_gtm( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_gtm( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_gtm', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_gtm = 0e+0_fp
 
       ELSE
 
-         ALLOCATE( EHg0_ln( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         ALLOCATE( EHg0_ln( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &             STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_ln', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_ln = 0e+0_fp
 
-         ALLOCATE( EHg0_vg( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_vg( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_vg', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_vg = 0e+0_fp
 
-         ALLOCATE( EHg0_so( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( EHg0_so( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:EHg0_so', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_so = 0e+0_fp
 
       ENDIF
 
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( TCOSZ( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:TCOSZ', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0e+0_fp
 
-      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( TTDAY( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:TTDAY', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TTDAY = 0e+0_fp
@@ -7207,13 +7373,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! Allocate ZERO_DVEL if we use non-local PBL mixing or
       ! if drydep is turned off 
       IF ( LNLPBL .OR. (.not. LDRYD) ) THEN
-         ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( ZERO_DVEL( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:ZERO_DVEL', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          ZERO_DVEL = 0e+0_fp
       ENDIF
 
-      ALLOCATE( HG2_SEASALT_LOSSRATE( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( HG2_SEASALT_LOSSRATE( State_Grid%NX, State_Grid%NY ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:HG2_SEASALT_LOSSRATE', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       HG2_SEASALT_LOSSRATE = 0e+0_fp
@@ -7224,17 +7391,17 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LSPLIT ) THEN
 
          ! Species indices for tagged anthro regions
-         ALLOCATE( AN_Hg0( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( AN_Hg0( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:AN_Hg0', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          AN_Hg0 = 0e+0_fp
 
-         ALLOCATE( AN_Hg2( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( AN_Hg2( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:AN_Hg2', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          AN_Hg2 = 0e+0_fp
 
-         ALLOCATE( AN_HgP( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( AN_HgP( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'mercury_mod.F:AN_HgP', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          AN_HgP = 0e+0_fp
@@ -7242,7 +7409,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ENDIF
 
       ! HG_EMIS is needed for non-local PBL mixing 
-      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, nAdvect ), STAT=RC )
+      ALLOCATE ( HG_EMIS( State_Grid%NX, State_Grid%NY, nAdvect ),
+     &           STAT=RC )
       CALL GC_CheckVar( 'mercury_mod.F:HG_EMIS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       HG_EMIS = 0e+0_fp
@@ -7275,7 +7443,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       L_ADD_MBL_BR=.FALSE.
 
       ! Switch adds bromine explosion in Northern springtime
-      LPOLARBR=.FALSE.
+      LPOLARBR=.TRUE.
 
       ! Switch for only doing reduction in cloud water
       LRED_CLOUDONLY = .TRUE.
@@ -7327,7 +7495,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_OPTIONS_FROM_HEMCO( am_I_Root, Input_Opt, RC )
+      SUBROUTINE SET_OPTIONS_FROM_HEMCO( am_I_Root,  Input_Opt,
+     &                                   State_Grid, RC )
 !
 ! !USES:
 !
@@ -7336,11 +7505,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE HCO_INTERFACE_MOD, ONLY : HcoState
       USE HCO_ExtList_Mod,   ONLY : GetExtOpt
       USE Input_Opt_Mod,     ONLY : OptInput
+      USE State_Grid_Mod,    ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root
       TYPE(OptInput), INTENT(IN)  :: Input_Opt
+      TYPE(GrdState), INTENT(IN)  :: State_Grid
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7507,7 +7678,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! (yzh 11/1/2011).  Move this here so that the HEMCO_Config file
       ! will have been already read by this point. (bmy, 10/11/16)
       IF ( LInPlume .AND. .NOT. LPREINDHG .AND. LNEI2005 ) THEN
-         CALL DO_RED_INPLUME( am_I_Root, Input_Opt, RC )
+         CALL DO_RED_INPLUME( am_I_Root, Input_Opt, State_Grid, RC )
       ENDIF
 
       !-----------------------------------------------------------------
@@ -7637,20 +7808,19 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( ALLOCATED( HG_EMIS   ) ) DEALLOCATE( HG_EMIS   ) 
   
       ! Free pointers to HEMCO fields
-      O3    => NULL()
-      OH_trop  => NULL()
-      OH_strat  => NULL()
-      JNO2  => NULL()
-      HEM_NO => NULL()
-      HEM_NO2 => NULL()
-      HEM_CLO => NULL()
-      HEM_CL => NULL()
-      HEM_OA => NULL()
-      HEM_HOCl => NULL()
-      HEM_HO2_trop => NULL()
+      O3            => NULL()
+      OH_trop       => NULL()
+      OH_strat      => NULL()
+      JNO2          => NULL()
+      HEM_NO        => NULL()
+      HEM_NO2       => NULL()
+      HEM_CLO       => NULL()
+      HEM_CL        => NULL()
+      HEM_OA        => NULL()
+      HEM_HOCl      => NULL()
+      HEM_HO2_trop  => NULL()
       HEM_HO2_strat => NULL()
-      OCEAN_CONC => NULL()
-
+      OCEAN_CONC    => NULL()
 
       ! Free Hg indexing pointers
       Hg0_Id_List => NULL()

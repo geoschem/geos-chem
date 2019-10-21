@@ -26,8 +26,10 @@ MODULE UnitConv_Mod
   USE PhysConstants
   USE Precision_Mod
   USE Input_Opt_Mod,  ONLY : OptInput
-  USE State_Met_Mod,  ONLY : MetState
   USE State_Chm_Mod,  ONLY : ChmState
+  USE State_Chm_Mod,  ONLY : Ind_
+  USE State_Grid_Mod, ONLY : GrdState
+  USE State_Met_Mod,  ONLY : MetState
                     
   IMPLICIT NONE
   PRIVATE
@@ -35,6 +37,7 @@ MODULE UnitConv_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Convert_Spc_Units
+  PUBLIC :: Print_Global_Species_Kg
 
   ! kg/kg dry air <-> kg/grid box (single box only)
   ! Used for TOMAS compatibility in WASHOUT
@@ -55,6 +58,14 @@ MODULE UnitConv_Mod
   ! Used in DO_TEND in mixing
   PRIVATE  :: ConvertSpc_KgKgDry_to_VVDry
   PRIVATE  :: ConvertSpc_VVDry_to_KgKgDry
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! KG/KG DRY <-> KG/KG TOTAL
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! kg/kg dry air <-> kg/kg total air
+  ! Used in DO_TEND in mixing
+  PRIVATE  :: ConvertSpc_KgKgDry_to_KgKgTotal
+  PRIVATE  :: ConvertSpc_KgKgTotal_to_KgKgDry
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ! KG/KG DRY <-> KG/M2
@@ -130,8 +141,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Spc_Units ( am_I_Root, Input_Opt, State_Met, &
-                                 State_Chm, OutUnit,   RC, OrigUnit ) 
+  SUBROUTINE Convert_Spc_Units ( am_I_Root,  Input_Opt, State_Chm, &
+                                 State_Grid, State_Met, OutUnit,   &
+                                 RC, OrigUnit ) 
 !
 ! !USES:
 !
@@ -141,6 +153,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid  ! Grid state object
     TYPE(MetState),   INTENT(IN)  :: State_Met   ! Meteorology state object
     CHARACTER(LEN=*), INTENT(IN)  :: OutUnit     ! Desired output unit
 !
@@ -158,11 +171,12 @@ CONTAINS
 !  back to the original units in a second call to Convert_Spc_Units. 
 !  For example:
 !
-!      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-!                              State_Chm, 'kg/kg dry', RC, OrigUnit=OrigUnit )
+!      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
+!                              State_Grid, State_Met, 'kg/kg dry', &
+!                              RC,         OrigUnit=OrigUnit )
 !      ...computation...
-!      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-!                        State_Chm, OrigUnit, RC )
+!      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+!                              State_Grid, State_Met, OrigUnit, RC )
 !
 ! !REVISION HISTORY: 
 !  14 Apr 2016 - C. Keller    - Initial version
@@ -188,15 +202,15 @@ CONTAINS
     ! Assume success
     RC =  GC_SUCCESS
 
+    ! Store units of input data locally
+    InUnit = State_Chm%Spc_Units
+
     ! Define error handling messages
     LOC = ' -> at Convert_Spc_Units (in GeosUtil/unitconv_mod.F90)'
     ErrMsg_NoOut = 'Conversion to '//TRIM(OutUnit)//' not defined'
     ErrMsg_NoIn = 'Conversion from '//TRIM(InUnit)//' to '//TRIM(OutUnit)//&
                   ' not defined'
     ErrMsg_RC = 'Error in conversion from '//TRIM(InUnit)//' to '//TRIM(OutUnit)
-
-    ! Store units of input data locally
-    InUnit = State_Chm%Spc_Units
 
     ! Archive units of input data for output if passed as argument
     IF ( PRESENT(OrigUnit) ) OrigUnit = State_Chm%Spc_Units 
@@ -224,16 +238,40 @@ ENDIF
        CASE ( 'kg/kg dry' )
           SELECT CASE ( TRIM(OutUnit) )
              CASE ( 'v/v dry' )
-                CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC ) 
+                CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root,  State_Chm, &
+                                                  State_Grid, RC ) 
+             CASE ( 'kg/kg total' )
+                CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root,  State_Chm, &
+                                                      State_Grid, State_Met, &
+                                                      RC ) 
              CASE ( 'kg' )
-                CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, &
-                                               State_Chm, RC ) 
+                CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root,  State_Chm, &
+                                               State_Grid, State_Met, RC ) 
              CASE ( 'kg/m2' )
-                CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, &
-                                                 State_Chm, RC ) 
+                CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root,  State_Chm, &
+                                                 State_Grid, State_Met, RC ) 
              CASE ( 'molec/cm3' )
-                CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met, &
-                                                 State_Chm, RC ) 
+                CALL ConvertSpc_KgKgDry_to_MND( am_I_Root,  State_Chm, &
+                                                State_Grid, State_Met, RC ) 
+             CASE DEFAULT
+                CALL GC_Error( ErrMsg_noOut, RC, LOC )
+          END SELECT
+
+       !================================================================
+       ! Convert from kg/kg total
+       !================================================================
+       CASE ( 'kg/kg total' )
+          SELECT CASE ( TRIM(OutUnit) )
+             CASE ( 'kg/kg dry' )
+                CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root,  State_Chm, &
+                                                      State_Grid, State_Met, &
+                                                      RC ) 
+             CASE ( 'kg' )
+                CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root,  State_Chm, &
+                                                      State_Grid, State_Met, &
+                                                      RC ) 
+                CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root,  State_Chm, &
+                                               State_Grid, State_Met, RC ) 
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -244,14 +282,16 @@ ENDIF
        CASE ( 'v/v dry' )
           SELECT CASE ( TRIM(OutUnit) )
              CASE ( 'kg/kg dry' )
-                CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC ) 
+                CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root,  State_Chm, &
+                                                  State_Grid, RC ) 
              CASE ( 'kg' )
-                CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met, &
-                                             State_Chm, RC) 
+                CALL ConvertSpc_VVDry_to_Kg( am_I_Root,  State_Chm, &
+                                             State_Grid, State_Met, RC ) 
              CASE ( 'kg/m2' )
-                CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
-                CALL ConvertSpc_KgKgDry_to_Kgm2 ( am_I_Root, State_Met, &
-                                                  State_Chm, RC )
+                CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root,  State_Chm, &
+                                                  State_Grid, RC )
+                CALL ConvertSpc_KgKgDry_to_Kgm2 ( am_I_Root,  State_Chm, &
+                                                  State_Grid, State_Met, RC )
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -262,14 +302,20 @@ ENDIF
        CASE ( 'kg' )
           SELECT CASE ( TRIM(OutUnit) )
              CASE ( 'kg/kg dry' )
-                CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, &
-                                               State_Chm, RC ) 
+                CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root,  State_Chm, &
+                                               State_Grid, State_Met, RC ) 
+             CASE ( 'kg/kg total' )
+                CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root,  State_Chm, &
+                                               State_Grid, State_Met, RC ) 
+                CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root,  State_Chm, &
+                                                      State_Grid, State_Met, &
+                                                      RC ) 
              CASE ( 'v/v dry' )
-                CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
-                                             State_Chm, RC ) 
+                CALL ConvertSpc_Kg_to_VVDry( am_I_Root,  State_Chm, &
+                                             State_Grid, State_Met, RC ) 
              CASE ( 'molec/cm3' )
-                CALL ConvertSpc_Kg_to_MND( am_I_Root, State_Met, &
-                                           State_Chm, RC ) 
+                CALL ConvertSpc_Kg_to_MND( am_I_Root,  State_Chm, &
+                                           State_Grid, State_Met, RC ) 
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -280,12 +326,13 @@ ENDIF
        CASE ( 'kg/m2' )
           SELECT CASE ( TRIM(OutUnit) )
              CASE( 'kg/kg dry' )
-                CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, &
-                                                 State_Chm, RC ) 
+                CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root,  State_Chm, &
+                                                 State_Grid, State_Met, RC ) 
              CASE ( 'v/v dry' )
-                CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, &
-                                                  State_Chm, RC )
-                CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )
+                CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root,  State_Chm, &
+                                                 State_Grid, State_Met, RC )
+                CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root,  State_Chm, &
+                                                  State_Grid, RC )
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -296,11 +343,11 @@ ENDIF
        CASE ( 'molec/cm3' )
           SELECT CASE ( TRIM(OutUnit) )
              CASE ( 'kg' )
-                CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, &
-                                           State_Chm, RC ) 
+                CALL ConvertSpc_MND_to_Kg( am_I_Root,  State_Chm,    &
+                                           State_Grid, State_Met, RC ) 
              CASE ( 'kg/kg dry' )
-                CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met, &
-                                                State_Chm, RC ) 
+                CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Chm,     &
+                                                State_Grid, State_Met, RC ) 
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -327,6 +374,137 @@ ENDIF
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Print_Global_Species_Kg
+!
+! !DESCRIPTION: Subroutine Print\_Global\_Species\_Kg prints the 
+!   global and grid box (I,J,L) mass for species N to log. Species
+!   units can be any unit for which conversion to kg is defined in
+!   the unit conversion module unitconv\_mod.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Print_Global_Species_Kg( am_I_Root, I, J, L,         &
+                                          Spc, Input_Opt, State_Chm,  &
+                                          State_Grid, State_Met, LOC, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,          INTENT(IN)    :: am_I_Root ! Are we on root CPU?
+      INTEGER,          INTENT(IN)    :: I         ! Grid cell lat index
+      INTEGER,          INTENT(IN)    :: J         ! Grid cell lon index
+      INTEGER,          INTENT(IN)    :: L         ! Grid cell lev index
+      CHARACTER(LEN=*), INTENT(IN)    :: Spc       ! Species abbrev string
+      CHARACTER(LEN=*), INTENT(IN)    :: LOC       ! Call location string
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt ! Input Options object
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid! Grid State object
+      TYPE(MetState),   INTENT(IN)    :: State_Met ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(OUT)   :: RC        ! Success or failure?! 
+! !REMARKS:
+!  This routine is for debugging purposes to helptrace where species
+!  mass is not conserved.
+!
+! !REVISION HISTORY: 
+!  22 Jun 2016 - E. Lundgren - Initial version
+!  29 Mar 2017 - R. Yantosca - Now print out sums for up to the 1st 5 species
+!                              and use a more efficient algorithm
+!  07 Nov 2018 - E. Lundgren - Move subroutine here from error_mod; pass 
+!                              I, J, L from call rather than hard-code; only
+!                              print for single species N, passed as arg;
+!                              pass am_I_Root and output RC error code 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!     
+      INTEGER            :: N
+      REAL(fp)           :: SpcTotal
+      CHARACTER(LEN=12)  :: SpcName
+      CHARACTER(LEN=63)  :: OrigUnit
+      CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
+
+      !================================================================
+      ! Print_Global_Species_Kg begins here!
+      !================================================================
+
+      RC        = GC_SUCCESS
+      ErrorMsg  = ''
+      ThisLoc   = ' -> at Print_Global_Species_Kg (in module ' // &
+                  'GeosUtil/unitconv_mod.F)'
+
+      !PRINT *, TRIM(LOC), ', 1,', State_Chm%Species(I,J,L,N)
+
+      ! Convert species conc units to kg
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,  &
+                              State_Grid, State_Met, 'kg', RC,   &
+                              OrigUnit=OrigUnit )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrorMsg = 'Unit conversion error!'
+         CALL GC_Error( ErrorMsg, RC, ThisLoc )
+         RETURN
+      ENDIF 
+
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( LOC )
+      ENDIF
+ 100  FORMAT( /, '%%%%% PRINT_GLOBAL_SPECIES_KG at ', a )
+
+      ! Get species index
+      N = Ind_(spc)
+
+      ! Compute global sum
+      SpcTotal = SUM( State_Chm%Species(:,:,:,N) )
+
+      ! Get species name from the species database
+      SpcName = TRIM( State_Chm%SpcData(N)%Info%Name )
+      
+      ! Write formatted output
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 110 ) SpcName, SpcTotal
+         WRITE( 6, 115 ) SpcName, State_Chm%Species(I,J,L,N), I, J, L
+         WRITE( 6, 115 ) 'AD', State_Met%AD(I,J,L), I, J, L
+         WRITE( 6, 115 ) 'PREVSPHU', State_Met%SPHU_PREV(I,J,L), I, J, L
+         WRITE( 6, 115 ) 'SPHU', State_Met%SPHU(I,J,L), I, J, L
+         WRITE( 6, 120 )
+      ENDIF
+ 110  FORMAT( 'Global sum [kg] for ', a8, ' = ', es24.16 )
+ 115  FORMAT( 'Grid cell  [kg] for ', a8, ' = ', es24.16, ', I,J,L= ',3I4 )
+ 120  FORMAT( / )
+
+      ! Convert species concentration back to original unit
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                              State_Grid, State_Met, OrigUnit,  RC )
+
+      !PRINT *, TRIM(LOC), ', 2,', State_Chm%Species(I,J,L,N)
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrorMsg = 'Unit conversion error!'
+         CALL GC_Error( ErrorMsg, RC, ThisLoc )
+         RETURN
+      ENDIF 
+
+      END SUBROUTINE Print_Global_Species_Kg
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: ConvertSpc_kgkgdry_to_vvdry
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_KgKgDry\_to\_VVDry converts the 
@@ -336,7 +514,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC ) 
+  SUBROUTINE ConvertSpc_KgKgDry_to_VVDry( am_I_Root,  State_Chm, &
+                                          State_Grid, RC ) 
 !
 ! USES: 
 !
@@ -344,6 +523,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -429,11 +609,9 @@ ENDIF
        MwRatio = ( AIRMW / MW_g )
 
        ! Loop over grid boxes and do unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-!          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
-!                                     * ( AIRMW / MW_G )
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * MwRatio
        ENDDO
        ENDDO
@@ -460,7 +638,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC ) 
+  SUBROUTINE ConvertSpc_VVDry_to_KgKgDry( am_I_Root,  State_Chm, &
+                                          State_Grid, RC ) 
 !
 ! USES: 
 !
@@ -468,6 +647,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -547,9 +727,9 @@ ENDIF
        MW_g = State_Chm%SpcData(N)%Info%emMW_g
 
        ! Loop over grid boxes and do the unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)   &
                                     / ( AIRMW / MW_G )
        ENDDO
@@ -569,6 +749,194 @@ ENDIF
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: ConvertSpc_kgkgdry_to_kgkgtotal
+!
+! !DESCRIPTION: Subroutine ConvertSpc\_KgKgDry\_to\_KgKgTotal converts the 
+!  units of species concentrations from dry mass mixing ratio (KGKG) [kg/kg] to 
+!  total mass mixing ratio [kg/kg] including moisture.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root,  State_Chm, &
+                                              State_Grid, State_Met, RC ) 
+!
+! USES: 
+!
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  07 Nov 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                :: I, J, L, N
+    CHARACTER(LEN=255)     :: MSG, LOC
+
+    !====================================================================
+    ! ConvertSpc_KgKgDry_to_KgKgTotal begins here!
+    !====================================================================
+
+    ! Assume success
+    RC =  GC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
+       LOC = 'Routine ConvertSpc_KgKgDry_to_KgKgTotal in unitconv_mod.F90'
+       CALL GC_Error( MSG, RC, LOC )
+       RETURN
+    ENDIF
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !                   
+    !====================================================================
+
+    ! Loop over all species
+    !$OMP PARALLEL DO                          &
+    !$OMP DEFAULT( SHARED                    ) &
+    !$OMP PRIVATE( I, J, L, N )
+    DO N = 1, State_Chm%nSpecies
+
+       ! Loop over grid boxes and do unit conversion
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
+                        * ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
+       ENDDO
+       ENDDO
+       ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update species units
+    State_Chm%Spc_Units = 'kg/kg total'
+
+  END SUBROUTINE ConvertSpc_KgKgDry_to_KgKgTotal
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ConvertSpc_kgkgtotal_to_kgkgdry
+!
+! !DESCRIPTION: Subroutine ConvertSpc\_KgKgTotal\_to\_KgKgDry converts the 
+!  units of species concentrations from total mass mixing ratio [kg/kg]
+!  (includes moisture) to dry mass mixing ratio [kg/kg]. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root,  State_Chm, &
+                                              State_Grid, State_Met, RC ) 
+!
+! USES: 
+!
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  07 Nov 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                :: I, J, L, N
+    CHARACTER(LEN=255)     :: MSG, LOC
+
+    !====================================================================
+    ! ConvertSpc_KgKgTotal_to_KgKgDry begins here!
+    !=================================================================
+
+    ! Assume success
+    RC = GC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg total' ) THEN
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
+       LOC = 'Routine ConvertSpc_KgKgTotal_to_KgKgDry in unitconv_mod.F90'
+       CALL GC_Error( MSG, RC, LOC )
+       RETURN
+    ENDIF
+
+    !==============================================================
+    !
+    !  The conversion is as follows:
+    !
+    !                   
+    !==============================================================
+
+    ! Loop over all species
+    !$OMP PARALLEL DO                 &
+    !$OMP DEFAULT( SHARED           ) &
+    !$OMP PRIVATE( I, J, L, N ) 
+    DO N = 1, State_Chm%nSpecies
+
+       ! Loop over grid boxes and do the unit conversion
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+         State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)   &
+                        / ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
+       ENDDO
+       ENDDO
+       ENDDO
+
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update species units
+    State_Chm%Spc_Units = 'kg/kg dry'
+
+    END SUBROUTINE ConvertSpc_KgKgTotal_to_KgKgDry
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: ConvertSpc_kgkgdry_to_kgm2
 !
 ! !DESCRIPTION: Subroutine ConvertSpc\_kgkgdry\_to\_kgm2 converts the units of 
@@ -578,8 +946,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met,  &
-                                         State_Chm, RC             )
+  SUBROUTINE ConvertSpc_KgKgDry_to_Kgm2( am_I_Root,  State_Chm,    &
+                                         State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -587,6 +955,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
 
 !
@@ -651,9 +1020,9 @@ ENDIF
     !$OMP DEFAULT( SHARED      ) &
     !$OMP PRIVATE( I, J, L, N  ) 
     DO N = 1, State_Chm%nSpecies
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)          &
                                     * ( g0_100                          &
                                     * State_Met%DELP_DRY(I,J,L) ) 
@@ -682,8 +1051,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, &
-                                         State_Chm, RC          )
+  SUBROUTINE ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Chm,     &
+                                         State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -691,6 +1060,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -755,9 +1125,9 @@ ENDIF
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N ) 
     DO N = 1, State_Chm%nSpecies
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)          &
                                     * ( 1.0e+0_fp                       &      
                                     / ( g0_100                          &
@@ -787,8 +1157,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met, &
-                                        State_Chm, RC )
+  SUBROUTINE ConvertSpc_KgKgDry_to_MND( am_I_Root,  State_Chm, &
+                                        State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -796,6 +1166,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -883,9 +1254,9 @@ ENDIF
        MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
 
        ! Loop over grid boxes and do the unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      * State_Met%AIRDEN(I,J,L)              &
                                      * ( AVO / MW_kg )                      &
@@ -917,8 +1288,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met, &
-                                        State_Chm, RC )
+  SUBROUTINE ConvertSpc_MND_to_KgKgDry( am_I_Root,  State_Chm, &
+                                        State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -926,6 +1297,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1017,9 +1389,9 @@ ENDIF
        MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
 
        ! Loop over grid boxes and do the unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      * ( 1e+6_fp * MolecRatio )             &
                                      / ( AVO / MW_kg )                      &
@@ -1050,8 +1422,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met,  &
-                                     State_Chm, RC   ) 
+  SUBROUTINE ConvertSpc_VVDry_to_Kg( am_I_Root,  State_Chm,    &
+                                     State_Grid, State_Met, RC ) 
 !
 ! !USES:
 !
@@ -1059,6 +1431,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1143,9 +1516,9 @@ ENDIF
        MW_g = State_Chm%SpcData(N)%Info%emMW_g
 
        ! Loop over grid boxes and do the unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
                                        * State_Met%AD(I,J,L)       &
                                        / ( AIRMW / MW_g )
@@ -1175,8 +1548,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
-                                     State_Chm, RC   ) 
+  SUBROUTINE ConvertSpc_Kg_to_VVDry( am_I_Root,  State_Chm,    &
+                                     State_Grid, State_Met, RC ) 
 !
 ! !USES:
 !
@@ -1184,6 +1557,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1267,9 +1641,9 @@ ENDIF
        MW_g = State_Chm%SpcData(N)%Info%emMW_g
 
        ! Loop over grid boxes and do the unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
                                        *  ( AIRMW / MW_g )         &
                                        / State_Met%AD(I,J,L)
@@ -1299,8 +1673,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, &
-                                       State_Chm, RC   ) 
+  SUBROUTINE ConvertSpc_KgKgDry_to_Kg( am_I_Root,  State_Chm,    &
+                                       State_Grid, State_Met, RC ) 
 !
 ! !USES:
 !
@@ -1308,6 +1682,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1377,9 +1752,9 @@ ENDIF
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N ) 
     DO N = 1, State_Chm%nSpecies
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
                                   * State_Met%AD(I,J,L)
     ENDDO
@@ -1407,8 +1782,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, &
-                                       State_Chm, RC   ) 
+  SUBROUTINE ConvertSpc_Kg_to_KgKgDry( am_I_Root,  State_Chm,    &
+                                       State_Grid, State_Met, RC ) 
 !
 ! !USES:
 !
@@ -1416,6 +1791,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1484,9 +1860,9 @@ ENDIF
     !$OMP DEFAULT( SHARED     ) &
     !$OMP PRIVATE( I, J, L, N ) 
     DO N = 1, State_Chm%nSpecies
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
                                   / State_Met%AD(I,J,L)
     ENDDO
@@ -1514,7 +1890,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_MND_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+  SUBROUTINE ConvertSpc_MND_to_Kg( am_I_Root,  State_Chm,    &
+                                   State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1522,6 +1899,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1615,9 +1993,9 @@ ENDIF
        MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
 
        ! Loop over grid boxes and do the unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      / ( AVO / MW_kg )                      &
                                      * (  State_Met%AIRVOL(I,J,L)           &
@@ -1648,7 +2026,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_Kg_to_MND( am_I_Root, State_Met, State_Chm, RC )
+  SUBROUTINE ConvertSpc_Kg_to_MND( am_I_Root,  State_Chm,    &
+                                   State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1656,6 +2035,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1745,9 +2125,9 @@ ENDIF
        MW_kg      = State_Chm%SpcData(N)%Info%emMW_g * 1.e-3_fp
 
        ! Loop over grid boxes and do the unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)           &
                                      * ( AVO / MW_kg )                      &
                                      / ( State_Met%AIRVOL(I,J,L)            &
@@ -1927,7 +2307,7 @@ ENDIF
 ! !INTERFACE:
 !
   SUBROUTINE ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L,       &
-                                    State_Met, State_Chm, RC )
+                                    State_Chm, State_Grid, RC )
 !
 ! !USES:
 !
@@ -1936,7 +2316,7 @@ ENDIF
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
     INTEGER,        INTENT(IN)    :: I, J, L       ! Grid box indexes
-    TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1978,7 +2358,7 @@ ENDIF
     !$OMP PRIVATE( N      ) 
     DO N = 1, State_Chm%nSpecies
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)    &
-                                  * State_Met%AREA_M2(I,J,1)
+                                  * State_Grid%Area_M2(I,J)
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -1998,8 +2378,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L,       &
-                                    State_Met, State_Chm, RC )
+  SUBROUTINE ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L,      &
+                                    State_Chm, State_Grid, RC )
 !
 ! !USES:
 !
@@ -2008,7 +2388,7 @@ ENDIF
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
     INTEGER,        INTENT(IN)    :: I, J, L       ! Grid box indexes
-    TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology state object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2050,7 +2430,7 @@ ENDIF
     !$OMP PRIVATE( N      ) 
     DO N = 1, State_Chm%nSpecies
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)    &
-                                  / State_Met%AREA_M2(I,J,1)
+                                  / State_Grid%Area_M2(I,J)
     ENDDO
     !$OMP END PARALLEL DO
 

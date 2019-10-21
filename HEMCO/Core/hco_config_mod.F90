@@ -537,6 +537,8 @@ CONTAINS
 !                              concentration fields from the GEOS-Chem restart
 !                              file, but may be expanded for other purposes
 !  02 Nov 2018 - M. Sulprizio- Add cycle flag "CS" to skip fields not found
+!  08 Mar 2019 - M. Sulprizio- Add "*Y" options to TmCycle to force always using
+!                              simulation year (eg, instead of emissions year)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -563,7 +565,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: srcFile
     CHARACTER(LEN= 50)        :: srcVar
     CHARACTER(LEN= 31)        :: srcTime
-    CHARACTER(LEN=  2)        :: TmCycle 
+    CHARACTER(LEN=  3)        :: TmCycle 
     CHARACTER(LEN=  1)        :: WildCard
     CHARACTER(LEN=  1)        :: Separator
     CHARACTER(LEN= 31)        :: srcDim
@@ -882,23 +884,52 @@ CONTAINS
 #endif
       
                 ! Set time cycling behaviour. Possible values are: 
-                ! - "C"  : cycling --> Default
+                ! - "C"  : cycling <-- DEFAULT
                 ! - "CS" : cycling, skip if not exist
+                ! - "CY" : cycling, always use simulation year
+                ! - "CYS": cycling, always use simulation yr, skip if not exist
                 ! - "R"  : range
-                ! - "RF" : range forced (error if not in range)
-                ! - "E"  : exact (read file once)
-                ! - "EF" : exact forced (error if not exist, read/query once)
-                ! - "EC" : exact (read/query continuously, e.g. for ESMF interface)
-                ! - "ECF": exact forced (error if not exist, read/query continuously)
-                ! - "I"  : interpolate 
-                ! - "A"  : average
                 ! - "RA" : range, average outside 
+                ! - "RF" : range, forced (error if not in range)
+                ! - "RFY": range, forced, always use simulation year
+                ! - "RY" : range, always use simulation year
+                ! - "E"  : exact (read file once)
+                ! - "EF" : exact, forced (error if not exist, read/query once)
+                ! - "EC" : exact (read/query continuously, e.g. for ESMF interface)
+                ! - "ECF": exact, forced (error if not exist, read/query continuously)
+                ! - "EY" : exact, always use simulation year
+                ! - "A"  : average
+                ! - "I"  : interpolate 
                 Dta%MustFind  = .FALSE.
-                IF ( TRIM(TmCycle) == "R" ) THEN
+                Dta%UseSimYear= .FALSE.
+                IF ( TRIM(TmCycle) == "C" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_CYCLE
+                   Dta%MustFind  = .TRUE.
+                ELSEIF ( TRIM(TmCycle) == "CS" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_CYCLE
+                   Dta%MustFind  = .FALSE.
+                ELSEIF ( TRIM(TmCycle) == "CY" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_CYCLE
+                   Dta%MustFind  = .TRUE.
+                   Dta%UseSimYear= .TRUE.
+                ELSEIF ( TRIM(TmCycle) == "CYS" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_CYCLE
+                   Dta%MustFind  = .FALSE.
+                   Dta%UseSimYear= .TRUE.
+                ELSEIF ( TRIM(TmCycle) == "R" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_RANGE
+                ELSEIF ( TRIM(TmCycle) == "RA" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_RANGEAVG
                 ELSEIF ( TRIM(TmCycle) == "RF" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_RANGE
                    Dta%MustFind  = .TRUE.
+                ELSEIF ( TRIM(TmCycle) == "RFY" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_RANGE
+                   Dta%MustFind  = .TRUE.
+                   Dta%UseSimYear= .TRUE.
+                ELSEIF ( TRIM(TmCycle) == "RY" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_RANGE
+                   Dta%UseSimYear= .TRUE.
                 ELSEIF ( TRIM(TmCycle) == "E" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_EXACT
                    Dta%UpdtFlag  = HCO_UFLAG_ONCE
@@ -911,18 +942,14 @@ CONTAINS
                 ELSEIF ( TRIM(TmCycle) == "ECF" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_EXACT
                    Dta%MustFind  = .TRUE.
-                ELSEIF ( TRIM(TmCycle) == "I" ) THEN
-                   Dta%CycleFlag = HCO_CFLAG_INTER
-                ELSEIF ( TRIM(TmCycle) == "C" ) THEN
-                   Dta%CycleFlag = HCO_CFLAG_CYCLE
-                   Dta%MustFind  = .TRUE.
-                ELSEIF ( TRIM(TmCycle) == "CS" ) THEN
-                   Dta%CycleFlag = HCO_CFLAG_CYCLE
-                   Dta%MustFind  = .FALSE.
+                ELSEIF ( TRIM(TmCycle) == "EY" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_EXACT
+                   Dta%UpdtFlag  = HCO_UFLAG_ONCE
+                   Dta%UseSimYear=.TRUE.
                 ELSEIF ( TRIM(TmCycle) == "A" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_AVERG
-                ELSEIF ( TRIM(TmCycle) == "RA" ) THEN
-                   Dta%CycleFlag = HCO_CFLAG_RANGEAVG
+                ELSEIF ( TRIM(TmCycle) == "I" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_INTER
                 ELSEIF ( TRIM(TmCycle) == "-" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_CYCLE
                 ELSE
@@ -1146,23 +1173,52 @@ CONTAINS
 #endif
 
              ! Set time cycling behaviour. Possible values are: 
-             ! - "C"  : cycling --> Default
+             ! - "C"  : cycling <-- DEFAULT
              ! - "CS" : cycling, skip if not exist
+             ! - "CY" : cycling, always use simulation year
+             ! - "CYS": cycling, always use simulation yr, skip if not exist
              ! - "R"  : range
-             ! - "RF" : range forced (error if not in range)
-             ! - "E"  : exact (read file once)
-             ! - "EF" : exact forced (error if not exist, read/query once)
-             ! - "EC" : exact (read/query continuously, e.g. for ESMF interface)
-             ! - "ECF": exact forced (error if not exist, read/query continuously)
-             ! - "I"  : interpolate 
-             ! - "A"  : average
              ! - "RA" : range, average outside 
+             ! - "RF" : range, forced (error if not in range)
+             ! - "RFY": range, forced, always use simulation year
+             ! - "RY" : range, always use simulation year
+             ! - "E"  : exact (read file once)
+             ! - "EF" : exact, forced (error if not exist, read/query once)
+             ! - "EC" : exact (read/query continuously, e.g. for ESMF interface)
+             ! - "ECF": exact, forced (error if not exist, read/query continuously)
+             ! - "EY" : exact, always use simulation year
+             ! - "A"  : average
+             ! - "I"  : interpolate 
              Dta%MustFind  = .FALSE.
-             IF ( TRIM(TmCycle) == "R" ) THEN
+             Dta%UseSimYear= .FALSE.
+             IF ( TRIM(TmCycle) == "C" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_CYCLE
+                Dta%MustFind  = .TRUE.
+             ELSEIF ( TRIM(TmCycle) == "CS" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_CYCLE
+                Dta%MustFind  = .FALSE.
+             ELSEIF ( TRIM(TmCycle) == "CY" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_CYCLE
+                Dta%MustFind  = .TRUE.
+                Dta%UseSimYear= .TRUE.
+             ELSEIF ( TRIM(TmCycle) == "CYS" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_CYCLE
+                Dta%MustFind  = .FALSE.
+                Dta%UseSimYear= .TRUE.
+             ELSEIF ( TRIM(TmCycle) == "R" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_RANGE
+             ELSEIF ( TRIM(TmCycle) == "RA" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_RANGEAVG
              ELSEIF ( TRIM(TmCycle) == "RF" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_RANGE
                 Dta%MustFind  = .TRUE.
+             ELSEIF ( TRIM(TmCycle) == "RFY" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_RANGE
+                   Dta%MustFind  = .TRUE.
+                   Dta%UseSimYear= .TRUE.
+             ELSEIF ( TRIM(TmCycle) == "RY" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_RANGE
+                Dta%UseSimYear= .TRUE.
              ELSEIF ( TRIM(TmCycle) == "E" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_EXACT
                 Dta%UpdtFlag  = HCO_UFLAG_ONCE
@@ -1175,23 +1231,19 @@ CONTAINS
              ELSEIF ( TRIM(TmCycle) == "ECF" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_EXACT
                 Dta%MustFind  = .TRUE.
-             ELSEIF ( TRIM(TmCycle) == "I" ) THEN
-                Dta%CycleFlag = HCO_CFLAG_INTER
-             ELSEIF ( TRIM(TmCycle) == "C" ) THEN
-                Dta%CycleFlag = HCO_CFLAG_CYCLE
-                Dta%MustFind  = .TRUE.
-             ELSEIF ( TRIM(TmCycle) == "CS" ) THEN
-                Dta%CycleFlag = HCO_CFLAG_CYCLE
-                Dta%MustFind  = .FALSE.
+             ELSEIF ( TRIM(TmCycle) == "EY" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_EXACT
+                Dta%UpdtFlag  = HCO_UFLAG_ONCE
+                Dta%UseSimYear=.TRUE.
              ELSEIF ( TRIM(TmCycle) == "A" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_AVERG
-             ELSEIF ( TRIM(TmCycle) == "RA" ) THEN
-                Dta%CycleFlag = HCO_CFLAG_RANGEAVG
+             ELSEIF ( TRIM(TmCycle) == "I" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_INTER
              ELSEIF ( TRIM(TmCycle) == "-" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_CYCLE
              ELSE
                 MSG = 'Invalid time cycling attribute: ' // &
-                      TRIM(TmCycle) // ' - in ' // TRIM(cName)
+                     TRIM(TmCycle) // ' - in ' // TRIM(tagcName)
                 CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
                 RETURN
              ENDIF
@@ -4662,6 +4714,8 @@ CONTAINS
     SELECT CASE( TRIM( tagId ) )
        CASE( 'ALL'     )
           numTags = HcoConfig%nModelSpc
+       CASE( 'ADV'     )
+          numTags = HcoConfig%nModelAdv
        CASE DEFAULT
           FOUND = .FALSE.
           ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &

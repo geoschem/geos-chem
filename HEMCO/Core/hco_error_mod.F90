@@ -97,7 +97,7 @@ MODULE HCO_Error_Mod
   REAL(sp), PARAMETER, PUBLIC :: HCO_MISSVAL = -1.e31_sp
 
   ! HEMCO version number.
-  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v2.1.010'
+  CHARACTER(LEN=12), PARAMETER, PUBLIC :: HCO_VERSION = 'v2.1.012'
 
   INTERFACE HCO_Error
      MODULE PROCEDURE HCO_ErrorNoErr
@@ -125,6 +125,7 @@ MODULE HCO_Error_Mod
 !                              and 8-byte variables from being elevated
 !                              when using -r8 (or equivalent flags)
 !  29 Dec 2017 - C. Keller   - Update to v2.1.004
+!  07 Feb 2019 - C. Keller   - Update to v2.1.011
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -914,10 +915,6 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG
     INTEGER            :: IOS, LUN, FREELUN
     LOGICAL            :: isopen, exists
-#if defined( LINUX_PGI )
-    ! Add reference to SETVBUF3F function for PGI compiler (bmy, 1/22/16)
-    INTEGER, EXTERNAL  :: SETVBUF3F
-#endif
 
     !======================================================================
     ! HCO_LOGFILE_OPEN begins here 
@@ -966,11 +963,6 @@ CONTAINS
                 RC = HCO_FAIL
                 RETURN
              ENDIF
-#if defined( LINUX_PGI )
-             ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
-             ! can see the results while GC is running. (bmy, 1/22/16)
-             RC = SETVBUF3F( FREELUN, 1, 80 )
-#endif
 
        ! File exists and is opened ==> nothing to do
 
@@ -985,11 +977,6 @@ CONTAINS
                 RC = HCO_FAIL
                 RETURN
              ENDIF
-#if defined( LINUX_PGI )
-             ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
-             ! can see the results while GC is running. (bmy, 1/22/16)
-             RC = SETVBUF3F( FREELUN, 1, 80 )
-#endif
           ENDIF
 
           Err%LUN       = FREELUN
@@ -1005,11 +992,6 @@ CONTAINS
              RC = HCO_FAIL
              RETURN
           ENDIF
-#if defined( LINUX_PGI )
-          ! Tell PGI compiler to line-buffer the HEMCO log file, so that we
-          ! can see the results while GC is running. (bmy, 1/22/16)
-          RC = SETVBUF3F( FREELUN, 1, 80 )
-#endif
           Err%LUN       = FREELUN
           Err%LogIsOpen = .TRUE.
        ENDIF

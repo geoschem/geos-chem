@@ -41,7 +41,6 @@
       PUBLIC  :: SAFE_LOG10
       PUBLIC  :: INIT_ERROR
       PUBLIC  :: CLEANUP_ERROR
-      PUBLIC  :: PRINT_GLOBAL_SPECIES_KG
 #if defined( MODEL_GEOS )
       PUBLIC  :: mpiComm
 #endif 
@@ -78,16 +77,6 @@
       PRIVATE :: NAN_FLOAT
       PRIVATE :: IS_SAFE_DIV_R4
       PRIVATE :: IS_SAFE_DIV_R8
-!
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: "LINUX_IFORT" and "LINUX_PGI" ARE CURRENTLY THE ONLY       %%%
-!  %%%  SUPPORTED COMPILER OPTIONS.  MOST SYSTEMS NOW USE A UNIX VERSION %%%
-!  %%%  BASED ON LINUX, SO OTHER COMPILERS (IBM/AIX, SUN/SPARC, etc.)    %%%
-!  %%%  ARE GENERALLY NOT USED ANYMORE.  LEAVE THE OLDER CODE HERE JUST  %%%
-!  %%%  IN CASE WE NEED TO REVERT TO IT AGAIN IN THE FUTURE.             %%%
-!  %%%     -- Bob Yantosca, 20 Aug 2013                                  %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  08 Mar 2001 - R. Yantosca - Initial version
@@ -170,12 +159,6 @@
 !
       FUNCTION NAN_FLOAT( VALUE ) RESULT( IT_IS_A_NAN )
 !
-! !USES:
-!
-#if defined( LINUX_PGI )
-      USE IEEE_ARITHMETIC
-#endif
-!
 ! !INPUT PARAMETERS: 
 !
       REAL*4, INTENT(IN) :: VALUE        ! Value to be tested for NaN
@@ -207,11 +190,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( LINUX_IFORT ) || defined( LINUX_GFORTRAN )
       IT_IS_A_NAN = ISNAN( VALUE )    
-#elif defined( LINUX_PGI )
-      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
-#endif
 
       ! Return to calling program
       END FUNCTION NAN_FLOAT
@@ -230,12 +209,6 @@
 ! !INTERFACE:
 !
       FUNCTION NAN_DBLE( VALUE ) RESULT( IT_IS_A_NAN )
-!
-! !USES:
-!
-#if defined( LINUX_PGI )
-      USE IEEE_ARITHMETIC
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -268,11 +241,7 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-#if defined( LINUX_IFORT ) || defined( LINUX_GFORTRAN )
       IT_IS_A_NAN = ISNAN( VALUE )      
-#elif defined( LINUX_PGI )
-      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )
-#endif
 
       ! Return to calling program
       END FUNCTION NAN_DBLE
@@ -291,12 +260,6 @@
 ! !INTERFACE:
 !
       FUNCTION FINITE_FLOAT( VALUE ) RESULT( IT_IS_A_FINITE )
-!
-! !USES:
-!
-#if defined( LINUX_PGI )
-      USE IEEE_ARITHMETIC
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -331,7 +294,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( LINUX_GFORTRAN )
+#if defined( LINUX_GFORTRAN )
 
       IT_IS_A_FINITE = ((.not.ISNAN(VALUE)) .and. 
      &                  (VALUE.lt.HUGE(1.0e0)) .and.
@@ -350,11 +313,6 @@
       ! Also flag an error if VALUE is a signaling or quiet NaN
       IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
      &                   FPC /= SNAN    .and. FPC /= QNAN          )
-
-#elif defined( LINUX_PGI )
-
-      ! PGI compiler
-      IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
 
 #endif
       
@@ -375,12 +333,6 @@
 ! !INTERFACE:
 !
       FUNCTION FINITE_DBLE( VALUE ) RESULT( IT_IS_A_FINITE )
-!
-! !USES:
-!
-#if defined( LINUX_PGI )
-      USE IEEE_ARITHMETIC
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -433,11 +385,6 @@
       ! Also flag an error if VALUE is a signaling or quiet NaN
       IT_IS_A_FINITE = ( FPC /= POS_INF .and. FPC /= NEG_INF .and. 
      &                   FPC /= SNAN    .and. FPC /= QNAN          )
-
-#elif defined( LINUX_PGI )
-
-      ! PGI compiler
-      IT_IS_A_FINITE = IEEE_IS_FINITE( VALUE )
 
 #endif
       
@@ -772,7 +719,7 @@
       ! ALLOC_ERR begins here!
       !=================================================================
 
-#if   defined( LINUX_IFORT )
+#if defined( LINUX_IFORT )
      
       !-----------------------
       ! Linux/IFORT compiler 
@@ -1330,122 +1277,5 @@
       NULLIFY( SHADOW_Input_Opt )
 
       END SUBROUTINE CLEANUP_ERROR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Print_Global_Species_Kg
-!
-! !DESCRIPTION: Subroutine Print\_Global\_Species\_Kg sums up the total 
-!   global species mass for species \#1 and prints it to log along with
-!   a user-defined location
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE Print_Global_Species_Kg( State_Chm, State_Met, LOC )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE State_Chm_Mod, ONLY : ChmState
-      USE State_Met_Mod, ONLY : MetState
-!
-! !INPUT PARAMETERS: 
-!
-      CHARACTER(LEN=*), INTENT(IN)    :: LOC
-      TYPE(ChmState),   INTENT(IN)    :: State_Chm 
-      TYPE(MetState),   INTENT(IN)    :: State_Met 
-! 
-! !REMARKS:
-!  This routine is for debugging purposes to trace where species
-!  mass is not conserved 
-!
-! !REVISION HISTORY: 
-!  22 Jun 2016 - E. Lundgren - Initial version
-!  29 Mar 2017 - R. Yantosca - Now print out sums for up to the 1st 5 species
-!                              and use a more efficient algorithm
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS
-!
-      INTEGER, PARAMETER :: nSums = 5
-!
-! !LOCAL VARIABLES:
-!     
-      ! Scalars
-      INTEGER            :: I, J, L, N, nSpecies
-      REAL(fp)           :: SpcTotal(nSums)
-
-      ! Arrays
-      REAL(fp)           :: Species_Kg    (IIPAR,JJPAR,LLPAR      )
-      REAL(fp)           :: Sum_Species_Kg(IIPAR,JJPAR,LLPAR,nSums)
-
-      ! Strings
-      CHARACTER(LEN=12)  :: SpcName
-
-      !================================================================
-      ! Print_Global_Species_Kg begins here!
-      !================================================================
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( LOC )
- 100  FORMAT( /, '%%%%% PRINT_GLOBAL_SPECIES_KG at ', a )
-
-      ! Initialize
-      Species_Kg     = 0.0_fp
-      Sum_Species_Kg = 0.0_fp
-      
-      ! Check mass for up to the 1st nSums (=5) species
-      nSpecies       = MIN( nSums, State_Chm%nSpecies )
-
-      !---------------------------
-      ! Compute global sums [kg]
-      !---------------------------
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, nSpecies
-
-         ! Compute sum at each grid box
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            Sum_Species_Kg(I,J,L,N) = Sum_Species_Kg(I,J,L,N)
-     &                              + ( State_Chm%Species(I,J,L,N)
-     &                              *   State_Met%AD     (I,J,L)   ) 
-         ENDDO
-         ENDDO
-         ENDDO
-
-         ! Compute global sum for each species
-         SpcTotal(N) = SUM( Sum_Species_Kg(:,:,:,N) )
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !---------------------------
-      ! Display global sums [kg]
-      !---------------------------
-      DO N = 1, nSpecies
-         
-         ! Get species name from the species database
-         SpcName = TRIM( State_Chm%SpcData(N)%Info%Name )
-         
-         ! Write formatted output
-         WRITE( 6, 110 ) SpcName, SpcTotal(N)
- 110     FORMAT( 'Global sum [kg] for ', a12, ' = ', es24.16 )         
-         print*, '===> : ', State_Chm%Species(23,34,5,N)
-     &                  *   State_Met%AD     (23,34,5)
-      ENDDO
-
-      ! Add trailing space
-      WRITE( 6, 120 )
- 120  FORMAT( / )
-
-      END SUBROUTINE Print_Global_Species_Kg
 !EOC
       END MODULE ERROR_MOD

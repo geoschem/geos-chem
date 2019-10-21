@@ -188,13 +188,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_REGIONAL_PO3( I, J, L, PP, State_Met )
+      SUBROUTINE GET_REGIONAL_PO3( I, J, L, PP, State_Grid, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-      USE GC_GRID_MOD,        ONLY : GET_XMID,  GET_YMID
       USE PhysConstants            ! SCALE_HEIGHT
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( BPCH_DIAG )
@@ -203,16 +203,15 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      ! GEOS-Chem grid box indices for lon, lat, alt
-      INTEGER,        INTENT(IN)  :: I, J, L
-
-      ! Meteorology State object
-      TYPE(MetState), INTENT(IN)  :: State_Met
+      INTEGER,        INTENT(IN)  :: I, J, L     ! Grid box indices
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
       ! Array containing P(O3) for each tagged species
-      REAL(fp),  INTENT(OUT) :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      REAL(fp),  INTENT(OUT) :: PP(State_Grid%NX,State_Grid%NY,
+     &                             State_grid%NZ,N_TAGGED)
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2003 - A. Fiore - Initial version
@@ -266,8 +265,8 @@
       IF ( .not. ITS_IN_TROP ) RETURN
 
       ! Longitude and latitude [degrees]
-      X          = GET_XMID( I, J, L )   
-      Y          = GET_YMID( I, J, L )
+      X          = State_Grid%XMid(I,J)   
+      Y          = State_Grid%YMid(I,J)
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
@@ -409,8 +408,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_O3( am_I_Root, Input_Opt,  State_Met,
-     &                           State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEM_TAGGED_O3( am_I_Root,  Input_Opt,  State_Chm,
+     &                           State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -422,6 +421,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 #if defined( BPCH_DIAG )
@@ -436,6 +436,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -503,7 +504,8 @@
       REAL(fp)                 :: BOXVL, DTCHEM, DT, LL, PL
 
       ! Arrays
-      REAL(fp)                 :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
+      REAL(fp)                 :: PP(State_Grid%NX,State_Grid%NY,
+     &                               State_grid%NZ,N_TAGGED)
 
       ! Pointers
       REAL(fp),        POINTER :: Spc(:,:,:,:)
@@ -608,9 +610,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, BOXVL, LL, PL )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLTROP
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Grid box volume [m3]
             BOXVL = State_Met%AIRVOL(I,J,L) !* 1d6
@@ -623,7 +625,7 @@
             ! NOTE: We call this only when N==1 for optimal looping
             ! ALSO NOTE: PP is 4-D so it doesn't have to be PRIVATE.
             IF ( N == 1 ) THEN 
-               CALL GET_REGIONAL_PO3( I, J, L, PP, State_Met )
+               CALL GET_REGIONAL_PO3(I, J, L, PP, State_Grid, State_Met)
             ENDIF
             
             ! L(O3) is now in [1/m3] (ckeller, 9/17/2014)
@@ -655,7 +657,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !===========================================================
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -675,7 +676,6 @@
                State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * L24H(I,J,L) 
      &                                  * BOXVL        / TS_EMIS
             ENDIF
-#endif
 
             !===========================================================
             ! Apply chemical P(O3) - L(O3) to each tagged species

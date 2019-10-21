@@ -69,6 +69,7 @@ MODULE Tendencies_Mod
   USE Input_Opt_Mod,      ONLY : OptInput
   USE Precision_Mod
   USE State_Chm_Mod,      ONLY : ChmState
+  USE State_Grid_Mod,     ONLY : GrdState
   USE State_Met_Mod,      ONLY : MetState
 
   IMPLICIT NONE
@@ -137,7 +138,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Init ( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE Tend_Init ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                         State_Met, RC ) 
 !
 ! !USES:
 !
@@ -146,9 +148,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
-    TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
-    TYPE(MetState),   INTENT(IN   ) :: State_Met  ! met. state 
-    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! chm. state 
+    TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input options
+    TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry State object 
+    TYPE(GrdState),   INTENT(IN   ) :: State_Grid ! Grid State object
+    TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Meteorology State object 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -229,114 +232,145 @@ CONTAINS
        ! Activate tendency computations for O3 (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                      'ADV',      id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                      'CHEM',     id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CONV',    id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX',   id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'FLUX',    id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD',   id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'WETD',    id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'PBLMIX',  id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for CO (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'ADV',     id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CHEM',    id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CONV',    id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'PBLMIX',  id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD', id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'WETD',    id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX', id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'FLUX',    id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for NO (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_NO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'ADV',     id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_NO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CHEM',    id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_NO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CONV',    id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_NO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'PBLMIX',  id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD', id_NO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'WETD',    id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX', id_NO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'FLUX',    id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for NO2 (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_NO2, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'ADV',     id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_NO2, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CHEM',    id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_NO2, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CONV',    id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_NO2, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'PBLMIX',  id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD', id_NO2, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'WETD',    id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX', id_NO2, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'FLUX',    id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for HNO3 (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_HNO3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'ADV',     id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_HNO3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CHEM',    id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_HNO3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CONV',    id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_HNO3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'PBLMIX',  id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD', id_HNO3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'WETD',    id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX', id_HNO3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'FLUX',    id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        id_tmp = Ind_('OH') 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM', id_tmp, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       'CHEM',    id_tmp, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDIF ! test toggle
@@ -582,19 +616,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Add ( am_I_Root, Input_Opt, State_Chm, TendName, &
-                        SpcID, RC, CreateClass )
+  SUBROUTINE Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                        TendName,   SpcID,    RC,        CreateClass )
 !
 ! !USES:
 !
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   )           :: Input_Opt   ! Input opts
     TYPE(ChmState),   INTENT(IN   )           :: State_Chm   ! Chemistry State object
+    TYPE(GrdState),   INTENT(IN   )           :: State_Grid  ! Grid State object
     CHARACTER(LEN=*), INTENT(IN   )           :: TendName    ! Tendency class name 
     INTEGER,          INTENT(IN   )           :: SpcID       ! Species ID 
     LOGICAL,          INTENT(IN   ), OPTIONAL :: CreateClass ! Create class if missing?
@@ -679,7 +713,8 @@ CONTAINS
 
     ! Make sure array is allocated
     IF ( .NOT. ASSOCIATED(ThisTend%Tendency(SpcID)%Arr) ) THEN
-       ALLOCATE(ThisTend%Tendency(SpcID)%Arr(IIPAR,JJPAR,LLPAR),STAT=RC)
+       ALLOCATE(ThisTend%Tendency(SpcID)%Arr(State_Grid%NX, &
+                State_Grid%NY,State_Grid%NZ),STAT=RC)
        IF ( RC /= 0 ) THEN
           ErrMsg = 'Tendency allocation error: ' // TRIM(DiagnName)
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -733,8 +768,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Stage1( am_I_Root, Input_Opt, State_Met, &
-                          State_Chm, TendName,  RC ) 
+  SUBROUTINE Tend_Stage1( am_I_Root, Input_Opt, State_Chm, &
+                          State_Met, TendName,  RC ) 
 !
 ! !USES:
 !
@@ -799,8 +834,9 @@ CONTAINS
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
     ! Convert tracers to kg/kg dry
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, 'kg/kg dry', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
+                            State_Grid, State_Met, 'kg/kg dry', &
+                            RC,         OrigUnit=OrigUnit )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Loop over # of tendencies species
@@ -827,8 +863,8 @@ CONTAINS
     ThisTend%Stage = 1
 
     ! Convert tracers back to original unit 
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, OrigUnit,  RC )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Cleanup
@@ -849,21 +885,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Stage2( am_I_Root, Input_Opt, State_Met, &
-                          State_Chm, TendName,  DT, RC ) 
+  SUBROUTINE Tend_Stage2( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                          State_Met, State_Chm, TendName,  DT, RC ) 
 !
 ! !USES:
 !
     USE UNITCONV_MOD
     USE PHYSCONSTANTS,      ONLY : AIRMW
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
-    TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
+    TYPE(GrdState),   INTENT(IN   ) :: State_Grid ! Grid state
+    TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Meteorology state
     CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! tendency name 
     REAL(fp),         INTENT(IN   ) :: DT         ! delta time, in seconds 
 !
@@ -896,8 +932,8 @@ CONTAINS
     INTEGER                  :: cID, I
 
     ! Arrays
-    REAL(f4)                 :: TEND(IIPAR,JJPAR,LLPAR)
-    REAL(f4)                 :: TMP (IIPAR,JJPAR,LLPAR)
+    REAL(f4)                 :: TEND(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    REAL(f4)                 :: TMP (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
     REAL(f4),        POINTER :: Ptr3D(:,:,:)
@@ -944,8 +980,9 @@ CONTAINS
     ENDIF
 
     ! Convert tracers to kg/kg dry
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, 'kg/kg dry', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
+                            State_Grid, State_Met, 'kg/kg dry', &
+                            RC,         OrigUnit=OrigUnit )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Loop over # of tendencies species
@@ -1000,8 +1037,8 @@ CONTAINS
     ThisTend%Stage = 2
 
     ! Convert tracers back to original unit 
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, OrigUnit,  RC )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Cleanup
@@ -1026,7 +1063,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR
 !
 ! !INPUT PARAMETERS:
 !

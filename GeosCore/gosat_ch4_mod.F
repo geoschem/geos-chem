@@ -354,8 +354,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Met,
-     &                                 COST_FUNC )
+      SUBROUTINE CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Grid,
+     &                                 State_Met, COST_FUNC )
 !
 ! !USES:
 !
@@ -368,6 +368,7 @@
       USE TIME_MOD
       USE PhysConstants,      ONLY : XNUMOLAIR, AIRMW
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !------------------------------------------------------------------------------
 ! For adjoint model only:
@@ -388,8 +389,9 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -416,13 +418,13 @@
       INTEGER            :: JLOOP,   NOBS,   IND
       INTEGER            :: INDS(MAXGOS)
       REAL(fp)           :: REF_DATE, TIME
-      REAL(fp)           :: GC_PRES(LLPAR)
-      REAL(fp)           :: GC_PEDGE(LLPAR+1)
-      REAL(fp)           :: GC_CH4_NATIVE(LLPAR)
+      REAL(fp)           :: GC_PRES(State_Grid%NZ)
+      REAL(fp)           :: GC_PEDGE(State_Grid%NZ+1)
+      REAL(fp)           :: GC_CH4_NATIVE(State_Grid%NZ)
       REAL(fp)           :: GC_CH4(MAXLEV)
       REAL(fp)           :: GC_CH4_cm2(MAXLEV)
       REAL(fp)           :: GC_PSURF
-      REAL(fp)           :: MAP(LLPAR,MAXLEV)
+      REAL(fp)           :: MAP(State_Grid%NZ,MAXLEV)
       REAL(fp)           :: CH4_HAT(MAXLEV)
       REAL(fp)           :: NEW_COST(MAXGOS)
       REAL(fp)           :: OLD_COST
@@ -443,6 +445,11 @@
       REAL(fp)           :: DIFF
       REAL(fp)           :: S_OBS
 
+      ! --- zyz --- Sept 19, 2018
+      ! fix the problem that some GOSAT record has negative pressure
+      ! values if the surface has high altidue
+      INTEGER            :: L0
+
 !------------------------------------------------------------------------------
 ! For adjoint model only:
 !      ! For adjoint of observation operator
@@ -450,21 +457,21 @@
 !      REAL(fp)           :: GC_XCH4_ADJ
 !      REAL(fp)           :: GC_CH4_ADJ(MAXLEV)
 !      REAL(fp)           :: GC_CH4_cm2_ADJ(MAXLEV)
-!      REAL(fp)           :: GC_CH4_NATIVE_ADJ(LLPAR)
+!      REAL(fp)           :: GC_CH4_NATIVE_ADJ(State_Grid%NZ)
 !
 !      ! For the observational error matrix
-!      REAL*4             :: S_OBS_MAT(IIPAR,JJPAR)
+!      REAL*4             :: S_OBS_MAT(State_Grid%NX,State_Grid%NY)
 !      INTEGER            :: FID, VID
 !
 !      ! For Finite Difference Testing
 !      LOGICAL, SAVE      :: DO_FDTEST = .FALSE.
 !      LOGICAL, SAVE      :: FDTEST_MATCH = .FALSE. ! Do not change
-!      REAL(fp)           :: PERT(LLPAR)
+!      REAL(fp)           :: PERT(State_Grid%NZ)
 !      REAL(fp)           :: COST_FUNC_0
 !      REAL(fp)           :: COST_FUNC_pos, COST_FUNC_neg
-!      REAL(fp)           :: ADJ(LLPAR), ADJ_SAVE(LLPAR)
-!      REAL(fp)           :: FD_CEN(LLPAR), FD_POS(LLPAR)
-!      REAL(fp)           :: FD_NEG(LLPAR)
+!      REAL(fp)           :: ADJ(State_Grid%NZ), ADJ_SAVE(State_Grid%NZ)
+!      REAL(fp)           :: FD_CEN(State_Grid%NZ), FD_POS(State_Grid%NZ)
+!      REAL(fp)           :: FD_NEG(State_Grid%NZ)
 !------------------------------------------------------------------------------
 
       ! For miscellaneous
@@ -660,15 +667,30 @@
             CYCLE
          ENDIF
 
-         ! skip Observations outside the nested domain
-         ! Only skip if we're running nested (ajt, 1/26/13)
-#if   defined( NESTED_NA )
-         IF ( GOS(NT)%LAT(1) <   10e0 .OR. GOS(NT)%LAT(1) >  70e0  .OR. 
-     &        GOS(NT)%LON(1) < -140e0 .OR. GOS(NT)%LON(1) > -40e0 ) THEN
+         ! zyz, Oct 4 2018
+         ! GOSAT record has negative pressure value when the surface
+         ! has high altitude such as Tibet
+         ! Fix it by finding the lowest valid layer L0
+         L0 = GOS(NT)%LGOS(1)
+         DO L = 1, GOS(NT)%LGOS(1)
+            IF (GOS(NT)%PRES(L) .gt. 0.0_fp) THEN
+               L0 = L
+               EXIT
+            ENDIF
+         ENDDO       
+         ! Only find negative pressure at 1st layer so far.
+         ! But use this condition to prevent really invalid cases
+         ! (zyz) 
+         IF (L0 .gt. 3 ) CYCLE 
+
+         ! Skip observations outside the domain
+         IF ( GOS(NT)%LAT(1) < State_Grid%YMin .OR.
+     &        GOS(NT)%LAT(1) > State_Grid%YMax .OR. 
+     &        GOS(NT)%LON(1) < State_Grid%XMin .OR.
+     &        GOS(NT)%LON(1) > State_Grid%XMax ) THEN
             print*, ' Outside nested domain, skipping record ', NT
             CYCLE
          ENDIF
-#endif
 
          ! Skip data at high lat (ajt, 7/23/13)
          !JDMIF ( GOS(NT)%LAT(1) >   60d0 ) THEN
@@ -680,13 +702,15 @@
          !To do the actual adjoint run
 
          ! Get grid box of current record
-         IIJJ = GET_IJ( REAL(GOS(NT)%LON(1),4), REAL(GOS(NT)%LAT(1),4))
+         IIJJ = GET_IJ( REAL(GOS(NT)%LON(1),4), REAL(GOS(NT)%LAT(1),4),
+     &                  State_Grid )
          I    = IIJJ(1)
          J    = IIJJ(2)
 
          ! skip observations where the GOSAT surface pressure is 
          ! less than the model
-         IF ( (GOS(NT)%PRES(1) - State_Met%PEDGE(I,J,1)) > 50e0 ) THEN
+         ! Use L0 for lowest valid layer in GOSAT (zyz)
+         IF ( (GOS(NT)%PRES(L0) - State_Met%PEDGE(I,J,1)) > 50e0 ) THEN
             print*, ' Psurf threshold not met, skipping record ', NT
             CYCLE
          ENDIF
@@ -704,18 +728,19 @@
          CH4_PRIOR(:)    = 0.0_fp
 
          ! Copy variable names to make coding a bit cleaner
+         ! Use L0 for lowest layer in GOSAT record (zyz)
          LGOS = GOS(NT)%LGOS(1)
-         DO L = 1, LGOS
+         DO L = L0, LGOS
             CH4_PRIOR(L) = GOS(NT)%PRIOR(L) * 1d-9 ! [ppb] --> [v/v]
          ENDDO
 
          ! Get GC pressure levels (mbar) 
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             GC_PRES(L) = State_Met%PMID(I,J,L)
          ENDDO
 
          ! Get GC pressure edges (mbar) 
-         DO L = 1, LLPAR+1
+         DO L = 1, State_Grid%NZ+1
             GC_PEDGE(L) = State_Met%PEDGE(I,J,L)
          ENDDO
 
@@ -724,7 +749,8 @@
 
          ! Calculate the interpolation weight matrix 
          MAP(:,:) = 0.0_fp
-         CALL GET_INTMAP( GC_PRES, GC_PSURF, GOS(NT)%PRES, LGOS, MAP )
+         CALL GET_INTMAP( State_Grid, GC_PRES, GC_PSURF, GOS(NT)%PRES,
+     &                    L0, LGOS, MAP )
 
 !------------------------------------------------------------------------------
 ! For adjoint model only:
@@ -733,7 +759,7 @@
 !         print*,'LGOS = ',LGOS
 !         FDTEST_MATCH = .TRUE.
 !         WRITE(6,'(20x,20F16.8)') GOS(NT)%PRES
-!         DO LL=1,LLPAR
+!         DO LL=1,State_Grid%NZ
 !            WRITE(6,'(I4, 21F16.8)') LL, GET_PCENTER(I,J,LL), MAP(LL,:)
 !         ENDDO
 !         print*,'---------------------------------------'
@@ -759,9 +785,10 @@
 
  
          ! Interpolate GC CH4 column to GOSAT grid
-         DO LL = 1, LGOS
+         ! Use L0 for lowest valid layer for GOSAT (zyz)
+         DO LL = L0, LGOS
             GC_CH4(LL) = 0.0_fp
-            DO L = 1, LLPAR 
+            DO L = 1, State_Grid%NZ 
                GC_CH4(LL) = GC_CH4(LL) 
      &                    + MAP(L,LL) * GC_CH4_NATIVE(L) 
             ENDDO
@@ -820,33 +847,34 @@
          !--------------------------------------------------------------
 
          ! Pressure weighting array
+         ! Use L0 for lowest valid layer in GOSAT
          h(:)          = 0.0_fp
-         p(1:LGOS)     = GOS(NT)%PRES(1:LGOS)
-         ak(1:LGOS)    = GOS(NT)%AVG_KERNEL(1:LGOS)
-         prior(1:LGOS) = GOS(NT)%PRIOR(1:LGOS) * 1e-9_fp  ! [ppb] --> [v/v]
+         p(L0:LGOS)     = GOS(NT)%PRES(L0:LGOS)
+         ak(L0:LGOS)    = GOS(NT)%AVG_KERNEL(L0:LGOS)
+         prior(L0:LGOS) = GOS(NT)%PRIOR(L0:LGOS) * 1e-9_fp  ! [ppb] --> [v/v]
 
          ! Need to integrate from the toa to surface (ajt, 05/21/13)
          IF (LGOS .GT. 1) THEN
-            IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN
+            IF(GOS(NT)%PRES(L0+1) .LT. GOS(NT)%PRES(L0)) THEN
                p(1:LGOS) = p(LGOS:1:-1)
             ENDIF
          ENDIF
 
          L = 1
-         h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+         h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
      &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) )
-         L = LGOS
-         h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+         L = LGOS - L0 + 1
+         h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
      &         (  p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) ) )
-         DO L=2,LGOS-1
-            h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+         DO L=2,LGOS-L0
+            h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
      &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) +  
      &         (      p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) )   )
          ENDDO
 
          ! Now return to the orientation of the other variables
          IF (LGOS .GT. 1) THEN 
-            IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN 
+            IF(GOS(NT)%PRES(L0+1) .LT. GOS(NT)%PRES(L0)) THEN 
                h(1:LGOS) = h(LGOS:1:-1)
                p(1:LGOS) = p(LGOS:1:-1)
             ENDIF
@@ -854,14 +882,14 @@
 
          ! Calculate Xch4_a
          XCH4a = 0.0_fp
-         DO L = 1,LGOS
+         DO L = L0,LGOS
             XCH4a = XCH4a + h(L) * prior(L)
          ENDDO
 
          ! Calculate Xch4_m
          XCH4m = 0.0_fp
          XCH4m = XCH4a
-         DO L = 1, LGOS
+         DO L = L0, LGOS
             XCH4m = XCH4m + ( h(L) * ak(L) * ( GC_CH4(L) - prior(L) ) )
          ENDDO
          GC_XCH4 = 0.0_fp
@@ -904,7 +932,7 @@
 ! 
 !! Old interpolation from kjw
 !         ! adjoint of interpolation 
-!         DO L  = 1, LLPAR
+!         DO L  = 1, State_Grid%NZ
 !            GC_CH4_NATIVE_ADJ(L) = 0d0 
 !            DO LL = 1, LGOS
 !               GC_CH4_NATIVE_ADJ(L) = GC_CH4_NATIVE_ADJ(L)
@@ -913,7 +941,7 @@
 !         ENDDO
 !         
 !!         ! Updated adjoint of interpolation
-!!         GC_CH4_NATIVE_ADJ = INTERP_GC_GOS( LLPAR, LGOS,
+!!         GC_CH4_NATIVE_ADJ = INTERP_GC_GOS( State_Grid%NZ, LGOS,
 !!     &                       GOS(NT)%PRES(1:LGOS),
 !!     &                       GOS_PEDGE( LGOS, GOS(NT)%PRES(1:LGOS) ),
 !!     &                       GC_PRES, GC_CH4_ADJ )
@@ -984,7 +1012,7 @@
 !      J     = IIJJ(2)
 !
 !      ! Get GC pressure levels (mbar) 
-!      DO L = 1, LLPAR
+!      DO L = 1, State_Grid%NZ
 !         GC_PRES(L) = GET_PCENTER(I,J,L)
 !      ENDDO
 !
@@ -1007,7 +1035,7 @@
 !
 !      ! Perform finite difference testing at each vertical level
 !      ! and for each horizontal grid box in this observation
-!      DO LL = 1, LLPAR
+!      DO LL = 1, State_Grid%NZ
 !
 !         ! Positive perturbation to GEOS-Chem CH4 columns
 !         PERT(:) = 0.0
@@ -1118,8 +1146,8 @@
 !
 !      ! Arguments
 !      REAL(fp), INTENT(INOUT)       :: COST_FUNC_A
-!      REAL(fp), INTENT(OUT)         :: ADJ(LLPAR)
-!      REAL(fp), INTENT(IN)          :: PERT(LLPAR)
+!      REAL(fp), INTENT(OUT)         :: ADJ(State_Grid%NZ)
+!      REAL(fp), INTENT(IN)          :: PERT(State_Grid%NZ)
 !      INTEGER, INTENT(IN)         :: NT
 !
 !      ! Local variables for observation operator
@@ -1128,13 +1156,13 @@
 !      INTEGER                     :: L,       LL,     LGOS
 !      INTEGER                     :: JLOOP,   NOBS,   IND
 !      INTEGER                     :: INDS(MAXGOS)
-!      REAL(fp)                      :: GC_PRES(LLPAR)
-!      REAL(fp)                      :: GC_PEDGE(LLPAR+1)
-!      REAL(fp)                      :: GC_CH4_NATIVE(LLPAR)
+!      REAL(fp)                      :: GC_PRES(State_Grid%NZ)
+!      REAL(fp)                      :: GC_PEDGE(State_Grid%NZ+1)
+!      REAL(fp)                      :: GC_CH4_NATIVE(State_Grid%NZ)
 !      REAL(fp)                      :: GC_CH4(MAXLEV)
 !      REAL(fp)                      :: GC_CH4_cm2(MAXLEV)
 !      REAL(fp)                      :: GC_PSURF
-!      REAL(fp)                      :: MAP(LLPAR,MAXLEV)
+!      REAL(fp)                      :: MAP(State_Grid%NZ,MAXLEV)
 !      REAL(fp)                      :: CH4_HAT(MAXLEV)
 !      REAL(fp)                      :: NEW_COST(MAXGOS)
 !      REAL(fp)                      :: OLD_COST
@@ -1157,12 +1185,12 @@
 !      REAL(fp)                      :: GC_XCH4_ADJ
 !      REAL(fp)                      :: GC_CH4_ADJ(MAXLEV)
 !      REAL(fp)                      :: GC_CH4_cm2_ADJ(MAXLEV)
-!      REAL(fp)                      :: GC_CH4_NATIVE_ADJ(LLPAR)
+!      REAL(fp)                      :: GC_CH4_NATIVE_ADJ(State_Grid%NZ)
 !      REAL(fp)                      :: GC_CH4_ori(MAXLEV)
 !      REAL(fp)                      :: S_OBS
 !
 !      ! For Observational error
-!      REAL(fp)                      :: S_OBS_MAT(IIPAR,JJPAR)
+!      REAL(fp)                      :: S_OBS_MAT(State_Grid%NX,State_Grid%NY)
 !      INTEGER                     :: FID, VID
 !
 !      ! For miscellaneous
@@ -1204,12 +1232,12 @@
 !      J     = IIJJ(2)
 !
 !      ! Get GC pressure levels (mbar) 
-!      DO L = 1, LLPAR
+!      DO L = 1, State_Grid%NZ
 !         GC_PRES(L) = GET_PCENTER(I,J,L)
 !      ENDDO
 !
 !      ! Get GC pressure edges (mbar) 
-!      DO L = 1, LLPAR+1           
+!      DO L = 1, State_Grid%NZ+1           
 !         GC_PEDGE(L) = GET_PEDGE(I,J,L)
 !      ENDDO
 !
@@ -1219,7 +1247,8 @@
 !
 !      ! Calculate the interpolation weight matrix 
 !      MAP(:,:) = 0d0
-!      CALL GET_INTMAP( GC_PRES, GC_PSURF, GOS(NT)%PRES, LGOS, MAP )
+!      CALL GET_INTMAP( State_Grid, GC_PRES, GC_PSURF, GOS(NT)%PRES,
+!     &                 LGOS, MAP )
 !
 !      ! Get CH4 values at native model resolution
 !      GC_CH4_NATIVE(:) = 0d0
@@ -1235,7 +1264,7 @@
 !      !print*, 'code too fast here.'
 !
 !      ! Perturb level(s) of GC_CH4_NATIVE, given by input argument PERT
-!      DO L = 1, LLPAR
+!      DO L = 1, State_Grid%NZ
 !         GC_CH4_NATIVE(L) = GC_CH4_NATIVE(L) * ( 1 + PERT(L) )
 !      ENDDO
 !
@@ -1245,14 +1274,14 @@
 ! 
 !!      ! Interpolate GC CH4 column to GOSAT grid
 !!      ! use the method of Parker et al., (2011)
-!!      GC_CH4 = INTERP_GC_GOS( LGOS, LLPAR, GC_PRES, GC_PEDGE,
+!!      GC_CH4 = INTERP_GC_GOS( LGOS, State_Grid%NZ, GC_PRES, GC_PEDGE,
 !!     &         GOS(NT)%PRES(1:LGOS), GC_CH4_NATIVE )
 !
 !! Old interpolation method from kjw
 !      ! Interpolate GC CH4 column to GOSAT grid 
 !      DO LL = 1, LGOS
 !         GC_CH4(LL) = 0d0 
-!         DO L = 1, LLPAR 
+!         DO L = 1, State_Grid%NZ 
 !            GC_CH4(LL) = GC_CH4(LL) 
 !     &           + MAP(L,LL) * GC_CH4_NATIVE(L) 
 !         ENDDO
@@ -1397,7 +1426,7 @@
 !
 !! Old interpolation from kjw
 !      ! adjoint of interpolation 
-!      DO L  = 1, LLPAR
+!      DO L  = 1, State_Grid%NZ
 !         GC_CH4_NATIVE_ADJ(L) = 0d0 
 !         DO LL = 1, LGOS
 !            GC_CH4_NATIVE_ADJ(L) = GC_CH4_NATIVE_ADJ(L)
@@ -1406,7 +1435,7 @@
 !      ENDDO
 !
 !!      ! Updated adjoint of interpolation
-!!      GC_CH4_NATIVE_ADJ = INTERP_GC_GOS_ADJ( LLPAR, LGOS,
+!!      GC_CH4_NATIVE_ADJ = INTERP_GC_GOS_ADJ( State_Grid%NZ, LGOS,
 !!     &                    GOS(NT)%PRES(1:LGOS),
 !!     &                    GOS_PEDGE( LGOS, GOS(NT)%PRES(1:LGOS) ),
 !!     &                    GC_PRES, GC_CH4_ADJ, MAP )
@@ -1417,7 +1446,7 @@
 !
 !      ! Calculate adjoint sensitivity to values in CHK_STT
 !      ADJ(:) = 0d0
-!      DO LL=1,LLPAR
+!      DO LL=1,State_Grid%NZ
 !         IF (LANAL_INV) THEN
 !            ADJ(LL) = GC_CH4_NATIVE_ADJ(LL) * OBS_STT(I,J,LL,IDTCH4)
 !         ELSE
@@ -1814,26 +1843,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_INTMAP( GCPCEN, GCPSURF, GOSPEDGE, nlev, INTMAP )
+      SUBROUTINE GET_INTMAP( State_Grid, GCPCEN, GCPSURF, GOSPEDGE,
+     &                       L0, L1, INTMAP )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp), INTENT(IN)  :: GCPCEN(LLPAR)
+      TYPE(GrdState), INTENT(IN) :: State_Grid
+      REAL(fp), INTENT(IN)  :: GCPCEN(State_Grid%NZ)
       REAL(fp), INTENT(IN)  :: GCPSURF
       REAL(fp), INTENT(IN)  :: GOSPEDGE(MAXLEV) 
-      INTEGER,  INTENT(IN)  :: nlev
+      INTEGER,  INTENT(IN)  :: L0, L1
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp), INTENT(OUT) :: INTMAP(LLPAR,MAXLEV)
+      REAL(fp), INTENT(OUT) :: INTMAP(State_Grid%NZ,MAXLEV)
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - M. Sulprizio- Initial version based on GOSAT CH4 observation
 !                              operator from GC Adjoint v35j
+!  04 Oct 2018 - Y. Zhang    - Add an input argument L0, the lowest valid layer for GOSAT
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1852,10 +1885,10 @@
       INTMAP(:,:) = 0e+0_fp
 
       ! Loop over each pressure level of GOS grid
-      DO LTM = 1, nlev
+      DO LTM = L0, L1
 
          ! Find the levels from GC that bracket level LTM
-         DO LGC = 1, LLPAR-1
+         DO LGC = 1, State_Grid%NZ-1
 
             LOW = GCPCEN(LGC+1)
             HI  = GCPCEN(LGC)
@@ -1876,7 +1909,7 @@
 
        ! Correct for case where GOSAT pressure is higher than the
        ! highest GC pressure center.  In this case, just 1:1 map. 
-       DO LTM = 1, nlev
+       DO LTM = L0, L1
           IF ( GOSPEDGE(LTM) > GCPCEN(1) ) THEN
              INTMAP(:,LTM) = 0e+0_fp
              INTMAP(1,LTM) = 1e+0_fp

@@ -218,8 +218,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EXCHANGE_GLOBAL_POST( am_I_Root, Input_Opt,
-     &                                 State_Met, State_Chm, RC )
+      SUBROUTINE EXCHANGE_GLOBAL_POST( am_I_Root,  Input_Opt, State_Chm,
+     &                                 State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -229,14 +229,16 @@
       USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-      USE TPCORE_BC_MOD
+!      USE TPCORE_BC_MOD
       USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
+      TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -276,21 +278,21 @@
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &   1, IIPAR, JJPAR, LLPAR) !mol/cm3 -> mol
+     &   1, State_Grid%NX, State_Grid%NY, State_Grid%NZ) !mol/cm3 -> mol
 
 # if  defined ( EXCHANGE_4x5_CH ) || defined ( EXCHANGE_2x25_CH )
          CALL EX_READ_AND_APPLY_FEEDBACK
-     &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 1 )
+     &  ( am_I_Root, Input_Opt, State_Chm, State_Grid, State_Met, RC, 1)
 # endif
 
 # if  defined ( EXCHANGE_4x5_NA ) || defined ( EXCHANGE_2x25_NA )
           CALL EX_READ_AND_APPLY_FEEDBACK
-     &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 2 )
+     &  ( am_I_Root, Input_Opt, State_Chm, State_Grid, State_Met, RC, 2)
 # endif
 
 # if  defined ( EXCHANGE_4x5_EU ) || defined ( EXCHANGE_2x25_EU )
          CALL EX_READ_AND_APPLY_FEEDBACK
-     &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 3 )
+     &  ( am_I_Root, Input_Opt, State_Chm, State_Grid, State_Met, RC, 3)
 # endif
 
          ! Convert species units back to kg/kg (ewl, 8/13/15)
@@ -304,7 +306,7 @@
 
          CALL EX_CONVERT_UNITS_CSPEC
      & ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &   2, IIPAR, JJPAR, LLPAR) !mol -> mol/cm3
+     &   2, State_Grid%NX, State_Grid%NY, State_Grid%NZ) !mol -> mol/cm3
 
       ENDIF
 
@@ -351,8 +353,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EXCHANGE_NESTED_POST( am_I_Root, Input_Opt,
-     &                                 State_Met, State_Chm, RC )
+      SUBROUTINE EXCHANGE_NESTED_POST( am_I_Root,  Input_Opt, State_Chm,
+     &                                 State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -362,6 +364,7 @@
       USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 !
@@ -369,6 +372,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
+      TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -407,10 +411,10 @@
 
       CALL EX_CONVERT_UNITS_CSPEC
      &  ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &    1, IIPAR, JJPAR, LLPAR) ! mol/cm3->mol
+     &    1, State_Grid%NX, State_Grid%NY, State_Grid%NZ) ! mol/cm3->mol
 
-      CALL EX_DUMP_FOR_GLOBAL
-     &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
+      CALL EX_DUMP_FOR_GLOBAL( am_I_Root,  Input_Opt, State_Chm,
+     &                         State_Grid, State_Met, RC )
 
       ! Convert species units back to kg/kg (ewl, 8/13/15)
       CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
@@ -423,7 +427,7 @@
 
       CALL EX_CONVERT_UNITS_CSPEC
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC,
-     &     2, IIPAR, JJPAR, LLPAR) !mol -> mol/cm3
+     &     2, State_Grid%NX, State_Grid%NY, State_Grid%NZ) !mol -> mol/cm3
 
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
@@ -474,17 +478,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_EXCHANGE( am_I_Root )
+      SUBROUTINE INIT_EXCHANGE( am_I_Root, State_Grid )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD          ! Size parameters
       USE ERROR_MOD
       USE PRECISION_MOD
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)       :: am_I_Root
+      LOGICAL,        INTENT(IN) :: am_I_Root
+      TYPE(GrdState), INTENT(IN) :: State_Grid
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Now only print output on the root CPU
@@ -503,47 +509,45 @@
          WRITE (*,*) "@@@@@@@@@@@@@@ INIT_EXCHANGE"
       ENDIF
 
-#if defined ( GRID4x5 ) || defined ( GRID2x25 )
+      IF ( .not. State_Grid%Nested_Grid ) THEN
 
-      IS_GLOBAL_DOMAIN = .TRUE.
-      IS_EXCHANGE = .FALSE.
-      MY_NAME = 'GLOBAL'
-      NESTED_CH_NAME = 'NESTED_CH'
-      NESTED_NA_NAME = 'NESTED_NA'
-      NESTED_EU_NAME = 'NESTED_EU'
+         IS_GLOBAL_DOMAIN = .TRUE.
+         IS_EXCHANGE = .FALSE.
+         MY_NAME = 'GLOBAL'
 
-      IF ( am_I_Root ) THEN
-      WRITE ( LOAD_CH_CSPEC_FNAME, '(A, A, A, A)' )TRIM(EXCHANGE_DIR),
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         ! This needs to be updated for FlexGrid (mps, 4/13/19)
+         NESTED_CH_NAME = 'NESTED_CH'
+         NESTED_NA_NAME = 'NESTED_NA'
+         NESTED_EU_NAME = 'NESTED_EU'
+         IF ( am_I_Root ) THEN
+            WRITE ( LOAD_CH_CSPEC_FNAME, '(A, A, A, A)' )
+     &            TRIM(EXCHANGE_DIR),
      &            '/dump.cspec.', TRIM(NESTED_CH_NAME), '.dump'
-      WRITE ( LOAD_CH_TRACER_FNAME, '(A, A, A, A)' )TRIM(EXCHANGE_DIR),
+            WRITE ( LOAD_CH_TRACER_FNAME, '(A, A, A, A)' )
+     &            TRIM(EXCHANGE_DIR),
      &            '/dump.tracer.', TRIM(NESTED_CH_NAME), '.dump'
-      WRITE ( LOAD_NA_CSPEC_FNAME, '(A, A, A, A)' )TRIM(EXCHANGE_DIR),
+            WRITE ( LOAD_NA_CSPEC_FNAME, '(A, A, A, A)' )
+     &            TRIM(EXCHANGE_DIR),
      &            '/dump.cspec.', TRIM(NESTED_NA_NAME), '.dump'
-      WRITE ( LOAD_NA_TRACER_FNAME, '(A, A, A, A)' )TRIM(EXCHANGE_DIR),
+            WRITE ( LOAD_NA_TRACER_FNAME, '(A, A, A, A)' )
+     &            TRIM(EXCHANGE_DIR),
      &            '/dump.tracer.', TRIM(NESTED_NA_NAME), '.dump'
-      WRITE ( LOAD_EU_CSPEC_FNAME, '(A, A, A, A)' )TRIM(EXCHANGE_DIR),
+            WRITE ( LOAD_EU_CSPEC_FNAME, '(A, A, A, A)' )
+     &            TRIM(EXCHANGE_DIR),
      &            '/dump.cspec.', TRIM(NESTED_EU_NAME), '.dump'
-      WRITE ( LOAD_EU_TRACER_FNAME, '(A, A, A, A)' )TRIM(EXCHANGE_DIR),
+            WRITE ( LOAD_EU_TRACER_FNAME, '(A, A, A, A)' )
+     &            TRIM(EXCHANGE_DIR),
      &            '/dump.tracer.', TRIM(NESTED_EU_NAME), '.dump'
+         ENDIF
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ELSE
+
+         IS_GLOBAL_DOMAIN = .FALSE.
+         MY_NAME = 'NESTED'
+
       ENDIF
-
-#elif defined ( NESTED_CH )
-      IS_GLOBAL_DOMAIN = .FALSE.
-      MY_NAME = 'NESTED_CH'
-
-#elif defined ( NESTED_NA )
-      IS_GLOBAL_DOMAIN = .FALSE.
-      MY_NAME = 'NESTED_NA'
-
-#elif defined ( NESTED_EU )
-      IS_GLOBAL_DOMAIN = .FALSE.
-      MY_NAME = 'NESTED_EU'
-#else
-
-      WRITE(*,*) "You have to define a domain"
-      CALL GEOS_CHEM_STOP
-
-#endif
 
       IF ( am_I_Root ) THEN
       WRITE ( DUMP_CSPEC_FNAME, '(A, A, A, A)' ) TRIM(EXCHANGE_DIR),
@@ -563,37 +567,38 @@
       ENDIF
 
       ! size information
-#if   defined ( GRID4x5 )
-      I0_BC_CH = 50
-      IM_BC_CH = 17
-      J0_BC_CH = 20
-      JM_BC_CH = 17
-      I0_BC_NA = 8
-      IM_BC_NA = 21
-      J0_BC_NA = 25
-      JM_BC_NA = 16
-      I0_BC_EU = 30
-      IM_BC_EU = 17
-      J0_BC_EU = 30
-      JM_BC_EU = 11
+      ! Eventually need to remove hardcoding for FlexGrid (mps, 4/13/19)
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+         I0_BC_CH = 50
+         IM_BC_CH = 17
+         J0_BC_CH = 20
+         JM_BC_CH = 17
+         I0_BC_NA = 8
+         IM_BC_NA = 21
+         J0_BC_NA = 25
+         JM_BC_NA = 16
+         I0_BC_EU = 30
+         IM_BC_EU = 17
+         J0_BC_EU = 30
+         JM_BC_EU = 11
+      ELSEIF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+         I0_BC_CH = 100
+         IM_BC_CH = 33
+         J0_BC_CH = 39
+         JM_BC_CH = 35
+         I0_BC_NA = 16
+         IM_BC_NA = 41
+         J0_BC_NA = 50
+         JM_BC_NA = 31
+         I0_BC_EU = 60
+         IM_BC_EU = 33
+         J0_BC_EU = 60
+         JM_BC_EU = 21
+      ENDIF
 
-#elif defined ( GRID2x25 )
-      I0_BC_CH = 100
-      IM_BC_CH = 33
-      J0_BC_CH = 39
-      JM_BC_CH = 35
-      I0_BC_NA = 16
-      IM_BC_NA = 41
-      J0_BC_NA = 50
-      JM_BC_NA = 31
-      I0_BC_EU = 60
-      IM_BC_EU = 33
-      J0_BC_EU = 60
-      JM_BC_EU = 21
-
-#endif
-
-#if   defined(NESTED_CH) || defined(NESTED_NA) || defined(NESTED_EU)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! This needs to be updated for FlexGrid (mps, 4/13/19)
+      IF ( State_Grid%NestedGrid ) THEN
 
 #if   defined ( EXCHANGE_4x5_CH )
       I0_BC       = 50
@@ -663,41 +668,44 @@
 
       ! generate regrid map
       ! CHECK: orientation problem...
-      ALLOCATE( REGRID_MAT_L(IM_BC,IIPAR), STAT=ALLOCATE_RES )
+      ALLOCATE( REGRID_MAT_L(IM_BC,State_Grid%NX), STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ALLOCATE( REGRID_MAT_L_TRANS(IIPAR, IM_BC), STAT=ALLOCATE_RES )
+      ALLOCATE( REGRID_MAT_L_TRANS(State_Grid%NX, IM_BC),
+     &          STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ALLOCATE( REGRID_MAT_R(JJPAR, JM_BC), STAT=ALLOCATE_RES )
+      ALLOCATE( REGRID_MAT_R(State_Grid%NY, JM_BC), STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      CALL GEN_REGRID_MAT( IIPAR, IM_BC, RATIO_LONG_EX,
+      CALL GEN_REGRID_MAT( State_Grid%NX, IM_BC, RATIO_LONG_EX,
      &                     -OFFSET_LONG, REGRID_MAT_L_TRANS)
-      CALL GEN_REGRID_MAT( JJPAR, JM_BC, RATIO_LAT_EX,
+      CALL GEN_REGRID_MAT( State_Grid%NY, JM_BC, RATIO_LAT_EX,
      &                     -OFFSET_LAT,  REGRID_MAT_R )
 
       REGRID_MAT_L = TRANSPOSE( REGRID_MAT_L_TRANS )
 
       IF(ALLOCATED(REGRID_MAT_L_TRANS)) DEALLOCATE( REGRID_MAT_L_TRANS )
-      ALLOCATE( TMP_WINDOW(IM_BC, JM_BC, LLPAR),
+      ALLOCATE( TMP_WINDOW(IM_BC, JM_BC, State_Grid%NZ),
      &          STAT=ALLOCATE_RES )
 
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
       ENDIF
-#endif
 
-#if   defined ( GRID4x5 ) || defined ( GRID2x25 )
+      ENDIF ! NestedGrid
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#if   defined ( EXCHANGE_4x5_CH ) || defined ( EXACHNGE_2x25_CH )
-      !ALLOCATE( TMP_WINDOW_CH(IM_BC_CH, JM_BC_CH, LLPAR),
+      IF ( .not. State_Grid%NestedGrid) THEN
+
+#if   defined ( EXCHANGE_4x5_CH ) || defined ( EXCHANGE_2x25_CH )
+      !ALLOCATE( TMP_WINDOW_CH(IM_BC_CH, JM_BC_CH, State_Grid%NZ),
       ! &          STAT=ALLOCATE_RES )
       !IF ( ALLOCATE_RES /= 0 ) THEN
       !   CALL GEOS_CHEM_STOP
@@ -705,7 +713,7 @@
 #endif
 
 #if   defined ( EXCHANGE_4x5_NA ) || defined ( EXCHANGE_2x25_NA )
-      !ALLOCATE( TMP_WINDOW_NA(IM_BC_NA, JM_BC_NA, LLPAR),
+      !ALLOCATE( TMP_WINDOW_NA(IM_BC_NA, JM_BC_NA, State_Grid%NZ),
       !! &          STAT=ALLOCATE_RES )
       !IF ( ALLOCATE_RES /= 0 ) THEN
       !   CALL GEOS_CHEM_STOP
@@ -713,13 +721,14 @@
 #endif
 
 #if   defined ( EXCHANGE_4x5_EU ) || defined ( EXCHANGE_2x25_EU )
-      ALLOCATE( TMP_WINDOW_EU(IM_BC_EU, JM_BC_EU, LLPAR),
+      ALLOCATE( TMP_WINDOW_EU(IM_BC_EU, JM_BC_EU, State_Grid%NZ),
      &          STAT=ALLOCATE_RES )
       IF ( ALLOCATE_RES /= 0 ) THEN
          CALL GEOS_CHEM_STOP
       ENDIF
 #endif
-#endif
+
+      ENDIF
 
       END SUBROUTINE INIT_EXCHANGE
 !EOC
@@ -778,8 +787,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EX_DUMP_FOR_GLOBAL( am_I_Root, Input_Opt,
-     &                               State_Met, State_Chm, RC )
+      SUBROUTINE EX_DUMP_FOR_GLOBAL( am_I_Root,  Input_Opt, State_Chm,
+     &                               State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -787,6 +796,7 @@
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE PRECISION_MOD
 !
@@ -794,6 +804,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
+      TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(MetState), INTENT(IN)    :: State_Met
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -840,10 +851,10 @@
       ENDIF
 
       DO L = 1,State_Chm%nSpecies
-         CALL EX_REGRID_UP( IIPAR, JJPAR, 
-     &                      IM_BC, JM_BC, LLPAR,
+         CALL EX_REGRID_UP( State_Grid%NX, State_Grid%NY, 
+     &                      IM_BC, JM_BC, State_Grid%NZ,
      &                      SPC(:,:,:,L), TMP_WINDOW )
-         CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, LLPAR,
+         CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, State_Grid%NZ,
      &                              TMP_WINDOW )
       ENDDO
       CLOSE( 2 )
@@ -854,10 +865,10 @@
       ENDIF
 
       DO L = 1, State_Chm%nAdvect
-         CALL EX_REGRID_UP( IIPAR, JJPAR,
-     &                      IM_BC, JM_BC, LLPAR,
+         CALL EX_REGRID_UP( State_Grid%NX, State_Grid%NY,
+     &                      IM_BC, JM_BC, State_Grid%NZ,
      &                      SPC(:,:,:,L), TMP_WINDOW )
-         CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, LLPAR,
+         CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, State_Grid%NZ,
      &                              TMP_WINDOW )
       ENDDO
       CLOSE( IU_RST )
@@ -880,7 +891,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE EX_READ_AND_APPLY_FEEDBACK( am_I_Root, Input_Opt,
-     &                         State_Met, State_Chm, RC, DOMAIN )
+     &                                       State_Chm, State_Grid,
+     &                                       State_Met, RC, DOMAIN )
 !
 ! !USES:
 !
@@ -888,6 +900,7 @@
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE PRECISION_MOD
       USE FILE_MOD
@@ -898,6 +911,7 @@
 
       LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(OptInput), INTENT(IN)    :: Input_Opt
+      TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(MetState), INTENT(IN)    :: State_Met
       INTEGER,        INTENT(IN)    :: DOMAIN
 !
@@ -923,13 +937,13 @@
 ! !LOCAL VARIABLES:
       REAL(fp), POINTER :: SPC(:,:,:,:)
       REAL(fp), POINTER :: CSPEC_FULL(:,:,:,:)
-      REAL(fp)    :: TMP_WINDOW_CHT(IM_BC_CH,JM_BC_CH,LLPAR)
-      REAL(fp)    :: TMP_WINDOW_NAT(IM_BC_NA,JM_BC_NA,LLPAR)
-      REAL(fp)    :: TMP_WINDOW_EUT(IM_BC_EU,JM_BC_EU,LLPAR)
-      REAL*4                  :: ARRAYTEMPR(576,361,73)
-      INTEGER         :: L,IU_RST,IOS
-      INTEGER         :: NI,NJ,NK,I,J,K
-      LOGICAL         :: LPRT
+      REAL(fp)    :: TMP_WINDOW_CHT(IM_BC_CH,JM_BC_CH,State_Grid%NZ)
+      REAL(fp)    :: TMP_WINDOW_NAT(IM_BC_NA,JM_BC_NA,State_Grid%NZ)
+      REAL(fp)    :: TMP_WINDOW_EUT(IM_BC_EU,JM_BC_EU,State_Grid%NZ)
+      REAL*4            :: ARRAYTEMPR(576,361,73)
+      INTEGER           :: L,IU_RST,IOS
+      INTEGER           :: NI,NJ,NK,I,J,K
+      LOGICAL           :: LPRT
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! NOTE: Species units are in kg/kg dry which may be incompatible with 
@@ -942,7 +956,7 @@
       IOS=1
       NI=IM_BC_CH
       NJ=JM_BC_CH
-      NK=LLPAR
+      NK=State_Grid%NZ
 
       IF ( LPRT ) THEN
          WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_READ_AND_APPLY_FEEDBACK"
@@ -967,8 +981,8 @@
           
                 SPC( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1,
      &             J0_BC_CH + 2 : J0_BC_CH + JM_BC_CH-1,
-     &             LLPAR,L) =
-     &    TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
+     &             State_Grid%NZ,L) =
+     &    TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,State_Grid%NZ)
          ENDDO
          CLOSE( IU_RST )
 
@@ -985,8 +999,8 @@
          TMP_WINDOW_CH=TMP_WINDOW_CHT 
              SPC(I0_BC_CH + 2:I0_BC_CH + IM_BC_CH-1,
      &                  J0_BC_CH + 2:J0_BC_CH + JM_BC_CH-1,
-     &                  LLPAR,L) =
-     &     TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
+     &                  State_Grid%NZ,L) =
+     &     TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,State_Grid%NZ)
           ENDDO
          CLOSE( IU_RST )
 
@@ -1009,8 +1023,8 @@
          TMP_WINDOW_NA=TMP_WINDOW_NAT
               SPC( I0_BC_NA + 3 : I0_BC_NA + IM_BC_NA-2,
      &             J0_BC_NA + 3 : J0_BC_NA + JM_BC_NA-2,
-     &             LLPAR,L) =
-     &      TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,LLPAR)
+     &             State_Grid%NZ,L) =
+     &      TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,State_Grid%NZ)
          ENDDO
       CLOSE( IU_RST )
 
@@ -1027,8 +1041,8 @@
          TMP_WINDOW_NA=TMP_WINDOW_NAT
              SPC(I0_BC_NA + 3:I0_BC_NA + IM_BC_NA-2,
      &                  J0_BC_NA + 3:J0_BC_NA + JM_BC_NA-2,
-     &                  LLPAR,L) =
-     &       TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,LLPAR)
+     &                  State_Grid%NZ,L) =
+     &       TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,State_Grid%NZ)
           ENDDO
       CLOSE( IU_RST )
 
@@ -1051,8 +1065,8 @@
          TMP_WINDOW_EU=TMP_WINDOW_EUT
               SPC( I0_BC_EU + 2 : I0_BC_EU + IM_BC_EU-1,
      &             J0_BC_EU + 2 : J0_BC_EU + JM_BC_EU-1,
-     &             LLPAR,L) =
-     &     REAL(TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR),8)
+     &             State_Grid%NZ,L) =
+     &    REAL(TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,State_Grid%NZ),8)
          ENDDO
       !CLOSE( 2 )
 
@@ -1069,8 +1083,8 @@
          TMP_WINDOW_EU=TMP_WINDOW_EUT
              SPC(I0_BC_EU + 2:I0_BC_EU + IM_BC_EU-1,
      &                  J0_BC_EU + 2:J0_BC_EU + JM_BC_EU-1,
-     &                  LLPAR,L) =
-     &    REAL(TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR),8)
+     &                  State_Grid%NZ,L) =
+     &    REAL(TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,State_Grid%NZ),8)
          ENDDO
       !CLOSE( 2 )
       ENDIF
@@ -1104,11 +1118,11 @@
 ! !LOCAL VARIABLES:
 !
       USE PRECISION_MOD
-      INTEGER, INTENT(IN)     :: NX_ORIG, NY_ORIG, NX_NEW, NY_NEW, NZ
-      REAL(fp),  INTENT(IN)     :: ORIG_ARRAY(NX_ORIG, NY_ORIG, NZ)
-      REAL(fp),  INTENT(OUT)    :: NEW_ARRAY(NX_NEW, NY_NEW, NZ)
+      INTEGER,  INTENT(IN)     :: NX_ORIG, NY_ORIG, NX_NEW, NY_NEW, NZ
+      REAL(fp), INTENT(IN)     :: ORIG_ARRAY(NX_ORIG, NY_ORIG, NZ)
+      REAL(fp), INTENT(OUT)    :: NEW_ARRAY(NX_NEW, NY_NEW, NZ)
       ! Local vars
-      INTEGER                 :: K
+      INTEGER                  :: K
 
 
       ! Use direct matrix multiply method for now.

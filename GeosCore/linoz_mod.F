@@ -21,15 +21,9 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PRIVATE DATA MEMBERS:
-!
-      REAL(fp), ALLOCATABLE :: TLSTT(:,:,:,:)
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CLEANUP_LINOZ
-      PUBLIC  :: DO_LINOZ    
-      PUBLIC  :: INIT_LINOZ
+      PUBLIC  :: DO_LINOZ
       PUBLIC  :: LINOZ_READ
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -102,6 +96,7 @@
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  22 Jan 2019 - H.P. Lin    - Move TLSTT to State_Met%TLSTT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,8 +115,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_LINOZ( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE DO_LINOZ( am_I_Root,  Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -129,6 +124,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -137,6 +133,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -180,7 +177,8 @@
 
       ! if new month, get new parameters?
       IF ( MONTH /= LASTMONTH ) THEN
-         CALL LINOZ_STRATL( am_I_Root, Input_Opt, RC )
+         CALL LINOZ_STRATL( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Grid, RC )
          LASTMONTH =  MONTH
       ENDIF
 
@@ -188,8 +186,8 @@
       NSCHEM = GET_TS_CHEM()
 
       ! Call the Linoz chemistry
-      CALL LINOZ_CHEM3( NSCHEM,    am_I_Root, Input_Opt, 
-     &                  State_Met, State_Chm, RC )
+      CALL LINOZ_CHEM3( NSCHEM,    am_I_Root,  Input_Opt, 
+     &                  State_Chm, State_Grid, State_Met, RC )
 
       END SUBROUTINE DO_LINOZ    
 !EOC
@@ -206,18 +204,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_CHEM3( DTCHEM,    am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, RC         )
+      SUBROUTINE LINOZ_CHEM3( DTCHEM,    am_I_Root,  Input_Opt, 
+     &                        State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2   
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AIRMW, AVO
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -225,6 +223,7 @@
       REAL(fp),       INTENT(IN)    :: DTCHEM      ! Time step [seconds]
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -285,13 +284,17 @@
       REAL(fp) :: DERCO3,  DMASS,      DTMP, SSO3
 
       ! Arrays
-      REAL(fp) :: DCOLO3  (IIPAR,JJPAR,LLPAR                    )
-      REAL(fp) :: COLO3   (IIPAR,JJPAR,LLPAR                    )
-      REAL(fp) :: OUT_DATA(IIPAR,JJPAR,LLPAR                    )
+      REAL(fp) :: DCOLO3  (State_Grid%NX,State_Grid%NY,State_Grid%NZ )
+      REAL(fp) :: COLO3   (State_Grid%NX,State_Grid%NY,State_Grid%NZ )
+      REAL(fp) :: OUT_DATA(State_Grid%NX,State_Grid%NY,State_Grid%NZ )
 
       ! We need to define local arrays to hold corresponding values 
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: Spc(:,:,:,:)
+
+      ! Define local arrays to hold the previously global TLSTT array
+      ! from the State_Chm object. (hplin, 1/22/19)
+      REAL(fp), POINTER :: TLSTT (:,:,:,:)   ! IM, JM, LM, Input_Opt%LINOZ_NFIELDS
 
       ! From Input_Opt
       LOGICAL       :: LPRT
@@ -311,14 +314,17 @@
       RC         = GC_SUCCESS
 
       ! Dimensions
-      IM         = IIPAR
-      JM         = JJPAR
-      LM         = LLPAR
+      IM         = State_Grid%NX
+      JM         = State_Grid%NY
+      LM         = State_Grid%NZ
       nAdvect    = State_Chm%nAdvect
       L_OVERWRLD = 0
 
       ! Point to chemical species array [v/v dry air]
       Spc        => State_Chm%Species
+
+      ! Point to the TLSTT array
+      TLSTT      => State_Chm%TLSTT
 
       ! Look up the species ID of O3 only on the first call
       IF ( FIRST ) THEN
@@ -366,7 +372,7 @@
       ! Perform stratospheric chemistry
       !=================================================================
 
-      ! **** note dbj: check Spc(I,J,20:LLPAR,NTRACER) = with trop level
+      ! **** note dbj: check Spc(I,J,20:State_Grid%NZ,NTRACER) = with trop level
       ! ****         : check DMASS
       DO ITRC = 1, NUM_TRACER
 
@@ -428,8 +434,8 @@
             ! dbj: for now, set tagged stratospheric tracer to total 
             ! O3 in the overworld to avoid issues with spin ups
             IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-              Spc(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) =
-     &                Spc(I,J,(L_OVERWRLD+1):LLPAR,1)
+              Spc(I,J,(L_OVERWRLD+1):State_Grid%NZ,NTRACER) =
+     &                Spc(I,J,(L_OVERWRLD+1):State_Grid%NZ,1)
             ENDIF
 #endif
            ! IF ( LPRT ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
@@ -456,7 +462,8 @@
                   dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) / ( AIRMW 
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
-     &                 / GET_AREA_CM2(I,J,L) * AVO / (AIRMW / ( AIRMW 
+     &                 / ( State_Grid%Area_M2(I,J) * 1e+4_fp ) 
+     &                 * AVO / (AIRMW / ( AIRMW 
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
      &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
@@ -464,7 +471,8 @@
                   dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) * 
      &                 State_Met%AD(I,J,L) / ( AIRMW 
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
-     &                 / GET_AREA_CM2(I,J,L) * AVO / (AIRMW / ( AIRMW 
+     &                 / ( State_Grid%Area_M2(I,J) * 1e+4_fp )
+     &                 * AVO / (AIRMW / ( AIRMW 
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
      &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
@@ -538,21 +546,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_STRATL( am_I_Root, Input_Opt, RC )
+      SUBROUTINE LINOZ_STRATL( am_I_Root,  Input_Opt, State_Chm,
+     &                         State_Grid, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GC_GRID_MOD,        ONLY : GET_YMID 
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE PRESSURE_MOD
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -597,13 +612,15 @@
       INTEGER           :: NMONTHS_LINOZ
 
       ! Arrays
-!      INTEGER           :: JLATMD(JJPAR                  )
-      REAL(fp)            :: P0L   (LLPAR+1                )
-      REAL(fp)            :: STRT0L(LLPAR+1                )
-      REAL(fp)            :: STRT1L(LLPAR+1                )
-      REAL(fp)            :: STRT2L(LLPAR+1                )
+!     INTEGER             :: JLATMD(State_Grid%NY          )
+      REAL(fp)            :: P0L   (State_Grid%NZ+1        )
+      REAL(fp)            :: STRT0L(State_Grid%NZ+1        )
+      REAL(fp)            :: STRT1L(State_Grid%NZ+1        )
+      REAL(fp)            :: STRT2L(State_Grid%NZ+1        )
       REAL(fp)            :: STRTX (Input_Opt%LINOZ_NLEVELS)
       REAL(fp)            :: YSTRT (Input_Opt%LINOZ_NLAT   )
+
+      REAL(fp), POINTER   :: TLSTT (:,:,:,:)   ! IM, JM, LM, Input_Opt%LINOZ_NFIELDS
 
       ! Month names
       CHARACTER(LEN=3)  :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr',
@@ -619,13 +636,16 @@
       !=================================================================
 
       ! Initialization
-      IM             = IIPAR
-      JM             = JJPAR
+      IM             = State_Grid%NX
+      JM             = State_Grid%NY
       MONTH          = GET_MONTH()
       NFIELDS_LINOZ  = Input_Opt%LINOZ_NFIELDS
       NLAT_LINOZ     = Input_Opt%LINOZ_NLAT
       NLEVELS_LINOZ  = Input_Opt%LINOZ_NLEVELS
       NMONTHS_LINOZ  = Input_Opt%LINOZ_NMONTHS
+
+      ! Point to the TLSTT array in state_chm_mod.F90
+      TLSTT          => State_Chm%TLSTT
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
@@ -680,15 +700,16 @@
       ! (ckeller, 10/19/15)
       !! JLATMD(J) is the nearest-neighbor LINOZ data column corresponding
       !! to each GEOS-Chem latitude index J. (dbj, 6/25/03)
-      !DO J = 1, JJPAR
-      !   JXXX      = INT( 0.1e+0_fp * GET_YMID(1,J,1) + 10.e+0_fp )
+      !DO J = 1, State_Grid%NY
+      !   JXXX      = INT( 0.1e+0_fp * State_Grid%YMid(1,J) + 10.e+0_fp )
       !   JLATMD(J) = MIN( 18,     MAX( 1, JXXX )          )
       !ENDDO
 
       ! P0L are the pressure at the level edges of each GEOS-Chem
       ! grid box, assuming a surface pressure of 1010 hPa (dbj, 6/25/03)
-      DO L = 1, LLPAR+1
-         P0L(L) = GET_AP(LLPAR+2-L) + ( GET_BP(LLPAR+2-L) * PSF )
+      DO L = 1, State_Grid%NZ+1
+         P0L(L) = GET_AP(State_Grid%NZ+2-L) +
+     &          ( GET_BP(State_Grid%NZ+2-L) * PSF )
       ENDDO
 
       !=================================================================
@@ -730,7 +751,7 @@
             ! Now explicitly calculate for every grid box to account for
             ! curvilinear grids. (ckeller, 10/19/15)
             ! JJ = JLATMD(J)
-            JXXX = INT( 0.1e+0_fp * GET_YMID(I,J,1) + 10.e+0_fp )
+            JXXX = INT( 0.1e+0_fp * State_Grid%YMid(I,J) + 10.e+0_fp )
             JJ   = MIN( 18, MAX( 1, JXXX ) )
 
             ! Loop over the # of levels in the LINOZ climatology
@@ -760,15 +781,15 @@
             ENDDO
 
             ! *PJC* Interpolate and calculate moments of column distribution 
-            CALL LINOZ_STRT2M( am_I_Root, Input_Opt, LLPAR,
-     &                         STRTX,     P0L,       STRT0L,
-     &                         STRT1L,    STRT2L,    RC      )
+            CALL LINOZ_STRT2M( am_I_Root,     Input_Opt, State_Grid,
+     &                         State_Grid%NZ, STRTX,     P0L,
+     &                         STRT0L,        STRT1L,    STRT2L,    RC )
 
             ! Store loss freq/yields & moments in TLSTT/SWT/SWW 
             ! for exact CTM layers LM down
             ! Order reversed from C.McLinden version {PJC}
-            DO LR = 1,LLPAR  
-               TLSTT(I,J,LR,N) = STRT0L(LLPAR+1-LR)
+            DO LR = 1,State_Grid%NZ  
+               TLSTT(I,J,LR,N) = STRT0L(State_Grid%NZ+1-LR)
             ENDDO
          ENDDO     ! loop over I
          ENDDO     ! loop over J
@@ -790,31 +811,34 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_STRT2M( am_I_Root, Input_Opt, NSTRT,
-     &                         STRTX,     P0L,       STRT0L,
-     &                         STRT1L,    STRT2L,    RC      )
+      SUBROUTINE LINOZ_STRT2M( am_I_Root, Input_Opt, State_Grid,
+     &                         NSTRT,     STRTX,     P0L,
+     &                         STRT0L,    STRT1L,    STRT2L,    RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       !--------------------------------------------------------------------
       ! am_I_Root : Are we on the root CPU?
       ! Input_Opt : Input Options object
-      ! NSTRT     : # of levels in the GEOS-Chem grid (= LLPAR)
+      ! NSTRT     : # of levels in the GEOS-Chem grid (= State_Grid%NZ)
       ! STRTX     : Quantity on the LINOZ vertical grid
       !             (i.e. fields #1-7 of the LINOZ climatology)
       ! P0L       : Pressure edges on the GEOS-Chem grid
+      ! State_Grid: Grid State object
       !--------------------------------------------------------------------
       LOGICAL,        INTENT(IN)  :: am_I_Root
       TYPE(OptInput), INTENT(IN)  :: Input_Opt
+      TYPE(GrdState), INTENT(IN)  :: State_Grid
       INTEGER,        INTENT(IN)  :: NSTRT
-      REAL(fp),         INTENT(IN)  :: STRTX(Input_Opt%LINOZ_NLEVELS)
-      REAL(fp),         INTENT(IN)  :: P0L(LLPAR+1)
+      REAL(fp),       INTENT(IN)  :: STRTX(Input_Opt%LINOZ_NLEVELS)
+      REAL(fp),       INTENT(IN)  :: P0L(State_Grid%NZ+1)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -824,9 +848,9 @@
       ! STRT2L    : 2nd moment of distribution, on GEOS-Chem grid edges
       ! RC        : Success or failure?
       !--------------------------------------------------------------------
-      REAL(fp),         INTENT(OUT) :: STRT0L(LLPAR+1)
-      REAL(fp),         INTENT(OUT) :: STRT1L(LLPAR+1)
-      REAL(fp),         INTENT(OUT) :: STRT2L(LLPAR+1)
+      REAL(fp),       INTENT(OUT) :: STRT0L(State_Grid%NZ+1)
+      REAL(fp),       INTENT(OUT) :: STRT1L(State_Grid%NZ+1)
+      REAL(fp),       INTENT(OUT) :: STRT2L(State_Grid%NZ+1)
       INTEGER,        INTENT(OUT) :: RC
 !
 ! !REMARKS:
@@ -877,13 +901,13 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER :: NL,  NCBOX, L,      K,    NX
-      REAL(fp)  :: P1,  P2,    F0,     F1
-      REAL(fp)  :: F2,  XPSD,  XPSLM1, XPSL
+      INTEGER  :: NL,  NCBOX, L,      K,    NX
+      REAL(fp) :: P1,  P2,    F0,     F1
+      REAL(fp) :: F2,  XPSD,  XPSLM1, XPSL
 
       ! Arrays
-      REAL(fp)  :: PS(Input_Opt%LINOZ_NLEVELS+6)  ! Old code: PS(NL+1)
-      REAL(fp)  :: F (Input_Opt%LINOZ_NLEVELS+5)  ! Old code: PS(NL)
+      REAL(fp) :: PS(Input_Opt%LINOZ_NLEVELS+6)  ! Old code: PS(NL+1)
+      REAL(fp) :: F (Input_Opt%LINOZ_NLEVELS+5)  ! Old code: PS(NL)
 
       !=================================================================
       ! Initialization
@@ -1289,89 +1313,5 @@
       enddo
 
       END SUBROUTINE LINOZ_INTPL
-!EOC
-!----------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_linoz
-!
-! !DESCRIPTION: Subroutine INIT\_LINOZ allocates and zeroes the module arrays 
-!  used in the Linoz stratospheric ozone algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_LINOZ( am_I_Root, Input_Opt, 
-     &                       State_Chm, State_Diag, RC )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD 
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Diag_Mod,     ONLY : DgnState
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY: 
-!  16 Oct 2009 - R. Yantosca - Initial version
-!  18 Mar 2013 - R. Yantosca - Remove TPARM array since that is now carried
-!                              within the Input_Opt object.
-!  18 Mar 2013 - R. Yantosca - Accept am_I_Root, Input_Opt, RC arguments
-!  14 Mar 2013 - M. Payer    - Replace Ox with O3 for full-chemistry simulation
-!  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
-!  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      ! Assume success
-      RC = GC_SUCCESS
-
-      ! Allocate TLSTT array
-      ALLOCATE( TLSTT( IIPAR, 
-     &                 JJPAR, 
-     &                 LLPAR, 
-     &                 Input_Opt%LINOZ_NFIELDS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TPARM' )
-      TLSTT = 0e+0_fp
-
-      END SUBROUTINE INIT_LINOZ
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_linoz
-!
-! !DESCRIPTION: Subroutine CLEANUP\_LINOZ deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_LINOZ
-!
-! !REVISION HISTORY: 
-!  16 Oct 2009 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      ! Deallocate arrays
-      IF ( ALLOCATED( TLSTT ) ) DEALLOCATE( TLSTT )
-      
-      END SUBROUTINE CLEANUP_LINOZ
 !EOC
       END MODULE LINOZ_MOD

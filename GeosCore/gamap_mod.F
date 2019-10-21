@@ -136,7 +136,7 @@
       INTEGER :: id_BCPI,  id_BCPO,  id_BENZ,  id_C2H2  
       INTEGER :: id_C2H4,  id_C2H6,  id_C3H8,  id_CH2O  
       INTEGER :: id_CH4,   id_CO,    id_EOH,   id_GLYC
-      INTEGER :: id_GLYX,  id_HAC,   id_ISOA1, id_LIMO
+      INTEGER :: id_GLYX,  id_HAC,   id_LIMO
       INTEGER :: id_MEK,   id_MGLY,  id_MTPA,  id_MTPO
       INTEGER :: id_NAP,   id_NH3,   id_NK1,   id_NO
       INTEGER :: id_OCPI,  id_OCPO,  id_OPOA1, id_OPOG1
@@ -202,7 +202,7 @@
       STAMP    = SYSTEM_TIMESTAMP()
 
       ! Get simulation name
-      SIM_NAME = Input_Opt%SIM_NAME
+      SIM_NAME = Input_Opt%SimulationName
 
       ! Write "diaginfo.dat" file
       CALL CREATE_DINFO()
@@ -1572,16 +1572,6 @@
       OFFSET(N)   = SPACING * 37
 
       N           = N + 1
-      CATEGORY(N) = 'HCN-PL-$'
-      DESCRIPT(N) = 'HCN & CH3CN sinks'
-      OFFSET(N)   = SPACING * 38
-
-      N           = N + 1
-      CATEGORY(N) = 'HCN-SRCE'
-      DESCRIPT(N) = 'HCN & CH3CN sources'
-      OFFSET(N)   = SPACING * 39
-
-      N           = N + 1
       CATEGORY(N) = 'CO2-SRCE'
       DESCRIPT(N) = 'CO2 fluxes'
       OFFSET(N)   = SPACING * 40
@@ -1615,16 +1605,6 @@
       CATEGORY(N) = 'TIME-TPS'
       DESCRIPT(N) = 'Fraction of time in troposphere'
       OFFSET(N)   = SPACING * 46
-
-      N           = N + 1
-      CATEGORY(N) = 'PL-H2HD-'
-      DESCRIPT(N) = 'Prod / loss of H2-HD'
-      OFFSET(N)   = SPACING * 47
-
-      N           = N + 1
-      CATEGORY(N) = 'H2HD-SRC'
-      DESCRIPT(N) = 'H2 HD emissions'
-      OFFSET(N)   = SPACING * 48
 
       ! New ND52 diagnostic for gamma(HO2). (jaegle, 2/29/09)
       ! Now save out all variable gamma values (eam, 2014):
@@ -1732,7 +1712,6 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,        ONLY : NSPECRADMENU
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,       ONLY : PD64, PD68, PD72R
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
@@ -1910,10 +1889,10 @@
                CASE( 1 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 5.6397E+22
-               CASE( 2 ) 
+               CASE( 2, 3 ) 
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 2.6141E+19
-               CASE( 3 )
+               CASE( 4, 5, 6, 7 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 4.0513E+21
                CASE DEFAULT
@@ -4733,7 +4712,7 @@
          ! Number of tracers
          IF ( Input_Opt%LSOA ) THEN
             ! hotp updated for SOA (7/31/08)
-            NTRAC(07) = 11
+            NTRAC(07) = 10
          ELSE
             NTRAC(07) = 2
          ENDIF
@@ -4788,14 +4767,10 @@
                   FNAME(T,07) = 'mono+sesq aerosol'
                   INDEX(T,07) = id_TSOA1 + ( SPACING * 33 )
                CASE( 8 ) ! SOAupdate hotp
-                  NAME (T,07) = 'ISOA'
-                  FNAME(T,07) = 'isoprene aerosol'
-                  INDEX(T,07) = id_ISOA1 + ( SPACING * 33 )
-               CASE( 9 ) ! SOAupdate hotp
                   NAME (T,07) = 'ASOA'
                   FNAME(T,07) = 'BTX + IVOC aerosol'
                   INDEX(T,07) = id_ASOA1 + ( SPACING * 33 )
-               CASE( 10 ) ! SOAupdate update 5/27/10 hotp
+               CASE( 9 ) ! SOAupdate update 5/27/10 hotp
                   NAME (T,07) = 'OPOA'
                   FNAME(T,07) = 'OPOA production'
                   IF ( id_OPOA1 > 0 ) THEN ! hotp 6/8/10
@@ -4804,7 +4779,7 @@
                      INDEX(T,07) = 80 + (SPACING * 33 )
                   ENDIF
                   UNIT (T,07) = 'kgC'
-               CASE( 11 ) ! SOAupdate update 5/27/10 hotp
+               CASE( 10 ) ! SOAupdate update 5/27/10 hotp
                   NAME (T,07) = 'OPOG'
                   FNAME(T,07) = 'POG + OH reaction'
                   UNIT (T,07) = 'kgC'
@@ -4818,198 +4793,6 @@
                   ! Nothing
             END SELECT
 
-         ENDDO
-      ENDIF
-
-      !-------------------------------------
-      ! HCN & CH3CN sources & sinks (ND09)
-      !-------------------------------------
-      IF ( ND09 > 0 ) THEN
-         
-         ! Number of tracers
-         NTRAC(09) = nAdvect + 6
-
-         ! Loop over tracers: HCN-PL-$
-         DO T = 1, NTRAC(09)-6
-            SpcInfo     => State_Chm%SpcData(T)%Info
-            NAME (T,09) = SpcInfo%Name
-            FNAME(T,09) = TRIM( SpcInfo%Name ) 
-     &                    // ' lost via OH rxn'
-            UNIT (T,09) = 'kg'
-            INDEX(T,09) = T + ( SPACING * 38 )
-            MOLC (T,09) = 1
-            MWT  (T,09) = SpcInfo%emMW_g * 1.e-3_fp
-            SCALE(T,09) = 1e0
-         ENDDO
-
-         ! Loop over tracers: HCN-SRCE
-         DO T = NTRAC(09)-6+1, NTRAC(09)
-
-            ! Get tracer number, C number, scale factor, unit
-            INDEX(T,09) = ( T - nAdvect ) + ( SPACING * 39 )
-            MOLC (T,09) = 1
-            SCALE(T,09) = 1e0
-            UNIT (T,09) = 'molec/cm2/s'
-              
-            ! Get name, longname, unit, mwt
-            IF ( T == nAdvect+1 ) THEN
-               NAME (T,09) = 'HCNbb'
-               FNAME(T,09) = 'HCN biomass emissions'
-               MWT  (T,09) = 27d-3  ! hard-coded MW
-            ELSE IF ( T == nAdvect+2 ) THEN
-               NAME (T,09) = 'CH3CNbb'
-               FNAME(T,09) = 'CH3CN biomass emissions'
-               MWT  (T,09) = 41d-3  ! hard-coded MW
-            ELSE IF ( T == nAdvect+3 ) THEN
-               NAME (T,09) = 'HCNdf'
-               FNAME(T,09) = 'HCN domestic FF emiss'
-               MWT  (T,09) = 27d-3  ! hard-coded MW
-            ELSE IF ( T == nAdvect+4 ) THEN
-               NAME (T,09) = 'CH3CNdf'
-               FNAME(T,09) = 'CH3CN domestic FF emiss'
-               MWT  (T,09) = 41d-3  ! hard-coded MW
-            ELSE IF ( T == nAdvect+5 ) THEN
-               NAME (T,09) = 'HCNoc'
-               FNAME(T,09) = 'HCN ocean uptake'
-               MWT  (T,09) = 27d-3  ! hard-coded MW
-            ELSE IF ( T == nAdvect+6 ) THEN
-               NAME (T,09) = 'CH3CNoc'
-               FNAME(T,09) = 'CH3CN ocean uptake'
-               MWT  (T,09) = 41d-3  ! hard-coded MW
-            ENDIF
-         ENDDO
-      ENDIF
-    
-      !-------------------------------------      
-      ! H2-HD source, production & loss (ND10)
-      !-------------------------------------      
-      IF ( ND10 > 0 ) THEN
-         
-         ! Number of tracers
-         NTRAC(10) = 20
-
-         ! Loop over tracers 
-         DO T = 1, NTRAC(10)
-
-            ! Define quantities
-            UNIT (T,10) = 'molec/cm3/s' ! overwrite below when needed
-            MOLC (T,10) = 1   
-            SCALE(T,10) = 1e0
-
-            ! Get name, long-name, index, and new units
-            SELECT CASE( T )
-               CASE( 1  )
-                  NAME (T,10) = 'H2oh'
-                  FNAME(T,10) = 'Loss of H2 by OH'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 2  )
-                  NAME (T,10) = 'H2iso'
-                  FNAME(T,10) = 'Prod of H2 from Isoprene'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 3  )
-                  NAME (T,10) = 'H2ch4'
-                  FNAME(T,10) = 'Prod of H2 from CH4'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 4  )
-                  NAME (T,10) = 'H2ch3oh'
-                  FNAME(T,10) = 'Prod of H2 from CH3OH'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 5  )
-                  NAME (T,10) = 'H2mono'
-                  FNAME(T,10) = 'Prod of H2 from MONO'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 6  )
-                  NAME (T,10) = 'H2acet'
-                  FNAME(T,10) = 'Prod of H2 from ACET'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 7  )
-                  NAME (T,10) = 'H2o1d'
-                  FNAME(T,10) = 'Loss of H2 by strat O1D'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 8  )
-                  NAME (T,10) = 'HDoh'
-                  FNAME(T,10) = 'Loss of HD by OH'
-                  UNIT (T,10) = 's-1'
-                  MWT  (T,10) = 3e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 9  )
-                  NAME (T,10) = 'HDiso'
-                  FNAME(T,10) = 'Prod of HD from Isoprene'
-                  MWT  (T,10) = 3e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 10 )
-                  NAME (T,10) = 'HDch4'
-                  FNAME(T,10) = 'Prod of HD from CH4'
-                  MWT  (T,10) = 3e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 11 )
-                  NAME (T,10) = 'HDch3oh'
-                  FNAME(T,10) = 'Prod of HD from CH3OH'
-                  MWT  (T,10) = 3e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 12 )
-                  NAME (T,10) = 'HDmono'
-                  FNAME(T,10) = 'Prod of HD from MONO'
-                  MWT  (T,10) = 3e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 13 )
-                  NAME (T,10) = 'HDacet'
-                  FNAME(T,10) = 'Prod of HD from ACET'
-                  MWT  (T,10) = 3e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 14 )
-                  NAME (T,10) = 'HDo1d'
-                  FNAME(T,10) = 'Loss of HD by strat O1D'
-                  MWT  (T,10) = 3e-3  ! hard-coded MW
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 15 )
-                  NAME (T,10) = 'Alpha'
-                  FNAME(T,10) = 'Ratio of OH k rates kHD/kH2'
-                  UNIT (T,10) = 'unitless'
-                  INDEX(T,10) = T + ( SPACING * 47 )
-               CASE( 16 )
-                  NAME (T,10) = 'H2anth'
-                  FNAME(T,10) = 'Fossil Fuel H2 (anthropogenic)'
-                  UNIT (T,10) = 'molec/cm2/s'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
-               CASE( 17 )
-                  NAME (T,10) = 'H2bb'
-                  FNAME(T,10) = 'Biomass Burning of H2'
-                  UNIT (T,10) = 'molec/cm2/s'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
-
-               CASE( 18 )
-                  NAME (T,10) = 'H2bf'
-                  FNAME(T,10) = 'Biofuel Burning of H2'
-                  UNIT (T,10) = 'molec/cm2/s'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
-
-               CASE( 19 )
-                  NAME (T,10) = 'H2ocean'
-                  FNAME(T,10) = 'Ocean emissions of H2'
-                  UNIT (T,10) = 'molec/cm2/s'
-                  MWT  (T,10) = 2e-3  ! hard-coded MW
-                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
-               CASE( 20 )
-                  NAME (T,10) = 'HDocean'
-                  FNAME(T,10) = 'Ocean emissions of HD'
-                  UNIT (T,10) = 'molec/cm2/s'
-                  MWT  (T,10) = 3e-3  ! hard-coded MW
-                  INDEX(T,10) = ( T - 15 ) + ( SPACING * 48 )
-
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
          ENDDO
       ENDIF
 
@@ -5495,7 +5278,7 @@
                   CASE( 31 )
                      NAME(T,22) = 'JETHLN'
                   CASE( 32 )
-                     NAME(T,22) = 'JDHDN'
+                     NAME(T,22) = 'JDHDC'
                   CASE( 33 )
                      NAME(T,22) = 'JHPALD'
                   CASE( 34 )
@@ -5585,6 +5368,10 @@
                      NAME(T,22) = 'JH1301'
                   CASE( 76 )
                      NAME(T,22) = 'JH2402'
+                  CASE( 77 )
+                     NAME(T,22) = 'JNITs'
+                  CASE( 78 )
+                     NAME(T,22) = 'JNIT'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
@@ -5597,34 +5384,6 @@
                MWT  (T,22) = 0e0
                SCALE(T,22) = 1e0
             ENDDO
-         
-         ELSE IF ( Input_Opt%ITS_A_CH3I_SIM ) THEN
-
-            !------------------
-            ! CH3I run
-            !------------------
-            NTRAC(22)   = 1 
-            NAME (T,22) = 'JCH3I'
-            FNAME(T,22) = TRIM( NAME(T,22) ) // ' photolysis rate'
-            UNIT (T,22) = 's-1'
-            INDEX(T,22) = T + ( SPACING * 13 )
-            MOLC (T,22) = 1
-            MWT  (T,22) = 0e0
-            SCALE(T,22) = 1e0            
-
-         ELSE IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
-
-            !------------------
-            ! HCN run
-            !------------------
-            NTRAC(22)   = 1 
-            NAME (T,22) = 'JHCN'
-            FNAME(T,22) = TRIM( NAME(T,22) ) // ' photolysis rate'
-            UNIT (T,22) = 's-1'
-            INDEX(T,22) = T + ( SPACING * 13 )
-            MOLC (T,22) = 1
-            MWT  (T,22) = 0e0
-            SCALE(T,22) = 1e0    
 
          ENDIF
       ENDIF
@@ -6203,8 +5962,8 @@
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 150e-3
                CASE( 2 )
-                  NAME (T,42) = 'ISOA'
-                  FNAME(T,42) = 'Aer prods of isoprene ox'
+                  NAME (T,42) = 'OBSOLETE3'
+                  FNAME(T,42) = 'This diagnostic is obsolete'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 150e-3
                CASE( 3 )
@@ -6243,12 +6002,12 @@
                   UNIT (T,42) = 'dimless'
                   MWT  (T,42) = 1e-6
                CASE( 10 )
-                  NAME (T,42) = 'POA'
+                  NAME (T,42) = 'POA_C'
                   FNAME(T,42) = 'Aer from SVOCs'
                   UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
                CASE( 11 )
-                  NAME (T,42) = 'OPOA'
+                  NAME (T,42) = 'OPOA_C'
                   FNAME(T,42) = 'Aer prods of pog ox'
                   UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
@@ -6387,8 +6146,7 @@
 
          ! Special handling for tagged simulations
          IF ( Input_Opt%ITS_A_TAGO3_SIM   .or. 
-     &        Input_Opt%ITS_A_MERCURY_SIM .or. 
-     &        Input_Opt%ITS_A_H2HD_SIM  ) THEN
+     &        Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%%             FOR TAGGED SIMULATIONS ONLY             %%%
@@ -7582,10 +7340,10 @@
 
          ! Number of tracers
          IF ( Input_Opt%LUCX ) THEN
-            NTRAC(72) = (NSPECRADMENU+1)*PD72R
+            NTRAC(72) = (Input_Opt%NSPECRADMENU+1)*PD72R
          ELSE
             ! Skip strat aer
-            NTRAC(72) = (NSPECRADMENU)*PD72R
+            NTRAC(72) = (Input_Opt%NSPECRADMENU)*PD72R
          ENDIF
 
          ! Loop over tracers
@@ -7599,10 +7357,10 @@
 
             !get number of current flux type
             IF ( Input_Opt%LUCX ) THEN
-               T0 = ((T-1)/(NSPECRADMENU+1))+1
+               T0 = ((T-1)/(Input_Opt%NSPECRADMENU+1))+1
             ELSE
                ! Skip strat aer
-               T0 = ((T-1)/(NSPECRADMENU))+1
+               T0 = ((T-1)/(Input_Opt%NSPECRADMENU))+1
             ENDIF
 
             SELECT CASE( T0 )
@@ -7687,10 +7445,10 @@
 
             ! Get name long-name (and sometimes, unit)
             IF ( Input_Opt%LUCX ) THEN
-               T1=MOD((T-1),(NSPECRADMENU+1))+1
+               T1=MOD((T-1),(Input_Opt%NSPECRADMENU+1))+1
             ELSE
                ! Skip strat aer
-               T1=MOD((T-1),(NSPECRADMENU))+1
+               T1=MOD((T-1),(Input_Opt%NSPECRADMENU))+1
             ENDIF
 
             SELECT CASE( T1 )
@@ -7909,7 +7667,6 @@
       id_GLYX  = Ind_('GLYX' )
       id_HAC   = Ind_('HAC'  )
       id_HNO3  = Ind_('HNO3' )
-      id_ISOA1 = Ind_('ISOA1')
       id_LIMO  = Ind_('LIMO' )
       id_MEK   = Ind_('MEK'  ) 
       id_MGLY  = Ind_('MGLY' )

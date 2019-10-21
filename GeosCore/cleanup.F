@@ -11,12 +11,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP( am_I_Root, ERROR, RC )
+      SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
 !
 ! !USES:
 !
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
-      USE C2H6_MOD,                ONLY : CLEANUP_C2H6
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
@@ -40,16 +39,14 @@
       USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
       USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-      USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
       USE GEOS_TIMERS_MOD
       USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
-      USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-      USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
+      USE ISORROPIAII_MOD,         ONLY : CLEANUP_ISORROPIAII
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
-      USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
+      USE ObsPack_Mod,             ONLY : ObsPack_SpeciesMap_Cleanup
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
@@ -62,6 +59,7 @@
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
       USE Set_Global_CH4_Mod,      ONLY : Cleanup_Set_Global_CH4
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
+      USE State_Grid_Mod,          ONLY : GrdState
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
 #if   defined( TOMAS )
@@ -81,9 +79,7 @@
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 
 #if   defined( RRTMG )
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_STRAT_CLIM
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_MCICA_CLOUDS
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Cleanup_RRTMG_Rad_Transfer
 #endif
 
 
@@ -93,6 +89,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
+      TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid state object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -177,7 +174,7 @@
 !  (41) Now references CLEANUP_VISTAS_ANTHRO (phs, 3/10/08)
 !  (41) Now references CLEANUP_LINOZ (phs, 10/16/09)
 !  (42) Now references CLEANUP_HDF (amv, bmy, 12/21/09)
-!  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
+!  (43) Now references CLEANUP_ISORROPIAII (ccc, bmy, 1/29/09)
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
 !  (45) Added call to CLEANUP_GLOBAL_OC, which deallocates arrays from
@@ -249,6 +246,7 @@
 !  23 Aug 2017 - R. Yantosca - Now call Cleanup_Grid_Registry
 !  06 Nov 2017 - R. Yantosca - Remove call to Cleanup_Chemgrid
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  22 Jan 2019 - H.P. Lin    - Remove call to CLEANUP_LINOZ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,7 +271,6 @@
       ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
-#if defined( NC_DIAG )
       !=================================================================
       !         ***** H I S T O R Y   C L E A N U P *****
       !
@@ -296,8 +293,6 @@
       CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
 
-#endif
-
       ! UCX needs to be cleaned up before emissions, because the UCX 
       ! restart variables needs to be passed to the HEMCO diagnostics
       ! first.
@@ -308,7 +303,6 @@
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()
-      CALL CLEANUP_C2H6()
       CALL CLEANUP_CARBON()
       CALL CLEANUP_CO2()
 #if defined( BPCH_DIAG )
@@ -346,13 +340,6 @@
          RETURN
       ENDIF
 
-      CALL CLEANUP_GRID( am_I_Root, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Cleanup_Grid"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
       CALL Cleanup_Grid_Registry( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_Grid_Registry"!'
@@ -361,11 +348,9 @@
       ENDIF
 
       CALL CLEANUP_HDF()  
-      CALL CLEANUP_ISOROPIAII()
-      CALL CLEANUP_LINOZ()
+      CALL CLEANUP_ISORROPIAII()
       CALL CLEANUP_MAP_A2A()
       CALL CLEANUP_MERCURY()
-      CALL CLEANUP_MODIS_LAI()
       CALL CLEANUP_OCEAN_MERCURY()
       CALL CLEANUP_DEPO_MERCURY()
       CALL CLEANUP_LAND_MERCURY()
@@ -402,16 +387,19 @@
 #endif
 
 #if   defined( RRTMG )
-      CALL CLEANUP_SURFACE_RAD()  ! Cleanup arrays for surface properties
-      CALL CLEANUP_STRAT_CLIM()
-      CALL CLEANUP_MCICA_CLOUDS()
+      CALL Cleanup_RRTMG_Rad_Transfer( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_RRTMG_Rad_Transfer"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
-#if   defined( GRID05x0625 ) || defined( GRID025x03125)
-      CALL EXIT_TPCORE_WINDOW() 
-#else
-      CALL EXIT_TPCORE()
-#endif
+      IF ( State_Grid%NestedGrid ) THEN
+         CALL EXIT_TPCORE_WINDOW() 
+      ELSE
+         CALL EXIT_TPCORE()
+      ENDIF
 
       ! Cleanup Tagged CO code
       CALL CLEANUP_TAGGED_CO( am_I_Root, RC )

@@ -35,6 +35,9 @@
       PRIVATE :: WET_SETTLING
       PRIVATE :: CHEM_MOPO
       PRIVATE :: CHEM_MOPI
+#if defined( APM )
+      PRIVATE :: WET_SETTLINGBIN
+#endif
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -120,6 +123,9 @@
       INTEGER,  PARAMETER   :: NSALT    = 2
       INTEGER,  PARAMETER   :: NR_MAX   = 200
       REAL(fp), PARAMETER   :: SMALLNUM = 1e-20_fp
+#if defined( APM )
+      INTEGER,  PARAMETER   :: NSALTBIN = 20
+#endif
 !
 ! !PRIVATE TYPES:
 !
@@ -159,8 +165,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt,  State_Met,
-     &                        State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEMSEASALT( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -170,13 +176,19 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
+#if defined( APM )
+!APM_GanLuo+
+      USE APM_INIT_MOD,       ONLY : APMIDS
+#endif
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -218,6 +230,10 @@
       ! Scalars
       LOGICAL           :: prtDebug
 
+#if   defined( APM )
+      REAL(fp)          :: SEASALTS(State_Grid%NX,State_Grid%NY,
+     &                              State_Grid%NZ,NSALTBIN      )
+#endif
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
@@ -241,10 +257,9 @@
       ! Accumulation mode wet settling
       !=================================================================
       IF ( id_SALA > 0 ) THEN
-       CALL WET_SETTLING( am_I_Root,  Input_Opt,
-     &                    State_Met,  State_Chm,
-     &                    State_Diag, Spc(:,:,:,id_SALA),
-     &                    1,          RC                  )
+       CALL WET_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                    State_Diag, State_Grid, State_Met,
+     &                    Spc(:,:,:,id_SALA), 1,  RC )
 
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
@@ -255,10 +270,9 @@
       ! Coarse mode wet settling
       !=================================================================
       IF ( id_SALC > 0 ) THEN
-        CALL WET_SETTLING( am_I_Root,  Input_Opt,
-     &                     State_Met,  State_Chm,
-     &                     State_Diag, Spc(:,:,:,id_SALC),
-     &                     2,          RC                  )
+        CALL WET_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met,
+     &                     Spc(:,:,:,id_SALC), 2,  RC )
 
          IF ( prtDebug ) THEN 
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
@@ -272,8 +286,8 @@
 
          ! Chemistry for hydrophobic MOA
          IF ( id_MOPO > 0 ) THEN
-            CALL CHEM_MOPO( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Diag, RC )
+            CALL CHEM_MOPO( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
             ENDIF
@@ -281,14 +295,33 @@
 
          ! Chemistry for hydrophilic MOA
          IF ( id_MOPI > 0 ) THEN
-            CALL CHEM_MOPI( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Diag, RC )
+            CALL CHEM_MOPI( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
             ENDIF
          ENDIF
 
       ENDIF
+
+#if defined( APM )
+      !----------------------------------------
+      ! Sea salt emissions for extra APM bins
+      !----------------------------------------
+      SEASALTS = 
+     &  Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1))
+      CALL SRCSALTBIN( SEASALTS, State_Grid, State_Met )
+      Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)) = 
+     &  SEASALTS
+
+      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
+
+      !----------------------------------------
+      ! APM microphysics
+      !----------------------------------------
+      CALL WET_SETTLINGBIN( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, State_Met, RC )
+#endif
 
       ! Free pointer
       Spc => NULL()
@@ -308,9 +341,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WET_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                         State_Chm, State_Diag, TC, 
-     &                         N,         RC                     )
+      SUBROUTINE WET_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                         State_Diag, State_Grid, State_Met,
+     &                         TC,         N,          RC )
 !
 ! !USES:
 !
@@ -322,11 +355,11 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -336,13 +369,16 @@
                                                    ! 2=coarse mode
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! MeteorologyState
       TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
+      REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX, ! Sea salt [kg]
+     &                                    State_Grid%NY,
+     &                                    State_Grid%NZ)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -397,8 +433,8 @@
       ! replace RCM with RUM (radis in micron) jaegle 5/11/11
       REAL(fp)                 :: RUM,    RWET,  RATIO_R
       REAL(fp)                 :: TOT1,   TOT2,  DTCHEM
-      REAL(fp)                 :: VTS(LLPAR)  
-      REAL(fp)                 :: TC0(LLPAR)
+      REAL(fp)                 :: VTS(State_Grid%NZ)  
+      REAL(fp)                 :: TC0(State_Grid%NZ)
       ! New variables (jaegle 5/11/11)
       REAL(fp)                 :: SW
       REAL(fp)                 :: R0,       R1, NR, DEDGE, SALT_MASS
@@ -553,16 +589,16 @@
 !$OMP+PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT )
 !$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       ND         )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR       
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX       
 
          ! Initialize 
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             VTS(L) = 0e+0_fp
          ENDDO
 
          ! Loop over levels
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
 
             ! Pressure at center of the level [kPa]
             P       = State_Met%PMID(I,J,L) * 0.1e+0_fp
@@ -706,17 +742,17 @@
          ! implicit and first order accurate in z (rjp, 1/24/02)
 
          ! Save initial tracer concentration in column
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             TC0(L) = TC(I,J,L)
          ENDDO
 
          ! We know the boundary condition at the model top
-         L    = LLCHEM
+         L    = State_Grid%MaxChemLev
          DELZ = State_Met%BXHEIGHT(I,J,L)
 
          TC(I,J,L) = TC(I,J,L) / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
 
-         DO L = LLCHEM-1, 1, -1
+         DO L = State_Grid%MaxChemLev-1, 1, -1
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
             TC(I,J,L) = 1.e+0_fp / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
@@ -740,13 +776,13 @@
             TOT2 = 0e+0_fp
 
             ! Compute column totals of TCO(:) and TC(I,J,:,N)
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                TOT1 = TOT1 + TC0(L)
                TOT2 = TOT2 + TC(I,J,L)
             ENDDO
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -758,7 +794,7 @@
             AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
          ENDIF
 #endif
-#if defined( NC_DIAG )
+
          !-----------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          ! Dry deposition flux loss [molec/cm2/s]
@@ -774,13 +810,13 @@
             TOT2 = 0e+0_fp
 
             ! Compute column totals of TCO(:) and TC(I,J,:,N)
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                TOT1 = TOT1 + TC0(L)
                TOT2 = TOT2 + TC(I,J,L)
             ENDDO
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -794,7 +830,7 @@
             ! Drydep flux in chemistry only
             State_Diag%DryDepChm(I,J,ND) = FLUX
          ENDIF
-#endif
+
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
@@ -817,8 +853,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MOPO( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Diag, RC )
+      SUBROUTINE CHEM_MOPO( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -827,12 +863,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -897,9 +935,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Initial OC [kg]
          TC0  = Spc(I,J,L,id_MOPO)
@@ -946,8 +984,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MOPI( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Diag, RC )
+      SUBROUTINE CHEM_MOPI( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -956,12 +994,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -970,7 +1010,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 ! 
@@ -1004,9 +1044,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Initial H-philic OC [kg]
          TC0 = Spc(I,J,L,id_MOPI)
@@ -1053,8 +1093,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SEASALT( am_I_Root, Input_Opt,
-     &                         State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_SEASALT( am_I_Root,  Input_Opt,  State_Chm,
+     &                         State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -1066,6 +1106,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1073,6 +1114,7 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1137,7 +1179,8 @@
 
       ! Allocate OCCONV only for marine-POA simulations (bmy, 10/13/16)
       IF ( Input_Opt%LMPOA ) THEN
-         ALLOCATE( OCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+         ALLOCATE( OCCONV( State_Grid%NX, State_Grid%NY, State_Grid%NZ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
          OCCONV = 0e+0_fp
       ENDIF
@@ -1226,7 +1269,7 @@
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE SRCSALT30( TC1, TC2, State_Met )
+      SUBROUTINE SRCSALT30( State_Grid, State_Met, TC1, TC2 )
 !
 ! !USES:
 !
@@ -1235,8 +1278,7 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, Xk
@@ -1246,14 +1288,17 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
       ! TC1 : Aerosol number tracer array [no.]
       ! TC2 (REAL(fp) ) : Sea salt tracer array [kg]
-      REAL(fp),  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp),  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp),  INTENT(INOUT) :: TC1(State_Grid%NX,State_Grid%NY,
+     &                                State_Grid%NZ,IBINS)
+      REAL(fp),  INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,
+     &                                State_Grid%NZ,IBINS)
 ! 
 ! !AUTHOR:
 !  Contact: Win Trivitayanurak (win@cmu.edu)  
@@ -1345,25 +1390,24 @@
       !=================================================================
 
       ! Depending on the grid resolution. 4x5 (default) doesn't need adjusting coeff
-#if   defined( GRID4x5  )
-      COEF = 1.e+0_fp
-#elif defined( GRID2x25 )
-      COEF = 1.e+0_fp
-#else
-      CALL ERROR_STOP('Adjust seasalt emiss coeff for your model res.?',
-     &                'SRCSALT30: seasalt_mod.f')
-#endif
-
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+         COEF = 1.e+0_fp
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+         COEF = 1.e+0_fp
+      ELSE
+         CALL ERROR_STOP('Adjust seasalt emiss coeff for grid res.?',
+     &                   'SRCSALT30: seasalt_mod.f')
+      ENDIF
 
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS()
 
       ! Loop over grid cells
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
-         A_M2  = GET_AREA_M2( I, J, 1 )
+         A_M2  = State_Grid%Area_M2(I,J)
          
          ! Check if over ocean assuming only gridcells that are
          ! at least 50% water are oceans (J. Pierce, 3/10/14)
@@ -1399,13 +1443,13 @@
                !===============================================================
 
                ! Layer in which the PBL top occurs
-               NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+               NTOP = CEILING( State_Met%PBL_TOP_L(I,J))
              
                ! Loop thru the boundary layer
                DO L = 1, NTOP
 
                   ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-                  FEMIS = GET_FRAC_OF_PBL( I, J, L )
+                  FEMIS = State_Met%F_OF_PBL(I,J,L)
 
                !================================================================
                ! Add sea-salt number to the tracer array
@@ -1450,6 +1494,437 @@
       ENDDO
 
       END SUBROUTINE SRCSALT30
+!EOC
+#endif
+#if defined( APM )
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: srcsaltbin
+!
+! !DESCRIPTION: SRCSALT routine for APM microphysics
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SRCSALTBIN( TC, State_Grid, State_Met )
+!
+! !USES:
+!
+      USE DAO_MOD,        ONLY : IS_WATER
+      USE ERROR_MOD,      ONLY : DEBUG_MSG, ERROR_STOP
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE APM_INIT_MOD,   ONLY : DFMSALT9  ! kg m-2 s-1
+      USE APM_INIT_MOD,   ONLY : IFSSTSCALE
+      USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,
+     &                                    State_Grid%NZ,NSALTBIN)
+!
+! !REVISION HISTORY: 
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                :: N
+      INTEGER                :: I,     J,      L
+      INTEGER                :: NTOP
+      REAL*8                 :: W10M,  DTEMIS
+      REAL*8                 :: FEMIS, A_M2, SST, SCALESST
+      REAL*8                 :: SALT(State_Grid%NX,State_Grid%NY)
+
+      ! Increment of radius for Emission integration (um)
+      REAL*8, PARAMETER      :: BETHA = 1.d0
+
+      ! External functions
+      REAL(fp)               :: SFCWINDSQR, FOCEAN
+
+      !=================================================================
+      ! SRCSALT begins here!
+      !=================================================================
+      ! Emission timestep [s]
+      DTEMIS = GET_TS_CHEM()
+
+      DO N=1,NSALTBIN
+      ! Initialize source
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+         SALT(I,J)   = 0d0
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, A_M2, W10M, FOCEAN, SFCWINDSQR, SST, SCALESST )
+!$OMP+SCHEDULE( DYNAMIC )
+
+      ! Loop over latitudes
+      DO J = 1, State_Grid%NY
+
+         ! Loop over longitudes
+         DO I = 1, State_Grid%NX
+
+            ! Grid box surface area [m2]
+            A_M2 = State_Grid%AREA_M2(I,J)
+
+            ! Check if over ocean assuming only gridcells that are
+            ! at least 50% water are oceans (J. Pierce, 3/10/14)
+            IF ( IS_WATER( I, J, State_Met ) ) THEN
+              FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
+            ELSE
+              FOCEAN = 0.e+0_fp
+            ENDIF
+
+            IF (FOCEAN > 0.5e+0_fp) THEN 
+
+            ! Wind speed at 10 m altitude [m/s]
+            SFCWINDSQR = State_Met%U10M(I,J)**2  
+     &                 + State_Met%V10M(I,J)**2
+            W10M       = SQRT( SFCWINDSQR )
+
+            ! Loop over size bins
+            IF(IFSSTSCALE==1)THEN
+              ! Sea surface temperature in Celcius (jaegle 5/11/11)
+              SST = State_Met%TSKIN(I,J) - 273.15d0
+
+              ! Limit SST to 0-30C range
+!Yu adjust per disc with Gan              SST = MAX( SST , 0d0 )  ! limit to  0C
+              SST = MAX( SST , 5d0 )  ! limit to  0C
+              SST = MIN( SST , 30d0 ) ! limit to 30C
+
+              ! Empirical SST scaling factor (jaegle 5/11/11)
+              SCALESST = 0.329d0 + 0.0904d0*SST -
+     &                   0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
+
+              ! Update seasalt source into SALT [kg]
+              SALT(I,J)   = SALT(I,J) +
+              ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) at U10 = 9 m/s
+     &        DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS
+     &                   *FOCEAN*SCALESST
+            ELSE
+              ! Update seasalt source into SALT [kg]
+              SALT(I,J)   = SALT(I,J) +
+              ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) at U10 = 9
+              ! m/s
+     &        DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS*FOCEAN
+            ENDIF
+
+            ENDIF
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Now partition seasalt emissions through boundary layer
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, NTOP, L, FEMIS )
+!$OMP+SCHEDULE( DYNAMIC ) 
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         ! Layer in which the PBL top occurs
+         NTOP = CEILING( State_Met%PBL_TOP_L(I,J) )
+
+         ! Loop thru the boundary layer
+         DO L = 1, NTOP
+
+            ! Fraction of the PBL spanned by box (I,J,L) [unitless]
+            FEMIS             = State_Met%F_OF_PBL(I,J,L)
+
+            ! Add seasalt emissions into box (I,J,L) [kg]
+            TC(I,J,L,N)       = TC(I,J,L,N) + FEMIS * SALT(I,J)
+
+         ENDDO
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO  
+
+      ENDDO
+
+      END SUBROUTINE SRCSALTBIN          
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dry_settlingbin
+!
+! !DESCRIPTION: Subroutine WET\_SETTLINGBIN computes the dry settling of 
+!  aerosol tracers. Modified for APM simulation. (G. Luo)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE WET_SETTLINGBIN( am_I_Root,  Input_Opt,  State_Chm,
+     &                            State_Diag, State_Grid, State_Met, RC)
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE PhysConstants
+      USE APM_INIT_MOD,   ONLY : APMIDS
+      USE APM_INIT_MOD,   ONLY : NCTSEA,NSEA
+      USE APM_INIT_MOD,   ONLY : RSALT
+      USE APM_DRIV_MOD,   ONLY : GFTOT3D,DENWET3D
+
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)   :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Now pass Spc via the State_Chm object
+!  17 Oct 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables
+      INTEGER               :: I, J, L, N, K
+      INTEGER               :: IDTEMP1, IDTEMP2
+      REAL*8                :: DT_SETTL, DELZ,  DELZ1
+      REAL*8                :: REFF,     DEN,   CONST   
+      REAL*8                :: NUM,      LAMDA, FLUX
+      REAL*8                :: AREA_CM2, TC0(State_Grid%NZ)
+      REAL*8                :: TOT1,     TOT2
+
+      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
+      REAL*8                :: P 
+
+      ! Diameter of aerosol [um]
+      REAL*8                :: Dp
+
+      ! Pressure * DP
+      REAL*8                :: PDp 
+
+      ! Temperature (K)    
+      REAL*8                :: TEMP        
+
+      ! Slip correction factor
+      REAL*8                :: Slip        
+
+      ! Viscosity of air (Pa s)
+      REAL*8                :: Visc   
+
+      ! Settling velocity of particle (m/s)
+      REAL*8                :: VTS(State_Grid%NZ)
+      REAL*8                :: MASS(State_Grid%NZ)
+      REAL*8                :: OLD(State_Grid%NZ,NCTSEA)
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: Spc(:,:,:,:)
+
+      !=================================================================
+      ! WET_SETTLINGBIN begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+
+      ! Point to Spc
+      Spc => State_Chm%Species
+
+      ! Aerosol settling timestep [s]
+      DT_SETTL = GET_TS_CHEM()
+
+      IDTEMP1 = APMIDS%id_SEABIN1
+      IDTEMP2 = APMIDS%id_SEABIN1+NSEA-1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, K, DEN, REFF, DP )
+!$OMP+PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )
+!$OMP+PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  )
+!$OMP+SCHEDULE( DYNAMIC )
+
+      ! Loop over latitudes
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         DO L = 1, State_Grid%NZ
+            MASS(L) = SUM(Spc(I,J,L,IDTEMP1:IDTEMP2))
+            DO K = 1, NCTSEA
+               OLD(L,K) = Spc(I,J,L,(APMIDS%id_CTSEA+K-1))
+               Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) = 0.D0
+            ENDDO
+         ENDDO
+
+         ! Loop over aerosol bins
+         DO N = 1, NSEA
+
+            DO L = 1, State_Grid%NZ
+
+               TC0(L) = Spc(I,J,L,(APMIDS%id_SEABIN1+N-1))
+
+               IF(TC0(L)>1.D-30)THEN
+                  ! Initialize
+                  DEN   = DENWET3D(I,J,L,2)*1.d3
+                  REFF  = RSALT(N)*GFTOT3D(I,J,L,2)
+
+                  DP    = 2D0 * REFF * 1.D6 ! Dp [um] = particle diameter
+                  CONST = 2D0 * DEN * REFF**2 * g0 / 9D0
+
+                  ! Get P [kPa], T [K], and P*DP
+                  P    = GET_PCENTER(I,J,L) * 0.1d0
+                  TEMP = State_Met%T(I,J,L)
+                  PDP  = P * DP
+
+                  ! Slip correction factor as function of (P*dp)
+                  SLIP = 1d0 + 
+     &                 ( 15.60d0 + 7.0d0 * EXP(-0.059d0*PDP) ) / PDP
+
+                  ! Viscosity [Pa s] of air as a function of temp (K)
+                  VISC = 1.458d-6 * (TEMP)**(1.5d0) / ( TEMP + 110.4d0 )
+
+                  ! Settling velocity [m/s]
+                  VTS(L) = CONST * SLIP / VISC
+               ELSE
+                  VTS(L) = 0.D0
+               ENDIF
+
+            ENDDO
+
+            ! Method is to solve bidiagonal matrix 
+            ! which is implicit and first order accurate in Z
+            L    = State_Grid%NZ
+            IF(MASS(L)>1.D-30)THEN
+              DELZ = State_Met%BXHEIGHT(I,J,L)
+              Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) =
+     &        Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+
+              DO K = 1, NCTSEA
+                Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTSEA+K-1))+
+     &          OLD(L,K)*TC0(L)/MASS(L) /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+              ENDDO
+            ENDIF
+
+            DO L = State_Grid%NZ-1, 1, -1
+            IF((MASS(L)*MASS(L+1))>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) = 1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * (Spc(I,J,L,(APMIDS%id_SEABIN1+N-1))
+     &        + DT_SETTL * VTS(L+1) / DELZ1
+     &        * TC0(L+1) )
+
+              DO K = 1, NCTSEA
+                Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTSEA+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (OLD(L,K)*TC0(L)/MASS(L)
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * OLD(L+1,K)*TC0(L+1)/MASS(L+1) )
+              ENDDO
+            ELSE IF(MASS(L)>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) = 1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * (Spc(I,J,L,(APMIDS%id_SEABIN1+N-1))
+     &        + DT_SETTL * VTS(L+1) / DELZ1
+     &        * TC0(L+1) )
+
+              DO K = 1, NCTSEA
+                Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTSEA+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * OLD(L,K)*TC0(L)/MASS(L)
+              ENDDO
+            ELSE IF(MASS(L+1)>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_SEABIN1+N-1)) = 1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * (Spc(I,J,L,(APMIDS%id_SEABIN1+N-1))
+     &        + DT_SETTL * VTS(L+1) / DELZ1
+     &        * TC0(L+1) )
+
+              DO K = 1, NCTSEA
+                Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTSEA+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * DT_SETTL * VTS(L+1) / DELZ1
+     &          * OLD(L+1,K)*TC0(L+1)/MASS(L+1)
+              ENDDO
+            ENDIF
+
+            ENDDO
+
+         ENDDO
+
+         DO L = 1, State_Grid%NZ
+            DO K = 1, NCTSEA
+               Spc(I,J,L,(APMIDS%id_CTSEA+K-1)) =
+     &            MAX(1.d-30,Spc(I,J,L,(APMIDS%id_CTSEA+K-1)))
+            ENDDO
+         ENDDO
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Clear the pointer
+      Spc => NULL()
+
+      END SUBROUTINE WET_SETTLINGBIN
 !EOC
 #endif
       END MODULE SEASALT_MOD

@@ -25,8 +25,8 @@ netCDF FileName         = GEOS572.YYYYMMDD.CN.4x5.nc
 
 
 ### !DIMENSIONS:     
-lon                     = IIPAR
-lat                     = JJPAR
+lon                     = State_Grid%NX
+lat                     = State_Grid%NY
 time                    = 1
 
 

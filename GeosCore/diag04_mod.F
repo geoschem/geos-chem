@@ -113,19 +113,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG04
+      SUBROUTINE WRITE_DIAG04( Input_Opt, State_Grid )
 !
 ! !USES:
 !
 #if defined( BPCH_DIAG )
-      USE BPCH2_MOD,   ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
-      USE FILE_MOD,    ONLY : IU_BPCH
+      USE BPCH2_MOD,      ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
+      USE FILE_MOD,       ONLY : IU_BPCH
 #endif
-      USE GC_GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,    ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+      USE TIME_MOD,       ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! TINDEX
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !REMARKS:
 !   # : Field     : Description                  : Units       : Scale factor
@@ -155,7 +161,8 @@
 #if defined( BPCH_DIAG )
       INTEGER            :: CENTER180, HALFPOLAR, IFIRST, JFIRST 
       INTEGER            :: LFIRST,    LMAX,      M,      N       
-      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)           :: ARRAY(State_Grid%NX,State_Grid%NY,
+     &                            State_Grid%NZ)
       REAL(f4)           :: LONRES,    LATRES
       REAL(f8)           :: DIAGb,     DIAGe
       REAL(fp)           :: SCALE
@@ -174,12 +181,12 @@
       DIAGb     = GET_DIAGb()
       DIAGe     = GET_DIAGe()
       HALFPOLAR = GET_HALFPOLAR()
-      IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
-      JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
-      LATRES    = DJSIZE
+      IFIRST    = State_Grid%XMinOffset + 1
+      JFIRST    = State_Grid%YMinOffset + 1
+      LATRES    = State_Grid%DY
       LFIRST    = 1
-      LONRES    = DISIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
 
@@ -198,7 +205,7 @@
          IF ( N == 1 ) THEN
 
             CATEGORY     = 'CO2-SRCE'
-            UNIT         = 'molec/cm3/s'
+            UNIT         = 'molec/cm2/s'
             LMAX = LD04
             ARRAY(:,:,1:LMAX) = AD04_chem(:,:,1:LMAX) / SCALE
             
@@ -212,7 +219,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LMAX,    IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
       ENDDO
@@ -232,13 +239,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG04
+      SUBROUTINE INIT_DIAG04( State_Grid )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-   
-      USE CMN_SIZE_MOD 
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REVISION HISTORY: 
 !  26 Jul 2005 - R. Yantosca - Initial version
@@ -261,10 +271,11 @@
       IF ( ND04 == 0 ) RETURN
 
       ! Get number of levels for 3-D arrays
-      LD04 = MIN( ND04, LLPAR )
+      LD04 = MIN( ND04, State_Grid%NZ )
 	
       ! 3-D arrays ("CO2-SRCE")
-      ALLOCATE( AD04_chem( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( AD04_chem(State_Grid%NX,State_Grid%NY,State_Grid%NZ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD04_chem' )
 
       ! Zero arrays

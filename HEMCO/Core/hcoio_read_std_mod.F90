@@ -178,6 +178,8 @@ CONTAINS
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  02 Nov 2018 - M. Sulprizio- Add option to skip variables when they're not
 !                              found in the file
+!  24 Feb 2019 - C. Keller   - Bug fix for interpolation: make sure that it 
+!                              searches both into the future and the past.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,6 +200,7 @@ CONTAINS
     INTEGER                       :: HcoID
     INTEGER                       :: ArbIdx
     INTEGER                       :: nlatEdge, nlonEdge
+    INTEGER                       :: Direction
     REAL(hp)                      :: MW_g, EmMW_g, MolecRatio
     REAL(sp)                      :: wgt1,   wgt2
     REAL(sp), POINTER             :: ncArr(:,:,:,:)
@@ -655,10 +658,24 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_INTER .AND. wgt1 < 0.0_sp ) THEN
 
-       ! Check if there exists another file for a future date 
-       CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile2, &
-                            FOUND, RC, FUTURE=.TRUE. )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       ! No need to read another file if the previous file had exactly the
+       ! time stamp we were looking for.
+       IF ( oYMDhm1 == YMDhma ) THEN
+          FOUND = .FALSE.
+       ELSE
+          ! Check if there exists another file for a future/previous date
+          ! oYMDhm1 is the originally preferred date, YMDhma is the date read
+          ! from the file. If YMDhma is in the future, we need to look for a
+          ! file in the past. Else, need to look for a file in the future.
+          IF ( oYMDhm1 < YMDhma ) THEN
+             Direction = -1
+          ELSE
+             Direction = +1
+          ENDIF
+          CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile2, &
+                               FOUND, RC, Direction = Direction )
+          IF ( RC /= HCO_SUCCESS ) RETURN 
+       ENDIF
 
        ! If found, read data. Assume that all meta-data is the same.
        IF ( FOUND ) THEN
@@ -711,7 +728,18 @@ CONTAINS
           ! weights are calculated based on the originally preferred 
           ! datetime oYMDh1 and the selected datetime of file 1 (YMDhma)
           ! and file 2 (YMDhm1)
-          CALL GetWeights ( YMDhma, YMDhm1, oYMDhm1, wgt1, wgt2 ) 
+          ! If date on file 1 < date on file 2:
+          IF ( YMDhma < YMDhm1 ) THEN
+             CALL GetWeights ( YMDhma, YMDhm1, oYMDhm1, wgt1, wgt2 ) 
+          ! If date on file 1 > date on file 2:
+          ELSEIF ( YMDhma > YMDhm1 ) THEN
+             CALL GetWeights ( YMDhm1, YMDhma, oYMDhm1, wgt2, wgt1 ) 
+          ! If both datetimes are for some reason the same (this should
+          ! not happen!)
+          ELSE
+             wgt1 = 0.5_sp
+             wgt2 = 0.5_sp
+          ENDIF
 
           ! Apply weights
           ncArr = (wgt1 * ncArr) + (wgt2 * ncArr2)
@@ -2358,6 +2386,11 @@ CONTAINS
        IF ( tidx2 < 0 ) THEN
           tidx2 = tidx1 + 1
 
+          ! Make sure that tidx2 does not exceed nTime, which is
+          ! the number of time slices in the file. This can cause
+          ! an out-of-bounds error. (bmy, 3/7/19)
+          IF ( tidx2 > nTime ) tidx2 = nTime
+
           ! Prompt warning
           WRITE(MSG,*) 'Having problems in finding the next time slice ', &
                 'to interpolate from, just take the next available ',     &
@@ -2403,33 +2436,93 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller - Initial version
+!  24 Feb 2019 - C. Keller - Now use julian dates via YMDhm2jd
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: diff1, diff2 
+    REAL(dp)              :: diff1, diff2 
+    REAL(dp)              :: jdc, jd1, jd2 
 
     !=================================================================
     ! GetWeights begins here! 
     !=================================================================
 
+    ! Convert dates to Julian dates 
+    jdc = YMDhm2jd ( cur  ) 
+    jd1 = YMDhm2jd ( int1 ) 
+    jd2 = YMDhm2jd ( int2 ) 
+
     ! Check if outside of range
-    IF ( cur <= int1 ) THEN
+    IF ( jdc <= jd1 ) THEN
        wgt1 = 1.0_sp
-    ELSEIF ( cur >= int2 ) THEN
+    ELSEIF ( jdc >= jd2 ) THEN
        wgt1 = 0.0_sp
     ELSE
-       diff1 = int2 - cur 
-       diff2 = int2 - int1 
-       wgt1  = REAL(diff1,kind=sp) / REAL(diff2,kind=sp)
+       diff1 = jd2 - jdc 
+       diff2 = jd2 - jd1 
+       wgt1  = diff1 / diff2
     ENDIF
 
     ! second weight is just complement of wgt1
     wgt2  = 1.0_sp - wgt1 
 
   END SUBROUTINE GetWeights 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: YMDhm2jd
+!
+! !DESCRIPTION: returns the julian date of element YMDhm.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION YMDhm2jd ( YMDhm ) RESULT ( jd ) 
+!
+! !USES:
+!
+    USE Julday_Mod
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN)  :: YMDhm
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(hp) :: jd 
+!
+! !REVISION HISTORY:
+!  24 Feb 2019 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER               :: yr, mt, dy, hr, mn
+    REAL(dp)              :: utc, day
+
+    !=================================================================
+    ! YMDh2jd begins here! 
+    !=================================================================
+    yr  = FLOOR( MOD( YMDhm, 1.0e12_dp ) / 1.0e8_dp )
+    mt  = FLOOR( MOD( YMDhm, 1.0e8_dp  ) / 1.0e6_dp ) 
+    dy  = FLOOR( MOD( YMDhm, 1.0e6_dp  ) / 1.0e4_dp ) 
+    hr  = FLOOR( MOD( YMDhm, 1.0e4_dp  ) / 1.0e2_dp ) 
+    mn  = FLOOR( MOD( YMDhm, 1.0e2_dp  ) ) 
+    utc = ( REAL(hr,dp) / 24.0_dp    ) + &
+          ( REAL(mn,dp) / 1440.0_dp  ) + &
+          ( REAL(0 ,dp) / 86400.0_dp )
+    day = REAL(dy,dp) + utc
+    jd  = JULDAY( yr, mt, day )
+
+  END FUNCTION YMDhm2jd
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2577,7 +2670,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC, &
-                             FUTURE,    Year )
+                             Direction, Year )
 !
 ! !USES:
 !
@@ -2591,8 +2684,9 @@ CONTAINS
     LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState   ! HEMCO state object
     TYPE(ListCont),   POINTER                 :: Lct        ! HEMCO list container
-    LOGICAL,          INTENT(IN   ), OPTIONAL :: FUTURE     ! If needed, update
-                                                            ! date tokens to future 
+    INTEGER,          INTENT(IN   ), OPTIONAL :: Direction  ! Look for file in
+                                                            ! future (+1) or
+                                                            ! past (-1)
     INTEGER,          INTENT(IN   ), OPTIONAL :: Year       ! To use fixed year 
 !
 ! !OUTPUT PARAMETERS:
@@ -2609,6 +2703,8 @@ CONTAINS
 !  23 Feb 2015 - C. Keller - Now check for negative return values in
 !                            HCO_GetPrefTimeAttr 
 !  06 Nov 2015 - C. Keller - Bug fix: restrict day to last day of month.
+!  24 Feb 2019 - C. Keller - Change flag FUTURE to Direction so that it works
+!                            in both direction
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2664,9 +2760,9 @@ CONTAINS
     ! Check if file exists
     INQUIRE( FILE=TRIM(srcFile), EXIST=HasFile )
 
-    ! If we are looking for a future file, force HasFile to be false.
-    IF ( PRESENT(FUTURE) ) THEN
-       IF ( FUTURE ) HasFile = .FALSE.
+    ! If the direction flag is on, force HasFile to be false.
+    IF ( PRESENT(Direction) ) THEN
+       IF ( Direction /= 0 ) HasFile = .FALSE.
     ENDIF
 
     ! If file does not exist, check if we can adjust prefYr, prefMt, etc.
@@ -2683,8 +2779,8 @@ CONTAINS
 
           ! Date increments
           INC = -1
-          IF ( PRESENT(FUTURE) ) THEN
-             IF ( FUTURE ) INC = 1
+          IF ( PRESENT(Direction) ) THEN
+             INC = Direction 
           ENDIF
 
           ! Initialize counters

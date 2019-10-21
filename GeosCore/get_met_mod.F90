@@ -48,7 +48,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_2D( Q, v_name, t_index )
+  SUBROUTINE Get_Met_2D( State_Grid, Q, v_name, t_index )
 !
 ! !USES:
 !
@@ -56,17 +56,19 @@ CONTAINS
     USE Error_Mod,          ONLY : Error_Stop
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
+    USE State_Grid_Mod,     ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),INTENT(IN)            :: v_name    ! netCDF variable name
-    INTEGER,         INTENT(IN), OPTIONAL  :: t_index   ! Time index (default=1)
+    TYPE(GrdState),  INTENT(IN)            :: State_Grid ! Grid State object
+    CHARACTER(LEN=*),INTENT(IN)            :: v_name     ! netCDF variable name
+    INTEGER,         INTENT(IN), OPTIONAL  :: t_index    ! Time index(default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,          INTENT(OUT)           :: Q(IIPAR,JJPAR) ! Temporary
-                                                             ! data array
+    REAL*4,          INTENT(OUT)           :: Q(State_Grid%NX, & ! Temporary
+                                                State_Grid%NY)   !  data array
 !
 ! !REVISION HISTORY:
 !  04 Mar 2016 - J.W.Zhuang  - Initial version
@@ -133,25 +135,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_3D( Q, v_name, t_index )
+  SUBROUTINE Get_Met_3D( State_Grid, Q, v_name, t_index )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Error_Stop
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
+    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+    USE State_Grid_Mod,     ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),INTENT(IN)            :: v_name    ! netCDF variable name
-    INTEGER,         INTENT(IN), OPTIONAL  :: t_index   ! Time index (default=1)
+    TYPE(GrdState),  INTENT(IN)            :: State_Grid ! Grid State object
+    CHARACTER(LEN=*),INTENT(IN)            :: v_name     ! netCDF variable name
+    INTEGER,         INTENT(IN), OPTIONAL  :: t_index    ! Time index(default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,          INTENT(OUT)           :: Q(IIPAR,JJPAR,LLPAR) ! Temporary
-                                                                   ! data array
+    REAL*4,          INTENT(OUT)           :: Q(State_Grid%NX, & ! Temporary
+                                                State_Grid%NY, & !  data array
+                                                State_Grid%NZ)
 !
 ! !REVISION HISTORY:
 !  04 Mar 2016 - J.W.Zhuang  - Initial version
@@ -218,7 +223,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_3De( Q, v_name, t_index )
+  SUBROUTINE Get_Met_3De( State_Grid, Q, v_name, t_index )
 !
 ! !USES:
 !
@@ -226,17 +231,20 @@ CONTAINS
     USE Error_Mod,          ONLY : Error_Stop
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
+    USE State_Grid_Mod,     ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),INTENT(IN)            :: v_name    ! netCDF variable name
-    INTEGER,         INTENT(IN), OPTIONAL  :: t_index   ! Time index (default=1)
+    TYPE(GrdState),  INTENT(IN)            :: State_Grid ! Grid State object
+    CHARACTER(LEN=*),INTENT(IN)            :: v_name     ! netCDF variable name
+    INTEGER,         INTENT(IN), OPTIONAL  :: t_index    ! Time index(default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,          INTENT(OUT)           :: Q(IIPAR,JJPAR,LLPAR+1)! Temporary
-                                                                    ! data array
+    REAL*4,          INTENT(OUT)           :: Q(State_Grid%NX, & ! Temporary
+                                                State_Grid%NY, & ! data array
+                                                State_Grid%NZ+1)
 !
 ! !REVISION HISTORY:
 !  04 Mar 2016 - J.W.Zhuang  - Initial version

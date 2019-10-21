@@ -141,6 +141,7 @@ MODULE HCO_TYPES_MOD
                                 ! upon level depths?
      LOGICAL  :: ScaleEmis      ! Scale emissions by uniform scale factors set 
                                 ! in HEMCO configuration file? Defaults to yes.
+     LOGICAL  :: TimeShiftCap   ! Cap time shift to same day. Defaults to no.
   END TYPE HcoOpt
 
   !=========================================================================
@@ -297,6 +298,7 @@ MODULE HCO_TYPES_MOD
      TYPE(ListCont), POINTER :: Hour
      INTEGER                 :: FileLun       = -1  ! LUN of file in archive
      CHARACTER(LEN=2023)     :: FileInArchive = ''  ! name of file in archive
+     INTEGER                 :: Counter       =  0  ! ReadList read counter
   END TYPE RdList
 
   !-------------------------------------------------------------------------
@@ -346,6 +348,7 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: tShift(2) ! time stamp shift in months & seconds 
      INTEGER                     :: CycleFlag ! cycle flag
      LOGICAL                     :: MustFind  ! file must be found
+     LOGICAL                     :: UseSimYear! use simulation year 
      INTEGER                     :: UpdtFlag  ! update flag 
      LOGICAL                     :: ncRead    ! read from source?
      TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
@@ -443,6 +446,9 @@ MODULE HCO_TYPES_MOD
      TYPE(HcoErr),       POINTER  :: Err            => NULL()
      TYPE(ModSpc),       POINTER  :: ModelSpc(:)
      INTEGER                      :: nModelSpc
+     INTEGER                      :: nModelAdv
+     CHARACTER(LEN=255)           :: MetField
+     CHARACTER(LEN=255)           :: GridRes
      LOGICAL                      :: ConfigFileRead = .FALSE.
   END TYPE ConfigObj
 
@@ -532,6 +538,7 @@ MODULE HCO_TYPES_MOD
 !  23 Oct 2018 - M. Sulprizio- Added derived type for external model species
 !                              to ConfigObj to facilitate reading GEOS-Chem
 !                              restart file via HEMCO.
+!  07 Feb 2019 - C. Keller   - Added ReadList read counter.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

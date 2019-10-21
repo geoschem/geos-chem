@@ -1,4 +1,4 @@
-List of GEOS-Chem developers (14 May 2018)
+List of Developers for GEOS-Chem, GCPy, and Related Software (24 Jul 2019)
 ===============================================================================
 
 Peter Adams
@@ -22,7 +22,6 @@ Brian Boys
 Erika Brattich
 Tom Breider
 Jared Brewer
-Jared Brewer
 Ellie Browne
 Benjamin Brown-Steiner
 Beata Bukosa
@@ -36,7 +35,6 @@ Claire Carouge
 Therese Carter
 Maria Cazorla
 Sreelekha Chaliyakunnel
-Christopher Chan
 Han Chen
 Jing Chen
 Long Chen
@@ -60,18 +58,19 @@ Nicholas Deutscher
 Maurizio di Pierro
 Aurelien Dommergue
 Easan Drury
-T. Duncan
 Bryan Duncan
-Seb Eastham
+Sebastian Eastham
 Raluca Ellis
 Joseph Enberg
-Mat Evans
+Mathew Evans
+T. Duncan Fairlie
 Sal Farina
 Vivian Faye
 Brendan Field
 Arlene Fiore
 Emily Fischer
 Jenny Fisher
+Eric Fleming
 Judit Flo-Gaya
 Bonne Ford
 Timmy Francis
@@ -102,13 +101,13 @@ Jianping Huang
 Jiayue Huang
 Rynda Hudman Kay
 Kohei Ikeda
-K. J. Liao
+Daniel Jacob
+Andy Jacobson
 Marc Jacobson
 Lyatt Jaegle
 Ruud Jansen
 Zhe Jiang
 Matthew Johnson
-Dylan Jones
 Dylan Jones
 Jaegun Jung
 Prasad Kasibhatla
@@ -122,7 +121,6 @@ Monika Kopacz
 Shannon Koplitz
 Jules Kouatchou
 Stefanie Kremser
-Anne Laerke Soerensen
 Forrest Lacey
 Carmen Lamencusa
 Lok Lamsal
@@ -131,31 +129,34 @@ Kelsey Larson
 David Lary
 Philippe Le Sager
 Chulkyu Lee
+Meemong Lee
 Ralph Lehmann
 Eric Leibensperger
 Maud Leriche
 Fok-Yan Leung
+Bengang Li
 Chi Li
+Ke Li
 Qinbin Li
 Xianglan Li
-Bengang Li
+K. J. Liao
 Qing Liang
 Hong Liao
-Meemong Liee
-Shian-Jiann Lin
+Hiapeng Lin
 Jintai Lin
+Shian-Jiann Lin
 John Linford
-Jane Liu
 Hongyu Liu
+Jane Liu
 Junhua Liu
+Pengfei Liu
 Yang Liu
 Ying Liu
 Jennifer Logan
 Mike Long
-Mike Long
 Lizzie Lundgren
 Gan Luo
-Bram Maasakkers
+J.D. (Bram) Maasakkers
 Helen Macintyre
 Dave MacKenzie
 Emmanuel Mahieu
@@ -164,10 +165,13 @@ Eloise Marais
 Marguerite Marks
 Arjen Markus
 Randall Martin
+Erin McDuffie
 Chris McLinden
+Hongjian Meng
 Nicholas Meskhidze
 Natallia Miatselskaya
 Loretta Mickley
+Christopher Chan Miller
 Dylan Millet
 Kai Ming
 Jonathan Moch
@@ -202,6 +206,7 @@ Michael Prather
 Anna Protonatariou
 Havala Pye
 Asif Qureshi
+Emily Ramnarine
 James Randerson
 Cynthia Randles
 Francois Ravetta
@@ -209,7 +214,7 @@ Wes Reinhart
 David Ridley
 Umberto Rizza
 Daniel Rothenberg
-Sarah Saffedine
+Sarah Safieddine
 Adrian Sandu
 Mauricio Santillana
 Bastien Sauvage
@@ -220,9 +225,12 @@ Rebecca Schwantes
 Noelle Selin
 Michael Seymour
 Viral Shah
+Jingyuan Shao
+Lu Shen
 Tomas Sherwen
 Sam Silva
 Nicole Smith-Downey
+Anne Laerke Soerensen
 Eric Sofen
 Shaojie Song
 Yu Song
@@ -245,14 +253,16 @@ Shu Tao
 Colin Thackray
 Thibaud Thonat
 Maria Tombrou
-Katie Travis
+Katherine Travis
 Win Trivitayanurak
+Corey Trujillo
 Paolo Tuccella
+Alexander Turner
 Solene Turquety
 Zitely Tzompa-Sosa
 Nadine Unger
 Maria Val-Martin
-Aaron van
+Aaron van Donkelaar
 Kostas Varotsos
 Geert Vinken
 Kristina Wagstrom
@@ -260,7 +270,6 @@ Thomas Walker
 Qiaoqiao Wang
 Jun Wang
 Xuan Wang
-Yuxuan Wang
 Yuxuan Wang
 James Wang
 Yuting Wang
@@ -288,6 +297,7 @@ Karen Yu
 Fangqun Yu
 Xu Yue
 Maria Zatko
+Shuting Zhai
 Li Zhang
 Bo Zhang
 Jiawei Zhang

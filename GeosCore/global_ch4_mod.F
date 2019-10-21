@@ -653,8 +653,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,  State_Met,
-     &                    State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEMCH4( am_I_Root,  Input_Opt,  State_Chm,
+     &                    State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -669,12 +669,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -749,7 +751,8 @@
       LOGICAL, SAVE      :: FIRSTCHEM = .TRUE.
       INTEGER            :: I, J, L
 
-      REAL(fp)           :: PREVCH4(IIPAR, JJPAR, LLPAR)
+      REAL(fp)           :: PREVCH4(State_Grid%NX,State_Grid%NY,
+     &                              State_Grid%NZ)
       REAL(fp)           :: BOXVL  
 
       ! Number of days per month
@@ -794,9 +797,9 @@
       !     and in CH4_OHSAVE (kjw, 6/12/09)
       !=================================================================
 
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Grid box volume [cm3]
          BOXVL           = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -867,9 +870,9 @@
          ENDIF
 
          ! NOTE: Can parallelize this loop later
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
             IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
 #if defined( BPCH_DIAG )
@@ -883,8 +886,6 @@
                ENDIF
 #endif
 
-
-#if defined( NC_DIAG )
                !--------------------------------------------------------
                ! HISTORY (aka netCDF diagnostics)
                ! OH concentration in [molec/cm3] after chemistry
@@ -893,7 +894,6 @@
                   State_Diag%OHconcAfterChem(I,J,L) =
      &                 ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
                ENDIF
-#endif
 
             ENDIF
          ENDDO
@@ -905,7 +905,7 @@
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-      CALL CH4_OHSAVE( State_Met, State_Chm )
+      CALL CH4_OHSAVE( State_Chm, State_Grid, State_Met )
 
       !=================================================================
       ! (5) If multi-CH4 species, we store the CH4 total conc. to
@@ -916,9 +916,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
             PREVCH4(I,J,L) = Spc(I,J,L,1)
          ENDDO
          ENDDO
@@ -930,21 +930,21 @@
       !=================================================================
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
-      CALL CH4_DECAY( am_I_Root, Input_Opt,  State_Met, 
-     &                State_Chm, State_Diag, RC         )
+      CALL CH4_DECAY( am_I_Root,  Input_Opt,  State_Chm, 
+     &                State_Diag, State_Grid, State_Met, RC )
 
       !=================================================================
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
-      CALL CH4_STRAT( am_I_Root, Input_Opt,  State_Met, 
-     &                State_Chm, State_Diag, RC         )
+      CALL CH4_STRAT( am_I_Root,  Input_Opt,  State_Chm, 
+     &                State_Diag, State_Grid, State_Met, RC )
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
       !     species. (ccc, 2/10/09)
       !=================================================================
       IF ( LSPLIT ) THEN
-         CALL CH4_DISTRIB( PREVCH4, Input_Opt, State_Chm )
+         CALL CH4_DISTRIB( Input_Opt, State_Chm, State_Grid, PREVCH4 )
       ENDIF
 
       ! Free pointer
@@ -969,12 +969,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_DECAY( am_I_Root, Input_Opt,  State_Met, 
-     &                      State_Chm, State_Diag, RC         )
+      SUBROUTINE CH4_DECAY( am_I_Root,  Input_Opt,  State_Chm, 
+     &                      State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD19   	      
@@ -983,6 +982,7 @@
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TIME_MOD,       ONLY : GET_MONTH
@@ -991,6 +991,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1054,7 +1055,6 @@
       ! Point to the chemical species array
       Spc => State_Chm%Species
 
-#if defined( NC_DIAG )
       !=================================================================
       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
       !
@@ -1068,7 +1068,6 @@
       IF ( State_Diag%Archive_LossCH4byOHinTrop ) THEN
          State_Diag%LossCH4byOHinTrop = 0.0_f4
       ENDIF
-#endif
 
       !=================================================================
       ! Compute decay of CH4 by OH and Cl in the troposphere
@@ -1092,9 +1091,9 @@
 !$OMP+PRIVATE( L, J, I, KRATE, Spc2GCH4, GCH4, C_OH )
 !$OMP+PRIVATE( C_Cl, KRATE_Cl )
 !$OMP+REDUCTION( +:TROPOCH4 )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Only consider tropospheric boxes
          IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -1145,7 +1144,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !-----------------------------------------------------------
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
@@ -1162,7 +1160,6 @@
                State_Diag%LossCH4byOHinTrop(I,J,L) = 
      &            ( GCH4 * KRATE * C_OH ) / Spc2GCH4
             ENDIF
-#endif
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
             GCH4 = GCH4 * ( 1e+0_fp - KRATE    * C_OH * DT )
@@ -1199,20 +1196,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_OHSAVE( State_Met, State_Chm )
+      SUBROUTINE CH4_OHSAVE( State_Chm, State_Grid, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! 
 ! !REMARKS:
 !  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
@@ -1265,9 +1263,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, BOXVL, C_OH, OHMASS, MASST, KCLO, LOSS, KCH4 )
 !$OMP+PRIVATE( CH4TROPMASS, CH4MASS, CH4LOSE, CH4EMIS, AREA_M2 )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR 
-      DO I = 1, IIPAR 
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY 
+      DO I = 1, State_Grid%NX 
 
          ! Only process tropospheric boxes (bmy, 4/17/00)
          IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -1313,7 +1311,7 @@
             IF ( L .GT. 1 ) THEN 
                CH4EMIS = 0e+0_fp
             ELSE
-               AREA_M2 = GET_AREA_CM2( I, J, L ) / 10000.0e+0_fp
+               AREA_M2 = State_Grid%Area_M2(I,J)
 
                ! [kg/m2/s]  --> [molec/box/s]
                CH4EMIS  = CH4_EMIS(I,J,1)
@@ -1363,8 +1361,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_STRAT( am_I_Root, Input_Opt,  State_Met, 
-     &                      State_Chm, State_Diag, RC         )
+      SUBROUTINE CH4_STRAT( am_I_Root,  Input_Opt,  State_Chm, 
+     &                      State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1377,6 +1375,7 @@
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : GET_TS_CHEM
 
@@ -1384,6 +1383,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1453,7 +1453,6 @@
       ! If unified chemistry is active, ignore all of this
       IF ( .not. LUCX ) THEN
 
-#if defined( NC_DIAG )
          !==============================================================
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
          !
@@ -1464,7 +1463,6 @@
          IF ( State_Diag%Archive_LossCH4inStrat ) THEN
             State_Diag%LossCH4inStrat = 0.0_f4
          ENDIF
-#endif
 
          ! Chemistry timestep [s]
          DT  = GET_TS_CHEM()
@@ -1475,9 +1473,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, Spc2GCH4, GCH4, LRATE )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Only proceed if we are outside of the chemistry grid
             IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
@@ -1511,7 +1509,6 @@
                ENDIF
 #endif
 
-#if defined( NC_DIAG )
                !------------------------------------------------------------
                ! %%%%%% HISTORY (aka netCDF diagnostics) %%%%%
                !
@@ -1520,7 +1517,6 @@
                IF ( State_Diag%Archive_LossCH4inStrat ) THEN
                   State_Diag%LossCH4inStrat(I,J,L) = LRATE / Spc2GCH4
                ENDIF
-#endif
 
             ENDIF
          ENDDO
@@ -1548,21 +1544,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_DISTRIB( PREVCH4, Input_Opt, State_Chm )
+      SUBROUTINE CH4_DISTRIB( Input_Opt, State_Chm, State_Grid,
+     &                        PREVCH4 )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
    
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp)                      :: PREVCH4(IIPAR,JJPAR,LLPAR)! CH4 bef chem
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      REAL(fp)                      :: PREVCH4(State_Grid%NX, ! CH4 before chem
+     &                                         State_Grid%NY,
+     &                                         State_Grid%NZ)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1605,9 +1605,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
            Spc(I,J,L,N) = SAFE_DIV(Spc(I,J,L,N),PREVCH4(I,J,L),0.e+0_fp)
      &                     * Spc(I,J,L,1)
          ENDDO
@@ -1635,11 +1635,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root,  Input_Opt, State_Diag,
+     &                            State_Grid, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
 #endif
@@ -1647,11 +1647,16 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
@@ -1700,12 +1705,13 @@
          RETURN
       ENDIF
 
-      ALLOCATE( BAIRDENS( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BAIRDENS( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'global_ch4_mod.F:BAIRDENS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       BAIRDENS = 0e+0_fp
 
-      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, 15 ), STAT=RC )
+      ALLOCATE( CH4_EMIS( State_Grid%NX, State_Grid%NY, 15 ), STAT=RC )
       CALL GC_CheckVar( 'global_ch4_mod.F:CH4_EMIS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       CH4_EMIS = 0e+0_fp

@@ -83,6 +83,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                 :: DoUse
      LOGICAL                 :: FromList 
   END TYPE ExtDat_3S
+
   !=========================================================================
   ! Ext_State: Derived type declaration for the State object containing 
   ! pointers to all met fields and related quantities used by the HEMCO 
@@ -115,7 +116,7 @@ MODULE HCOX_STATE_MOD
      INTEGER                   :: Wetland_CH4    ! Methane emiss from wetlands
      INTEGER                   :: TOMAS_Jeagle   ! TOMAS Jeagle sea salt
      INTEGER                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
-     INTEGER                   :: AeroCom        ! AeroCom volcano 
+     INTEGER                   :: Volcano        ! Volcano emissions
      INTEGER                   :: Inorg_Iodine   ! Oceanic inorganic iodine emissions
 
      !----------------------------------------------------------------------
@@ -156,6 +157,9 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: JOH         ! J-Value for O3->OH  [1/s]
      TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2]
      TYPE(ExtDat_2R),  POINTER :: CHLR        ! daily chlorophyll-a [mg/m3]
+     TYPE(ExtDat_2I),  POINTER :: TropLev     ! Tropopause level [1]
+     TYPE(ExtDat_2R),  POINTER :: FLASH_DENS  ! Lightning flash density [#/km2/s]
+     TYPE(ExtDat_2R),  POINTER :: CONV_DEPTH  ! Convective cloud depth [m]
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
      TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
@@ -320,7 +324,7 @@ CONTAINS
     ExtState%Wetland_CH4    = -1 
     ExtState%TOMAS_Jeagle   = -1
     ExtState%TOMAS_DustDead = -1
-    ExtState%AeroCom        = -1
+    ExtState%Volcano        = -1
     ExtState%Inorg_Iodine   = -1
 
     !-----------------------------------------------------------------------
@@ -423,6 +427,12 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%CHLR, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%FLASH_DENS, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%CONV_DEPTH, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%JNO2, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -480,6 +490,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL ExtDat_Init ( ExtState%CNV_FRC, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%TropLev, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -550,6 +563,8 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%CLDFRC     )
        CALL ExtDat_Cleanup( ExtState%LAI        )
        CALL ExtDat_Cleanup( ExtState%CHLR       )
+       CALL ExtDat_Cleanup( ExtState%FLASH_DENS )
+       CALL ExtDat_Cleanup( ExtState%CONV_DEPTH )
        CALL ExtDat_Cleanup( ExtState%JNO2       )
        CALL ExtDat_Cleanup( ExtState%JOH        )
        CALL ExtDat_Cleanup( ExtState%CNV_MFC    )
@@ -569,6 +584,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%CNV_FRC    )
        CALL ExtDat_Cleanup( ExtState%BYNCY      )
        CALL ExtDat_Cleanup( ExtState%LFR        )
+       CALL ExtDat_Cleanup( ExtState%TropLev    )
 
        ExtState%DRYCOEFF   => NULL()
        ExtState%PBL_MAX    => NULL()

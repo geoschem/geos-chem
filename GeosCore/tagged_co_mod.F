@@ -28,11 +28,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEM_TAGGED_CO
-!----------------------------------------
-! Prior to 10/11/18:
-! Comment out for now (bmy, 10/11/18)
-!      PUBLIC  :: GET_ALPHA_ISOP
-!----------------------------------------
       PUBLIC  :: INIT_TAGGED_CO
       PUBLIC  :: CLEANUP_TAGGED_CO
 !
@@ -164,8 +159,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,  State_Met,
-     &                           State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEM_TAGGED_CO( am_I_Root,  Input_Opt,  State_Chm,
+     &                           State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -176,7 +171,6 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_Error_Mod
       USE HCO_Interface_Mod,  ONLY : HcoState, GetHcoID
@@ -184,6 +178,7 @@
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -193,6 +188,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -282,7 +278,7 @@
 !                              the SUM*CO arrays, they will remain zeroed out.
 !  12 Oct 2016 - R. Yantosca - Bug fix: convert OH from kg/m3 (which HEMCO
 !                              brings in from disk) to molec/cm3.
-!  27 Mar 2017 - R. Yantosca - Now compute ND65 diagnostic before applying the
+!  27 Mar 2017 - R. Yantosca - Now compute 
 !                              loss to the CO tagged species 
 !  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
@@ -401,7 +397,7 @@
 
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
-      CALL CALC_DIURNAL()
+      CALL CALC_DIURNAL( State_Grid )
 
       ! Check HEMCO state object
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
@@ -413,6 +409,13 @@
       ! Zero diagnostic archival arrays to make sure that we don't have any
       ! leftover values from the last timestep near the top of the chemgrid
       IF ( State_Diag%Archive_Loss ) State_Diag%Loss = 0.0_f4
+      IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+         State_Diag%ProdCOfromCH4 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+         State_Diag%ProdCOfromNMVOC = 0.0_f4
+      ENDIF
 
       !=================================================================
       ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
@@ -586,12 +589,12 @@
 !$OMP+PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC ) 
 !$OMP+PRIVATE( PCO_CH4_MCM3S,         PCO_NMVOC_MCM3S,         CO_NMVOC)
 !$OMP+PRIVATE( ERR_VAR, ERR_MSG,      BOXVL                            )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          
          ! Latitude of grid box
-         YMID     = GET_YMID( I, J, L )
+         YMID     = State_Grid%YMid(I,J)
 
          ! Grid box volume [cm3]
          BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -800,16 +803,6 @@
                ! as a constant. (bnd, bmy, 6/14/01)
                !=======================================================
 
-               !--------------------------------------------------------
-               ! Prior to 10/11/18:
-               ! Disable this routine for now, to avoid a call
-               ! to ERROR_STOP within a parallel loop.  We currently
-               ! set ALPHA_ISOP to a constant value anyway.
-               ! (bmy, 10/11/18)
-               !! Get CO yield from isoprene
-               !ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
-               !--------------------------------------------------------
-                             
                ! Get CO yield from ISOPRENE
                ! Use a 30% yield from Miyoshi et al., 1994.
                ! They estimate globally 105 Tg C/yr of CO is produced
@@ -1035,25 +1028,24 @@
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
 
-                  ! Units: [kg/s]
+                  ! Units: [molec CO/cm3/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) +
      &                               ( CORATE * Spc(I,J,L,N) * STTCO)
                   ENDIF
 #endif
 
-#if defined( NC_DIAG )
                   !-----------------------------------------------------
-                  ! ND65 (bpch) diagnostic
+                  ! HISTORY (aka netCDF diagnostics)
                   !
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
+
+                  !Units: [kg/s]
                   IF ( State_Diag%Archive_Loss ) THEN
                      State_Diag%Loss(I,J,L,N) = ( CORATE 
-     &                                        *   Spc(I,J,L,N) 
-     &                                        *   STTCO        )
+     &                                        *   Spc(I,J,L,N) )
                   ENDIF
-#endif
 
                   ! Loss
                   Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1.0_fp - CO_OH )
@@ -1174,14 +1166,13 @@
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
 
-                  ! Units: [kg/s]
+                  ! Units: [molec CO/cm3/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
      &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
                   ENDIF
 #endif
 
-#if defined( NC_DIAG )
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   !
@@ -1192,10 +1183,8 @@
                   IF ( State_Diag%Archive_Loss ) THEN
                      State_Diag%Loss(I,J,L,N) = ( KRATE       
      &                                        *   OH_MOLEC_CM3 
-     &                                        *   Spc(I,J,L,N) 
-     &                                        *   STTCO        )
+     &                                        *   Spc(I,J,L,N) )
                   ENDIF
-#endif
 
                   ! Use tropospheric rate constant 
                   Spc(I,J,L,N) = Spc(I,J,L,N) *
@@ -1232,7 +1221,7 @@
          !==============================================================
          IF ( ND65 > 0 .and. L <= LD65 ) THEN
 
-            ! Loss of CO by OH (global) [s-1]
+            ! Loss of CO by OH (global) [molec CO/cm3/s]
             N             = 1
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
 
@@ -1263,8 +1252,24 @@
             ENDIF
          ENDIF
 #endif
+         !==============================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Production of CO species 
+         !==============================================================
 
-#if defined( NC_DIAG )
+         ! Units: [kg/s] Production of CO from CH4
+         IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+            State_Diag%ProdCOfromCH4(I,J,L) = CO_CH4
+     &                                     / STTCO / DTCHEM
+         ENDIF
+
+         ! Units: [kg/s] Production of CO from NMVOCs
+         IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+            State_Diag%ProdCOfromNMVOC(I,J,L) = CO_NMVOC
+     &                                     / STTCO / DTCHEM
+         ENDIF
+
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -1273,10 +1278,8 @@
 
          ! Units: [kg/s]
          IF ( State_Diag%Archive_Loss ) THEN
-            State_Diag%Loss(I,J,L,1) = ( CO_OH / DTCHEM )
+            State_Diag%Loss(I,J,L,1) = ( CO_OH / STTCO / DTCHEM )
          ENDIF   
-#endif
-
 
       ENDDO
       ENDDO
@@ -1305,15 +1308,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_DIURNAL
+      SUBROUTINE CALC_DIURNAL( State_Grid )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GC_GRID_MOD, ONLY : GET_YMID_R
+      USE State_Grid_Mod, ONLY : GrdState
       USE TIME_MOD, ONLY : ITS_A_NEW_DAY
       USE TIME_MOD, ONLY : GET_MINUTE,    GET_SECOND,      GET_HOUR
       USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
@@ -1385,17 +1392,17 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR, SUNTMP_MID )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
 
                ! Zero SUNTMP_MID
                SUNTMP_MID = 0d0
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R(I,J)
 
                ! Local time at box (I,J) [hours]
-               TIMLOC = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
+               TIMLOC = GET_LOCALTIME( I, J, 1, State_Grid, GMT=GMT_MID)
 
                ! Hour angle at box (I,J) [radians]
                AHR = ABS( TIMLOC - 12d0 ) * 15d00 * PI_180
@@ -1435,94 +1442,6 @@
 
 !EOC
 !------------------------------------------------------------------------------
-! Prior to 10/11/18:
-! Comment out this subroutine for now, it's not used (bmy, 10/11/18)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_alpha_isop
-!!
-!! !DESCRIPTION: Function GET\_ALPHA\_ISOP returns the CO yield from 
-!!  Isoprene (ALPHA\_ISOP) either as a function of NOx or as a constant. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_ALPHA_ISOP( FROM_NOX, NOX ) RESULT( ALPHA_ISOP )
-!!
-!! !USES:
-!!
-!      USE ERROR_MOD, ONLY : ERROR_STOP
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      LOGICAL,  INTENT(IN)           :: FROM_NOX   ! If =T, will take ALPHA_ISOP
-!                                                   ! as f(NOx).  If =F, will set
-!                                                   ! ALPHA_ISOP to a constant
-!      REAL(fp), INTENT(IN), OPTIONAL :: NOX        ! NOx concentration [ppbv]
-!!
-!!
-!! !RETURN VALUE:
-!!
-!      REAL(fp)                       :: ALPHA_ISOP  ! CO yield from ISOP
-!! 
-!! !REVISION HISTORY: 
-!!  13 Jun 2001 - B. Duncan - Initial version
-!!  01 Oct 1995 - R. Yantosca - Initial version
-!!  (1 ) Now make NOx an optional argument (bmy, 8/28/01)
-!!  (2 ) Now reference ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
-!!  (3 ) Updated comments (bmy, 7/20/04)
-!!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!      
-!      ! Assume success
-!      RC = GC_SUCCESS
-!
-!      !=================================================================
-!      ! If FROM_NOX = T, then we are taking the CO yield from Isoprene 
-!      ! as a function of NOx.  Otherwise, we set it to a constant.
-!      !=================================================================
-!      IF ( FROM_NOX ) THEN
-!
-!         ! Make sure NOX is passed if FROM_NOX = TRUE
-!         IF ( PRESENT( NOX ) ) THEN
-!
-!            ! The CO yield here is taken from acf's calculation 
-!            ! (from group meeting (1-20-99).  Assumming linearity, 
-!            ! ALPHA=0.8*[NOx]+0.6, with an upper and lower limit of 2.1 
-!            ! and 0.8, respectively. [NOx] is concentration in ppbv !!
-!            ALPHA_ISOP = ( 0.8e+0_fp * NOX ) + 0.6e+0_fp
-!
-!            ! Force lower & upper limits
-!            IF ( NOX < 0.5e+0_fp ) ALPHA_ISOP = 0.8e+0_fp
-!            IF ( NOX > 1.8e+0_fp ) ALPHA_ISOP = 2.1e+0_fp
-!         
-!         ELSE
-!
-!            ! Stop w/ error message
-!            CALL ERROR_STOP( 'NOx argument not passed!',
-!     &                       ' -> at GET_ALPHA_ISOP (tagged_co_mod.f)' )
-!            RETURN
-!
-!         ENDIF
-!   
-!      ELSE
-!
-!         ! Otherwise, use a 30% yield from Miyoshi et al., 1994.
-!         ! They estimate globally 105 Tg C/yr of CO is produced
-!         ! from isoprene oxidation.
-!         ! ALPHA_ISOP = (0.3 molec CO/atoms C) x (5 atoms C/molec ISOP)
-!         ALPHA_ISOP = 1.5e+0_fp
-!
-!      ENDIF
-!      
-!      END FUNCTION GET_ALPHA_ISOP
-!EOC
-!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -1534,7 +1453,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_CO( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE INIT_TAGGED_CO( am_I_Root,  Input_Opt, State_Diag,
+     &                           State_Grid, RC )
 !
 ! !USES:
 !
@@ -1542,12 +1462,14 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostic state object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1593,31 +1515,31 @@
      &     ' -> at Init_Tagged_CO (in module GeosCore/tagged_co_mod.F)'
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMISOPCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMISOPCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMISOPCO = 0.0_fp 
 
       ! Allocate SUMMONOCO -- array for CO from monoterpenes
-      ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMMONOCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMMONOCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMMONOCO = 0.0_fp 
 
       ! Allocate SUMCH3OH -- array for CO from CH3OH
-      ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMCH3OHCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMCH3OHCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMCH3OHCO = 0.0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
-      ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMACETCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMACETCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMACETCO = 0.0_fp 
 
       ! Allocate TCOSZ -- array for sum of COS(SZA)
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( TCOSZ( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:TCOSZ', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0.0_fp

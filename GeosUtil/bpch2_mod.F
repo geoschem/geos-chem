@@ -27,13 +27,9 @@
 !
       PUBLIC  :: OPEN_BPCH2_FOR_READ 
       PUBLIC  :: OPEN_BPCH2_FOR_WRITE 
-      PUBLIC  :: BPCH2_HDR           
       PUBLIC  :: BPCH2               
-      PUBLIC  :: READ_BPCH2          
+      PUBLIC  :: BPCH2_HDR           
       PUBLIC  :: GET_MODELNAME       
-      PUBLIC  :: GET_NAME_EXT        
-      PUBLIC  :: GET_NAME_EXT_2D     
-      PUBLIC  :: GET_RES_EXT         
       PUBLIC  :: GET_HALFPOLAR       
       PUBLIC  :: GET_TAU0
 
@@ -461,230 +457,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Read_Bpch2
-!
-! !DESCRIPTION: Subroutine READ\_BPCH2 reads a binary punch file (v. 2.0) 
-!  and extracts a data block that matches the given category, tracer, and 
-!  tau value.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_BPCH2( FILENAME, CATEGORY_IN, TRACER_IN, 
-     &                       TAU0_IN,  IX,          JX,          
-     &                       LX,       ARRAY,       QUIET ) 
-!
-! !USES:
-!
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IOERROR
-!
-! !INPUT PARAMETERS: 
-!
-      CHARACTER(LEN=*),  INTENT(IN)  :: FILENAME         ! Bpch file to read
-      CHARACTER(LEN=*),  INTENT(IN)  :: CATEGORY_IN      ! Diag. category name
-      INTEGER,           INTENT(IN)  :: TRACER_IN        ! Tracer index #
-      REAL(f8),          INTENT(IN)  :: TAU0_IN          ! TAU timestamp 
-      INTEGER,           INTENT(IN)  :: IX, JX, LX       ! Dimensions of ARRAY
-      LOGICAL, OPTIONAL, INTENT(IN)  :: QUIET            ! Don't print output
-!
-! !OUTPUT PARAMETERS: 
-!
-      REAL*4,            INTENT(OUT) :: ARRAY(IX,JX,LX)  ! Data array from file
-!
-! !REMARKS:
-!  ###########################################################################
-!  ##### BINARY PUNCH INPUT IS BEING PHASED OUT.  MOST INPUT IS NOW READ #####
-!  ##### FROM COARDS-COMPLIANT netCDF FILES VIA HEMCO (bmy, 4/1/15)      #####
-!  ###########################################################################
-!
-! !REVISION HISTORY:
-!  (1 ) Assumes that we are reading in a global-size data block.
-!  (2 ) Trap all I/O errors with subroutine IOERROR.F.
-!  (3 ) Now stop with an error message if no matches are found. (bmy, 3/9/00)
-!  (4 ) Added this routine to "bpch_mod.f" (bmy, 6/28/00)
-!  (5 ) Use IOS /= 0 criterion to also check for EOF condition (bmy, 9/12/00)
-!  (6 ) TEMPARRAY now dimensioned to be of global size (bmy, 10/12/00) 
-!  (7 ) Removed obsolete code from 10/12/00 (bmy, 12/18/00)
-!  (8 ) Now make TEMPARRAY independent of F77_CMN_SIZE parameters (bmy, 4/17/01)
-!  (9 ) Removed old commented-out code (bmy, 4/20/01)
-!  (10) Now reference IU_FILE and IOERROR from "file_mod.f".  Now call 
-!        OPEN_BPCH2_FOR_READ to open the binary punch file.  Now use IU_FILE
-!        as the unit number instead of a locally-defined IUNIT. (bmy, 7/30/02)
-!  (11) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
-!  (12) Now set IFIRST=1, JFIRST=1 for 1x1 nested grids.  Now needs to
-!        reference "define.h".  Added OPTIONAL QUIET flag. (bmy, 3/14/03)
-!  (13) Now separate off nested grid code in an #ifdef block using
-!        NESTED_CH or NESTED_NA cpp switches (bmy, 12/1/04)
-!  (14) Make TEMPARRAY big enough for GEOS-5 72 levels (and 73 edges) 
-!        (bmy, 2/15/07)
-!  (15) Make TEMPARRAY large enough for 0.5 x 0.666 arrays -- but only if we
-!        are doing a 0.5 x 0.666 nested simulation. (yxw, dan, bmy, 11/6/08)
-!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  18 Dec 2009 - Aaron van D - Add NESTED_EU flag
-!  25 May 2012 - R. Yantosca - Update TEMPARRAY for GRID025x03125
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  26 Sep 2013 - R. Yantosca - Removed SEAC4RS C-preprocessor switch
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  01 Apr 2015 - R. Yantosca - Increase size of TEMPARRAY for nested-grid
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-#if defined( BPCH_DIAG ) || defined( BPCH_TPBC ) || defined( BPCH_TIMESER )
-!
-! !LOCAL VARIABLES:
-! 
-      LOGICAL            :: FOUND, TMP_QUIET
-      INTEGER            :: IU_FILE
-      INTEGER            :: I,  J,  L,  N,  IOS, M
-      INTEGER            :: I1, I2, J1, J2, L1,  L2
-      CHARACTER(LEN=255) :: MSG
-      
-      ! Make TEMPARRAY big enough for a global grid.
-      !
-      ! For GRID025x03125 we need to define this as 1152x721x73.
-      ! We do not need to set the global limits since we currently don't run
-      ! the model at the full global resolution, due to memory restrictions.
-#if defined( GRID025x03125 ) 
-      REAL*4             :: TEMPARRAY(1152,721,73)  
-#else
-      REAL*4             :: TEMPARRAY(360,181,73)   
-#endif
-
-      ! For binary punch file, version 2.0
-      INTEGER            :: NTRACER,   NSKIP
-      INTEGER            :: HALFPOLAR, CENTER180
-      INTEGER            :: NI,        NJ,        NL
-      INTEGER            :: IFIRST,    JFIRST,    LFIRST
-      REAL*4             :: LONRES,    LATRES
-      REAL(f8)           :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)  :: MODELNAME
-      CHARACTER(LEN=40)  :: CATEGORY
-      CHARACTER(LEN=40)  :: UNIT     
-      CHARACTER(LEN=40)  :: RESERVED
-
-      !=================================================================
-      ! READ_BPCH2 begins here!
-      !  
-      ! Initialize some variables
-      !=================================================================
-      FOUND            = .FALSE.
-      ARRAY(:,:,:)     = 0e0
-      TEMPARRAY(:,:,:) = 0e0
-
-      ! Define a temporary variable for QUIET
-      IF ( PRESENT( QUIET ) ) THEN
-         TMP_QUIET = QUIET
-      ELSE
-         TMP_QUIET = .FALSE.
-      ENDIF
-
-      !=================================================================
-      ! Open binary punch file and read top-of-file header.
-      ! Do some error checking to make sure the file is the right format.
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
-
-      ! Open the BPCH file
-      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
-      
-      !=================================================================
-      ! Read data from the binary punch file 
-      !
-      ! NOTE: IOS < 0 is end-of-file, IOS > 0 is error condition
-      !=================================================================
-      DO
-         READ( IU_FILE, IOSTAT=IOS ) 
-     &        MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-         
-         IF ( IOS < 0 ) EXIT
-         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_bpch2:4' )
-
-         READ( IU_FILE, IOSTAT=IOS ) 
-     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
-     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,
-     &        NSKIP
-
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_bpch2:5' )
-
-         READ( IU_FILE, IOSTAT=IOS ) 
-     &        ( ( ( TEMPARRAY(I,J,L), I=1,NI ), J=1,NJ ), L=1,NL )
-
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_bpch2:6' )
-         
-         ! Test for a match
-         IF ( TRIM( CATEGORY_IN ) == TRIM( CATEGORY ) .and. 
-     &        TRACER_IN           == NTRACER          .and.
-     &        TAU0_IN             == ZTAU0 ) THEN
-            FOUND = .TRUE.
-            EXIT
-         ENDIF
-
-      ENDDO
-
-      !=================================================================
-      ! We have found a match!  Copy TEMPARRAY to ARRAY, taking into 
-      ! account the starting positions (IFIRST, JFIRST, LFIRST) of 
-      ! the data block.
-      !=================================================================
-      IF ( FOUND ) THEN 
-
-#if   defined( GRID025x03125 )
-#if   defined(NESTED_CH) || defined(NESTED_NA)     || defined( NESTED_EU ) || defined( NESTED_AS )
-         ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
-         ! *** to block off this section of code (bmy, 12/1/04)  ***
-         ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For
-         ! the 1x1 nested grid.  1x1 met fields & other data are already
-         ! cut down to size to save space. (bmy, 3/11/03)
-         I1 = 1
-         J1 = 1
-         L1 = LFIRST
-#endif
-
-#else
-         ! Otherwise IFIRST, JFIRST, FIRST from the file (bmy, 3/11/03)
-         I1 = IFIRST
-         J1 = JFIRST
-         L1 = LFIRST
-#endif     
- 
-         I2 = NI + I1 - 1
-         J2 = NJ + J1 - 1
-         L2 = NL + L1 - 1
-                  
-         ARRAY( I1:I2, J1:J2, L1:L2 ) = TEMPARRAY( 1:NI, 1:NJ, 1:NL )
-
-         ! Flag to decide whether or not we will echo info (bmy, 3/14/03)
-         IF ( .not. TMP_QUIET ) THEN 
-            WRITE( 6, 100 ) ZTAU0, NTRACER
- 100        FORMAT( 'READ_BPCH2: Found data for TAU = ', f10.2, 
-     &              ' and tracer # ', i6, ' on unit ', i4 )
-         ENDIF
-
-      ELSE
-         MSG = 'No matches found for file ' // TRIM( FILENAME ) // '!'
-         CALL ERROR_STOP( MSG, 'READ_BPCH2 (bpch2_mod.f)!' )
-      ENDIF
-
-      !=================================================================
-      ! Close file and quit
-      !=================================================================
-      CLOSE( IU_FILE )
-
-#endif
-
-      ! Return to calling program
-      END SUBROUTINE READ_BPCH2
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Get_Modelname
 !
 ! !DESCRIPTION: Function GET\_MODELNAME returns the proper value of MODELNAME 
@@ -694,11 +466,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MODELNAME() RESULT( MODELNAME )
+      FUNCTION GET_MODELNAME( Input_Opt, State_Grid )
+     &    RESULT( MODELNAME )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State
 !
 ! !RETURN VALUE:
 !
@@ -730,200 +509,22 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( GEOS_FP ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOSFP_47L'
+#if defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
 
-#elif defined( GEOS_FP )
-      MODELNAME = 'GEOSFP'
-
-#elif defined( MERRA2 ) && defined( GRIDREDUCED )
-      MODELNAME = 'MERRA2_47L'
-      
-#elif defined( MERRA2 ) 
-      MODELNAME = 'MERRA2'
-
-#elif defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID ) 
       MODELNAME = 'EXTERNAL'
+
+#else
+
+      IF ( State_Grid%NZ == 47 ) THEN
+         MODELNAME = TRIM(Input_Opt%MetField) // '_47L'
+      ELSE
+         MODELNAME = TRIM(Input_Opt%MetField)
+      ENDIF
 
 #endif
 
       ! Return to calling program
       END FUNCTION GET_MODELNAME
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Name_Ext
-!
-! !DESCRIPTION: Function GET\_NAME\_EXT returns the proper filename extension 
-!  the current GEOS-Chem met field type.  
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_NAME_EXT() RESULT( NAME_EXT )
-!
-! !RETURN VALUE:
-!
-#if defined( GEOS_FP )
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos5'
-
-#elif defined( MERRA2 )
-      CHARACTER(LEN=6) :: NAME_EXT
-      NAME_EXT = 'merra2'
-
-#elif defined( EXTERNAL_GRID ) || ( EXTERNAL_FORCING )
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'ext'
-
-#endif
-!
-! !REMARKS:
-!  We now read many data files via HEMCO, so we don't have much of a need
-!  of constructing file names w/in the code.  This routine is now pretty
-!  much obsolete and is slated for eventual removal.
-!
-! !REVISION HISTORY:
-!  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
-!  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
-!  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
-!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  13 Aug 2010 - R. Yantosca - MERRA uses "geos5" name extension since its
-!                              grid is identical to GEOS-5.
-!  01 Feb 2012 - R. Yantosca - Now also define output for GEOS-5.7.x met
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  11 Dec 2012 - R. Yantosca - Bug fix: Need to specify both EXTERNAL_GRID and
-!                              EXTERNAL_FORCING Cpp switches
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      END FUNCTION GET_NAME_EXT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Name_Ext_2d
-!
-! !DESCRIPTION: Function GET\_NAME\_EXT\_2D returns the proper filename 
-!  extension for CTM model name for files which do not contain any vertical 
-!  information (i.e. "geos").
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_NAME_EXT_2D() RESULT( NAME_EXT_2D )
-!
-! !RETURN VALUE:
-!
-      CHARACTER(LEN=4) :: NAME_EXT_2D
-!
-! !REMARKS:
-!  We now read many data files via HEMCO, so we don't have much of a need
-!  of constructing file names w/in the code.  This routine is now pretty
-!  much obsolete and is slated for eventual removal.
-!
-! !REVISION HISTORY:
-!  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
-!  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
-!  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
-!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  19 Jul 2012 - R. Yantosca - For MERRA meterology, return "geos", which
-!                              indicates surface data only
-!EOP
-!------------------------------------------------------------------------------
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables
-      CHARACTER(LEN=5) :: TEMP_NAME
-
-      !=================================================================
-      ! GET_NAME_EXT_2D begins here!
-      !=================================================================
-
-      ! Get the name extension
-      TEMP_NAME   = GET_NAME_EXT()
-
-#if defined( MERRA2 )
-
-      ! Return "geos" for MERRA-2 meteorology, to denote data
-      ! that is only defined at the surface
-      NAME_EXT_2D = 'geos'
-
-#else
-
-      ! Take the 1st 4 characters ("geos") and return
-      NAME_EXT_2D = TEMP_NAME(1:4)
-
-#endif
-
-      ! Return to calling program
-      END FUNCTION GET_NAME_EXT_2D 
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Res_Ext
-!
-! !DESCRIPTION: Function GET\_RES\_EXT returns the proper filename extension 
-!  for the GEOS-Chem horizontal grid resolution.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_RES_EXT() RESULT( RES_EXT )
-!
-! !RETURN VALUE:
-!
-#if   defined( GRID4x5 )
-      CHARACTER(LEN=3) :: RES_EXT
-      RES_EXT = '4x5'
-     
-#elif defined( GRID2x25 ) 
-      CHARACTER(LEN=4) :: RES_EXT
-      RES_EXT = '2x25'
-
-#elif defined( GRID05x0625 )
-      CHARACTER(LEN=7) :: RES_EXT
-      RES_EXT = '05x0625'
-
-#elif defined( GRID025x03125 )
-      CHARACTER(LEN=9) :: RES_EXT
-      RES_EXT = '025x03125'
-
-#elif defined( EXTERNAL_GRID )
-      CHARACTER(LEN=8) :: RES_EXT
-      RES_EXT = 'external'
-
-#endif
-!
-! !REMARKS:
-!  We now read many data files via HEMCO, so we don't have much of a need
-!  of constructing file names w/in the code.  This routine is now pretty
-!  much obsolete and is slated for eventual removal.
-!
-! !REVISION HISTORY:
-!  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
-!  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
-!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  10 Feb 2012 - R. Yantosca - Added extension for 0.25 x 0.3125 grids
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  11 Aug 2015 - R. Yantosca - Added extension for 0.5 x 0.625 grids
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      END FUNCTION GET_RES_EXT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

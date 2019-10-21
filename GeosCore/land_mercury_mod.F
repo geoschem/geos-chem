@@ -27,7 +27,10 @@
       PUBLIC :: VEGEMIS
       PUBLIC :: SOILEMIS
       PUBLIC :: LAND_MERCURY_FLUX
-      PUBLIC :: GTMM_DR
+!==============================================================================
+! Disable GTMM until it is brought up-to-date (mps, 3/10/19)
+!      PUBLIC :: GTMM_DR
+!==============================================================================
       PUBLIC :: SNOWPACK_MERCURY_FLUX
       PUBLIC :: INIT_LAND_MERCURY
       PUBLIC :: CLEANUP_LAND_MERCURY
@@ -74,25 +77,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW, State_Met )
+      SUBROUTINE LAND_MERCURY_FLUX( LFLUX,      LHGSNOW,
+     &                              State_Grid, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE DEPO_MERCURY_MOD,   ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: LHGSNOW     ! Use Hg0 from snow?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT) :: LFLUX(IIPAR,JJPAR,N_Hg_CATS) ! Hg0 flux
-                                                                  !  [kg/s]
+      REAL(fp),       INTENT(OUT) :: LFLUX(State_Grid%NX,  ! Hg0 flux [kg/s]
+     &                                     State_Grid%NY,
+     &                                     N_Hg_CATS)
 !
 ! !REVISION HISTORY:
 !  30 Aug 2010 - N. E. Selin, C. Holmes, B. Corbitt - Initial version
@@ -135,8 +142,8 @@
 !$OMP+PRIVATE( I,              J,                NN                 )
 !$OMP+PRIVATE( REEMFRAC,       FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND )  
 !$OMP+PRIVATE( IS_LAND_OR_ICE                                       )
-      DO J  = 1, JJPAR
-      DO I  = 1, IIPAR
+      DO J  = 1, State_Grid%NY
+      DO I  = 1, State_Grid%NX
       DO NN = 1, N_Hg_CATS
     
          ! Distinguish between ice/snow and snow-free land
@@ -323,7 +330,6 @@
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_LAND
       USE ErrCode_Mod
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
@@ -382,7 +388,7 @@
 ! 
 ! !LOCAL VARIABLES:
 !     
-      REAL(fp)        :: DRYSOIL_HG, SOILWATER_HG, AREA_M2, VEG_EMIS
+      REAL(fp)        :: DRYSOIL_HG, SOILWATER_HG, VEG_EMIS
       INTEGER         :: I, J
 
       ! Soil Hg sorption to dissolution ratio, m3/g
@@ -418,20 +424,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so, State_Met )
+      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so, State_Grid, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_LAND
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
 !
 ! !INPUT PARAMETERS:
 !
       REAL(fp), DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
-      TYPE(MetState),         INTENT(IN)  :: State_Met   ! Met State object
+      TYPE(GrdState),           INTENT(IN)  :: State_Grid  ! Grid State object
+      TYPE(MetState),           INTENT(IN)  :: State_Met   ! Met State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -543,8 +550,8 @@
 !$OMP+PRIVATE( I,          J,    SOIL_EMIS                       ) 
 !$OMP+PRIVATE( DRYSOIL_HG, TAUZ, LIGHTFRAC, AREA_M2, SUNCOSVALUE ) 
 !$OMP+PRIVATE( IS_SNOWFREE_LAND, FRAC_SNOWFREE_LAND              )
-      DO J=1, JJPAR
-      DO I=1, IIPAR
+      DO J=1, State_Grid%NY
+      DO I=1, State_Grid%NX
          
          FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
      &                             State_Met%FRSNO(I,J), 0e+0_fp )
@@ -573,7 +580,7 @@
      &           DRYSOIL_HG * SOIL_EMIS_FAC
 
             ! Grid box surface area [m2]
-            AREA_M2   = GET_AREA_M2( I, J, 1 )
+            AREA_M2   = State_Grid%Area_M2(I,J)
  
             ! convert soilnat from ng /m2 /h -> kg /gridbox /s
             EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1e-12_fp / 
@@ -608,19 +615,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, State_Met,
-     &                                  State_Chm )
+      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, State_Chm,
+     &                                  State_Grid, State_Met )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: LHGSNOW     ! Use Hg from snow?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT PARAMETERS: 
@@ -629,8 +638,9 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)  ! Hg0 flux
-                                                                  !  [kg/s]
+      REAL(fp),       INTENT(OUT) :: FLUX(State_Grid%NX,  ! Hg0 flux [kg/s]
+     &                                    State_Grid%NY,
+     &                                    N_Hg_CATS)
 !
 ! !REMARKS:
 !  Emissions are a linear function of Hg mass stored in the snowpack. The
@@ -697,8 +707,8 @@
 !$OMP+PRIVATE( I, J, NN )
 !$OMP+PRIVATE( SNOW_HG_OC_NEW, K_EMIT, SWRAD, SNOW_HG_LN_NEW )
 !$OMP+PRIVATE( FLUX_TMP )
-      DO J  = 1, JJPAR
-      DO I  = 1, IIPAR
+      DO J  = 1, State_Grid%NY
+      DO I  = 1, State_Grid%NX
 
          ! If the sun is set, then no emissions, go to next box
          IF ( State_Met%SUNCOS(I,J) < 0e+0_fp ) CYCLE 
@@ -783,257 +793,267 @@
 
       END SUBROUTINE SNOWPACK_MERCURY_FLUX
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!==============================================================================
+! Disable GTMM for now. This code needs to be brought-up-to-date so that 
+! input data are in netCDF and read in via HEMCO (mps, 3/10/19)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: gtmm_dr
+!!
+!! !DESCRIPTION: GTMM\_DR is a driver to call GTMM from GEOS-Chem.
+!!\\
+!!\\
+!! !INTERFACE: 
+!!
+!      SUBROUTINE GTMM_DR( am_I_Root, Input_Opt, State_Grid, State_Met, 
+!     &                    State_Chm, Hg0gtm,    RC )
+!! 
+!! !USES:
+!!
+!      USE BPCH2_MOD
+!      USE CMN_SIZE_MOD             ! Size parameters
+!      USE DAO_MOD,            ONLY : IS_LAND
+!      USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
+!      USE DEPO_MERCURY_MOD,   ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
+!      USE DEPO_MERCURY_MOD,   ONLY : READ_GTMM_RESTART
+!      USE ErrCode_Mod
+!      USE FILE_MOD,           ONLY : IOERROR
+!      USE Input_Opt_Mod,      ONLY : OptInput
+!      USE inquireMod,         ONLY : findFreeLun
+!      USE State_Chm_Mod,      ONLY : ChmState
+!      USE State_Grid_Mod,     ONLY : GrdState
+!      USE State_Met_Mod,      ONLY : MetState
+!      USE TIME_MOD,           ONLY : EXPAND_DATE, YMD_EXTRACT
+!      USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object      
+!      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!!
+!! !OUTPUT PARAMETERS: 
+!!
+!      ! Emission of Hg0 calculated by GTMM for the month [kg/s]
+!      REAL(fp),       INTENT(OUT)   :: Hg0gtm(State_Grid%NX,
+!     &                                        State_Grid%NY) 
 !
-! !IROUTINE: gtmm_dr
+!      ! Success or failure?
+!      INTEGER,        INTENT(OUT)   :: RC
+!! 
+!! !REMARKS:
+!!  ##########################################################################
+!!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
+!!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
+!!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
+!!  ##########################################################################
+!!
+!! !REVISION HISTORY:
+!!  15 Sep 2009 - C. Carouge  - Initial version
+!!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!!  05 Mar 2015 - R. Yantosca - Now add Input_Opt%RES_DIR to data path
+!!  16 Mar 2017 - R. Yantosca - Now pass State_Chm to READ_GTMM_RESTART
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      INTEGER   :: YEAR    ! Current year 
+!      INTEGER   :: MONTH   ! Current month
+!      INTEGER   :: DAY
+!      INTEGER   :: NYMD, NHMS
 !
-! !DESCRIPTION: GTMM\_DR is a driver to call GTMM from GEOS-Chem.
-!\\
-!\\
-! !INTERFACE: 
+!      REAL(fp)  :: TSURF(State_Grid%NX, State_Grid%NY)    ! Ground temperature
+!      REAL(fp)  :: PRECIP(State_Grid%NX, State_Grid%NY)   ! Total precipitation
+!                                                          ! for the month
+!      REAL(fp)  :: SOLAR_W(State_Grid%NX, State_Grid%NY)  ! Solar radiation for 
+!                                                          ! the month
 !
-      SUBROUTINE GTMM_DR( am_I_Root, Input_Opt, State_Met, 
-     &                    State_Chm, Hg0gtm,    RC )
-! 
-! !USES:
+!      REAL*4,   :: TRACER(State_Grid%NX, State_Grid%NY)   ! Temporary array
 !
-      USE BPCH2_MOD
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE DAO_MOD,            ONLY : IS_LAND
-      USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
-      USE DEPO_MERCURY_MOD,   ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
-      USE DEPO_MERCURY_MOD,   ONLY : READ_GTMM_RESTART
-      USE ErrCode_Mod
-      USE FILE_MOD,           ONLY : IOERROR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE inquireMod,         ONLY : findFreeLun
-      USE State_Met_Mod,      ONLY : MetState
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE TIME_MOD,           ONLY : EXPAND_DATE, YMD_EXTRACT
-      USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
+!      ! Monthly average deposition arrays
+!      REAL(fp)  :: Hg0mth_dry(State_Grid%NX, State_Grid%NY)
+!      REAL(fp)  :: Hg2mth_dry(State_Grid%NX, State_Grid%NY)
+!      REAL(fp)  :: Hg2mth_wet(State_Grid%NX, State_Grid%NY)
 !
-! !INPUT PARAMETERS: 
+!      INTEGER               :: IOS, I, J, L, IU_FILE
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object      
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!      CHARACTER(LEN=255)    :: FILENAME
 !
-! !INPUT/OUTPUT PARAMETERS:
+!      ! For binary punch file, version 2.0
+!      INTEGER               :: NI,        NJ,      NL
+!      INTEGER               :: IFIRST,    JFIRST,  LFIRST
+!      INTEGER               :: HALFPOLAR, CENTER180
+!      INTEGER               :: NTRACER,   NSKIP
+!      REAL*4                :: LONRES,    LATRES
+!      REAL(fp)                :: ZTAU0,     ZTAU1
+!      CHARACTER(LEN=20)     :: MODELNAME
+!      CHARACTER(LEN=40)     :: CATEGORY
+!      CHARACTER(LEN=40)     :: UNIT     
+!      CHARACTER(LEN=40)     :: RESERVED
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
-! !OUTPUT PARAMETERS: 
+!      !=================================================================
+!      ! GTMM_DR begins here!
+!      !=================================================================
 !
-      ! Emission of Hg0 calculated by GTMM for the month [kg/s]
-      REAL(fp),       INTENT(OUT)   :: Hg0gtm(IIPAR, JJPAR) 
-
-      ! Success or failure?
-      INTEGER,        INTENT(OUT)   :: RC
-! 
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
+!      ! Assume success
+!      RC         = GC_SUCCESS
 !
-! !REVISION HISTORY:
-!  15 Sep 2009 - C. Carouge  - Initial version
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  05 Mar 2015 - R. Yantosca - Now add Input_Opt%RES_DIR to data path
-!  16 Mar 2017 - R. Yantosca - Now pass State_Chm to READ_GTMM_RESTART
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!      ! Initialise arrays
+!      NYMD       = GET_NYMD()
+!      NHMS       = GET_NHMS()
 !
-! !LOCAL VARIABLES:
+!      TSURF      = 0e+0_fp
+!      PRECIP     = 0e+0_fp
+!      SOLAR_W    = 0e+0_fp
+!      Hg0gtm     = 0e+0_fp
 !
-      INTEGER   :: YEAR    ! Current year 
-      INTEGER   :: MONTH   ! Current month
-      INTEGER   :: DAY
-      INTEGER   :: NYMD, NHMS
-
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: TSURF    ! Ground temperature
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: PRECIP   ! Total precipitation
-                                                    ! for the month
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: SOLAR_W  ! Solar radiation for 
-                                                    ! the month
-
-      REAL*4, DIMENSION(IIPAR, JJPAR)   :: TRACER   ! Temporary array
-
-      ! Monthly average deposition arrays
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: Hg0mth_dry
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: Hg2mth_dry
-      REAL(fp), DIMENSION(IIPAR, JJPAR)   :: Hg2mth_wet
-
-      INTEGER               :: IOS, I, J, L, IU_FILE
-
-      CHARACTER(LEN=255)    :: FILENAME
-
-      ! For binary punch file, version 2.0
-      INTEGER               :: NI,        NJ,      NL
-      INTEGER               :: IFIRST,    JFIRST,  LFIRST
-      INTEGER               :: HALFPOLAR, CENTER180
-      INTEGER               :: NTRACER,   NSKIP
-      REAL*4                :: LONRES,    LATRES
-      REAL(fp)                :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)     :: MODELNAME
-      CHARACTER(LEN=40)     :: CATEGORY
-      CHARACTER(LEN=40)     :: UNIT     
-      CHARACTER(LEN=40)     :: RESERVED
-
-
-      !=================================================================
-      ! GTMM_DR begins here!
-      !=================================================================
-
-      ! Assume success
-      RC         = GC_SUCCESS
-
-      ! Initialise arrays
-      NYMD       = GET_NYMD()
-      NHMS       = GET_NHMS()
-
-      TSURF      = 0e+0_fp
-      PRECIP     = 0e+0_fp
-      SOLAR_W    = 0e+0_fp
-      Hg0gtm     = 0e+0_fp
-
-      ! Reset deposition arrays.
-      Hg0mth_dry = 0e+0_fp
-      Hg2mth_dry = 0e+0_fp
-      Hg2mth_wet = 0e+0_fp
-
-      CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
-
-      !=================================================================
-      ! Read monthly meteorology fields
-      !=================================================================
-
-      ! Find a free file LUN
-      IU_FILE  = findFreeLun()
-
-      ! File name
-      FILENAME = TRIM( Input_Opt%DATA_DIR ) //
-     &           TRIM( Input_Opt%RES_DIR  ) // 'mercury_201007/' //
-     &           'mean_metfields/' // GET_NAME_EXT() // 
-     &           '/mean_YYYYMM.bpch'
-
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
-    
-      ! Echo some input to the screen
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
- 100  FORMAT( 'G T M M  H g   M E T   F I L E   I N P U T' )
- 110  FORMAT( /, 'GTMM_DR: Reading ', a, ' on unit ', i6  )
-
-      ! Open the binary punch file for input
-      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
-    
-      !-----------------------------------------------------------------
-      ! Read concentrations -- store in the TRACER array
-      !-----------------------------------------------------------------
-      DO 
-         READ( IU_FILE, IOSTAT=IOS )                              
-     &        MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-       
-         ! IOS < 0 is end-of-file, so exit
-         IF ( IOS < 0 ) EXIT
-       
-         ! IOS > 0 is a real I/O error -- print error message
-         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:1' )
-       
-         READ( IU_FILE, IOSTAT=IOS )                               
-     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,  
-     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,    
-     &        NSKIP
-       
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:2' )
-       
-         READ( IU_FILE, IOSTAT=IOS )                               
-     &        ( ( TRACER(I,J), I=1,NI ), J=1,NJ )
-       
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:3' )
-       
-         !--------------------------------------------------------------
-         ! Assign data from the TRACER array to the arrays.
-         !--------------------------------------------------------------
-       
-         ! Process dry deposition data 
-         IF ( CATEGORY(1:8) == 'GMAO-2D' ) THEN 
-          
-            ! Make sure array dimensions are of global size
-            ! (NI=IIPAR; NJ=JJPAR, NL=1), or stop the run
-            CALL CHECK_DIMENSIONS( NI, NJ, NL )
-          
-            ! Save into arrays
-            IF ( NTRACER == 54 .OR. NTRACER == 59 ) THEN
-             
-               !----------
-               ! Surface temperature
-               !----------
-             
-               ! Store surface temperature in TSURF array
-               TSURF(:,:)   = TRACER(:,JJPAR:1:-1)
-             
-            ELSE IF ( NTRACER == 26 .OR. NTRACER == 29 ) THEN
-             
-               !----------
-               ! Total precipitation
-               !----------
-             
-               ! Store precipitation in PRECIP array
-               PRECIP(:,:)   = TRACER(:,JJPAR:1:-1)
-             
-            ELSE IF ( NTRACER == 37 .OR. NTRACER == 51 ) THEN
-
-               !----------
-               ! Solar radiation
-               !----------
-
-               ! Store solar radiation in SOLAR_W array
-               SOLAR_W(:,:) = TRACER(:,JJPAR:1:-1)
-
-            ENDIF
-         ENDIF
-       
-      ENDDO
-    
-      ! Close file
-      CLOSE( IU_FILE )      
-    
-      !=================================================================
-      ! Read GTMM restart file to get data from previous month
-      !=================================================================
-      CALL READ_GTMM_RESTART( am_I_Root,  Input_Opt,  State_Chm,
-     &                        NYMD,       NHMS,       Hg0mth_dry, 
-     &                        Hg2mth_dry, Hg2mth_wet, RC  )
-
-      !=================================================================
-      ! Call GTMM model
-      !=================================================================
-#if defined( GTMM_Hg )
-      CALL GTMM_coupled(YEAR                    , MONTH  , 
-     &                  Hg0mth_dry(:,JJPAR:1:-1), 
-     &                  Hg2mth_dry(:,JJPAR:1:-1), 
-     &                  Hg2mth_wet(:,JJPAR:1:-1), TSURF  , PRECIP, 
-     &                  SOLAR_W                  , Hg0gtm(:,JJPAR:1:-1)
-     &                  )
-#endif
-
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IF ( .NOT.(IS_LAND(I, J, State_Met )) ) Hg0gtm(I,J) = 0e+0_fp
-      ENDDO
-      ENDDO
-
-      END SUBROUTINE GTMM_DR      
-!EOC
+!      ! Reset deposition arrays.
+!      Hg0mth_dry = 0e+0_fp
+!      Hg2mth_dry = 0e+0_fp
+!      Hg2mth_wet = 0e+0_fp
+!
+!      CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
+!
+!      !=================================================================
+!      ! Read monthly meteorology fields
+!      !=================================================================
+!
+!      ! Find a free file LUN
+!      IU_FILE  = findFreeLun()
+!
+!      ! File name
+!      FILENAME = TRIM( Input_Opt%DATA_DIR ) //
+!     &           TRIM( Input_Opt%RES_DIR  ) // 'mercury_201007/' //
+!     &           'mean_metfields/' // GET_NAME_EXT() // 
+!     &           '/mean_YYYYMM.bpch'
+!
+!      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+!      CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
+!    
+!      ! Echo some input to the screen
+!      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!      WRITE( 6, 100   ) 
+!      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
+! 100  FORMAT( 'G T M M  H g   M E T   F I L E   I N P U T' )
+! 110  FORMAT( /, 'GTMM_DR: Reading ', a, ' on unit ', i6  )
+!
+!      ! Open the binary punch file for input
+!      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
+!    
+!      !-----------------------------------------------------------------
+!      ! Read concentrations -- store in the TRACER array
+!      !-----------------------------------------------------------------
+!      DO 
+!         READ( IU_FILE, IOSTAT=IOS )                              
+!     &        MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
+!       
+!         ! IOS < 0 is end-of-file, so exit
+!         IF ( IOS < 0 ) EXIT
+!       
+!         ! IOS > 0 is a real I/O error -- print error message
+!         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:1' )
+!       
+!         READ( IU_FILE, IOSTAT=IOS )                               
+!     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,  
+!     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,    
+!     &        NSKIP
+!       
+!         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:2' )
+!       
+!         READ( IU_FILE, IOSTAT=IOS )                               
+!     &        ( ( TRACER(I,J), I=1,NI ), J=1,NJ )
+!       
+!         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:3' )
+!       
+!         !--------------------------------------------------------------
+!         ! Assign data from the TRACER array to the arrays.
+!         !--------------------------------------------------------------
+!       
+!         ! Process dry deposition data 
+!         IF ( CATEGORY(1:8) == 'GMAO-2D' ) THEN 
+!          
+!            ! Make sure array dimensions are of global size
+!            ! (NI=State_Grid%NX; NJ=State_Grid%NY, NL=1), or stop the run
+!            CALL CHECK_DIMENSIONS( NI, NJ, NL, State_Grid )
+!          
+!            ! Save into arrays
+!            IF ( NTRACER == 54 .OR. NTRACER == 59 ) THEN
+!             
+!               !----------
+!               ! Surface temperature
+!               !----------
+!             
+!               ! Store surface temperature in TSURF array
+!               TSURF(:,:)   = TRACER(:,State_Grid%NY:1:-1)
+!             
+!            ELSE IF ( NTRACER == 26 .OR. NTRACER == 29 ) THEN
+!             
+!               !----------
+!               ! Total precipitation
+!               !----------
+!             
+!               ! Store precipitation in PRECIP array
+!               PRECIP(:,:)   = TRACER(:,State_Grid%NY:1:-1)
+!             
+!            ELSE IF ( NTRACER == 37 .OR. NTRACER == 51 ) THEN
+!
+!               !----------
+!               ! Solar radiation
+!               !----------
+!
+!               ! Store solar radiation in SOLAR_W array
+!               SOLAR_W(:,:) = TRACER(:,State_Grid%NY:1:-1)
+!
+!            ENDIF
+!         ENDIF
+!       
+!      ENDDO
+!    
+!      ! Close file
+!      CLOSE( IU_FILE )      
+!    
+!      !=================================================================
+!      ! Read GTMM restart file to get data from previous month
+!      !=================================================================
+!      CALL READ_GTMM_RESTART( am_I_Root,  Input_Opt,  State_Chm,
+!     &                        State_Grid, NYMD,       NHMS,
+!     &                        Hg0mth_dry, Hg2mth_dry, Hg2mth_wet, RC  )
+!
+!      !=================================================================
+!      ! Call GTMM model
+!      !=================================================================
+!#if defined( GTMM_Hg )
+!      CALL GTMM_coupled( YEAR,
+!     &                   MONTH , 
+!     &                   Hg0mth_dry(:,State_Grid%NY:1:-1), 
+!     &                   Hg2mth_dry(:,State_Grid%NY:1:-1), 
+!     &                   Hg2mth_wet(:,State_Grid%NY:1:-1),
+!     &                   TSURF,
+!     &                   PRECIP, 
+!     &                   SOLAR_W,
+!     &                   Hg0gtm(:,State_Grid%NY:1:-1) )
+!#endif
+!
+!      DO J = 1, State_Grid%NY
+!      DO I = 1, State_Grid%NX
+!         IF ( .NOT.(IS_LAND(I, J, State_Met )) ) Hg0gtm(I,J) = 0e+0_fp
+!      ENDDO
+!      ENDDO
+!
+!      END SUBROUTINE GTMM_DR      
+!!EOC
+!==============================================================================
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

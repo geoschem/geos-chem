@@ -44,6 +44,7 @@ MODULE Species_Database_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: TranUc
+  PRIVATE :: SpcData_To_JSON
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% Uncomment this if you want to use the new henry's law constants
@@ -56,7 +57,8 @@ MODULE Species_Database_Mod
 !
 ! !REVISION HISTORY:
 !  28 Aug 2015 - R. Yantosca - Initial version
-!  02 Aug 2016 - M. Sulprizio- Add KppSpcId to store all KPP species incices.
+!  02 Aug 2016 - M. Sulprizio- Add KppSpcId to store all KPP species indices.
+!  04 Feb 2019 - R. Yantosca - Add function to save species DB in JSON format
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,9 +198,6 @@ CONTAINS
     LOGICAL             :: Is_Advected
     LOGICAL             :: prtDebug
 
-    ! For passive species
-!    LOGICAL             :: IsPassive
-
     ! Species information
     REAL(fp)               :: EmMW_g           ! Emissions mol. wt [g]
     REAL(fp)               :: MolecRatio       ! Molec ratio
@@ -222,6 +221,8 @@ CONTAINS
     REAL(fp)               :: WD_KcScaleFac(3) ! Factor to multiply Kc
     REAL(fp)               :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL                :: WD_CoarseAer     ! Coarse aerosol?
+    LOGICAL                :: Is_DryAlt        ! Is it a drydep species that
+                                               !  to save at a given alt?
     LOGICAL                :: Is_Drydep        ! Is it dry deposited?
     LOGICAL                :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL                :: Is_HygroGrowth   ! Is hygroscopic growth?
@@ -304,6 +305,7 @@ CONTAINS
                       oWD_KcScaleFac  = WD_KcScaleFac,                       &
                       oWD_RainoutEff  = WD_RainoutEff,                       &
                       oWD_CoarseAer   = WD_CoarseAer,                        &
+                      oIs_DryAlt      = Is_DryAlt,                           &
                       oIs_Drydep      = Is_Drydep,                           & 
                       oIs_Gas         = Is_Gas,                              &
                       oIs_HygroGrowth = Is_HygroGrowth,                      &
@@ -364,6 +366,7 @@ CONTAINS
                         WD_RainoutEff  = WD_RainoutEff,                      &
                         WD_CoarseAer   = WD_CoarseAer,                       &
                         Is_Advected    = Is_Advected,                        & 
+                        Is_DryAlt      = Is_DryAlt,                          &
                         Is_Drydep      = Is_Drydep,                          & 
                         Is_Gas         = Is_Gas,                             &
                         Is_HygroGrowth = Is_HygroGrowth,                     &
@@ -385,6 +388,13 @@ CONTAINS
        IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
 
     ENDDO
+
+    !-----------------------------------------------------------------------
+    ! Print Species Database to JSON format
+    ! NOTE: Comment this out unless you really need it!
+    !CALL SpcData_To_JSON( am_I_Root, SpcData, RC )
+    !STOP
+    !-----------------------------------------------------------------------
 
     ! Deallocate temporary work arrays
     CALL Cleanup_Work_Arrays()
@@ -414,11 +424,12 @@ CONTAINS
                        oDD_HStar_Old,   oMP_SizeResAer, oMP_SizeResNum,      &
                        oWD_RetFactor,   oWD_LiqAndGas,  oWD_ConvFacI2G,      &
                        oWD_AerScavEff,  oWD_KcScaleFac, oWD_RainoutEff,      &
-                       oWD_CoarseAer,                                        &
+                       oWD_CoarseAer,   oIs_DryAlt,                          &
                        oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth,     &
                        oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,       &
                        oIs_Hg0,         oIs_Hg2,        oIs_HgP,             &
-                       Found,           Underscores,    RC                  )
+                       oDiagName,       Found,          Underscores,         &
+                       RC                                                   )
 !
 ! !USES:
 !
@@ -465,6 +476,7 @@ CONTAINS
                                                            !  rate in F_AEROSOL
     REAL(fp),INTENT(OUT), OPTIONAL    :: oWD_RainoutEff(3) ! Rainout efficiency
     LOGICAL, INTENT(OUT), OPTIONAL    :: oWD_CoarseAer     ! Coarse aerosol?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_DryAlt        ! Is it a DryAlt species?
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Drydep        ! Is it dry deposited?
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_HygroGrowth   ! Is hygroscopic growth?
@@ -474,6 +486,7 @@ CONTAINS
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg0           ! Denotes Hg0 species
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg2           ! Denotes Hg2 species
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_HgP           ! Denotes HgP species
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oDiagName ! Diagnostics long-name 
     INTEGER, INTENT(OUT)              :: RC                ! Return code
     LOGICAL, INTENT(OUT), OPTIONAL    :: Found             ! Species found? If arg present, 
                                                            ! no error if not found 
@@ -485,6 +498,7 @@ CONTAINS
 !  14 Sep 2018 - C. Keller   - Created standalone subroutine so that species
 !                              info can be queried independently.
 !  23 Oct 2018 - R. Yantosca - Cosmetic changes (consistent indentation)
+!  10 Apr 2019 - R. Yantosca - DHDC should photolyze, not DHDN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -493,6 +507,7 @@ CONTAINS
 !
     ! local species information
     CHARACTER(LEN=31)   :: Name
+    CHARACTER(LEN=31)   :: PName
     CHARACTER(LEN=80)   :: FullName
     CHARACTER(LEN=80)   :: Formula
     REAL(fp)            :: MW_g             ! Molecular weight [g]
@@ -521,6 +536,8 @@ CONTAINS
     REAL(fp)            :: WD_RainoutEff(3) ! Rainout efficiency
     LOGICAL             :: WD_CoarseAer     ! Coarse aerosol?
     LOGICAL             :: Is_Advected      ! Is it advected?
+    LOGICAL             :: Is_DryAlt        ! Is it a drydep species that
+                                            !  we want to save at a given alt?
     LOGICAL             :: Is_Drydep        ! Is it dry deposited?
     LOGICAL             :: Is_Gas           ! Gas (T) or aerosol (F)?
     LOGICAL             :: Is_HygroGrowth   ! Is hygroscopic growth?
@@ -537,6 +554,9 @@ CONTAINS
     INTEGER             :: P, IDX, CNT
     LOGICAL             :: IsPassive
     LOGICAL             :: Uscore    
+    INTEGER             :: C !ramnarine 12/2018
+    
+    CHARACTER(LEN=8)    :: sMW
 
     ! Arrays
     REAL(fp)            :: DvzMinVal(2)
@@ -548,7 +568,7 @@ CONTAINS
     ! Local parameter
     LOGICAL,  PARAMETER :: T        = .TRUE.         ! Yes
     LOGICAL,  PARAMETER :: F        = .FALSE.        ! No
-    REAL(f8), PARAMETER :: To_M_atm = 9.86923e-3_f8  ! mol/m3/Pa -> M/atm
+    REAL(f8), PARAMETER :: To_M_atm = 101.325_f8     ! mol/m3/Pa -> M/atm
 
     !=====================================================================
     ! Spc_Info begins here!
@@ -578,6 +598,7 @@ CONTAINS
     WD_AerScavEff    = MISSING
     WD_KcScaleFac(:) = MISSING
     WD_RainOutEff(:) = MISSING
+    Is_DryAlt        = .FALSE.
     Is_Drydep        = .FALSE.
     Is_Gas           = .FALSE.
     Is_HygroGrowth   = .FALSE.
@@ -865,7 +886,7 @@ CONTAINS
              Is_Wetdep     = F
              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-             Henry_K0      = 1.90e+5_f8 * To_M_atm
+             Henry_K0      = 1.90e-5_f8 * To_M_atm
              Henry_CR      = 2400.0_f8
 #endif
 
@@ -1199,12 +1220,17 @@ CONTAINS
 #endif
 
           CASE( 'DHDC' )
+             ! NOTE: DHDC should photolyze, since this is from Chris Chan
+             ! Miller's 2017 mechanism.  But we had inadvertently flagged
+             ! DHDN as the photolyzing species instead of DHDC.  This is
+             ! now fixed (kbates, bmy, 4/10/19)
              FullName      = 'Dihydroxyperoxide dicarbonyl'
              Formula       = 'C5H8O6'
              MW_g          = 164.0_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'DHDN' )
              ! DHDN uses the same DD_F0 and DD_Hstar_old values as ISOPN
@@ -1215,7 +1241,6 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T
-             Is_Photolysis = T
              DD_F0         = 1.0_fp
              DD_Hstar_Old  = 2.00e+6_fp
              Henry_K0      = 2.00e+6_f8
@@ -1657,6 +1682,7 @@ CONTAINS
              MW_g          = 63.0_fp
              BackgroundVV  = 4.0e-15_fp
              Is_Gas        = T
+             Is_DryAlt     = T
              Is_Drydep     = T
              Is_Wetdep     = T
              Is_Photolysis = T
@@ -1925,42 +1951,6 @@ CONTAINS
              DD_Hstar_old  = 2.30e+4_fp
              Henry_K0      = 2.30e+4_f8
              Henry_CR      = 9200.0_f8
-             WD_RetFactor  = 2.0e-2_fp
-
-          CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
-             FullName      = 'Lumped semivolatile aer products of isoprene oxidation'
-
-             ! Halve the Kc (cloud condensate -> precip) rate
-             ! for the temperature range 237 K <= T < 258 K.
-             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-
-             ! Turn off rainout only when 237 K <= T < 258K.
-             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
-
-             Formula       = ''
-             MW_g          = 150.0_fp
-             Is_Gas        = F
-             Is_Drydep     = T
-             Is_Wetdep     = T
-             DD_DvzAerSnow = 0.03_fp
-             DD_F0         = 0.0_fp
-             DD_HStar_old  = 0.0_fp
-             WD_AerScavEff = 0.8_fp
-             WD_KcScaleFac = KcScale
-             WD_RainoutEff = RainEff
-
-          CASE( 'ISOG1', 'ISOG2', 'ISOG3' )
-             FullName      = 'Lumped semivolatile gas products of isoprene oxidation'
-             Formula       = ''
-             MW_g          = 150.0_fp
-             Is_Gas        = T
-             Is_Drydep     = T
-             Is_Wetdep     = T
-             DD_F0         = 0.0_fp
-             DD_Hstar_old  = 1.00e+5_fp
-             Henry_K0      = 1.00e+5_f8
-             Henry_CR      = 6039.0_f8
              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISOP' )
@@ -2500,6 +2490,7 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
+             Is_Photolysis = T
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
@@ -2551,6 +2542,7 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
+             Is_Photolysis = T
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T
@@ -2670,6 +2662,7 @@ CONTAINS
              Formula       = 'O3'
              MW_g          = 48.0_fp
              Is_Gas        = T
+             Is_DryAlt     = T
              Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
@@ -3019,7 +3012,7 @@ CONTAINS
              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'SALA' )
-             FullName = 'Accumulation mode sea salt aerosol'
+             FullName = 'Fine (0.01-0.05 microns) sea salt aerosol'
              IF ( Present(oRadius) ) THEN
                 IF ( .NOT. Present(Input_Opt) ) THEN
                    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -3056,7 +3049,7 @@ CONTAINS
              WD_RainoutEff = RainEff
 
           CASE( 'SALC' )
-             FullName = 'Coarse mode sea salt aerosol'
+             FullName = 'Coarse (0.5-8 microns) sea salt aerosol'
              IF ( Present(oRadius) ) THEN
                 IF ( .NOT. Present(Input_Opt) ) THEN
                    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -3309,7 +3302,7 @@ CONTAINS
              WD_RainoutEff = RainEff
 
           CASE( 'SOAP' )
-             FullName      = 'SOA Precursor - lumped species for simplified SOA paramterization'
+             FullName = 'SOA Precursor - lumped species for simplified SOA parameterization'
 
              !SOAPis not removed because it is a simple parameterization,
              !not a physical model
@@ -3322,7 +3315,6 @@ CONTAINS
 
           CASE( 'SOAS' )
              FullName = 'SOA Simple - simplified non-volatile SOA parameterization'
-             !Copy data from ISOA
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -3884,6 +3876,28 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
+          CASE( 'PBSTRAT', '210PBSTRAT', 'PB210STRAT' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Lead-210 isotope in stratosphere'
+             Formula       = 'Pb'
+             MW_g          = 210.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
           CASE( 'BE', '7BE', 'BE7' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -3894,8 +3908,74 @@ CONTAINS
              RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              FullName      = 'Beryllium-7 isotope'
-             Formula       = 'Be'
+             Formula       = 'Be7'
              MW_g          = 7.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'BESTRAT', '7BESTRAT', 'BE7STRAT' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Beryllium-7 isotope in stratosphere'
+             Formula       = 'Be7'
+             MW_g          = 7.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( '10BE', 'BE10' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Beryllium-10 isotope'
+             Formula       = 'Be10'
+             MW_g          = 10.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( '10BESTRAT', 'BE10STRAT' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Beryllium-10 isotope in stratosphere'
+             Formula       = 'Be10'
+             MW_g          = 10.0_fp
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
@@ -4474,6 +4554,608 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
 
+#if defined( APM )
+          CASE( 'APMH2SO4' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Enforce minimum dry deposition velocity (Vd) for APMH2SO4.
+             ! Gan Luo says that we can use the same values as for SO4
+             ! (cf. Mian Chin's GOCART model), because H2SO4 drydep
+             ! is similar to SO4. (bmy, 6/24/19)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /)
+
+             FullName      = 'APM Sulfuric acid'
+             Formula       = 'APMH2SO4'
+             MW_g          = 98.0_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 1800.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMLVSOG' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Enforce minimum dry deposition velocity (Vd) for APMHLVSOG.
+             ! Gan Luo says that we can use the same values as for SO4
+             ! (cf. Mian Chin's GOCART model), because LVSOG drydep
+             ! is similar to SO4. (bmy, 6/24/19)
+             ! Minimum Vd over snow/ice : 0.01 cm/s
+             ! Minimum Vd over land     : 0.01 cm/s
+             DvzMinVal = (/ 0.01_fp, 0.01_fp /)
+
+             FullName      = 'APM LV secondary org. gas'
+             Formula       = 'APMLVSOG'
+             MW_g          = 181.0_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 1800.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMSPBIN01','APMSPBIN02','APMSPBIN03','APMSPBIN04','APMSPBIN05',&
+                'APMSPBIN06','APMSPBIN07','APMSPBIN08','APMSPBIN09','APMSPBIN10',&
+                'APMSPBIN11','APMSPBIN12','APMSPBIN13','APMSPBIN14','APMSPBIN15',&
+                'APMSPBIN16','APMSPBIN17','APMSPBIN18','APMSPBIN19','APMSPBIN20',&
+                'APMSPBIN21','APMSPBIN22','APMSPBIN23','APMSPBIN24','APMSPBIN25',&
+                'APMSPBIN26','APMSPBIN27','APMSPBIN28','APMSPBIN29','APMSPBIN30',&
+                'APMSPBIN31','APMSPBIN32','APMSPBIN33','APMSPBIN34','APMSPBIN35',&
+                'APMSPBIN36','APMSPBIN37','APMSPBIN38','APMSPBIN39','APMSPBIN40' )
+
+             FullName = 'APM SP, size bin ='
+             C        = LEN_TRIM( Name )
+             FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             Formula       = 'SO4'
+             MW_g          = 96.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1800.0_fp
+             Radius        = 5.e-7_fp
+             MP_SizeResAer = T
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMLVSOA' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM LVSOA'
+             Formula       = 'LVSOA'
+             MW_g          = 181.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1800.0_fp
+             Radius        = 5.e-7_fp
+             MP_SizeResAer = T
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMCTBC1' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM CTSO4'
+             Formula       = 'SO4'
+             MW_g          = 96.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1800.0_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMCTOC1' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM CTSO4'
+             Formula       = 'SO4'
+             MW_g          = 96.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1800.0_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMCTBC2' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM CTLVSOA'
+             Formula       = 'LVSOA'
+             MW_g          = 181.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1800.0_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMCTOC2' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM CTLVSOA'
+             Formula       = 'LVSOA'
+             MW_g          = 181.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1800.0_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMCTDST1' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM CTSO4'
+             Formula       = 'SO4'
+             MW_g          = 96.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2650.0_fp
+             Radius        = 4.5e-6_fp
+             MP_SizeResAer = T
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMCTDST2' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM CTLVSOA'
+             Formula       = 'LVSOA'
+             MW_g          = 181.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2650.0_fp
+             Radius        = 4.5e-6_fp
+             MP_SizeResAer = T
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMCTSEA1' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM CTSO4'
+             Formula       = 'SO4'
+             MW_g          = 96.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 2200.0_fp
+             Radius        = 2.5e-6_fp
+             MP_SizeResAer = T
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMCTSEA2' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'APM CTLVSOA'
+             Formula       = 'LVSOA'
+             MW_g          = 181.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 2200.0_fp
+             Radius        = 2.5e-6_fp
+             MP_SizeResAer = T
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMSEABIN01','APMSEABIN02','APMSEABIN03','APMSEABIN04','APMSEABIN05',&
+                'APMSEABIN06','APMSEABIN07','APMSEABIN08','APMSEABIN09','APMSEABIN10',&
+                'APMSEABIN11','APMSEABIN12','APMSEABIN13','APMSEABIN14','APMSEABIN15',&
+                'APMSEABIN16','APMSEABIN17','APMSEABIN18','APMSEABIN19','APMSEABIN20' )
+
+             FullName = 'APM SEA, size bin ='
+             C        = LEN_TRIM( Name )
+             FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = FullName
+             Formula       = 'Sea-salt'
+             MW_g          = 31.4_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 2200.0_fp
+             Radius        = 2.5e-6_fp
+             MP_SizeResAer = T
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMDSTBIN01','APMDSTBIN02','APMDSTBIN03','APMDSTBIN04','APMDSTBIN05',&
+                'APMDSTBIN06','APMDSTBIN07','APMDSTBIN08','APMDSTBIN09','APMDSTBIN10',&
+                'APMDSTBIN11','APMDSTBIN12','APMDSTBIN13','APMDSTBIN14','APMDSTBIN15' )
+
+             FullName = 'APM DST, size bin ='
+             C        = LEN_TRIM( Name )
+             FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale = (/ 1.0_fp, 0.5_fp, 0.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff = (/ 1.0_fp, 0.5_fp, 0.0_fp /)
+
+             Formula       = 'Dust'
+             MW_g          = 29.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2650.0_fp
+             Radius        = 4.5e-6_fp
+             MP_SizeResAer = T
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 0.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE(&
+!               'APMBCBIN01','APMBCBIN02','APMBCBIN03','APMBCBIN04','APMBCBIN05'&
+!              ,'APMBCBIN06','APMBCBIN07','APMBCBIN08','APMBCBIN09','APMBCBIN10'&
+!               'APMBCBIN11','APMBCBIN12','APMBCBIN13','APMBCBIN14','APMBCBIN15'&
+              'APMBCBIN06','APMBCBIN07','APMBCBIN08','APMBCBIN09','APMBCBIN10'&
+              ,'APMBCBIN11','APMBCBIN12','APMBCBIN13','APMBCBIN14','APMBCBIN15'&
+              )
+
+             FullName = 'APM BC, size bin ='
+             C        = LEN_TRIM( Name )
+             FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 0.0_fp, 0.0_fp, 1.0_fp /)
+
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1800.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE(&
+!               'APMBCBIN01','APMBCBIN02','APMBCBIN03','APMBCBIN04','APMBCBIN05'&
+!              ,'APMBCBIN06','APMBCBIN07','APMBCBIN08','APMBCBIN09','APMBCBIN10'&
+!              ,'APMBCBIN11','APMBCBIN12','APMBCBIN13','APMBCBIN14','APMBCBIN15'&
+               'APMBCBIN01','APMBCBIN02','APMBCBIN03','APMBCBIN04','APMBCBIN05'&
+              )
+
+             FullName = 'APM BC, size bin ='
+             C        = LEN_TRIM( Name )
+             FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range T > 258 K
+             KcScale  = (/ 1.0_fp, 0.0_fp, 0.0_fp /)
+
+             ! Allow rainout of BCPO when T < 258 K, because
+             ! BCPO is considered to be IN.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 0.0_fp /)
+
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= F
+             Density       = 1800.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 0.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE(&
+!               'APMOCBIN01','APMOCBIN02','APMOCBIN03','APMOCBIN04','APMOCBIN05'&
+!              ,'APMOCBIN06','APMOCBIN07','APMOCBIN08','APMOCBIN09','APMOCBIN10'&
+!              ,'APMOCBIN11','APMOCBIN12','APMOCBIN13','APMOCBIN14','APMOCBIN15'&
+              'APMOCBIN06','APMOCBIN07','APMOCBIN08','APMOCBIN09','APMOCBIN10'&
+              ,'APMOCBIN11','APMOCBIN12','APMOCBIN13','APMOCBIN14','APMOCBIN15'&
+              )
+
+             FullName = 'APM OC, size bin ='
+             C        = LEN_TRIM( Name )
+             FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1300.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE(&
+!               'APMOCBIN01','APMOCBIN02','APMOCBIN03','APMOCBIN04','APMOCBIN05'&
+!              ,'APMOCBIN06','APMOCBIN07','APMOCBIN08','APMOCBIN09','APMOCBIN10'&
+!              ,'APMOCBIN11','APMOCBIN12','APMOCBIN13','APMOCBIN14','APMOCBIN15'&
+               'APMOCBIN01','APMOCBIN02','APMOCBIN03','APMOCBIN04','APMOCBIN05'&
+              )
+
+             FullName = 'APM OC, size bin ='
+             C        = LEN_TRIM( Name )
+             FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+
+             ! For all temperatures:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout (OCPO is hydrophobic)
+             KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= F
+             Density       = 1300.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'APMAMINE1' )
+
+             DvzMinVal = (/ 0.2_fp, 0.3_fp /)
+
+             FullName      = 'APM AMINEs'
+             Formula       = 'AMINE1'
+             MW_g          = 31.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+#if defined( NEW_HENRY_CONSTANTS )
+             Henry_K0      = 5.90e-1_f8 * To_M_atm
+             Henry_CR      = 4200.0_f8
+#else
+             DD_Hstar_old  = 2.0e+4_fp
+             Henry_K0      = 3.30e+6_f8
+             Henry_CR      = 4100.0_f8
+#endif
+             WD_RetFactor  = 5.0e-2_fp
+             WD_LiqAndGas  = T
+             WD_ConvFacI2G = 6.17395e-1_fp
+
+          CASE( 'APMAMINE2' )
+
+             DvzMinVal = (/ 0.2_fp, 0.3_fp /)
+
+             FullName      = 'APM AMINEs'
+             Formula       = 'AMINE2'
+             MW_g          = 45.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+#if defined( NEW_HENRY_CONSTANTS )
+             Henry_K0      = 5.90e-1_f8 * To_M_atm
+             Henry_CR      = 4200.0_f8
+#else
+             DD_Hstar_old  = 2.0e+4_fp
+             Henry_K0      = 3.30e+6_f8
+             Henry_CR      = 4100.0_f8
+#endif
+             WD_RetFactor  = 5.0e-2_fp
+             WD_LiqAndGas  = T
+             WD_ConvFacI2G = 6.17395e-1_fp
+
+          CASE( 'APMAMINE3' )
+
+             DvzMinVal = (/ 0.2_fp, 0.3_fp /)
+
+             FullName      = 'APM AMINEs'
+             Formula       = 'AMINE3'
+             MW_g          = 59.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+#if defined( NEW_HENRY_CONSTANTS )
+             Henry_K0      = 5.90e-1_f8 * To_M_atm
+             Henry_CR      = 4200.0_f8
+#else
+             DD_Hstar_old  = 2.0e+4_fp
+             Henry_K0      = 3.30e+6_f8
+             Henry_CR      = 4100.0_f8
+#endif
+             WD_RetFactor  = 5.0e-2_fp
+             WD_LiqAndGas  = T
+             WD_ConvFacI2G = 6.17395e-1_fp
+#endif
+
 #if defined( TOMAS )
           !==================================================================
           ! Species for the TOMAS microphysics simulations
@@ -4554,13 +5236,13 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
-          CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5'
-                'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10'
-                'ECIL11', 'ECIL12', 'ECIL13', 'ECIL14', 'ECIL15'
-                'ECIL16', 'ECIL17', 'ECIL18', 'ECIL19', 'ECIL20'
-                'ECIL21', 'ECIL22', 'ECIL23', 'ECIL24', 'ECIL25'
-                'ECIL26', 'ECIL27', 'ECIL28', 'ECIL29', 'ECIL30'
-                'ECIL31', 'ECIL32', 'ECIL33', 'ECIL34', 'ECIL35'
+          CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5',  &
+                'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10', &
+                'ECIL11', 'ECIL12', 'ECIL13', 'ECIL14', 'ECIL15', &
+                'ECIL16', 'ECIL17', 'ECIL18', 'ECIL19', 'ECIL20', &
+                'ECIL21', 'ECIL22', 'ECIL23', 'ECIL24', 'ECIL25', &
+                'ECIL26', 'ECIL27', 'ECIL28', 'ECIL29', 'ECIL30', &
+                'ECIL31', 'ECIL32', 'ECIL33', 'ECIL34', 'ECIL35', &
                 'ECIL36', 'ECIL37', 'ECIL38', 'ECIL39', 'ECIL40'  )
 
              ! Add TOMAS bin number to full name
@@ -4592,13 +5274,13 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
-          CASE( 'ECOB1',  'ECOB2',  'ECOB3',  'ECOB4',  'ECOB5'
-                'ECOB6',  'ECOB7',  'ECOB8',  'ECOB9',  'ECOB10'
-                'ECOB11', 'ECOB12', 'ECOB13', 'ECOB14', 'ECOB15'
-                'ECOB16', 'ECOB17', 'ECOB18', 'ECOB19', 'ECOB20'
-                'ECOB21', 'ECOB22', 'ECOB23', 'ECOB24', 'ECOB25'
-                'ECOB26', 'ECOB27', 'ECOB28', 'ECOB29', 'ECOB30'
-                'ECOB31', 'ECOB32', 'ECOB33', 'ECOB34', 'ECOB35'
+          CASE( 'ECOB1',  'ECOB2',  'ECOB3',  'ECOB4',  'ECOB5',  &
+                'ECOB6',  'ECOB7',  'ECOB8',  'ECOB9',  'ECOB10', &
+                'ECOB11', 'ECOB12', 'ECOB13', 'ECOB14', 'ECOB15', &
+                'ECOB16', 'ECOB17', 'ECOB18', 'ECOB19', 'ECOB20', &
+                'ECOB21', 'ECOB22', 'ECOB23', 'ECOB24', 'ECOB25', &
+                'ECOB26', 'ECOB27', 'ECOB28', 'ECOB29', 'ECOB30', &
+                'ECOB31', 'ECOB32', 'ECOB33', 'ECOB34', 'ECOB35', &
                 'ECOB36', 'ECOB37', 'ECOB38', 'ECOB39', 'ECOB40'  )
 
              ! Add TOMAS bin number to full name
@@ -5042,19 +5724,22 @@ CONTAINS
 
              ! Check if passive species
              IsPassive = .FALSE.
-             !MW_g = 0.0_fp
-             !BackgroundVV = 0.0_fp
 
              IF ( Present(Input_Opt) ) THEN
                 IF ( Input_Opt%NPASSIVE > 0 ) THEN
    
                    ! Loop over all passive species
                    DO P = 1, Input_Opt%NPASSIVE
-                      IF ( TRIM(Name) ==    &
-                           TRIM(Input_Opt%PASSIVE_NAME(P)) ) THEN
-                         IsPassive = .TRUE.
+
+                      ! Make sure its all caps
+                      PName = TRIM(Input_Opt%PASSIVE_NAME(P))
+                      CALL TranUc( PName )
+
+                      IF ( TRIM(Name) == TRIM(PName) ) THEN
+                         IsPassive    = .TRUE.
                          BackgroundVV = Input_Opt%PASSIVE_INITCONC(P)
-                         MW_g   = Input_Opt%PASSIVE_MW(P)
+                         MW_g         = Input_Opt%PASSIVE_MW(P)
+                         FullName     = TRIM(Input_Opt%PASSIVE_LONGNAME(P))
                          EXIT
                       ENDIF
                    ENDDO
@@ -5131,10 +5816,6 @@ CONTAINS
           END DO
        ENDIF
     ENDIF
-
-    !=======================================================================
-    ! Assign species database values to the optional output arguments
-    !=======================================================================
     IF ( PRESENT( oFormula        ) ) oFormula          = Formula
     IF ( PRESENT( oMW_g           ) ) oMW_g             = MW_g
     IF ( PRESENT( oEmMW_g         ) ) oEmMW_g           = EmMW_g
@@ -5157,6 +5838,7 @@ CONTAINS
     IF ( PRESENT( oWD_AerScavEff  ) ) oWD_AerScavEff    = WD_AerScavEff
     IF ( PRESENT( oWD_KcScaleFac  ) ) oWD_KcScaleFac(:) = WD_KcScaleFac(:)
     IF ( PRESENT( oWD_RainoutEff  ) ) oWD_RainoutEff(:) = WD_RainoutEff(:)
+    IF ( PRESENT( oIs_DryAlt      ) ) oIs_DryAlt        = Is_DryAlt
     IF ( PRESENT( oIs_DryDep      ) ) oIs_DryDep        = Is_DryDep
     IF ( PRESENT( oIs_Gas         ) ) oIs_Gas           = Is_Gas
     IF ( PRESENT( oIs_HygroGrowth ) ) oIs_HygroGrowth   = Is_HygroGrowth
@@ -5170,6 +5852,36 @@ CONTAINS
     IF ( PRESENT( oIs_Hg0         ) ) oIs_Hg0           = Is_Hg0
     IF ( PRESENT( oIs_Hg2         ) ) oIs_Hg2           = Is_Hg2
     IF ( PRESENT( oIs_HgP         ) ) oIs_HgP           = Is_HgP
+
+    ! Diagnostics name: long name, formula, MW
+    IF ( PRESENT(oDiagName) ) THEN
+       oDiagName = FullName
+       IF ( TRIM(Formula) /= '' ) THEN
+          oDiagName = TRIM(oDiagName)//' ('//TRIM(Formula)
+       ENDIF
+       IF ( MW_g /= MISSING_MW ) THEN
+          WRITE(sMW,'(f6.2)') MW_g
+          IF ( TRIM(Formula) /= '' ) THEN
+             oDiagName = TRIM(oDiagName)//', MW ='
+          ELSE
+             oDiagName = TRIM(oDiagName)//' (MW ='
+          ENDIF
+          oDiagName = TRIM(oDiagName)//' '//TRIM(ADJUSTL(sMW))//' g mol-1'
+       ENDIF
+       IF ( TRIM(Formula) /= '' .OR. MW_g /= MISSING_MW ) THEN
+          oDiagName = TRIM(oDiagName)//')'
+       ENDIF
+       IF ( Uscore ) THEN
+          CNT = 0
+          IDX = INDEX(TRIM(oDiagName),' ')
+          DO WHILE ( IDX > 0 ) 
+             CNT = CNT + 1
+             IF ( CNT > 100 ) EXIT
+             oDiagName(IDX:IDX) = '_'
+             IDX = INDEX(TRIM(oDiagName),' ')
+          END DO
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Spc_Info 
 !EOC
@@ -5516,5 +6228,208 @@ CONTAINS
     IF ( ALLOCATED( KppSpcId      ) ) DEALLOCATE( KppSpcId      )
 
   END SUBROUTINE Cleanup_Work_Arrays
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SpcData_To_JSON
+!
+! !DESCRIPTION: Prints the GEOS-Chem species database to a JSON file.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SpcData_To_JSON( am_I_Root, SpcData, RC )
+
+    USE ErrCode_Mod
+    USE Species_Mod, ONLY : Species, SpcPtr
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,      INTENT(IN)  :: am_I_Root    ! Are we on the root CPU
+    TYPE(SpcPtr), POINTER     :: SpcData(:)   ! GEOS-Chem Species Database
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,      INTENT(OUT) :: RC           ! Success or failure
+!
+! !REMARKS:
+!  This routine can be used to generate JSON output for use with Python
+!  code for GEOS-Chem post-processing.  You can generate a new JSON file
+!  for each of the GEOS_Chem simulation types.
+!                                                                             .
+!  For now the file name and unit number are hardwired.  We can make this
+!  more flexible if so desired.
+!                                                                             .
+!  A good overview of the JSON format may be found here:
+!     https://www.w3schools.com/js/js_json_datatypes.asp
+!
+! !REVISION HISTORY:
+!  04 Feb 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                :: N, nSpc, Unit
+
+    ! Strings
+    CHARACTER(LEN=255)     :: FileName
+    
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    !=======================================================================
+    ! SpcData_to_Dict begins here!
+    !=======================================================================
+
+    ! Assume success
+    RC       = GC_SUCCESS
+
+    ! Hardwire the file name and unit for now
+    ! (we typically won't call this routine unless we want this printout)
+    FileName = 'GEOS-Chem_Species_Database_Dict.txt'
+    Unit     = 700
+
+    ! Number of species in database
+    nSpc     = SIZE( SpcData )
+
+    !=======================================================================
+    ! Write species database to JSON format
+    !
+    ! NOTE: Some species database fields are only relevant for passing
+    ! parameters to specific GEOS-Chem operations (e.g. drydep, wetdep, 
+    ! etc).  Therefore, we have only included those properties which we
+    ! feel would be most relevant to post-processing of data in Python
+    ! or other tools. (bmy, 2/4/18)
+    !=======================================================================
+
+    ! Open file
+    OPEN( Unit, File=TRIM(FileName), Status='Unknown', FORM='Formatted' )
+
+    ! Write header
+    WRITE( Unit, '(a)' ) '{'
+
+    ! Loop over the number of elements in the species database
+    DO N = 1, nSpc
+
+       ! Point to this entry of the species database
+       ThisSpc => SpcData(N)%Info
+
+       ! Write individual fields of the species database
+       WRITE( Unit, 100 ) TRIM( ThisSpc%Name )
+       WRITE( Unit, '(10x,a)' ) '{'
+
+       WRITE( Unit, 110 ) '"Fullname"', TRIM( ThisSpc%FullName )
+
+       IF ( LEN_TRIM( ThisSpc%Formula ) > 0 ) THEN
+          WRITE( Unit, 110 ) '"Formula"',  TRIM( ThisSpc%Formula  )
+       ENDIF
+
+       IF ( ThisSpc%Is_Advected ) THEN
+          WRITE( Unit, 111 ) '"Is_Advected"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_Advected"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_Aero ) THEN
+          WRITE( Unit, 111 ) '"Is_Aero"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_Aero"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_Drydep ) THEN
+          WRITE( Unit, 111 ) '"Is_DryDep"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_DryDep"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_DryDep ) THEN
+          WRITE( Unit, 111 ) '"Is_Gas"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_Gas"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_HygroGrowth ) THEN
+          WRITE( Unit, 111 ) '"Is_HygroGrowth"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_HygroGrowth"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_Photolysis ) THEN
+          WRITE( Unit, 111 ) '"Is_Photolysis"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_Photolysis"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_WetDep ) THEN
+          WRITE( Unit, 111 ) '"Is_WetDep"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_WetDep"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Density > 0.0_fp ) THEN
+          WRITE( Unit, 120 ) '"Density"',    ThisSpc%Density
+       ENDIF
+
+       IF ( ThisSpc%Radius > 0.0_fp ) THEN
+          WRITE( Unit, 120 ) '"Radius"',     ThisSpc%Radius
+       ENDIF
+          
+       IF ( ThisSpc%Henry_K0 > 0.0_fp ) THEN
+          WRITE( Unit, 130 ) '"Henry_K0"',   ThisSpc%Henry_K0
+       ENDIF
+
+       IF ( ThisSpc%Henry_CR > 0.0_fp ) THEN
+          WRITE( Unit, 130 ) '"Henry_CR"',   ThisSpc%Henry_CR
+       ENDIF
+
+       IF ( ThisSpc%Henry_PKA > 0.0_fp ) THEN
+          WRITE( Unit, 130 ) '"Henry_PKA"',  ThisSpc%Henry_PKA
+       ENDIF
+
+       IF ( ThisSpc%Mw_g > 0.0_fp ) THEN 
+          WRITE( Unit, 120 ) '"MW_g"',       ThisSpc%MW_g
+       ENDIF
+
+       IF ( ThisSpc%EmMW_g > 0.0_fp ) THEN
+          WRITE( Unit, 120 ) '"EmMW_g"',     ThisSpc%EmMW_g
+       ENDIF
+
+       IF ( ThisSpc%MolecRatio > 0.0_fp ) THEN
+          WRITE( Unit, 121 ) '"MolecRatio"', ThisSpc%MolecRatio
+       ENDIF
+
+       ! Write closing bracket
+       IF ( n < nSpc ) THEN
+          WRITE( Unit, '(10x,a)' ) '},'
+       ELSE
+          WRITE( Unit, '(10x,a)' ) '}'
+       ENDIF
+
+       ! Free pointer
+       ThisSpc => NULL()
+
+    ENDDO
+
+    ! Write end bracket and close file
+    WRITE( Unit, '(a)' ) '}'
+    CLOSE( Unit        )
+
+    !=======================================================================
+    ! Format strings
+    !=======================================================================
+100 FORMAT( 2x,  '"', a,   '" : '       )
+110 FORMAT( 14x, a, ': "', a,      '",' )
+111 FORMAT( 14x, a, ': ',  a,      ','  )
+120 FORMAT( 14x, a, ': ',  f11.4,  ','  )
+121 FORMAT( 14x, a, ': ',  f11.4        )
+130 FORMAT( 14x, a, ': ',  es13.6, ','  )
+
+  END SUBROUTINE SpcData_to_JSON
 !EOC
 END MODULE Species_Database_Mod

@@ -1,14 +1,28 @@
 #if defined ( TOMAS )
-! $Id: tomas_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!     
+! !MODULE: tomas_mod.F
+!     
+! !DESCRIPTION: Module TOMAS\_MOD contains variable specific to the TOMAS
+!  aerosol microphysics simulation, e.g. number of species, number of size-bins,
+!  mass per particle bin boundaries and arrays used inside the microphysics 
+!  subroutine. (win, 7/9/07)
+!\\   
+!\\   
+! !INTERFACE: 
+!
       MODULE TOMAS_MOD
 !
-!******************************************************************************
-!  Module TOMAS_MOD contains variable specific to the TOMAS aerosol 
-!  microphysics simulation, e.g. number of species, number of size-bins, mass
-!  per particle bin boundaries and arrays used inside the microphysics 
-!  subroutine. (win, 7/9/07)
+! !USES:
 !
-!  NOTE:
+      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+
+      IMPLICIT NONE
+!
+! !REMARKS:
 !  This module also contains what used to be in sizecode.COM header file 
 !  containing common blocks for TOMAS aerosol microphysics algorithm 
 !  originally implemented in GISS GCM-II' by Peter Adams. Below is the original
@@ -20,6 +34,8 @@
 !     conserves aerosol number and mass using the schemes developed
 !     by Graham Feingold and others.
 !
+!  References:
+!  ============================================================================
 !  Tzivion, S., Feingold, G., and Levin, Z., An Efficient
 !   Numerical Solution to the Stochastic Collection Equation,
 !   J. Atmos. Sci., 44, 3139-3149, 1987.
@@ -115,7 +131,7 @@
 !  (5 ) SPINUP                 : Return TRUE or FALSE if the current time is 
 !                                after the spin-up period
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Add BINACT1 and FRACTION1 for compositionally-resolved scavenging after
 !        OC and EC are included in the simulation (win, 9/10/07)
 !  23 Apr 2013 - R. Yantosca - Now use findFreeLUN to get file LUN's
@@ -132,20 +148,15 @@
 !  07 Feb 2018 - P.F. Liu    - Modified INODENS subroutione to improve
 !                              numerical stability
 !  19 Apr 2018 - P.F. Liu    - Bug fixes to avoid negative H2SO4RATE
-!******************************************************************************
-!
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+!  17 Feb 2019 - M. Sulprizio- Add ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !DEFINED PARAMETERS:
 !
-
-      ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN --> which defines how many size bins (win, 7/7/09)
+      ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN -->
+      ! which defines how many size bins (win, 7/7/09)
 #if   defined ( TOMAS12 )
       INTEGER, PARAMETER   :: IBINS = 12
 #elif defined ( TOMAS15 )
@@ -295,25 +306,8 @@
      &   0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
 #endif
 
-      ! Define subgrid coagulation timescale (win, 10/28/08)
-#if   defined( GRID4x5   ) 
-      REAL*4 :: SGCTSCALE = 10.*3600.        ! 10 hours
-#elif defined( GRID2x25  )
-      REAL*4 :: SGCTSCALE = 5.*3600.    
-#elif defined( GRID05x0625 )
-      ! Copy the 05x0666 timescale for now
-      REAL*4 :: SGCTSCALE = 1.*3600.
-#elif defined( GRID025x03125 )
-      ! Copy the 05x0666 timescale for now
-      ! (skim, 5/20/12)
-      REAL*4 :: SGCTSCALE = 1.*3600.
-#endif
-        !Prior to 10/28/08 (win)     
-        !TSCALE = 10.*3600.
-!            print *, 'Now doing subgrid coag with timescale ',
-!     &           TSCALE/3600.,'hr'
-
-
+      ! Subgrid coagulation timescale (win, 10/28/08)
+      REAL*4 :: SGCTSCALE
 !
 ! !PRIVATE TYPES:
 ! 
@@ -333,7 +327,7 @@
       INTEGER, PRIVATE :: id_SS1
 
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -348,8 +342,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt,  State_Met,
-     &                     State_Chm, State_Diag, RC )
+      SUBROUTINE DO_TOMAS( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -358,12 +352,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -411,20 +407,21 @@
       ENDIF
 
       ! Do TOMAS aerosol microphysics
-      CALL AEROPHYS( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      CALL AEROPHYS( am_I_Root,  Input_Opt, State_Chm,
+     &               State_Grid, State_Met, RC )
 
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:222'
 #endif
-      CALL CHECKMN( 0,         0,         0,     Input_Opt, 
-     &              State_Met, State_Chm, 'Before Aerodrydep', RC)
+      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
+     &              State_Met,'Before Aerodrydep', RC)
 
 ! in kg
 
       ! Do dry deposition
       IF ( Input_Opt%LDRYD ) THEN
-         CALL AERO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
-     &                     State_Chm, State_Diag, RC )
+         CALL AERO_DRYDEP( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met, RC )
       ENDIF
 
 ! not in kg
@@ -432,22 +429,58 @@
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:229'
 #endif
-      CALL CHECKMN( 0,         0,         0,    
-     &              Input_Opt, State_Met, State_Chm, 
-     &              'Before exiting DO_TOMAS', RC )
+      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
+     &              State_Met, 'Before exiting DO_TOMAS', RC )
 
       END SUBROUTINE DO_TOMAS
 !EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE AEROPHYS( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine AEROPHYS does aerosol microphysics, including nucleation, 
-!  coagulation, and condensation.
+! !IROUTINE: aerophys
 !
-!  NOTES:
+! !DESCRIPTION: Subroutine AEROPHYS does aerosol microphysics, including
+!  nucleation, coagulation, and condensation.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE AEROPHYS( am_I_Root,  Input_Opt, State_Chm, 
+     &                     State_Grid, State_Met, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD61,  AD61_INST
+#endif
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
 !  (1 ) Major change in nucleation scheme from binary w/ critical concentration 
 !       method to calculating nucleation rate with the option to do binary 
 !       (Vehkamaki et al. 2002) or ternary nucleation (Napari et al, 2002).
@@ -470,28 +503,13 @@
 !                              dependence on comode_loop_mod.F
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
-!******************************************************************************
+!  17 Feb 2019 - M. Sulprizio- Add ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE CMN_SIZE_MOD             ! Size parameters
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
-      USE DIAG_MOD,           ONLY : AD61,  AD61_INST
-#endif
-      USE ErrCode_Mod
-      USE ERROR_MOD
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-     
-      ! Arguments
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-
-      ! Local variables
+! !LOCAL VARIABLES
+!
       INTEGER             :: I, J, L, N, JC, K !counters
       INTEGER             :: MPNUM    !microphysical process id #
       REAL*4              :: ADT      !aerosol microphysics time step (seconds)
@@ -528,7 +546,8 @@
       REAL(fp)          :: Nkcond(ibins), Mkcond(ibins,icomp)
       REAL(fp)          :: fn  ! nucleation rate of clusters cm-3 s-1
       REAL(fp)          :: fn1 ! formation rate of particles to first size bin cm-3 s-1
-      REAL(fp)          :: nucrate(JJPAR,LLPAR), nucrate1(JJPAR,LLPAR)
+      REAL(fp)          :: nucrate(State_Grid%NY,State_Grid%NZ)
+      REAL(fp)          :: nucrate1(State_Grid%NY,State_Grid%NZ)
       REAL(fp)          :: tot_n_1, tot_n_1a, tot_n_2, tot_n_i ! used for nitrogen mass checks
       REAL(fp)          :: tot_s_1, tot_s_1a, tot_s_2 ! used for sulfur mass checks
       REAL(fp)          :: h2so4rate_o ! H2SO4rate for the specific grid cell
@@ -664,9 +683,9 @@
 !$OMP+PRIVATE( ERR_VAR, ERR_MSG, ERR_IND )
 !$OMP+PRIVATE( TRACNUM, NH3_TO_NH4, SURF_AREA )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO I = 1, IIPAR
-      DO J = 1, JJPAR
-      DO L = 1, LLPAR
+      DO I = 1, State_Grid%NX
+      DO J = 1, State_Grid%NY
+      DO L = 1, State_Grid%NZ
 
 #if defined( BPCH_DIAG )
          ! Reset the AD61_INST array used for tracking instantaneous 
@@ -696,35 +715,38 @@
          ! determine ion rate
 !         ionrate = 10. ! set as constant now !!jrp
 
-#if  defined( GRID4x5)
-         if( (pres / 100.) .lt. cplevels(9) ) then
-            ionrate = cosmic_ions(i,j,9) * boxmass / boxvol
-            if(State_Met%FRCLND(I,J) .gt. 0.2) then
-               ionrate = ionrate + soil_ions(9)
+         IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+
+            if( (pres / 100.) .lt. cplevels(9) ) then
+               ionrate = cosmic_ions(i,j,9) * boxmass / boxvol
+               if(State_Met%FRCLND(I,J) .gt. 0.2) then
+                  ionrate = ionrate + soil_ions(9)
+               endif
+            elseif((pres/100.) .gt. cplevels(1)) then
+               ionrate = cosmic_ions(i,j,1) * boxmass / boxvol
+               if( State_Met%FRCLND(I,J) .gt. 0.2 ) then
+                  ionrate = ionrate + soil_ions(1)
+               endif
+            else
+               lev=2
+               do while (pres / 100. .lt. cplevels(lev))
+                  lev=lev+1
+               enddo
+               weight=( cplevels( lev - 1 ) - pres / 100. ) /
+     &                ( cplevels( lev - 1 ) - cplevels(lev) )
+               ionrate=( cosmic_ions(i,j,lev  ) * weight +
+     &                   cosmic_ions(i,j,lev-1) * (1.e+0_fp - weight) )
+     &                   * boxmass / boxvol
+               if( State_Met%FRCLND(I,J) .gt. 0.2) then
+                  ionrate=ionrate + ( soil_ions( lev   ) * weight +
+     &                    soil_ions( lev-1 ) * (1.e+0_fp-weight) )
+               endif
             endif
-         elseif((pres/100.) .gt. cplevels(1)) then
-            ionrate = cosmic_ions(i,j,1) * boxmass / boxvol
-            if( State_Met%FRCLND(I,J) .gt. 0.2 ) then
-               ionrate = ionrate + soil_ions(1)
-            endif
-         else
-            lev=2
-            do while (pres / 100. .lt. cplevels(lev))
-               lev=lev+1
-            enddo
-            weight=( cplevels( lev - 1 ) - pres / 100. ) /
-     &             ( cplevels( lev - 1 ) - cplevels(lev) )
-            ionrate=( cosmic_ions(i, j, lev    ) * weight +
-     &                cosmic_ions(i, j, lev - 1) * (1.e+0_fp - weight) )
-     &              * boxmass / boxvol
-            if( State_Met%FRCLND(I,J) .gt. 0.2) then
-               ionrate=ionrate + ( soil_ions( lev   ) * weight +
-     &                          soil_ions( lev-1 ) * (1.e+0_fp-weight) )
-            endif
-         endif
-#else
-         ionrate = 0.e+0_fp
-#endif
+
+         ELSE
+            ionrate = 0.e+0_fp
+         ENDIF
+
          if(ionrate .le. 1.501) ionrate = 1.501
 
 !         print*,'i',i,'j',j,'l',l,'ionrate',ionrate
@@ -820,7 +842,8 @@
          MPNUM = 5    
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
-            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
          ENDIF
 #endif
 
@@ -923,14 +946,16 @@
             MPNUM = 3
 #if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
 
             MPNUM = 7
 #if defined( BPCH_DIAG )
             IF ( ND61 > 0 )  THEN
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
 
@@ -951,7 +976,8 @@
             MPNUM = 1
 #if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
 
@@ -1016,7 +1042,8 @@
          MPNUM = 5    
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
-            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
          ENDIF
 #endif
 
@@ -1042,7 +1069,8 @@
             MPNUM = 2
 #if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN 
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
 
@@ -1069,7 +1097,8 @@
             MPNUM = 5
 #if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
          ENDIF  ! Coagulation
@@ -1111,7 +1140,8 @@
          MPNUM = 5
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
-            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
          ENDIF
 #endif
 
@@ -1165,7 +1195,7 @@
       Spc => NULL()
 
       END SUBROUTINE AEROPHYS
-
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE COND_NUC(Nki,Mki,Gci,Nkf,Mkf,Gcf,fnavg,fn1avg,
@@ -3552,7 +3582,7 @@ C     and get the nucleation rate and critical cluster size
 !------------------------------------------------------------------------------
 
       SUBROUTINE AQOXID ( am_I_Root, MOXID, KMIN, I, J, L, Input_Opt,
-     &                    State_Met, State_Chm, RC )
+     &                    State_Chm, State_Grid, State_Met, RC )
 !
 !******************************************************************************
 !  Subroutine AQOXID takes an amount of SO4 produced via in-cloud oxidation and
@@ -3589,6 +3619,7 @@ C     and get the nucleation rate and critical cluster size
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput          
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 
@@ -3597,6 +3628,7 @@ C     and get the nucleation rate and critical cluster size
       REAL(fp)                      :: MOXID
       INTEGER                       :: KMIN, I, J, L
       TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
       INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
@@ -3643,7 +3675,7 @@ C     and get the nucleation rate and critical cluster size
       IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
          CALL ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L,
-     &                               State_Met, State_Chm, RC )
+     &                               State_Chm, State_Grid, RC )
       ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
          MSG = 'Incorrect initial species units: ' 
      &           // TRIM(State_Chm%Spc_Units)
@@ -3706,7 +3738,8 @@ C     and get the nucleation rate and critical cluster size
       MPNUM = 5
 #if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
@@ -3839,7 +3872,8 @@ C     and get the nucleation rate and critical cluster size
       MPNUM = 4
 #if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif
 
       ! Fix any inconsistencies in M/N distribution 
@@ -3856,7 +3890,8 @@ C     and get the nucleation rate and critical cluster size
       MPNUM = 5
 #if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif
 
       ! Swap Nk and Mk arrays back to Spc 
@@ -3878,7 +3913,7 @@ C     and get the nucleation rate and critical cluster size
       ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
       IF ( UNITCHANGE_KGM2 ) THEN
          CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L,
-     &                               State_Met, State_Chm, RC )
+     &                               State_Chm, State_Grid, RC )
       ENDIF
 
       ! Check that species units are as expected (ewl, 9/29/15)
@@ -3896,7 +3931,7 @@ C     and get the nucleation rate and critical cluster size
 
       SUBROUTINE SOACOND
      &     ( am_I_Root, MSOA, I, J, L, BOXVOL, TEMPTMS, PRES,
-     &       State_Chm, RC )
+     &       State_Chm, State_Grid, RC )
 !
 !******************************************************************************
 !  Subroutine SOACOND takes the SOA calculated via 10% yeild assumption and 
@@ -3925,12 +3960,14 @@ C     and get the nucleation rate and critical cluster size
       USE ErrCode_Mod
       USE ERROR_MOD
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
 
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       REAL(fp)                      :: MSOA
       INTEGER,        INTENT(IN)    :: I, J, L
       REAL*4,         INTENT(IN)    :: BOXVOL, TEMPTMS, PRES
+      TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
       REAL(fp)                      :: surf_area
@@ -4146,7 +4183,8 @@ C     and get the nucleation rate and critical cluster size
       MPNUM = 6
 #if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif
 
 
@@ -6020,54 +6058,65 @@ C     and get the nucleation rate and critical cluster size
       END SUBROUTINE TMCOND
 
 !------------------------------------------------------------------------------
-      
-      SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine AERODIAG saves changes to the appropriate diagnostic arrays
-!  (win, 7/23/07)
+! !IROUTINE: aerodiag
 !
-!  Variables
-!  (1 ) PTYPE  (INTEGER) : Number assigned to each dianostic
-!  (2 ) I,J,L  (INTEGER) : Location of grid box
+! !DESCRIPTION: Subroutine AERODIAG saves changes to the appropriate diagnostic !  arrays (win, 7/23/07)
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES: 
+      SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD      ! Size parameters
+#if defined( BPCH_DIAG ) 
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD60_COND, AD60_COAG, AD60_NUCL
+      USE DIAG_MOD,       ONLY : AD60_AQOX, AD60_ERROR, AD60_SOA
+      USE DIAG_MOD,       ONLY : AD61,      AD61_INST  
+#endif
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE State_Grid_Mod, ONLY : GrdState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,        INTENT(IN) :: PTYPE    ! Number assigned to each dianostic
+      INTEGER ,       INTENT(IN) :: I, J, L  ! Grid box indices
+      REAL(fp),       INTENT(IN) :: Nk(IBINS)
+      REAL(fp),       INTENT(IN) :: Nkd(IBINS)
+      REAL(fp),       INTENT(IN) :: Mk(IBINS, ICOMP)
+      REAL(fp),       INTENT(IN) :: Mkd(IBINS,ICOMP)
+      REAL*4,         INTENT(IN) :: BOXVOL
+      TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
+!
+! !REVISION HISTORY:
 !  (1 ) Add error checking IT_IS_NAN (win, 7/31/07)
 !  (2 ) Add new diagnostic for TMS-SOA (win, 9/25/07)
 !  (3 ) Add new diagnostic TOMAS-3D to save rates of a selected process
 !       in 3-D (I,J,L).  At this point just do one for NK1 nucleation (win, 5/21/08)
 !  (4 ) Modified AD61 to use with 2 tracers and adjust dimension accordingly
 !       (win, 10/06/08)
-!*****************************************************************************
+!  17 Feb 2019 - M. Sulprizio- Add ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE CMN_SIZE_MOD      ! Size parameters
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD      ! ND60
-      USE DIAG_MOD,    ONLY :  AD60_COND, AD60_COAG, AD60_NUCL
-      USE DIAG_MOD,    ONLY :  AD60_AQOX, AD60_ERROR, AD60_SOA
-      USE DIAG_MOD,    ONLY :  AD61,      AD61_INST  
-#endif
-      USE ERROR_MOD,   ONLY :  IT_IS_NAN
-      USE TIME_MOD,    ONLY : GET_TS_CHEM
-
-      ! Arguments
-      INTEGER               :: PTYPE,    I,      J,      L 
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER               :: K, JS
       REAL*4                :: ADXX(IBINS*(ICOMP-IDIAG+1))
       REAL*4,    SAVE       :: ACCUN, ACCUM(2)
       LOGICAL,   SAVE       :: FIRST = .TRUE.
-
       real*4                :: tempsum
       REAL*4                :: DTCHEM
 
-!sfarina
-      REAL(fp),INTENT(IN)     :: Nk(IBINS), Nkd(IBINS)
-      REAL(fp),INTENT(IN)     :: Mk(IBINS, ICOMP)
-      REAL(fp),INTENT(IN)     :: Mkd(IBINS,ICOMP)
-      REAL*4,INTENT(IN)     :: BOXVOL
       !=================================================================
       ! AERODIAG begins here!
       !=================================================================
@@ -6211,8 +6260,8 @@ C     and get the nucleation rate and critical cluster size
 !      ENDIF
 
       ! Debug: check error fixed accumulated at each step
-      IF ( I == IIPAR .and. J == JJPAR .and. L == LLPAR 
-     &     .and. PTYPE == 2 ) then
+      IF ( I == State_Grid%NX .and. J == State_Grid%NY .and.
+     &     L == State_Grid%NZ .and. PTYPE == 2 ) then
 !         print *, 'Accumulated diagnostic for ND60 #',PTYPE,' at',i,j,l
          print *, ' Accumulated Coagulation'
          print *, '   Number :',ACCUN
@@ -6224,28 +6273,27 @@ C     and get the nucleation rate and critical cluster size
 
 #endif
 
-      ! Return to calling subroutine
       END SUBROUTINE AERODIAG
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE INIT_TOMAS( am_I_Root, Input_Opt, State_Chm, RC )
-
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine INIT_TOMAS intializes variables for TOMAS microphysics based on
-!  switches from input.geos, e.g. what aerosol species to simulate.(win, 7/9/07)
+! !IROUTINE: init_tomas
 !
-!  NOTES:
-!   (1 ) Add calculation for bin boundaries array Xk using Mo = lower mass 
-!         bound for first size bin (kg) (win, 7/18/07)
-!   (2 ) IDIAG is introduced.  IDIAG=2 for NH4 and H2O (win, 9/26/08)
-!  23 Apr 2013 - R. Yantosca - Now get unit # with findFreeLUN
-!  30 Jan 2014 - R. Yantosca - Now read big files from shared disk space
-!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
-!******************************************************************************
+! !DESCRIPTION: Subroutine INIT_TOMAS intializes variables for TOMAS
+!  microphysics based on switches from input.geos, e.g. what aerosol species to
+!  simulate.(win, 7/9/07)
+!\\
+!\\
+! !INTERFACE:
 !
-      ! References to F90 modules
+      SUBROUTINE INIT_TOMAS( am_I_Root,  Input_Opt, State_Chm,
+     &                       State_Grid, RC )
+!
+! !USES:
+!
       USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
@@ -6253,16 +6301,30 @@ C     and get the nucleation rate and critical cluster size
       USE inquireMod,         ONLY : findFreeLUN
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!   (1 ) Add calculation for bin boundaries array Xk using Mo = lower mass 
+!         bound for first size bin (kg) (win, 7/18/07)
+!   (2 ) IDIAG is introduced.  IDIAG=2 for NH4 and H2O (win, 9/26/08)
+!  23 Apr 2013 - R. Yantosca - Now get unit # with findFreeLUN
+!  30 Jan 2014 - R. Yantosca - Now read big files from shared disk space
+!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
+!  17 Feb 2019 - M. Sulprizio- Add ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -6299,6 +6361,17 @@ C     and get the nucleation rate and critical cluster size
       ! Now read large TOMAS input files from a common disk directory
       ! (bmy, 1/30/14)
       DATA_DIR = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'TOMAS_201402/'
+
+      ! Define subgrid coagulation timescale (win, 10/28/08)
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+         SGCTSCALE = 10.*3600.  ! 10 hours
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+         SGCTSCALE = 5.*3600.  
+      ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+         SGCTSCALE = 1.*3600.
+      ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+         SGCTSCALE = 0.5*3600.
+      ENDIF
 
 #if    defined( TOMAS40 )
       Mo = 1.0e-21_fp*2.e+0_fp**(-10)     
@@ -6360,7 +6433,8 @@ C     and get the nucleation rate and critical cluster size
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLWT [TOMAS]' )
       MOLWT(:) = 0e+0_fp
 
-      ALLOCATE( H2SO4_RATE( IIPAR, JJPAR, LLTROP ), STAT=AS )
+      ALLOCATE( H2SO4_RATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_RATE' )
       H2SO4_RATE = 0.0e+0_fp
 
@@ -6462,9 +6536,8 @@ C     and get the nucleation rate and critical cluster size
       ! Close file
       CLOSE( LUN )
 
-      ! Return to calling program
       END SUBROUTINE INIT_TOMAS
-
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE READBINACT( INFILE, BINACT )
@@ -6521,8 +6594,8 @@ C     and get the nucleation rate and critical cluster size
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GETFRACTION
-     &   ( I, J, L, N, LS, State_Met, FRACTION, SOLFRAC, State_Chm )
+      SUBROUTINE GETFRACTION( I, J, L, N, LS, State_Chm, State_Grid,
+     &                        State_Met, FRACTION, SOLFRAC )
 
 !
 !******************************************************************************
@@ -6550,15 +6623,17 @@ C     and get the nucleation rate and critical cluster size
 !******************************************************************************
 
       ! Reference to F90 modules
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Met_Mod,      ONLY : MetState          ! Met State object
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
 
       ! Arguments
       INTEGER,        INTENT(IN)    :: I, J, L, N
       LOGICAL,        INTENT(IN)    :: LS
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met    ! Met State object
       REAL(fp),       INTENT(OUT)   :: FRACTION, SOLFRAC
       TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry State object
@@ -6584,10 +6659,10 @@ C     and get the nucleation rate and critical cluster size
       ! Determine factor used to convert Spc to units of [kg] locally
       ! (ewl, 9/29/15)
       IF ( TRIM( State_Chm%Spc_Units ) == 'kg/m2' ) THEN
-         UNITFACTOR = State_Met%AREA_M2( I, J, 1 )
+         UNITFACTOR = State_Grid%AREA_M2(I,J)
 
       ELSE IF (  TRIM( State_Chm%Spc_Units ) == 'kg/kg dry' ) THEN
-         UNITFACTOR = State_Met%AD( I, J, L )
+         UNITFACTOR = State_Met%AD(I,J,L)
 
       ELSE 
          MSG = 'Unexpected species units: ' // TRIM(State_Chm%Spc_Units)
@@ -7055,8 +7130,9 @@ C     and get the nucleation rate and critical cluster size
       
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AERO_DIADEN( am_I_Root, LEV, Input_Opt, State_Met, 
-     &                        State_Chm, DIA, DENSITY,   RC        )
+      SUBROUTINE AERO_DIADEN( am_I_Root,  LEV, Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, DIA, DENSITY,
+     &                        RC )
 
 !******************************************************************************
 !  Subroutine AERO_DIADEN calculate the diameter and density by calling external
@@ -7083,6 +7159,7 @@ C     and get the nucleation rate and critical cluster size
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       IMPLICIT NONE
@@ -7091,10 +7168,13 @@ C     and get the nucleation rate and critical cluster size
       LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       INTEGER,           INTENT(IN)    :: LEV  
       TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      REAL(fp),          INTENT(OUT)   :: DIA(IIPAR,JJPAR,IBINS)
-      REAL(fp),          INTENT(OUT)   :: DENSITY(IIPAR,JJPAR,IBINS)
+      TYPE(GrdState),    INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology State object
+      REAL(fp),          INTENT(OUT)   :: DIA(State_Grid%NX,
+     &                                        State_Grid%NY,IBINS)
+      REAL(fp),          INTENT(OUT)   :: DENSITY(State_Grid%NX,
+     &                                            State_Grid%NY,IBINS)
       INTEGER,           INTENT(OUT)   :: RC          ! Success or failure?
 
       ! Scalars
@@ -7116,13 +7196,14 @@ C     and get the nucleation rate and critical cluster size
       !========================================================================
 
       ! Assume success
-      RC                =  GC_SUCCESS
+      RC =  GC_SUCCESS
 
       ! Convert species units to [kg] for this routine.
       ! NOTE: For complete area-independence, species units will need to be 
       !       mixing ratio or mass per unit area in TOMAS
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, 'kg',
+     &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine AERO_DIADEN in tomas_mod.F')
@@ -7149,17 +7230,16 @@ C     and get the nucleation rate and critical cluster size
       MOCOB = 0e+0_fp
       MDUST = 0e+0_fp
 
-      CALL CHECKMN( 0,         0,         0, 
-     &              Input_Opt, State_Met, State_Chm, 
-     &              'AERO_DIADEN called from DEPVEL', RC )
+      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
+     &              State_Met, 'AERO_DIADEN called from DEPVEL', RC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST )
 !$OMP+PRIVATE( BIN, I, J, TRACID, WID, MH2O, MSO4, MNACL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
       DO BIN = 1, IBINS
 
          TRACID = id_NK1 + BIN - 1
@@ -7208,8 +7288,8 @@ C     and get the nucleation rate and critical cluster size
       ENDIF
 
       ! Convert species units back to original unit 
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine AERO_DIADEN in tomas_mod.F')
@@ -7224,8 +7304,8 @@ C     and get the nucleation rate and critical cluster size
       
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE CHECKMN
-     &  ( II, JJ, LL, Input_Opt, State_Met, State_Chm, LOCATION, RC )
+      SUBROUTINE CHECKMN( II, JJ, LL, Input_Opt, State_Chm, 
+     &                    State_Grid, State_Met, LOCATION, RC )
 !      
 !*****************************************************************************
 !  Subroutine CHECKMN use the subroutine MNFIX to check for error in the 
@@ -7255,6 +7335,7 @@ C     and get the nucleation rate and critical cluster size
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 
@@ -7262,6 +7343,7 @@ C     and get the nucleation rate and critical cluster size
       INTEGER                         :: II, JJ, LL
       CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
@@ -7315,11 +7397,11 @@ C     and get the nucleation rate and critical cluster size
       ! Check throughout all grid boxes
       IF ( II == 0 .and. JJ == 0 .and. LL == 0 ) THEN 
          I1 = 1
-         I2 = IIPAR
+         I2 = State_Grid%NX
          J1 = 1
-         J2 = JJPAR
+         J2 = State_Grid%NY
          L1 = 1
-         L2 = LLPAR
+         L2 = State_Grid%NZ
       ELSE ! Check at a single grid
          I1 = II
          I2 = II
@@ -7393,7 +7475,8 @@ C     and get the nucleation rate and critical cluster size
          MPNUM = 5
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 )
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif       
 
          ! Swap Nk and Mk arrays back to Spc 

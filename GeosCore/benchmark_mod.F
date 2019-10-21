@@ -58,8 +58,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE STDRUN( am_I_Root, Input_Opt,  State_Met, 
-     &                   State_Chm, State_Diag, RC,        LBEGIN )
+      SUBROUTINE STDRUN( am_I_Root,  Input_Opt,  State_Chm, 
+     &                   State_Diag, State_Grid, State_Met, RC,
+     &                   LBEGIN )
 !
 ! !USES:
 !
@@ -77,6 +78,7 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TIME_MOD,       ONLY : GET_NYMD
@@ -88,6 +90,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       LOGICAL,        INTENT(IN)    :: LBEGIN      ! =T denotes start of run
                                                    ! =F denotes end of run
@@ -143,7 +146,9 @@
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
       INTEGER             :: HALFPOLAR
-      REAL(f4)            :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)            :: ARRAY(State_Grid%NX,
+     &                             State_Grid%NY,
+     &                             State_Grid%NZ)
       REAL(f4)            :: LONRES, LATRES
       REAL(f8)            :: TAU
       CHARACTER(LEN=20)   :: MODELNAME 
@@ -173,13 +178,13 @@
       IU_FILE   = findFreeLUN()
 
       ! Define variables for binary punch file
-      MODELNAME = GET_MODELNAME()
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
       CATEGORY  = 'TCMASS-$'
       UNIT      = 'kg'
       RESERVED  = ''      
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
+      LONRES    = State_Grid%DX
+      LATRES    = State_Grid%DY
       NYMD      = GET_NYMD()
       NHMS      = GET_NHMS()
       TAU       = GET_TAU()
@@ -200,8 +205,9 @@
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Convert species from to [kg]
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, 'kg',
+     &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,
      &                 'Start of STDRUN in benchmark_mod.F')
@@ -229,8 +235,9 @@
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,    
      &                  UNIT,      TAU,       TAU,       RESERVED,   
-     &                  IIPAR,     JJPAR,     LLPAR,     IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,:) )
+     &                  State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                  IFIRST,        JFIRST,        LFIRST,
+     &                  ARRAY(:,:,:) )
 
          ENDDO
 
@@ -250,17 +257,18 @@
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  id_O3,
      &               UNIT,      TAU,       TAU,       RESERVED,
-     &               IIPAR,     JJPAR,     LLPAR,     IFIRST,
-     &               JFIRST,    LFIRST,    ARRAY(:,:,:) )
-               
+     &               State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &               IFIRST,        JFIRST,        LFIRST,
+     &               ARRAY(:,:,:) )
+
       ENDIF
 
       ! Close file
       CLOSE( IU_FILE )
 
       ! Convert species back to original units
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit, RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,
      &                 'End of STDRUN in benchmark_mod.F')

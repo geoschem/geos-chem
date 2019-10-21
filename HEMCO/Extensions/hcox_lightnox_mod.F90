@@ -57,10 +57,7 @@ MODULE HCOX_LightNOx_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: LIGHTNOX
-  PRIVATE :: LIGHTDIST                
-  PRIVATE :: FLASHES_CTH              
-  PRIVATE :: GET_IC_CG_RATIO          
-  PRIVATE :: GET_OTD_LIS_SCALE        
+  PRIVATE :: LIGHTDIST
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -146,6 +143,13 @@ MODULE HCOX_LightNOx_Mod
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  17 Oct 2017 - C. Keller   - Add option to use GEOS-5 lightning flash rate
 !                              (LFR). Autoselection of flash rate scale factor.
+!  16 Jan 2019 - L. Murray   - Lightning flash densities and convective depths
+!                              for vertical distribution are now calculated offline 
+!                              at the native model resolution and prescribed in 
+!                              HEMCO_Config.rc as the other model meteorology.
+!                              Model flash climatology remains constrained to the 
+!                              LIS/OTD climatology, as described by Murray et al. 
+!                              (2012). Removed obsolete subroutines and code.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -154,19 +158,11 @@ MODULE HCOX_LightNOx_Mod
 !
   INTEGER, PARAMETER            :: NLTYPE        = 4
   INTEGER, PARAMETER            :: NNLIGHT       = 3200
-  REAL*8,  PARAMETER            :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
-  REAL*8,  PARAMETER            :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash
+  REAL*8,  PARAMETER            :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash applied in the N extratropics
+  REAL*8,  PARAMETER            :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash applied in the tropics / S extratropics
   REAL*8,  PARAMETER            :: EAST_WEST_DIV = -30d0
   REAL*8,  PARAMETER            :: WEST_NS_DIV   =  35d0
   REAL*8,  PARAMETER            :: EAST_NS_DIV   =  35d0
-  REAL*8,  PARAMETER            :: T_NEG_BOT     = 273.0d0    !   0 C 
-  REAL*8,  PARAMETER            :: T_NEG_CTR     = 258.0d0    ! -15 C
-  REAL*8,  PARAMETER            :: T_NEG_TOP     = 233.0d0    ! -40 C
-                               
-  ! testing only               
-  integer, parameter            :: ix = -1 !30 !19 
-  integer, parameter            :: iy = -1 !6  !33 
-  integer, parameter            :: iz = -1 !9  !9
 !
 ! !PRIVATE TYPES:
 !
@@ -175,20 +171,13 @@ MODULE HCOX_LightNOx_Mod
    INTEGER                       :: Instance
    INTEGER                       :: IDTNO     ! NO tracer ID
    INTEGER                       :: ExtNr     ! HEMCO Extension ID
-   LOGICAL                       :: DoDiagn 
-!   REAL*8                        :: AREA_30N
-   REAL*8                        :: OTD_LIS_SCALE
-   LOGICAL                       :: OTD_LIS_PRESC ! Is OTD_LIS_SCALE prescribed?
-   LOGICAL                       :: LOTDLOC       ! Use OTD-LIS dist factors?
-   LOGICAL                       :: LCNVFRC       ! Use convective fractions? 
-   LOGICAL                       :: LLFR          ! Use GEOS-5 flash rates 
+   LOGICAL                       :: DoDiagn
+   LOGICAL                       :: LCNVFRC   ! Use convective fractions? 
+   LOGICAL                       :: LLFR      ! Use GEOS-5 flash rates 
 
    ! Arrays
    REAL(dp), POINTER             :: PROFILE(:,:)
    REAL(hp), POINTER             :: SLBASE(:,:,:)
-
-   ! OTD scale factors read through configuration file
-   REAL(hp), POINTER :: OTDLIS(:,:) => NULL()
 
    ! Overall scale factor to be applied to lightning NOx emissions. Must
    ! be defined in the HEMCO configuration file as extension attribute 
@@ -214,7 +203,7 @@ CONTAINS
 ! !IROUTINE: HCOX_LightNOx_Run
 !
 ! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_RUN is the driver routine
-! to calculate lightnox NOx emissions and return them to the HEMCO
+! to calculate lightning NOx emissions and return them to the HEMCO
 ! driver routine.
 !\\
 !\\
@@ -229,8 +218,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   )  :: am_I_Root
-    TYPE(Ext_State), POINTER        :: ExtState    ! Module options
-    TYPE(HCO_State), POINTER        :: HcoState   ! Hemco options 
+    TYPE(Ext_State), POINTER        :: ExtState   ! Module options
+    TYPE(HCO_State), POINTER        :: HcoState   ! HEMCO options 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -324,7 +313,7 @@ CONTAINS
 ! !IROUTINE: LightNOx
 !
 ! !DESCRIPTION: Subroutine LIGHTNOX uses Price \& Rind's formulation for 
-!  computing NOx emission from lightnox (with various updates).
+!  computing NOx emission from lightning (with various updates).
 !\\
 !\\
 ! !INTERFACE:
@@ -394,30 +383,33 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER           :: I,         J,           L,        LCHARGE
-    INTEGER           :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
-    INTEGER           :: cMt,       MTYPE,       LTOP1,    LTOP2 
-    INTEGER           :: LTOP_LFR
-    REAL*8            :: A_KM2,     A_M2,        CC,       DLNP     
-    REAL*8            :: DZ,        FLASHRATE,   H0,       HBOTTOM
-    REAL*8            :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
-    REAL*8            :: P2,        P3,          RAIN,     RATE
-    REAL*8            :: RATE_SAVE, REDIST,      T1,       T2
-    REAL*8            :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
-    REAL*8            :: YMID,      Z_IC,        Z_CG,     ZUP
+    INTEGER           :: I, J, L
+    INTEGER           :: LTOP
+    INTEGER           :: MONTH
+    INTEGER           :: MTYPE
+    REAL*8            :: A_M2
+    REAL*8            :: A_KM2
+    REAL*8            :: H0
+    REAL*8            :: IC_CG_RATIO
+    REAL*8            :: RATE
+    REAL*8            :: RATE_SAVE
+    REAL*8            :: TOTAL
+    REAL*8            :: TOTAL_CG
+    REAL*8            :: TOTAL_IC
+    REAL*8            :: X       
+    REAL*8            :: YMID
     REAL*8            :: XMID
     REAL*8            :: VERTPROF(HcoState%NZ)
-    REAL*8            :: RATE_LFR, IC_CG_RATIO_LFR, H0_LFR
-    INTEGER           :: LNDTYPE, SFCTYPE
+    INTEGER           :: LMAX
+    INTEGER           :: LNDTYPE
+    INTEGER           :: SFCTYPE
     INTEGER           :: DiagnID
     REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
+    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY)
     REAL(hp), POINTER :: Arr2D(:,:)
     TYPE(DiagnCont), POINTER :: TmpCnt
     REAL(hp)          :: TROPP
     REAL(dp)          :: TmpScale
-
-    ! Cloud top height
-    REAL(hp), TARGET  :: TOPDIAGN(HcoState%NX,HcoState%NY)
 
     !=================================================================
     ! LIGHTNOX begins here!
@@ -439,25 +431,6 @@ CONTAINS
        ! ckeller, 8/30/18: Always write out diagnostics
        Inst%DoDiagn = .TRUE.
 
-       ! Get scale factor. 
-       ! - Try to read from configuration file first.
-       CALL GetExtOpt( HcoState%Config, Inst%ExtNr, 'OTD-LIS scaling', &
-                        OptValDp = TmpScale, FOUND=Inst%OTD_LIS_PRESC, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( Inst%OTD_LIS_PRESC ) THEN
-          Inst%OTD_LIS_SCALE = TmpScale
-       ! - Get according to compiler switches otherwise
-       ELSE
-          CALL GET_OTD_LIS_SCALE( am_I_Root, HcoState, Inst%OTD_LIS_SCALE, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-       ENDIF
-
-    ENDIF
-
-    ! Eventually get OTD-LIS local redistribution factors from HEMCO.
-    IF ( Inst%LOTDLOC ) THEN
-       CALL HCO_EvalFld( am_I_Root, HcoState, 'LIGHTNOX_OTDLIS', Inst%OTDLIS, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! Reset arrays 
@@ -467,29 +440,24 @@ CONTAINS
        TOPDIAGN = 0.0_hp
     ENDIF
 
-    ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
+    ! LMAX: the highest L-level to look for lightning NOx (usually LLPAR-1)
     LMAX   = HcoState%NZ - 1
 
     ! Get current month (to be passed to LIGHTDIST)
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM=cMt, RC=RC)
+    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM=MONTH, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=================================================================
-    ! Compute lightnox emissions for each (I,J) column
+    ! Compute lightning NOx emissions for each (I,J) column
     !=================================================================
-
-!$OMP PARALLEL DO                                                   &
-!$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I,           J,        L,        A_M2,   A_KM2     ) &
-!$OMP PRIVATE( YMID,        XMID,     LCHARGE,  P1,     P2        ) &
-!$OMP PRIVATE( T1,          T2,       DLNP,     DZ,     P3        ) &
-!$OMP PRIVATE( ZUP,         HCHARGE,  LTOP,     H0,     Z_CG      ) &
-!$OMP PRIVATE( Z_IC,        LBOTTOM,  HBOTTOM,  CC,     FLASHRATE ) &
-!$OMP PRIVATE( IC_CG_RATIO, L_MFLUX,  MFLUX,    RAIN,   RATE      ) &
-!$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
-!$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
-!$OMP PRIVATE( MTYPE,       LTOP1,    LTOP2                       ) &
-!$OMP PRIVATE( RATE_LFR,    H0_LFR,   IC_CG_RATIO_LFR, LTOP_LFR   ) &
+    
+!$OMP PARALLEL DO                                                     &
+!$OMP DEFAULT( SHARED )                                               &
+!$OMP PRIVATE( I,         J,           L,        A_M2,        A_KM2  ) &
+!$OMP PRIVATE( YMID,      XMID,        LTOP,     MTYPE               ) &
+!$OMP PRIVATE( LNDTYPE,   SFCTYPE,     TROPP                         ) &
+!$OMP PRIVATE( RATE,      RATE_SAVE,   H0,       IC_CG_RATIO         ) &
+!$OMP PRIVATE( TOTAL,     TOTAL_IC,    TOTAL_CG, VERTPROF,    X      ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -523,538 +491,125 @@ CONTAINS
 
        ! Tropopause pressure. Convert to Pa
        TROPP = ExtState%TROPP%Arr%Val(I,J) !* 100.0_hp
-
+       
+       !===========================================================
        ! Initialize
-       LBOTTOM       = 0 
-       LCHARGE       = 0
-       CC            = 0d0
-       HCHARGE       = 0d0
-       HBOTTOM       = 0d0
+       !===========================================================
+       RATE          = 0.0
+       RATE_SAVE     = 0.0
+       H0            = 0.0
+       IC_CG_RATIO   = 1.0
+       
        TOTAL         = 0d0
        TOTAL_IC      = 0d0
        TOTAL_CG      = 0d0
-       
-       ! Get factors for OTD-LIS local redistribution or none.
-       ! This constrains the seasonality and spatial distribution
-       ! of the parameterized lightnox to match the HRMC v2.2
-       ! product from LIS/OTD, while still allowing the model to
-       ! place lightnox locally within deep convective events.
-       ! (ltm, bmy, 1/31/07)
-       IF ( Inst%LOTDLOC ) THEN
-          REDIST = Inst%OTDLIS(I,J)
-       ELSE
-          REDIST = 1.0d0
-       ENDIF
 
+       !===========================================================       
+       ! (1) Get flash density [#/km2/s] from meteorology
        !===========================================================
-       ! Use GEOS-5 LFR if option is selected
-       ! LFR is in flashes s-1 km-2
-       ! Use arbitrary value of 1.0 for IC/CG ratio. This value has
-       ! no impact on the total lightning emissions. 
-       !===========================================================
+       
+       !-----------------------------------------------------------
+       ! (1a) Prescribed in HEMCO_Config.rc
+       !-----------------------------------------------------------              
+       RATE        = ExtState%FLASH_DENS%Arr%Val(I,J)
+       
+       !-----------------------------------------------------------
+       ! (1b) From GEOS-5
+       !-----------------------------------------------------------       
        IF ( Inst%LLFR                                  &
             .AND. ASSOCIATED( ExtState%LFR%Arr%Val   ) &
             .AND. ASSOCIATED( ExtState%BYNCY%Arr%Val )  ) THEN
-          RATE_LFR        = ExtState%LFR%Arr%Val(I,J) * A_KM2 * 60.0d0 * 360.0d0
-          IC_CG_RATIO_LFR = 1.0
+          RATE     = ExtState%LFR%Arr%Val(I,J)
+       ENDIF
+       
+       ! Error check: do not continue if flash rate is zero
+       IF ( RATE <= 0.0 ) CYCLE
 
-          ! Apply scaling factor to make sure annual average flash rate 
-          ! equals that of the climatology. (ltm, 09/24/07)
-          RATE_LFR = RATE_LFR * Inst%OTD_LIS_SCALE
+       !===========================================================
+       ! (2) Get depth of convection [m] and find associated LTOP
+       !===========================================================
+       
+       !-----------------------------------------------------------
+       ! (2a) Prescribed in HEMCO_Config.rc
+       !-----------------------------------------------------------                     
+       H0          = ExtState%CONV_DEPTH%Arr%Val(I,J)
+       LTOP = 1       
+       DO L = 1, HcoState%NZ
+          IF ( SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:L)) > H0 ) THEN
+             LTOP = L
+             EXIT
+          ENDIF
+       ENDDO
+       ! Reset H0 to be the height of that layer in the model, 
+       ! to avoid negative values in the partitioning
+       H0          = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP))
 
+       !-----------------------------------------------------------
+       ! (2b) From GEOS-5
+       !-----------------------------------------------------------       
+       IF ( Inst%LLFR                                  &
+            .AND. ASSOCIATED( ExtState%LFR%Arr%Val   ) &
+            .AND. ASSOCIATED( ExtState%BYNCY%Arr%Val )  ) THEN
+       
           ! Set LTOP to top of buoyancy
           DO L = HcoState%NZ, 1, -1
              IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN
-                LTOP_LFR = L + 1
+                LTOP = L + 1
                 EXIT
              ENDIF
           ENDDO
           !LTOP = MAX( LTOP, LMAX )
-
           ! H0 is the convective cloud top height [m].  This is the
           ! distance from the surface to the top edge of box (I,J,LTOP).
-          H0_LFR = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP_LFR))
-
-       ELSE
-          IC_CG_RATIO_LFR = -999.0
-          RATE_LFR        = -999.0
-          H0_LFR          = -999.0
-          LTOP_LFR        = -999.0
-
+          H0 = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP))
        ENDIF
-
-       ! Init
-       RATE        = -999.0
-       H0          = -999.0
-       IC_CG_RATIO = -999.0
-
-       !===========================================================
-       ! (1) FIND NEGATIVE CHARGE LAYER
-       !
-       ! LCHARGE is the L-value where the negative charge layer is
-       ! found.  According to Williams (1985), the negative charge
-       ! layer occurs where T is between 0 C and -40 C.  The 
-       ! original model code set this at -10 C, but according to 
-       ! Houze (1993), a good proxy for the negative charge layer
-       ! maximum density is at -15 C.
-       !
-       ! Also of interest for later, will be the bottom of the
-       ! negative charge layer (i.e., temp = 0 C) in calculating 
-       ! the cold cloud depth.
-       !
-       ! If LCHARGE=1, then it is too cold to have water droplets
-       ! in the column, so there will be no lightnox events,
-       ! and we go to the next (I,J) box.
-       !
-       ! (ltm, bmy, 5/10/06, 12/11/06)
-       !===========================================================
-
-       ! Find negative charge layer
-       DO L = 1, LMAX
-          IF ( ExtState%TK%Arr%Val(I,J,L) <= T_NEG_CTR ) THEN
-             LCHARGE = L
-             EXIT
-          ENDIF
-       ENDDO
-
-       ! Error check LCHARGE
-       IF ( LCHARGE >= LMAX ) LCHARGE = LMAX
-       !IF ( LCHARGE <= 1    ) CYCLE
-       IF ( LCHARGE > 1 ) THEN
-
-       !-----------------------------------------------------------
-       ! (1a) Define more quantities
-       !-----------------------------------------------------------
-           
-       ! Pressure [Pa] at the centers of grid
-       ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
-       ! Now calculate from grid edges (ckeller, 10/06/2014)
-       P1 = ( HcoState%Grid%PEDGE%Val(I,J,LCHARGE-1) &
-            + HcoState%Grid%PEDGE%Val(I,J,LCHARGE  ) ) / 2.0_hp
-       P2 = ( HcoState%Grid%PEDGE%Val(I,J,LCHARGE  ) &
-            + HcoState%Grid%PEDGE%Val(I,J,LCHARGE+1) ) / 2.0_hp
-
-       ! Temperatures [K] at the centers of grid
-       ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
-       T1   = ExtState%TK%Arr%Val(I,J,LCHARGE-1)
-       T2   = ExtState%TK%Arr%Val(I,J,LCHARGE  )
- 
-       ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
-       ! to the negative charge layer.  It may be found in either
-       ! the (LCHARGE)th sigma layer or the (LCHARGE-1)th layer.
-       ! We use the hypsometric eqn to find the distance between
-       ! the center of (LCHARGE)th and (LCHARGE-1)th boxes, then
-       ! assume a linear temp distribution to scale between the two.
-       DLNP = LOG( P1 / P2 ) / ( T1 - T2 ) * ( T1 - T_NEG_CTR )
-       DZ   = HcoState%Phys%Rdg0 * ( ( T1 + T2 ) / 2d0 ) * DLNP
-
-       ! Pressure [Pa] at the bottom edge of box (I,J,LCHARGE),
-       ! or, equivalently, the top edge of box (I,J,LCHARGE-1).
-       P3   = HcoState%Grid%PEDGE%Val( I, J, LCHARGE )
-
-       ! Height [m] from the center of grid box (I,J,LCHARGE-1) 
-       ! to the top edge of grid box (I,J,LCHARGE-1)
-       ZUP  = HcoState%Phys%Rdg0 * T1 * LOG( P1 / P3 )
-
-       !-----------------------------------------------------------
-       ! (1b) HCHARGE is the height of the negative charge layer 
-       ! above the bottom edge of box (I,J,LCHARGE).  
-       ! 
-       ! If DZ < ZUP, then DZ is in grid box (I,J,LCHARGE-1);
-       ! therefore subtract 1 from LCHARGE and compute HCHARGE 
-       ! accordingly.  
-       !
-       ! In this case, please note that BXHEIGHT(I,J,LCHARGE)-ZUP 
-       ! is the distance from the bottom edge of the grid box to 
-       ! the center of the newly defined (LCHARGE)th layer.
-       !-----------------------------------------------------------
-       IF ( DZ >= ZUP ) THEN
-          HCHARGE = DZ - ZUP
-       ELSE
-          LCHARGE = LCHARGE - 1
-          HCHARGE = (HcoState%Grid%BXHEIGHT_M%Val(I,J,LCHARGE)-ZUP) + DZ
-       ENDIF
- 
-       !===========================================================
-       ! (2) COMPUTE CONVECTIVE CLOUD TOP HEIGHT
-       !
-       ! LTOP is the L-layer where the convective cloud top is 
-       ! found.  The cloud top is located at the highest sigma 
-       ! level for which the cloud mass flux is nonzero.  Since 
-       ! GMAO cloud mass flux is defined at the top of each sigma 
-       ! level, the convective cloud top is located at the top 
-       ! edge of layer LTOP.
-       !
-       ! For lightnox to exist, the cloud must straddle the 
-       ! negative charge layer (in other words, at the very 
-       ! minimum, the cloud bottom must occur in the LCHARGEth 
-       ! layer).  If LTOP < LCHARGE go to the next (I,J) location.
-       ! 
-       ! Additionally, because the negative charge layer extends 
-       ! from 0 C to around -40 C (Williams 1985), any cloud type 
-       ! heights that are not colder than -40 C will be considered 
-       ! unable to create the necessary dipole.  Therefore, if 
-       ! T(I,J,LTOP) >= -40 C, go to the next (I,J) location. 
-       !
-       ! To be easily translatable to an ESMF environment, we now 
-       ! use the convective cloud mass flux to determine LTOP.
-       ! Use the same definition as used in GEOS-Chem.
-       !
-       ! (ltm, bmy, 5/10/06, 12/11/06)
-       !
-       ! GEOS-FP turns off convection in grid boxes where vertical
-       ! transport is explicitly resolved. The convective mass flux
-       ! (which is computed within the convection code) is then zero
-       ! in these grid boxes, even though convection did occur at 
-       ! these places. 
-       ! This may become increasingly relevant as GEOS-FP operates 
-       ! at even higher resolutions. 
-       ! If available, also determine cloud top height from 
-       ! buoyancy and the convective fraction. Define it as the
-       ! highest level with non-negative buoyancy and for columns 
-       ! with non-zero convective fraction (ckeller, 3/04/16).
-       !===========================================================
-
-       ! 'Traditional definition of cloud top level
-       LTOP1 = 1
-       DO L = HcoState%NZ, 1, -1
-          IF ( ExtState%CNV_MFC%Arr%Val(I,J,L) > 0.0_hp ) THEN
-             LTOP1 = L + 1
-             EXIT
-          ENDIF
-       ENDDO 
-
-       ! To determine cloud top height from buoyancy for all grid
-       ! boxes with non-zero convective fraction (define cloud top
-       ! as top level with positive buoyancy).
-       LTOP2 = 0
-       IF ( Inst%LCNVFRC                         .AND. &
-            ASSOCIATED(ExtState%BYNCY%Arr%Val  ) .AND. &
-            ASSOCIATED(ExtState%CNV_FRC%Arr%Val)        ) THEN
-          IF ( ExtState%CNV_FRC%Arr%Val(I,J) > 0.0_sp ) THEN
-             DO L = HcoState%NZ, 1, -1
-                IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN 
-                   LTOP2= L + 1
-                   EXIT
-                ENDIF
-             ENDDO
-          ENDIF 
-       ENDIF 
-
-       ! Take whichever value is higher
-       LTOP = MAX(LTOP1,LTOP2)
-
-       !----------------------------------------------------------------
-       ! Error checks for LTOP 
-       !----------------------------------------------------------------
-
-       ! Error check LTOP
-       !IF ( LTOP == 0 ) CYCLE
-       IF ( LTOP > 0 ) THEN
-
-       ! Error check LTOP as described above
-       IF ( LTOP        >  LMAX      ) LTOP = LMAX
-       !IF ( LTOP        <  LCHARGE   ) CYCLE
-       IF ( LTOP        >= LCHARGE   ) THEN
 
        ! Diagnose used LTOP
        IF ( Inst%DoDiagn ) THEN
           TOPDIAGN(I,J) = LTOP
        ENDIF
-
-       ! H0 is the convective cloud top height [m].  This is the
-       ! distance from the surface to the top edge of box (I,J,LTOP).
-       H0   = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP))
-
-       ! Z_CG is the cloud-ground path (ground --> HCHARGE) [m]
-       Z_CG = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LCHARGE-1)) + HCHARGE
-
-       ! Z_IC is the intra-cloud path (HCHARGE --> cloud top) [m]
-       Z_IC = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,LCHARGE:LTOP)) - HCHARGE
-
-       !===========================================================
-       ! (3) COMPUTE COLD CLOUD THICKNESS
-       ! 
-       ! Find the cold cloud thickness (CC) -- the distance from 
-       ! where the temperature is 0 C up to the top of the cloud.  
-       ! This is necessary for calculating the f_CG/f_IC ratio as 
-       ! per Price and Rind 1993.  
-       !
-       ! This is a clone of the method above to find height to 
-       ! HCHARGE, and we can recycle many of the same variables 
-       ! that aren't used again.
-       ! 
-       ! Grid box (I,J,LBOTTOM) is the model layer where the 
-       ! temperature of the cloud is 0C.
-       !
-       ! NOTE: If no temperature in the column is above 0 C, it 
-       ! moves on to the next (I,J) box as before with the -15 C.
-       !
-       ! (ltm, bmy, 5/10/06, 12/11/06)
-       !===========================================================
-
-       ! Find the level where T = 0 C
-       DO L = 1, LMAX
-          IF ( ExtState%TK%Arr%Val(I,J,L) <= T_NEG_BOT ) THEN
-             LBOTTOM = L
-             EXIT
-          ENDIF
-       ENDDO
-
-       ! Error check LBOTTOM as described above
-       IF ( LBOTTOM >= LMAX ) LBOTTOM = LMAX
-       !IF ( LBOTTOM <= 1    ) CYCLE 
-       IF ( LBOTTOM > 1    ) THEN 
-
-       !-----------------------------------------------------------
-       ! (3a) Define more quantities
-       !-----------------------------------------------------------
-
-       ! Pressure [Pa] at the centers of grid
-       ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
-       ! Now calculate from grid edges (ckeller, 10/06/2014)
-       P1 = ( HcoState%Grid%PEDGE%Val(I,J,LBOTTOM-1) &
-            + HcoState%Grid%PEDGE%Val(I,J,LBOTTOM  ) ) / 2.0_hp
-       P2 = ( HcoState%Grid%PEDGE%Val(I,J,LBOTTOM  ) &
-            + HcoState%Grid%PEDGE%Val(I,J,LBOTTOM+1) ) / 2.0_hp
-
-       ! Temperature [K] at the centers of grid
-       ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
-       T1   = ExtState%TK%Arr%Val(I,J,LBOTTOM-1)
-       T2   = ExtState%TK%Arr%Val(I,J,LBOTTOM  )
        
-       ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
-       ! to the negative charge layer.  It may be found in either
-       ! the (LCHARGE)th sigma layer or the (LCHARGE-1)th layer.
-       ! We use the hypsometric eqn to find the distance between
-       ! the center of (LCHARGE)th and (LCHARGE-1)th boxes, then
-       ! assume a linear temp distribution to scale between the two.
-       DLNP = LOG( P1 / P2 ) / ( T1 - T2 ) * ( T1 - T_NEG_BOT )
-       DZ   = HcoState%Phys%Rdg0 * ( ( T1 + T2 ) / 2d0 ) * DLNP
-
-       ! Pressure [Pa] at the bottom edge of box (I,J,LBOTTOM),
-       ! or, equivalently, the top edge of box (I,J,BOTTOM-1).
-       P3   = HcoState%Grid%PEDGE%Val( I, J, LBOTTOM )
-
-       ! Height [m] from the center of grid box (I,J,LBOTTOM-1) 
-       ! to the top edge of grid box (I,J,LBOTTOM-1)
-       ZUP  = HcoState%Phys%Rdg0 * T1 * LOG( P1 / P3 )
-
-       !-----------------------------------------------------------
-       ! (3b) HBOTTOM is the height of the 0 C layer above the 
-       ! bottom edge of box (I,J,LBOTTOM).  
-       ! 
-       ! If DZ < ZUP, then DZ is in grid box (I,J,LBOTTOM-1);
-       ! therefore subtract 1 from LBOTTOM and compute HBOTTOM
-       ! accordingly.
-       !
-       ! In this case, please note that BXHEIGHT(I,J,LBOTTOM)-ZUP 
-       ! is the distance from the bottom edge of the grid box to 
-       ! the center of the newly defined (LBOTTOM)th layer.
-       !-----------------------------------------------------------
-       IF ( DZ >= ZUP ) THEN
-          HBOTTOM = DZ - ZUP
-       ELSE
-          LBOTTOM = LBOTTOM - 1
-          HBOTTOM = (HcoState%Grid%BXHEIGHT_M%Val(I,J,LBOTTOM) - ZUP) + DZ
-       ENDIF
-  
-       ! Cold cloud thickness is difference of cloud top 
-       ! height (H0) and the height to the bottom.
-       CC = H0 - SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LBOTTOM-1) ) - &
-                     HBOTTOM 
-
+       !===========================================================       
+       ! (3) Compute ratio of CG vs total flashes
        !===========================================================
-       ! (4) COMPUTE IC/CG FLASH_RATIO FROM COLD-CLOUD DEPTH
-       !
-       ! This is necessary as an input for the MFLUX and PRECON
-       ! parameterizations, as well as for determining the fraction 
-       ! of LNOX generated by either type of flash, and will
-       ! eventually be used for separate vertical distributions
-       ! when they become available.  (ltm, bmy, 12/11/06)
-       !===========================================================
-
-       ! Get Inter-Cloud/Cloud-Ground flash ratio [unitless]
-       IC_CG_RATIO = GET_IC_CG_RATIO( CC )
-
-       !===========================================================
-       ! (5) COMPUTE LIGHTNOX FLASH RATES
-       !
-       ! Now that we have computed the the ratio of intra-cloud
-       ! flashes to cloud-ground flashes, compute the lightnox
-       ! flash rate via one of these parameterizations:
-       !
-       ! (a) Cloud top height (CTH)
-       ! (b) Mass flux (MFLUX)
-       ! (c) Convective Precpitation (PRECON)
-       ! 
-       ! (ltm, bmy, 5/10/06, 12/11/06)
-       !===========================================================
-
-       !--------------------------------------------------------
-       ! (5a) CLOUD TOP HEIGHT PARAMETERIZATION (all met fields)
-       !
-       ! Based on Price & Rind [1992,1993,1994].
-       !--------------------------------------------------------
-
-       ! Get lightnox flash rate per minute and IC/CG ratio
-       CALL FLASHES_CTH( I, J, H0, FLASHRATE, SFCTYPE ) 
-
-       !===========================================================
-       ! (6) COMPUTE TOTAL LNOx AND PARTITION INTO VERTICAL LAYERS
-       ! 
-       ! (6a) We convert FLASHRATE (computed above) to units of
-       ! [flashes/6h] and store in the RATE variable.
-       !
-       ! We then multiply RATE by a scale factor based on 
-       ! OTD/LIS observations.  This is necessary in order to make 
-       ! sure that the lightnox flashes happen in the correct 
-       ! locations as diagnosed by OTD/LIS satellite observations.  
-       ! There are two redistribution options:
-       !
-       !   (1) Apply regional scale factors based on OTD/LIS
-       !        observations (method of L. Jourdain et al)
-       !
-       !   (2) Apply box-by-box scale scale factors based on
-       !        OTD/LIS observations (method of B. Sauvage)
-       !
-       ! NOTE: As of 3/27/07, only method (1) is implemented.
-       ! 
-       ! (6b) We then compute X, which is the ratio
-       !   [cloud-ground flashes / total flashes].
-       !
-       ! The amount of lightnox released will depend whether we
-       ! are in the tropics or in mid-latitudes.
-       !
-       !
-       ! (6c) LIGHTNOX NOx EMISSIONS IN THE TROPICS:
-       ! ----------------------------------------------------------
-       ! N. American / S. American     tropics: lat <= 23 N 
-       ! African / Oceanian / Eurasian tropics: lat <= 35 N
-       !
-       ! The lightnox NOx released in the inter-cloud (IC) and 
-       ! cloud-ground (CG) paths are given by:
-       !
-       !   TOTAL_IC = RFLASH_TROPIC * RATE * (1-X) * Z_IC
-       !   TOTAL_CG = RFLASH_TROPIC * RATE * (  X) * Z_CG
-       !
-       ! where:
-       !   RFLASH_TROPIC = # of NOx molecules released per flash 
-       !                    per meter (same as in previous code)
-       !   RATE          = lightnox flashes / 6h computed above
-       !   Z_IC          = IC pathway in meters (from the negative    
-       !                    cloud layer to the cloud top)
-       !   Z_CG          = CG pathway in meters (from the negative
-       !                    cloud layer to the ground surface)
-       !   
-       ! We also apply a top-down final global scaling factor, 
-       ! calculated by previously bringing total global LNOx to 
-       ! 6 Tg N/yr  (2x2.5: 0.3683, 4x5: 0.8996).  In 2004, the 
-       ! tropics-only contribution to LNOx was 4.5379 Tg N.
-       !
-       ! 
-       ! (6d) LIGHTING NOx EMISSIONS AT MIDLATITUDES:
-       ! ----------------------------------------------------------
-       ! N. American midlatitudes : lat > 23N
-       ! Eurasian    midlatitudes : lat > 35N
-       !
-       ! The lightnox NOx released at midlatitudes is independent
-       ! of path length.  Thus:
-       !
-       !   TOTAL_IC = RFLASH_MIDLAT * RATE * (1-X) * MID_LAT_SCALE
-       !   TOTAL_CG = RFLASH_MIDLAT * RATE *    X  * MID_LAT_SCALE
-       !
-       ! where 
-       !   RFLASH_MIDLAT = # of NOx molecules released per flash 
-       !                    per meter (based on 500 mol/flash)
-       !   RATE          = lightnox flashes / 6h computed above
-       !   Z_IC          = IC pathway in meters (from the negative    
-       !                    cloud layer to the cloud top)
-       !   Z_CG          = CG pathway in meters (from the negative
-       !                    cloud layer to the ground surface)
-       !
-       ! We now emit at the Northern Mid-latitudes using an RFLASH
-       ! value of 500 mol/flash.  This is independent of path 
-       ! length.  
-       !
-       ! NOTE: The OTD-LIS local redistribution method was expanded
-       ! upon from Sauvage et al, 2007, ACP.
-       ! http://www.atmos-chem-phys.net/7/815/2007/acp-7-815-2007.pdf
-       !
-       ! (6e) The total lightnox is the sum of IC+CG paths:
-       !   TOTAL = TOTAL_IC + TOTAL_CG
-       !
-       ! (6g) We then partition the NOx into each of the vertical 
-       ! grid boxes within the column with a Ken Pickering PDF
-       ! (see comments below).
-       !
-       ! (ltm, rch, bmy, 5/10/06, 3/27/07)
-       !===========================================================
-
-       !-----------------------------------------------------------
-       ! (6a) Compute flash rate and apply OTD/LIS redistribution
-       !-----------------------------------------------------------
-
-       ! Convert [flashes/min] to [flashes/6h]
-       RATE     = FLASHRATE * 360.0d0
-
-       ! Apply regional or local OTD-LIS redistribution so that the 
-       ! flashes occur in the right place. 
-       RATE = RATE * REDIST
-
-       ! Apply scaling factor to make sure annual average flash rate 
-       ! equals that of the climatology. (ltm, 09/24/07)
-       RATE = RATE * Inst%OTD_LIS_SCALE
-
-       END IF ! LBOTTOM >  1
-       END IF ! LTOP    >= LCHARGE 
-       END IF ! LTOP    >  0 
-       END IF ! LCHARGE >  1 
-
-       ! Do not allow flash density to become unrealistically high
-       ! Globally limit the flash rate to its highest observed value
-       ! of 4.2e-3 flashes / km2 / s from the ENTLN global product
-       ! (ltm, mps, 8/9/18)
-       IF ( ( RATE / 21600. / A_KM2 ) > 0.004177159 ) THEN
-          RATE = 0.004177159 * 21600. * A_KM2
-       END IF
        
-       !-----------------------------------------------------------
-       ! Eventually overwrite with values determined from imported
-       ! flash rate 
-       !-----------------------------------------------------------
-       IF ( RATE_LFR > RATE ) THEN
-          RATE        = RATE_LFR
-          H0          = H0_LFR
-          LTOP        = LTOP_LFR
-          IC_CG_RATIO = IC_CG_RATIO_LFR
-       END IF
-
-       ! Error check: continue if flash rate is zero
-       IF ( RATE <= 0.0 ) CYCLE
-
-       !-----------------------------------------------------------
-       ! (6b) Compute cloud-ground/total flash ratio
-       !-----------------------------------------------------------
-
        ! Ratio of cloud-to-ground flashes to total # of flashes
        X    = 1d0 / ( 1d0 + IC_CG_RATIO )
+       
+       !-----------------------------------------------------------
+       ! Store flash rates [flashes/km2/min] for BPCH diagnostics
+       !-----------------------------------------------------------
+       IF ( Inst%DoDiagn .AND. RATE > 0d0 ) THEN
 
+          ! AD56 diagnostic historically is flashes per km2 per minute
+          RATE_SAVE   = RATE / 360d0
+          
+          ! Store total, IC, and CG flash rates in AD56
+          DIAGN(I,J,1) = RATE_SAVE
+          DIAGN(I,J,3) = RATE_SAVE * X 
+          DIAGN(I,J,2) = H0 * 1d-3
+
+       ENDIF
+       
+       !===========================================================       
+       ! (4) Compute LNOx yield for IC and CG flashes (molec/km2/s)
+       !===========================================================
+       
        ! Compute LNOx emissions for tropics or midlats 
        IF ( XMID > EAST_WEST_DIV ) THEN 
           
           !--------------------------------------------------------
-          ! (6c,6d) We are in EURASIA
+          ! (4a) We are in EURASIA
           !--------------------------------------------------------
           IF ( YMID > EAST_NS_DIV ) THEN 
 
-
-             ! 6d: Eurasian Mid-Latitudes
+             ! Eurasian Mid-Latitudes
              TOTAL_IC = RFLASH_MIDLAT * RATE * ( 1d0 - X )
              TOTAL_CG = RFLASH_MIDLAT * RATE * X
+
           ELSE                           
 
-             ! 6c: Eurasian Tropics
+             ! Eurasian Tropics
              TOTAL_IC = RFLASH_TROPIC * RATE * ( 1d0 - X )
              TOTAL_CG = RFLASH_TROPIC * RATE * X
 
@@ -1063,86 +618,70 @@ CONTAINS
        ELSE   
           
           !--------------------------------------------------------
-          ! (6c,6d) We are in the AMERICAS
+          ! (4b) We are in the AMERICAS
           !--------------------------------------------------------
           IF ( YMID > WEST_NS_DIV ) THEN 
 
-             ! 6d: American Mid-Latitudes
+             ! American Mid-Latitudes
              TOTAL_IC = RFLASH_MIDLAT * RATE * ( 1d0 - X )
              TOTAL_CG = RFLASH_MIDLAT * RATE * X
 
           ELSE                           
 
-             ! 6c: American Tropics
+             ! American Tropics
              TOTAL_IC = RFLASH_TROPIC * RATE * ( 1d0 - X )
              TOTAL_CG = RFLASH_TROPIC * RATE * X
 
           ENDIF
        ENDIF
 
-       !-----------------------------------------------------------
-       ! (6e) Compute total lightnox
-       !-----------------------------------------------------------
-
-       ! Sum of IC + CG [molec/6h]
-       TOTAL = TOTAL_IC + TOTAL_CG
-
-       !-----------------------------------------------------------
-       ! Store flash rates [flashes/min/km2] for diagnostics
-       !-----------------------------------------------------------
-       IF ( Inst%DoDiagn .AND. RATE > 0d0 ) THEN
-
-          ! LightNOX flashes per minute per km2
-          RATE_SAVE   = RATE / A_KM2 / 360d0
-
-          ! Store total, IC, and CG flash rates in AD56
-          DIAGN(I,J,1) = RATE_SAVE
-          DIAGN(I,J,3) = RATE_SAVE * X 
-          DIAGN(I,J,2) = H0 * 1d-3
-
-       ENDIF
+       !===========================================================
+       ! (5) Compute column total lightning NOx yield (kg/km2/s)
+       !===========================================================
+       
+       ! Sum of IC + CG
+       TOTAL = TOTAL_IC + TOTAL_CG 
+       
+       ! Convert from molec km-2 s-1 to kg(NO) m-2 s-1
+       TOTAL = TOTAL * ( HcoState%Spc(Inst%IDTNO)%EmMW_g / 1000.0_hp ) / &
+                         HcoState%Phys%Avgdr / 1000000.0_hp
+       
+       !===========================================================
+       ! (6) Distribute column LNOx vertically from surface to LTOP
+       !===========================================================
 
        !-----------------------------------------------------------
-       ! (6g) LIGHTDIST computes the lightnox distribution from 
+       ! LIGHTDIST computes the lightning NOx distribution from 
        ! the ground to the convective cloud top using cumulative
        ! distribution functions for ocean flashes, tropical land
        ! flashes, and non-tropical land flashes, as specified by
        ! Lesley Ott [JGR, 2010]
        !-----------------------------------------------------------
-
-       ! If there's lightnox w/in the column ...
+       
+       ! If there's lightning NOx w/in the column ...
        IF ( TOTAL > 0d0 ) THEN
 
-          ! Partition the column total NOx [molec/6h] from lightnox 
-          ! into the vertical using Pickering PDF functions
+          ! Partition the column total NOx [kg/m2/s] from lightning 
+          ! into the vertical using Ott et al. [2010] PDF functions
           CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF, &
-                          ExtState, HcoState, SFCTYPE, cMt, MTYPE, Inst )
-
+                          ExtState, HcoState, SFCTYPE, MONTH, MTYPE, Inst )
+          
           ! Add vertically partitioned NOx into SLBASE array
           DO L = 1, HcoState%NZ
-             Inst%SLBASE(I,J,L) = Inst%SLBASE(I,J,L) + VERTPROF(L) 
-
-             ! No lightnox emissions in the stratosphere (cdh, 4/25/2013)
+             Inst%SLBASE(I,J,L) = VERTPROF(L) 
+                          
+             ! No lightning NOx emissions in the stratosphere (cdh, 4/25/2013)
              IF ( HcoState%Grid%PEDGE%Val(I,J,L) < TROPP ) THEN 
                 Inst%SLBASE(I,J,L) = 0.0_hp
-
-             ELSE
-                ! Convert to kg/m2/s
-                ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
-                ! [molec/6h/box] * [6h/21600s] * [area/AREA_M2 m2] /
-                ! [MW/(g/mol)] / [Avgrd/(molec/mol)] * [1kg/1000g] = [kg/m2/s]
-                Inst%SLBASE(I,J,L) = Inst%SLBASE(I,J,L)                       &
-                              / (21600.d0*HcoState%Grid%AREA_M2%Val(I,J))     &
-                              * HcoState%Spc(Inst%IDTNO)%EmMW_g               &
-                              / HcoState%Phys%Avgdr / 1000.0d0
              ENDIF
+
           ENDDO
        ENDIF
 
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
-
+    
     !-----------------------------------------------------------------
     ! Eventually add scale factors 
     !-----------------------------------------------------------------
@@ -1211,13 +750,13 @@ CONTAINS
 ! !IROUTINE: LightDist
 !
 ! !DESCRIPTION: Subroutine LightDist reads in the CDF used to partition the 
-!  column lightnox NOx into the GEOS-Chem vertical layers. 
+!  column lightning NOx into the GEOS-Chem vertical layers. 
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE LightDist( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF, &
-                        ExtState, HcoState, SFCTYPE, cMt, MTYPE, Inst )
+                        ExtState, HcoState, SFCTYPE, MONTH, MTYPE, Inst )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1230,7 +769,7 @@ CONTAINS
     TYPE(Ext_State), POINTER     :: ExtState   ! Module options
     TYPE(HCO_State), POINTER     :: HcoState   ! Hemco state object 
     INTEGER,         INTENT(IN)  :: SFCTYPE    ! Surface type 
-    INTEGER,         INTENT(IN)  :: cMt        ! Current month 
+    INTEGER,         INTENT(IN)  :: MONTH      ! Current month 
     TYPE(MyInst),    POINTER     :: Inst       ! Hemco state object 
 !
 ! !OUTPUT PARAMETERS:
@@ -1251,10 +790,10 @@ CONTAINS
 !        box is over land or water.  These functions work for all DAO met
 !        field data sets. (bmy, 4/2/02)
 !  (2 ) Renamed M2 to LTOP and THEIGHT to H0 for consistency w/ variable names
-!        w/in "lightnox.f".  Now read the "light_dist.dat.geos3" file for 
-!        GEOS-3 directly from the DATA_DIR/lightnox_NOx_200203/ subdirectory.
+!        w/in "lightning.f".  Now read the "light_dist.dat.geos3" file for 
+!        GEOS-3 directly from the DATA_DIR/lightning_NOx_200203/ subdirectory.
 !        Now read the "light_dist.dat" file for GEOS-1, GEOS-STRAT directly 
-!        from the DATA_DIR/lightnox_NOx_200203/ subdirectory.  Added 
+!        from the DATA_DIR/lightning_NOx_200203/ subdirectory.  Added 
 !        descriptive comment header.  Now trap I/O errors across all 
 !        platforms with subroutine "ioerror.f".  Updated comments, cosmetic 
 !        changes.  Redimension FRAC(NNLIGHT) to FRAC(LLPAR). (bmy, 4/2/02)
@@ -1263,7 +802,7 @@ CONTAINS
 !        file unit number. (bmy, 6/27/02)
 !  (4 ) Now reference BXHEIGHT from "dao_mod.f" (bmy, 9/18/02)
 !  (5 ) Bug fix: add GEOS_4 to the #if block (bmy, 3/4/04)
-!  (6 ) Now bundled into "lightnox_mod.f".  CDF's are now read w/in
+!  (6 ) Now bundled into "lightning_mod.f".  CDF's are now read w/in
 !        routine INIT_LIGHTNOX to allow parallelization (bmy, 4/14/04)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (8 ) Now uses near-land formulation (ltm, bmy, 5/10/06)
@@ -1305,21 +844,20 @@ CONTAINS
     ! Test whether location (I,J) is continental, marine, or snow/ice
     !
     ! Depending on the combination of land/water and latitude, 
-    ! assign a flag describing the type of lightnox:
+    ! assign a flag describing the type of lightning:
     !
-    !   MTYPE = 1: ocean lightnox
-    !   MTYPE = 2: tropical continental lightnox
-    !   MTYPE = 3: midlatitude continental lightnox 
-    !   MTYPE = 4: subtropical lightnox
+    !   MTYPE = 1: ocean lightning
+    !   MTYPE = 2: tropical continental lightning
+    !   MTYPE = 3: midlatitude continental lightning 
+    !   MTYPE = 4: subtropical lightning
     !             
     ! (ltm, bmy, 1/25/11)
     !=================================================================
 
     ! Assign profile kind to grid box, following Allen et al. 
     ! [JGR, 2010] (ltm, 1/25,11)
-!    MONTH = cMt
 
-    SELECT CASE (cMt)
+    SELECT CASE ( MONTH )
 
        ! Southern Hemisphere Summer
        CASE ( 1,2,3,12 )
@@ -1376,8 +914,8 @@ CONTAINS
     IF ( MTYPE == 0 ) RETURN
 
     !=================================================================
-    ! Use the CDF for this type of lightnox to partition the total
-    ! column lightnox into the layers
+    ! Use the CDF for this type of lightning to partition the total
+    ! column lightning NOx into the layers
     !=================================================================
     ZHEIGHT = 0.0
 
@@ -1392,8 +930,8 @@ CONTAINS
     DO L = LTOP, 2, - 1
        FRAC(L) = FRAC(L) - FRAC(L-1)
     ENDDO
-      
-    ! Partition lightnox NOx by layer into VERTPROF
+        
+    ! Partition lightning NOx by layer into VERTPROF
     DO L = 1, LTOP
        VERTPROF(L) = ( FRAC(L) * TOTAL )
     ENDDO
@@ -1405,539 +943,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Flashes_CTH
-!
-! !DESCRIPTION: Subroutine Flashes\_CTH determines the rate of lightnox 
-!  flashes per minute based on the height of convective cloud tops, and the 
-!  intra-cloud to cloud-ground strike ratio.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Flashes_CTH( I, J, HEIGHT, FLASHRATE, SFCTYPE ) 
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN)  :: I           ! Longitude index
-    INTEGER, INTENT(IN)  :: J           ! Latitude index
-    REAL*8,  INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
-    INTEGER, INTENT(IN)  :: SFCTYPE     ! Surface type 
-!
-! !OUTPUT PARAMETERS:
-!
-    REAL*8,  INTENT(OUT) :: FLASHRATE   ! LightNOX flash rate [flashes/min]
-!
-! !REVISION HISTORY: 
-!  10 May 2006 - L. Murray - Initial version
-!  (1  ) Subroutine renamed from FLASHES (ltm, bmy, 5/10/06)
-!  (2  ) Remove CCTHICK, IC_CG_RATIO as arguments.  Remove computation of
-!         IC_CG_RATIO and move that to GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
-!  (3  ) Remove the near-land formulation (i.e. use function IS_LAND 
-!         instead of IS_NEAR).(ltm, bmy, 9/24/07)
-!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
-!  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    !================================================================
-    ! FLASHES_CTH begins here!
-    !
-    ! COMPUTE LIGHTNOX FLASH RATE / MINUTE
-    !
-    ! Price & Rind (1992) give the following parameterizations for
-    ! lightnox flash rates as a function of convective cloud top
-    ! height [km]:
-    !
-    !    FLAND  = 3.44e-5 * ( CLDTOP HEIGHT [km] ^ 4.9  )
-    !    FOCEAN = 6.4e-4  * ( CLDTOP HEIGHT [km] ^ 1.73 )
-    !
-    ! LightNOX will therefore occur much more often on land.  It 
-    ! goes as approx. the 5th power of height, as opposed to approx. 
-    ! the 2nd power of height over oceans.
-    !
-    ! We suppress lightnox where the surface is mostly ice.  
-    !
-    ! (ltm, bmy, 5/10/06, 12/11/06)
-    !================================================================
-
-    ! Test for land type
-    IF ( SFCTYPE == 0 ) THEN
-
-       ! Flashes/min over land boxes
-       FLASHRATE   = 3.44d-5 * ( ( HEIGHT * 1d-3 )**4.9d0  )
-
-    ELSE IF ( SFCTYPE == 1 ) THEN
-
-       ! Flahes/min over water
-       FLASHRATE   = 6.4d-4  * ( ( HEIGHT * 1d-3 )**1.73d0 )
-
-    ELSE IF ( SFCTYPE == 2 ) THEN
-
-       ! Suppress lightnox over snow/ice
-       FLASHRATE   = 0d0
-
-    ENDIF
-
-  END SUBROUTINE Flashes_CTH
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_IC_CG_Ratio
-!
-! !DESCRIPTION: Function Get\_IC\_CG\_Ratio calculates the Intra-Cloud (IC) 
-!  and Cloud-to-Ground (CG) lightnox flash ratio based on the method of 
-!  Price and Rind 1993, which is calculated from the cold-cloud depth 
-!  (CCTHICK).
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Get_IC_CG_ratio( CCTHICK ) RESULT( IC_CG_RATIO )
-!
-! !INPUT PARAMETERS: 
-!
-    REAL*8,  INTENT(IN) :: CCTHICK       ! Cold cloud thickness [m]
-!
-! !RETURN VALUE:
-!
-    REAL*8              :: IC_CG_RATIO   ! Intra-cloud/cloud-ground ratio
-!
-! !REVISION HISTORY: 
-!  11 Dec 2006 - R. Yantosca - Initial version
-!  (1 ) Split off from FLASHES_CTH, FLASHES_MFLUX, FLASHES_PRECON into this
-!        separate function (ltm, bmy, 12/11/06)
-!  (2 ) Bug fix for XLF compiler (morin, bmy, 7/8/09)
-!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
-!  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL*8 :: CC, F_CG
-
-    !=================================================================
-    ! GET_IC_CG_RATIO begins here!
-    !
-    ! COMPUTE INTRA-CLOUD / CLOUD-GROUND FLASH RATIO 
-    !
-    ! Price & Rind (1993) compute the ratio of Cloud-Ground 
-    ! to Total Flashes by the parameterization:
-    !
-    ! For 5.5 < dz < 14:
-    !
-    !     f_CG = 1 / (( A*dz^4 + B*dz^3 + C*dz^2 + D*dz + E ) + 1 )
-    !
-    ! For dz > 14:
-    !
-    !     f_CG = 0.02
-    !                                        
-    ! Where:
-    !
-    ! (1) dz is the depth [km] of the cloud above the freezing 
-    !     level.  The cold-cloud thickness (dz) is the depth of 
-    !     the layer between the cloud top and the center of the 
-    !     highest layer for which the temperature exceeds 273 K. 
-    !     The cold-cloud thickness is set to 5.5 km at grid points 
-    !     where it is less than 5.5 km.
-    !
-    ! (2) The polynomial coefficients are:
-    !        A=0.021,  B=-0.648,  C=7.493,  D=-36.54,  E=63.09
-    !
-    ! 
-    ! Note: f_IC = 1 - f_CG
-    ! 
-    ! And hence,
-    !
-    !     IC_CG_RATIO = ( 1 - f_CG ) / f_CG
-    !
-    !
-    ! IC_CG_RATIO is passed back to routine the LIGHTNOX_NL, where
-    ! it is passed to FLASHES_MFLUX and FLASHES_PRECON.  In these
-    ! routines, the fraction of total lightnox flashes that are 
-    ! cloud-ground (CG) flashes is computed by:
-    ! 
-    !     F_CG        = 1d0 / ( 1d0 + IC_CG_RATIO )
-    !
-    ! and the fraction of the total lightnox flashes that are
-    ! intra-cloud (IC) flashes is computed by:
-    !
-    !     F_IC        = 1d0 - 1d0 / ( 1d0 + IC_CG_RATIO )
-    !=====================================================================
-
-    ! Convert cold cloud thickness from [m] to [km] (min value: 5.5 km)
-    CC = MAX( CCTHICK * 1d-3, 5.5d0 )
-
-    ! Compute cloud-ground flash ratio as described above
-    IF ( CC > 14d0 ) THEN
-
-       ! Constant value above 14 km
-       F_CG = 0.02d0
-
-    ELSE
-
-       ! First create the polynomial expression
-       F_CG = 63.09d0 + CC * ( -36.54d0  + &
-                        CC * (   7.493d0 + &
-                        CC * (  -0.648d0 + &
-                        CC * (   0.021d0 ) ) ) )
-
-       ! Then put it in the denominator
-       F_CG = 1d0 / ( F_CG + 1d0 )
-                  
-    ENDIF
-
-    ! Intra-Cloud / Cloud-Ground flash ratio
-    IC_CG_RATIO = ( 1d0 - F_CG ) / F_CG
-
-  END FUNCTION Get_IC_CG_Ratio
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_OTD_LIS_Scale
-!
-! !DESCRIPTION: Function GET\_OTD\_LIS\_SCALE returns a met-field dependent 
-!  scale factor which is to be applied to the lightnox flash rate to bring 
-!  the annual average flash rate to match that of the OTD-LIS climatology 
-!  ( ~ 45.9 flashes/sec ). Computed by running the model over the 11-year 
-!  OTD-LIS campaign window and comparing the average flash rates, or as 
-!  many years as are available.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Get_OTD_LIS_Scale( am_I_Root, HcoState, BETA, RC ) 
-!
-! !USES:
-!
-    USE HCO_Clock_Mod, ONLY : HcoClock_Get
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN   )   :: am_I_Root  ! Root CPU?
-    TYPE(HCO_State), POINTER :: HcoState   ! HEMCO state obj
-    REAL*8,  INTENT(  OUT)   :: BETA       ! Scale factor
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(INOUT)   :: RC         ! Suc
-!
-! !REVISION HISTORY: 
-!  24 Sep 2007 - L. Murray - Initial version
-!  (1 ) Added MFLUX, PRECON scaling for GEOS-4.  Also write messages for met
-!        field types/grids where scaling is not defined. (ltm, bmy, 11/29/07)
-!  (2 ) Now use different divisor for local redist (ltm, bmy, 2/20/08)
-!  (3 ) Now compute the proper scale factor for GEOS-5 0.5 x 0.666 grids
-!        and the GEOS-3 1x1 nested NA grid (yxw, dan, ltm, bmy, 11/14/08)
-!  (4 ) Added "quick fix" for reprocessed GEOS-5 met fields to be used when 
-!        the IN_CLOUD_OD switch is turned on. (ltm, bmy, 2/18/09)
-!  (5 ) Added "quick fix" for 2004, 2005, 2008 OTD/LIS (ltm, bmy, 4/29/09)
-!  (6 ) Updated scale factors for GEOS-5 based on 4+ years of data.  Remove
-!        temporary fixes. (bmy, 7/10/09)
-!  (7 ) Modification for GEOS-4 1 x 1.25 grid (lok, ltm, bmy, 1/13/10)
-!  (8 ) Reprocessed for error in CLDTOPS field; Updated for GEOS
-!        5.1.0 vs. 5.2.0; MERRA added; (ltm, bmy, 1/25/11)
-!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
-!  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
-!  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
-!  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
-!  04 Nov 2014 - Y. X. Wang  - Define BETA, ANN_AVG_FLASHRATE for the
-!                              GEOS-FP 025x03125 NESTED_CH grid
-!  14 Jan 2015 - L. Murray   - Updated GEOS-FP files through Oct 2014
-!  01 Apr 2015 - R. Yantosca - Cosmetic changes
-!  01 Apr 2015 - R. Yantosca - Bug fix: GRID025x0325 should be GRID025x03125
-!  01 Mar 2016 - L. Murray   - Add preliminary values for MERRA-2 4x5, NA, CH
-!  19 Jul 2016 - L. Murray   - Add preliminary values for MERRA-2 2x2.5
-!  24 Sep 2017 - L. Murray   - Removed legacy resolutions. Updated LIS/OTD
-!                              HRMC climatology. Final global MERRA-2 values.
-!                              Updated GEOS-FP and regional MERRA-2 values.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! lun of error log
-    INTEGER :: cYr, cMt
-    REAL*8  :: DY
-
-    !=================================================================
-    ! Define the average annual flash rate (flashes per second), as
-    ! calculated from the LIS/OTD High Resolution Monthly Climatology
-    ! (LISOTD_HRMC_V2.3.2015.hdf)
-    ! 
-    ! doi: 10.5067/LIS/LIS-OTD/DATA303
-    ! 
-    ! The climatology contains data from May 1995 through Dec 2014.
-    ! Slight difference in global mean total when averaging over different
-    ! GEOS-Chem horizontal resolutions.
-    !=================================================================
-#if   defined( GRID2x25      ) 
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 46.019893d0
-
-#elif defined( GRID4x5       )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 46.019893d0
-
-#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.8334473d0    
-
-#elif defined( GRID025x03125 ) && defined( NESTED_EU )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.3384335d0
-
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.4666451d0
-
-#elif defined( GRID05x0625   ) && defined( NESTED_AS )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.2583674d0
-
-#elif defined( GRID05x0625   ) && defined( NESTED_EU )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.7925457d0
-
-#elif defined( GRID05x0625   ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7011175d0
-    
-#endif
-
-    !=================================================================
-    ! GET_OTD_LIS_SCALE begins here!
-    !=================================================================
-
-    ! Enter
-    CALL HCO_ENTER( HcoState%Config%Err, 'Get_OTD_LIS_Scale (hcox_lightnox_mod.F90)', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Extract current year and month
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cYYYY=cYr, cMM=cMt, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! The lightnox flash rate equations are sensitive to model resolution
-    ! and convection scheme used in the data assimilation.
-    ! We know from the LIS/OTD satellite products that the global annual
-    ! average flash rate is 46 fl s-1. We determine a single scaling 
-    ! factor, beta, to be applied uniformly 
-    !
-    ! beta =  ( Annual Average Flash Rate Observed ) / 
-    !           ( Annual Average Flash Rate Unconstr Parameterization )
-    !
-    ! This is equivalent to modifying the first coefficient of the 
-    ! Price and Rind [1992] formulation to get the right magnitude 
-    ! for a given model framework.
-    ! 
-    ! Beta corresponds to beta in Murray et al. [2011]
-    !
-    ! (ltm, 1/25/11)
-
-    ! Initialize
-    BETA = 1d0
-
-#if   defined( GEOS_FP ) && defined( GRID4x5 ) 
-
-    !---------------------------------------
-    ! GEOS-FP: 4 x 5 global simulation
-    !---------------------------------------
-    
-    ! Constrained with simulated "climatology" for
-    ! April 2012 - Jul 2017. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-24).
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 85.362449d0
-    ENDIF
-
-#elif defined( GEOS_FP ) && defined( GRID2x25 )
-
-    !---------------------------------------
-    ! GEOS-FP: 2 x 2.5 global simulation
-    !---------------------------------------
-    
-    ! Constrained with simulated "climatology" for
-    ! April 2012 - Jul 2017. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-24).    
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 269.13945d0
-    ENDIF
-    
-#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
-
-    !---------------------------------------
-    ! GEOS-FP: Nested China simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! April 2012 - Jul 2017. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-28).
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 1030.6438d0
-    ENDIF
-
-#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU )
-
-    !---------------------------------------
-    ! GEOS-FP: Nested Europe simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! April 2012 - Jul 2017. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-28).
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 90.403359d0
-    ENDIF
-
-#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
-
-    !---------------------------------------
-    ! GEOS-FP: Nested North America simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! April 2012 - Jan 2017. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-28).
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN    
-       BETA = ANN_AVG_FLASHRATE / 770.29078d0
-    ENDIF
-
-#elif defined( MERRA2 ) && defined( GRID4x5 )
-
-    !---------------------------------------
-    ! MERRA2: 4 x 5 global simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! full LIS/OTD observational period (May 1995-Dec 2014). 
-    ! Does not need to be updated (ltm, 2017-09-24).
-    BETA = ANN_AVG_FLASHRATE / 102.38173d0
-
-#elif defined( MERRA2 ) && defined( GRID2x25 )
-
-    !---------------------------------------
-    ! MERRA2: 2 x 2.5 global simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! full LIS/OTD observational period (May 1995-Dec 2014). 
-    ! Does not need to be updated (ltm, 2017-09-24).
-    BETA = ANN_AVG_FLASHRATE / 322.83040d0
-
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
-    
-    !---------------------------------------
-    ! MERRA-2: Nested Asia simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! full LIS/OTD observational period (May 1995-Dec 2014). 
-    ! Does not need to be updated (ltm, 2017-09-28).
-    BETA = ANN_AVG_FLASHRATE / 1177.4952d0
-    
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_EU )
-
-    !------------------------------------------
-    ! MERRA-2: Nested Europe simulation
-    !------------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! full LIS/OTD observational period (May 1995-Dec 2014). 
-    ! Does not need to be updated (ltm, 2017-09-23).
-    BETA = ANN_AVG_FLASHRATE / 47.187111d0
-    
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
-
-    !------------------------------------------
-    ! MERRA-2: Nested North America simulation
-    !------------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! full LIS/OTD observational period (May 1995-Dec 2014). 
-    ! Does not need to be updated (ltm, 2017-09-28).
-    BETA = ANN_AVG_FLASHRATE / 305.06467d0
-    
-#endif
-
-    ! If not defined yet, try to estimate it from grid spacing
-    ! ckeller, 6/6/2017
-    IF ( BETA == 1d0 ) THEN
-       ! average latitude spacing
-       DY = ABS(MAXVAL(HcoState%Grid%YMID%Val) - MINVAL(HcoState%Grid%YMID%Val)) / ( HcoState%NY - 1 )
-
-       ! 0.125 degrees / C720
-       IF ( DY < 0.175d0 ) THEN
-          BETA = 1.4152d-3
-       ! 0.25 degrees / C360
-       ELSEIF ( DY < 0.375d0 ) THEN
-          BETA = 7.024d-3
-       ! 0.5 degrees / C180
-       ELSEIF ( DY < 0.75d0 ) THEN
-          BETA = 1.527d-2
-       ! 1.0 degrees / C90
-       ELSEIF ( DY < 1.5d0 ) THEN
-          BETA = 0.10d0
-       ! 2.0 degrees / C48
-       ELSEIF ( DY < 3.0d0 ) THEN
-          BETA = 0.355d0
-       ENDIF
-    ENDIF
-
-    IF ( BETA == 1d0 ) THEN
-
-       WRITE( *,* ) 'WARNING:'       
-       WRITE( *,* ) ''
-       WRITE( *,* ) 'Your model configuration has not had lightning NOx'       
-       WRITE( *,* ) 'emissions processed, or you are outside the period'
-       WRITE( *,* ) 'for which lightning has been constrained to observations.'
-       WRITE( *,* ) 'As a precaution, the model has gracefully stopped.'
-       WRITE( *,* ) ''
-       WRITE( *,* ) 'Please contact Lee Murray (lee.murray@rochester.edu),'
-       WRITE( *,* ) 'who can help you pepare the necessary modifications'
-       WRITE( *,* ) 'and files. You may also find what you are looking for at'
-       WRITE( *,* ) 'http://ees.rochester.edu/atmos/data.html'
-       WRITE( *,* ) ''
-       WRITE( *,* ) 'You may remove this error trap at your peril by either'
-       WRITE( *,* ) 'commenting out the call to HCO_ERROR in'
-       WRITE( *,* ) 'HEMCO/Extensions/hcox_lightnox_mod.F90, or by manually'
-       WRITE( *,* ) 'setting BETA in the HEMCO configuration file to a'
-       WRITE( *,* ) 'value other than 1.0 in the Lightning NOx settings:'
-       WRITE( *,* )
-       WRITE( *,* ) '# ExtNr ExtName            on/off Species'
-       WRITE( *,* ) '103     LightNOx         : on     NO'
-       WRITE( *,* ) '    --> OTD-LIS scaling  :        0.55'
-       WRITE( *,* ) ''
-       WRITE( *,* ) 'For a description of BETA, see Murray et al. [2012].'
-       WRITE( *,* ) 'It is the scaling factor that scales the incorrect'
-       WRITE( *,* ) 'total mean flash rate in the model to the correct'
-       WRITE( *,* ) 'climatological global mean of 46 fl/s.'
-       WRITE( *,* ) ''
-       WRITE( *,* ) 'However, if you disable the error trap, be aware that'
-       WRITE( *,* ) 'the magnitude and distribution of lightning NOx may'
-       WRITE( *,* ) 'be wildly unrealistic. This is especially possible for the'
-       WRITE( *,* ) 'regional simulations, especially GEOS-FP.'
-       WRITE( *,* ) 'You should always check to make sure that you have'
-       WRITE( *,* ) '~6 Tg N a-1 globally, or typical regional values.'
-       
-       CALL HCO_ERROR( HcoState%Config%Err, 'No beta - see information in standard output', RC )
-       RETURN
- 
-    ENDIF
-
-    ! Return w/ success
-    CALL HCO_LEAVE( HcoState%Config%Err,RC )
-
-  END SUBROUTINE Get_OTD_LIS_Scale
-!EOC
-!------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: HCOX_LightNOx_Init
 !
 ! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_INIT allocates all module arrays.  
-!  It also reads the lightnox CDF data from disk before the first lightnox 
+!  It also reads the lightning CDF data from disk before the first lightning 
 !  timestep. 
 !\\
 !\\
@@ -1976,13 +985,13 @@ CONTAINS
 !  (4 ) Now get the box area at 30N for MFLUX, PRECON (lth, bmy, 5/10/06)
 !  (5 ) Rename OTDSCALE to OTD_REG_REDIST.  Also add similar array 
 !        OTD_LOC_REDIST.  Now call GET_FLASH_SCALE_CTH, GET_FLASH_SCALE_MFLUX,
-!        GET_FLASH_SCALE_PRECON depending on the type of lightnox param used.
+!        GET_FLASH_SCALE_PRECON depending on the type of lightning param used.
 !        Updated comments.  (ltm, bmy, 1/31/07)
 !  (6 ) Removed near-land stuff.  Renamed from HCOX_LightNOX_Init_NL to
 !        HCOX_LightNOX_Init.  Now allocate EMIS_LI_NOx. (ltm, bmy, 10/3/07)
-!  (7 ) Also update location of PDF file to lightnox_NOx_200709 directory. 
+!  (7 ) Also update location of PDF file to lightning_NOx_200709 directory. 
 !        (bmy, 1/24/08)
-!  (8 ) Read in new Ott profiles from lightnox_NOx_201101. Remove
+!  (8 ) Read in new Ott profiles from lightning_NOx_201101. Remove
 !        depreciated options. (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Removed reference to GET_YEDGE
@@ -2024,37 +1033,12 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Read settings specified in configuration file
-    ! Note: the specified strings have to match those in 
-    !       the config. file!
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'OTD-LIS factors', &
-                     OptValBool=Inst%LOTDLOC, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! If OTD-LIS factor are not being used, make sure that the corresponding
-    ! gridded data will be ignored (e.g. not read) by HEMCO.
-    IF ( .NOT. Inst%LOTDLOC ) THEN
-       CALL ReadList_Remove ( am_I_Root, HcoState, 'LIGHTNOX_OTDLIS', RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    ! Note: the OTD-LIS scale factor will be determined during run time
-    ! as it requires the current time information.
-
     ! Check for usage of convective fractions. This becomes only active 
     ! if both the convective fraction and the buoyancy field are available.
     CALL GetExtOpt( HcoState%Config, ExtNr, 'Use CNV_FRC', &
                      OptValBool=Inst%LCNVFRC, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) Inst%LCNVFRC = .FALSE. 
-
-    ! Check for usage of GEOS-5 lightning flash rates. If on, the GEOS-5
-    ! flash rates (where available) are used instead of the computed flash
-    ! rates. This is off by default.
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'GEOS-5 flash rates', &
-                     OptValBool=Inst%LLFR, FOUND=FOUND, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND ) Inst%LLFR = .FALSE.
 
     ! Check for usage of GEOS-5 lightning flash rates. If on, the GEOS-5
     ! flash rates (where available) are used instead of the computed flash
@@ -2089,8 +1073,6 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        WRITE(MSG,*) ' - Use species ', TRIM(SpcNames(1)), '->', Inst%IDTNO 
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-       WRITE(MSG,*) ' - Use OTD-LIS factors from file? ', Inst%LOTDLOC 
-       CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - Use GEOS-5 flash rates: ', Inst%LLFR 
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - Use scalar scale factor: ', Inst%SpcScalVal(1)
@@ -2119,16 +1101,6 @@ CONTAINS
     ENDIF
     Inst%SLBASE = 0d0
 
-    ! Allocate SLBASE (holds NO emissins from lightning)
-    IF ( Inst%LOTDLOC ) THEN 
-       ALLOCATE( Inst%OTDLIS(HcoState%NX,HcoState%NY), STAT=AS )
-       IF( AS /= 0 ) THEN
-          CALL HCO_ERROR ( HcoState%Config%Err, 'OTDLIS', RC )
-          RETURN
-       ENDIF
-       Inst%OTDLIS = 0d0
-    ENDIF
-
     !=======================================================================
     ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
     !=======================================================================
@@ -2154,7 +1126,7 @@ CONTAINS
     ! Find a free file LUN
     IU_FILE = findFreeLUN()
       
-    ! Open file containing lightnox PDF data
+    ! Open file containing lightning NOx PDF data
     OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
        MSG = 'IOERROR: LightDist: 1'
@@ -2172,7 +1144,7 @@ CONTAINS
        ENDIF
     ENDDO
          
-    ! Read NNLIGHT types of lightnox profiles
+    ! Read NNLIGHT types of lightning profiles
     DO III = 1, NNLIGHT
        READ( IU_FILE,*,IOSTAT=IOS) (Inst%PROFILE(III,JJJ),JJJ=1,NLTYPE)
        IF ( IOS /= 0 ) THEN
@@ -2190,14 +1162,17 @@ CONTAINS
     !=======================================================================
 
     ! Activate met. fields required by this module
-    ExtState%TK%DoUse      = .TRUE.
-    ExtState%TROPP%DoUse   = .TRUE.
-    ExtState%CNV_MFC%DoUse = .TRUE.
-    ExtState%CNV_FRC%DoUse = .TRUE.
-    ExtState%ALBD%DoUse    = .TRUE.
-    ExtState%WLI%DoUse     = .TRUE.
-    ExtState%LFR%DoUse     = .TRUE.
+    ExtState%TK%DoUse         = .TRUE.
+    ExtState%TROPP%DoUse      = .TRUE.
+    ExtState%CNV_MFC%DoUse    = .TRUE.
+    ExtState%CNV_FRC%DoUse    = .TRUE.
+    ExtState%ALBD%DoUse       = .TRUE.
+    ExtState%WLI%DoUse        = .TRUE.
+    ExtState%LFR%DoUse        = .TRUE.
 
+    ExtState%FLASH_DENS%DoUse = .TRUE.
+    ExtState%CONV_DEPTH%DoUse = .TRUE.
+    
     ! Only activate BYNCY and LFR if they are needed
     IF ( Inst%LCNVFRC .OR. Inst%LLFR ) ExtState%BYNCY%DoUse = .TRUE.
     IF ( Inst%LLFR ) ExtState%LFR%DoUse = .TRUE.
@@ -2429,8 +1404,6 @@ CONTAINS
     ! Instance-specific deallocation
     IF ( ASSOCIATED(Inst) ) THEN 
        ! Free pointer
-       IF ( ASSOCIATED( Inst%OTDLIS        ) ) DEALLOCATE ( Inst%OTDLIS        )
-
        IF ( ASSOCIATED( Inst%PROFILE       ) ) DEALLOCATE ( Inst%PROFILE       )
        IF ( ASSOCIATED( Inst%SLBASE        ) ) DEALLOCATE ( Inst%SLBASE        )
        IF ( ALLOCATED ( Inst%SpcScalVal    ) ) DEALLOCATE ( Inst%SpcScalVal    )
