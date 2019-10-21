@@ -998,7 +998,7 @@
          !
          ! PM25 = 1.33 (NH4 + NIT  + SO4) + BCPI + BCPO +
          !        2.10 (OCPO + 1.16 OCPI) + 1.16 SOA    +
-         !        DST1 + 0.38 DST2 + 1.86 SALA + SOAGX + SOAMG
+         !        DST1 + 0.38 DST2 + 1.86 SALA
          !
          ! NOTES:
          ! - We apply growth factors at 35% RH (computed above): 
