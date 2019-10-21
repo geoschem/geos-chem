@@ -78,7 +78,7 @@
       USE DEPO_MERCURY_MOD      ! Deposition for offline Hg simulation
       USE DRYDEP_MOD            ! For dry deposition
       USE WETSCAV_MOD           ! For wet deposition (rainout & washout)
-      USE Sea_Surface_Mod       ! temporary measure for sea surface iodide
+      
       !-----------------------------------------------------------------
       ! GEOS-Chem diagnostics modules
       !-----------------------------------------------------------------
@@ -120,6 +120,7 @@
       USE EMISSIONS_MOD         ! For interfacing with HEMCO emissions
       USE MIXING_MOD            ! performs tracer mixing
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState !to get iodide + salinity
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -239,6 +240,8 @@
       ! Reals
       REAL(f8)                 :: TAU,           TAUb      
       REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
+      REAL(fp)                 :: Iodide(:,:,:)
+      REAL(fp)                 :: Salinity(:,:)
 
       ! Strings
       CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
@@ -734,9 +737,18 @@
       !CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
       !CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
-      !read in the sea surface iodide map
-      CALL SeaSurface_Iodide(am_I_Root,State_Met,Input_Opt)
-      
+      !populate the iodide and salinity arrays in state_met using data
+      !read by HEMCO
+      ALLOCATE( Iodide( State_Grid%NX, State_Grid%NY, 1:12), STAT=RC )
+      CALL HCO_EvalFld( am_I_Root, HcoState, 'surf_iodide', Iodide, RC )
+      State_Met%Iodide_Conc = Iodide
+      DEALLOCATE( Iodide, STAT=RC)
+
+      ALLOCATE( Salinity ( State_Grid%NX, State_Grid%NY ), STAT=RC )
+      CALL HCO_EvalFld( am_I_Root, HcoState,'surf_salinity', Iodide, RC)
+      State_Met%Salinity = Salinity
+      DEALLOCATE( Salinity, STAT=RC)
+    
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09)
       CALL Init_Mixing( am_I_Root,  Input_Opt,  State_Chm,
