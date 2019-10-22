@@ -72,14 +72,6 @@ DYN_INTERNAL_CHECKPOINT_FILE: -fvcore_internal_checkpoint
 DYN_INTERNAL_CHECKPOINT_TYPE: pbinary
 DYN_INTERNAL_HEADER:          1
 
-# %%% For reading the input.geos file %%%
-#
-MAX_PASV:             50
-MAX_DIAG:             80
-MAX_FAM:             250
-LINOZ_NLEVELS:        25
-LINOZ_NMONTHS:        12
-LINOZ_NFIELDS:         7
 RUN_PHASES:           1
 
 #

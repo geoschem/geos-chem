@@ -5997,7 +5997,7 @@
       ENDIF
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
-      IF ( .not. Input_Opt%HPC ) THEN
+      IF ( .not. Input_Opt%isMPI ) THEN
          IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
             WRITE( ErrMsg, 300 ) 'Transport timestep exceeds max:',
      &                        Input_Opt%TS_DYN, MAX_DYN

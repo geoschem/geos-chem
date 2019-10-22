@@ -41,9 +41,6 @@
       PUBLIC  :: SAFE_LOG10
       PUBLIC  :: INIT_ERROR
       PUBLIC  :: CLEANUP_ERROR
-#if defined( MODEL_GEOS )
-      PUBLIC  :: mpiComm
-#endif 
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -136,9 +133,6 @@
 !
 ! !PRIVATE TYPES:
 
-#if defined( MODEL_GEOS )
-      INTEGER, SAVE           :: mpiComm
-#endif
       LOGICAL                 :: SHADOW_am_I_Root   ! Shadow for am_I_Root
       TYPE(OptInput), POINTER :: SHADOW_Input_Opt   ! Shadow for Input_Opt
 

@@ -36,11 +36,11 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! General Runtime & Distributed Comp Info
      !----------------------------------------
-     INTEGER                     :: NPES      ! Number of MPI procs
-     INTEGER                     :: myCpu     ! Local MPI process handle
-     INTEGER                     :: MPICOMM   ! MPI Communicator Handle
-     LOGICAL                     :: HPC       ! Is this an HPC (ESMF or otherwise) sim?
-     LOGICAL                     :: RootCPU   ! Is this the root cpu?
+     INTEGER                     :: numCPUs   ! Number of MPI procs
+     INTEGER                     :: thisCPU   ! Local MPI process handle
+     INTEGER                     :: MPIComm   ! MPI Communicator Handle
+     LOGICAL                     :: isMPI     ! Is this an MPI sim?
+     LOGICAL                     :: amIRoot   ! Is this the root cpu?
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -403,7 +403,6 @@ MODULE Input_Opt_Mod
      ! in the stratosphere. In MODEL_GEOS, this flag is set in GEOSCHEMchem_GridComp.rc
      LOGICAL                     :: TurnOffHetRates = .FALSE.
 #else
-     LOGICAL                     :: haveImpRst
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates
 #endif
@@ -502,10 +501,11 @@ CONTAINS
     !----------------------------------------
     ! General Runtime & Distributed Comp Info
     !----------------------------------------
-    Input_Opt%NPES                   = 1       ! Assume Serial Sim.
-    Input_Opt%HPC                    = .false. ! Assume Serial Sim.
-    Input_Opt%myCpu                  = -1
-    Input_Opt%RootCPU                = .false.
+    Input_Opt%amIRoot                = .false.
+    Input_Opt%isMPI                  = .false.
+    Input_Opt%numCPUs                = 1
+    Input_Opt%thisCPU                = -1
+    Input_Opt%MPIComm                = -1
 
     !----------------------------------------
     ! SIZE PARAMETER fields
@@ -866,6 +866,7 @@ CONTAINS
     !----------------------------------------
     ! PROD LOSS MENU fields
     !---------------------------------------
+
     arrayId = 'Input_Opt%FAM_NAME'
     ALLOCATE( Input_Opt%FAM_NAME( Input_Opt%Max_Families ), STAT=RC )
     CALL GC_CheckVar( arrayId, 0, RC )
@@ -929,7 +930,6 @@ CONTAINS
     Input_Opt%NN_Jvals               = -999
     Input_Opt%Jval_IDs               => NULL()
 #else
-    Input_Opt%haveImpRst             = .FALSE.
     Input_Opt%AlwaysSetH2O           = .FALSE.
     Input_Opt%TurnOffHetRates        = .FALSE.
 #endif

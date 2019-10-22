@@ -72,7 +72,6 @@ MODULE Chem_GridCompMod
   USE MAPL_ConstantsMod                   ! Doesn't seem to be used. Needed?
   USE Chem_Mod                            ! Chemistry Base Class (chem_mie?)
   USE Chem_GroupMod                       ! For family transport
-  USE ERROR_Mod,     ONLY : mpiComm
   USE PHYSCONSTANTS
 #endif
 
@@ -140,9 +139,6 @@ MODULE Chem_GridCompMod
   TYPE(HistoryConfigObj), POINTER  :: HistoryConfig
   TYPE(ConfigObj),        POINTER  :: HcoConfig
 
-  ! Scalars
-  INTEGER                          :: logLun         ! LUN for stdout logfile
-  CHARACTER(LEN=ESMF_MAXSTR)       :: logFile        ! File for stdout redirect
 #if defined( MODEL_GEOS )
   ! Is GEOS-Chem the provider for AERO, RATS, and/or Analysis OX? 
   LOGICAL                          :: DoAERO
@@ -282,14 +278,6 @@ MODULE Chem_GridCompMod
   REAL, POINTER     :: PTR_ARCHIVED_DQRC   (:,:,:) => NULL()
   REAL, POINTER     :: PTR_ARCHIVED_REV_CN (:,:,:) => NULL()
   REAL, POINTER     :: PTR_ARCHIVED_T      (:,:,:) => NULL()
-#endif
-
-
-  ! MPI communicator
-  ! A variable like this is defined in error_mod, should use that one instead?
-  ! ckeller, 8/22/19
-#if !defined( MODEL_GEOS )
-  INTEGER, SAVE     :: mpiCOMM
 #endif
 
 #if defined( MODEL_GEOS )
@@ -1793,17 +1781,17 @@ CONTAINS
     REAL(ESMF_KIND_R4),  POINTER :: lonCtr(:,:) ! Lon centers on this PET [rad]
     REAL(ESMF_KIND_R4),  POINTER :: latCtr(:,:) ! Lat centers on this PET [rad]
 
-    INTEGER                      :: I, nFlds
+    INTEGER                      :: I, nFlds, mpiComm
     TYPE(ESMF_STATE)             :: INTSTATE 
     TYPE(ESMF_Field)             :: GcFld
 
+#if defined( MODEL_GEOS )
     ! Does GEOS-Chem restart file exist?
     ! Before broadcasting, we check if there is an import restart file for
     ! GEOS-Chem. This variable is then passed to Input_Opt after 
     ! initialization (and CPU broadcasting) of all GEOS-Chem variables.
     LOGICAL                      :: haveImpRst
 
-#if defined( MODEL_GEOS )
     TYPE(MAPL_MetaComp), POINTER :: STATE
 
     ! For AERO
@@ -1860,13 +1848,16 @@ CONTAINS
     ! Get Internal state.
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ ) 
 
-    ! Test if we are on the root PET
-    am_I_Root = MAPL_Am_I_Root()
+    ! Initialize GEOS-Chem Input_Opt fields to zeros or equivalent
+    CALL Set_Input_Opt( MAPL_am_I_Root(), Input_Opt, RC )
+    _ASSERT(RC==GC_SUCCESS, 'informative message here')
 
     ! Get various parameters from the ESMF/MAPL framework
+#if defined( MODEL_GEOS )
     ! Note: variable haveImpRst must not yet be written into Input_Opt yet 
     ! since the variables of Input_Opt may be 'erased' during initialization
     ! of GEOS-Chem.
+#endif
     CALL Extract_( GC,                        &  ! Ref to this Gridded Comp 
                    Clock,                     &  ! ESMF Clock object
                    Grid        = Grid,        &  ! ESMF Grid object
@@ -1889,11 +1880,21 @@ CONTAINS
                    mpiComm     = mpiComm,     &  ! MPI Communicator Handle
                    lonCtr      = lonCtr,      &  ! This PET's lon ctrs [radians]
                    latCtr      = latCtr,      &  ! This PET's lat ctrs [radians]
+#if defined( MODEL_GEOS )
 		   haveImpRst  = haveImpRst,  &  ! Does import restart exist? 
+#endif
                    __RC__                      )
 
-    Input_Opt%myCpu   = myPet
-    Input_Opt%mpiCOMM = mpiComm
+    ! Set MPI values in Input_Opt
+    Input_Opt%thisCPU = myPet
+    Input_Opt%MPIComm = mpiComm
+    Input_Opt%numCPUs = NPES
+    Input_Opt%isMPI   = .true.
+    if ( MAPL_am_I_Root() ) Input_Opt%amIRoot = .true.
+
+#if defined( MODEL_GEOS )
+    Input_Opt%haveImpRst = haveImpRst
+#endif
 
     ! MSL - shift from 0 - 360 to -180 - 180 degree grid
     where (lonCtr .gt. MAPL_PI ) lonCtr = lonCtr - 2*MAPL_PI
@@ -1903,90 +1904,9 @@ CONTAINS
                                  Label="MEMORY_DEBUG_LEVEL:" , RC=STATUS)
     _VERIFY(STATUS)
 
-
-    ! Name of logfile for stdout redirect
-    CALL ESMF_ConfigGetAttribute( GeosCF, logFile,              &
-                                  Label   = "STDOUT_LOGFILE:",  &
-                                  Default = "PET%%%%%.init",    &
-                                  __RC__                       )
-
-    ! Name of log LUN # for stdout redirect
-    CALL ESMF_ConfigGetAttribute( GeosCF, logLun,               &
-                                  Label   = "STDOUT_LOGLUN:",   &
-                                  Default = 700,                &
-                                  __RC__                       )
-
     !=======================================================================
-    ! Open a log file on each PET where stdout will be redirected
+    ! Save values from the resource file (GCHP.rc for GCHP)
     !=======================================================================
-
-#if !defined( MODEL_GEOS )
-    ! Check that the choice of LUN is valid
-    IF ((logLun.eq.5).or.(logLun.eq.6)) Then
-       WRITE(*,'(a,I5,a)') 'Invalid LUN (',logLun,') chosen for log output'
-       WRITE(*,'(a)'     ) 'An LUN other than 5 or 6 must be used'
-       _ASSERT(.FALSE.,'informative message here')
-    ENDIF
-#endif
-
-    ! Replace tokens w/ PET # in the filename
-    IF ( am_I_Root ) THEN
-       WRITE( petStr, '(i5.5)' ) myPet
-       CALL StrRepl( logFile, '%%%%%', petStr )
-    ENDIF
-
-    ! Open file for stdout redirect
-    IF ( am_I_Root )  THEN
-       OPEN ( logLun, FILE=LOGFILE, STATUS='UNKNOWN' )
-    ENDIF
-
-    ! Add descriptive header text
-    IF ( am_I_Root ) THEN
-       WRITE( logLun, '(a)'   ) REPEAT( '#', 79 )
-       WRITE( logLun, 100     ) TRIM( logFile ), TRIM( Iam ), myPet
-       WRITE( logLun, '(a,/)' ) REPEAT( '#', 79 )
-    ENDIF
-
-    !=======================================================================
-    ! Save values from the ESMF resource file into the Input_Opt object
-    ! so that we can pass those into GeosCore/input_mod.F of GEOS-Chem
-    !=======================================================================
-
-    ! Max # of diagnostics
-    CALL ESMF_ConfigGetAttribute( GeosCF, Input_Opt%MAX_BPCH_DIAG,  &
-                                  Default = 80,                     &
-                                  Label   = "MAX_DIAG:",            &
-                                  __RC__                           ) 
-
-    ! Max # of families per ND65 family tracer (not used for ESMF)
-    CALL ESMF_ConfigGetAttribute( GeosCF, Input_Opt%MAX_Families,   &
-                                  Default = 20,                     &
-                                  Label   = "MAX_FAM:",            & 
-                                  __RC__                          )
-
-    ! # of levels in LINOZ climatology
-    CALL ESMF_ConfigGetAttribute( GeosCF, Input_Opt%LINOZ_NLEVELS,  &
-                                  Default = 25,                     &
-                                  Label   = "LINOZ_NLEVELS:",       &
-                                  __RC__                           )    
-
-    ! # of latitudes in LINOZ climatology
-    CALL ESMF_ConfigGetAttribute( GeosCF, Input_Opt%LINOZ_NLAT,     &
-                                  Default = 18,                     &
-                                  Label   = "LINOZ_NLAT:",          & 
-                                  __RC__                           )
-
-    ! # of months in LINOZ climatology
-    CALL ESMF_ConfigGetAttribute( GeosCF, Input_Opt%LINOZ_NMONTHS,  &
-                                  Default = 12,                     &
-                                  Label   = "LINOZ_NMONTHS:",       &
-                                  __RC__                           )
-
-    ! # of fields in LINOZ climatology
-    CALL ESMF_ConfigGetAttribute( GeosCF, Input_Opt%LINOZ_NFIELDS,  &
-                                  Default = 7,                      &
-                                  Label   = "LINOZ_NFIELDS:",       &
-                                  __RC__                           ) 
 
     ! # of run phases
     CALL ESMF_ConfigGetAttribute( GeosCF, NPHASE,                   & 
@@ -2001,7 +1921,7 @@ CONTAINS
                                   Default = LM,                     &
                                   Label   = "LLSTRAT:",             &
                                   __RC__                           )
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%AmIRoot ) THEN
        WRITE(*,*) 'GCC: top strat. level (LLSTRAT) is set to ',     &
                   value_LLSTRAT
     ENDIF
@@ -2037,7 +1957,7 @@ CONTAINS
                                   Label   = "FJX_EXTRAL_ERR:",        &
                                   __RC__                              )
     Input_Opt%FJX_EXTRAL_ERR = ( DoIt == 1 )
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%AmIRoot ) THEN
        WRITE(*,*) 'GCC: Fast-JX settings:'
        WRITE(*,*) 'Number of FAST-JX levels      : ',Input_Opt%LLFASTJX
        WRITE(*,*) 'Max. no. of EXTRAL iterations : ',Input_Opt%FJX_EXTRAL_ITERMAX
@@ -2050,7 +1970,7 @@ CONTAINS
                                   Label   = "KPP_STOP_IF_FAIL:",     &
                                   __RC__                              )
     Input_Opt%KppStop = ( DoIt == 1 )
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%AmIRoot ) THEN
        WRITE(*,*) 'Stop KPP if integration fails: ',Input_Opt%KppStop
     ENDIF
 
@@ -2058,7 +1978,7 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Default = 0, &
                                   Label = "TurnOffHetRates:", __RC__ )
     Input_Opt%TurnOffHetRates = ( DoIt == 1 )
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%AmIRoot ) THEN
        WRITE(*,*) 'Disable selected het. reactions in stratosphere: ', &
                   Input_Opt%TurnOffHetRates
     ENDIF
@@ -2069,7 +1989,7 @@ CONTAINS
     !=======================================================================
 
     ! Initialize fields of the Grid State object
-    CALL Init_State_Grid( am_I_Root, State_Grid, RC )
+    CALL Init_State_Grid( Input_Opt%AmIRoot, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS,'informative message here')
   
     ! Pass grid information obtained from Extract_ to State_Grid
@@ -2091,8 +2011,7 @@ CONTAINS
 #endif
 
     ! Call the GIGC initialize routine
-    CALL GIGC_Chunk_Init( am_I_Root = am_I_Root,  & ! Are we on the root PET?
-                          nymdB     = nymdB,      & ! YYYYMMDD @ start of run
+    CALL GIGC_Chunk_Init( nymdB     = nymdB,      & ! YYYYMMDD @ start of run
                           nhmsB     = nhmsB,      & ! hhmmss   @ start of run
                           nymdE     = nymdE,      & ! YYYYMMDD @ end of run
                           nhmsE     = nhmsE,      & ! hhmmss   @ end of run
@@ -2100,7 +2019,6 @@ CONTAINS
                           tsDyn     = tsDyn,      & ! Dynamic  timestep [s]
                           lonCtr    = lonCtr,     & ! Lon centers [radians]
                           latCtr    = latCtr,     & ! Lat centers [radians]
-                          myPET     = myPet,      & ! Local PET
 #if !defined( MODEL_GEOS )
                           GC        = GC,         & ! Ref to this gridded comp
                           EXPORT    = EXPORT,     & ! Export state object
@@ -2113,25 +2031,6 @@ CONTAINS
                           HcoConfig = HcoConfig,  & ! HEMCO config obj 
                           HistoryConfig = HistoryConfig, & ! History Config Obj
                           __RC__                 )
-
-    ! Also save the MPI & PET specs to Input_Opt
-    Input_Opt%myCpu   = myPet
-    Input_Opt%MPICOMM = MPICOMM
-    Input_Opt%NPES    = NPES
-    Input_Opt%HPC     = .true. ! Yes, this is an HPC (ESMF) sim.
-    if ( am_I_Root ) Input_Opt%RootCPU = .true.
-
-    ! It's now safe to store haveImpRst flag in Input_Opt
-#if defined( MODEL_GEOS )
-    Input_Opt%haveImpRst = haveImpRst
-#else
-    ! GCHP only (can we remove haveImpRst entirely?):
-    ! SDE DEBUG 2017-01-01: Overwrite this? The Extract_ routine does not seem
-    ! to actually set this, and it being false results in everything being
-    ! thrown off by 1 timestep
-    haveImpRst = .True.
-    Input_Opt%haveImpRst = haveImpRst
-#endif
 
 #if defined( MODEL_GEOS )
     !=======================================================================
@@ -2808,18 +2707,6 @@ CONTAINS
     !=======================================================================
 #endif
 
-    ! Write a header before the timestepping begins
-    IF ( am_I_Root ) THEN
-       WRITE( logLun, '(/,a)' ) REPEAT( '#', 79 )
-       WRITE( logLun, 200     ) TRIM( compName ) // '::Run_', myPet
-       WRITE( logLun, '(a,/)' ) REPEAT( '#', 79 )
-    ENDIF
-
-    ! Close the file for stdout redirect. Reopen when executing the run method.
-    IF ( am_I_Root ) THEN
-       CLOSE ( UNIT=logLun )
-    ENDIF
-
     ! Stop timers
     ! -----------
     CALL MAPL_TimerOff( STATE, "INITIALIZE")
@@ -3441,13 +3328,7 @@ CONTAINS
     RunningGEOSChem: IF(IsRunTime .OR. FIRST) THEN
 
        CALL MAPL_TimerOn(STATE, "RUN"  )
-       
-       ! Re-open file for stdout redirect
-       IF ( am_I_Root )  THEN
-          OPEN ( UNIT=logLun, FILE   = TRIM( logFile ), STATUS = 'OLD' ,   &
-                              ACTION ='WRITE',          ACCESS = 'APPEND' )
-       ENDIF
-       
+
        ! Get various parameters from the ESMF/MAPL framework
        CALL Extract_( GC,                   &  ! Ref to this Gridded Component
                       Clock,                &  ! ESMF Clock object
@@ -3634,13 +3515,6 @@ CONTAINS
           ENDIF
        ENDIF
 #endif
-
-       !=======================================================================
-       ! Print timing etc. info to the log file outside of the (I,J) loop
-       !=======================================================================
-       IF ( am_I_Root ) THEN
-          WRITE( logLun, 100 ) year, month, day, hour, minute, hElapsed
-       ENDIF
        
        !=======================================================================
        ! Prevent use of (occasional) MAPL_UNDEF tropopause pressures
@@ -3854,8 +3728,10 @@ CONTAINS
        ! (ckeller, 4/24/2015). 
        !=======================================================================
        IF ( ANY(State_Met%PBLH <= 0.0_fp) ) THEN
+#if defined( MODEL_GEOS )
           Input_Opt%haveImpRst = .FALSE. 
-       
+#endif
+
           ! Warning message
           IF ( am_I_Root ) THEN
              write(*,*) ' '
@@ -3865,6 +3741,7 @@ CONTAINS
           ENDIF
        ENDIF
 
+#if defined( MODEL_GEOS )
        !=======================================================================
        ! Also make sure that radiation fields are available. State_Met%OPTD is
        ! a good proxy since it is composed of three imports from RADIATION.
@@ -3884,6 +3761,7 @@ CONTAINS
        !      write(*,*) ' '
        !   ENDIF
        !ENDIF
+#endif
 
        !=======================================================================
        ! Handling of species/tracer initialization. Default practice is to take
@@ -4131,7 +4009,11 @@ CONTAINS
        IF ( IsRunTime ) THEN
        
           ! This is mostly for testing
+#if defined( MODEL_GEOS )
           IF ( FIRST .AND. Input_Opt%haveImpRst ) THEN
+#else
+          IF ( FIRST ) THEN
+#endif
              IF ( am_I_Root ) THEN
                 WRITE(*,*) ''
                 WRITE(*,*) 'Doing warm GEOS-Chem restart'
@@ -4139,8 +4021,10 @@ CONTAINS
              ENDIF
           ENDIF
        
+#if defined( MODEL_GEOS )
           ! Only if restart file exists...
           IF ( Input_Opt%haveImpRst ) THEN
+#endif
 
              ! Optional memory prints (level >= 2)
              if ( MemDebugLevel > 0 ) THEN
@@ -4153,19 +4037,13 @@ CONTAINS
        
              CALL MAPL_TimerOn(STATE, "DO_CHEM")
        
-#if defined( MODEL_GEOS )
-             ! Save the PET # (aka PET #) in Input_Opt
-             Input_Opt%myCpu = myPet
-#endif
-
 #if !defined( MODEL_GEOS )
              ! NOTE: Second was not extracted previously; set to 0 for now
              second = 0
 #endif
 
              ! Run the GEOS-Chem column chemistry code for the given phase
-             CALL GIGC_Chunk_Run( am_I_Root  = am_I_Root,  & ! Is this root PET?
-                                  GC         = GC,         & ! Grid comp ref. 
+             CALL GIGC_Chunk_Run( GC         = GC,         & ! Grid comp ref. 
                                   nymd       = nymd,       & ! Current YYYYMMDD
                                   nhms       = nhms,       & ! Current hhmmss
                                   year       = year,       & ! Current year
@@ -4200,6 +4078,11 @@ CONTAINS
                 _VERIFY(STATUS)
              endif
 
+#if !defined( MODEL_GEOS )
+             where( State_Met%HFLUX .eq. 0.) State_Met%HFLUX = 1e-5
+#endif
+
+#if defined( MODEL_GEOS )
           ! Restart file does not exist:
           ELSE
              IF ( am_I_Root ) THEN
@@ -4208,10 +4091,8 @@ CONTAINS
                            ' BECAUSE IMPORT RESTART FILE IS MISSING'
                 WRITE(*,*) ''
              ENDIF
-#if !defined( MODEL_GEOS )
-             where( State_Met%HFLUX .eq. 0.) State_Met%HFLUX = 1e-5
-#endif
           ENDIF 
+#endif
        
        ENDIF !IsRunTime
 
@@ -4333,11 +4214,6 @@ CONTAINS
        
 #endif
 
-       ! Close the file for stdout redirect.
-       IF ( am_I_Root ) THEN
-          CLOSE ( UNIT=logLun )
-       ENDIF
- 
     ENDIF RunningGEOSChem
 
     !=======================================================================
@@ -4658,6 +4534,7 @@ CONTAINS
     ! ----------
     CALL MAPL_TimerOff(STATE, "TOTAL")
   
+#if defined( MODEL_GEOS )
     ! The restart file should exist at least after the first full cycle,
     ! e.g. after phase 1 and phase 2 has been called once.
     IF ( FIRST .AND. Phase == 1 ) THEN
@@ -4665,6 +4542,7 @@ CONTAINS
     ELSE
        Input_Opt%haveImpRst = .TRUE.
     ENDIF
+#endif
 
     ! Update first flags
     FIRST = .FALSE.
@@ -4699,8 +4577,7 @@ CONTAINS
 ! !IROUTINE: Finalize_
 !
 ! !DESCRIPTION: Finalize_ is the finalize method of the GEOSCHEMchem gridded 
-!  component.  GC is a simple ESMF/MAPL wrapper which calls down to the
-!  Finalize method of the GEOS-Chem column chemistry code.
+!  component.
 !\\
 !\\
 ! !INTERFACE:
@@ -4709,8 +4586,17 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,         ONLY : OptInput
+#if !defined( MODEL_GEOS )
+    USE Input_Opt_Mod,         ONLY : Cleanup_Input_Opt
+#endif
+    USE State_Chm_Mod,         ONLY : ChmState, Cleanup_State_Chm
+    USE State_Diag_Mod,        ONLY : DgnState, Cleanup_State_Diag
+    USE State_Grid_Mod,        ONLY : GrdState, Cleanup_State_Grid
+    USE State_Met_Mod,         ONLY : MetState, Cleanup_State_Met
+    USE HCOI_GC_MAIN_MOD,      ONLY : HCOI_GC_FINAL
 #if defined( MODEL_GEOS )
-    USE HCO_INTERFACE_MOD,       ONLY : HcoState
+    USE HCO_INTERFACE_MOD,     ONLY : HcoState
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -4809,12 +4695,6 @@ CONTAINS
     ! ------------
 !    CALL MAPL_TimerOn(STATE, "TOTAL")
 !    CALL MAPL_TimerOn(STATE, "FINALIZE")
-
-    ! Re-open file for stdout redirect
-    IF ( am_I_Root )  THEN
-       OPEN ( UNIT = logLun, FILE   = TRIM( logFile ), STATUS = 'OLD' ,   &
-                             ACTION = 'WRITE',         ACCESS = 'APPEND' )
-    ENDIF
 
     ! Get various parameters from the ESMF/MAPL framework
     CALL Extract_( GC,                 &    ! Ref to this Gridded Component
@@ -4932,9 +4812,6 @@ CONTAINS
     ! Finalize the Gridded Component
     !=======================================================================
 
-    ! Save the PET # (aka CPU #) in Input_Opt
-    Input_Opt%myCpu = myPet
-
 #if defined( MODEL_GEOS )
     ! Link HEMCO state to gridcomp objects
     _ASSERT(ASSOCIATED(HcoState),'informative message here')
@@ -4943,14 +4820,70 @@ CONTAINS
     HcoState%EXPORT   => EXPORT
 #endif
 
-    ! Call the FINALIZE method of the GEOS-Chem column chemistry code
-    CALL GIGC_Chunk_Final( am_I_Root  = am_I_Root,   &   ! Is this the root PET?
-                           Input_Opt  = Input_Opt,   &   ! Input Options
-                           State_Chm  = State_Chm,   &   ! Chemistry State
-                           State_Diag = State_Diag,  &   ! Diagnostics State
-                           State_Grid = State_Grid,  &   ! Grid State
-                           State_Met  = State_Met,   &   ! Meteorology State
-                           __RC__                 )
+    ! Finalize HEMCO
+    CALL HCOI_GC_FINAL( Input_Opt%AmIRoot, .FALSE., RC )
+    IF ( Input_Opt%AmIRoot ) THEN
+       IF ( RC == GC_SUCCESS ) THEN
+          write(*,'(a)') 'HEMCO::Finalize... OK.'
+       ELSE
+          write(*,'(a)') 'HEMCO::Finalize... FAILURE.'
+       ENDIF
+    ENDIF
+
+    ! Deallocate fields of the Chemistry State object
+    CALL Cleanup_State_Chm( Input_Opt%AmIRoot, State_Chm, RC )
+    IF ( Input_Opt%AmIRoot ) THEN
+       IF ( RC == GC_SUCCESS ) THEN
+          write(*,'(a)') 'Chem::State_Chm Finalize... OK.'
+       ELSE
+          write(*,'(a)') 'Chem::State_Chm Finalize... FAILURE.'
+       ENDIF
+    ENDIF
+
+    ! Deallocate fields of the Diagnostics State object
+    CALL Cleanup_State_Diag( Input_Opt%AmIRoot, State_Diag, RC )
+    IF ( Input_Opt%AmIRoot ) THEN
+       IF ( RC == GC_SUCCESS ) THEN
+          write(*,'(a)') 'Chem::State_Diag Finalize... OK.'
+       ELSE
+          write(*,'(a)') 'Chem::State_Diag Finalize... FAILURE.'
+       ENDIF
+    ENDIF
+
+    ! Deallocate fields of the Grid State object
+    CALL Cleanup_State_Grid( Input_Opt%AmIRoot, State_Grid, RC )
+    IF ( Input_Opt%AmIRoot ) THEN
+       IF ( RC == GC_SUCCESS ) THEN
+          write(*,'(a)') 'Chem::State_Grid Finalize... OK.'
+       ELSE
+          write(*,'(a)') 'Chem::State_Grid Finalize... FAILURE.'
+       ENDIF
+    ENDIF
+
+    ! Deallocate fields of the Meteorology State object
+    CALL Cleanup_State_Met( Input_Opt%AmIRoot, State_Met, RC )
+    IF ( Input_Opt%AmIRoot ) THEN
+       IF ( RC == GC_SUCCESS ) THEN
+          write(*,'(a)') 'Chem::State_Met Finalize... OK.'
+       ELSE
+          write(*,'(a)') 'Chem::State_Met Finalize... FAILURE.'
+       ENDIF
+    ENDIF
+
+#if !defined( MODEL_GEOS )
+    ! Deallocate fields of the Input Options object
+    ! The call to Cleanup_Input_Opt causes a memory leak error. Comment
+    ! for now (ckeller, 11/29/16).
+    ! Does this still cause a memory leak? (ewl, 12/14/18)
+     CALL Cleanup_Input_Opt( Input_Opt%AmIRoot, Input_Opt, RC )
+    IF ( Input_Opt%AmIRoot ) THEN
+       IF ( RC == GC_SUCCESS ) THEN
+          write(*,'(a)') 'Chem::Input_Opt Finalize... OK.'
+       ELSE
+          write(*,'(a)') 'Chem::Input_Opt Finalize... FAILURE.'
+       ENDIF
+    ENDIF
+#endif
 
     ! Free Int2Spc pointer
     IF ( ASSOCIATED(Int2Spc) ) THEN
@@ -4996,21 +4929,6 @@ CONTAINS
     ! All done
     !=======================================================================
 
-    ! Add descriptive footer text
-    IF ( am_I_Root ) THEN
-       WRITE( logLun, '(/,a)' ) REPEAT( '#', 79 )
-       WRITE( logLun, 100     ) TRIM( Iam ), myPet
-       WRITE( logLun, '(a)'   ) REPEAT( '#', 79 )
-    ENDIF
-       
-    ! Formats
-100 FORMAT( '###',                                     /, &
-            '### ', a, '  |  Cleanup on PET # ', i5.5, /  &
-            '###' )
-
-    ! Close file
-    CLOSE( logLun )
-
     ! Stop timers
     ! -----------
 !    CALL MAPL_TimerOff(STATE, "FINALIZE")
@@ -5045,7 +4963,10 @@ CONTAINS
                        nhms,       year,     month,   day,    dayOfYr,   &
                        hour,       minute,   second,  utc,    hElapsed,  &
                        tsChem,     tsDyn,    mpiComm, ZTH,   SLR,        &
-                       haveImpRst, RC )
+#if defined( MODEL_GEOS )
+                       haveImpRst,                                       &
+#endif
+                       RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -5116,10 +5037,12 @@ CONTAINS
     REAL,                INTENT(OUT), OPTIONAL :: ZTH(:,:)    ! Solar zth angle
     REAL,                INTENT(OUT), OPTIONAL :: SLR(:,:)    ! Insolation
 
+#if defined( MODEL_GEOS )
     !-----------------------------------------------
     ! Optional import restart file existence inquiry
     !-----------------------------------------------
     LOGICAL,             INTENT(OUT), OPTIONAL :: haveImpRst ! Import rst exist?
+#endif
 
     !-----------------------------------                        
     ! Return code 
@@ -7811,7 +7734,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_Mean_OH( GC, State_Grid, logLun, RC )
+  SUBROUTINE Print_Mean_OH( GC, State_Grid, RC )
 !
 ! !USES:
 !
@@ -7822,7 +7745,6 @@ CONTAINS
 !
     TYPE(ESMF_GridComp), INTENT(INOUT) :: GC             ! Ref to this GridComp
     TYPE(GrdState),      INTENT(IN)    :: State_Grid     ! Grid State obj
-    INTEGER,             INTENT(IN)    :: logLun         ! LUN for stdout print
 !
 ! !INPUT PARAMETERS:
 !
