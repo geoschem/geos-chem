@@ -850,6 +850,21 @@ CONTAINS
           Endif
        ENDDO
     ENDIF
+
+#if !defined( MODEL_GEOS )
+    ! Add delta dry pressure as real8
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'DELP_DRY',  &
+       LONG_NAME          = 'Delta dry pressure across box',  &
+       UNITS              = 'hPa', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+#endif
+
 #if defined( MODEL_GEOS )
 !-- Add two extra advected species for use in family transport  (Manyin)
 
@@ -3010,7 +3025,7 @@ CONTAINS
     ! Pointer arrays needed to initialize from imports
     REAL, POINTER                :: Ptr2d   (:,:)   => NULL()
     REAL, POINTER                :: Ptr3d   (:,:,:) => NULL()
-    REAL(ESMF_KIND_R8), POINTER  :: Ptr3d_R8(:,:,:) => NULL() ! ewl
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr3d_R8(:,:,:) => NULL()
 
     ! Other pointer arrays
     REAL(ESMF_KIND_R4),  POINTER :: lonCtr  (:,:) ! Lon centers, this PET [rad]
@@ -3694,13 +3709,12 @@ CONTAINS
           ENDIF
           Ptr3d => NULL()
 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'DELP_DRY' ,     &
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
                                 notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d) .AND. &
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
                ASSOCIATED(State_Met%DELP_DRY) ) THEN
-             State_Met%DELP_DRY(:,:,1:State_Grid%MaxChemLev) =  REAL( &
-             Ptr3d(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1),&
-             KIND=ESMF_KIND_R8)
+             State_Met%DELP_DRY(:,:,1:State_Grid%NZ) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
           Ptr3d => NULL()
        ENDIF
@@ -4784,14 +4798,12 @@ CONTAINS
           KIND=ESMF_KIND_R4)
     ENDIF
 
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'DELP_DRY' ,     &
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
                           notFoundOK=.TRUE., __RC__ ) 
-    IF ( ASSOCIATED(Ptr3d) .AND. &
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Met%DELP_DRY) ) THEN
-       Ptr3d(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
-       Ptr3d(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1) = &
-          REAL(State_Met%DELP_DRY(:,:,1:State_Grid%MaxChemLev), &
-          KIND=ESMF_KIND_R4)
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Met%DELP_DRY(:,:,1:State_Grid%NZ)
     ENDIF
 #endif
 
