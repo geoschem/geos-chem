@@ -120,8 +120,8 @@
       USE EMISSIONS_MOD         ! For interfacing with HEMCO emissions
       USE MIXING_MOD            ! performs tracer mixing
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState !to get iodide + salinity
-      USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
+      !USE HCO_INTERFACE_MOD,  ONLY : HcoState !to get iodide + salinity
+      !USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -241,8 +241,8 @@
       ! Reals
       REAL(f8)                 :: TAU,           TAUb      
       REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
-      REAL, ALLOCATABLE        :: Iodide(:,:,:)
-      REAL, ALLOCATABLE        :: Salinity(:,:)
+      !REAL, ALLOCATABLE        :: Iodide(:,:,:)
+      !REAL, ALLOCATABLE        :: Salinity(:,:)
 
       ! Strings
       CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
@@ -740,15 +740,15 @@
 
       !populate the iodide and salinity arrays in state_met using data
       !read by HEMCO
-      ALLOCATE( Iodide( State_Grid%NX, State_Grid%NY, 1:12), STAT=RC )
-      CALL HCO_EvalFld( am_I_Root, HcoState, 'surf_iodide', Iodide, RC )
-      State_Met%Iodide_Conc = Iodide
-      DEALLOCATE( Iodide, STAT=RC)
+      !ALLOCATE( Iodide( State_Grid%NX, State_Grid%NY, 1:12), STAT=RC )
+      !CALL HCO_EvalFld( am_I_Root, HcoState, 'surf_iodide', Iodide, RC )
+      !State_Met%Iodide_Conc = Iodide
+      !DEALLOCATE( Iodide, STAT=RC)
 
-      ALLOCATE( Salinity ( State_Grid%NX, State_Grid%NY ), STAT=RC )
-      CALL HCO_EvalFld( am_I_Root, HcoState,'surf_salinity', Iodide, RC)
-      State_Met%Salinity = Salinity
-      DEALLOCATE( Salinity, STAT=RC)
+      !ALLOCATE( Salinity ( State_Grid%NX, State_Grid%NY ), STAT=RC )
+      !CALL HCO_EvalFld( am_I_Root, HcoState,'surf_salinity', Iodide, RC)
+      !State_Met%Salinity = Salinity
+      !DEALLOCATE( Salinity, STAT=RC)
     
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09)

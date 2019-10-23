@@ -3857,22 +3857,6 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LWETD
 
-      ! Options for Ocean dry deposition
-      ! location of iodide file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'IodideFile', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%IodideFile
-
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Salinity', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%Salinity      
-
       ! Turn on CO2 effect on drydep?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_EFFECT', RC )
       IF ( RC /= GC_SUCCESS ) THEN

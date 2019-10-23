@@ -241,11 +241,6 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: CO2_REF
      REAL(fp)                    :: RS_SCALE
      INTEGER                     :: RA_Alt_Above_Sfc
-     !!!!!------------------------------------
-     !OCEAN DRY DEPOSITION OPTIONS
-     !!!!!------------------------------------
-     CHARACTER(LEN=255)          :: IodideFile
-     CHARACTER(LEN=255)          :: Salinity
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -915,11 +910,6 @@ CONTAINS
     Input_Opt%RS_SCALE               = 1.0_fp
     Input_Opt%RA_Alt_Above_Sfc       = 10       ! default height
 
-     !!!!!------------------------------------
-     !OCEAN DRY DEPOSITION OPTIONS
-     !!!!!------------------------------------
-     Input_Opt%IodideFile            = ''
-     Input_Opt%IodideFile            = ''
 
     !----------------------------------------
     ! GAMAP_MENU fields
