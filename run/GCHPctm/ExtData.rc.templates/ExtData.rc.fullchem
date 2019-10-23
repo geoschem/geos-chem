@@ -279,99 +279,11 @@ OLSON72 1 N F;72 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_200
 #OLSON72 1 N Y - none none LANDTYPE72 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
 
 #==============================================================================
-# MODIS Leaf Area Index
-#
-# NOTE: There are two options for offline MODIS LAI: legacy and Yuan et al.
-#       Both may be used in GCHP but legacy should be used when comparing with
-#       GEOS-Chem Classic until it because default. Legacy is default in GCHP.
+# Yuan-processed MODIS Leaf Area Index
 #==============================================================================
 
-#---------------------------
-# Option 1: legacy MODIS LAI
-#---------------------------
 # Use file with land type stored as 3rd dimension to speed up file read
-XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./ChemDataDir/MODIS_LAI_201707/For_Olson_2001/XLAI_for_GCHP/%y4/Condensed_MODIS_XLAI.025x025.%y4%m2.nc
-
-# Alternatively read in values for each land type separately. Use XLAIMUTLI by default until performance equivalence verified.
-#XLAI00 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI00 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI01 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI01 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI02 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI02 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI03 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI03 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI04 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI04 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI05 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI05 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI06 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI06 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI07 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI07 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI08 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI08 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI09 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI09 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI10 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI10 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI11 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI11 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI12 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI12 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI13 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI13 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI14 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI14 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI15 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI15 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI16 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI16 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI17 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI17 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI18 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI18 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI19 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI19 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI20 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI20 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI21 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI21 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI22 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI22 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI23 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI23 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI24 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI24 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI25 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI25 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI26 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI26 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI27 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI27 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI28 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI28 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI29 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI29 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI30 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI30 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI31 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI31 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI32 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI32 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI33 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI33 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI34 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI34 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI35 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI35 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI36 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI36 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI37 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI37 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI38 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI38 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI39 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI39 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI40 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI40 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI41 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI41 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI42 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI42 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI43 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI43 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI44 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI44 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI45 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI45 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI46 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI46 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI47 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI47 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI48 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI48 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI49 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI49 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI50 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI50 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI51 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI51 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI52 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI52 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI53 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI53 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI54 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI54 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI55 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI55 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI56 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI56 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI57 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI57 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI58 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI58 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI59 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI59 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI60 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI60 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI61 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI61 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI62 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI62 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI63 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI63 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI64 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI64 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI65 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI65 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI66 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI66 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI67 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI67 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI68 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI68 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI69 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI69 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI70 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI70 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI71 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI71 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-#XLAI72 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI72 ./MainDataDir/MODIS_XLAI/v2017-07/%y4/MODIS_XLAI.025x025.%y4%m2.nc
-
-#---------------------------
-# Option 2: Yuan processed
-#---------------------------
-# Use file with land type stored as 3rd dimension to speed up file read
-#XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./MainDataDir/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./MainDataDir/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
 
 # Alternatively read in each variable separately. Use XLAIMUTLI by default until performance equivalence verified
 #XLAI00 cm2/cm2 N Y F%y4-%m2-%d2T00:00:00 none none XLAI00 ./MainDataDir/Yuan_XLAI/v2019-03/Yuan_proc_MODIS_XLAI.025x025.%y4.nc
@@ -1475,9 +1387,11 @@ SOILNOX_NO  kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOIL_NOx ./MainDataDir/O
 # CH3I_SEAWATER is commented out by default in HEMCO_Config.rc
 #==============================================================================
 #CH3I_SEAWATER kg/m3 Y Y F1985-%m2-01T00:00:00 none none CH3I_OCEAN ./MainDataDir/CH3I/v2014-07/ocean_ch3i.geos.4x5.nc
-DMS_SEAWATER   kg/m3 Y Y F1985-%m2-01T00:00:00 none none DMS_OCEAN ./MainDataDir/DMS/v2015-07/DMS_lana.geos.1x1.nc
-ACET_SEAWATER  kg/m3 N Y - none none ACET ./MainDataDir/ACET/v2014-07/ACET_seawater.generic.1x1.nc
-ALD2_SEAWATER  kg/m3 Y Y F1985-%m2-01T00:00:00 none none ALD2 ./MainDataDir/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc
+DMS_SEAWATER   kg/m3 Y Y F1985-%m2-01T00:00:00 none none DMS_OCEAN  ./MainDataDir/DMS/v2015-07/DMS_lana.geos.1x1.nc
+ACET_SEAWATER  kg/m3 N Y -                     none none ACET       ./MainDataDir/ACET/v2014-07/ACET_seawater.generic.1x1.nc
+ALD2_SEAWATER  kg/m3 Y Y F2006-%m2-01T00:00:00 none none ALD2       ./MainDataDir/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc
+MENO3_SEAWATER kg/m3 Y Y F2006-%m2-01T00:00:00 none none MENO3      ./MainDataDir/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+ETNO3_SEAWATER kg/m3 Y Y F2006-%m2-01T00:00:00 none none ETNO3      ./MainDataDir/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
 
 #==============================================================================
 # --- SOILNOX emissions (Extension 104) ---
