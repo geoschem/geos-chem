@@ -1567,6 +1567,11 @@ CONTAINS
        ELSE IF ( tidx1a > 0 ) THEN 
           ExitSearch = IsClosest( prefYMDhm, availYMDhm, nTime, tidx1a )
        ENDIF 
+       
+       ! Do not continue search if data is not discontinuous (mps, 10/23/19)
+       IF ( .not. Lct%Dct%Dta%Discontinuous ) THEN
+          ExitSearch = .TRUE.
+       ENDIF
 
        ! Write to tidx1 if this is the best match. 
        IF ( ExitSearch ) THEN
