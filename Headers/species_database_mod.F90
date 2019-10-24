@@ -1447,6 +1447,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = F
+             Is_Photolysis = T
              DD_F0         = 0.1_fp
              DD_Hstar_old  = 1.6_fp
              Henry_K0      = 1.6_f8
@@ -1916,6 +1917,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = F
+             Is_Photolysis = T
              DD_F0         = 0.1_fp
              DD_Hstar_old  = 7.9e-1_fp
              Henry_K0      = 7.9e-1_f8
@@ -2148,6 +2150,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = F
+             Is_Photolysis = T
              DD_F0         = 0.1_fp
              DD_Hstar_old  = 2.0_fp
              Henry_K0      = 1.1e+1_f8
@@ -2656,6 +2659,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = F
+             Is_Photolysis = T
              DD_F0         = 0.1_fp
              DD_Hstar_old  = 1.1_fp
              Henry_K0      = 1.1_f8
