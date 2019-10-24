@@ -8,7 +8,7 @@
 !
 ! !MODULE: GEOSCHEMchem_GridCompMod
 !
-! !DESCRIPTION: GEOSCHEMchem_GridComp is an ESMF gridded component 
+! !DESCRIPTION: GEOSCHEMchem_GridComp is an ESMF5 gridded component 
 ! implementing the GEOS-Chem chemistry and related processes, including
 ! dry deposition, emissions, and wet deposition. In addition, the
 ! parameterizations for PBL mixing and convection as used in GEOS-Chem
@@ -852,7 +852,62 @@ CONTAINS
     ENDIF
 
 #if !defined( MODEL_GEOS )
-    ! Add delta dry pressure as real8
+    ! Add other internal state variables as real8
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'DryDepNitrogen',  &
+       LONG_NAME          = 'Dry deposited nitrogen',  &
+       UNITS              = 'cm-2s-1', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'WetDepNitrogen',  &
+       LONG_NAME          = 'Wet deposited nitrogen',  &
+       UNITS              = 'cm-2s-1', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'H2O2AfterChem',  &
+       LONG_NAME          = 'Soluble fraction H2O2',  &
+       UNITS              = 'vv-1', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'SO2AfterChem',  &
+       LONG_NAME          = 'Soluble fraction SO2',  &
+       UNITS              = 'vv-1', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddInternalSpec(GC, &
+       SHORT_NAME         = 'KPPHvalue',  &
+       LONG_NAME          = 'HSAVE for KPP',  &
+       UNITS              = '1', &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter,    &
+       PRECISION          = ESMF_KIND_R8, &
+       FRIENDLYTO         = trim(COMP_NAME),    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'DELP_DRY',  &
        LONG_NAME          = 'Delta dry pressure across box',  &
@@ -3025,6 +3080,7 @@ CONTAINS
     ! Pointer arrays needed to initialize from imports
     REAL, POINTER                :: Ptr2d   (:,:)   => NULL()
     REAL, POINTER                :: Ptr3d   (:,:,:) => NULL()
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr2d_R8(:,:)   => NULL()
     REAL(ESMF_KIND_R8), POINTER  :: Ptr3d_R8(:,:,:) => NULL()
 
     ! Other pointer arrays
@@ -3667,47 +3723,46 @@ CONTAINS
        ! imports if they are found (ewl, 12/13/18)
        !=======================================================================
        IF ( FIRST ) THEN
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'H2O2AfterChem',  &
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem',  &
                                 notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d) .AND. &
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
                ASSOCIATED(State_Chm%H2O2AfterChem) ) THEN
-             State_Chm%H2O2AfterChem = Ptr3d(:,:,State_Grid%NZ:1:-1)
+             State_Chm%H2O2AfterChem = Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
-          Ptr3d => NULL()
+          Ptr3d_R8 => NULL()
           
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'SO2AfterChem',   &
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'SO2AfterChem',   &
                                 notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d) .AND. &
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
                ASSOCIATED(State_Chm%SO2AfterChem) ) THEN
-             State_Chm%SO2AfterChem = Ptr3d(:,:,State_Grid%NZ:1:-1)
+             State_Chm%SO2AfterChem = Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
-          Ptr3d => NULL()
+          Ptr3d_R8 => NULL()
           
-          CALL MAPL_GetPointer( INTSTATE, Ptr2d, 'DryDepNitrogen', &
+          CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', &
                                 notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr2d) .AND. &
+          IF ( ASSOCIATED(Ptr2d_R8) .AND. &
                ASSOCIATED(State_Chm%DryDepNitrogen) ) THEN
-             State_Chm%DryDepNitrogen = Ptr2d
+             State_Chm%DryDepNitrogen = Ptr2d_R8
           ENDIF
-          Ptr2d => NULL()
+          Ptr2d_R8 => NULL()
           
-          CALL MAPL_GetPointer( INTSTATE, Ptr2d, 'WetDepNitrogen', &
+          CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'WetDepNitrogen', &
                                 notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr2d) .AND. &
+          IF ( ASSOCIATED(Ptr2d_R8) .AND. &
                ASSOCIATED(State_Chm%WetDepNitrogen) ) THEN
-             State_Chm%WetDepNitrogen = Ptr2d
+             State_Chm%WetDepNitrogen = Ptr2d_R8
           ENDIF
-          Ptr2d => NULL()
+          Ptr2d_R8 => NULL()
           
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'KPPHvalue' ,     &
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue' ,     &
                                 notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d) .AND. &
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
                ASSOCIATED(State_Chm%KPPHvalue) ) THEN
-             State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev) =  REAL( &
-             Ptr3d(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1),&
-             KIND=ESMF_KIND_R8)
+             State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev) =       &
+            Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1)
           ENDIF
-          Ptr3d => NULL()
+          Ptr3d_R8 => NULL()
 
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
                                 notFoundOK=.TRUE., __RC__ )
@@ -3716,7 +3771,7 @@ CONTAINS
              State_Met%DELP_DRY(:,:,1:State_Grid%NZ) =       &
                                   Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
-          Ptr3d => NULL()
+          Ptr3d_R8 => NULL()
        ENDIF
 #endif
 
@@ -3742,9 +3797,7 @@ CONTAINS
        ! (ckeller, 4/24/2015). 
        !=======================================================================
        IF ( ANY(State_Met%PBLH <= 0.0_fp) ) THEN
-#if defined( MODEL_GEOS )
           Input_Opt%haveImpRst = .FALSE. 
-#endif
 
           ! Warning message
           IF ( am_I_Root ) THEN
@@ -4682,6 +4735,7 @@ CONTAINS
     TYPE(ESMF_STATE)            :: INTSTATE
     REAL, POINTER               :: Ptr2D(:,:)      => NULL()
     REAL, POINTER               :: Ptr3D(:,:,:)    => NULL()
+    REAL(ESMF_KIND_R8), POINTER :: Ptr2D_R8(:,:)   => NULL()
     REAL(ESMF_KIND_R8), POINTER :: Ptr3D_R8(:,:,:) => NULL()
 #endif
 
@@ -4755,48 +4809,49 @@ CONTAINS
                 TRIM(ThisSpc%Name)
     ENDDO
 
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'H2O2AfterChem',  &
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem',  &
                           notFoundOK=.TRUE., __RC__ ) 
-    IF ( ASSOCIATED(Ptr3d) .AND. &
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Chm%H2O2AfterChem) ) THEN
-       Ptr3d(:,:,State_Grid%NZ:1:-1) = &
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = &
           State_Chm%H2O2AfterChem(:,:,State_Grid%NZ:1:-1)
     ENDIF
-    Ptr3d => NULL()
+    Ptr3d_R8 => NULL()
     
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'SO2AfterChem',   &
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'SO2AfterChem',   &
                           notFoundOK=.TRUE., __RC__ ) 
-    IF ( ASSOCIATED(Ptr3d) .AND. &
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Chm%SO2AfterChem) ) THEN
-       Ptr3d(:,:,State_Grid%NZ:1:-1) = State_Chm%SO2AfterChem
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%SO2AfterChem
     ENDIF
-    Ptr3d => NULL()
+    Ptr3d_R8 => NULL()
     
-    CALL MAPL_GetPointer( INTSTATE, Ptr2d, 'DryDepNitrogen', &
+    CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', &
                           notFoundOK=.TRUE., __RC__ ) 
-    IF ( ASSOCIATED(Ptr2d) .AND. &
+    IF ( ASSOCIATED(Ptr2d_R8) .AND. &
          ASSOCIATED(State_Chm%DryDepNitrogen) ) THEN
-       Ptr2d = State_Chm%DryDepNitrogen
+       Ptr2d_R8 = State_Chm%DryDepNitrogen
     ENDIF
-    Ptr2d => NULL()
+    Ptr2d_R8 => NULL()
     
-    CALL MAPL_GetPointer( INTSTATE, Ptr2d, 'WetDepNitrogen', &
+    CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'WetDepNitrogen', &
                           notFoundOK=.TRUE., __RC__ ) 
-    IF ( ASSOCIATED(Ptr2d) .AND. &
+    IF ( ASSOCIATED(Ptr2d_R8) .AND. &
          ASSOCIATED(State_Chm%WetDepNitrogen) ) THEN
-       Ptr2d = State_Chm%WetDepNitrogen
+       Ptr2d_R8 = State_Chm%WetDepNitrogen
     ENDIF
-    Ptr2d => NULL()
+    Ptr2d_R8 => NULL()
     
-    CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'KPPHvalue' ,     &
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'KPPHvalue' ,     &
                           notFoundOK=.TRUE., __RC__ ) 
-    IF ( ASSOCIATED(Ptr3d) .AND. &
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Chm%KPPHvalue) ) THEN
-       Ptr3d(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
-       Ptr3d(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1) = &
+       Ptr3d_R8(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
+       Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1) = &
           REAL(State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev), &
           KIND=ESMF_KIND_R4)
     ENDIF
+    Ptr3d_R8 => NULL()
 
     CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY' ,     &
                           notFoundOK=.TRUE., __RC__ ) 
@@ -4805,6 +4860,7 @@ CONTAINS
        Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
                  State_Met%DELP_DRY(:,:,1:State_Grid%NZ)
     ENDIF
+    Ptr3d_R8 => NULL()
 #endif
 
 #if defined( MODEL_GEOS )
