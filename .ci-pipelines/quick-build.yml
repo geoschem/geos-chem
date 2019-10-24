@@ -1,0 +1,42 @@
+# Quick build pipeline:
+# 
+# This pipeline checks that commits and open pull requests don't 
+# introduce compiler errors. This is meant to be a quick and simple 
+# check that runs frequently.
+
+
+# This pipeline triggers on commits to development and bug-fix 
+# branches. Commits to the master branch do not trigger this pipeline
+# because those are tested against the build matrix. Commits to 
+# feature branches do not trigger this pipeline, but open pull requests
+# and commits to pull requests do.
+trigger:
+  branches:
+    include:
+      - dev/*
+      - bugfix/*
+pr:
+  branches:
+    include:
+      - '*'
+
+
+# Basic agent and container set up
+pool:
+  vmImage: 'ubuntu-latest'
+container: liambindle/penelope:0.1.0-ubuntu16.04-gcc7-netcdf4.5.0-netcdff4.4.4
+
+
+# Try building GEOS-Chem
+steps:
+- script: |
+    module load gcc/7 
+    spack load hdf5 
+    spack load netcdf 
+    spack load netcdf-fortran
+    mkdir build
+    cd build
+    cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=standard -DCMAKE_COLOR_MAKEFILE=FALSE $(Build.Repository.LocalPath)
+    make -j
+    make install
+  displayName: 'Building GEOS-Chem'
