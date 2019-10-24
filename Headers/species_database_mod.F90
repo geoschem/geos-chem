@@ -390,12 +390,8 @@ CONTAINS
 
     ENDDO
 
-    !-----------------------------------------------------------------------
     ! Print Species Database to JSON format
-    ! NOTE: Comment this out unless you really need it!
-    !CALL SpcData_To_JSON( am_I_Root, SpcData, RC )
-    !STOP
-    !-----------------------------------------------------------------------
+    CALL SpcData_To_JSON( am_I_Root, SpcData, RC )
 
     ! Deallocate temporary work arrays
     CALL Cleanup_Work_Arrays()
@@ -6341,7 +6337,7 @@ CONTAINS
 
     ! Hardwire the file name and unit for now
     ! (we typically won't call this routine unless we want this printout)
-    FileName = 'GEOS-Chem_Species_Database_Dict.txt'
+    FileName = 'GEOS-Chem_Species_Database.json'
     Unit     = 700
 
     ! Number of species in database
