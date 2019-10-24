@@ -38,14 +38,14 @@ steps:
     displayName: Build image
     inputs:
       command: build
-      buildContext: $(Build.Repository.LocalPath) # The path to the source code repo
+      buildContext: $(Build.Repository.LocalPath)   # The path to the source code repo
       Dockerfile: .ci-pipelines/release.dockerfile
-      repository: liambindle/geos-chem            # Docker Hub repository 
-      tags: $(Build.SourceBranchName)             # Source code repo's tag
+      repository: geoschem/geos-chem                # Docker Hub repository 
+      tags: $(Build.SourceBranchName)               # Source code repo's tag
   - task: Docker@2
     displayName: Push image
     inputs:
       containerRegistry: DockerHub
-      repository: liambindle/geos-chem            # Docker Hub repository 
+      repository: geoschem/geos-chem                # Docker Hub repository 
       command: push
       tags: $(Build.SourceBranchName)
