@@ -1568,6 +1568,16 @@ CONTAINS
           ExitSearch = IsClosest( prefYMDhm, availYMDhm, nTime, tidx1a )
        ENDIF 
        
+       ! When using the interpolation flag, use the first or last timestep
+       ! when outside of the available date range
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_INTER .and. tidx1a < 0 ) THEN
+          IF ( prefYMDhm < availYMDhm(1) ) THEN
+             tidx1a = 1
+          ELSE IF ( prefYMDhm > availYMDhm(nTime) ) THEN
+             tidx1a = nTime
+          ENDIF
+       ENDIF
+
        ! Do not continue search if data is not discontinuous (mps, 10/23/19)
        IF ( .not. Lct%Dct%Dta%Discontinuous ) THEN
           ExitSearch = .TRUE.
