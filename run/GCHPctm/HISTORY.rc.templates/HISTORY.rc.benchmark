@@ -58,8 +58,7 @@ GRID_LABELS: PE24x144-CF
 # NOTE: These are the "default" collections for GEOS-Chem, but you can create
 # your own customized diagnostic collections as well.
 #==============================================================================
-COLLECTIONS: 'SpeciesConc',
-             'AerosolMass',
+COLLECTIONS: 'AerosolMass',
              'Aerosols',
              'Budget',
              'CloudConvFlux',
