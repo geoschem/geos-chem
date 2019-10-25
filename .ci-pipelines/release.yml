@@ -1,0 +1,51 @@
+# Release pipeline:
+# 
+# This pipeline performs deployment actions upon a GEOS-Chem release.
+# Currently, the only deployment action is to build and push a docker 
+# container with prebuilt GEOS-Chem executables (geos-chem-standard, 
+# geos-chem-tropchem, and geos-chem-soa_svpoa) for the newly released 
+# version.
+
+# This pipeline is triggered by tagged versions excluding 
+# pre-releases.
+trigger:
+  branches:
+    exclude:
+      - '*'
+  tags:
+    include:
+      - '*'
+    exclude:
+      - '*-alpha*'
+      - '*-beta*'
+      - '*-rc*'
+pr: none
+
+
+# Basic agent set up
+pool:
+  vmImage: 'ubuntu-latest'
+
+# Login to Docker Hub, build the image, and push the built image
+# to Docker Hub
+steps:
+  - task: Docker@2
+    displayName: Login to Docker Hub
+    inputs:
+      command: login
+      containerRegistry: DockerHub    # The name of the service connection in the Azure project
+  - task: Docker@2
+    displayName: Build image
+    inputs:
+      command: build
+      buildContext: $(Build.Repository.LocalPath)   # The path to the source code repo
+      Dockerfile: .ci-pipelines/release.dockerfile
+      repository: geoschem/geos-chem                # Docker Hub repository 
+      tags: $(Build.SourceBranchName)               # Source code repo's tag
+  - task: Docker@2
+    displayName: Push image
+    inputs:
+      containerRegistry: DockerHub
+      repository: geoschem/geos-chem                # Docker Hub repository 
+      command: push
+      tags: $(Build.SourceBranchName)
