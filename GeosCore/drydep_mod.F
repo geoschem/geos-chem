@@ -2440,7 +2440,6 @@
  100     FORMAT( '%% READ_DRYDEP_INPUTS: Reading ', a  )
          WRITE( 6, 100 ) TRIM( nc_path )
       ENDIF
-      stop
 
       !----------------------------------------
       ! VARIABLE: DRYCOEFF
