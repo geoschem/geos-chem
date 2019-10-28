@@ -13,7 +13,7 @@
 # Initial version: E. Lundgren,10/5/2018
 
 curdir=$(pwd)
-cd ..
+cd ../../GCHP
 gchpdir=$(pwd)
 cd ..
 gcdir=$(pwd)
@@ -368,10 +368,10 @@ chmod 644 ${rundir}/runScriptSamples/README
 # Archive GCHP repository version in run directory file rundir.version
 #----------------------------------------------------------------------
 version_log=${rundir}/rundir.version
-echo "This run directory was created with GCHP/Run/createRunDir.sh." > ${version_log}
+echo "This run directory was created with GEOS-Chem/run/GCHPctm/createRunDir.sh." > ${version_log}
 echo " " >> ${version_log}
-echo "GCHP repository version information:" >> ${version_log}
-cd ${gchpdir}
+echo "GEOS-Chem repository version information:" >> ${version_log}
+cd ${gcdir}
 remote_url=$(git config --get remote.origin.url)   
 code_branch=$(git rev-parse --abbrev-ref HEAD)   
 last_commit=$(git log -n 1 --pretty=format:"%s") 
