@@ -5075,7 +5075,7 @@
       INTEGER, PARAMETER :: MAXLINES = 3000
       REAL(fp)           :: SCALEFAC, TMPYR, TMPMR
       REAL(fp)           :: YR(MAXLINES), MR(MAXLINES)
-      CHARACTER(LEN=255) :: FILENAME, DBGMSG
+      CHARACTER(LEN=255) :: FILENAME, DBGMSG, DUMMY
 
       !=================================================================
       ! SFCMR_READ begins here!
@@ -5093,13 +5093,13 @@
 
          ! Construct file name
          FILENAME = TRIM(MONTREAL_FILE_ROOT)//TRIM(iName)//'_boundary'
-        
+
          IF ( doPrint ) THEN
             WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ',
      &           TRIM(iNAME), ' from ', TRIM( FILENAME )
             CALL DEBUG_MSG( TRIM(DBGMSG) )
          ENDIF      
-   
+
          ! Get a free LUN
          IU_FILE = findFreeLUN()      
    
@@ -5113,8 +5113,12 @@
  300        FORMAT( 'UCX (SFCMR_READ): Reading ', a )
          ENDIF
 
+         ! Open the file for reading
+         OPEN(IU_FILE, FILE=TRIM( FILENAME ),
+     &        STATUS='OLD', FORM='FORMATTED')
+
          ! First line not important
-         READ(IU_FILE,*,IOSTAT=IOS)
+         READ(IU_FILE, '(a)', IOSTAT=IOS) DUMMY
          IF ( IOS /= 0 ) THEN
             WRITE(6,*) 'UCX: READ ERROR L1 IN ', TRIM(FILENAME)
              CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
@@ -5127,7 +5131,7 @@
    
          ! Third and fourth line also to be ignored
          DO I=1,2
-            READ(IU_FILE,*,IOSTAT=IOS)
+            READ(IU_FILE, '(a)', IOSTAT=IOS) DUMMY
             IF ( IOS /= 0 ) THEN
                !WRITE(6,*) 'UCX: READ ERROR LX IN ', TRIM(FILENAME)
                WRITE(6,'(a,I4,a,a,a,I4)') 'UCX: READ ERROR ', I-3, 
@@ -5149,7 +5153,10 @@
          DO
             ! Read values into temporary buffer
             READ(IU_FILE,*,IOSTAT=IOS) TMPYR, TMPMR
-   
+            IF ( INDEX( FILENAME, 'CH311_boundary' ) > 0 ) THEN
+               print*, '### ', tmpyr, tmpmr
+            endif
+
             ! Error?
             IF ( IOS > 0 ) THEN
                WRITE(6,'(a,I4,a,a,a,I4)') 'UCX: READ ERROR ', NX, 
