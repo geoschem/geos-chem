@@ -445,6 +445,11 @@
       REAL(fp)           :: DIFF
       REAL(fp)           :: S_OBS
 
+      ! --- zyz --- Sept 19, 2018
+      ! fix the problem that some GOSAT record has negative pressure
+      ! values if the surface has high altidue
+      INTEGER            :: L0
+
 !------------------------------------------------------------------------------
 ! For adjoint model only:
 !      ! For adjoint of observation operator
@@ -662,6 +667,22 @@
             CYCLE
          ENDIF
 
+         ! zyz, Oct 4 2018
+         ! GOSAT record has negative pressure value when the surface
+         ! has high altitude such as Tibet
+         ! Fix it by finding the lowest valid layer L0
+         L0 = GOS(NT)%LGOS(1)
+         DO L = 1, GOS(NT)%LGOS(1)
+            IF (GOS(NT)%PRES(L) .gt. 0.0_fp) THEN
+               L0 = L
+               EXIT
+            ENDIF
+         ENDDO       
+         ! Only find negative pressure at 1st layer so far.
+         ! But use this condition to prevent really invalid cases
+         ! (zyz) 
+         IF (L0 .gt. 3 ) CYCLE 
+
          ! Skip observations outside the domain
          IF ( GOS(NT)%LAT(1) < State_Grid%YMin .OR.
      &        GOS(NT)%LAT(1) > State_Grid%YMax .OR. 
@@ -688,7 +709,8 @@
 
          ! skip observations where the GOSAT surface pressure is 
          ! less than the model
-         IF ( (GOS(NT)%PRES(1) - State_Met%PEDGE(I,J,1)) > 50e0 ) THEN
+         ! Use L0 for lowest valid layer in GOSAT (zyz)
+         IF ( (GOS(NT)%PRES(L0) - State_Met%PEDGE(I,J,1)) > 50e0 ) THEN
             print*, ' Psurf threshold not met, skipping record ', NT
             CYCLE
          ENDIF
@@ -706,8 +728,9 @@
          CH4_PRIOR(:)    = 0.0_fp
 
          ! Copy variable names to make coding a bit cleaner
+         ! Use L0 for lowest layer in GOSAT record (zyz)
          LGOS = GOS(NT)%LGOS(1)
-         DO L = 1, LGOS
+         DO L = L0, LGOS
             CH4_PRIOR(L) = GOS(NT)%PRIOR(L) * 1d-9 ! [ppb] --> [v/v]
          ENDDO
 
@@ -727,7 +750,7 @@
          ! Calculate the interpolation weight matrix 
          MAP(:,:) = 0.0_fp
          CALL GET_INTMAP( State_Grid, GC_PRES, GC_PSURF, GOS(NT)%PRES,
-     &                    LGOS, MAP )
+     &                    L0, LGOS, MAP )
 
 !------------------------------------------------------------------------------
 ! For adjoint model only:
@@ -762,7 +785,8 @@
 
  
          ! Interpolate GC CH4 column to GOSAT grid
-         DO LL = 1, LGOS
+         ! Use L0 for lowest valid layer for GOSAT (zyz)
+         DO LL = L0, LGOS
             GC_CH4(LL) = 0.0_fp
             DO L = 1, State_Grid%NZ 
                GC_CH4(LL) = GC_CH4(LL) 
@@ -823,33 +847,34 @@
          !--------------------------------------------------------------
 
          ! Pressure weighting array
+         ! Use L0 for lowest valid layer in GOSAT
          h(:)          = 0.0_fp
-         p(1:LGOS)     = GOS(NT)%PRES(1:LGOS)
-         ak(1:LGOS)    = GOS(NT)%AVG_KERNEL(1:LGOS)
-         prior(1:LGOS) = GOS(NT)%PRIOR(1:LGOS) * 1e-9_fp  ! [ppb] --> [v/v]
+         p(L0:LGOS)     = GOS(NT)%PRES(L0:LGOS)
+         ak(L0:LGOS)    = GOS(NT)%AVG_KERNEL(L0:LGOS)
+         prior(L0:LGOS) = GOS(NT)%PRIOR(L0:LGOS) * 1e-9_fp  ! [ppb] --> [v/v]
 
          ! Need to integrate from the toa to surface (ajt, 05/21/13)
          IF (LGOS .GT. 1) THEN
-            IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN
+            IF(GOS(NT)%PRES(L0+1) .LT. GOS(NT)%PRES(L0)) THEN
                p(1:LGOS) = p(LGOS:1:-1)
             ENDIF
          ENDIF
 
          L = 1
-         h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+         h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
      &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) )
-         L = LGOS
-         h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+         L = LGOS - L0 + 1
+         h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
      &         (  p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) ) )
-         DO L=2,LGOS-1
-            h(L) = 1./GOS(NT)%PRES(1) * ABS( 
+         DO L=2,LGOS-L0
+            h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
      &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) +  
      &         (      p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) )   )
          ENDDO
 
          ! Now return to the orientation of the other variables
          IF (LGOS .GT. 1) THEN 
-            IF(GOS(NT)%PRES(2) .LT. GOS(NT)%PRES(1)) THEN 
+            IF(GOS(NT)%PRES(L0+1) .LT. GOS(NT)%PRES(L0)) THEN 
                h(1:LGOS) = h(LGOS:1:-1)
                p(1:LGOS) = p(LGOS:1:-1)
             ENDIF
@@ -857,14 +882,14 @@
 
          ! Calculate Xch4_a
          XCH4a = 0.0_fp
-         DO L = 1,LGOS
+         DO L = L0,LGOS
             XCH4a = XCH4a + h(L) * prior(L)
          ENDDO
 
          ! Calculate Xch4_m
          XCH4m = 0.0_fp
          XCH4m = XCH4a
-         DO L = 1, LGOS
+         DO L = L0, LGOS
             XCH4m = XCH4m + ( h(L) * ak(L) * ( GC_CH4(L) - prior(L) ) )
          ENDDO
          GC_XCH4 = 0.0_fp
@@ -1819,7 +1844,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE GET_INTMAP( State_Grid, GCPCEN, GCPSURF, GOSPEDGE,
-     &                       nlev, INTMAP )
+     &                       L0, L1, INTMAP )
 !
 ! !USES:
 !
@@ -1831,7 +1856,7 @@
       REAL(fp), INTENT(IN)  :: GCPCEN(State_Grid%NZ)
       REAL(fp), INTENT(IN)  :: GCPSURF
       REAL(fp), INTENT(IN)  :: GOSPEDGE(MAXLEV) 
-      INTEGER,  INTENT(IN)  :: nlev
+      INTEGER,  INTENT(IN)  :: L0, L1
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1840,6 +1865,8 @@
 ! !REVISION HISTORY:
 !  16 Jun 2017 - M. Sulprizio- Initial version based on GOSAT CH4 observation
 !                              operator from GC Adjoint v35j
+!  04 Oct 2018 - Y. Zhang    - Add an input argument L0, the lowest valid layer for GOSAT
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1858,7 +1885,7 @@
       INTMAP(:,:) = 0e+0_fp
 
       ! Loop over each pressure level of GOS grid
-      DO LTM = 1, nlev
+      DO LTM = L0, L1
 
          ! Find the levels from GC that bracket level LTM
          DO LGC = 1, State_Grid%NZ-1
@@ -1882,7 +1909,7 @@
 
        ! Correct for case where GOSAT pressure is higher than the
        ! highest GC pressure center.  In this case, just 1:1 map. 
-       DO LTM = 1, nlev
+       DO LTM = L0, L1
           IF ( GOSPEDGE(LTM) > GCPCEN(1) ) THEN
              INTMAP(:,LTM) = 0e+0_fp
              INTMAP(1,LTM) = 1e+0_fp

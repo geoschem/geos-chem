@@ -51,6 +51,7 @@ MODULE ObsPack_Mod
 !  04 Jun 2015 - A. Jacobson - Adapted from v10.1 planeflight_mod.f, following
 !                              similar work done in v9.2 by Andrew Schuh.
 !  05 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,6 +110,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  05 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,6 +246,7 @@ CONTAINS
     USE m_netcdf_io_get_dimlen, ONLY : Ncget_Dimlen
     USE m_netcdf_io_read
     USE m_netcdf_io_close,      ONLY : Nccl
+    USE m_netcdf_io_checks,     ONLY : NcDoes_Var_Exist
 !
 ! !INPUT PARAMETERS:
 !
@@ -266,6 +269,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - first version
 !  06 Dec 2018 - R. Yantosca - Implemented into the standard GEOS_Chem code
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,6 +277,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL              :: It_Exists
     INTEGER              :: fId, N, nObs, nSpecies
 
     ! Arrays
@@ -434,8 +439,19 @@ CONTAINS
     varName = 'altitude'
     CALL NcRd( State_Diag%ObsPack_Altitude,  fId, TRIM(varName), st1d, ct1d )
 
+    ! First check if the "CT_sampling_strategy" variable exists.
+    ! If it does not, assume hourly sampling (strategy value = 2).
     varName = 'CT_sampling_strategy'
-    CALL NcRd( State_Diag%ObsPack_Strategy,  fId, TRIM(varName), st1d, ct1d )  
+    It_Exists = NcDoes_Var_Exist( fId, varName )
+    IF ( It_Exists ) THEN
+       CALL NcRd( State_Diag%ObsPack_Strategy,  fId, TRIM(varName), st1d, ct1d)
+    ELSE
+       ErrMsg = 'Could not find "CT_sampling_strategy" in file: '         // &
+                TRIM( State_Diag%ObsPack_InFile  )                        // &
+                '.  Will use hourly sampling by default.'
+       CALL GC_Warning( ErrMsg, RC, ThisLoc )
+       State_Diag%ObsPack_Strategy = 2
+    ENDIF
 
     !----------------------------
     ! Read ID string
@@ -606,6 +622,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - first version
 !  05 Dec 2018 - R. Yantosca - Implemented into GEOS-Chem standard code
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -779,6 +796,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - First version
 !  06 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1224,6 +1242,7 @@ CONTAINS
 !                                        ct_mod.F, itself modified from
 !                                        planeflight_mod.F
 !  03 Mar 2017 - A. Jacobson - Update to v11 (get species in "v/v dry")
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1429,6 +1448,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  5 Jun 2015 - A. Jacobson - First version
 !  3 Mar 2017 - A. Jacobson - Update to v11 (use State_Met%BXHEIGHT instead of my own hypsometry)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1552,6 +1572,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Dec 2018 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1626,6 +1647,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Jan 2019 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1826,6 +1848,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Jan 2019 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

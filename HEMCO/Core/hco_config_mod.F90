@@ -546,7 +546,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                   :: I, N
+    INTEGER                   :: I, N, nEdges
     INTEGER                   :: nScl
     INTEGER                   :: STAT
     INTEGER                   :: Int1
@@ -995,9 +995,9 @@ CONTAINS
                      
                    ! Extract grid box edges. Need to be four values.
                    CALL HCO_CharSplit ( Char1, Separator, Wildcard, & 
-                                        SplitInts, N, RC ) 
+                                        SplitInts, nEdges, RC ) 
                    IF ( RC /= HCO_SUCCESS ) RETURN
-                   IF ( N /= 4 ) THEN
+                   IF ( nEdges /= 4 ) THEN
                       MSG = 'Cannot properly read mask coverage: ' // &
                            TRIM(Lct%Dct%cName)
                       CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
@@ -1284,9 +1284,9 @@ CONTAINS
                
                 ! Extract grid box edges. Need to be four values.
                 CALL HCO_CharSplit ( Char1, Separator, Wildcard, & 
-                                     SplitInts, N, RC ) 
+                                     SplitInts, nEdges, RC ) 
                 IF ( RC /= HCO_SUCCESS ) RETURN
-                IF ( N /= 4 ) THEN
+                IF ( nEdges /= 4 ) THEN
                    MSG = 'Cannot properly read mask coverage: ' // &
                          TRIM(Lct%Dct%cName)
                    CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )

@@ -85,7 +85,7 @@
       ! Needed for scaling JNIT/JNITs photolysis to JHNO3
       REAL(fp)      :: JscaleNITs, JscaleNIT, JNITChanA, JNITChanB
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       ! Diagnostics arrays (ckeller, 5/22/18)
       REAL, ALLOCATABLE, PUBLIC :: EXTRAL_NLEVS(:,:), EXTRAL_NITER(:,:)
 #endif
@@ -170,6 +170,7 @@
 !
 ! !REVISION HISTORY:
 !  See the Git history with the gitk browser!
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -257,7 +258,7 @@
             RETURN
          ENDIF
 
-#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+#ifdef USE_MAXIMUM_RANDOM_OVERLAP
          ! Special setup only for max random overlap
          DO i = 1,State_Grid%NZ+1
             INDGEN(i) = i       !(/(i,i=1,State_Grid%NZ+1)/)
@@ -281,7 +282,7 @@
 !$OMP+PRIVATE( P_CTM ,  T_CTM,  SFCA,      O3_TOMS, O3_CTM  )
 !$OMP+PRIVATE( LCHEM,   OPTAER, N,         IOPT             )
 !$OMP+PRIVATE( OPTDUST, OPTD,   CLDF1D                      )
-#if defined( USE_MAXIMUM_RANDOM_OVERLAP )
+#ifdef USE_MAXIMUM_RANDOM_OVERLAP
 !$OMP+PRIVATE( FMAX,    KK,     NUMB,      KBOT             )
 !$OMP+PRIVATE( KTOP     ODNEW,  INDICATOR, INDIC            )
 #endif
@@ -1494,7 +1495,7 @@ c  Lowest level intersected by emergent beam
       INTEGER JTOTL,I,L,L2
       REAL(fp)  TTAU(L2X+1),DTAUJ, ATAU1,ATAULN,ATAUM,ATAUN1
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       ! ckeller, 5/21/18
       LOGICAL  :: failed
       INTEGER  :: N, NMAX
@@ -1505,7 +1506,7 @@ c  Lowest level intersected by emergent beam
       ! EXTRAL begins here!
       !=================================================================
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       ! This routine now repeats the extra layer computation with an
       ! increased heating rate (ATAU) if there is an array overfloat.
       ! This is repeated maximum 5 times. The diagnostics arrays
@@ -1763,12 +1764,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=====================================================================
       FILENAME = TRIM( DATA_DIR ) // 'FJX_spec.dat'
 
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
- 100     FORMAT( 'GEOSCHEM::INIT_FJX: Reading ', a ', on unit ', i4 )
-      ENDIF
-
       call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
       ! Compute factors for UV flux diagnostics
@@ -1786,11 +1781,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in 5-wavelength scattering data
       !=====================================================================
       FILENAME = TRIM( DATA_DIR ) // 'jv_spec_mie.dat'
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-      ENDIF
 
       call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root, Input_Opt )
 
@@ -1826,11 +1816,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=====================================================================
       !### bmy debug, read locally
       FILENAME = TRIM( DATA_DIR ) // 'FJX_j2j.dat'
-
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME ), JXUNIT
-      ENDIF
 
       ! Read mapping information
       CALL RD_JS_JX( JXUNIT,   TRIM( FILENAME ), TITLEJXX,
@@ -1907,7 +1892,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          ENDIF
       ENDDO
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       ! Diagnostics arrays
       ALLOCATE(EXTRAL_NLEVS(State_Grid%NX,State_Grid%NY))
       ALLOCATE(EXTRAL_NITER(State_Grid%NX,State_Grid%NY))
@@ -2000,6 +1985,13 @@ c                   NJX = # fast-JX J-values derived from this (.le. X_)
 
 c >>>> W_ = 12 <<<< means trop-only, discard WL #1-4 and #9-10, some X-sects
 
+      ! Print the name of the file being read to stdout (bmy, 10/24/19)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( NamFil )
+ 300     FORMAT( 'FAST-JX (RD_XXX): Reading ', a )
+      ENDIF
+
+      ! Open file
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
       read (NUN,100) TITLE0
 
@@ -2260,6 +2252,13 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
 
+      ! Print the name of the file being read to stdout (bmy, 10/24/19)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( NamFil )
+ 300     FORMAT( 'FAST-JX (RD_MIE): Reading ', a )
+      ENDIF
+
+      ! Open file
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
       ! Read header lines
@@ -2423,7 +2422,13 @@ c---TROP-QUICK  (must scale solar flux for W=5)
           THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
        ENDIF
 
-       ! open file
+       ! Print the name of the file being read to stdout (bmy, 10/24/19)
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 300 ) TRIM( ThisFile )
+ 300      FORMAT( 'FAST-JX (RD_AOD): Reading ', a )
+       ENDIF
+
+       ! Open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
 
        ! Error check
@@ -2503,7 +2508,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       USE CMN_FJX_MOD, ONLY : NWVREQUIRED, IWVREQUIRED
       USE CMN_FJX_MOD, ONLY : NRTWVREQUIRED, IRTWVREQUIRED
       USE Input_Opt_Mod, ONLY : OptInput
-#if defined( RRTMG )
+#ifdef RRTMG
       USE PARRRTM,     ONLY : NBNDLW
 #endif
 !
@@ -2631,7 +2636,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          write(6,*) '*********************************'
       ENDIF
       ENDDO !Input_Opt%NWVSELECT
-#if defined( RRTMG )
+#ifdef RRTMG
       !repeat for RRTMG wavelengths to get the closest wavelength
       !indices and the interpolation coefficients
       !Indices are relative to all wavelengths in the LUT i.e. the RRTMG
@@ -2804,9 +2809,16 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       JMAP(:)   = '------'
       JFACTA(:) = 0.e+0_fp
 
+      ! Print the name of the file being read to stdout (bmy, 10/24/19)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( NamFil )
+ 300     FORMAT( 'FAST-JX (RD_JS_JX): Reading ', a )
+      ENDIF
+
+      ! Open file
       open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
-       read (NUNIT,'(a)') CLINE
+      read (NUNIT,'(a)') CLINE
       IF ( am_I_Root ) THEN
          write(6,'(a)') CLINE
       ENDIF
@@ -4830,6 +4842,12 @@ C---Always does PL(2) = P[1]
       nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
       nc_file = 'fastj.jv_atms_dat.nc'
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+
+      ! Print the name of the file being read to stdout (bmy, 10/24/19)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( nc_path )
+ 300     FORMAT( 'FAST-JX (RD_PROF_NC): Reading ', a )
+      ENDIF
 
       ! Open netCDF file
       CALL Ncop_Rd( fId, TRIM(nc_path) )

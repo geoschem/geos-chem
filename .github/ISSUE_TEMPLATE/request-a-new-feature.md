@@ -1,8 +1,8 @@
 ---
 name: Request a new GEOS-Chem feature
-about: Template for users to request new features in GEOS-Chem
+about: Use this template to request a new feature for GEOS-Chem.
 title: "[FEATURE REQUEST]"
-labels: ''
+labels: feature
 assignees: ''
 
 ---
