@@ -868,7 +868,7 @@
       !=================================================================
 
       ! Are we on the root CPU?
-      am_I_Root = Input_Opt%RootCPU
+      am_I_Root = Input_Opt%amIRoot
 
       ! Copy fields from INPUT_OPT
       LPRT = Input_Opt%LPRT
