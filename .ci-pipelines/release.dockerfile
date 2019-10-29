@@ -16,28 +16,28 @@ RUN echo "module load gcc/7" >> /init.rc \
 &&  echo "spack load netcdf" >> /init.rc \
 &&  echo "spack load netcdf-fortran" >> /init.rc \
 &&  echo "export PATH=$PATH:/opt/geos-chem/bin" >> /init.rc \
-&&  echo "source /init.rc >> /etc/bash.bashrc"
+&&  echo "source /init.rc" >> /etc/bash.bashrc
 
 # Make bash the default shell
 SHELL ["/bin/bash", "-c"]
 
 # Build Standard and copy the executable to /opt/geos-chem/bin
 RUN cd /gc-src/build \
-&&  cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=standard .. \
+&&  cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=standard -DCMAKE_COLOR_MAKEFILE=FALSE .. \
 &&  make -j install \
 &&  cp geos /opt/geos-chem/bin/geos-chem-standard \
 && rm -rf /gc-src/build/*
 
 # Build Tropchem and copy the executable to /opt/geos-chem/bin
 RUN cd /gc-src/build \
-&&  cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=tropchem .. \
+&&  cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=tropchem -DCMAKE_COLOR_MAKEFILE=FALSE .. \
 &&  make -j install \
 &&  cp geos /opt/geos-chem/bin/geos-chem-tropchem \
 && rm -rf /gc-src/build/*
 
 # Build SOA_SVPOA and copy the executable to /opt/geos-chem/bin
 RUN cd /gc-src/build \
-&&  cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=complexSOA_SVPOA .. \
+&&  cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=complexSOA_SVPOA -DCMAKE_COLOR_MAKEFILE=FALSE .. \
 &&  make -j install \
 &&  cp geos /opt/geos-chem/bin/geos-chem-soa_svpoa\
 && rm -rf /gc-src/build/*
