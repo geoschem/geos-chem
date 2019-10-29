@@ -29,6 +29,8 @@ pool:
 # Login to Docker Hub, build the image, and push the built image
 # to Docker Hub
 steps:
+  - script: VERSION_TAG=`git describe --tags` && echo "##vso[task.setvariable variable=VERSION_TAG]$VERSION_TAG"
+    displayName: Get the repo's tag
   - task: Docker@2
     displayName: Login to Docker Hub
     inputs:
@@ -40,12 +42,12 @@ steps:
       command: build
       buildContext: $(Build.Repository.LocalPath)   # The path to the source code repo
       Dockerfile: .ci-pipelines/release.dockerfile
-      repository: geoschem/geos-chem                # Docker Hub repository 
-      tags: $(Build.SourceBranchName)               # Source code repo's tag
+      repository: geoschemdev/geos-chem             # Docker Hub repository
+      tags: $(VERSION_TAG)                          # Source code repo's tag
   - task: Docker@2
     displayName: Push image
     inputs:
       containerRegistry: DockerHub
-      repository: geoschem/geos-chem                # Docker Hub repository 
+      repository: geoschemdev/geos-chem             # Docker Hub repository
       command: push
-      tags: $(Build.SourceBranchName)
+      tags: $(VERSION_TAG)
