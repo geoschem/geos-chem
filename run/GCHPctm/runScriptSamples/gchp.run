@@ -23,6 +23,14 @@
 # Define GEOS-Chem log file
 log="gchp.log"
 
+# Make sure GCHP output restart file does not exist with the original name
+# used by MAPL. Its present will cause GCHP run to fail. The output restart
+# file is renamed after a successful run, but a file with the original name
+# may persist if the previous run was unsuccessful.
+if [[ -e gcchem_internal_checkpoint ]]; then
+    rm gcchem_internal_checkpoint
+fi
+
 # Always remove cap_restart if not doing a multi-segmented run.
 if [[ -e cap_restart ]]; then
    rm cap_restart
