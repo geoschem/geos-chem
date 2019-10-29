@@ -152,10 +152,5 @@
    LAI_PREVDAY    |   1        | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_lai_prevday_restart
    PARDR_DAVG     |   W/m2     | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_pardr_davg_restart
    PARDF_DAVG     |   W/m2     | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_pardf_davg_restart
-   DryDepNitrogen | cm-2s-1    | xy  |   |    |   |   |     |0.0   |    |    | S       | dry_deposited_nitrogen
-   WetDepNitrogen | cm-2s-1    | xy  |   |    |   |   |     |0.0   |    |    | S       | wet_deposited_nitrogen
-   H2O2AfterChem  |   vv-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | soluble_fraction_H2O2
-   SO2AfterChem   |   vv-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | soluble_fraction_SO2
-   KPPHvalue      |   1        | xyz | C |    |   |   |     |0.0   |    |    | S       | HSAVE_for_KPP 
 # --------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
 </InternalSpec>

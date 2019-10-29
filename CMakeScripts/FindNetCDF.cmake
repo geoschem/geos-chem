@@ -110,7 +110,7 @@ find_library(NETCDF_F_LIBRARY
 )
 
 # Make a readable error message 
-set(GFTL_ERRMSG "\nCounldn't find one or more of NetCDF's files! The following files/directories weren't found:")
+set(NetCDF_ERRMSG "\nCounldn't find one or more of NetCDF's files! The following files/directories weren't found:")
 if(NOT NETCDF_F_LIBRARY)
     set(NetCDF_ERRMSG "${NetCDF_ERRMSG}
     NETCDF_F_LIBRARY: Path to \"libnetcdff.so\"")

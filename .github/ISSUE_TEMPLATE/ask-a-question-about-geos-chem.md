@@ -1,8 +1,8 @@
 ---
 name: Ask a question about GEOS-Chem
-about: Template for asking general questions about GEOS-Chem
+about: Use this template to ask for more information about GEOS-Chem.
 title: "[QUESTION]"
-labels: ''
+labels: question
 assignees: ''
 
 ---

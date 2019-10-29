@@ -2450,9 +2450,9 @@
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) REPEAT( '%', 79 )
-         WRITE( 6, 110 ) TRIM(nc_file)
-         WRITE( 6, 120 ) TRIM(nc_dir)
+         WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 100     FORMAT( '%% READ_DRYDEP_INPUTS: Reading ', a  )
+         WRITE( 6, 100 ) TRIM( nc_path )
       ENDIF
 
       !----------------------------------------
@@ -2474,6 +2474,7 @@
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+ 130     FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
       ENDIF
 
       ! Cast from REAL*8 to flexible precision
@@ -2774,16 +2775,10 @@
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
-         WRITE( 6, 140 )
-         WRITE( 6, 100 ) REPEAT( '%', 79 )
+         WRITE( 6, '(a)' ) REPEAT( '%', 79 )
       ENDIF
 
       ! FORMAT statements
- 100  FORMAT( a                                              )
- 110  FORMAT( '%% Opening file  : ',         a               )
- 120  FORMAT( '%%  in directory : ',         a, / , '%%'     )
- 130  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
- 140  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE READ_DRYDEP_INPUTS
 !EOC
