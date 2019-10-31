@@ -2561,6 +2561,8 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+!GanLuo
+      USE WETSCAV_MOD,        ONLY : QQ3D, PSO4s
       USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
 #ifdef APM
       USE APM_DRIV_MOD,       ONLY : PSO4GAS
@@ -2785,9 +2787,11 @@
       pHCloud(:,:,:) = 0.0e+0_fp
       isCloud(:,:,:) = 0.0e+0_fp ! jmm 3/1/19
 
-
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM   = GET_TS_CHEM()
+
+!GanLuo
+      PSO4s = 0.0e+0_fp
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
       F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -3077,8 +3081,16 @@
 
          ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) *
+!GanLuo         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) *
+!GanLuo     &             1e-3_fp
+         IF(SIZE(QQ3D)>1)THEN
+           LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) *
+     &             1e-3_fp +MAX(0.0e+0_fp, QQ3D(L,I,J)*DTCHEM)
+         ELSE
+           LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) *
      &             1e-3_fp
+         ENDIF
+         LWC     = MAX(0.0e+0_fp, LWC)
 
          ! LWC is a grid-box averaged quantity. To improve the representation 
          ! of sulfate chemistry, we divide LWC by the cloud fraction and 
@@ -3820,6 +3832,14 @@
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
          ! Add L5S (qjc, 11/04/16)
          PSO4_SO2(I,J,L) = L1 + L2S + L3S + L4S + L5S + PSO4E + SR
+!GanLuo
+         IF((PSO4_SO2(I,J,L)+Spc(I,J,L,id_SO4))>1.0e-30_fp)THEN
+           PSO4s(I,J,L)  = L2S + L3S + L4S + L5S + SR
+           PSO4s(I,J,L)  = PSO4s(I,J,L)/(PSO4_SO2(I,J,L)+
+     &                     Spc(I,J,L,id_SO4))
+         ELSE
+           PSO4s(I,J,L)  = 0.0e+0_fp
+         ENDIF
 
          ! Production of sulfate on sea salt
          PSO4_ss (I,J,L) = PSO4F
