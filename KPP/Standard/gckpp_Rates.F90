@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri Oct 11 14:43:01 2019
+! Time                 : Thu Oct 31 16:24:24 2019
 ! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -309,15 +309,24 @@ CONTAINS
     
     R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
     R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
+
+    ! Special treatment for methyl nitrate based on observations
+    ! as Carter and Atkinson formulation does not apply to C1.
+    ! Value based on upper limit of Flocke et al. 1998 as applied
+    ! in Fisher et al. 2018
+    IF ( A1 == 1.0 ) THEN
+       FYRNO3 = DBLE(3.0e-4)
+    ELSE
     
-    ! Initialize static variables
-    
-    XXYN   = ALPHA*EXP(BETA*R1)*NUMDEN*((300./TEMP)**XM0)
-    YYYN   = Y300*((300./TEMP)**XMINF)
-    AAA    = LOG10(XXYN/YYYN)
-    ZZYN   = 1./(1.+ AAA*AAA )
-    RARB   = (XXYN/(1.+ (XXYN/YYYN)))*(XF**ZZYN)
-    FYRNO3 = RARB/(1. + RARB)
+       ! Initialize static variables
+       XXYN   = ALPHA*EXP(BETA*R1)*NUMDEN*((300./TEMP)**XM0)
+       YYYN   = Y300*((300./TEMP)**XMINF)
+       AAA    = LOG10(XXYN/YYYN)
+       ZZYN   = 1./(1.+ AAA*AAA )
+       RARB   = (XXYN/(1.+ (XXYN/YYYN)))*(XF**ZZYN)
+       FYRNO3 = RARB/(1. + RARB)
+    ENDIF
+
     IF (trim(B) .eq. 'A') THEN
        GC_RO2NO     = R0 * FYRNO3
     ELSEIF (trim(B) .eq. 'B') THEN
@@ -406,7 +415,7 @@ CONTAINS
        
 
   END FUNCTION GCJPLPR
- 
+
   REAL(kind=dp) FUNCTION GCIUPAC3(ko_300,n,ki_300,m,Fc) 
 ! Function calcualtes the rate constant of 3 body reaction using IUPAC 
 ! methology
