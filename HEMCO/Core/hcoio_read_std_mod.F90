@@ -1567,6 +1567,21 @@ CONTAINS
        ELSE IF ( tidx1a > 0 ) THEN 
           ExitSearch = IsClosest( prefYMDhm, availYMDhm, nTime, tidx1a )
        ENDIF 
+       
+       ! When using the interpolation flag, use the first or last timestep
+       ! when outside of the available date range
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_INTER .and. tidx1a < 0 ) THEN
+          IF ( prefYMDhm < availYMDhm(1) ) THEN
+             tidx1a = 1
+          ELSE IF ( prefYMDhm > availYMDhm(nTime) ) THEN
+             tidx1a = nTime
+          ENDIF
+       ENDIF
+
+       ! Do not continue search if data is not discontinuous (mps, 10/23/19)
+       IF ( .not. Lct%Dct%Dta%Discontinuous ) THEN
+          ExitSearch = .TRUE.
+       ENDIF
 
        ! Write to tidx1 if this is the best match. 
        IF ( ExitSearch ) THEN
@@ -2716,6 +2731,7 @@ CONTAINS
     INTEGER :: origYr,  origMt, origDy, origHr
     LOGICAL :: hasFile, hasYr,  hasMt,  hasDy, hasHr
     LOGICAL :: nextTyp
+    CHARACTER(LEN=1023) :: srcFileOrig
 
     ! maximum # of iterations for file search
     INTEGER, PARAMETER :: MAXIT = 10000
@@ -2756,6 +2772,7 @@ CONTAINS
     ! Call the parser
     CALL HCO_CharParse ( HcoState%Config, srcFile, prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
+    srcFileOrig = TRIM(srcFile)
 
     ! Check if file exists
     INQUIRE( FILE=TRIM(srcFile), EXIST=HasFile )
@@ -2944,6 +2961,11 @@ CONTAINS
     ! field is not outside of the given range
     IF ( HasFile .AND. ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) ) THEN
        HasFile = TIDX_IsInRange ( Lct, prefYr, prefMt, prefDy, prefHr ) 
+    ENDIF
+
+    ! Restore original source file name and date to avoid confusion in log file
+    IF ( .not. HasFile ) THEN
+       srcFile = Trim(srcFileOrig)
     ENDIF
 
     ! Return variable
