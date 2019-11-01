@@ -5,9 +5,9 @@
 #
 # !MODULE: Makefile (in the GeosCore subdirectory)
 #
-# !DESCRIPTION: This is the main GEOS-Chem makefile.  It compiles the 
-# GEOS-Chem core source code files and bundles all of the object files (*.o) 
-# into the libGeosCore.a library (located in the LIB directory).  Module files 
+# !DESCRIPTION: This is the main GEOS-Chem makefile.  It compiles the
+# GEOS-Chem core source code files and bundles all of the object files (*.o)
+# into the libGeosCore.a library (located in the LIB directory).  Module files
 # (*.mod) are copied to the MOD directory.
 #\\
 #\\
@@ -70,7 +70,7 @@
 # (7) ISORROPIA/           : ISORROPIA aerosol thermodyn equilibrium module
 # (8) GeosCore/            : "Core" GEOS-Chem modules
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  See the Git history with the gitk browser!
 #EOP
@@ -175,8 +175,8 @@ endif
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
 	@$(MAKE) kppfirstpass
-	@$(MAKE) libheaders         		  
-	@$(MAKE) libutil 
+	@$(MAKE) libheaders
+	@$(MAKE) libutil
 	@$(MAKE) libkpp
 	@$(MAKE) libhistory
 	@$(MAKE) libobspack
@@ -205,8 +205,8 @@ endif
 	@$(MAKE) -C $(GCHPINT) lib # might need to shift this around
 	@$(MAKE) -C $(GCHPLIB) lib
 
-libheaders:                                        # Build code in Headers/ 
-	@$(MAKE) -C $(HDR)			  
+libheaders:                                        # Build code in Headers/
+	@$(MAKE) -C $(HDR)
 
 libhemco:                                          # Build code in HEMCO/*
 	@$(MAKE) -C $(HEMCO) lib
@@ -214,23 +214,23 @@ libhemco:                                          # Build code in HEMCO/*
 libhemcosa:                                        # Build HEMCO standalone
 	@$(MAKE) libnc
 	@$(MAKE) kppfirstpass
-	@$(MAKE) libheaders         		  
-	@$(MAKE) libutil 
+	@$(MAKE) libheaders
+	@$(MAKE) libutil
 	@$(MAKE) libhemco
 
 libhistory:                                        # Build code in History/
 	@$(MAKE) -C $(HIST) lib
 
 libiso:                                            # Build code in ISORROPIA/
-	@$(MAKE) -C $(ISO)			  
+	@$(MAKE) -C $(ISO)
 
 librad:                                            # Build code in GeosRad/
 ifeq ($(RRTMG_NEEDED),1)
-	@$(MAKE) -C $(RAD)			  
+	@$(MAKE) -C $(RAD)
 endif
 
 libkpp:                                            # Build code in KPP/
-	@$(MAKE) -C $(KPP)			  
+	@$(MAKE) -C $(KPP)
 
 kppfirstpass:                                      # Compile some KPP code 1st
 	@$(MAKE) -C $(KPP) firstpass
@@ -242,7 +242,7 @@ libobspack:                                        # Build code in ObsPack/
 	@$(MAKE) -C $(OBSP) lib
 
 libutil:                                           # Build code in GeosUtil/
-	@$(MAKE) -C $(UTIL)			  
+	@$(MAKE) -C $(UTIL)
 
 baselibs:
 	@$(MAKE) -C $(GCHPLIB) baselibs
@@ -344,7 +344,7 @@ allhg:                                             # Build Hg/GTMM executable
 	@$(MAKE) GTMM_Hg=yes exehg
 
 libhg:                                             # Compile HG/GTMM code
-	@$(MAKE) GTMM_Hg=yes libgtmm           		     
+	@$(MAKE) GTMM_Hg=yes libgtmm
 	@$(MAKE) GTMM_Hg=yes lib
 
 libgtmm:                                           # Compile GTMM model code
@@ -365,7 +365,7 @@ exehg:                                             # Create Hg/GTMM exec file
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###
@@ -375,9 +375,6 @@ exehg:                                             # Create Hg/GTMM exec file
 aerosol_mod.o               : aerosol_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               tomas_mod.o             ucx_mod.o
-
-bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
-                              pbl_mix_mod.o
 
 carbon_mod.o                : carbon_mod.F                                   \
                               diag_mod.o              drydep_mod.o           \
@@ -400,7 +397,6 @@ chemistry_mod.o             : chemistry_mod.F90                              \
 
 cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
-                              bromocarb_mod.o                                \
                               carbon_mod.o            co2_mod.o              \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag_mod.o              diag03_mod.o           \
@@ -437,7 +433,7 @@ dao_mod.o                   : dao_mod.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \
-                              diag03_mod.o                     
+                              diag03_mod.o
 
 diag03_mod.o                : diag03_mod.F
 
@@ -450,13 +446,13 @@ diag3.o                     : diag3.F                                        \
                               diag53_mod.o            depo_mercury_mod.o     \
                               drydep_mod.o            hco_interface_mod.o    \
                               apm_driv_mod.o          wetscav_mod.o          \
-                              tomas_mod.o             
+                              tomas_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
-                              pbl_mix_mod.o           
+                              pbl_mix_mod.o
 
 diag51b_mod.o               : diag51b_mod.F                                  \
-                              pbl_mix_mod.o           
+                              pbl_mix_mod.o
 
 diag53_mod.o                : diag53_mod.F
 
@@ -478,7 +474,7 @@ dust_mod.o                  : dust_mod.F                                     \
                               hco_interface_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
-                              bromocarb_mod.o         carbon_mod.o           \
+                                                      carbon_mod.o           \
                               co2_mod.o               global_ch4_mod.o       \
                               hcoi_gc_main_mod.o      mercury_mod.o          \
                               sulfate_mod.o           tomas_mod.o            \
@@ -489,7 +485,7 @@ exchange_mod.o              : exchange_mod.F                                 \
 	                      dao_mod.o
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
-                              dao_mod.o               toms_mod.o              
+                              dao_mod.o               toms_mod.o
 
 flexchem_mod.o              : flexchem_mod.F90                               \
                               aerosol_mod.o           diag_mod.o             \
@@ -507,7 +503,7 @@ fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
 gamap_mod.o                 : gamap_mod.F                                    \
                               diag03_mod.o            diag51_mod.o           \
                               diag51b_mod.o           diag53_mod.o           \
-                              drydep_mod.o            tomas_mod.o            
+                              drydep_mod.o            tomas_mod.o
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
                               aerosol_mod.o           carbon_mod.o           \
@@ -524,12 +520,12 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
                               seasalt_mod.o           sulfate_mod.o          \
                               tagged_co_mod.o         tagged_o3_mod.o        \
                               toms_mod.o                                     \
-                              vdiff_pre_mod.o         
+                              vdiff_pre_mod.o
 
 get_met_mod.o               : get_met_mod.F90                                \
                               hco_interface_mod.o
 
-get_ndep_mod.o              : get_ndep_mod.F                              
+get_ndep_mod.o              : get_ndep_mod.F
 
 global_br_mod.o             : global_br_mod.F                                \
                               ocean_mercury_mod.o     hco_interface_mod.o
@@ -641,14 +637,14 @@ olson_landmap_mod.o         : olson_landmap_mod.F90                          \
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
                               tendencies_mod.o        diagnostics_mod.o      \
-                              diag_mod.o              
+                              diag_mod.o
 
 pjc_pfix_window_mod.o       : pjc_pfix_window_mod.F
 
 pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
-                              diag_mod.o              ocean_mercury_mod.o     
+                              diag_mod.o              ocean_mercury_mod.o
 
 pops_mod.o           	    : pops_mod.F    	                             \
 			      diag_mod.o	      diag53_mod.o           \
@@ -669,14 +665,14 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           tomas_mod.o            \
                               apm_driv_mod.o          vdiff_pre_mod.o        \
-                              hco_interface_mod.o     
+                              hco_interface_mod.o
 
 set_global_ch4_mod.o        : set_global_ch4_mod.F90                         \
                               pbl_mix_mod.o
 
-set_prof_o3.o               : set_prof_o3.F                                   
+set_prof_o3.o               : set_prof_o3.F
 
-sfcvmr_mod.o                : sfcvmr_mod.F90          pbl_mix_mod.o           
+sfcvmr_mod.o                : sfcvmr_mod.F90          pbl_mix_mod.o
 
 strat_chem_mod.o            : strat_chem_mod.F90                             \
                               linoz_mod.o             hco_interface_mod.o    \
@@ -747,7 +743,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               tendencies_mod.o        hco_interface_mod.o    \
                               apm_driv_mod.o          diagnostics_mod.o      \
-                              tomas_mod.o             
+                              tomas_mod.o
 
 ###############################################################################
 ###                                                                         ###
@@ -767,10 +763,10 @@ apm_driv_mod.o              : apm_driv_mod.F                                 \
 
 tomas_mod.o                 : tomas_mod.F                                    \
                               diag_mod.o              YuIMN_Code.o           \
-                              dao_mod.o                                      
+                              dao_mod.o
 
 tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
-                              tomas_mod.o             
+                              tomas_mod.o
 
 
 aero_drydep.o               : aero_drydep.F                                  \

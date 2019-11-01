@@ -5,7 +5,7 @@
 !
 ! !MODULE: cleanup.F
 !
-! !DESCRIPTION: Subroutine CLEANUP deallocates the memory assigned to 
+! !DESCRIPTION: Subroutine CLEANUP deallocates the memory assigned to
 !  dynamically allocatable arrays just before exiting a GEOS-Chem simulation.
 !\\
 !\\
@@ -47,6 +47,7 @@
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
+      USE SFCVMR_MOD,              ONLY : fixSfcVMR_Final
 #ifdef BPCH_DIAG
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
@@ -76,17 +77,17 @@
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
+      LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error?
       TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid state object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC           ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  29 Nov 1999 - R. Yantosca - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -128,7 +129,7 @@
          RETURN
       ENDIF
 
-      ! UCX needs to be cleaned up before emissions, because the UCX 
+      ! UCX needs to be cleaned up before emissions, because the UCX
       ! restart variables needs to be passed to the HEMCO diagnostics
       ! first.
       CALL CLEANUP_UCX( am_I_Root )
@@ -137,6 +138,9 @@
       ! Cleanup HEMCO
       !=================================================================
       CALL EMISSIONS_FINAL( am_I_Root, ERROR, RC )
+
+      ! Cleanup surface mixing concentration module
+      CALL fixSfcVMR_Final( am_I_Root, RC )
 
       !=================================================================
       ! Call cleanup routines from individual F90 modules
@@ -195,7 +199,7 @@
       ENDIF
 
       IF ( State_Grid%NestedGrid ) THEN
-         CALL EXIT_TPCORE_WINDOW() 
+         CALL EXIT_TPCORE_WINDOW()
       ELSE
          CALL EXIT_TPCORE()
       ENDIF

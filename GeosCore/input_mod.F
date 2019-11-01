@@ -946,7 +946,7 @@
       SUBROUTINE READ_GRID_MENU( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
-!     
+!
       USE CharPak_Mod,        ONLY : StrSplit
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -964,8 +964,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Oct 2018 - M. Sulprizio- Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -1025,7 +1025,7 @@
       ! Stop with error if there are more than two substrings
       IF ( nSubStrs /= 2 ) THEN
          ErrMsg = 'Error in extracting delta X and Y values from'   //
-     &            ' State_Grid%GridRes. Values must be separated by' // 
+     &            ' State_Grid%GridRes. Values must be separated by' //
      &            ' an x. Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -1058,7 +1058,7 @@
       ENDIF
 
       ! Compute X grid dimension
-      State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / 
+      State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) /
      &                         State_Grid%DX )
 
       !-----------------------------------------------------------------
@@ -1100,7 +1100,7 @@
       ENDIF
 
       ! Compute Y grid dimension
-      State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / 
+      State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) /
      &                         State_Grid%DY ) + 1
 
       ! Use half-sized polar boxes?
@@ -1124,8 +1124,8 @@
       READ( SUBSTRS(1:N), * ) State_Grid%NZ
 
       ! Make sure number of levels is valid
-      IF ( State_Grid%NZ /= 47  .and. 
-     &     State_Grid%NZ /= 72 ) THEN 
+      IF ( State_Grid%NZ /= 47  .and.
+     &     State_Grid%NZ /= 72 ) THEN
         WRITE( nLev, * ) State_Grid%NZ
         ErrMsg = 'Input%Opt%NZ = ' // TRIM( nLev )                 //
      &            ' is not a valid vertical resolution! Supported' //
@@ -1155,7 +1155,7 @@
          State_Grid%HalfPolar = .FALSE.
       ENDIF
 
-      ! Nested grid transport offsets 
+      ! Nested grid transport offsets
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'Buffers N/S/E/W', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1190,23 +1190,23 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'GRID MENU'
          WRITE( 6, '(  a)' ) '---------------'
-         WRITE( 6, 100 ) 'Grid resolution             : ', 
+         WRITE( 6, 100 ) 'Grid resolution             : ',
      &                    TRIM( State_Grid%GridRes )
-         WRITE( 6, 110 ) 'Min/max longitude           : ', 
+         WRITE( 6, 110 ) 'Min/max longitude           : ',
      &                    State_Grid%XMin, State_Grid%XMax
-         WRITE( 6, 110 ) 'Min/max longitude           : ', 
+         WRITE( 6, 110 ) 'Min/max longitude           : ',
      &                    State_Grid%YMin, State_Grid%YMax
          WRITE( 6, 120 ) 'X grid dimension            : ',
      &                    State_Grid%NX
          WRITE( 6, 120 ) 'Y grid dimension            : ',
      &                    State_Grid%NY
-         WRITE( 6, 120 ) 'Z grid dimension            : ', 
+         WRITE( 6, 120 ) 'Z grid dimension            : ',
      &                    State_Grid%NZ
-         WRITE( 6, 130 ) 'Use half-sized polar boxes? : ', 
+         WRITE( 6, 130 ) 'Use half-sized polar boxes? : ',
      &                    State_Grid%HalfPolar
-         WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', 
+         WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ',
      &                    State_Grid%NestedGrid
-         WRITE( 6, 140 ) ' --> Buffer zone (N S E W ) : ', 
+         WRITE( 6, 140 ) ' --> Buffer zone (N S E W ) : ',
      &                    State_Grid%NorthBuffer,
      &                    State_Grid%SouthBuffer,
      &                    State_Grid%EastBuffer,
@@ -2024,14 +2024,6 @@
       ENDIF
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%HcoConfigFile
 
-      ! Set PBL BrO concentrations equal to 1ppt during the day?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LFIX_PBL_BRO', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LFIX_PBL_BRO
-
       ! Separator line (start of UCX options)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2047,68 +2039,6 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LCH4EMIS
 
-      ! Separator line (start of surface BC options)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! Use fixed methane surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCH4SBC', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LCH4SBC
-
-      ! Use fixed OCS surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LOCSEMIS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LOCSEMIS
-
-      ! Use Montreal CFC emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCFCEMIS', RC )
-      IF  ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LCFCEMIS
-
-      ! Use chlorine emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCLEMIS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LCLEMIS
-
-      ! Use bromine emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBREMIS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LBREMIS
-
-      ! Use fixed N2O surface mixing ratio?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LN2OEMIS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LN2OEMIS
-
-      ! Separator line (start of initial global mixing ratio options)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 3', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
       ! Initialize strat H2O to GEOS-Chem baseline?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETH2O', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2116,14 +2046,6 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LSETH2O
-
-      ! Starting year for CFC emissions
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CFCYEAR', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(i4)') Input_Opt%CFCYEAR
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 4', RC )
@@ -2135,12 +2057,6 @@
       !=================================================================
       ! Error check logical flags
       !=================================================================
-
-      ! Fixed surface mixing ratio (basic)
-      Input_Opt%LBASICEMIS = ( Input_Opt%LOCSEMIS .or.
-     &                         Input_Opt%LCFCEMIS .or.
-     &                         Input_Opt%LBREMIS  .or.
-     &                         Input_Opt%LN2OEMIS )
 
       ! Turn off full-chem only switches
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -2182,28 +2098,10 @@
      &                   Input_Opt%LEMIS
         WRITE( 6, 130 ) 'HEMCO Configuration file    : ',
      &                   TRIM( Input_Opt%HcoConfigFile )
-        WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ',
-     &                   Input_Opt%LFIX_PBL_BRO
         WRITE( 6, 100 ) 'Use CH4 emissions inventory?: ',
      &                   Input_Opt%LCH4EMIS
-        WRITE( 6, 100 ) 'Turn on surface BC for      : '
-        WRITE( 6, 100 ) '      --> methane?          : ',
-     &                         Input_Opt%LCH4SBC
-        WRITE( 6, 100 ) '      --> OCS?              : ',
-     &                         Input_Opt%LOCSEMIS
-        WRITE( 6, 100 ) '      --> CFCs/HCFCs/halon? : ',
-     &                         Input_Opt%LCFCEMIS
-        WRITE( 6, 100 ) '      --> chlorine species? : ',
-     &                         Input_Opt%LCLEMIS
-        WRITE( 6, 100 ) '      --> bromine species?  : ',
-     &                         Input_Opt%LBREMIS
-        WRITE( 6, 100 ) '      --> N2O?              : ',
-     &                         Input_Opt%LN2OEMIS
-        WRITE( 6, 100 ) 'Set initial global MRs for  : '
-        WRITE( 6, 100 ) '      --> strat. H2O?       : ',
-     &                         Input_Opt%LSETH2O
-        WRITE( 6, 110 ) 'CFC emissions read for year : ',
-     &                   Input_Opt%CFCYEAR
+        WRITE( 6, 100 ) 'Set initial strat H2O?      : ',
+     &                   Input_Opt%LSETH2O
       ENDIF
 
       ! FORMAT statements
@@ -5989,7 +5887,7 @@
       ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
          MAX_DYN = 900
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
-         MAX_DYN = 600 
+         MAX_DYN = 600
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
          MAX_DYN = 300
       ELSE
@@ -6537,37 +6435,6 @@
          ENDIF
       ENDIF
 
-
-      !=================================================================
-      ! Error check CFC emissions
-      !=================================================================
-      IF ( Input_Opt%LCFCEMIS ) THEN
-         IF ( Ind_('CFC113') < 0 .or.
-     &        Ind_('CFC114') < 0 .or.
-     &        Ind_('CFC115') < 0) THEN
-            Input_Opt%LCFCEMIS = .FALSE.
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'CFCs are emitted but CFC species are undefined.'
-            WRITE( 6, '(a)' ) 'Turning off CFC emissions.'
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Error check N2O emissions
-      !=================================================================
-      IF ( Input_Opt%LN2OEMIS ) THEN
-         IF ( Ind_('N2O') < 0 ) THEN
-            Input_Opt%LN2OEMIS = .FALSE.
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'N2O is emitted but N2O species is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off nitrous oxide emissions.'
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-         ENDIF
-      ENDIF
-
       !=================================================================
       ! Error check stratospheric H2O
       !=================================================================
@@ -6581,68 +6448,6 @@
          ENDIF
       ELSE
          Input_Opt%LSETH2O = .FALSE.
-      ENDIF
-
-      !=================================================================
-      ! Error check halogen emissions
-      !=================================================================
-      IF ( Input_Opt%LCLEMIS ) THEN
-         IF ( Ind_('Cl') < 0 ) THEN
-            Input_Opt%LCLEMIS = .FALSE.
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'Cl species emitted but Cl species is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off chlorine emissions.'
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-         ENDIF
-      ENDIF
-
-      IF ( Input_Opt%LBREMIS ) THEN
-         IF ( Ind_('Br2') < 0 ) THEN
-            Input_Opt%LBREMIS     = .FALSE.
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'Br species emitted but Br2 species is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off bromine emissions.'
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Error check OCS emissions
-      !=================================================================
-      IF ( Input_Opt%LOCSEMIS ) THEN
-         IF ( Ind_('OCS') < 0 ) THEN
-            Input_Opt%LOCSEMIS = .FALSE.
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'OCS is emitted but OCS species is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off OCS emissions.'
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-         ENDIF
-      ENDIF
-
-      !=================================================================
-      ! Error check methane emissions
-      !=================================================================
-      IF ( Input_Opt%LCH4EMIS .AND. Input_Opt%LCH4SBC ) THEN
-         MSG =
-     &  ' CH4 surface BC & emissions cannot both be turned on!'
-         CALL GC_Error( Msg, RC, Location )
-         RETURN
-      ENDIF
-
-      IF ( Input_Opt%LCH4EMIS   .or.
-     &     Input_Opt%LCH4SBC  ) THEN
-         IF ( Ind_('CH4') < 0 ) THEN
-            Input_Opt%LCH4EMIS = .FALSE.
-            Input_Opt%LCH4SBC  = .FALSE.
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
-     &            // 'CH4 is emitted but CH4 species is undefined.'
-            WRITE( 6, '(a)' ) 'Turning off methane emissions.'
-            WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
-         ENDIF
       ENDIF
 
       END SUBROUTINE DO_ERROR_CHECKS
