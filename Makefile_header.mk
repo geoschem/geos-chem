@@ -7,7 +7,7 @@
 #
 # !DESCRIPTION: This sub-makefile defines the variables which specify
 # compilation options for the different supported compiler/platform
-# combinations.  Also, the default makefile compilation rules are specified 
+# combinations.  Also, the default makefile compilation rules are specified
 # here.
 #\\
 #\\
@@ -30,7 +30,7 @@
 # SHELL      Contains the default Unix shell to use when building code
 # NCL        Contains the default netCDF library link commands
 #                                                                             .
-# FFLAGS is a local variable that is not returned to the "outside world", 
+# FFLAGS is a local variable that is not returned to the "outside world",
 # but is only used locally.  COMPILER, HDF5, and OMP are all input via the
 # command line or via environment variables.
 #                                                                             .
@@ -38,7 +38,7 @@
 # us to extend the Makefile ifeq statements so that we can test for more than
 # one string.  The following example is used to ensure that the met field name
 # selected by the user is case-insensitive:
-# 
+#
 #  # %%%%% GEOS-FP %%%%%
 #  REGEXP             :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
 #  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
@@ -48,11 +48,11 @@
 # The [[ ]] in bash is an evaluation.  The above ifeq statement uses regular
 # expressions to test if the MET variable matches the string "GEOS" (case-
 # insensitive) and either "FP" or "any character and then a FP".  This will
-# return true (via the "echo true" statement) for combinations like "GEOS-FP", 
+# return true (via the "echo true" statement) for combinations like "GEOS-FP",
 # "geosfp", "Geos-FP", "GeOs.FP", etc.  This is a robust way of evaluating
 # the user's input, and will make errors less likely.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  See the Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
@@ -243,6 +243,12 @@ ifeq ($(shell [[ "$(USE_TEND)" =~ $(REGEXP) ]] && echo true),true)
   BPCH_DIAG          :=no
 endif
 
+# %%%%% Turn on Luo et al (2019) wetdep scheme %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(LUO_WETDEP)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DLUO_WETDEP
+endif
+
 #------------------------------------------------------------------------------
 # GEOS-Chem HP settings
 #------------------------------------------------------------------------------
@@ -298,7 +304,7 @@ ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
 endif
 
 #------------------------------------------------------------------------------
-# KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
+# KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM
 # (since it is an environent variable), so define a shadow variable KPP_CHEM.
 #------------------------------------------------------------------------------
 
@@ -465,7 +471,7 @@ ifeq ($(shell [[ "$(TOMAS40)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DTOMAS -DTOMAS40
 endif
 
-# %%%%% TOMAS, 15 bins %%%%% 
+# %%%%% TOMAS, 15 bins %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS15)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DTOMAS -DTOMAS15
@@ -529,7 +535,7 @@ ifeq ($(shell [[ "$(GC_LIB)" =~ GEOS-Chem-Libraries ]] && echo true),true)
 
   #-----------------------------------------------------------------------
   # %%%%% We are using the GEOS-Chem-Libraries package %%%%%
-  # 
+  #
   # Both netCDF-Fortran and netCDF-C library files are in the same path
   #-----------------------------------------------------------------------
 
@@ -585,7 +591,7 @@ endif
 NCL                  := $(NC_LINK_CMD)
 
 #----------------------------
-# For GEOS-Chem 
+# For GEOS-Chem
 #----------------------------
 
 # Base linker command: specify the library directory
@@ -614,7 +620,7 @@ endif
 # Create linker command to create the GEOS-Chem executable
 LINK                 :=$(LINK) -lIsorropia -lObsPack -lHistory
 LINK                 :=$(LINK) -lHCOI -lHCOX -lHCO
-LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils 
+LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils
 LINK                 :=$(LINK) $(NC_LINK_CMD)
 
 #----------------------------
@@ -664,7 +670,7 @@ ifeq ($(IS_DEFLATE),1)
   # Look for the second word of the combined search results
   WORD               :=$(word 2,"$(GREP)")
 
-  # If it matches "nf_def_var_deflate", then define Cpp flag NC_HAS_COMPRESSION 
+  # If it matches "nf_def_var_deflate", then define Cpp flag NC_HAS_COMPRESSION
   ifeq ($(WORD),nf_def_var_deflate)
     USER_DEFS        += -DNC_HAS_COMPRESSION
   endif
@@ -697,7 +703,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER_FAMILY),GNU) 
+ifeq ($(COMPILER_FAMILY),GNU)
 
   # Get the GNU Fortran version
   GNU_VERSION        :=$(shell $(FC) -dumpversion)
@@ -726,9 +732,9 @@ ifeq ($(COMPILER_FAMILY),GNU)
     # Options of interest
     #  -limf                Intel math libraries - machine must have them
     #  -O3                  Highest safe optimization level
-    #  -march=native        Make the binary machine-specific. If in doubt, 
+    #  -march=native        Make the binary machine-specific. If in doubt,
     #                        use a specific architecture, eg...
-    #  -march=corei7-avx    Binary uses optimizations for 
+    #  -march=corei7-avx    Binary uses optimizations for
     #                        Intel Sandy-Bridge Xeon (e.g. E5-2680)
     #  -mfpmath=sse         Use SSE extensions
     #  -funroll-loops       Enable loop unrolling
@@ -737,7 +743,7 @@ ifeq ($(COMPILER_FAMILY),GNU)
     #OPT              := -O3 -march=corei7-avx -mfpmath=sse -funroll-loops
   endif
 
-  # Pick compiler options for debug run or regular run 
+  # Pick compiler options for debug run or regular run
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     #-fcheck=all would be more comprehensive but would force bounds checking
@@ -774,7 +780,7 @@ ifeq ($(COMPILER_FAMILY),GNU)
   #  endif
   endif
 
-  # Add options for medium memory model.  This is to prevent G-C from 
+  # Add options for medium memory model.  This is to prevent G-C from
   # running out of memory at hi-res, especially when using netCDF I/O.
   ifneq ($(UNAME),Darwin)
     #GFORTRAN_BAD#FFLAGS           += -mcmodel=medium -shared-intel
@@ -815,7 +821,7 @@ ifeq ($(COMPILER_FAMILY),GNU)
   endif
 
   # Compile for use with the GNU profiler (gprof), if necessary
-  ifeq ($(IS_GPROF),1) 
+  ifeq ($(IS_GPROF),1)
     FFLAGS           += -pg
   endif
 
@@ -835,7 +841,7 @@ ifeq ($(COMPILER_FAMILY),GNU)
   # Include options (i.e. for finding *.h, *.mod files)
   INCLUDE :=-J$(MOD) $(NC_INC_CMD)
 
-  # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
+  # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it
   # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
   INCLUDE_ISO        :=$(INCLUDE)
 
@@ -859,7 +865,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER_FAMILY),Intel) 
+ifeq ($(COMPILER_FAMILY),Intel)
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -auto -noalign -convert big_endian
@@ -869,7 +875,7 @@ ifeq ($(COMPILER_FAMILY),Intel)
     OPT              := -O2
   endif
 
-  # Pick compiler options for debug run or regular run 
+  # Pick compiler options for debug run or regular run
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -g -O0 -check arg_temp_created -debug all
@@ -907,7 +913,7 @@ ifeq ($(COMPILER_FAMILY),Intel)
     endif
   endif
 
-  # Add options for medium memory model.  This is to prevent G-C from 
+  # Add options for medium memory model.  This is to prevent G-C from
   # running out of memory at hi-res, especially when using netCDF I/O.
   ifneq ($(UNAME),Darwin)
     FFLAGS           += -mcmodel=medium -shared-intel
@@ -941,7 +947,7 @@ ifeq ($(COMPILER_FAMILY),Intel)
   endif
 
   # Compile for use with the GNU profiler (gprof), if necessary
-  ifeq ($(IS_GPROF),1) 
+  ifeq ($(IS_GPROF),1)
     FFLAGS           += -p
   endif
 
@@ -961,7 +967,7 @@ ifeq ($(COMPILER_FAMILY),Intel)
   # Include options (i.e. for finding *.h, *.mod files)
   INCLUDE            :=-module $(MOD) $(NC_INC_CMD)
 
-  # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it 
+  # Do not append the ESMF/MAPL/FVDYCORE includes for ISORROPIA, because it
   # will not compile.  ISORROPIA is slated for removal shortly. (bmy, 11/21/14)
   INCLUDE_ISO        :=$(INCLUDE)
 
@@ -1036,7 +1042,7 @@ export IS_GNU_8
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########'
 #	@@echo "COMPILER_FAMILY  : $(COMPILER_FAMILY)"
-#	@@echo "COMPILER_VERSION : $(COMPILER_VERSION)" 
+#	@@echo "COMPILER_VERSION : $(COMPILER_VERSION)"
 #	@@echo "COMPILE_CMD      : $(COMPILE_CMD)"
 #	@@echo "DEBUG            : $(DEBUG)"
 #	@@echo "BOUNDS           : $(BOUNDS)"
