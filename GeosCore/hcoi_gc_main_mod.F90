@@ -53,7 +53,7 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies 
-#if !defined(ESMF_) && !defined( MODEL_WRF )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
   PRIVATE :: Get_GC_Restart
   PRIVATE :: Get_Met_Fields
   PRIVATE :: Get_Boundary_Conditions
@@ -88,6 +88,7 @@ MODULE HCOI_GC_Main_Mod
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  16 Jan 2019 - L. Murray   - Add offline lightning flash rates for LNOx emissions
+!  02 Nov 2019 - H.P. Lin    - Passthrough Input_Opt%DryRun for HEMCO DryRun
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -432,11 +433,19 @@ CONTAINS
     ! compared to a stand-alone version: in ESMF, the source file name
     ! is set to the container name since this is the identifying name
     ! used by ExtData.
-#if defined(ESMF_)
+#if defined( ESMF_ )
     HcoState%isESMF = .TRUE.
 #else 
     HcoState%isESMF = .FALSE.
 #endif
+
+    ! Are we running HEMCO in a dry-run mode?
+    ! This is dictated by the GEOS-Chem environment. If GEOS-Chem is in a dry-run
+    ! mode, no compute is performed and files are only "checked". Simulations will
+    ! NOT stop on missing files. This is intended to be a quick sanity check to make
+    ! sure that GEOS-Chem IO are all correctly set up, which is why most of the runs
+    ! fail to complete successfully. (hplin, 11/2/19)
+    HcoState%isDryRun = Input_Opt%DryRun
 
     ! Set deposition length scale. This determines if dry deposition
     ! frequencies are calculated over the entire PBL or the first

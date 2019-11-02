@@ -41,6 +41,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: MPICOMM   ! MPI Communicator Handle
      LOGICAL                     :: HPC       ! Is this an HPC (ESMF or otherwise) sim?
      LOGICAL                     :: RootCPU   ! Is this the root cpu?
+     LOGICAL                     :: DryRun    ! Is this a dry run? (no actual processing, only file check)
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -610,6 +611,7 @@ CONTAINS
 !  08 Mar 2018 - R. Yantosca - Bug fix, remove reference to TINDEX here
 !  06 Nov 2018 - R. Yantosca - Add error trapping for allocation statements
 !  25 Jun 2019 - A. Wong     - Add CO2_LEVEL, CO2_REF, CO2_EFFECT
+!  01 Nov 2019 - H.P. Lin    - Add DryRun option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -659,6 +661,7 @@ CONTAINS
     Input_Opt%HPC                    = .false. ! Assume Serial Sim.
     Input_Opt%myCpu                  = -1
     Input_Opt%RootCPU                = .false.
+    Input_Opt%DryRun                 = .false. ! Assume real run, not dry run
 
     !----------------------------------------
     ! SIZE PARAMETER fields
