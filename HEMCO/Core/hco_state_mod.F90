@@ -83,6 +83,7 @@ MODULE HCO_State_Mod
 
      !%%%%%  Run time options %%%%%
      LOGICAL                     :: isESMF     ! Are we using ESMF?
+     LOGICAL                     :: isDryRun   ! Are we in a dry run?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
 
      !%%%%% ReadLists %%%%%
@@ -127,6 +128,10 @@ MODULE HCO_State_Mod
 !  08 Apr 2015 - C. Keller   - Added MaskFractions to HcoState options.
 !  13 Jul 2015 - C. Keller   - Added option 'Field2Diagn'. 
 !  15 Feb 2016 - C. Keller   - Update to v2.0
+!  02 Nov 2019 - H.P. Lin    - Add a HEMCO isDryRun option which is intended to flag
+!                              that all "meaningful" IO is skipped and files should
+!                              only be checked. If file does not exist DO NOT STOP
+!                              THE RUN. (This is for GC Classic for now)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,6 +297,7 @@ CONTAINS
     ! Set misc. parameter
     !=====================================================================
     HcoState%isESMF     = .FALSE.
+    HcoState%isDryRun   = .FALSE.
 
     ! Physical constants
     ALLOCATE ( HcoState%Phys, STAT = AS )

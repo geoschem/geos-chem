@@ -73,7 +73,7 @@ MODULE HCOIO_read_std_mod
 
 CONTAINS
 !EOC
-#if !defined(ESMF_)
+#if !defined( ESMF_ )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -128,6 +128,7 @@ CONTAINS
     USE HCO_Unit_Mod,       ONLY : HCO_UnitTolerance
     USE HCO_GeoTools_Mod,   ONLY : HCO_ValidateLon
     USE HCO_FileData_Mod,   ONLY : FileData_ArrCheck
+    USE HCO_FileData_Mod,   ONLY : FileData_ArrInit
     USE HCO_FileData_Mod,   ONLY : FileData_Cleanup
     USE HCOIO_MESSY_MOD,    ONLY : HCO_MESSY_REGRID
     USE HCO_INTERP_MOD,     ONLY : REGRID_MAPA2A 
@@ -180,6 +181,7 @@ CONTAINS
 !                              found in the file
 !  24 Feb 2019 - C. Keller   - Bug fix for interpolation: make sure that it 
 !                              searches both into the future and the past.
+!  02 Nov 2019 - H.P. Lin    - Skip IO and erroring out if HcoState%isDryRun
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -260,42 +262,120 @@ CONTAINS
     ! ----------------------------------------------------------------
     CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
 
-    ! If file not found, return w/ error. No error if cycling attribute is 
-    ! select to range. In that case, just make sure that array is empty.
-    IF ( .NOT. FOUND ) THEN 
-       IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
-            ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
+    ! Handle found or not in the standard way if HEMCO is in regular run mode.
+    IF ( .NOT. HcoState%isDryRun ) THEN
 
-          ! If MustFind flag is enabled, return with error if field is not
-          ! found
-          IF ( Lct%Dct%Dta%MustFind ) THEN
-             MSG = 'Cannot find file for current simulation time: ' // &
-                   TRIM(srcFile) // ' - Cannot get field ' // &
-                   TRIM(Lct%Dct%cName) // '. Please check file name ' // &
-                   'and time (incl. time range flag) in the config. file'
-             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
-             RETURN
+      ! If file not found, return w/ error. No error if cycling attribute is 
+      ! select to range. In that case, just make sure that array is empty.
+      IF ( .NOT. FOUND ) THEN 
+         IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
+              ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
 
-          ! If MustFind flag is not enabled, ignore this field and return
-          ! with a warning.
-          ELSE   
-             CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
-             MSG = 'No valid file found for current simulation time - data '// &
-                   'will be ignored for time being - ' // TRIM(Lct%Dct%cName) 
-             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
-             CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
-             RETURN
-          ENDIF
+            ! If MustFind flag is enabled, return with error if field is not
+            ! found
+            IF ( Lct%Dct%Dta%MustFind ) THEN
+               MSG = 'Cannot find file for current simulation time: ' // &
+                     TRIM(srcFile) // ' - Cannot get field ' // &
+                     TRIM(Lct%Dct%cName) // '. Please check file name ' // &
+                     'and time (incl. time range flag) in the config. file'
+               CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+               RETURN
 
-       ELSE 
-          MSG = 'Cannot find file for current simulation time: ' // &
-                TRIM(srcFile) // ' - Cannot get field ' // &
-                TRIM(Lct%Dct%cName) // '. Please check file name ' // &
-                'and time (incl. time range flag) in the config. file'
-          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
-          RETURN
-       ENDIF
-    ENDIF
+            ! If MustFind flag is not enabled, ignore this field and return
+            ! with a warning.
+            ELSE   
+               CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
+               MSG = 'No valid file found for current simulation time - data '// &
+                     'will be ignored for time being - ' // TRIM(Lct%Dct%cName) 
+               CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
+               CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
+               RETURN
+            ENDIF
+
+         ELSE 
+            MSG = 'Cannot find file for current simulation time: ' // &
+                  TRIM(srcFile) // ' - Cannot get field ' // &
+                  TRIM(Lct%Dct%cName) // '. Please check file name ' // &
+                  'and time (incl. time range flag) in the config. file'
+            CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+            RETURN
+         ENDIF
+      ENDIF
+
+    ELSE
+
+      ! HEMCO is in a "dry-run" mode!
+      ! Populate the data container with dummy values to ensure GEOS-Chem plays along
+      IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
+         CALL FileData_ArrInit( Lct%Dct%Dta, &
+                                1, HcoState%NX, HcoState%NY, RC )
+         IF ( RC /= 0 ) RETURN
+      ENDIF
+     
+      ! 3D data and index data is first written into a temporary array,
+      ! REGR_4D.
+      IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN 
+         CALL FileData_ArrInit( Lct%Dct%Dta, &
+                                1, HcoState%NX, HcoState%NY, HcoState%NZ, RC )
+         IF ( RC /= 0 ) RETURN
+      ENDIF
+
+      ! Simulate file read buffer
+      IF ( TRIM(HcoState%ReadLists%FileInArchive) == TRIM(srcFile) ) THEN
+        CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
+        RETURN
+      ENDIF
+
+      ! If file exists, print the result. If NOT, then handle accordingly
+      ! But NEVER error out (HCO_ERROR), as we want to get a list of all files. (hplin, 11/2/19)
+      IF ( .NOT. FOUND ) THEN
+        IF ( ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) .OR.      & 
+             ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT )     ) THEN
+
+            ! If MustFind flag is enabled, return with error if field is not
+            ! found
+            IF ( Lct%Dct%Dta%MustFind ) THEN
+               MSG = 'Cannot find file for current simulation time: ' // &
+                     TRIM(srcFile) // ' - Cannot get field ' // &
+                     TRIM(Lct%Dct%cName) // '. Please check file name ' // &
+                     'and time (incl. time range flag) in the config. file'
+               CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
+
+               WRITE( 6, * ) "HEMCO: REQUIRED file NOT FOUND ", TRIM(srcFile)
+
+            ! If MustFind flag is not enabled, ignore this field and return
+            ! with a warning.
+            ELSE   
+               CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
+               MSG = 'No valid file found for current simulation time - data '// &
+                     'will be ignored for time being - ' // TRIM(Lct%Dct%cName) 
+               CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
+
+               WRITE( 6, * ) "HEMCO: OPTIONAL file NOT FOUND ", TRIM(srcFile)
+            ENDIF
+         ! Not range or exact
+         ELSE 
+            MSG = 'Cannot find file for current simulation time: ' // &
+                  TRIM(srcFile) // ' - Cannot get field ' // &
+                  TRIM(Lct%Dct%cName) // '. Please check file name ' // &
+                  'and time (incl. time range flag) in the config. file'
+            CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
+
+            WRITE( 6, * ) "HEMCO: REQUIRED file NOT FOUND ", TRIM(srcFile)
+         ENDIF
+      ELSE
+        WRITE( 6, 100 ) TRIM( srcFile )
+      ENDIF
+      ! It is safe to leave now, we do not need to handle opening the file.
+      ! This may be changed in the future if the "dry-run" mode requires a check
+      ! of the file contents... this may be beyond the scope for now.
+
+      ! Simulate the "reading" in netCDF to prevent duplicate entries in the log
+      HcoState%ReadLists%FileInArchive = TRIM(srcFile)
+
+      CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
+      RETURN
+    ENDIF ! End of dry-run mode else clause
 
     ! ----------------------------------------------------------------
     ! Open netCDF
