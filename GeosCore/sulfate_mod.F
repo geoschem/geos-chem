@@ -2433,6 +2433,11 @@
       CHARACTER(LEN=255)    :: ErrMsg
       CHARACTER(LEN=255)    :: ThisLoc
 
+#ifdef LUO_WETDEP
+      ! For Luo et al wetdep scheme
+      LOGICAL               :: Is_QQ3D
+#endif
+
       !=================================================================
       ! CHEM_SO2 begins here!
       !=================================================================
@@ -2465,7 +2470,9 @@
       DTCHEM   = GET_TS_CHEM()
 
 #ifdef LUO_WETDEP
+      ! For Luo et al wetdep scheme
       State_Chm%PSO4s = 0.0_fp
+      Is_QQ3D         = ASSOCIATED( State_Chm%QQ3D )
 #endif
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
@@ -2757,17 +2764,19 @@
          ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
 #ifdef LUO_WETDEP
-         IF( SIZE(State_Chm%QQ3D ) > 1 ) THEN
+         ! Luo et al wetdep scheme
+         IF ( Is_QQ3D ) THEN
             LWC = State_Met%QL(I,J,L)
      &          * State_Met%AIRDEN(I,J,L)
      &          * 1e-3_fp
-     *          + MAX( 0.0e+0_fp, State_Chm%QQ3D(L,I,J)*DTCHEM )
+     *          + MAX( 0.0_fp, State_Chm%QQ3D(I,J,L) * DTCHEM )
          ELSE
             LWC = State_Met%QL(I,J,L)
      &          * State_Met%AIRDEN(I,J,L)
      &          * 1e-3_fp
          ENDIF
 #else
+         ! Default scheme
          LWC = State_Met%QL(I,J,L)
      &       * State_Met%AIRDEN(I,J,L)
      &       * 1e-3_fp
