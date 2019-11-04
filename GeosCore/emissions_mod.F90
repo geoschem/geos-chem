@@ -162,7 +162,6 @@ CONTAINS
     USE Time_Mod,           ONLY : Get_Ts_Emis
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
     Use sfcVMR_Mod,         Only : fixSfcVMR_Run
-    USE UCX_MOD,            ONLY : EMISS_BASIC
 #ifdef BPCH_DIAG
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
     USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco

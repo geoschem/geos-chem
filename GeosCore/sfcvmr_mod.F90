@@ -303,8 +303,9 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
-                Spc(I,J,L,id_Spc) = Arr2d(I,J)*1.0e-9 / ( AIRMW / SpcInfo%emMW_g )
+             IF ( State_Met%F_UNDER_PBLTOP(I,J,L) >0e+0_fp ) THEN
+                Spc(I,J,L,id_Spc) = Arr2d(I,J)*1.0e-9 / &
+                                    ( AIRMW / SpcInfo%emMW_g )
              ENDIF  ! end selection of PBL boxes
           ENDDO
           ENDDO

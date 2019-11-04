@@ -4574,7 +4574,6 @@
       ! Print the name of the file being read to stdout (bmy, 10/23/19)
       IF ( am_I_Root ) THEN
          WRITE( 6, 300 ) TRIM( NOON_FILE_ROOT     )
-         WRITE( 6, 300 ) TRIM( MONTREAL_FILE_ROOT )
  300     FORMAT( 'UCX (INIT_UCX): Reading ', a )
       ENDIF
 
