@@ -762,26 +762,26 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      ! Compute the Olson landmap fields of State_Met
-      ! (e.g. State_Met%IREG, State_Met%ILAND, etc.)
-      CALL Compute_Olson_Landmap( am_I_Root,  Input_Opt,
-     &                            State_Grid, State_Met, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Compute_Olson_Landmap"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-
       IF ( .not. Input_Opt%DryRun ) THEN
+          ! Compute the Olson landmap fields of State_Met
+          ! (e.g. State_Met%IREG, State_Met%ILAND, etc.)
+          CALL Compute_Olson_Landmap( am_I_Root,  Input_Opt,
+     &                                State_Grid, State_Met, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Compute_Olson_Landmap"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
+
          ! Initialize PBL quantities but do not do mixing
          ! Add option for non-local PBL (Lin, 03/31/09)
          CALL Init_Mixing( am_I_Root,  Input_Opt,  State_Chm,
      &                     State_Diag, State_Grid, State_Met, RC )
-      ENDIF
 
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in Init_Mixing!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in Init_Mixing!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
       ENDIF
 
       ! Initialize chemistry
