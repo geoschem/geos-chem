@@ -289,6 +289,9 @@
       REAL(f8),          ALLOCATABLE :: A_DEN   (:    ) ! Aer density [kg/m3]
       CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
+      REAL(f4), POINTER :: HCO_Iodide(:,:) => NULL()
+      REAL(f4), POINTER :: HCO_Salinity(:,:) => NULL()
+
       ! Allocatable arrays
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
@@ -321,6 +324,7 @@
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -486,6 +490,11 @@
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
       LPRT       = Input_Opt%LPRT
 
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'surf_iodide', 
+     &                 HCO_Iodide, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState,'surf_salinity', 
+     &                 HCO_Salinity, RC)
+
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
@@ -493,12 +502,6 @@
      &             RADIAT,     AZO,       USTAR,   ZH,        LSNOW, 
      &             RHB,        PRESSU,    W10,     SUNCOS_MID          )
 
-      !IF (Input_Opt%IodideNETCDF == .TRUE.) THEN
-      !   CALL SeaSurface_Iodide(am_I_Root,GET_MONTH(),Iodide_Conc,
-      !&        Input_Opt)
-      !ELSE 
-      !   Iodide_Conc = 0.0_f8
-      !ENDIF
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       CALL DEPVEL( am_I_Root, Input_Opt, State_Chm,  State_Diag,     
@@ -702,8 +705,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEANO3(TEMPK, USTAR, DEPV, I, J, 
-     &                   Input_Opt,State_Met)
+      SUBROUTINE OCEANO3(TEMPK, USTAR, DEPV, I, J)
 
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
@@ -715,8 +717,6 @@
       REAL(f8), INTENT(IN)         :: TEMPK  ! Temperature [K]
       REAL(f8), INTENT(IN)         :: USTAR ! Fictional Velocity [m/s]
       INTEGER,  INTENT(IN)         :: I,J
-      TYPE(OptInput), INTENT(IN)   :: Input_Opt
-      TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
       REAL(f8), INTENT(OUT)        :: DEPV  ! the new deposition vel [cm/s]
 ! !REMARKS:
 !     Initial implemenentaion of an improved parameterisation of dry
@@ -751,7 +751,7 @@
       
       USTARWater = 0.0345_f8*USTAR
     
-      Iodide = State_Met%Iodide_Conc(I,J,GET_MONTH())*1.0E-9_f8
+      Iodide = HCO_Iodide(I,J)*1.0E-9_f8
      
       a = Iodide*EXP((-8772.2/TEMPK)+51.5)
 
@@ -1777,11 +1777,11 @@
 !     test for special treatment for O3 drydep to ocean
                N_SPC = State_Chm%Map_DryDep(K)
                IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
-                  IF (State_Met%Salinity(I,J) .GT. 20.0_f8) THEN
+                  IF (HCO_Salinity(I,J) .GT. 20.0_f8) THEN
 !     Now apply the Luhar et al. [2018] equations for the special treatment 
 !     of O3 dry deposition to the ocean surface 
                      CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
-     &                            I,J,Input_Opt,State_Met)
+     &                            I,J)
 !     now convert to the new rc value(s) can probably tidy this up a bit
                      alpha = 10.0_f8**(-0.25-0.013*(
      &                                 State_Met%TSKIN(I,J)-273.16_f8))

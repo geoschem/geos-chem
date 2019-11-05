@@ -216,8 +216,6 @@ CONTAINS
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState !to get iodide + salinity
-    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
 !
 ! !INPUT PARAMETERS:
 !
@@ -248,8 +246,6 @@ CONTAINS
     ! Scalars
     INTEGER   :: I,           J,             T
     INTEGER   :: typeCounter, maxFracInd(1), sumIUSE
-    REAL(fp)  :: Iodide(State_Grid%NX, State_Grid%NY, 1:12)
-    REAL(fp)  :: Salinity(State_Grid%NX, State_Grid%NY)
 
     ! Arrays
 
@@ -345,18 +341,6 @@ CONTAINS
 
     ENDDO
     ENDDO
-
-    !populate the iodide and salinity arrays in state_met using data
-    !read by HEMCO
-    !ALLOCATE( Iodide( State_Grid%NX, State_Grid%NY, 1:12), STAT=RC )
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'surf_iodide', Iodide, RC )
-    State_Met%Iodide_Conc = Iodide
-    !DEALLOCATE( Iodide, STAT=RC)
-
-    !ALLOCATE( Salinity ( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL HCO_EvalFld( am_I_Root, HcoState,'surf_salinity', Iodide, RC)
-    State_Met%Salinity = Salinity
-    !DEALLOCATE( Salinity, STAT=RC)
 
   END SUBROUTINE Compute_Olson_Landmap
 !EOC

@@ -183,8 +183,6 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: UPDVVEL       (:,:,:) ! Updraft vertical velocity 
                                                 !  [hPa/s]
      REAL(fp), POINTER :: V             (:,:,:) ! N/S component of wind [m s-1]
-     REAL(fp), POINTER :: Iodide_Conc   (:,:,:) ! temp home of the sea surface iodide
-     REAL(fp), POINTER :: Salinity      (:,:  ) ! water salinity
      !----------------------------------------------------------------------
      ! Air quantities assigned in AIRQNT
      !----------------------------------------------------------------------
@@ -1295,25 +1293,6 @@ CONTAINS
     !=======================================================================
     ! Allocate 3-D Arrays
     !=======================================================================
-
-    !-------------------------
-    ! Sea surface iodide
-    !-------------------------
-    ALLOCATE( State_Met%Iodide_Conc( IM, JM, 1:12), STAT=RC )
-    !CALL GC_CheckVar( 'State_Met%', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN           
-    State_Met%Iodide_Conc = 0.0_fp
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
-    ! Water Salinity
-    !-------------------------
-    ALLOCATE( State_Met%Salinity( IM, JM ), STAT=RC )
-    !CALL GC_CheckVar( 'State_Met%', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%Salinity = 0.0_fp
-    IF ( RC /= GC_SUCCESS ) RETURN
-
 
     !-------------------------
     ! AD [kg]
