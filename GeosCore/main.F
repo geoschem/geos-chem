@@ -2435,9 +2435,9 @@
       ! Print msg if Luo et al wetdep scheme is supported
       !-----------------------------------------------------------------
 #ifdef LUO_WETDEP
-      WRITE( 6, 160 ) 'ON'
+      WRITE( 6, 185 ) 'ON'
 #else
-      WRITE( 6, 160 ) 'OFF'
+      WRITE( 6, 185 ) 'OFF'
 #endif
 
       !-----------------------------------------------------------------
@@ -2456,7 +2456,7 @@
  160  FORMAT(    '===> Binary punch diagnostics  : ', a             )
  170  FORMAT(    '===> netCDF diagnostics        : ', a             )
  180  FORMAT(    '===> netCDF file compression   : ', a             )
- 185  FORMAT(    '===> Luo et al (2019 wetdep?   : ', a             )
+ 185  FORMAT(    '===> Luo et al (2019) wetdep?  : ', a             )
  190  FORMAT( /, '===> SIMULATION START TIME: ',      a, ' <===', / )
 
       END SUBROUTINE Display_Model_Info
