@@ -244,6 +244,7 @@ MODULE GCKPP_HETRATES
 !  17 Oct 2018 - C.D. Holmes - Added cloud heterogeneous chemistry (CloudHet);
 !                              Gamma updates for NOx species
 !  13 Dec 2018 - E. McDuffie - Report gammaN2O5 as a State Chem parameter
+!  04 Nov 2019 - C.D. Holmes - Bug fixes for gammaN2O5 (RH dependence)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1542,14 +1543,14 @@ MODULE GCKPP_HETRATES
                xstkcf = 0.01
             case (8)
                ! sulfate
-               if ( relhum < 0.4 ) then
+               if ( relhum < 40 ) then
                   xstkcf = 0.001
                else
                   xstkcf = 0.002
                endif
             case (9)
                ! BC
-               if ( relhum < 0.5 ) then
+               if ( relhum < 50 ) then
                   xstkcf = 2e-4
                else
                   xstkcf = 1e-3
@@ -1559,12 +1560,12 @@ MODULE GCKPP_HETRATES
                xstkcf = 0.005
             case (11:12)
                ! sea salt
-               if ( relhum < 0.4 ) then
+               if ( relhum < 40 ) then
                   xstkcf = 0.05
-               elseif ( relhum > 0.7 ) then
+               elseif ( relhum > 70 ) then
                   xstkcf = 0.002
                else
-                  xstkcf = 0.05 + (0.002 - 0.05) * (relhum-0.4)/(0.7-0.4)
+                  xstkcf = 0.05 + (0.002 - 0.05) * (relhum-40)/(70-40)
                endif
          end select
 
@@ -1662,12 +1663,12 @@ MODULE GCKPP_HETRATES
                xstkcf = 1e-6_fp
             case (11:12)
                ! sea salt
-               if ( relhum < 0.4 ) then
+               if ( relhum < 40 ) then
                   xstkcf = 1e-8_fp
-               elseif ( relhum > 0.7 ) then
+               elseif ( relhum > 70 ) then
                   xstkcf = 1e-4_fp
                else
-                  xstkcf = 1e-8_fp + (1e-4_fp-1e-8_fp) * (relhum-0.4)/(0.7-0.4)
+                  xstkcf = 1e-8_fp + (1e-4_fp-1e-8_fp) * (relhum-40)/(70-40)
                endif
          end select
 
@@ -6031,7 +6032,7 @@ MODULE GCKPP_HETRATES
 !
       INTEGER,   INTENT(IN) :: AEROTYPE  ! Denoting aerosol type (cf FAST_JX)
       REAL(fp),  INTENT(IN) :: TEMP      ! Temperature [K]
-      REAL(fp),  INTENT(IN) :: RH        ! Relative humidity [1]
+      REAL(fp),  INTENT(IN) :: RH        ! Relative humidity [%]
 !
 ! !RETURN VALUE:
 !
@@ -6143,13 +6144,13 @@ MODULE GCKPP_HETRATES
          CASE ( 11, 12 )        
           
             ! IUPAC and Thornton and Abbatt (2005)
-            if (relhum < 0.4) then
+            if (RH_P < 40) then
                gamma = 0.005e0_fp
-            elseif (relhum > 0.7) then
+            elseif (RH_P > 70) then
                gamma = 0.02e0_fp
             else
-               gamma = 0.005e0_fp + (0.02e0_fp - 0.05e0_fp) * &
-                    ( relhum - 0.4e0_fp ) / ( 0.7e0_fp - 0.4e0_fp )
+               gamma = 0.005e0_fp + (0.02e0_fp - 0.005e0_fp) * &
+                    ( RH_P - 40e0_fp ) / ( 70e0_fp - 40e0_fp )
             endif
 
          !----------------
