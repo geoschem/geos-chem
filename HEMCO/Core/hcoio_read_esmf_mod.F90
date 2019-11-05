@@ -150,6 +150,11 @@ CONTAINS
        Lct%Dct%Dta%V3(1)%Val => Ptr3D(:,:,LL:1:-1)
        !Lct%Dct%Dta%V3(1)%Val(:,:,:) = Ptr3D(:,:,LL:1:-1)
 
+       ! ewl debugging
+       if ( mapl_am_i_root() ) then
+          print *, "HEMCO: array pointer vertically flipped relative to MAPL Import ", trim(Lct%Dct%Dta%ncFile)
+       endif
+
     !-----------------------------------------------------------------
     ! Read 2D data from ESMF 
     !-----------------------------------------------------------------
