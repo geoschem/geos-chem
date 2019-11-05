@@ -211,6 +211,12 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: TLSTT      (:,:,:,:) ! TLSTT (I,J,L,LINOZ_NFIELDS)
 
      !----------------------------------------------------------------------
+     ! Fields for Gan Luo et al Wetdep scheme (GMD-12-3439-2019)
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: PSO4s      (:,:,:  )
+     REAL(fp),          POINTER :: QQ3D       (:,:,:  )
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -314,125 +320,129 @@ CONTAINS
     ! Count the # of chemistry states we have initialized, so SpcData(Local)
     ! is not deallocated until the last ChmState is cleaned up.
     ! This avoids dangling pointers with detrimental effects. (hplin, 8/3/18)
-    nChmState = nChmState + 1
+    nChmState                   =  nChmState + 1
 
     ! Shorten grid parameters for readability
-    IM                      =  State_Grid%NX ! # latitudes
-    JM                      =  State_Grid%NY ! # longitudes
-    LM                      =  State_Grid%NZ ! # levels
+    IM                          =  State_Grid%NX ! # latitudes
+    JM                          =  State_Grid%NY ! # longitudes
+    LM                          =  State_Grid%NZ ! # levels
 
     ! Number of aerosols
-    nAerosol                =  NDUST + NAER
+    nAerosol                    =  NDUST + NAER
 
     ! Number of each type of species
-    State_Chm%nSpecies      =  0
-    State_Chm%nAdvect       =  0
-    State_Chm%nAero         =  0
-    State_Chm%nDryAlt       =  0
-    State_Chm%nDryDep       =  0
-    State_Chm%nGasSpc       =  0
-    State_Chm%nHygGrth      =  0
-    State_Chm%nKppVar       =  0
-    State_Chm%nKppFix       =  0
-    State_Chm%nKppSpc       =  0
-    State_Chm%nLoss         =  0
-    State_Chm%nPhotol       =  0
-    State_Chm%nProd         =  0
-    State_Chm%nWetDep       =  0
+    State_Chm%nSpecies          =  0
+    State_Chm%nAdvect           =  0
+    State_Chm%nAero             =  0
+    State_Chm%nDryAlt           =  0
+    State_Chm%nDryDep           =  0
+    State_Chm%nGasSpc           =  0
+    State_Chm%nHygGrth          =  0
+    State_Chm%nKppVar           =  0
+    State_Chm%nKppFix           =  0
+    State_Chm%nKppSpc           =  0
+    State_Chm%nLoss             =  0
+    State_Chm%nPhotol           =  0
+    State_Chm%nProd             =  0
+    State_Chm%nWetDep           =  0
 
 
     ! Mapping vectors for subsetting each type of species
-    State_Chm%Map_Advect    => NULL()
-    State_Chm%Map_Aero      => NULL()
-    State_Chm%Map_DryAlt    => NULL()
-    State_Chm%Map_DryDep    => NULL()
-    State_Chm%Map_GasSpc    => NULL() 
-    State_Chm%Map_HygGrth   => NULL()
-    State_Chm%Map_KppVar    => NULL()
-    State_Chm%Map_KppFix    => NULL()
-    State_Chm%Map_KppSpc    => NULL()
-    State_Chm%Name_Loss     => NULL() 
-    State_Chm%Map_Loss      => NULL() 
-    State_Chm%Map_Photol    => NULL()
-    State_Chm%Name_Prod     => NULL() 
-    State_Chm%Map_Prod      => NULL() 
-    State_Chm%Map_WetDep    => NULL()
-    State_Chm%Map_WL    => NULL()
+    State_Chm%Map_Advect        => NULL()
+    State_Chm%Map_Aero          => NULL()
+    State_Chm%Map_DryAlt        => NULL()
+    State_Chm%Map_DryDep        => NULL()
+    State_Chm%Map_GasSpc        => NULL() 
+    State_Chm%Map_HygGrth       => NULL()
+    State_Chm%Map_KppVar        => NULL()
+    State_Chm%Map_KppFix        => NULL()
+    State_Chm%Map_KppSpc        => NULL()
+    State_Chm%Name_Loss         => NULL() 
+    State_Chm%Map_Loss          => NULL() 
+    State_Chm%Map_Photol        => NULL()
+    State_Chm%Name_Prod         => NULL() 
+    State_Chm%Map_Prod          => NULL() 
+    State_Chm%Map_WetDep        => NULL()
+    State_Chm%Map_WL            => NULL()
 
     ! Chemical species
-    State_Chm%Species       => NULL()
-    State_Chm%Spc_Units     = ''
+    State_Chm%Species           => NULL()
+    State_Chm%Spc_Units         = ''
 
     ! Boundary conditions
-    State_Chm%BoundaryCond  => NULL()
+    State_Chm%BoundaryCond      => NULL()
 
     ! Species database
-    State_Chm%SpcData       => NULL()
-    ThisSpc                 => NULL()
+    State_Chm%SpcData           => NULL()
+    ThisSpc                     => NULL()
 
     ! Aerosol parameters
-    State_Chm%AeroArea      => NULL()
-    State_Chm%AeroRadi      => NULL()
-    State_Chm%WetAeroArea   => NULL()
-    State_Chm%WetAeroRadi   => NULL()
-    State_Chm%AeroH2O       => NULL()
-    State_Chm%GammaN2O5     => NULL()    
-    State_Chm%OMOC_POA      => NULL()    
-    State_Chm%OMOC_OPOA     => NULL()    
+    State_Chm%AeroArea          => NULL()
+    State_Chm%AeroRadi          => NULL()
+    State_Chm%WetAeroArea       => NULL()
+    State_Chm%WetAeroRadi       => NULL()
+    State_Chm%AeroH2O           => NULL()
+    State_Chm%GammaN2O5         => NULL()    
+    State_Chm%OMOC_POA          => NULL()    
+    State_Chm%OMOC_OPOA         => NULL()    
     
     ! Isoprene SOA
-    State_Chm%pHSav         => NULL()
-    State_Chm%HplusSav      => NULL()
-    State_Chm%WaterSav      => NULL()
-    State_Chm%SulRatSav     => NULL()
-    State_Chm%NaRatSav      => NULL()
-    State_Chm%AcidPurSav    => NULL()
-    State_Chm%BisulSav      => NULL()
+    State_Chm%pHSav             => NULL()
+    State_Chm%HplusSav          => NULL()
+    State_Chm%WaterSav          => NULL()
+    State_Chm%SulRatSav         => NULL()
+    State_Chm%NaRatSav          => NULL()
+    State_Chm%AcidPurSav        => NULL()
+    State_Chm%BisulSav          => NULL()
 
     ! Fields for KPP solver
-    State_Chm%KPPHvalue     => NULL()
+    State_Chm%KPPHvalue         => NULL()
     
     ! Fields for UCX mechanism
-    State_Chm%STATE_PSC     => NULL()
-    State_Chm%KHETI_SLA     => NULL()   
+    State_Chm%STATE_PSC         => NULL()
+    State_Chm%KHETI_SLA         => NULL()   
 
     ! pH/alkalinity
-    State_Chm%pHCloud       => NULL()
-    State_Chm%isCloud       => NULL()
-    State_Chm%SSAlk         => NULL()
+    State_Chm%pHCloud           => NULL()
+    State_Chm%isCloud           => NULL()
+    State_Chm%SSAlk             => NULL()
 
     ! Fields for sulfate chemistry
-    State_Chm%H2O2AfterChem => NULL()
-    State_Chm%SO2AfterChem  => NULL()
+    State_Chm%H2O2AfterChem     => NULL()
+    State_Chm%SO2AfterChem      => NULL()
 
     ! Fields for nitrogen deposition
-    State_Chm%DryDepNitrogen=> NULL()
-    State_Chm%WetDepNitrogen=> NULL()
+    State_Chm%DryDepNitrogen    => NULL()
+    State_Chm%WetDepNitrogen    => NULL()
 
     ! Hg species indexing
-    N_Hg0_CATS              =  0
-    N_Hg2_CATS              =  0
-    N_HgP_CATS              =  0
-    State_Chm%N_Hg_CATS     =  0
-    State_Chm%Hg_Cat_Name   => NULL()
-    State_Chm%Hg0_Id_List   => NULL()
-    State_Chm%Hg2_Id_List   => NULL()
-    State_Chm%HgP_Id_List   => NULL()
-    State_Chm%OceanHg0      => NULL()
-    State_Chm%OceanHg2      => NULL()
-    State_Chm%OceanHgP      => NULL()
-    State_Chm%SnowHgOcean   => NULL()
-    State_Chm%SnowHgLand    => NULL()
+    N_Hg0_CATS                  =  0
+    N_Hg2_CATS                  =  0
+    N_HgP_CATS                  =  0
+    State_Chm%N_Hg_CATS         =  0
+    State_Chm%Hg_Cat_Name       => NULL()
+    State_Chm%Hg0_Id_List       => NULL()
+    State_Chm%Hg2_Id_List       => NULL()
+    State_Chm%HgP_Id_List       => NULL()
+    State_Chm%OceanHg0          => NULL()
+    State_Chm%OceanHg2          => NULL()
+    State_Chm%OceanHgP          => NULL()
+    State_Chm%SnowHgOcean       => NULL()
+    State_Chm%SnowHgLand        => NULL()
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
 
     ! For HOBr + S(IV) chemistry
-    State_Chm%HSO3_AQ       => NULL()
-    State_Chm%SO3_AQ        => NULL()
-    State_Chm%fupdateHOBr   => NULL()
+    State_Chm%HSO3_AQ           => NULL()
+    State_Chm%SO3_AQ            => NULL()
+    State_Chm%fupdateHOBr       => NULL()
 
+    ! For Luo et al wetdep
+    State_Chm%PSO4s             => NULL()
+    State_Chm%QQ3D              => NULL()
+    
     ! Local variables
-    Ptr2data                => NULL()
+    Ptr2data                    => NULL()
 
     !=======================================================================
     ! Populate the species database object field
@@ -1694,6 +1704,34 @@ CONTAINS
         ! dimension later.
     ENDIF
    
+    !------------------------------------------------------------------
+    ! Gan Luo et al wetdep fields
+    !------------------------------------------------------------------
+    IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
+
+        ! PSO4s
+        chmID = 'PSO4s'
+        ALLOCATE( State_Chm%PSO4s( IM, JM, LM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Chm%PSO4s', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Chm%PSO4s = 0.0_fp
+        CALL Register_ChmField( am_I_Root, chmID, State_Chm%PSO4s,           &
+                                State_Chm, RC                               )
+        CALL GC_CheckVar( 'State_Chm%PSO4s', 1, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
+
+        ! QQ3D
+        chmID = 'QQ3D'
+        ALLOCATE( State_Chm%QQ3D( IM, JM, LM ), STAT=RC )
+        CALL GC_CheckVar( 'State_Chm%QQ3D', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Chm%QQ3D = 0.0_fp
+        CALL Register_ChmField( am_I_Root, chmID, State_Chm%QQ3D,            &
+                                State_Chm, RC                               )
+        CALL GC_CheckVar( 'State_Chm%QQ3D', 1, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     !=======================================================================
     ! Print out the list of registered fields
     !=======================================================================
@@ -2200,6 +2238,20 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%TLSTT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%TLSTT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%PSO4s ) ) THEN
+       DEALLOCATE( State_Chm%PSO4s, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%PSO4s', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%PSO4s => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%QQ3D ) ) THEN
+       DEALLOCATE( State_Chm%QQ3D, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%QQ3D', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%QQ3D => NULL()
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -2956,6 +3008,16 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'TLSTT'
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 4
+
+       CASE( 'PSO4S' )
+          IF ( isDesc  ) Desc  = 'PSO4s'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'QQ3D' )
+          IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
+          IF ( isUnits ) Units = 'cm3 H2O cm-3 air'
+          IF ( isRank  ) Rank  = 3
 
        CASE DEFAULT
           Found = .False.
