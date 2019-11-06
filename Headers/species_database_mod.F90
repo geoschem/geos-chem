@@ -496,7 +496,9 @@ CONTAINS
 !  23 Oct 2018 - R. Yantosca - Cosmetic changes (consistent indentation)
 !  10 Apr 2019 - R. Yantosca - DHDC should photolyze, not DHDN
 !  10 Oct 2019 - K. Bates    - Updated Henry_K0 and Henry_CR values for most 
-!                              organics with values from Safieddine et al. 2017
+!                              organics with values from Safieddine et al. 2017;
+!                              added species for new isoprene mechanism from
+!                              Bates & Jacob 2019, removed unused species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
