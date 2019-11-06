@@ -2343,7 +2343,7 @@ CONTAINS
              WD_RetFactor  = 2.0e-2_fp
            
           CASE( 'MCRENOL' )
-             FullName      = 'Lumped enos from MVK/MACR'
+             FullName      = 'Lumped enols from MVK/MACR'
              Formula       = 'C4H6O2'
              MW_g          = 86.0_fp
              Is_Gas        = T
