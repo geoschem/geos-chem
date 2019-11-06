@@ -51,6 +51,11 @@ v11-02d (Sep 2017)
  (1) Add halogen chemistry from Sherwen2016b/Sherwen2017 (TS,JAS,SDE,LZHU)
  (2) Add HOBr + S(IV) from Chen2017 (QJC)
 
+v12.8 (Nov 2019)
+----------------------
+
+ (1) Update isoprene chemistry from Bates2019 (KHB)
+
 ===============================================================================
 DEVELOPERS (alphabetical order; add your name!)
 ===============================================================================
@@ -85,6 +90,7 @@ REFERENCES (alphabetical order)
 ===============================================================================
 * Atkinson2003: Atkinson and Arey, Chem. Rev., doi:10.1021/cr0206420, 2003.
 * Bates2014:    Bates et al., J. Phys. Chem A, 118, doi:10.1021/jp4107958, 2014.
+* Bates2019:    Bates and Jacob, Atmos. Chem. Phys., doi:10.5194/acp-19-9613-2019, 2019.
 * Browne2011:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-11-4209-2011, 2011.
 * Browne2014:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-14-1225-2014, 2014.
 * Chen2017:     Chen et al., Geophys. Res. Lett., doi:10.1002/2017GL073812, 2017.
@@ -153,6 +159,8 @@ BrSALC     = IGNORE; {Br; Course sea salt bromine}
 C2H4       = IGNORE; {C2H4; Ethylene}
 C2H6       = IGNORE; {C2H6; Ethane}
 C3H8       = IGNORE; {C3H8; Propane}
+C4HVP1     = IGNORE; {C4 hydroxy-vinyl-peroxy radicals from HPALDs}
+C4HVP2     = IGNORE; {C4 hydroxy-vinyl-peroxy radicals from HPALDs}
 CCl4       = IGNORE; {CCl4; Carbon tetrachloride}
 CFC11      = IGNORE; {CCl3F ; CFC-11, R-11, Freon 11}
 CFC12      = IGNORE; {CCl2F2; CFC-12, R-12, Freon 12}
@@ -183,17 +191,11 @@ ClO        = IGNORE; {ClO; Chlorine monoxide}
 ClOO       = IGNORE; {ClOO; Chlorine dioxide}
 CO         = IGNORE; {CO; Carbon monoxide}
 CO2        = IGNORE; {CO2; Carbon dioxide}
-DHDN       = IGNORE; {C5H10O8N2; C5 dihydroxydinitrate}
-DHDC       = IGNORE; {C5H8O6; Dihydroxyperoxide dicarbonyl}
-DHMOB      = IGNORE; {HOCH2C(CH3)(OH)C(=O)CHO; See Paulot et al., ACP, 2009}
-DHPCARP    = IGNORE; {C5H9O7; Dihydroxy a-formyl peroxy radical}
-DIBOO      = IGNORE; {Dibble peroxy radical}
 DMS        = IGNORE; {(CH3)2S; Dimethylsulfide}
 EOH        = IGNORE; {C2H5OH; Ethanol}
 ETHLN      = IGNORE; {CHOCH2ONO2; Ethanal nitrate}
 ETO2       = IGNORE; {CH3CH2OO; Ethylperoxy radical}
 ETP        = IGNORE; {CH3CH2OOH; Ethylhydroperoxide}
-GAOO       = IGNORE; {Criegee intermediate}
 GLYC       = IGNORE; {HOCH2CHO; Glycoaldehyde}
 GLYX       = IGNORE; {CHOCHO; Glyoxal}
 H          = IGNORE; {H; Atomic hydrogen}
@@ -204,9 +206,7 @@ H2O        = IGNORE; {H2O; Water vapor}
 H2O2       = IGNORE; {H2O2; Hydrogen peroxide}
 HAC        = IGNORE; {HOCH2C(O)CH3; Hydroxyacetone}
 HBr        = IGNORE; {HBr; Hypobromic acid}
-HC187      = IGNORE; {Epoxide oxidation product m/z 187-189}
-HC5        = IGNORE; {HOCH2CH=C(CH3)CHO; Hydroxycarbonyl with 5C}
-HC5OO      = IGNORE; {Peroxy radical from HC5}
+HC5A       = IGNORE; {C5H8O2; Isoprene-4,1-hydroxyaldehyde}
 HCFC123    = IGNORE; {C2HCl2F3; HCFC-123, R-123, Freon 123}
 HCFC141b   = IGNORE; {C(CH3)Cl2F; HCFC-141b, R-141b, Freon 141b}
 HCFC142b   = IGNORE; {C(CH3)ClF2; HCFC-142b, R-142b, Freon 142b}
@@ -214,6 +214,8 @@ HCFC22     = IGNORE; {CHClF2 ; HCFC-22, R-22, Freon 22}
 HCl        = IGNORE; {HCl; Hydrochloric acid}
 HCOOH      = IGNORE; {HCOOH; Formic acid}
 HI         = IGNORE; {HI; Hydrogen iodide}
+HMHP       = IGNORE; {HOCH2OOH; Hydroxymethyl hydroperoxide}
+HMML       = IGNORE; {C4H6O3; Hydroxymethyl-methyl-a-lactone}
 HNO2       = IGNORE; {HONO; Nitrous acid}
 HNO3       = IGNORE; {HNO3; Nitric acid}
 HNO4       = IGNORE; {HNO4; Pernitric acid}
@@ -222,8 +224,13 @@ HOBr       = IGNORE; {HOBr; Hypobromous acid}
 HOCl       = IGNORE; {HOCl; Hypochlorous acid}
 HOI        = IGNORE; {HOI; Hypoiodous acid}
 HONIT      = IGNORE; {2nd gen monoterpene organic nitrate}
-HPALD      = IGNORE; {C5H8O3; Hydroperoxyaldehydes}
-HPC52O2    = IGNORE; {OOCC(C(C=O)O)(O[O])C}
+HPALD1     = IGNORE; {O=CHC(CH3)=CHCH2OOH; d-4,1-C5-hydroperoxyaldehyde}
+HPALD1OO   = IGNORE; {peroxy radicals from HPALD1}
+HPALD2     = IGNORE; {HOOCH2C(CH3)=CHCH=O; d-1,4-C5-hydroperoxyaldehyde}
+HPALD2OO   = IGNORE; {peroxy radicals from HPALD2}
+HPALD3     = IGNORE; {O=CHC(CH3)OOHCH=CH2; b-2,1-C5-hydroperoxyaldehyde}
+HPALD4     = IGNORE; {CH2=C(CH3)CHOOHCH=O; b-3,4-C5-hydroperoxyaldehyde}
+HPETHNL    = IGNORE; {CHOCH2OOH; hydroperoxyethanal}
 I          = IGNORE; {I; Atmoic iodine}
 I2         = IGNORE; {I2; Molecular iodine}
 I2O2       = IGNORE; {I2O2; Diiodine dioxide}
@@ -231,36 +238,55 @@ I2O3       = IGNORE; {I2O3; Diiodine trioxide}
 I2O4       = IGNORE; {I2O4; Diiodine tetraoxide}
 IAP        = IGNORE; {HOCH2C(CH3)(OOH)CH(OH)CHO; Peroxide from IAO2}
 IBr        = IGNORE; {IBr; Iodine monobromide}
+ICHE       = IGNORE; {C5H8O3; Isoprene hydroxy-carbonyl-epoxides}
+ICHOO      = IGNORE; {peroxy radical from IEPOXD}
 ICl        = IGNORE; {ICl; Iodine monochloride}
+ICN        = IGNORE; {C5H7NO4; Lumped isoprene carbonyl nitrates}
+ICNOO      = IGNORE; {peroxy radicals from ICN}
+ICPDH      = IGNORE; {C5H10O5; Isoprene dihydroxy hydroperoxycarbonyl}
+IDC        = IGNORE; {C5H6O2; Lumped isoprene dicarbonyls}
+IDCHP      = IGNORE; {C5H8O5; Isoprene dicarbonyl hydroxy dihydroperoxide}
+IDHDP      = IGNORE; {C5H12O6; Isoprene dihydroxy dihydroperoxide}
+IDHNBOO    = IGNORE; {peroxy radicals from INPB}
+IDHNDOO1   = IGNORE; {peroxy radicals from INPD}
+IDHNDOO2   = IGNORE; {peroxy radicals from INPD}
+IDHPE      = IGNORE; {C5H10O5; Isoprene dihydroxy hydroperoxy epoxide}
+IDN        = IGNORE; {C5H8N2O6; Lumped isoprene dinitrates}
+IDNOO      = IGNORE; {peroxy radicals from IDN}
 IEPOXA     = IGNORE; {C5H10O3; trans-Beta isoprene epoxydiol}
+IEPOXAOO   = IGNORE; {peroxy radical from trans-Beta isoprene epoxydiol}
 IEPOXB     = IGNORE; {C5H10O3; cis-Beta isoprene epoxydiol}
+IEPOXBOO   = IGNORE; {peroxy radical from cis-Beta isoprene epoxydiol}
 IEPOXD     = IGNORE; {C5H10O3; Delta isoprene epoxydiol}
-IEPOXOO    = IGNORE; {RO2 from IEPOX}
-IMAE       = IGNORE; {C4H6O3; C4 epoxide from oxidation of NPMN}
-IMAO3      = IGNORE; {CH2=C(CH3)C(O)OO; Isoprene peroxyacyl from MVK and MACR}
+IHN1       = IGNORE; {C5H9NO4; Isoprene-d-4-hydroxy-1-nitrate}
+IHN2       = IGNORE; {C5H9NO4; Isoprene-b-1-hydroxy-2-nitrate}
+IHN3       = IGNORE; {C5H9NO4; Isoprene-b-4-hydroxy-3-nitrate}
+IHN4       = IGNORE; {C5H9NO4; Isoprene-d-1-hydroxy-4-nitrate}
+IHOO1      = IGNORE; {peroxy radical from OH addition to isoprene at C1}
+IHOO4      = IGNORE; {peroxy radical from OH addition to isoprene at C4}
+IHPNBOO    = IGNORE; {peroxy radicals from INPB}
+IHPNDOO    = IGNORE; {peroxy radicals from INPD}
+IHPOO1     = IGNORE; {peroxy radical from ISOPOOH}
+IHPOO2     = IGNORE; {peroxy radical from ISOPOOH}
+IHPOO3     = IGNORE; {peroxy radical from ISOPOOH}
+INA        = IGNORE; {alkoxy radical from INO2D}
 INDIOL     = IGNORE; {Generic aerosol phase organonitrate hydrolysis product}
-INO2       = IGNORE; {O2NOCH2C(OO)(CH3)CH=CH2; RP2 from IEPOX}
-INPN       = IGNORE; {O2NOCH2C(OOH)(CH3)CH=CH2; Peroxide from INO2}
 INO        = IGNORE; {INO; Nitrosyl iodide}
+INO2B      = IGNORE; {beta-peroxy radicals from isoprene + NO3}
+INO2D      = IGNORE; {delta-peroxy radicals from isoprene + NO3}
+INPB       = IGNORE; {C5H9NO5; Lumped isoprene beta-hydroperoxy nitrates}
+INPD       = IGNORE; {C5H9NO5; Lumped isoprene delta-hydroperoxy nitrates}
 IO         = IGNORE; {IO; Iodine monoxide}
 IONO       = IGNORE; {IONO; Nitryl iodide}
 IONO2      = IGNORE; {IONO2; Iodine nitrate}
 IONITA     = IGNORE; {Aerosol-phase organic nitrate from isoprene precursors}
-IPMN       = IGNORE; {CH2=C(CH3)C(O)OONO2; Isoprene peroxymethacryloyl nitrate}
 ISALA      = IGNORE; {I; Fine sea salt iodine}
 ISALC      = IGNORE; {I; Coarse sea salt iodine}
-ISN1       = IGNORE; {C5H8NO4; Nighttime isoprene nitrate}
-ISN1OA     = IGNORE; {C5H10O8N2; Aerosol-phase second generation hydroxynitrates formed from ISOP+NO3 pathway}
-ISN1OG     = IGNORE; {C5H10O8N2; Gas-phase second generation hydroxynitrates formed from ISOP+NO3 pathway}
-ISNOOA     = IGNORE; {Peroxy radical from ISN1}
-ISNOOB     = IGNORE; {Peroxy radical from ISN1}
-ISNOHOO    = IGNORE; {Peroxy radical from ISN1}
-ISNP       = IGNORE; {HOCH2C(OOH)(CH3)CH(ONO2)CH2OH; Isoprene nitrate}
 ISOP       = IGNORE; {CH2=C(CH3)CH=CH2; Isoprene}
-ISOPNB     = IGNORE; {C5H9NO4; Isoprene nitrate Beta}
-ISOPNBO2   = IGNORE; {Product of ISOPNB+OH}
-ISOPND     = IGNORE; {C5H9NO4; Isoprene nitrate Delta}
-ISOPNDO2   = IGNORE; {Product of ISOPND+OH}
+ISOPNOO1   = IGNORE; {peroxy radicals from IHN2}
+ISOPNOO2   = IGNORE; {peroxy radicals from IHN3}
+ITCN       = IGNORE; {C5H9NO7; Lumped tetrafunctional isoprene carbonyl-nitrates}
+ITHN       = IGNORE; {C5H11NO7; Lumped tetrafunctional isoprene hydroxynitrates}
 KO2        = IGNORE; {RO2 from >3 ketones}
 LBRO2H     = IGNORE; {Dummy spc to track oxidation of BRO2 by HO2}
 LBRO2N     = IGNORE; {Dummy spc to track oxidation of BRO2 by NO}
@@ -275,44 +301,43 @@ LVOCOA     = IGNORE; {C5H14O5; Aerosol-phase low-volatility non-IEPOX product of
 LXRO2H     = IGNORE; {Dummy spc to track oxidation of XRO2 by HO2}
 LXRO2N     = IGNORE; {Dummy spc to track oxidation of XRO2 by NO}
 MACR       = IGNORE; {CH2=C(CH3)CHO; Methacrolein}
-MACRN      = IGNORE; {HOCH2C(ONO2)(CH3)CHO; Nitrate from MACR}
+MACR1OO    = IGNORE; {peroxyacyl radical from MACR + OH}
+MACR1OOH   = IGNORE; {CH2=C(CH3)C(O)OOH; Peracid from MACR}
 MACRNO2    = IGNORE; {Product of MACRN+OH}
-MACROO     = IGNORE; {Criegee intermediate}
-MAN2       = IGNORE; {HOCH2C(ONO2)(CH3)CHO; RO2 from MACR+NO3}
-MAOP       = IGNORE; {CH2=C(CH3)C(O)OOH; Peroxide from NMAO3}
-MAOPO2     = IGNORE; {CH2OH-CHOO*CH3C(O)OOH; Peroxy radical from MAOP}
 MAP        = IGNORE; {CH3C(O)OOH; Peroxyacetic acid}
-MBO        = IGNORE; {CH2=CHC(CH3)2OH; 2-methyl-3-buten-2-ol}
-MBOOO      = IGNORE; {Criegee intermediate}
 MCO3       = IGNORE; {CH3C(O)OO; Peroxyacetyl radical}
+MCRDH      = IGNORE; {C4H8O3; Dihydroxy-MACR}
+MCRENOL    = IGNORE; {C4H6O2; Lumped enols from MVK/MACR}
+MCRHN      = IGNORE; {HOCH2C(ONO2)(CH3)CHO; Hydroxynitrate from MACR}
+MCRHNB     = IGNORE; {O2NOCH2C(OH)(CH3)CHO; Hydroxynitrate from MACR}
+MCRHP      = IGNORE; {HOCH2C(OOH)(CH3)CHO; Hydroxy-hydroperoxy-MACR}
+MCROHOO    = IGNORE; {peroxy radical from MACR + OH}
 MEK        = IGNORE; {RC(O)R; Methyl ethyl ketone}
-MGLOO      = IGNORE; {Criegee intermediate}
 MGLY       = IGNORE; {CH3COCHO; Methylglyoxal}
-MGLYOO     = IGNORE; {Criegee intermediate}
-MOBA       = IGNORE; {HOC(=O)C(CH3)=CHCHO; 5C acid from isoprene}
-MOBAOO     = IGNORE; {RO2 from MOBA}
 MO2        = IGNORE; {CH3O2; Methylperoxy radical}
 MONITA     = IGNORE; {Aerosol-phase organic nitrate from monoterpene precursors}
 MONITS     = IGNORE; {Saturated 1st gen monoterpene organic nitrate}
 MONITU     = IGNORE; {Unsaturated 1st gen monoterpene organic nitrate}
 MP         = IGNORE; {CH3OOH; Methylhydroperoxide}
+MPAN       = IGNORE; {CH2=C(CH3)C(O)OONO2; Peroxymethacroyl nitrate (PMN)}
 MPN        = IGNORE; {CH3O2NO2; Methyl peroxy nitrate}
-MRO2       = IGNORE; {HOCH2C(OO)(CH3)CHO; RO2 from MACR+OH}
-MRP        = IGNORE; {HOCH2C(OOH)(CH3)CHO; Peroxide from MRO2}
 MSA        = IGNORE; {CH4SO3; Methanesulfonic acid}
 MTPA       = IGNORE; {Lumped monoterpenes: a-pinene, b-pinene, sabinene, carene}
 MTPO       = IGNORE; {Other monoterpenes: Terpinene, terpinolene, myrcene, ocimene, other monoterpenes}
 MVK        = IGNORE; {CH2=CHC(=O)CH3; Methyl vinyl ketone}
-MVKN       = IGNORE; {HOCH2CH(ONO2)C(=O)CH3; Nitrate from MVK}
-MVKOO      = IGNORE; {Criegee intermediate}
+MVKDH      = IGNORE; {HOCH2CH2OHC(O)CH3; Dihydroxy-MVK}
+MVKHC      = IGNORE; {C4H6O3; MVK hydroxy-carbonyl}
+MVKHCB     = IGNORE; {C4H6O3; MVK hydroxy-carbonyl}
+MVKHP      = IGNORE; {C4H8O4; MVK hydroxy-hydroperoxide}
+MVKN       = IGNORE; {HOCH2CH(ONO2)C(=O)CH3; Hydroxynitrate from MVK}
+MVKOHOO    = IGNORE; {peroxy radical from MVK + OH}
+MVKPC      = IGNORE; {OCHCH(OOH)C(O)CH3; MVK hydroperoxy-carbonyl}
 N          = IGNORE; {N; Atomic nitrogen}
 N2O        = IGNORE; {N2O; Nitrous oxide}
 N2O5       = IGNORE; {N2O5; Dinitrogen pentoxide}
-NMAO3      = IGNORE; {CH2=C(CH3)C(O)OO; Non-isoprene peroxyacyl from MVK and MACR}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
 NO3        = IGNORE; {NO3; Nitrate radical}
-NPMN       = IGNORE; {CH2=C(CH3)C(O)OONO2; Non-isoprene peroxymethacryloyl nitrate}
 O          = IGNORE; {O(3P); Ground state atomic oxygen}
 O1D        = IGNORE; {O(1D); Excited atomic oxygen}
 O3         = IGNORE; {O3; Ozone}
@@ -326,9 +351,7 @@ ONIT       = IGNORE; {Organic nitrate}
 PAN        = IGNORE; {CH3C(O)OONO2; Peroxyacetylnitrate}
 PIO2       = IGNORE; {RO2 from MTPA}
 PIP        = IGNORE; {Peroxides from MTPA}
-PMNN       = IGNORE; {Product of PMNO2+NO}
-PMNO2      = IGNORE; {Product of NPMN+OH}
-PO2        = IGNORE; {HOCH2CH(OO)CH3; RO2 from isoprene}
+PO2        = IGNORE; {HOCH2CH(OO)CH3; RO2 from propene}
 PP         = IGNORE; {HOCH2CH(OOH)CH3; Peroxide from PO2}
 PPN        = IGNORE; {CH3CH2C(O)OONO2; Peroxypropionylnitrate}
 PRN1       = IGNORE; {O2NOCH2CH(OO)CH3; RO2 from propene + NO3}
@@ -344,10 +367,10 @@ RA3P       = IGNORE; {CH3CH2CH2OOH; Peroxide from A3O2}
 RB3P       = IGNORE; {CH3CH(OOH)CH3; Peroxide from B3O2}
 RCHO       = IGNORE; {CH3CH2CHO; >= C3 aldehydes}
 RCO3       = IGNORE; {CH3CH2C(O)OO; Peroxypropionyl radical}
-RIO2       = IGNORE; {HOCH2C(OO)(CH3)CH=CH2; RO2 from isoprene, aka ISOPO2}
 RIPA       = IGNORE; {HOCH2C(OOH)(CH3)CH=CH2; 1,2-ISOPOOH}
 RIPB       = IGNORE; {HOCH2C(OOH)(CH3)CH=CH2; 4,3-ISOPOOH}
-RIPD       = IGNORE; {HOCH2C(OOH)(CH3)CH=CH2; d(1,4 and 4,1)-ISOPOOH}
+RIPC       = IGNORE; {C5H10O3; d(1,4)-ISOPOOH}
+RIPD       = IGNORE; {C5H10O3; d(4,1)-ISOPOOH}
 ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
@@ -356,12 +379,9 @@ SO4H1      = IGNORE; {SO4; Sulfate produced by HOBr}
 SO4H2      = IGNORE; {SO4; Sulfate produced by HOBr}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
-SOAME      = IGNORE; {C4H6O3; Aerosol-phase IMAE}
-SOAMG      = IGNORE; {CH3COCHO; Aerosol-phase methylglyoxal}
 TOLU       = IGNORE; {C7H8; Toluene}
 TRO2       = IGNORE; {Peroxy radical from TOLU oxidation}
 VRO2       = IGNORE; {HOCH2CH(OO)C(O)CH3; RO2 from MVK+OH}
-VRP        = IGNORE; {HOCH2CH(OOH)C(O)CH3; Peroxide from VRO2}
 XYLE       = IGNORE; {C8H10; Xylene}
 XRO2       = IGNORE; {Peroxy radical from XYLE oxidation}
 
