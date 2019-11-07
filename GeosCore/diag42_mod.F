@@ -404,10 +404,6 @@
             AD42(I,J,L,21) = AD42(I,J,L,21) + Spc(I,J,L,id_SOAIE )
      &                       * FACTOR / AIRVOL(I,J,L) 
 
-            ! IMAE-OA [ug/m3]:
-            ! AD42(I,J,L,22) = AD42(I,J,L,22) + Spc(I,J,L,id_id_LVOCOA )
-     ! &                       * FACTOR / AIRVOL(I,J,L) 
-
             ! INDIOL [ug/m3]:
             AD42(I,J,L,23) = AD42(I,J,L,23) + Spc(I,J,L,id_INDIOL)
      &                       * FACTOR / AIRVOL(I,J,L)
@@ -415,10 +411,6 @@
             ! LVOCOA [ug/m3]:
             AD42(I,J,L,24) = AD42(I,J,L,24) + Spc(I,J,L,id_LVOCOA)
      &                       * FACTOR / AIRVOL(I,J,L)
-
-            ! ISN1OA [ug/m3]:
-            ! AD42(I,J,L,25) = AD42(I,J,L,25) + Spc(I,J,L,id_ISN1OA)
-     ! &                       * FACTOR / AIRVOL(I,J,L)
 
          ENDIF
 
