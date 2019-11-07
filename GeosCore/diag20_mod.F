@@ -196,18 +196,22 @@
       LOGICAL,  SAVE      :: FIRST = .TRUE.
       REAL(fp), SAVE      :: O3_MW_g
       INTEGER,  SAVE      :: id_O3,      id_NO2,    id_NO3,    id_PAN
-      INTEGER,  SAVE      :: id_NPMN,    id_IPMN,   id_PPN,    id_HNO4
+      INTEGER,  SAVE      :: id_PPN,     id_HNO4,   id_PROPNN, id_R4N2
       INTEGER,  SAVE      :: id_N2O5,    id_HNO3,   id_BrO,    id_HOBr
       INTEGER,  SAVE      :: id_BrNO2,   id_BrNO3,  id_MPN,    id_ETHLN
-      INTEGER,  SAVE      :: id_ISN1,    id_ISOPNB, id_ISOPND, id_MACRN
-      INTEGER,  SAVE      :: id_MVKN,    id_PROPNN, id_R4N2,   id_INPN
-      INTEGER,  SAVE      :: id_ISNP,    id_INO2,   id_ISNOOA, id_ISNOOB
-      INTEGER,  SAVE      :: id_ISNOHOO, id_MAN2,   id_PRN1,   id_PRPN
-      INTEGER,  SAVE      :: id_R4N1,    id_PMNN,   id_MACRNO2,id_ClO
+      INTEGER,  SAVE      :: id_MPAN,    id_MCRHN,  id_MCRHNB, id_MVKN
+      INTEGER,  SAVE      :: id_HONIT,   id_MONITS, id_MONITU, id_OLND
+      INTEGER,  SAVE      :: id_OLNN,    id_IHN1,   id_IHN2,   id_IHN3
+      INTEGER,  SAVE      :: id_IHN4,    id_INPB,   id_INPD,   id_ICN
+      INTEGER,  SAVE      :: id_IDN,     id_ITHN,   id_ITCN,   id_ISOPNOO1
+      INTEGER,  SAVE      :: id_ISOPNOO2, id_INO2B, id_INO2D,  id_INA
+      INTEGER,  SAVE      :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
+      INTEGER,  SAVE      :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
+      INTEGER,  SAVE      :: id_PRN1,    id_PRPN,   id_R4N1,   id_ClO
       INTEGER,  SAVE      :: id_HOCl,    id_ClNO2,  id_ClNO3,  id_Cl2O2
       INTEGER,  SAVE      :: id_OClO,    id_O,      id_O1D,    id_IO
       INTEGER,  SAVE      :: id_HOI,     id_IONO,   id_IONO2,  id_OIO
-      INTEGER,  SAVE      :: id_I2O2,    id_I2O3,   id_I2O4
+      INTEGER,  SAVE      :: id_I2O2,    id_I2O3,   id_I2O4,   id_MACRNO2
 
       ! Scalars
       LOGICAL             :: DO_WRITE
@@ -242,8 +246,6 @@
          id_NO2     = Ind_('NO2'    )
          id_NO3     = Ind_('NO3'    )
          id_PAN     = Ind_('PAN'    )
-         id_NPMN    = Ind_('NPMN'   )
-         id_IPMN    = Ind_('IPMN'   )
          id_PPN     = Ind_('PPN'    )
          id_HNO4    = Ind_('HNO4'   )
          id_N2O5    = Ind_('N2O5'   )
@@ -254,24 +256,42 @@
          id_BrNO3   = Ind_('BrNO3'  )
          id_MPN     = Ind_('MPN'    )
          id_ETHLN   = Ind_('ETHLN'  )
-         id_ISN1    = Ind_('ISN1'   )
-         id_ISOPNB  = Ind_('ISOPNB' )
-         id_ISOPND  = Ind_('ISOPND' )
-         id_MACRN   = Ind_('MACRN'  )
          id_MVKN    = Ind_('MVKN'   )
          id_PROPNN  = Ind_('PROPNN' )
          id_R4N2    = Ind_('R4N2'   )
-         id_INPN    = Ind_('INPN'   )
-         id_ISNP    = Ind_('ISNP'   )
-         id_INO2    = Ind_('INO2'   )
-         id_ISNOOA  = Ind_('ISNOOA' )
-         id_ISNOOB  = Ind_('ISNOOB' )
-         id_ISNOHOO = Ind_('ISNOHOO')
-         id_MAN2    = Ind_('MAN2'   )
          id_PRN1    = Ind_('PRN1'   )
          id_PRPN    = Ind_('PRPN'   )
          id_R4N1    = Ind_('R4N1'   )
-         id_PMNN    = Ind_('PMNN'   )
+         id_MPAN    = Ind_('MPAN'   )
+         id_MCRHN   = Ind_('MCRHN'  )
+         id_MCRHNB  = Ind_('MCRHNB' )
+         id_HONIT   = Ind_('HONIT'  )
+         id_MONITS  = Ind_('MONITS' )
+         id_MONITU  = Ind_('MONITU' )
+         id_OLNN    = Ind_('OLNN'   )
+         id_OLND    = Ind_('OLND'   )
+         id_IHN1    = Ind_('IHN1'   )
+         id_IHN2    = Ind_('IHN2'   )
+         id_IHN3    = Ind_('IHN3'   )
+         id_IHN4    = Ind_('IHN4'   )
+         id_INPB    = Ind_('INPB'   )
+         id_INPD    = Ind_('INPD'   )
+         id_ICN     = Ind_('ICN'    )
+         id_IDN     = Ind_('IDN'    )
+         id_ITHN    = Ind_('ITHN'   )
+         id_ITCN    = Ind_('ITCN'   )
+         id_ISOPNOO1 = Ind_('ISOPNOO1')
+         id_ISOPNOO2 = Ind_('ISOPNOO2')
+         id_INO2B   = Ind_('INO2B'  )
+         id_INO2D   = Ind_('INO2D'  )
+         id_INA     = Ind_('INA'    )
+         id_IDHNBOO = Ind_('IDHNBOO')
+         id_IDHNDOO1 = Ind_('IDHNDOO1')
+         id_IDHNDOO2 = Ind_('IDHNDOO2')
+         id_IHPNBOO = Ind_('IHPNBOO')
+         id_IHPNDOO = Ind_('IHPNDOO')
+         id_ICNOO   = Ind_('ICNOO'  )
+         id_IDNOO   = Ind_('IDNOO'  )
          id_MACRNO2 = Ind_('MACRNO2')
          id_ClO     = Ind_('ClO'    )
          id_HOCl    = Ind_('HOCl'   )
@@ -390,8 +410,6 @@
      &                     + State_Chm%Species(I,J,L,id_NO2    ) 
      &                     + State_Chm%Species(I,J,L,id_NO3    )*2.0_fp
      &                     + State_Chm%Species(I,J,L,id_PAN    ) 
-     &                     + State_Chm%Species(I,J,L,id_NPMN   ) 
-     &                     + State_Chm%Species(I,J,L,id_IPMN   ) 
      &                     + State_Chm%Species(I,J,L,id_PPN    ) 
      &                     + State_Chm%Species(I,J,L,id_HNO4   ) 
      &                     + State_Chm%Species(I,J,L,id_N2O5   )*3.0_fp
@@ -402,25 +420,43 @@
      &                     + State_Chm%Species(I,J,L,id_BrNO3  )*2.0_fp
      &                     + State_Chm%Species(I,J,L,id_MPN    ) 
      &                     + State_Chm%Species(I,J,L,id_ETHLN  ) 
-     &                     + State_Chm%Species(I,J,L,id_ISN1   ) 
-     &                     + State_Chm%Species(I,J,L,id_ISOPNB ) 
-     &                     + State_Chm%Species(I,J,L,id_ISOPND ) 
-     &                     + State_Chm%Species(I,J,L,id_MACRN  ) 
      &                     + State_Chm%Species(I,J,L,id_MVKN   ) 
      &                     + State_Chm%Species(I,J,L,id_PROPNN ) 
      &                     + State_Chm%Species(I,J,L,id_R4N2   ) 
-     &                     + State_Chm%Species(I,J,L,id_INPN   ) 
-     &                     + State_Chm%Species(I,J,L,id_ISNP   ) 
-     &                     + State_Chm%Species(I,J,L,id_INO2   ) 
-     &                     + State_Chm%Species(I,J,L,id_ISNOOA ) 
-     &                     + State_Chm%Species(I,J,L,id_ISNOOB ) 
-     &                     + State_Chm%Species(I,J,L,id_ISNOHOO) 
-     &                     + State_Chm%Species(I,J,L,id_MAN2   ) 
      &                     + State_Chm%Species(I,J,L,id_PRN1   ) 
      &                     + State_Chm%Species(I,J,L,id_PRPN   ) 
      &                     + State_Chm%Species(I,J,L,id_R4N1   ) 
-     &                     + State_Chm%Species(I,J,L,id_PMNN   ) 
      &                     + State_Chm%Species(I,J,L,id_MACRNO2) 
+     &                     + State_Chm%Species(I,J,L,id_MPAN   ) 
+     &                     + State_Chm%Species(I,J,L,id_OLNN   ) 
+     &                     + State_Chm%Species(I,J,L,id_OLND   ) 
+     &                     + State_Chm%Species(I,J,L,id_HONIT  ) 
+     &                     + State_Chm%Species(I,J,L,id_MONITS ) 
+     &                     + State_Chm%Species(I,J,L,id_MONITU ) 
+     &                     + State_Chm%Species(I,J,L,id_MCRHN  ) 
+     &                     + State_Chm%Species(I,J,L,id_MCRHNB ) 
+     &                     + State_Chm%Species(I,J,L,id_IHN1   ) 
+     &                     + State_Chm%Species(I,J,L,id_IHN2   ) 
+     &                     + State_Chm%Species(I,J,L,id_IHN3   ) 
+     &                     + State_Chm%Species(I,J,L,id_IHN4   ) 
+     &                     + State_Chm%Species(I,J,L,id_INPB   ) 
+     &                     + State_Chm%Species(I,J,L,id_INPD   ) 
+     &                     + State_Chm%Species(I,J,L,id_ICN    ) 
+     &                     + State_Chm%Species(I,J,L,id_IDN    )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_ITHN   ) 
+     &                     + State_Chm%Species(I,J,L,id_ITCN   ) 
+     &                     + State_Chm%Species(I,J,L,id_ISOPNOO1) 
+     &                     + State_Chm%Species(I,J,L,id_ISOPNOO2) 
+     &                     + State_Chm%Species(I,J,L,id_INO2D  ) 
+     &                     + State_Chm%Species(I,J,L,id_INO2B  ) 
+     &                     + State_Chm%Species(I,J,L,id_INA    ) 
+     &                     + State_Chm%Species(I,J,L,id_IDHNBOO) 
+     &                     + State_Chm%Species(I,J,L,id_IDHNDOO1) 
+     &                     + State_Chm%Species(I,J,L,id_IDHNDOO2) 
+     &                     + State_Chm%Species(I,J,L,id_IHPNBOO) 
+     &                     + State_Chm%Species(I,J,L,id_IHPNDOO) 
+     &                     + State_Chm%Species(I,J,L,id_ICNOO  ) 
+     &                     + State_Chm%Species(I,J,L,id_IDNOO  )*2.0_fp 
      &                     + State_Chm%Species(I,J,L,id_ClO    ) 
      &                     + State_Chm%Species(I,J,L,id_HOCl   ) 
      &                     + State_Chm%Species(I,J,L,id_ClNO2  ) 
