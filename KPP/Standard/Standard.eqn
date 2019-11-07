@@ -1455,29 +1455,29 @@ MVKN + hv = 0.290HO2 + 0.010OH + 0.700NO2 +
  1.010MCO3 + 0.690GLYC + 0.300ETHLN :        PHOTOL(108);    {2019/11/06; Bates2019; KHB} 
 MCRHN + hv = HAC + CO + HO2 + NO2 :          PHOTOL(109);    {2019/11/06; Bates2019; KHB}
 MCRHNB + hv = PROPNN + OH + CO + HO2 :       PHOTOL(110);    {2019/11/06; Bates2019; KHB}
-RIPA + hv = MVK + CH2O + HO2 + OH :          PHOTOL(130);    {2019/11/06; Bates2019; KHB}
-RIPB + hv = MACR + CH2O + HO2 + OH :         PHOTOL(131);    {2019/11/06; Bates2019; KHB}
-RIPC + hv = OH + HO2 + HC5A :                PHOTOL(132);    {2019/11/06; Bates2019; KHB}
-RIPD + hv = OH + HO2 + HC5A :                PHOTOL(133);    {2019/11/06; Bates2019; KHB}
+RIPA + hv = MVK + CH2O + HO2 + OH :          PHOTOL(138);    {2019/11/06; Bates2019; KHB}
+RIPB + hv = MACR + CH2O + HO2 + OH :         PHOTOL(139);    {2019/11/06; Bates2019; KHB}
+RIPC + hv = OH + HO2 + HC5A :                PHOTOL(140);    {2019/11/06; Bates2019; KHB}
+RIPD + hv = OH + HO2 + HC5A :                PHOTOL(141);    {2019/11/06; Bates2019; KHB}
 HPALD1 + hv = 0.888CO + 1.662OH +
  0.112HO2 + 0.112IDC + 0.112MVKPC +
- 0.552MCRENOL + 0.224C4HVP1 :                PHOTOL(134);    {2019/11/06; Bates2019; KHB}  
+ 0.552MCRENOL + 0.224C4HVP1 :                PHOTOL(142);    {2019/11/06; Bates2019; KHB}  
 HPALD2 + hv = 0.818CO + 1.637OH +
  0.182HO2 + 0.182IDC + 0.182MVKPC +
- 0.455MCRENOL + 0.182C4HVP2 :                PHOTOL(135);    {2019/11/06; Bates2019; KHB}  
-HPALD3 + hv = CO + OH + HO2 + MVK :          PHOTOL(136);    {2019/11/06; Bates2019; KHB}
-HPALD4 + hv = CO + OH + HO2 + MACR :         PHOTOL(137);    {2019/11/06; Bates2019; KHB}
+ 0.455MCRENOL + 0.182C4HVP2 :                PHOTOL(143);    {2019/11/06; Bates2019; KHB}  
+HPALD3 + hv = CO + OH + HO2 + MVK :          PHOTOL(144);    {2019/11/06; Bates2019; KHB}
+HPALD4 + hv = CO + OH + HO2 + MACR :         PHOTOL(145);    {2019/11/06; Bates2019; KHB}
 IHN1 + hv = NO2 + 0.45HC5A + 0.45HO2 +
-0.55MVKHP + 0.55CO + 0.55OH :                PHOTOL(138);    {2019/11/06; Bates2019; KHB}
-IHN2 + hv = NO2 + MVK + HO2 + CH2O :         PHOTOL(139);    {2019/11/06; Bates2019; KHB}
-IHN3 + hv = NO2 + MACR + HO2 + CH2O :        PHOTOL(140);    {2019/11/06; Bates2019; KHB}
+0.55MVKHP + 0.55CO + 0.55OH :                PHOTOL(146);    {2019/11/06; Bates2019; KHB}
+IHN2 + hv = NO2 + MVK + HO2 + CH2O :         PHOTOL(147);    {2019/11/06; Bates2019; KHB}
+IHN3 + hv = NO2 + MACR + HO2 + CH2O :        PHOTOL(148);    {2019/11/06; Bates2019; KHB}
 IHN4 + hv = NO2 + 0.45HC5A + 0.45HO2 +
- 0.55MCRHP + 0.55CO + 0.55OH :               PHOTOL(141);    {2019/11/06; Bates2019; KHB}
+ 0.55MCRHP + 0.55CO + 0.55OH :               PHOTOL(149);    {2019/11/06; Bates2019; KHB}
 INPB + hv = NO2 + CH2O + 0.097MACR +
- 0.903MVK + 0.67OH + 0.33HO2 :               PHOTOL(142);    {2019/11/06; Bates2019; KHB}
+ 0.903MVK + 0.67OH + 0.33HO2 :               PHOTOL(150);    {2019/11/06; Bates2019; KHB}
 INPD + hv = OH + 0.159HO2 + 0.159ICN +
- 0.841INA :                                  PHOTOL(143);    {2019/11/06; Bates2019; KHB}
-INPD + hv = NO2 + 0.841IHOO1 + 0.159IHOO4 :  PHOTOL(144);    {2019/11/06; Bates2019; KHB}
+ 0.841INA :                                  PHOTOL(151);    {2019/11/06; Bates2019; KHB}
+INPD + hv = NO2 + 0.841IHOO1 + 0.159IHOO4 :  PHOTOL(152);    {2019/11/06; Bates2019; KHB}
 ICN + hv = NO2 + 0.839CO + 0.645OH +
  0.161HO2 + 0.161IDC + 0.162MVKPC +
  0.481MCRENOL + 0.128C4HVP2 + 0.068C4HVP1 :  PHOTOL(106);    {2019/11/06; Bates2019; KHB}
@@ -1485,22 +1485,22 @@ IDN + hv = 1.555NO2 + 0.5GLYC + 0.5HAC +
  0.05MVK + 0.005MACR + 0.055CH2O +
  0.227INA + 0.228ICN + 0.228HO2 :            PHOTOL(78);    {2019/11/06; Bates2019; KHB}
 ICPDH + hv = CO + 1.5HO2 + 0.5OH +
- 0.5MCRHP + 0.35MVKDH + 0.15MCRDH :          PHOTOL(145);    {2019/11/06; Bates2019; KHB}
+ 0.5MCRHP + 0.35MVKDH + 0.15MCRDH :          PHOTOL(153);    {2019/11/06; Bates2019; KHB}
 ICPDH + hv = OH + HO2 + 0.122CO + 0.1CH2O +
  0.1MVKHCB + 0.438HAC + 0.438GLYX +
- 0.088GLYC + 0.088MGLY + 0.122MCRDH :        PHOTOL(146);    {2019/11/06; Bates2019; KHB}
+ 0.088GLYC + 0.088MGLY + 0.122MCRDH :        PHOTOL(154);    {2019/11/06; Bates2019; KHB}
 IDHDP + hv = 1.25OH + 0.25GLYC + 0.25HAC +
- 0.75ICPDH + 0.75HO2 :                       PHOTOL(147);    {2019/11/06; Bates2019; KHB}
+ 0.75ICPDH + 0.75HO2 :                       PHOTOL(155);    {2019/11/06; Bates2019; KHB}
 IDHPE + hv = OH + HO2 + 0.429MGLY +
- 0.429GLYC + 0.571GLYX + 0.571HAC :          PHOTOL(148);    {2019/11/06; Bates2019; KHB}
+ 0.429GLYC + 0.571GLYX + 0.571HAC :          PHOTOL(156);    {2019/11/06; Bates2019; KHB}
 IDCHP + hv = 0.546OH + CO + 1.454HO2 +
- 0.391MVKHC + 0.155MVKHCB + 0.454MVKPC :     PHOTOL(149);    {2019/11/06; Bates2019; KHB}
+ 0.391MVKHC + 0.155MVKHCB + 0.454MVKPC :     PHOTOL(157);    {2019/11/06; Bates2019; KHB}
 ITHN + hv = OH + 0.7HO2 + 0.55CH2O +
  0.5MCRHN + 0.3GLYC + 0.45HAC + 0.3NO2 +
- 0.15ETHLN + 0.05MVKN :                      PHOTOL(150);    {2019/11/06; Bates2019; KHB}
+ 0.15ETHLN + 0.05MVKN :                      PHOTOL(158);    {2019/11/06; Bates2019; KHB}
 ITHN + hv = NO2 + 0.8HAC + 0.7HO2 +
  0.5HPETHNL + 0.35GLYC + 0.15CH2O +
- 0.15MCRHP + 0.05ATOOH + 0.3OH :             PHOTOL(151);    {2019/11/06; Bates2019; KHB}
-ITCN + hv = MGLY + OH + NO2 + GLYC :         PHOTOL(152);    {2019/11/06; Bates2019; KHB}
+ 0.15MCRHP + 0.05ATOOH + 0.3OH :             PHOTOL(159);    {2019/11/06; Bates2019; KHB}
+ITCN + hv = MGLY + OH + NO2 + GLYC :         PHOTOL(160);    {2019/11/06; Bates2019; KHB}
 ITCN + hv = 0.5MVKHP + 0.5MCRHP + CO +
- NO2 + HO2 :                                 PHOTOL(153);    {2019/11/06; Bates2019; KHB}
+ NO2 + HO2 :                                 PHOTOL(161);    {2019/11/06; Bates2019; KHB}
