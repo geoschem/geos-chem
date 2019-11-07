@@ -552,10 +552,6 @@ PP + OH = 0.791OH + 0.209PO2 + 0.791HAC :    GCARR(8.78E-12, 0.0E+00, 200.0);   
 LVOC + OH = OH :                             GCARR(4.82E-11, 0.0E+00, -400.0);    {2017/06/14; Marais2016; EAM}
 OH + MAP = MCO3 :                            GCARR(6.13E-13, 0.0E+00, 200.0);     {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 C2H6 + NO3 = ETO2 + HNO3 :                   GCARR(1.40E-18, 0.0E+00, 0.0);       {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
-HC5 + O3 = 0.500GLYC + 0.500MGLY +
- 0.055MGLYOO + 0.890CO + 0.445MCO3 +
- 0.055GAOO + 0.445HO2 + 0.445CH2O +
- 0.890OH :                                   GCARR(6.16E-15, 0.0E+00, -1814.0);   {2015/09/25; Millet2015; DBM,EAM}
 MCO3 + MCO3 = 2.000MO2 :                     GCARR(2.50E-12, 0.0E+00, 500.0);
 MCO3 + MO2 = CH2O + MO2 + HO2 :              GCARR(1.80E-12, 0.0E+00, 500.0);
 MCO3 + MO2 = ACTA + CH2O :                   GCARR(2.00E-13, 0.0E+00, 500.0);
@@ -734,7 +730,7 @@ Cl + ACTA = HCl + MO2 + CO2 :                GCARR(2.8E-14, 0.0E+00, 0.0);      
 Cl + C3H8 = HCl + B3O2 :                     GCARR(6.54E-11, 0.0E+00, 60.0);      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 Cl + C3H8 = HCl + A3O2 :                     GCARR(8.12E-11, 0.0E+00, -90.0);     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 Cl + ACET = HCl + ATO2 :                     GCARR(7.70E-11, 0.0E+00, -1000.0);   {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-Cl + ISOP = HCl + RIO2 :                     GCARR(7.60E-11, 0.0E+00, 500.0);     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+Cl + ISOP = HCl + 0.5IHOO1 + 0.5IHOO4 :      GCARR(7.60E-11, 0.0E+00, 500.0);     {2019/11/06; Sherwen2016b;KHB,TS,JAS,SDE}
 Cl + ALK4 = HCl + R4O2 :                     GCARR(2.05E-10, 0.0E+00, 0.0);       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 Cl + PRPE {+M} = HCl + PO2 {+M} :            GCJPLPR(4.00E-28, 0.0E+00, 0.0, 2.8E-10, 0.0E0, 0.0, 0.6, 0.0, 0.0); {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 Br + PRPE = HBr + PO2 :                      GCARR(3.60E-12, 0.0E+00, 0.0);       {2017/09/22; Sherwen2016b;TS,JAS,SDE}
@@ -882,8 +878,8 @@ ISOP + OH = IHOO4 :                          ISO1(1.0E-11,390.0,2.26E-1,2.22E9,-
 ISOP + OH = 0.3MCO3 + 0.3MGLY + 0.3CH2O +
  0.15HPALD3 + 0.25HPALD1 + 0.4HO2 + 0.6CO +
  1.5OH + 0.3HPETHNL :                        ISO2(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
-ISOP + OH = LISOPOH + LISOPISO + 0.3CH2O +
- 0.15HPALD4 + 0.25HPALD2 + 1.5OH + 0.9CO +
+ISOP + OH = 0.3CH2O + 0.15HPALD4 +
+ 0.25HPALD2 + 1.5OH + 0.9CO +
  0.7HO2 + 0.3MGLY + 0.3ATOOH :               ISO2(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
 IHOO1 + HO2 = 0.063MVK + 0.063OH +
  0.063HO2 + 0.063CH2O + 0.937RIPA :          ARRPLUS(2.12E-13,-1300.0,0.0,1.1644,-7.0485E-4); {2019/11/06; Bates2019; KHB}
@@ -1072,7 +1068,7 @@ INO2B + INO2B = 1.737MVK + 0.123MACR +
  0.070ICN :                                  GCARR(1.61E-12, 0.0E+00, 0.0);       {2019/11/06; Bates2019; KHB}
 INO2B + INO2D = 0.399INPB + 0.544MVK +
  0.532ICN + 0.563NO2 + 0.474INA + 0.089HO2 +
- 0.019MACR + 0.563CH2O + 0.032IHN1 +  :      GCARR(2.56E-12, 0.0E+00, 0.0);       {2019/11/06; Bates2019; KHB}
+ 0.019MACR + 0.563CH2O + 0.032IHN1 :         GCARR(2.56E-12, 0.0E+00, 0.0);       {2019/11/06; Bates2019; KHB}
 INO2D + INO2D = 0.064HO2 + 0.340INA +
  0.861ICN + 0.671IHN1 + 0.127IHN4 :          GCARR(3.71E-12, 0.0E+00, 0.0);       {2019/11/06; Bates2019; KHB}
 INO2D + MO2 = 0.298IHN1 + 0.057IHN4 +
