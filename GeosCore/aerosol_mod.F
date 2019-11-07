@@ -79,7 +79,6 @@
       REAL(fp), ALLOCATABLE, PUBLIC :: ASOA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: OPOA(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: SOAGX(:,:,:)
-      REAL(fp), ALLOCATABLE, PUBLIC :: SOAMG(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: PM25(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ISOAAQ(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: SOAS(:,:,:)
@@ -96,10 +95,6 @@
       ! For SOAGX, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER,   PUBLIC :: OCFG = 1.e+0_fp
-
-      ! For SOAMG, assume the total aerosol mass/methylglyoxal mass = 1.d0 
-      ! for now (tmf, 1/7/09)
-      REAL(fp), PARAMETER,   PUBLIC :: OCFM = 1.e+0_fp
 !
 ! !REMARKS:
 !  References:
@@ -172,9 +167,8 @@
       INTEGER :: id_TSOA0, id_ISOA1, id_ISOA2, id_ISOA3
       INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
       INTEGER :: id_DUST1, id_SOAS
-      INTEGER :: id_SOAGX, id_SOAMG
-      INTEGER :: id_SOAIE, id_SOAME
-      INTEGER :: id_INDIOL,id_LVOCOA,id_ISN1OA
+      INTEGER :: id_SOAGX, id_SOAIE
+      INTEGER :: id_INDIOL,id_LVOCOA
 
       ! Index to map between NRHAER and species database hygroscopic species
       ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F (e.g. if there is
@@ -187,12 +181,9 @@
       
       ! Conversionf factors to ugC/m3 for Total Organic Carbon diagnostic
       REAL(fp)           :: Fac_INDIOL
-      REAL(fp)           :: Fac_ISN1OA
       REAL(fp)           :: Fac_LVOCOA
       REAL(fp)           :: Fac_SOAGX
       REAL(fp)           :: Fac_SOAIE
-      REAL(fp)           :: Fac_SOAME
-      REAL(fp)           :: Fac_SOAMG
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -329,7 +320,7 @@
       LOGICAL             :: IS_SAL,   IS_DST
       LOGICAL             :: IS_TSOA,  IS_ISOA,  IS_ASOA
       LOGICAL             :: IS_POA,   IS_OPOA
-      LOGICAL             :: IS_SOAGX, IS_SOAMG
+      LOGICAL             :: IS_SOAGX
       LOGICAL             :: Is_SimpleSOA
       LOGICAL             :: Is_ComplexSOA
 
@@ -390,7 +381,6 @@
       IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
       IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
       IS_SOAGX   = ( id_SOAGX > 0 )
-      IS_SOAMG   = ( id_SOAMG > 0 )
 
       ! Logical flags for SOA scheme
       Is_SimpleSOA  = ( id_SOAS > 0 )
@@ -878,22 +868,10 @@
             ISOAAQ(I,J,L) = Spc(I,J,L,id_SOAGX) / AIRVOL(I,J,L)
          ENDIF
 
-         ! Methylglyoxal
-         IF ( id_SOAMG > 0 ) THEN
-            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                      Spc(I,J,L,id_SOAMG) / AIRVOL(I,J,L)
-         ENDIF
-
          ! IEPOX
          IF ( id_SOAIE > 0 ) THEN
             ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
      &                      Spc(I,J,L,id_SOAIE) / AIRVOL(I,J,L)
-         ENDIF
-
-         ! IMAE (4C epoxide from MACR)
-         IF ( id_SOAME > 0 ) THEN
-            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                      Spc(I,J,L,id_SOAME) / AIRVOL(I,J,L)
          ENDIF
 
 !------------------------------------------------------------------------------
@@ -913,12 +891,6 @@
          IF ( id_LVOCOA > 0 ) THEN
             ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
      &                      Spc(I,J,L,id_LVOCOA) / AIRVOL(I,J,L)
-         ENDIF
-
-         ! SOA from ISOP+NO3
-         IF ( id_ISN1OA > 0 ) THEN
-            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                      Spc(I,J,L,id_ISN1OA) / AIRVOL(I,J,L)
          ENDIF
 
          !-------------------------------------------------------
@@ -994,10 +966,6 @@
          !===========================================================
          IF ( IS_SOAGX ) THEN
             SOAGX(I,J,L) = Spc(I,J,L,id_SOAGX) * OCFG / AIRVOL(I,J,L)
-         ENDIF
-
-         IF ( IS_SOAMG ) THEN
-            SOAMG(I,J,L) = Spc(I,J,L,id_SOAMG) * OCFM / AIRVOL(I,J,L)
          ENDIF
 
          !==============================================================
@@ -2655,9 +2623,7 @@
       id_ASOA2  = Ind_( 'ASOA2'  ) 
       id_ASOA3  = Ind_( 'ASOA3'  )
       id_SOAGX  = Ind_( 'SOAGX'  )
-      id_SOAMG  = Ind_( 'SOAMG'  )
       id_SOAIE  = Ind_( 'SOAIE'  )
-      id_SOAME  = Ind_( 'SOAME'  )
       id_INDIOL = Ind_( 'INDIOL' )
       id_LVOCOA = Ind_( 'LVOCOA' )
       id_ISN1OA = Ind_( 'ISN1OA' )
@@ -2793,12 +2759,6 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       SOAGX = 0.0_fp
 
-      ALLOCATE( SOAMG( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC )
-      CALL GC_CheckVar( 'aerosol_mod.F:SOAMG', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      SOAMG = 0.0_fp
-
       ! Mass of hydrophobic aerosol from Mian Chin
       ALLOCATE( DAERSL(State_Grid%NX,State_Grid%NY,State_Grid%NZ,2),
      &          STAT=RC)       
@@ -2886,7 +2846,6 @@
       IF ( ALLOCATED( ASOA        ) ) DEALLOCATE( ASOA        )
       IF ( ALLOCATED( OPOA        ) ) DEALLOCATE( OPOA        )
       IF ( ALLOCATED( SOAGX       ) ) DEALLOCATE( SOAGX       )
-      IF ( ALLOCATED( SOAMG       ) ) DEALLOCATE( SOAMG       )
       IF ( ALLOCATED( PM25        ) ) DEALLOCATE( PM25        )
       IF ( ALLOCATED( WAERSL      ) ) DEALLOCATE( WAERSL      )
       IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )
@@ -3022,8 +2981,6 @@
          id_POA2    = Ind_( 'POA2'   )
          id_SOAGX   = Ind_( 'SOAGX'  )
          id_SOAIE   = Ind_( 'SOAIE'  )
-         id_SOAME   = Ind_( 'SOAME'  )
-         id_SOAMG   = Ind_( 'SOAMG'  )
          Is_POA     = ( id_POA1 > 0 .and. id_POA2 > 0 )
       
          ! Initialize conversion factors for total OC diagnostic
@@ -3032,8 +2989,6 @@
          Fac_LVOCOA = 0.0_fp
          Fac_SOAGX  = 0.0_fp
          Fac_SOAIE  = 0.0_fp
-         Fac_SOAME  = 0.0_fp
-         Fac_SOAMG  = 0.0_fp
       
          !--------------------------------------------------------------------
          ! Set conversion factors for certain isoprene SOA species,
@@ -3050,21 +3005,6 @@
                ErrMsg = 'Disabling AerMassINDIOL diagnostic.' //
      &                  '  INDIOL is not a defined species for' //
      &                  ' this simulation.'
-               CALL GC_Warning( ErrMsg, RC, ThisLoc )
-            ENDIF
-         ENDIF
-      
-         IF ( id_ISN1OA > 0 ) THEN
-            SpcInfo    => State_Chm%SpcData(id_ISN1OA)%Info
-            Fac_ISN1OA =  ( NCISN1 * MwCarb 
-     &                    / ( SpcInfo%Mw_g * 1e-3_fp ) )
-            SpcInfo    => NULL()
-         ELSE
-            IF ( State_Diag%Archive_AerMassISN1OA ) THEN
-               State_Diag%Archive_AerMassISN1OA = .FALSE.
-               ErrMsg = 'Disabling AerMassISN1OA diagnostic.' //
-     &                  '  ISN1OA is not a defined species for ' //
-     &                  'this simulation.'
                CALL GC_Warning( ErrMsg, RC, ThisLoc )
             ENDIF
          ENDIF
@@ -3114,36 +3054,6 @@
             ENDIF
          ENDIF
       
-         IF ( id_SOAME > 0 ) THEN
-            SpcInfo    => State_Chm%SpcData(id_SOAME)%Info
-            Fac_SOAME  =  ( NCIMAE  * MwCarb 
-     &                    / ( SpcInfo%Mw_g * 1e-3_fp ) )
-            SpcInfo    => NULL()
-         ELSE
-            IF ( State_Diag%Archive_AerMassSOAME ) THEN
-               State_Diag%Archive_AerMassSOAME = .FALSE.
-               ErrMsg = 'Disabling AerMassLVOCOA diagnostic.' //
-     &                  '  SOAME is not a defined species for' //
-     &                  ' this simulation.'
-               CALL GC_Warning( ErrMsg, RC, ThisLoc )
-            ENDIF
-         ENDIF
-      
-         IF ( id_SOAMG > 0 ) THEN
-            SpcInfo    => State_Chm%SpcData(id_SOAMG)%Info
-            Fac_SOAMG  =  ( NCMGLY  * MwCarb 
-     &                    / ( SpcInfo%Mw_g * 1e-3_fp ) )
-            SpcInfo    => NULL()
-         ELSE
-            IF ( State_Diag%Archive_AerMassSOAMG ) THEN
-               State_Diag%Archive_AerMassSOAMG = .FALSE.
-               ErrMsg = 'Disabling AerMassSOAMG diagnostic.' //
-     &                  '  SOAMG is not a defined GEOS-Chem ' //
-     &                  'species for this simulation.'
-               CALL GC_Warning( ErrMsg, RC, ThisLoc )
-            ENDIF
-         ENDIF
-      
          ! Reset first-time flag
          First = .FALSE.
       ENDIF
@@ -3187,15 +3097,6 @@
          !--------------------------------------
          IF ( State_Diag%Archive_AerMassINDIOL ) THEN
             State_Diag%AerMassINDIOL(I,J,L)   = Spc(I,J,L,id_INDIOL)   
-     &                                        * kgm3_to_ugm3           
-     &                                        * AirDen(I,J,L)
-         ENDIF
-      
-         !--------------------------------------
-         ! AerMassISN1OA [ug/m3]
-         !--------------------------------------
-         IF ( State_Diag%Archive_AerMassISN1OA ) THEN
-            State_Diag%AerMassISN1OA(I,J,L)   = Spc(I,J,L,id_ISN1OA)   
      &                                        * kgm3_to_ugm3           
      &                                        * AirDen(I,J,L)
          ENDIF
@@ -3291,23 +3192,6 @@
          ENDIF
       
          !--------------------------------------
-         ! AerMassSOAME [ug/m3]
-         !--------------------------------------
-         IF ( State_Diag%Archive_AerMassSOAME ) THEN
-            State_Diag%AerMassSOAME(I,J,L)    = Spc(I,J,L,id_SOAME) 
-     &                                        * kgm3_to_ugm3        
-     &                                        * AirDen(I,J,L)
-         ENDIF
-      
-         !--------------------------------------
-         ! AerMassSOAMG [ug/m3]
-         !--------------------------------------
-         IF ( State_Diag%Archive_AerMassSOAMG ) THEN
-            State_Diag%AerMassSOAMG(I,J,L)    = SOAMG(I,J,L)        
-     &                                        * kgm3_to_ugm3
-         ENDIF
-      
-         !--------------------------------------
          ! AerMassTSOA [ug/m3]
          !--------------------------------------
          IF ( State_Diag%Archive_AerMassTSOA ) THEN
@@ -3369,12 +3253,9 @@
             IF ( Input_Opt%LSOA ) THEN
                State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L)  
      &                     + ( ( Spc(I,J,L,id_SOAIE)  * Fac_SOAIE  )    
-     &                       + ( Spc(I,J,L,id_SOAME)  * Fac_SOAME  )    
      &                       + ( Spc(I,J,L,id_INDIOL) * Fac_INDIOL )    
      &                       + ( Spc(I,J,L,id_SOAGX)  * Fac_SOAGX  )    
-     &                       + ( Spc(I,J,L,id_SOAMG)  * Fac_SOAMG  )    
-     &                       + ( Spc(I,J,L,id_LVOCOA) * Fac_LVOCOA )    
-     &                       + ( Spc(I,J,L,id_ISN1OA) * Fac_ISN1OA ) )  
+     &                       + ( Spc(I,J,L,id_LVOCOA) * Fac_LVOCOA ) )  
      &                     * AirDen(I,J,L) * kgm3_to_ugm3
            ENDIF
       
