@@ -1645,7 +1645,7 @@ CONTAINS
              Is_Wetdep     = T
              DD_F0         = 1.0_fp
              DD_Hstar_old  = 8.90e+3_fp
-             Henry_K0      = 8.92te+3_f8
+             Henry_K0      = 8.92e+3_f8
              Henry_CR      = 6100.0_f8
              WD_RetFactor  = 2.0e-2_fp
 
