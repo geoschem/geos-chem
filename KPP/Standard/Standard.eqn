@@ -1309,7 +1309,6 @@ IDN = IONITA :                               HET(ind_IDN,1);                    
 ITCN = IONITA :                              HET(ind_ITCN,1);                     {2019/11/06; Bates2019; KHB}
 ITHN = IONITA :                              HET(ind_ITHN,1);                     {2019/11/06; Bates2019; KHB}
 MCRHNB = IONITA :                            HET(ind_MCRHNB,1);                   {2019/11/06; Bates2019; KHB}
-MVKN = IONITA :                              HET(ind_MVKN,1);                     {2019/11/06; Bates2019; KHB}
 MCRHN = IONITA :                             HET(ind_MCRHN,1);                    {2019/11/06; Bates2019; KHB}
 //
 // Photolysis reactions
