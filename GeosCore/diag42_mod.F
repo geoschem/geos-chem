@@ -89,7 +89,7 @@
       USE AEROSOL_MOD,        ONLY : SO4,  NH4,  NIT
       USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
       USE AEROSOL_MOD,        ONLY : PM25
-      USE AEROSOL_MOD,        ONLY : SOAGX,  SOAMG, ISOAAQ
+      USE AEROSOL_MOD,        ONLY : SOAGX, ISOAAQ
       USE AEROSOL_MOD,        ONLY : OCFPOA, OCFOPOA
       USE CARBON_MOD,         ONLY : BETANOSAVE
       USE CMN_SIZE_MOD             ! Size parameters
@@ -153,9 +153,8 @@
       ! Species ID flags
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER, SAVE       :: id_POA1,   id_POA2
-      INTEGER, SAVE       :: id_SOAIE,  id_SOAME, id_INDIOL
-      INTEGER, SAVE       :: id_SOAGX,  id_SOAMG
-      INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA
+      INTEGER, SAVE       :: id_SOAIE, id_INDIOL
+      INTEGER, SAVE       :: id_SOAGX,  id_LVOCOA
       LOGICAL, SAVE       :: IS_BETANOSAVE
       LOGICAL, SAVE       :: IS_POA
       LOGICAL, SAVE       :: IS_ISOPOA
@@ -193,20 +192,15 @@
          id_POA1       = Ind_( 'POA1'   )
          id_POA2       = Ind_( 'POA2'   )
          id_SOAIE      = Ind_( 'SOAIE'  )
-         id_SOAME      = Ind_( 'SOAME'  )
          id_INDIOL     = Ind_( 'INDIOL' )
          id_SOAGX      = Ind_( 'SOAGX'  )
-         id_SOAMG      = Ind_( 'SOAMG'  )
          id_LVOCOA     = Ind_( 'LVOCOA' )
-         id_ISN1OA     = Ind_( 'ISN1OA' )
          IS_BETANOSAVE = ALLOCATED( BETANOSAVE )
 
          ! Define logical flags
          IS_POA    = ( id_POA1   > 0 .and. id_POA2   > 0 )
-         IS_ISOPOA = ( id_SOAIE  > 0 .and. id_SOAME  > 0 .and. 
-     &                 id_INDIOL > 0 .and. id_SOAGX  > 0 .and. 
-     &                 id_SOAMG  > 0 .and. id_LVOCOA > 0 .and. 
-     &                 id_ISN1OA > 0 )
+         IS_ISOPOA = ( id_SOAIE  > 0 .and. id_SOAGX  > 0 .and. 
+     &                 id_INDIOL > 0 .and. id_LVOCOA > 0 )
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -306,18 +300,12 @@
             AD42(I,J,L,7) = AD42(I,J,L,7) + (
      &                Spc(I,J,L,id_SOAIE) * ( NCIEPOX * MWCARB /
      &              ( State_Chm%SpcData(id_SOAIE)%Info%MW_g * 1e-3_fp ))
-     &              + Spc(I,J,L,id_SOAME) * ( NCIMAE  * MWCARB /
-     &              ( State_Chm%SpcData(id_SOAME)%Info%MW_g * 1e-3_fp ))
      &              + Spc(I,J,L,id_INDIOL)* ( NCINDIOL* MWCARB / 
      &              ( State_Chm%SpcData(id_INDIOL)%Info%MW_g* 1e-3_fp ))
      &              + Spc(I,J,L,id_SOAGX) * ( NCGLYX  * MWCARB /
      &              ( State_Chm%SpcData(id_SOAGX)%Info%MW_g * 1e-3_fp ))
-     &              + Spc(I,J,L,id_SOAMG) * ( NCMGLY  * MWCARB /
-     &              ( State_Chm%SpcData(id_SOAMG)%Info%MW_g * 1e-3_fp ))
      &              + Spc(I,J,L,id_LVOCOA)* ( NCLVOC  * MWCARB /
      &              ( State_Chm%SpcData(id_LVOCOA)%Info%MW_g* 1e-3_fp ))
-     &              + Spc(I,J,L,id_ISN1OA)* ( NCISN1  * MWCARB /
-     &              ( State_Chm%SpcData(id_ISN1OA)%Info%MW_g* 1e-3_fp ))
      &              ) / AIRVOL(I,J,L) * FACTOR
 
          ENDIF
@@ -397,14 +385,14 @@
          !--------------------------------------------------------------
          ! Additional diagnostics for SOAGX, SOAMG (tmf, 12/8/07) 
          !
-         ! Assume SOAGX mass = GLYX mass, SOAMG mass = MGLY mass
+         ! Assume SOAGX mass = GLYX mass ( + MGLY + PYAC)
          !--------------------------------------------------------------
 
          ! SOAGX [ug/m3]
          AD42(I,J,L,19) = AD42(I,J,L,19) + SOAGX(I,J,L) * FACTOR
 
          ! SOAMG [ug/m3]
-         AD42(I,J,L,20) = AD42(I,J,L,20) + SOAMG(I,J,L) * FACTOR
+         ! AD42(I,J,L,20) = AD42(I,J,L,20) + SOAMG(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
          ! Isoprene SOA obtained from irreversible uptake of isoprene
@@ -417,8 +405,8 @@
      &                       * FACTOR / AIRVOL(I,J,L) 
 
             ! IMAE-OA [ug/m3]:
-            AD42(I,J,L,22) = AD42(I,J,L,22) + Spc(I,J,L,id_SOAME )
-     &                       * FACTOR / AIRVOL(I,J,L) 
+            ! AD42(I,J,L,22) = AD42(I,J,L,22) + Spc(I,J,L,id_id_LVOCOA )
+     ! &                       * FACTOR / AIRVOL(I,J,L) 
 
             ! INDIOL [ug/m3]:
             AD42(I,J,L,23) = AD42(I,J,L,23) + Spc(I,J,L,id_INDIOL)
@@ -429,8 +417,8 @@
      &                       * FACTOR / AIRVOL(I,J,L)
 
             ! ISN1OA [ug/m3]:
-            AD42(I,J,L,25) = AD42(I,J,L,25) + Spc(I,J,L,id_ISN1OA)
-     &                       * FACTOR / AIRVOL(I,J,L)
+            ! AD42(I,J,L,25) = AD42(I,J,L,25) + Spc(I,J,L,id_ISN1OA)
+     ! &                       * FACTOR / AIRVOL(I,J,L)
 
          ENDIF
 
