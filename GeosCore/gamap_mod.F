@@ -6318,8 +6318,8 @@
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 154e-3
                CASE( 25 )
-                  NAME (T,42) = 'ISN1OA
-                  FNAME(T,42) = 'ISOP+NO3 SOA (obsolete)''
+                  NAME (T,42) = 'ISN1OA'
+                  FNAME(T,42) = 'ISOP+NO3 SOA (obsolete)'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 226e-3
                CASE DEFAULT
