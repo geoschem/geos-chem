@@ -236,7 +236,6 @@ I2         = IGNORE; {I2; Molecular iodine}
 I2O2       = IGNORE; {I2O2; Diiodine dioxide}
 I2O3       = IGNORE; {I2O3; Diiodine trioxide}
 I2O4       = IGNORE; {I2O4; Diiodine tetraoxide}
-IAP        = IGNORE; {HOCH2C(CH3)(OOH)CH(OH)CHO; Peroxide from IAO2}
 IBr        = IGNORE; {IBr; Iodine monobromide}
 ICHE       = IGNORE; {C5H8O3; Isoprene hydroxy-carbonyl-epoxides}
 ICHOO      = IGNORE; {peroxy radical from IEPOXD}
