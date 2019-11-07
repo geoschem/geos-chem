@@ -344,7 +344,6 @@ OH         = IGNORE; {OH; Hydroxyl radical}
 OIO        = IGNORE; {OIO; Iodine dioxide}
 OLND       = IGNORE; {Monoterpene-derived NO3-alkene adduct}
 OLNN       = IGNORE; {Monoterpene-derived NO3 adduct}
-ONIT       = IGNORE; {Organic nitrate}
 PAN        = IGNORE; {CH3C(O)OONO2; Peroxyacetylnitrate}
 PIO2       = IGNORE; {RO2 from MTPA}
 PIP        = IGNORE; {Peroxides from MTPA}
@@ -378,7 +377,6 @@ SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
 TOLU       = IGNORE; {C7H8; Toluene}
 TRO2       = IGNORE; {Peroxy radical from TOLU oxidation}
-VRO2       = IGNORE; {HOCH2CH(OO)C(O)CH3; RO2 from MVK+OH}
 XYLE       = IGNORE; {C8H10; Xylene}
 XRO2       = IGNORE; {Peroxy radical from XYLE oxidation}
 
