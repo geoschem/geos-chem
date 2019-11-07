@@ -2626,7 +2626,6 @@
       id_SOAIE  = Ind_( 'SOAIE'  )
       id_INDIOL = Ind_( 'INDIOL' )
       id_LVOCOA = Ind_( 'LVOCOA' )
-      id_ISN1OA = Ind_( 'ISN1OA' )
 
       !=================================================================
       ! Allocate arrays
@@ -2975,7 +2974,6 @@
          ! Look up species indices in State_Chm%SPECIES
          !--------------------------------------------------------------------
          id_INDIOL  = Ind_( 'INDIOL' )
-         id_ISN1OA  = Ind_( 'ISN1OA' )
          id_LVOCOA  = Ind_( 'LVOCOA' )
          id_POA1    = Ind_( 'POA1'   )
          id_POA2    = Ind_( 'POA2'   )
@@ -2985,7 +2983,6 @@
       
          ! Initialize conversion factors for total OC diagnostic
          Fac_INDIOL = 0.0_fp
-         Fac_ISN1OA = 0.0_fp
          Fac_LVOCOA = 0.0_fp
          Fac_SOAGX  = 0.0_fp
          Fac_SOAIE  = 0.0_fp
