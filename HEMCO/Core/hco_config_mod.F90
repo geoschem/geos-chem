@@ -2180,7 +2180,7 @@ CONTAINS
        SELECT CASE( TRIM( GridRes ) )
           CASE( '4x5' )
              GridRes = '4.0x5.0'
-          CASE( '2x2.5')
+          CASE( '2x25', '2x2.5' )
              GridRes = '2.0x2.5'
           CASE( '05x0625' )
              GridRes = '0.5x0.625'
