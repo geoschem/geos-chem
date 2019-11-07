@@ -203,7 +203,7 @@
       INTEGER,  SAVE      :: id_HONIT,   id_MONITS, id_MONITU, id_OLND
       INTEGER,  SAVE      :: id_OLNN,    id_IHN1,   id_IHN2,   id_IHN3
       INTEGER,  SAVE      :: id_IHN4,    id_INPB,   id_INPD,   id_ICN
-      INTEGER,  SAVE      :: id_IDN,     id_ITHN,   id_ITCN,   id_ISOPNOO1
+      INTEGER,  SAVE      :: id_IDN,     id_ITHN,   id_ITCN, id_ISOPNOO1
       INTEGER,  SAVE      :: id_ISOPNOO2, id_INO2B, id_INO2D,  id_INA
       INTEGER,  SAVE      :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
       INTEGER,  SAVE      :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
@@ -211,7 +211,7 @@
       INTEGER,  SAVE      :: id_HOCl,    id_ClNO2,  id_ClNO3,  id_Cl2O2
       INTEGER,  SAVE      :: id_OClO,    id_O,      id_O1D,    id_IO
       INTEGER,  SAVE      :: id_HOI,     id_IONO,   id_IONO2,  id_OIO
-      INTEGER,  SAVE      :: id_I2O2,    id_I2O3,   id_I2O4,   id_MACRNO2
+      INTEGER,  SAVE      :: id_I2O2,    id_I2O3,   id_I2O4, id_MACRNO2
 
       ! Scalars
       LOGICAL             :: DO_WRITE
