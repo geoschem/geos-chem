@@ -84,7 +84,7 @@
 !  (14) Wesely, M. L., Parameterization of surface resistance to gaseous dry 
 !        deposition in regional-scale numerical models.  Atmos. Environ., 23
 !        1293-1304, 1989. 
-!  (15) Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
+!  (15) Price, H., L. JaeglÃ©, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
 !        Global Budget of Molecular Hydrogen and its Deuterium Content: 
 !        Constraints from Ground Station, Cruise, and Aircraft Observations,
 !        submitted to J. Geophys. Res., 2007.
@@ -249,7 +249,7 @@
       INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
       INTEGER                        :: id_ACET,  id_ALD2
       INTEGER                        :: id_NK1
-      INTEGER                        :: id_HNO3,  id_PAN,   id_ISOPND
+      INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -555,7 +555,7 @@
             ELSE IF ( FLAG(D) .eq. 3 ) THEN
 
                ! Scale species to ISOPN
-               DVZ = DVZ * sqrt(State_Chm%SpcData(id_ISOPND)%Info%MW_g)
+               DVZ = DVZ * sqrt(State_Chm%SpcData(id_IHN1)%Info%MW_g)
      &                   / sqrt(SpcInfo%MW_g)            
 
             ENDIF
@@ -4147,7 +4147,7 @@
       id_ALD2   = 0
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
-      id_ISOPND = IND_('ISOPND')
+      id_IHN1   = IND_('IHN1'  )
       ErrMsg    = ''
       ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
 
@@ -4326,7 +4326,7 @@
      &                           * 1e-3_fp
                   FLAG(NUMDEP) = 1
 
-               CASE(  'NPMN', 'IPMN', 'PPN', 'R4N2' )
+               CASE(  'MPAN', 'PPN', 'R4N2' )
                   ! These specied scale to the Vd of PAN.  We will 
                   ! explicitly compute the Vd of these species instead 
                   ! of assigning the Vd of PAN from the DVEL array.
@@ -4338,8 +4338,7 @@
      &                           * 1e-3_fp
                   FLAG(NUMDEP) = 2
 
-               CASE( 'DHDN', 'ETHLN', 'ISN1', 'MONITS', 'MONITU', 
-     &               'HONIT' )
+               CASE( 'MONITS', 'MONITU', 'HONIT' )
                   ! These species scale to the Vd of ISOPN. We will
                   ! explicitly compute the Vd of these species instead
                   ! of assigning the Vd of ISOPN from the DVEL array.
@@ -4347,7 +4346,7 @@
                   !
                   ! Make sure to set XMW to the MW of ISOPN
                   ! for the computation of Vd to work properly.
-                  XMW(NUMDEP)  = State_Chm%SpcData(id_ISOPND)%Info%MW_g
+                  XMW(NUMDEP)  = State_Chm%SpcData(id_IHN1)%Info%MW_g
      &                           * 1e-3_fp
                   FLAG(NUMDEP) = 3
 
