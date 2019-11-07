@@ -6294,7 +6294,7 @@
                   MWT  (T,42) = 58e-3
                CASE( 20 )
                   NAME (T,42) = 'SOAMG'
-                  FNAME(T,42) = 'SOAMG'
+                  FNAME(T,42) = 'SOAMG (obsolete)'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 42e-3
                CASE( 21 )
@@ -6304,7 +6304,7 @@
                   MWT  (T,42) = 118e-3
                CASE( 22 )
                   NAME (T,42) = 'SOAME'
-                  FNAME(T,42) = 'IMAE-OA'
+                  FNAME(T,42) = 'IMAE-OA (obsolete)'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 102e-3
                CASE( 23 )
@@ -6318,8 +6318,8 @@
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 154e-3
                CASE( 25 )
-                  NAME (T,42) = 'ISN1OA'
-                  FNAME(T,42) = 'ISOP+NO3 SOA'
+                  NAME (T,42) = 'ISN1OA
+                  FNAME(T,42) = 'ISOP+NO3 SOA (obsolete)''
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 226e-3
                CASE DEFAULT
@@ -6831,8 +6831,8 @@
                   NAME (T,52) = 'G_IEPOX'
                   FNAME(T,52) = 'Gamma IEPOX'
                CASE( 3 )
-                  NAME (T,52) = 'G_IMAE'
-                  FNAME(T,52) = 'Gamma IMAE'
+                  NAME (T,52) = 'G_HMML'
+                  FNAME(T,52) = 'Gamma HMML'
                CASE( 4 )
                   NAME (T,52) = 'G_ISOPN'
                   FNAME(T,52) = 'Gamma isoprene nitrates'
