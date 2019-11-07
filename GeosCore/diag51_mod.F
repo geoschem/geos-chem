@@ -519,8 +519,8 @@
       INTEGER, SAVE     :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
       INTEGER, SAVE     :: id_PAN,      id_NPMN,   id_PPN,  id_O3
       INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
-      INTEGER, SAVE     :: id_IPMN,     id_SOAIE,  id_SOAME
-      INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA, id_ISN1OA
+      INTEGER, SAVE     :: id_IPMN,     id_SOAIE
+      INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA
       INTEGER, SAVE     :: id_ISOA1,    id_ISOA2,  id_ISOA3
       INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
       INTEGER, SAVE     :: id_BCPI,     id_BCPO,   id_OH
@@ -575,10 +575,8 @@
          id_NO2     = Ind_('NO2'    )
          id_IPMN    = Ind_('IPMN'   )
          id_SOAIE   = Ind_('SOAIE'  )
-         id_SOAME   = Ind_('SOAME'  )
          id_INDIOL  = Ind_('INDIOL' )
          id_LVOCOA  = Ind_('LVOCOA' )
-         id_ISN1OA  = Ind_('ISN1OA' )
          id_ISOA1   = Ind_('ISOA1'  )
          id_ISOA2   = Ind_('ISOA2'  )
          id_ISOA3   = Ind_('ISOA3'  )
@@ -1194,12 +1192,6 @@
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                ENDIF
 
-               ! IMAE-OA (ug/m3)
-               IF ( id_SOAME > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_SOAME)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
                ! INDIOL (ug/m3)
                IF ( id_INDIOL > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_INDIOL)  * GOOD(I) *
@@ -1209,12 +1201,6 @@
                ! LVOCOA (ug/m3)
                IF ( id_LVOCOA > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_LVOCOA)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
-               ! ISOP+NO3 aerosols (ug/m3)
-               IF ( id_ISN1OA > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_ISN1OA)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                ENDIF
 
