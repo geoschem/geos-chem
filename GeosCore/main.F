@@ -221,6 +221,7 @@
       LOGICAL                  :: LWETD
       LOGICAL                  :: prtDebug
       LOGICAL                  :: TimeForEmis
+      LOGICAL                  :: notDryRun
 
       ! Integers
       INTEGER                  :: I,             IOS,         J
@@ -460,6 +461,9 @@
       IF ( Argv == '--dry-run' ) THEN
          Input_Opt%DryRun = .TRUE.
       ENDIF
+
+      ! Define a local convenience variable for negating Input_Opt%DryRun
+      notDryRun = ( .not. Input_Opt%DryRun )
 
       ! Are we running in "Dry-run" mode?
       ! If Input_Opt%DryRun is set to TRUE, then GEOS-Chem is in a dry run mode.
@@ -762,7 +766,7 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      IF ( .not. Input_Opt%DryRun ) THEN
+      IF ( notDryRun ) THEN
           ! Compute the Olson landmap fields of State_Met
           ! (e.g. State_Met%IREG, State_Met%ILAND, etc.)
           CALL Compute_Olson_Landmap( am_I_Root,  Input_Opt,
@@ -1005,7 +1009,7 @@
          CALL GEOS_Timer_Start( "Output",                RC )
 #endif
          ! Do not do actual output for dry-run
-         IF ( .not. Input_Opt%DryRun) THEN
+         IF ( notDryRun ) THEN
             ! Write HEMCO diagnostics (ckeller, 4/1/15)
             CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .FALSE., RC )
          ENDIF
@@ -1026,8 +1030,8 @@
          !==============================================================
          !      ***** O B S P A C K   D I A G N O S T I C S *****
          !==============================================================
-         IF ( Input_Opt%Do_ObsPack .and. ( ELAPSED_TODAY == 0 )
-     &        .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( Input_Opt%Do_ObsPack .and.
+     &      ( ELAPSED_TODAY == 0 ) .and. notDryRun ) THEN
 
 #ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "All diagnostics",        RC )
@@ -1051,8 +1055,7 @@
 
 #ifdef BPCH_DIAG
          ! Original diagnostics
-         IF ( ITS_TIME_FOR_BPCH( Input_Opt )
-     &        .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( ITS_TIME_FOR_BPCH( Input_Opt ) .and. notDryRun ) THEN
 
             !===========================================================
             ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
@@ -1091,7 +1094,7 @@
             CALL GEOS_Timer_Start( "Output", RC )
 #endif
 
-            IF ( .not. Input_Opt%DryRun ) THEN
+            IF ( notDryRun ) THEN
                ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
                CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .TRUE.,
      &                                  RC )
@@ -1162,7 +1165,7 @@
          !==============================================================
          !        ***** L E A F   A R E A   I N D I C E S *****
          !==============================================================
-         IF ( ITS_A_NEW_DAY() .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( ITS_A_NEW_DAY() .and. notDryRun ) THEN
 
             ! Initialize the State_Met%XLAI_NATIVE field from HEMCO
             CALL Get_XlaiNative_from_HEMCO( am_I_Root, Input_Opt,
@@ -1192,7 +1195,7 @@
          !==============================================================
 
          ! Do not compute any data in dry-run mode
-         IF ( .not. Input_Opt%DryRun ) THEN
+         IF ( notDryRun ) THEN
 
             ! Interpolate I-3 fields to current dynamic timestep,
             ! based on their values at NSEC and NSEC+N_DYN
@@ -1280,8 +1283,7 @@
          ! take these calls out of the emissions sequence.
          ! (ckeller, 4/01/15)
          !----------------------------------------------------------
-         IF ( LCHEM .and. ITS_A_NEW_MONTH()
-     &        .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( LCHEM .and. ITS_A_NEW_MONTH() .and. notDryRun ) THEN
 
             ! The following only apply when photolysis is used,
             ! that is for fullchem or aerosol simulations.
@@ -1334,8 +1336,7 @@
          ENDIF
 
          ! Prescribe methane surface concentrations throughout PBL
-         IF ( ITS_A_FULLCHEM_SIM .and. id_CH4 > 0
-     &        .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( ITS_A_FULLCHEM_SIM .and. id_CH4 > 0 .and. notDryRun ) THEN
 
             ! Debug print
             IF ( prtDebug ) THEN
@@ -1356,7 +1357,7 @@
          !==============================================================
          !              ***** T R A N S P O R T *****
          !==============================================================
-         IF ( ITS_TIME_FOR_DYN() .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( ITS_TIME_FOR_DYN() .and. notDryRun ) THEN
 
 #ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "Transport", RC )
@@ -1466,7 +1467,7 @@
          CALL GEOS_Timer_Start( "Boundary layer mixing", RC )
 #endif
 
-         IF ( .not. Input_Opt%DryRun ) THEN
+         IF ( notDryRun ) THEN
             ! Move this call from the PBL mixing routines because the PBL
             ! height is used by drydep and some of the emissions routines.
             ! (ckeller, 3/5/15)
@@ -1507,7 +1508,7 @@
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
-            IF ( LDRYD .and. (.not. Input_Opt%DryRun) ) THEN
+            IF ( LDRYD .and. notDryRun ) THEN
 
 #ifdef USE_TIMERS
                CALL GEOS_Timer_Start( "Dry deposition", RC )
@@ -1577,7 +1578,7 @@
          ! Test for convection timestep
          !-------------------------------
 #ifdef BPCH_DIAG
-         IF ( ITS_TIME_FOR_CONV() .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( ITS_TIME_FOR_CONV() .and. notDryRun ) THEN
 
             ! Increment the convection timestep
             CALL Set_Ct_Conv( INCREMENT=.TRUE. )
@@ -1656,7 +1657,7 @@
 #ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "All chemistry", RC )
 #endif
-         IF ( .not. Input_Opt%DryRun ) THEN
+         IF ( notDryRun ) THEN
             ! Get the overhead column O3 for use with FAST-J
             ! NOTE: Move to CHEMISTRY section.  This now has to come after
             ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
@@ -1664,7 +1665,7 @@
          ENDIF
 
          ! Every chemistry timestep...
-         IF ( ITS_TIME_FOR_CHEM() .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( ITS_TIME_FOR_CHEM() .and. notDryRun ) THEN
 
 #ifdef BPCH_DIAG
             ! Increment chemistry timestep counter
@@ -1705,8 +1706,7 @@
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
-         IF ( LWETD .and. ITS_TIME_FOR_DYN()
-     &        .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( LWETD .and. ITS_TIME_FOR_DYN() .and. notDryRun ) THEN
 
 #ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "Wet deposition", RC )
@@ -1734,7 +1734,7 @@
          !==============================================================
          !      ***** U P D A T E   O P T I C A L   D E P T H *****          
          !==============================================================
-         IF ( ITS_TIME_FOR_CHEM() .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( ITS_TIME_FOR_CHEM() .and. notDryRun ) THEN
 
 #ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "All chemistry",       RC )
@@ -1768,8 +1768,8 @@
          ! [kg] in RRTMG. Units should eventually be [kg/kg]
          ! (ewl, 9/18/15)
          !==============================================================
-         IF ( Input_opt%LRAD .and. ITS_TIME_FOR_RT()
-     &        .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( Input_opt%LRAD    .and.
+     &        ITS_TIME_FOR_RT() .and. notDryRun ) THEN
 
 #ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "RRTMG", RC )
@@ -1885,7 +1885,7 @@
 #endif
          ! Do not perform history update and output if in a dry-run mode
          ! (hplin, 11/2/19)
-         IF ( .not. Input_Opt%DryRun ) THEN
+         IF ( notDryRun ) THEN
             ! Set State_Diag arrays that rely on state at end of timestep
             CALL Set_Diagnostics_EndofTimestep( am_I_Root,  Input_Opt,
      &                                          State_Chm,  State_Diag,
@@ -1947,7 +1947,7 @@
          !--------------------------------------------------------------
          !      ***** O B S P A C K   D I A G N O S T I C S *****
          !--------------------------------------------------------------
-         IF ( Input_Opt%Do_ObsPack .and. (.not. Input_Opt%DryRun) ) THEN
+         IF ( Input_Opt%Do_ObsPack .and. notDryRun ) THEN
 
 #ifdef USE_TIMERS
             CALL GEOS_Timer_Start( "All diagnostics",        RC )
@@ -2180,7 +2180,7 @@
          CALL GEOS_Timer_Start( "Output",                    RC )
          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
-         IF ( .not. Input_Opt%DryRun ) THEN
+         IF ( notDryRun ) THEN
 
             ! Write HISTORY ITEMS in each diagnostic collection to disk
             ! (or skip writing if it is not the proper output time.
@@ -2260,7 +2260,7 @@
       !
       ! Flush any unwritten ObsPack data to disk and finalize
       !-----------------------------------------------------------------
-      IF ( Input_Opt%Do_ObsPack .and. (.not. Input_Opt%DryRun) ) THEN
+      IF ( Input_Opt%Do_ObsPack .and. notDryRun ) THEN
 
 #ifdef USE_TIMERS
          CALL GEOS_Timer_Start( "All diagnostics",        RC )
@@ -2296,7 +2296,7 @@
       !-----------------------------------------------------------------
       ! Print the mass-weighted mean OH concentration (if applicable)
       !-----------------------------------------------------------------
-      IF ( .not. Input_Opt%DryRun ) THEN
+      IF ( notDryRun) THEN
          CALL Print_Diag_OH( am_I_Root, Input_Opt, RC )
 
          ! Trap potential errors
