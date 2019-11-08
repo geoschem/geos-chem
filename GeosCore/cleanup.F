@@ -5,7 +5,7 @@
 !
 ! !MODULE: cleanup.F
 !
-! !DESCRIPTION: Subroutine CLEANUP deallocates the memory assigned to 
+! !DESCRIPTION: Subroutine CLEANUP deallocates the memory assigned to
 !  dynamically allocatable arrays just before exiting a GEOS-Chem simulation.
 !\\
 !\\
@@ -76,7 +76,7 @@
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
@@ -86,7 +86,7 @@
 !
       INTEGER,        INTENT(OUT) :: RC           ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  29 Nov 1999 - R. Yantosca - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -128,7 +128,7 @@
          RETURN
       ENDIF
 
-      ! UCX needs to be cleaned up before emissions, because the UCX 
+      ! UCX needs to be cleaned up before emissions, because the UCX
       ! restart variables needs to be passed to the HEMCO diagnostics
       ! first.
       CALL CLEANUP_UCX( am_I_Root )
@@ -195,7 +195,7 @@
       ENDIF
 
       IF ( State_Grid%NestedGrid ) THEN
-         CALL EXIT_TPCORE_WINDOW() 
+         CALL EXIT_TPCORE_WINDOW()
       ELSE
          CALL EXIT_TPCORE()
       ENDIF

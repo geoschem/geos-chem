@@ -653,6 +653,7 @@ CONTAINS
     LOGICAL, SAVE      :: FIRST = .TRUE.
 
     ! Scalars
+    LOGICAL            :: notDryRun
     INTEGER            :: HMRC
     LOGICAL            :: IsEmisTime
 
@@ -665,13 +666,14 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    RC       = GC_SUCCESS
-    HMRC     = HCO_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = &
+    RC        = GC_SUCCESS
+    HMRC      = HCO_SUCCESS
+    ErrMsg    = ''
+    ThisLoc   = &
        ' -> at HCOI_GC_Run (in module GeosCore/hcoi_gc_main_mod.F90)'
-    Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
-               'HEMCO log file for additional error messages!'
+    Instr     = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '      // &
+                'HEMCO log file for additional error messages!'
+    notDryRun = ( .not. Input_Opt%DryRun )
 
     ! Create a splash page
     IF ( am_I_Root .and. FIRST ) THEN
@@ -721,7 +723,7 @@ CONTAINS
     ! Reset all emission and deposition values. Do this only if it is time
     ! for emissions, i.e. if those values will be refilled.
     !=======================================================================
-    IF ( IsEmisTime .AND. Phase == 2 ) THEN
+    IF ( IsEmisTime .AND. Phase == 2 .and. notDryRun ) THEN
        CALL HCO_FluxArrReset( HcoState, HMRC                                )
 
        ! Trap potential errors
@@ -738,7 +740,7 @@ CONTAINS
     ! Define pressure edges [Pa] on HEMCO grid.
     ! At Phase 0, the pressure field is not known yet.
     !=======================================================================
-    IF ( Phase /= 0 ) THEN
+    IF ( Phase /= 0 .and. notDryRun ) THEN
        CALL GridEdge_Set( am_I_Root, State_Grid, State_Met, HcoState, HMRC  )
 
        ! Trap potential errors
@@ -788,25 +790,26 @@ CONTAINS
     !=======================================================================
     ! Get met fields from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
-    IF ( Phase == 0 .or. PHASE == 1 ) THEN
-       CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, Phase, RC )
+    IF ( ( Phase == 0 .or. PHASE == 1 ) .and. notDryRun ) THEN
+       CALL Get_Met_Fields( am_I_Root,  Input_Opt, State_Chm,               &
+                            State_Grid, State_Met, Phase,     RC           )
     ENDIF
 
     !=======================================================================
     ! Get fields from GEOS-Chem restart file (GEOS-Chem "Classic" only)
     !=======================================================================
-    IF ( Phase == 0 ) THEN
-       CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, RC )
+    IF ( Phase == 0 .and. notDryRun ) THEN
+       CALL Get_GC_Restart( am_I_Root,  Input_Opt, State_Chm,               &
+                            State_Grid, State_Met, RC                      )
     ENDIF
 
     !=======================================================================
     ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
-    IF ( State_Grid%NestedGrid .and. (Phase == 0 .or. PHASE == 1) ) THEN
-       CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
-                                     State_Grid, State_Met, RC )
+    IF ( State_Grid%NestedGrid        .and.                                 &
+         (Phase == 0 .or. PHASE == 1) .and. notDryRun ) THEN
+       CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm,      &
+                                     State_Grid, State_Met, RC             )
     ENDIF
 
 #endif
@@ -814,7 +817,7 @@ CONTAINS
     !=======================================================================
     ! Do the following only if it's time to calculate emissions
     !=======================================================================
-    IF ( Phase == 2 .AND. IsEmisTime ) THEN
+    IF ( Phase == 2 .AND. IsEmisTime .and. notDryRun ) THEN
 
        !--------------------------------------------------------------------
        ! Set / update ExtState fields.
@@ -870,7 +873,7 @@ CONTAINS
        ! AutoFill flag is specified when creating a diagnostics container
        ! (Diagn_Create).
        !====================================================================
-       IF ( DoDiagn ) THEN
+       IF ( DoDiagn .and. notDryRun ) THEN
           CALL HcoDiagn_AutoUpdate( am_I_Root, HcoState, HMRC               )
 
           ! Trap potential errors
@@ -887,8 +890,8 @@ CONTAINS
        ! Reset the accumulated nitrogen dry and wet deposition to zero.
        ! Will be re-filled in drydep and wetdep.
        !====================================================================
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
-            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+       IF ( ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.                           &
+              Input_Opt%ITS_AN_AEROSOL_SIM ) .and. notDryRun ) THEN
           CALL RESET_DEP_N( State_Chm )
        ENDIF
 

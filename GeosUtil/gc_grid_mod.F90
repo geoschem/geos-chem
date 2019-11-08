@@ -5,16 +5,16 @@
 !
 ! !MODULE: gc_grid_mod.F90
 !
-! !DESCRIPTION: Module GC\_GRID\_MOD contains variables and routines which are 
-!  used to specify the parameters of a GEOS-Chem horizontal grid. Grid 
+! !DESCRIPTION: Module GC\_GRID\_MOD contains variables and routines which are
+!  used to specify the parameters of a GEOS-Chem horizontal grid. Grid
 !  parameters are computed as 3D arrays, which are required for interfacing
 !  with a GCM.
-!\\  
 !\\
-! !INTERFACE: 
+!\\
+! !INTERFACE:
 !
 MODULE GC_Grid_Mod
-! 
+!
 ! !USES:
 !
   USE ErrCode_Mod
@@ -56,7 +56,7 @@ CONTAINS
 ! !IROUTINE: Compute_Grid
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_GRID initializes the longitude, latitude,
-!  and surface area arrays. 
+!  and surface area arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -74,11 +74,11 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt         ! Input Options
 !
 ! !INPUT/OUTPUT PARAMETERS:
-!  
+!
     TYPE(GrdState), INTENT(INOUT) :: State_Grid        ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
-!  
+!
     INTEGER,        INTENT(OUT)   :: RC                ! Success/failure?
 !
 ! !REMARKS:
@@ -93,7 +93,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
     ! Scalars
     INTEGER  :: I, J, L, IG, JG
     REAL(fp) :: YEDGE_VAL, YSIN_VAL
@@ -157,7 +157,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Grid%GlobalXMid', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%GlobalXMid = 0e+0_fp
-    
+
     ALLOCATE( State_Grid%GlobalYMid(State_Grid%GlobalNX,State_Grid%GlobalNY),&
               STAT=RC )
     CALL GC_CheckVar( 'State_Grid%GlobalYMid', 0, RC )
@@ -225,7 +225,7 @@ CONTAINS
 
     !----------------------------------------------------------------------
     ! Calculate grid box centers and edges on global grid
-    !----------------------------------------------------------------------   
+    !----------------------------------------------------------------------
 
     ! Loop over horizontal grid
     DO J = 1, State_Grid%NY
@@ -234,12 +234,12 @@ CONTAINS
        ! Index value for user-defined grid on the global grid
        IG = I + ( State_Grid%XMinOffset - 1 )
        JG = J + ( State_Grid%YMinOffset - 1 )
-       
+
        !--------------------------------
        ! Longitude centers [degrees]
        !--------------------------------
        State_Grid%XMid(I,J) = ( State_Grid%DX * IG ) - 180e+0_fp
-          
+
        !--------------------------------
        ! Longitude edges [degrees]
        !--------------------------------
@@ -292,7 +292,7 @@ CONTAINS
        ! Lat edges [radians]
        !--------------------------------
        State_Grid%YEdge_R(I,J) = ( PI_180  * State_Grid%YEdge(I,J) )
-          
+
        ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
        YEDGE_VAL = State_Grid%YEdge_R(I,J) ! Lat edge in radians
        YSIN_VAL  = SIN( YEDGE_VAL )          ! SIN( lat edge )
@@ -303,7 +303,7 @@ CONTAINS
 
           ! Test for North Pole if using global grid
           IF ( .not. State_Grid%NestedGrid ) THEN
-          
+
              ! Force the northern edge of grid boxes along the NORTH POLE to
              ! be +90 degrees latitude
              State_Grid%YEdge(I,J+1) = +90e+0_fp
@@ -341,35 +341,35 @@ CONTAINS
     ! Compute grid box surface areas
     !
     ! The surface area of a grid box is derived as follows:
-    ! 
+    !
     !    Area = dx * dy
     !
     ! Where:
     !
     !    dx is the arc length of the box in longitude
     !    dy is the arc length of the box in latitude
-    !  
+    !
     ! Which are computed as:
-    !  
+    !
     !    dx = r * delta-longitude
     !       = ( Re * cos[ YMID[J] ] ) * ( 2 * PI / IIIPAR )
     !
     !    dy = r * delta-latitude
     !       = Re * ( YEDGE[J+1] - YEDGE[J] )
-    !  
+    !
     ! Where:
-    !    
+    !
     !    Re         is the radius of the earth
     !    YMID[J]    is the latitude at the center of box J
     !    YEDGE[J+1] is the latitude at the N. Edge of box J
     !    YEDGE[J]   is the latitude at the S. Edge of box J
     !
     ! So, the surface area is thus:
-    ! 
+    !
     !    Area = ( Re * cos( YMID[J] ) * ( 2 * PI / IIIPAR ) *
     !             Re * ( YEDGE[J+1] - YEDGE[J] )
     !
-    !    2*PI*Re^2    {                                            }      
+    !    2*PI*Re^2    {                                            }
     ! = ----------- * { cos( YMID[J] ) * ( YEDGE[J+1] - YEDGE[J] ) }
     !     IIIPAR      {                                            }
     !
@@ -379,21 +379,21 @@ CONTAINS
     !
     ! The following term:
     !
-    !    cos( YMID[J] ) * ( YEDGE[J+1] - YEDGE[J] ) 
+    !    cos( YMID[J] ) * ( YEDGE[J+1] - YEDGE[J] )
     !
     ! May also be written as a difference of sines:
     !
-    !    sin( YEDGE[J+1] ) - sin( YEDGE[J] ) 
-    ! 
+    !    sin( YEDGE[J+1] ) - sin( YEDGE[J] )
+    !
     ! So the final formula for surface area of a grid box is:
-    ! 
+    !
     !            2*PI*Re^2    {                                     }
     !    Area = ----------- * { sin( YEDGE[J+1] ) - sin( YEDGE[J] ) }
     !              IIIPAR     {                                     }
     !
     !
     ! NOTES:
-    ! (1) The formula with sines is more numerically stable, and will 
+    ! (1) The formula with sines is more numerically stable, and will
     !      yield identical global total surface areas for all grids.
     ! (2) The units are determined by the radius of the earth Re.
     !      if you use Re [m], then surface area will be in [m2], or
@@ -406,7 +406,7 @@ CONTAINS
     !      Cartesian grid.
     !
     ! (bmy, 4/20/06, 2/24/12)
-    !====================================================================== 
+    !======================================================================
 
     ! Loop over horizontal grid
     DO J = 1, State_Grid%NY
@@ -476,27 +476,27 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SetGridFromCtr 
+! !IROUTINE: SetGridFromCtr
 !
 ! !DESCRIPTION: Subroutine SetGridFromCtr sets the grid based upon the passed
-! mid-points. This routine is primarily intented to provide an interface to 
+! mid-points. This routine is primarily intented to provide an interface to
 ! GEOS-5 in an ESMF-environment.
 !\\
 !\\
 ! This routine does not update the grid box areas (AREA\_M2) of grid\_mod.F90.
 ! These need to be updated manually. We cannot do this within this routine
-! since in GEOS-5, the grid box areas are not yet available during the 
+! since in GEOS-5, the grid box areas are not yet available during the
 ! initialization phase (they are imported from superdynamics).
 ! !INTERFACE:
 !
-  SUBROUTINE SetGridFromCtr( am_I_Root,  State_Grid, lonCtr, latCtr, RC ) 
+  SUBROUTINE SetGridFromCtr( am_I_Root,  State_Grid, lonCtr, latCtr, RC )
 !
 ! USES
 !
     USE ErrCode_Mod
     USE Roundoff_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root      ! Root CPU?
     REAL(f4),       INTENT(IN)    :: lonCtr(:,:)    ! Lon ctrs [rad]
@@ -505,7 +505,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(INOUT) :: RC 
+    INTEGER,        INTENT(INOUT) :: RC
 !
 ! !REVISION HISTORY:
 !  02 Jan 2014 - C. Keller   - Initial version
@@ -524,7 +524,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ThisLoc
 
     !======================================================================
-    ! SetGridFromCtr begins here! 
+    ! SetGridFromCtr begins here!
     !======================================================================
 
     ! Initialize
@@ -539,7 +539,7 @@ CONTAINS
        ! Mid points: get directly from passed value
        State_Grid%XMid(I,J)   = RoundOff( lonCtr(I,J) / PI_180, 4 )
        State_Grid%YMid(I,J)   = RoundOff( latCtr(I,J) / PI_180, 4 )
-       State_Grid%YMid_R(I,J) = State_Grid%YMid(I,J) * PI_180 
+       State_Grid%YMid_R(I,J) = State_Grid%YMid(I,J) * PI_180
 
        ! Edges: approximate from neighboring mid points.
        IF ( I == 1 ) THEN
@@ -592,8 +592,8 @@ CONTAINS
 !
 ! !IROUTINE: SetGridFromCtrEdges
 !
-! !DESCRIPTION: Subroutine SetGridFromCtrEdges sets the grid based upon the 
-!  passed mid-points and edge-points given an external grid. This interface 
+! !DESCRIPTION: Subroutine SetGridFromCtrEdges sets the grid based upon the
+!  passed mid-points and edge-points given an external grid. This interface
 !  is primarily used for GEOS-Chem to interface with the WRF model.
 !\\
 !\\
