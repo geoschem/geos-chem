@@ -374,7 +374,7 @@
       ENDIF
 
       ! Initialize fields of the Grid State object
-      CALL Init_State_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+      CALL Init_State_Grid( am_I_Root, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered within call to "Set_Grid_State"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
