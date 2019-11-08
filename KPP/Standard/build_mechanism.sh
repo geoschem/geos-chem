@@ -16,4 +16,8 @@ mv HETCODE gckpp_HetRates.F90
 mv INTEGRATOR gckpp_Integrator.F90
 mv PRECISION gckpp_Precision.F90
 
+# Run python parser OHreactParser.py. This will create fortran code
+# for subroutine Get_OHreactivity and insert it into gckpp_Util.F90
+python OHreact_parser.py
+
 exit 0
