@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Fri Nov  8 13:15:39 2019
+! Time                 : Fri Nov  8 16:46:10 2019
 ! Working directory    : /n/home08/elundgren/GC/Code.12.7.0_gcc/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
