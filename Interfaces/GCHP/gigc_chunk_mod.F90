@@ -266,7 +266,7 @@ CONTAINS
 #endif
 
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
-    CALL Init_Pressure( Input_Opt%AmIRoot, State_Grid, RC )
+    CALL Init_Pressure( Input_Opt%AmIRoot, Input_Opt, State_Grid, RC )
 
     ! Initialize the PBL mixing module
     CALL INIT_PBL_MIX( Input_Opt%AmIRoot, State_Grid, RC )
