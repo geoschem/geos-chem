@@ -357,7 +357,7 @@ CONTAINS
     !=================================================================
 
     ! Set ESMF flag 
-    HcoState%isESMF = .FALSE.  
+    HcoState%Options%isESMF = .FALSE.
 
     ! Let HEMCO schedule the diagnostics output
     HcoState%Options%HcoWritesDiagn = .TRUE.

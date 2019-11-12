@@ -2299,7 +2299,7 @@ CONTAINS
        ELSE IF ( Lct%Dct%DctType   == HCO_DCTTYPE_MASK .AND. &
                  Lct%Dct%Dta%Cover == -999                   ) THEN
 
-          If (HcoState%isESMF) Then
+          If (HcoState%Options%isESMF) Then
              ThisCover = -1
           Else
              ! Get mask edges
@@ -2318,7 +2318,7 @@ CONTAINS
              ! can be seen as fully covering a given CPU even though in
              ! reality it may only cover parts of it. Thus, in ESMF mode
              ! always set coverage to zero or partial (ckeller, 3/17/16).
-             IF ( HcoState%isESMF ) THEN
+             IF ( HcoState%Options%isESMF ) THEN
                 IF ( ThisCover == 1 ) ThisCover = -1
              ENDIF 
           ENDIF 
@@ -2975,7 +2975,7 @@ CONTAINS
        ! increasing cID, pick the lowest cID to make sure that all 
        ! fields are properly added.
        ! Note: this option is currently disabled for ESMF applications.
-       IF ( tmpLct%Dct%Hier == Hier .AND. .NOT. HcoState%isESMF ) THEN 
+       IF ( tmpLct%Dct%Hier == Hier .AND. .NOT. HcoState%Options%isESMF ) THEN
 
           ! temporary flag
           sameCont = .TRUE.

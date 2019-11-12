@@ -82,8 +82,6 @@ MODULE HCO_State_Mod
      TYPE(HcoMicroPhys), POINTER :: MicroPhys  ! Microphysics settings
 
      !%%%%%  Run time options %%%%%
-     LOGICAL                     :: isESMF     ! Are we using ESMF?
-     LOGICAL                     :: isDryRun   ! Are we in a dry run?
      TYPE(HcoOpt),       POINTER :: Options    ! HEMCO run options
 
      !%%%%% ReadLists %%%%%
@@ -296,8 +294,6 @@ CONTAINS
     !=====================================================================
     ! Set misc. parameter
     !=====================================================================
-    HcoState%isESMF     = .FALSE.
-    HcoState%isDryRun   = .FALSE.
 
     ! Physical constants
     ALLOCATE ( HcoState%Phys, STAT = AS )
@@ -340,7 +336,7 @@ CONTAINS
     NULLIFY( HcoState%MicroPhys%BinBound )
 
     ! Default HEMCO options
-    ! ==> execute HEMCO core; use all species and categories
+    ! ==> execute HEMCO core; use all species, categories; not ESMF; not dryrun
     ALLOCATE( HcoState%Options )
     HcoState%Options%ExtNr          =  0
     HcoState%Options%SpcMin         =  1
@@ -350,6 +346,8 @@ CONTAINS
     HcoState%Options%AutoFillDiagn  = .TRUE.
     HcoState%Options%HcoWritesDiagn = .FALSE.
     HcoState%Options%FillBuffer     = .FALSE.
+    HcoState%Options%isESMF         = .FALSE.
+    HcoState%Options%isDryRun       = .FALSE.
 
     ! SetReadList has not been called yet
     HcoState%SetReadListCalled      = .FALSE.

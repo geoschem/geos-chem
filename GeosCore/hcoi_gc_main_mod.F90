@@ -404,9 +404,9 @@ CONTAINS
     ! is set to the container name since this is the identifying name
     ! used by ExtData.
 #ifdef ESMF_
-    HcoState%isESMF = .TRUE.
+    HcoState%Options%isESMF = .TRUE.
 #else
-    HcoState%isESMF = .FALSE.
+    HcoState%Options%isESMF = .FALSE.
 #endif
 
     ! Are we running HEMCO in a dry-run mode?
@@ -415,7 +415,7 @@ CONTAINS
     ! NOT stop on missing files. This is intended to be a quick sanity check to make
     ! sure that GEOS-Chem IO are all correctly set up, which is why most of the runs
     ! fail to complete successfully. (hplin, 11/2/19)
-    HcoState%isDryRun = Input_Opt%DryRun
+    HcoState%Options%isDryRun = Input_Opt%DryRun
 
     ! Set deposition length scale. This determines if dry deposition
     ! frequencies are calculated over the entire PBL or the first

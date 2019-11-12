@@ -111,8 +111,8 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCO_RUN (hco_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Define a local convenience variable to negate HcoState%isDryRun
-    notDryRun = ( .not. HcoState%isDryRun )
+    ! Define a local convenience variable to negate HcoState%Options%isDryRun
+    notDryRun = ( .not. HcoState%Options%isDryRun )
 
     !--------------------------------------------------------------
     ! 1. Check if it's time for emissions

@@ -142,6 +142,8 @@ MODULE HCO_TYPES_MOD
      LOGICAL  :: ScaleEmis      ! Scale emissions by uniform scale factors set 
                                 ! in HEMCO configuration file? Defaults to yes.
      LOGICAL  :: TimeShiftCap   ! Cap time shift to same day. Defaults to no.
+     LOGICAL  :: isESMF         ! Are we using ESMF?
+     LOGICAL  :: isDryRun       ! Are we in a dry run?
   END TYPE HcoOpt
 
   !=========================================================================

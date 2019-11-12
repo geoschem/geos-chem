@@ -181,7 +181,7 @@ CONTAINS
 !                              found in the file
 !  24 Feb 2019 - C. Keller   - Bug fix for interpolation: make sure that it 
 !                              searches both into the future and the past.
-!  02 Nov 2019 - H.P. Lin    - Skip IO and erroring out if HcoState%isDryRun
+!  02 Nov 2019 - H.P. Lin    - Skip IO and erroring out if HcoState%Options%isDryRun
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -263,7 +263,7 @@ CONTAINS
     CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
 
     ! Handle found or not in the standard way if HEMCO is in regular run mode.
-    IF ( .NOT. HcoState%isDryRun ) THEN
+    IF ( .NOT. HcoState%Options%isDryRun ) THEN
 
       ! If file not found, return w/ error. No error if cycling attribute is 
       ! select to range. In that case, just make sure that array is empty.

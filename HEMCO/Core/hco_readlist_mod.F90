@@ -148,7 +148,7 @@ CONTAINS
     ! time) by MAPL, and a pointer needs to be established only once.
     ! Hence, make sure that all containers are added to the one-time
     ! reading list!
-    IF ( HcoState%isESMF .AND. Dct%Dta%ncRead ) THEN
+    IF ( HcoState%Options%isESMF .AND. Dct%Dta%ncRead ) THEN
        intv = 6
     ENDIF
 
