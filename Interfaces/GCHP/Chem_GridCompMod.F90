@@ -4813,8 +4813,7 @@ CONTAINS
                           notFoundOK=.TRUE., __RC__ ) 
     IF ( ASSOCIATED(Ptr3d_R8) .AND. &
          ASSOCIATED(State_Chm%H2O2AfterChem) ) THEN
-       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = &
-          State_Chm%H2O2AfterChem(:,:,State_Grid%NZ:1:-1)
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) = State_Chm%H2O2AfterChem
     ENDIF
     Ptr3d_R8 => NULL()
     
@@ -4848,8 +4847,7 @@ CONTAINS
          ASSOCIATED(State_Chm%KPPHvalue) ) THEN
        Ptr3d_R8(:,:,1:State_Grid%NZ-State_Grid%MaxChemLev) = 0.0
        Ptr3d_R8(:,:,State_Grid%NZ:State_Grid%NZ-State_Grid%MaxChemLev+1:-1) = &
-          REAL(State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev), &
-          KIND=ESMF_KIND_R4)
+          State_Chm%KPPHvalue(:,:,1:State_Grid%MaxChemLev)
     ENDIF
     Ptr3d_R8 => NULL()
 
