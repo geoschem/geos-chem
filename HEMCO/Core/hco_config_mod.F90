@@ -2158,11 +2158,17 @@ CONTAINS
 
     ENDIF
 
+#ifndef MODEL_GEOS
+#ifndef MODEL_WRF
+#ifndef MODEL_CESM
+#ifndef ESMF_
     !=======================================================================
     ! Look for met field and grid resolution.  When running the HEMCO
     ! standalone these will need to be read from the configuration file.
     ! Otherwise, HEMCO will inherit the met field and grid resolution
     ! of the parent model (GC-Classic, GCHP, etc.)
+    !
+    ! NOTE: Only do this check if not using GEOS-Chem in an external ESM!
     !=======================================================================
 
     ! Look for met field
@@ -2193,6 +2199,10 @@ CONTAINS
        END SELECT
        HcoConfig%GridRes = TRIM( GridRes )
     ENDIF
+#endif
+#endif
+#endif
+#endif
 
     ! Leave w/ success
     RC = HCO_SUCCESS
