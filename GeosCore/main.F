@@ -1600,9 +1600,9 @@
          !--------------------------------------------------------------
          ! Test for convection timestep
          !--------------------------------------------------------------
-#ifdef BPCH_DIAG
          IF ( ITS_TIME_FOR_CONV() .and. notDryRun ) THEN
 
+#ifdef BPCH_DIAG
             ! Increment the convection timestep
             CALL Set_Ct_Conv( INCREMENT=.TRUE. )
 #endif
