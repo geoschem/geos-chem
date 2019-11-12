@@ -3753,52 +3753,6 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
-          CASE( 'SOAME' )
-
-             ! Halve the Kc (cloud condensate -> precip) rate
-             ! for the temperature range 237 K <= T < 258 K.
-             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-
-             ! Turn off rainout only when 237 K <= T < 258K.
-             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
-
-             FullName      = 'Aerosol-phase IMAE'
-             Formula       = 'C4H6O3'
-             MW_g          = 102.0_fp
-             Is_Gas        = F
-             Is_Drydep     = T
-             Is_Wetdep     = T
-             DD_DvzAerSnow = 0.03_fp
-             DD_F0         = 0.0_fp
-             DD_HStar_old  = 0.0_fp
-             WD_AerScavEff = 0.8_fp
-             WD_KcScaleFac = KcScale
-             WD_RainoutEff = RainEff
-
-          CASE( 'SOAMG' )
-
-             ! Halve the Kc (cloud condensate -> precip) rate
-             ! for the temperature range 237 K <= T < 258 K.
-             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-
-             ! Turn off rainout only when 237 K <= T < 258K.
-             ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
-
-             FullName      = 'Aerosol-phase methylglyoxal'
-             Formula       = 'C3H4O2'
-             MW_g          = 72.0_fp
-             Is_Gas        = F
-             Is_Drydep     = T
-             Is_Wetdep     = T
-             DD_DvzAerSnow = 0.03_fp
-             DD_F0         = 0.0_fp
-             DD_HStar_old  = 0.0_fp
-             WD_AerScavEff = 0.8_fp
-             WD_KcScaleFac = KcScale
-             WD_RainoutEff = RainEff
-
           CASE( 'SOAP' )
              FullName = 'SOA Precursor - lumped species for simplified SOA parameterization'
 
