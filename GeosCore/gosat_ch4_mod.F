@@ -8,7 +8,7 @@
 ! !DESCRIPTION: Module GOSAT\_CH4\_MOD
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE GOSAT_CH4_MOD
 !
@@ -20,7 +20,7 @@
       USE m_netcdf_io_close      ! netCDF close
       USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
-      IMPLICIT NONE 
+      IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -50,7 +50,7 @@
 ! !MODULE VARIABLES
 !
       ! Record to store data from each GOS obs
-      TYPE GOS_CH4_OBS 
+      TYPE GOS_CH4_OBS
          INTEGER           :: LGOS(1)
          REAL(fp)          :: LAT(1)
          REAL(fp)          :: LON(1)
@@ -71,7 +71,7 @@
          INTEGER           :: GLINT(1)
          INTEGER           :: GAIN(1)
          CHARACTER(LEN=22) :: EXP_ID(1)
-      ENDTYPE GOS_CH4_OBS  
+      ENDTYPE GOS_CH4_OBS
 
       TYPE(GOS_CH4_OBS)    :: GOS(MAXGOS)
 
@@ -85,7 +85,7 @@
 ! !IROUTINE: read_gos_ch4_obs
 !
 ! !DESCRIPTION: Subroutine READ\_GOS\_CH4\_OBS reads the file and passes back
-!  info contained therein. (dkh, 10/12/10) 
+!  info contained therein. (dkh, 10/12/10)
 !\\
 !\\
 ! !INTERFACE:
@@ -107,11 +107,11 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT)     :: NGOS      ! Number of GOS retrievals
-!     
+!
 ! !REVISION HISTORY:
 !  (1 )Based on READ_TES_NH3 OBS (dkh, 04/26/10)
-!  (2 ) Add calculation of S_OER_INV, though eventually we probably want to 
-!        do this offline. (dkh, 05/04/10) 
+!  (2 ) Add calculation of S_OER_INV, though eventually we probably want to
+!        do this offline. (dkh, 05/04/10)
 !  02 May 2016 - M. Sulprizio- Update code to read data from SRON
 !EOP
 !------------------------------------------------------------------------------
@@ -167,11 +167,11 @@
 
       ! Filename
       nc_file = 'ESACCI-GHG-L2-CH4-GOSAT-OCPR-YYYYMMDD-fv7.0.nc'
-      CALL Expand_Date( nc_file, YYYYMMDD, 9999 ) 
+      CALL Expand_Date( nc_file, YYYYMMDD, 9999 )
 
       ! Construct complete file path
       dir = '/n/regal/jacob_lab/msulprizio/ExtData/Obs/ULGOSAT_v7/' //
-     &       CYEAR // '/' 
+     &       CYEAR // '/'
       nc_file = TRIM( dir ) // TRIM( nc_file )
       WRITE( 6, 10 ) TRIM( nc_file )
  10   FORMAT( '     - Reading ', a)
@@ -273,9 +273,9 @@
       ct2d   = (/ StrLen, NGOS /)
       CALL NcRd( exp_id, fId, TRIM(v_name), st2d, ct2d )
 
-      !-------------------------------- 
+      !--------------------------------
       ! Read 2D Data
-      !-------------------------------- 
+      !--------------------------------
 
       ! APRIORI (ppb)
       v_name = 'ch4_profile_apriori'
@@ -301,9 +301,9 @@
       ct2d   = (/ NLEV, NGOS /)
       CALL NcRd( pres_w, fId, TRIM(v_name), st2d, ct2d )
 
-      !-------------------------------- 
+      !--------------------------------
       ! Place data into GOS structure
-      !-------------------------------- 
+      !--------------------------------
       DO N = 1, NGOS
 
          ! 0-D data
@@ -327,9 +327,9 @@
 
       ENDDO
 
-      !-------------------------------- 
+      !--------------------------------
       ! Close netCDF file
-      !-------------------------------- 
+      !--------------------------------
 
       ! Echo info
       WRITE( 6, 20 ) YYYYMMDD
@@ -475,7 +475,7 @@
 !------------------------------------------------------------------------------
 
       ! For miscellaneous
-      LOGICAL, SAVE      :: FIRST = .TRUE. 
+      LOGICAL, SAVE      :: FIRST = .TRUE.
       INTEGER            :: IOS
       INTEGER, SAVE      :: TotalObs = 0
       CHARACTER(LEN=255) :: FILENAME
@@ -523,8 +523,8 @@
          WRITE( 117, 281 ) '       NNN',
      &                     '   I', '   J', '     LON','     LAT','YYYY',
      &                     'MM', 'DD', 'hh', 'mm', 'ss',
-     &                     '         TAU', '       GOSAT', 
-     &                     '       model', '       S_OBS', 
+     &                     '         TAU', '       GOSAT',
+     &                     '       model', '       S_OBS',
      &                     '    COST_FUN', 'GLINT', 'GAIN',
      &                     'EXPOSURE_ID'
  281     FORMAT( A10,2x,A4,2x,A4,2x,A8,2x,A8,2x,A4,2x,A2,2x,A2,2x,A2,2x,
@@ -541,7 +541,7 @@
 
       ! Read Observations at first call and at end of the day
       IF ( FIRST .OR. ITS_A_NEW_DAY() ) THEN
- 
+
          ! Read the GOS CH4 file for this day
          YYYYMMDD = 1d4*GET_YEAR() + 1d2*GET_MONTH() + GET_DAY()
          CALL READ_GOS_CH4_OBS( YYYYMMDD, NGOS )
@@ -574,14 +574,14 @@
 !         S_OBS_MAT(:,:) = -1d0
 !------------------------------------------------------------------------------
 
-         IF ( FIRST ) FIRST = .FALSE. 
+         IF ( FIRST ) FIRST = .FALSE.
 
-      ENDIF 
+      ENDIF
 
       ! Get indices of GOS observations in the current hour
-      !   At the start of each hour, assimilate observations that 
+      !   At the start of each hour, assimilate observations that
       !   were made in the previous 60 minutes.
-      !   For example, at time 18:00, assimilate observations 
+      !   For example, at time 18:00, assimilate observations
       !   made from 18:00 - 18:59
       INDS(:) = 0
       NOBS    = 0
@@ -597,17 +597,17 @@
          ENDIF
       ENDDO
 
-      IF ( NOBS == 0 ) THEN 
+      IF ( NOBS == 0 ) THEN
          print*, ' No matching GOSAT CH4 obs for this hour'
          RETURN
-      ENDIF 
+      ENDIF
 
       print*, ' for hour range: ', GET_HOUR(), GET_HOUR()+1
       print*, ' found # GOSAT observations: ', NOBS
-      
 
-!! need to update this in order to do i/o with this loop parallel 
-!!      ! Now do a parallel loop for analyzing data 
+
+!! need to update this in order to do i/o with this loop parallel
+!!      ! Now do a parallel loop for analyzing data
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( PRIVATE )
 !!!$OMP+PRIVATE( IND, NT, MAP, LGOS, IIJJ,  I, J,  L,   LL, JLOOP )
@@ -619,30 +619,30 @@
       DO IND = 1, NOBS
 
          NT = INDS(IND)
-         !print*, '     - CALC_GOS_CH4_FORCE: analyzing record ', NT 
+         !print*, '     - CALC_GOS_CH4_FORCE: analyzing record ', NT
 
          ! Quality screening (0=good, 1=bad)
-         IF ( GOS(NT)%QFLAG(1) .NE. 0 ) THEN 
+         IF ( GOS(NT)%QFLAG(1) .NE. 0 ) THEN
             print*, ' Bad QFLAG, skipping record         ', NT
             CYCLE
          ENDIF
 
 !         ! Skip glint mode observations (0 = land, 1 = glint)
-!         IF ( GOS(NT)%GLINT(1) .EQ. 1 ) THEN 
+!         IF ( GOS(NT)%GLINT(1) .EQ. 1 ) THEN
 !            print*, ' GLINT obs, skipping record         ', NT
 !            CYCLE
 !         ENDIF
 
          ! Check for NaN in data
-         IF ( IT_IS_NAN( GOS(NT)%CH4(1) ) ) THEN 
+         IF ( IT_IS_NAN( GOS(NT)%CH4(1) ) ) THEN
             print*, ' XCH4 is NaN, skipping record       ', NT
             CYCLE
          ENDIF
-         IF ( IT_IS_NAN( GOS(NT)%PRIOR(1) ) ) THEN 
+         IF ( IT_IS_NAN( GOS(NT)%PRIOR(1) ) ) THEN
             print*, ' PRIOR is NaN, skipping record      ', NT
             CYCLE
          ENDIF
-         IF ( IT_IS_NAN( GOS(NT)%AVG_KERNEL(1) ) ) THEN 
+         IF ( IT_IS_NAN( GOS(NT)%AVG_KERNEL(1) ) ) THEN
             print*, ' AVG_KERNEL is NaN, skipping record ', NT
             CYCLE
          ENDIF
@@ -654,7 +654,7 @@
          ENDIF
 
          ! Check for negative/zero data
-         IF ( GOS(NT)%CH4(1) <= 0d0 ) THEN 
+         IF ( GOS(NT)%CH4(1) <= 0d0 ) THEN
             print*, ' XCH4 is <= 0, skipping record      ', NT
             CYCLE
          ENDIF
@@ -662,7 +662,7 @@
          ! Check for negative/zero error values
          ! Skip zero error values for now to avoid returning S_OBS=0
          ! which will cause COST_FUN=infinity (mps, 6/6/16)
-         IF ( GOS(NT)%CH4_ERROR(1) <= 0d0 ) THEN 
+         IF ( GOS(NT)%CH4_ERROR(1) <= 0d0 ) THEN
             print*, ' XCH4 ERROR is <= 0, skipping record ', NT
             CYCLE
          ENDIF
@@ -677,15 +677,15 @@
                L0 = L
                EXIT
             ENDIF
-         ENDDO       
+         ENDDO
          ! Only find negative pressure at 1st layer so far.
          ! But use this condition to prevent really invalid cases
-         ! (zyz) 
-         IF (L0 .gt. 3 ) CYCLE 
+         ! (zyz)
+         IF (L0 .gt. 3 ) CYCLE
 
          ! Skip observations outside the domain
          IF ( GOS(NT)%LAT(1) < State_Grid%YMin .OR.
-     &        GOS(NT)%LAT(1) > State_Grid%YMax .OR. 
+     &        GOS(NT)%LAT(1) > State_Grid%YMax .OR.
      &        GOS(NT)%LON(1) < State_Grid%XMin .OR.
      &        GOS(NT)%LON(1) > State_Grid%XMax ) THEN
             print*, ' Outside nested domain, skipping record ', NT
@@ -707,7 +707,7 @@
          I    = IIJJ(1)
          J    = IIJJ(2)
 
-         ! skip observations where the GOSAT surface pressure is 
+         ! skip observations where the GOSAT surface pressure is
          ! less than the model
          ! Use L0 for lowest valid layer in GOSAT (zyz)
          IF ( (GOS(NT)%PRES(L0) - State_Met%PEDGE(I,J,1)) > 50e0 ) THEN
@@ -722,9 +722,9 @@
 
          ! For safety, initialize these up to LGOS
          LGOS            = 0
-         GC_CH4(:)       = 0.0_fp 
-         MAP(:,:)        = 0.0_fp 
-         FORCE           = 0.0_fp 
+         GC_CH4(:)       = 0.0_fp
+         MAP(:,:)        = 0.0_fp
+         FORCE           = 0.0_fp
          CH4_PRIOR(:)    = 0.0_fp
 
          ! Copy variable names to make coding a bit cleaner
@@ -734,20 +734,20 @@
             CH4_PRIOR(L) = GOS(NT)%PRIOR(L) * 1d-9 ! [ppb] --> [v/v]
          ENDDO
 
-         ! Get GC pressure levels (mbar) 
+         ! Get GC pressure levels (mbar)
          DO L = 1, State_Grid%NZ
             GC_PRES(L) = State_Met%PMID(I,J,L)
          ENDDO
 
-         ! Get GC pressure edges (mbar) 
+         ! Get GC pressure edges (mbar)
          DO L = 1, State_Grid%NZ+1
             GC_PEDGE(L) = State_Met%PEDGE(I,J,L)
          ENDDO
 
-         ! Get GC surface pressure (mbar) 
-         GC_PSURF = State_Met%PEDGE(I,J,1) 
+         ! Get GC surface pressure (mbar)
+         GC_PSURF = State_Met%PEDGE(I,J,1)
 
-         ! Calculate the interpolation weight matrix 
+         ! Calculate the interpolation weight matrix
          MAP(:,:) = 0.0_fp
          CALL GET_INTMAP( State_Grid, GC_PRES, GC_PSURF, GOS(NT)%PRES,
      &                    L0, LGOS, MAP )
@@ -780,17 +780,17 @@
 !------------------------------------------------------------------------------
          ! Get species concentrations
          ! Convert from [kg/box] --> [v/v]
-         GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4) * ( AIRMW / 
+         GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4) * ( AIRMW /
      &                      State_Chm%SpcData(id_CH4)%Info%emMW_g )
 
- 
+
          ! Interpolate GC CH4 column to GOSAT grid
          ! Use L0 for lowest valid layer for GOSAT (zyz)
          DO LL = L0, LGOS
             GC_CH4(LL) = 0.0_fp
-            DO L = 1, State_Grid%NZ 
-               GC_CH4(LL) = GC_CH4(LL) 
-     &                    + MAP(L,LL) * GC_CH4_NATIVE(L) 
+            DO L = 1, State_Grid%NZ
+               GC_CH4(LL) = GC_CH4(LL)
+     &                    + MAP(L,LL) * GC_CH4_NATIVE(L)
             ENDDO
          ENDDO
 
@@ -799,20 +799,20 @@
          GOS_XCH4_ERROR = GOS(NT)%CH4_ERROR(1) * 1e-9_fp
 
          ! Remove any GOSAT bias
-         GOS_XCH4 = GOS_XCH4 + 1e-9 * ( SATELLITE_BIAS(1) 
+         GOS_XCH4 = GOS_XCH4 + 1e-9 * ( SATELLITE_BIAS(1)
      &                       + SATELLITE_BIAS(2)*(GOS(NT)%LAT(1))
      &                       + SATELLITE_BIAS(3)*(GOS(NT)%LAT(1))**2 )
 
          ! Get the S_obs, assume stddev adds in quadrature, variance
-         ! adds linearly.  (ajt, 03/27/2013) 
+         ! adds linearly.  (ajt, 03/27/2013)
          S_OBS = GOS_XCH4_ERROR**2 + (GC_XCH4_ERROR * 1e-9_fp)**2
 
 !------------------------------------------------------------------------------
 ! EXT_OBS_MAT is hardcoded to FALSE at beginning of routine (mps, 6/16/17)
 !         ! Specify the observational error externally
 !         ! (ajt, 11/5/13)
-!         IF (EXT_OBS_MAT) THEN 
-!     
+!         IF (EXT_OBS_MAT) THEN
+!
 !            ! Read in the obs error matrix
 !            FILENAME = '../ext_sat_obs.gosat.nc'
 !            FILENAME = TRIM( DIAGADJ_DIR ) //  TRIM( FILENAME )
@@ -823,10 +823,10 @@
 !
 !            ! Get our observational error
 !            IF ( (S_OBS_MAT(I,J) .GT.                  0d0)   .AND.
-!     &           (S_OBS_MAT(I,J) .GT. GOS(NT)%CH4_ERROR(1)) ) THEN 
+!     &           (S_OBS_MAT(I,J) .GT. GOS(NT)%CH4_ERROR(1)) ) THEN
 !               S_OBS = (S_OBS_MAT(I,J) * 1d-9)**2
 !            ENDIF
-!     
+!
 !         ENDIF
 !------------------------------------------------------------------------------
 
@@ -834,7 +834,7 @@
          ! Apply GOSAT observation operator
          !
          !   Xch4_m = Xch4_a + SUM_j( h_j * a_j * (x_m - x_a) )
-         !  
+         !
          !   Xch4_m  - model XCH4
          !   Xch4_a  - apriori XCH4 = h^T * x_a
          !   h       - pressure weighting function
@@ -842,7 +842,7 @@
          !   x_m     - model CH4 [v/v]
          !   x_a     - apriori CH4 [v/v]
          !
-         !   The pressure weighting function is defined in Connor et al. 2008 
+         !   The pressure weighting function is defined in Connor et al. 2008
          !     and the OCO-2 ATBD
          !--------------------------------------------------------------
 
@@ -861,20 +861,20 @@
          ENDIF
 
          L = 1
-         h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
+         h(L) = 1./GOS(NT)%PRES(L0) * ABS(
      &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) )
          L = LGOS - L0 + 1
-         h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
+         h(L) = 1./GOS(NT)%PRES(L0) * ABS(
      &         (  p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) ) )
          DO L=2,LGOS-L0
-            h(L) = 1./GOS(NT)%PRES(L0) * ABS( 
-     &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) +  
+            h(L) = 1./GOS(NT)%PRES(L0) * ABS(
+     &         ( -1e0*p(L) + ( (p(L+1)-p(L))/(LOG(p(L+1)/p(L))) ) ) +
      &         (      p(L) - ( (p(L)-p(L-1))/(LOG(p(L)/p(L-1))) ) )   )
          ENDDO
 
          ! Now return to the orientation of the other variables
-         IF (LGOS .GT. 1) THEN 
-            IF(GOS(NT)%PRES(L0+1) .LT. GOS(NT)%PRES(L0)) THEN 
+         IF (LGOS .GT. 1) THEN
+            IF(GOS(NT)%PRES(L0+1) .LT. GOS(NT)%PRES(L0)) THEN
                h(1:LGOS) = h(LGOS:1:-1)
                p(1:LGOS) = p(LGOS:1:-1)
             ENDIF
@@ -914,7 +914,7 @@
 !------------------------------------------------------------------------------
 ! For adjoint model only:
 !         !--------------------------------------------------------------
-!         ! Begin adjoint calculations 
+!         ! Begin adjoint calculations
 !         !--------------------------------------------------------------
 !
 !         ! The adjoint forcing  is S_{obs}^{-1} * DIFF = FORCE
@@ -929,26 +929,26 @@
 !            !GC_CH4_ADJ(LL) = h(LL) * ak(LL)*GC_XCH4_ADJ
 !            GC_CH4_ADJ(LL) = pres_w(LL) * ak(LL)*GC_XCH4_ADJ
 !         ENDDO
-! 
+!
 !! Old interpolation from kjw
-!         ! adjoint of interpolation 
+!         ! adjoint of interpolation
 !         DO L  = 1, State_Grid%NZ
-!            GC_CH4_NATIVE_ADJ(L) = 0d0 
+!            GC_CH4_NATIVE_ADJ(L) = 0d0
 !            DO LL = 1, LGOS
 !               GC_CH4_NATIVE_ADJ(L) = GC_CH4_NATIVE_ADJ(L)
 !     &                              + MAP(L,LL) * GC_CH4_ADJ(LL)
 !            ENDDO
 !         ENDDO
-!         
+!
 !!         ! Updated adjoint of interpolation
 !!         GC_CH4_NATIVE_ADJ = INTERP_GC_GOS( State_Grid%NZ, LGOS,
 !!     &                       GOS(NT)%PRES(1:LGOS),
 !!     &                       GOS_PEDGE( LGOS, GOS(NT)%PRES(1:LGOS) ),
 !!     &                       GC_PRES, GC_CH4_ADJ )
 !
-!         ! Adjoint of unit conversion 
+!         ! Adjoint of unit conversion
 !         GC_CH4_NATIVE_ADJ(:) = GC_CH4_NATIVE_ADJ(:) * TCVV_CH4
-!     &                        / AD(I,J,:) 
+!     &                        / AD(I,J,:)
 !
 !        ! Pass adjoint back to adjoint tracer array
 !         STT_ADJ(I,J,:,IDTCH4)  = STT_ADJ(I,J,:,IDTCH4)
@@ -958,10 +958,10 @@
          TotalObs = TotalObs + 1
 
          ! Record information for satellite diagnostics
-         IF ( LDCH4SAT ) THEN 
+         IF ( LDCH4SAT ) THEN
             WRITE( 117, 282 ) TotalObs, I, J, GOS(NT)%LON(1),
-     &           GOS(NT)%LAT(1),GOS(NT)%YEAR(1), 
-     &           GOS(NT)%MONTH(1),GOS(NT)%DAY(1), GOS(NT)%HOUR(1), 
+     &           GOS(NT)%LAT(1),GOS(NT)%YEAR(1),
+     &           GOS(NT)%MONTH(1),GOS(NT)%DAY(1), GOS(NT)%HOUR(1),
      &           GOS(NT)%MINUTE(1), GOS(NT)%SEC(1),
      &           GET_TAU(), GOS_XCH4, GC_XCH4, S_OBS, 0.5d0*FORCE*DIFF,
      &           GOS(NT)%GLINT(1),GOS(NT)%GAIN(1),GOS(NT)%EXP_ID(1)
@@ -975,7 +975,7 @@
       ! Number of observations processed in total
       !TotalObs = TotalObs + NOBS
 
-      ! Update cost function 
+      ! Update cost function
       COST_FUNC = COST_FUNC + SUM(NEW_COST(:))
 
 !==============================================================================
@@ -1011,13 +1011,13 @@
 !      I     = IIJJ(1)
 !      J     = IIJJ(2)
 !
-!      ! Get GC pressure levels (mbar) 
+!      ! Get GC pressure levels (mbar)
 !      DO L = 1, State_Grid%NZ
 !         GC_PRES(L) = GET_PCENTER(I,J,L)
 !      ENDDO
 !
-!      ! Get GC surface pressure (mbar) 
-!      GC_PSURF = GET_PEDGE(I,J,1) 
+!      ! Get GC surface pressure (mbar)
+!      GC_PSURF = GET_PEDGE(I,J,1)
 !
 !      ! Write identifying information to top of satellite diagnostic file
 !      WRITE(116,'(a)') '----------------------------------------------'
@@ -1057,8 +1057,8 @@
 !         ! Write information to satellite diagnostic file
 !         WRITE(116, 211)  LL,     GC_PRES(LL),
 !     &                    FD_POS(LL),   FD_NEG(LL),
-!     &                    FD_CEN(LL),   ADJ_SAVE(LL), 
-!     &                    COST_FUNC_pos, COST_FUNC_neg, 
+!     &                    FD_CEN(LL),   ADJ_SAVE(LL),
+!     &                    COST_FUNC_pos, COST_FUNC_neg,
 !     &                    FD_POS(LL)/ADJ_SAVE(LL),
 !     &                    FD_NEG(LL)/ADJ_SAVE(LL),
 !     &                    FD_CEN(LL)/ADJ_SAVE(LL)
@@ -1081,8 +1081,8 @@
      &        2x,I2,2x,I2,2x,F12.3,2x,E12.6,2x,E12.6,2x,E12.6,2x,E12.6,
      &        2x,I5,2x,I5,2x,A22)
 
-      print*, ' Updated value of COST_FUNC = ', COST_FUNC 
-      print*, ' GOS contribution           = ', COST_FUNC - OLD_COST  
+      print*, ' Updated value of COST_FUNC = ', COST_FUNC
+      print*, ' GOS contribution           = ', COST_FUNC - OLD_COST
       print*, ' Number of observations this hour = ', NOBS
       print*, ' Number of observations total     = ', TotalObs
 
@@ -1096,16 +1096,16 @@
 !!
 !!******************************************************************************
 !!  Subroutine CALC_GOS_CH4_FORCE calculates the adjoint forcing from the GOSAT
-!!  CH4 observations and updates the cost function. (dkh, 10/12/10) 
-!! 
+!!  CH4 observations and updates the cost function. (dkh, 10/12/10)
+!!
 !!
 !!  Arguments as Input/Output:
 !!  ============================================================================
 !!  (1 ) COST_FUNC (REAL(fp)) : Cost funciton                        [unitless]
-!!     
-!!     
+!!
+!!
 !!  NOTES:
-!!  
+!!
 !!******************************************************************************
 !!
 !      ! Reference to f90 modules
@@ -1129,7 +1129,7 @@
 !
 !      !ajt. Analytical inversion
 !      USE LOGICAL_ADJ_MOD,    ONLY : LANAL_INV
-!      
+!
 !      ! ajt. Forward mode
 !      USE ADJ_ARRAYS_MOD,     ONLY : OBS_STT
 !
@@ -1204,16 +1204,16 @@
 !      !=================================================================
 !
 !      print*, '     - CALC_GOS_CH4_FORCE_FD '
-!    
+!
 !      ! Reset
 !      COST_FUNC_A = 0d0
 !      ADJ(:)      = 0d0
 !
 !      ! For safety, initialize these up to LLGOS
 !      LGOS            = 0
-!      GC_CH4(:)       = 0d0 
-!      MAP(:,:)        = 0d0 
-!      FORCE           = 0d0 
+!      GC_CH4(:)       = 0d0
+!      MAP(:,:)        = 0d0
+!      FORCE           = 0d0
 !      CH4_PRIOR(:)    = 0d0
 !
 !      ! Initialize the observational error matrix (-1 if not read
@@ -1231,21 +1231,21 @@
 !      I     = IIJJ(1)
 !      J     = IIJJ(2)
 !
-!      ! Get GC pressure levels (mbar) 
+!      ! Get GC pressure levels (mbar)
 !      DO L = 1, State_Grid%NZ
 !         GC_PRES(L) = GET_PCENTER(I,J,L)
 !      ENDDO
 !
-!      ! Get GC pressure edges (mbar) 
-!      DO L = 1, State_Grid%NZ+1           
+!      ! Get GC pressure edges (mbar)
+!      DO L = 1, State_Grid%NZ+1
 !         GC_PEDGE(L) = GET_PEDGE(I,J,L)
 !      ENDDO
 !
-!      ! Get GC surface pressure (mbar) 
-!      GC_PSURF = GET_PEDGE(I,J,1) 
+!      ! Get GC surface pressure (mbar)
+!      GC_PSURF = GET_PEDGE(I,J,1)
 !
 !
-!      ! Calculate the interpolation weight matrix 
+!      ! Calculate the interpolation weight matrix
 !      MAP(:,:) = 0d0
 !      CALL GET_INTMAP( State_Grid, GC_PRES, GC_PSURF, GOS(NT)%PRES,
 !     &                 LGOS, MAP )
@@ -1270,20 +1270,20 @@
 !
 !      ! Convert from kg/box to v/v
 !      GC_CH4_NATIVE(:) = GC_CH4_NATIVE(:) * TCVV_CH4
-!     &                    / AD(I,J,:) 
-! 
+!     &                    / AD(I,J,:)
+!
 !!      ! Interpolate GC CH4 column to GOSAT grid
 !!      ! use the method of Parker et al., (2011)
 !!      GC_CH4 = INTERP_GC_GOS( LGOS, State_Grid%NZ, GC_PRES, GC_PEDGE,
 !!     &         GOS(NT)%PRES(1:LGOS), GC_CH4_NATIVE )
 !
 !! Old interpolation method from kjw
-!      ! Interpolate GC CH4 column to GOSAT grid 
+!      ! Interpolate GC CH4 column to GOSAT grid
 !      DO LL = 1, LGOS
-!         GC_CH4(LL) = 0d0 
-!         DO L = 1, State_Grid%NZ 
-!            GC_CH4(LL) = GC_CH4(LL) 
-!     &           + MAP(L,LL) * GC_CH4_NATIVE(L) 
+!         GC_CH4(LL) = 0d0
+!         DO L = 1, State_Grid%NZ
+!            GC_CH4(LL) = GC_CH4(LL)
+!     &           + MAP(L,LL) * GC_CH4_NATIVE(L)
 !         ENDDO
 !      ENDDO
 !
@@ -1292,18 +1292,18 @@
 !      GOS_XCH4_ERROR = GOS(NT)%CH4_ERROR(1) * 1d-9
 !
 !      ! Remove any GOSAT bias
-!      GOS_XCH4 = GOS_XCH4 + 1d-9 * ( SATELLITE_BIAS(1) 
+!      GOS_XCH4 = GOS_XCH4 + 1d-9 * ( SATELLITE_BIAS(1)
 !     &                    + SATELLITE_BIAS(2)*(GOS(NT)%LAT(1))
 !     &                    + SATELLITE_BIAS(3)*(GOS(NT)%LAT(1))**2 )
 !
 !      ! Get the S_obs, assume stddev adds in quadrature, variance
-!      ! adds linearly.  (ajt, 03/27/2013) 
+!      ! adds linearly.  (ajt, 03/27/2013)
 !      S_OBS = GOS_XCH4_ERROR**2 + (GC_XCH4_ERROR * 1d-9)**2
 !
 !      ! Specify the observational error externally
 !      ! (ajt, 11/5/13)
-!      IF (EXT_OBS_MAT) THEN 
-!              
+!      IF (EXT_OBS_MAT) THEN
+!
 !         ! Read in the obs error matrix
 !         FILENAME = '../ext_sat_obs.gosat.nc'
 !         FILENAME = TRIM( DIAGADJ_DIR ) //  TRIM( FILENAME )
@@ -1314,17 +1314,17 @@
 !
 !         ! Get our observational error
 !         IF ( (S_OBS_MAT(I,J) .GT.                  0d0)   .AND.
-!     &        (S_OBS_MAT(I,J) .GT. GOS(NT)%CH4_ERROR(1)) ) THEN 
+!     &        (S_OBS_MAT(I,J) .GT. GOS(NT)%CH4_ERROR(1)) ) THEN
 !            S_OBS = (S_OBS_MAT(I,J) * 1d-9)**2
 !         ENDIF
-!  
+!
 !      ENDIF
 !
 !      !--------------------------------------------------------------
 !      ! Apply GOSAT observation operator
 !      !
 !      !   Xch4_m = Xch4_a + SUM_j( h_j * a_j * (x_m - x_a) )
-!      !  
+!      !
 !      !   Xch4_m  - model XCH4
 !      !   Xch4_a  - apriori XCH4 = h^T * x_a
 !      !   h       - pressure weighting function
@@ -1332,7 +1332,7 @@
 !      !   x_m     - model CH4 [v/v]
 !      !   x_a     - apriori CH4 [v/v]
 !      !
-!      !   The pressure weighting function is defined in Connor et al. 2008 
+!      !   The pressure weighting function is defined in Connor et al. 2008
 !      !     and the OCO-2 ATBD
 !      !--------------------------------------------------------------
 !
@@ -1407,12 +1407,12 @@
 !
 !
 !      !--------------------------------------------------------------
-!      ! Begin adjoint calculations 
+!      ! Begin adjoint calculations
 !      !--------------------------------------------------------------
 !
 !      ! The adjoint forcing  is S_{obs}^{-1} * DIFF = FORCE
 !      DIFF_ADJ = FORCE
-! 
+!
 !      ! Adjoint of difference
 !      GC_XCH4_ADJ = DIFF_ADJ
 !
@@ -1425,9 +1425,9 @@
 !      ENDDO
 !
 !! Old interpolation from kjw
-!      ! adjoint of interpolation 
+!      ! adjoint of interpolation
 !      DO L  = 1, State_Grid%NZ
-!         GC_CH4_NATIVE_ADJ(L) = 0d0 
+!         GC_CH4_NATIVE_ADJ(L) = 0d0
 !         DO LL = 1, LGOS
 !            GC_CH4_NATIVE_ADJ(L) = GC_CH4_NATIVE_ADJ(L)
 !     &                           + MAP(L,LL) * GC_CH4_ADJ(LL)
@@ -1440,9 +1440,9 @@
 !!     &                    GOS_PEDGE( LGOS, GOS(NT)%PRES(1:LGOS) ),
 !!     &                    GC_PRES, GC_CH4_ADJ, MAP )
 !
-!      ! Adjoint of unit conversion 
+!      ! Adjoint of unit conversion
 !      GC_CH4_NATIVE_ADJ(:) = GC_CH4_NATIVE_ADJ(:) * TCVV_CH4
-!     &                     / AD(I,J,:) 
+!     &                     / AD(I,J,:)
 !
 !      ! Calculate adjoint sensitivity to values in CHK_STT
 !      ADJ(:) = 0d0
@@ -1461,7 +1461,7 @@
 !
 !!------------------------------------------------------------------------------
 !
-!      FUNCTION INTERP_GC_GOS( LGOS, LGC, GC_P_I, PEDGE_I, GOS_P_I, 
+!      FUNCTION INTERP_GC_GOS( LGOS, LGC, GC_P_I, PEDGE_I, GOS_P_I,
 !     &                        GC_CH4_NATIVE_I )
 !!
 !!******************************************************************************
@@ -1475,11 +1475,11 @@
 !!  (4 ) PEDGE_I         : GEOS-Chem pressure edges            [mbar]
 !!  (5 ) GOS_P_I         : GOSAT pressure levels               [mbar]
 !!  (6 ) GC_CH4_NATIVE_I : GEOS-Chem CH4 on the native grid    [kg/box]
-!!     
+!!
 !!  Arguments as Output:
 !!  ============================================================================
 !!  (1 ) INTERP_GC_GOS   : GEOS-Chem CH4 interpolated to GOSAT [v/v]
-!!     
+!!
 !!  NOTES:
 !!  (1 ) Converts to Layer Column Density (LCD) before performing interpolation
 !!       because LCD is a monotonically increasing function of pressure.
@@ -1495,14 +1495,14 @@
 !      REAL(fp), INTENT(IN)             :: GOS_P_I(LGOS)
 !
 !      ! Parameters
-!      REAL(fp), PARAMETER              :: AV_NUM = 6.0221418d23 
-!      REAL(fp), PARAMETER              :: MOLWT  = 16.0426*1d-3 
+!      REAL(fp), PARAMETER              :: AV_NUM = 6.0221418d23
+!      REAL(fp), PARAMETER              :: MOLWT  = 16.0426*1d-3
 !      REAL(fp), PARAMETER              :: GRAV   = 9.81d0
 !
-!      ! Return value 
+!      ! Return value
 !      REAL(fp)                         :: INTERP_GC_GOS(LGOS)
 !
-!      ! Local variables 
+!      ! Local variables
 !      INTEGER                        :: L, LL
 !      REAL(fp)                         :: SCD(LGC+1)
 !      REAL(fp)                         :: GC_CH4_NATIVE(LGC)
@@ -1543,7 +1543,7 @@
 !         ENDIF
 !      ENDIF
 !
-!      ! Interpolate GC CH4 column to GOSAT grid 
+!      ! Interpolate GC CH4 column to GOSAT grid
 !      ! use the method of Parker et al., (2011)
 !      TOTAL_SCD  = 0D0
 !      SCD(:)     = 0D0 ! SCD at toa is zero
@@ -1557,7 +1557,7 @@
 !
 !      ! Determine how much a level influences the levels above and below it
 !      DO LL = 1, LGOS
-!         
+!
 !         ! Make coding cleaner
 !         p = GOS_P
 !
@@ -1621,11 +1621,11 @@
 !!  ============================================================================
 !!  (1 ) LGOS      : Number of GOSAT pressure levels           [unit]
 !!  (2 ) GOS_P_I   : GOSAT pressure levels                     [mbar]
-!!     
+!!
 !!  Arguments as Output:
 !!  ============================================================================
 !!  (1 ) GOS_PEDGE : GOSAT pressure edges                      [v/v]
-!!     
+!!
 !!  NOTES:
 !!  (1 ) N/A
 !!
@@ -1635,10 +1635,10 @@
 !      INTEGER,  INTENT(IN)           :: LGOS
 !      REAL(fp), INTENT(IN)             :: GOS_P_I(LGOS)
 !
-!      ! Return value 
+!      ! Return value
 !      REAL(fp)                         :: GOS_PEDGE(LGOS+1)
 !
-!      ! Local variables 
+!      ! Local variables
 !      INTEGER                        :: LL
 !      REAL(fp)                         :: p(LGOS)
 !      REAL(fp)                         :: PEDGE(LGOS+1)
@@ -1659,7 +1659,7 @@
 !
 !      ! Determine how much a level influences the levels above and below it
 !      DO LL = 1, LGOS
-!         
+!
 !         ! Make coding cleaner
 !         p = GOS_P
 !
@@ -1683,7 +1683,7 @@
 !         LAYER_BOT(LL) = ( GOS_P(LL) + test1 )
 !         LAYER_TOP(LL) = ( GOS_P(LL) - test2 )
 !      ENDDO
-!      
+!
 !      ! Get the edges
 !      DO LL = 1, LGOS+1
 !
@@ -1724,11 +1724,11 @@
 !!  (3 ) U  : Abscissa values to interpolate onto              [unit]
 !!  (4 ) Na : Length of "Y" and "X"                            [unit]
 !!  (5 ) Nb : Length of "U"                                    [unit]
-!!     
+!!
 !!  Arguments as Output:
 !!  ============================================================================
 !!  (1 ) INTERPOL : Interpolated data                          [unit]
-!!     
+!!
 !!  NOTES:
 !!  (1 ) N/A
 !!
@@ -1740,11 +1740,11 @@
 !      REAL(fp),  INTENT(IN)            :: Y(Na)
 !      REAL(fp),  INTENT(IN)            :: X(Na)
 !      REAL(fp),  INTENT(IN)            :: U(Nb)
-! 
-!      ! Return value 
+!
+!      ! Return value
 !      REAL(fp)                         :: INTERPOL(Nb)
 !
-!      ! Local variables 
+!      ! Local variables
 !      REAL(fp)   :: X_S, X_L, X_H
 !      REAL(fp)   :: Y_S, Y_L, Y_H
 !      INTEGER  :: I, J
@@ -1753,7 +1753,7 @@
 !      ! INTERPOL begins here!
 !      !=================================================================
 !
-!      INTERPOL(:) = 0D0 
+!      INTERPOL(:) = 0D0
 !
 !      ! Loop over the variable we're interpolating to
 !      DO I = 1, Nb
@@ -1763,7 +1763,7 @@
 !
 !         ! Is the data in forward or reverse order?
 !         IF ( X(2) .GE. X(1) ) THEN
-!            
+!
 !            ! Checks to see if we're outside of the "X" data
 !            IF ( X_S .LT. X(1) ) THEN
 !               X_L = X(1)
@@ -1786,7 +1786,7 @@
 !                  ENDIF
 !               ENDDO
 !            ENDIF
-!         
+!
 !         ELSE ! Data is in reverse order
 !
 !            ! Checks to see if we're outside of the "X" data
@@ -1813,7 +1813,7 @@
 !            ENDIF
 !
 !         ENDIF
-!         
+!
 !         ! Interpolate
 !         Y_S = ( (Y_H - Y_L) / (X_H - X_L) ) * (X_S - X_L) + Y_L
 !
@@ -1855,7 +1855,7 @@
       TYPE(GrdState), INTENT(IN) :: State_Grid
       REAL(fp), INTENT(IN)  :: GCPCEN(State_Grid%NZ)
       REAL(fp), INTENT(IN)  :: GCPSURF
-      REAL(fp), INTENT(IN)  :: GOSPEDGE(MAXLEV) 
+      REAL(fp), INTENT(IN)  :: GOSPEDGE(MAXLEV)
       INTEGER,  INTENT(IN)  :: L0, L1
 !
 ! !OUTPUT PARAMETERS:
@@ -1894,10 +1894,10 @@
             HI  = GCPCEN(LGC)
 
             ! Match GEOS-Chem level to GOS level
-            IF ( GOSPEDGE(LTM) <= HI .and. 
-     &           GOSPEDGE(LTM)  > LOW) THEN 
+            IF ( GOSPEDGE(LTM) <= HI .and.
+     &           GOSPEDGE(LTM)  > LOW) THEN
 
-               DIFF             = HI - LOW  
+               DIFF             = HI - LOW
                INTMAP(LGC+1,LTM) = ( HI - GOSPEDGE(LTM)  ) / DIFF
                INTMAP(LGC  ,LTM) = ( GOSPEDGE(LTM) - LOW ) / DIFF
 
@@ -1908,7 +1908,7 @@
        ENDDO
 
        ! Correct for case where GOSAT pressure is higher than the
-       ! highest GC pressure center.  In this case, just 1:1 map. 
+       ! highest GC pressure center.  In this case, just 1:1 map.
        DO LTM = L0, L1
           IF ( GOSPEDGE(LTM) > GCPCEN(1) ) THEN
              INTMAP(:,LTM) = 0e+0_fp

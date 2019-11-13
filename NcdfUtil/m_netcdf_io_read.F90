@@ -11,7 +11,7 @@
       MODULE m_netcdf_io_read
 !
 ! !USES:
-! 
+!
       IMPLICIT NONE
       PRIVATE
 !
@@ -32,7 +32,7 @@
          MODULE PROCEDURE Ncrd_2d_R8
          MODULE PROCEDURE Ncrd_2d_R4
          MODULE PROCEDURE Ncrd_2d_Int
-         MODULE PROCEDURE Ncrd_2d_Char         
+         MODULE PROCEDURE Ncrd_2d_Char
          MODULE PROCEDURE Ncrd_3d_R8
          MODULE PROCEDURE Ncrd_3d_R4
          MODULE PROCEDURE Ncrd_3d_Int
@@ -50,16 +50,16 @@
 ! !DESCRIPTION: Routines for reading variables in a netCDF file.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
 !  Initial code.
-!  03 Jul 2008 - R. Yantosca - Now overload all module methods with a 
+!  03 Jul 2008 - R. Yantosca - Now overload all module methods with a
 !                              single public interface.
-!  26 Oct 2011 - R. Yantosca - Add REAL*8 and REAL*4 versions of all 
+!  26 Oct 2011 - R. Yantosca - Add REAL*8 and REAL*4 versions of all
 !                              NCRD_* routines.
-!  20 Dec 2011 - R. Yantosca - Added Ncwr_4d_Int 
+!  20 Dec 2011 - R. Yantosca - Added Ncwr_4d_Int
 !  20 Dec 2011 - R. Yantosca - Make process more efficient by not casting
 !                              to temporary variables after file read
 !  04 Feb 2015 - C. Keller   - Added 7d reading routines.
@@ -98,7 +98,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a netCDF scalar variable.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -165,7 +165,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a netCDF integer scalar variable.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -220,8 +220,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !!    ncid     : netCDF file id to read array input data from
 !!    varname  : netCDF variable name for array
-!!    strt1d   : vector specifying the index in varrd_1d where 
-!!               the first of the data values will be read 
+!!    strt1d   : vector specifying the index in varrd_1d where
+!!               the first of the data values will be read
 !!    cnt1d    : varrd_1d dimension
       integer          , intent(in)   :: ncid
       character (len=*), intent(in)   :: varname
@@ -237,7 +237,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 1D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -317,8 +317,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !!    ncid     : netCDF file id to read array input data from
 !!    varname  : netCDF variable name for array
-!!    strt1d   : vector specifying the index in varrd_1d where 
-!!               the first of the data values will be read 
+!!    strt1d   : vector specifying the index in varrd_1d where
+!!               the first of the data values will be read
 !!    cnt1d    : varrd_1d dimension
       integer          , intent(in)   :: ncid
       character (len=*), intent(in)   :: varname
@@ -334,7 +334,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 1D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -415,8 +415,8 @@ CONTAINS
 !
 !!    ncid     : netCDF file id to read array input data from
 !!    varname  : netCDF variable name for array
-!!    strt1d   : vector specifying the index in varrd_1di where 
-!!               the first of the data values will be read 
+!!    strt1d   : vector specifying the index in varrd_1di where
+!!               the first of the data values will be read
 !!    cnt1d    : varrd_1di dimension
       integer          , intent(in)   :: ncid
       character (len=*), intent(in)   :: varname
@@ -429,11 +429,11 @@ CONTAINS
       integer          , intent(out)  :: varrd_1di(cnt1d(1))
       integer, optional, intent(out)  :: stat
 !
-! !DESCRIPTION: Reads in a 1D netCDF integer array and does some error 
+! !DESCRIPTION: Reads in a 1D netCDF integer array and does some error
 !  checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -525,7 +525,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 2D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -545,7 +545,7 @@ CONTAINS
       ierr = Nf_Inq_Varid (ncid, varname, varid)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_2d_R8 #1:  ' // Trim (varname) // & 
+        err_msg = 'In Ncrd_2d_R8 #1:  ' // Trim (varname) // &
                   ', ' // Nf_Strerror (ierr)
         call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
       end if
@@ -594,7 +594,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 2D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -612,7 +612,7 @@ CONTAINS
       ierr = Nf_Inq_Varid (ncid, varname, varid)
 
       if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_2d_R4 #1:  ' // Trim (varname) // & 
+        err_msg = 'In Ncrd_2d_R4 #1:  ' // Trim (varname) // &
                   ', ' // Nf_Strerror (ierr)
         call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
       end if
@@ -658,11 +658,11 @@ CONTAINS
 !!    varrd_2di : intger array to fill
       integer          , intent(out)  :: varrd_2di(cnt2d(1), cnt2d(2))
 !
-! !DESCRIPTION: Reads in a 2D netCDF integer array and does some error 
+! !DESCRIPTION: Reads in a 2D netCDF integer array and does some error
 !  checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -729,7 +729,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 3D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -798,7 +798,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 3D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -864,11 +864,11 @@ CONTAINS
       integer          , intent(out)  :: varrd_3di(cnt3d(1), cnt3d(2), &
                                                    cnt3d(3))
 !
-! !DESCRIPTION: Reads in a 3D netCDF integer array and does some error 
+! !DESCRIPTION: Reads in a 3D netCDF integer array and does some error
 !  checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -936,7 +936,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 4D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1006,7 +1006,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 4D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1071,11 +1071,11 @@ CONTAINS
       integer          , intent(out)  :: varrd_4di(cnt4d(1), cnt4d(2), &
                                                    cnt4d(3), cnt4d(4))
 !
-! !DESCRIPTION: Reads in a 3D netCDF integer array and does some error 
+! !DESCRIPTION: Reads in a 3D netCDF integer array and does some error
 !  checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1144,7 +1144,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 5D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1214,7 +1214,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 5D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1283,7 +1283,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 5D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1352,7 +1352,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 5D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1422,7 +1422,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 7D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1492,7 +1492,7 @@ CONTAINS
 ! !DESCRIPTION: Reads in a 7D netCDF real array and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1545,8 +1545,8 @@ CONTAINS
 !
 !!    ncid     : netCDF file id to read array input data from
 !!    varname  : netCDF variable name for array
-!!    strt1d   : vector specifying the index in varrd_1dc where 
-!!               the first of the data values will be read 
+!!    strt1d   : vector specifying the index in varrd_1dc where
+!!               the first of the data values will be read
 !!    cnt1d    : varrd_1dc dimension
       integer          , intent(in)   :: ncid
       character (len=*), intent(in)   :: varname
@@ -1557,10 +1557,10 @@ CONTAINS
 !!    varrd_1dc : intger array to fill
       character (len=1), intent(out)  :: varrd_1dc(cnt1d(1))
 !
-! !DESCRIPTION: Reads in a 1D netCDF character array and does some error 
+! !DESCRIPTION: Reads in a 1D netCDF character array and does some error
 !  checking.
 !\\
-!\\ !AUTHOR: 
+!\\ !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1624,11 +1624,11 @@ CONTAINS
 !!    varrd_2dc : charcter array to fill
       character        , intent(out)  :: varrd_2dc(cnt2d(1), cnt2d(2))
 !
-! !DESCRIPTION: Reads in a 2D netCDF character array and does some error 
+! !DESCRIPTION: Reads in a 2D netCDF character array and does some error
 !  checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:

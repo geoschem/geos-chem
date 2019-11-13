@@ -10,27 +10,27 @@
 !
 ! References:
 ! \begin{itemize}
-! \item  M.T. Johnson: "A numerical scheme to calculate temperature and 
-!        salinity dependent air-water transfer velocities for any gas", 
+! \item  M.T. Johnson: "A numerical scheme to calculate temperature and
+!        salinity dependent air-water transfer velocities for any gas",
 !        Ocean Sci. 6, 913-932, 2010.
 ! \item  Liss and Slater: Flux of gases across the air-sea interface,
 !        Nature, 247, 1974.
-! \item  Laliberte, M: "Model for calculating the viscosity of aqueous 
+! \item  Laliberte, M: "Model for calculating the viscosity of aqueous
 !        solutions", Journal of Chemical \& Engineering Data, 52, 2007.
-! \item  Millero and Poisson: "International one-atmosphere equation of 
+! \item  Millero and Poisson: "International one-atmosphere equation of
 !        state of seawater", Deep Sea Res. Pt A, 28, 1981.
-! \item  Wilke and Chang: "Correlation of diffusion coefficients in dilute 
+! \item  Wilke and Chang: "Correlation of diffusion coefficients in dilute
 !        solutions", AIChE Journal, 1, 1955.
-! \item  Hayduk and Minhas, "Correlations for prediction of molecular 
+! \item  Hayduk and Minhas, "Correlations for prediction of molecular
 !        diffusivities in liquids, Can. J. Chem. Eng., 60, 1982,
-! \item  E. Fuller et al.: "New method for prediction of binary gas-phase 
-!        diffusion coefficients", Industrial \& Engineering Chemistry, 58, 
+! \item  E. Fuller et al.: "New method for prediction of binary gas-phase
+!        diffusion coefficients", Industrial \& Engineering Chemistry, 58,
 !        1966.
 ! \item Saltzman et al.: Experimental determination of the diffusion
 !    coefficient of dimethylsulfide in water, J. Geophys. Res., 98, 1993.
 ! \end{itemize}
 !
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE Ocean_ToolBox_Mod
 !
@@ -84,7 +84,7 @@ CONTAINS
 !
 ! !IROUTINE: Calc_Kg
 !
-! !DESCRIPTION: Subroutine Calc\_Kg is the wrapper routine to calculate the 
+! !DESCRIPTION: Subroutine Calc\_Kg is the wrapper routine to calculate the
 ! exchange velocity Kg used for calculating the ocean-air flux (cf. Liss \&
 ! Slater 1974) as:
 !\\
@@ -92,7 +92,7 @@ CONTAINS
 ! F = Kg ( Cg - H * Cl )
 !\\
 !\\
-! where Cg and Cl are the bulk gas and liquid concentrations and H is the 
+! where Cg and Cl are the bulk gas and liquid concentrations and H is the
 ! Henry constant (H= Cgs/Cls).
 !\\
 !\\
@@ -100,7 +100,7 @@ CONTAINS
 !\\
 !\\
 ! Note that Kg is returned in m/s and not cm h-1, as is usually reported for
-! exchange velocities! 
+! exchange velocities!
 !\\
 !\\
 ! !INTERFACE:
@@ -116,13 +116,13 @@ CONTAINS
     REAL*8,  INTENT(IN   )  :: H    ! Henry constant          [-]
     REAL*8,  INTENT(IN   )  :: VB   ! Liquid mol. volume      [cm3/mol]
     REAL*8,  INTENT(IN   )  :: MW   ! Molecular weight        [g/mol]
-    INTEGER, INTENT(IN   )  :: SCW  ! Parameterization type 
-                                    ! for Schmidt number in water 
+    INTEGER, INTENT(IN   )  :: SCW  ! Parameterization type
+                                    ! for Schmidt number in water
     LOGICAL, INTENT(IN   ), OPTIONAL  :: VERBOSE   ! turn on verbose output
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,  INTENT(  OUT)  :: KG   ! Exchange velocity       [ms-1] 
+    REAL*8,  INTENT(  OUT)  :: KG   ! Exchange velocity       [ms-1]
     INTEGER, INTENT(  OUT)  :: RC   ! Error code
     REAL*8,  INTENT(  OUT), OPTIONAL  :: RA_OVER_RL ! Ra/Rl   [-]
 !
@@ -132,7 +132,7 @@ CONTAINS
 !  15 Aug 2014 - C. Keller: Now limit temperature to -40 degC to avoid overflow
 !                           error. Also added error trap for temperatures
 !                           between -10.7 and -10.9 degrees that cause a div-zero
-!                           error in subroutine N_SW. 
+!                           error in subroutine N_SW.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,7 +235,7 @@ CONTAINS
     USTAR = V * SQRT(CD)
 
     ! Calculate KA
-    KA = 1d-3 + USTAR / & 
+    KA = 1d-3 + USTAR / &
       ( 13.3d0 * SQRT(SC) + 1d0/SQRT(CD) - 5d0 + LOG(SC)/(2d0*KAPPA) )
 
     IF ( VERB ) THEN
@@ -310,7 +310,7 @@ CONTAINS
 
     ! KL in cm/h according to Nightingale, 2000
     K = V * ( 0.24d0 * V + 0.061d0) / SQRT( SC / ScCO2 )
-    
+
     ! Convert from cm/h to m/s
     K = K / 3600d0 / 100d0
 
@@ -329,7 +329,7 @@ CONTAINS
 !
 ! !IROUTINE: N_SW
 !
-! !DESCRIPTION: N\_SW returns the dynamic seawater viscosity following 
+! !DESCRIPTION: N\_SW returns the dynamic seawater viscosity following
 ! Laliberte, 2007.
 !\\
 !\\
@@ -339,7 +339,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL*8, INTENT(IN) :: T,S !temperature (C) and salinity 
+    REAL*8, INTENT(IN) :: T,S !temperature (C) and salinity
 !
 ! !RETURN VALUE:
 !
@@ -361,7 +361,7 @@ CONTAINS
     REAL*8, PARAMETER :: MASS_FRACTION(5) = &
        (/  0.798D0,     0.022D0,    0.033D0,     0.047D0,    0.1D0       /)
 
-    REAL*8, PARAMETER :: V1(5) = & 
+    REAL*8, PARAMETER :: V1(5) = &
        (/ 16.22D0,      6.4883D0,  32.028D0,    24.032D0,   72.269D0     /)
 
     REAL*8, PARAMETER :: V2(5) = &
@@ -393,7 +393,7 @@ CONTAINS
     ENDDO
 
     DO I=1,5
-       W_I = MASS_FRACTION(I) * S / 1000d0       
+       W_I = MASS_FRACTION(I) * S / 1000d0
 
        NI = exp(                                          &
                  ( ( v1(I) * w_i_tot**v2(I) ) + v3(I) ) / &
@@ -429,8 +429,8 @@ CONTAINS
 !
 ! !IROUTINE: P_SW
 !
-! !DESCRIPTION: P\_SW returns the seawater density following Millero and 
-! Poisson,  1981. 
+! !DESCRIPTION: P\_SW returns the seawater density following Millero and
+! Poisson,  1981.
 !\\
 !\\
 ! !INTERFACE:
@@ -608,7 +608,7 @@ CONTAINS
 ! !IROUTINE: Schmidt_W
 !
 ! !DESCRIPTION: Schmidt\_W returns the Schmidt number of the gas in the water
-! following Johnson, 2010. 
+! following Johnson, 2010.
 !\\
 !\\
 ! !INTERFACE:
@@ -644,7 +644,7 @@ CONTAINS
 !
 ! !IROUTINE: Schmidt_Saltzmann
 !
-! !DESCRIPTION: Schmidt\_Saltzmann returns the Schmidt number of the gas in 
+! !DESCRIPTION: Schmidt\_Saltzmann returns the Schmidt number of the gas in
 ! the water calculated according to Saltzmann et al., 1993.
 !\\
 !\\
@@ -670,7 +670,7 @@ CONTAINS
     ! SCHMIDT_SALTZMANN begins here!
     !=================================================================
 
-    SC = 2674.0d0 + T * ( -147.12d0 + T * ( 3.726d0 - T * 0.038d0 ) )  
+    SC = 2674.0d0 + T * ( -147.12d0 + T * ( 3.726d0 - T * 0.038d0 ) )
 
   END FUNCTION Schmidt_Saltzmann
 !EOC
@@ -681,7 +681,7 @@ CONTAINS
 !
 ! !IROUTINE: Schmidt_Acet
 !
-! !DESCRIPTION: Schmidt\_Acet returns the Schmidt number of acetone. 
+! !DESCRIPTION: Schmidt\_Acet returns the Schmidt number of acetone.
 !\\
 !\\
 ! !INTERFACE:
@@ -704,7 +704,7 @@ CONTAINS
 !    A3 = -0.01410642d0
 !
 ! !REVISION HISTORY:
-!  11 Aug 2013 - C. Keller: Initial version 
+!  11 Aug 2013 - C. Keller: Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -713,7 +713,7 @@ CONTAINS
     ! SCHMIDT_ACET begins here!
     !=================================================================
 
-    SC = 3287.687d0 + T * ( -136.2176d0 + T * ( 2.20642d0 - T*0.01410642d0 ) )  
+    SC = 3287.687d0 + T * ( -136.2176d0 + T * ( 2.20642d0 - T*0.01410642d0 ) )
 
   END FUNCTION Schmidt_Acet
 !EOC
@@ -752,7 +752,7 @@ CONTAINS
 !    A3 = -0.0110773d0
 !
 ! !REVISION HISTORY:
-!  10 Mar 2017 - M. Sulprizio- Initial version 
+!  10 Mar 2017 - M. Sulprizio- Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -761,7 +761,7 @@ CONTAINS
     ! SCHMIDT_ALD2 begins here!
     !=================================================================
 
-    SC = 2581.709d0 + T * ( -106.9671d0 + T * ( 1.73263d0 - T*0.0110773d0 ) )  
+    SC = 2581.709d0 + T * ( -106.9671d0 + T * ( 1.73263d0 - T*0.0110773d0 ) )
 
   END FUNCTION Schmidt_Ald2
 !EOC
@@ -772,7 +772,7 @@ CONTAINS
 !
 ! !IROUTINE: N_Air
 !
-! !DESCRIPTION: N\_Air returns the dynamic air viscosity. 
+! !DESCRIPTION: N\_Air returns the dynamic air viscosity.
 !\\
 !\\
 ! !INTERFACE:
@@ -819,7 +819,7 @@ CONTAINS
 !
 ! !IROUTINE: P_Air
 !
-! !DESCRIPTION: P\_Air returns the kinematic air viscosity. 
+! !DESCRIPTION: P\_Air returns the kinematic air viscosity.
 !\\
 !\\
 ! !INTERFACE:
@@ -929,7 +929,7 @@ CONTAINS
     REAL*8            :: Pa
     REAL*8, PARAMETER :: Ma = 29.97d0 !Mw air in g/mol
     REAL*8, PARAMETER :: Va = 20.1d0  !cm3/mol (diffusion volume for air)
-    
+
     !=================================================================
     ! D_AIR begins here!
     !=================================================================
@@ -938,7 +938,7 @@ CONTAINS
     PA = 9.8692D-6*P
 
     ! Calculate diffusion coefficient
-    D  = 1D-3 * (T+273.15D0)**(1.75D0)*SQRT(1D0/Ma +     & 
+    D  = 1D-3 * (T+273.15D0)**(1.75D0)*SQRT(1D0/Ma +     &
         1D0/MW)/(PA*(VA**(1D0/3D0)+VB**(1D0/3D0))**2D0)
 
     !D is in cm2/s convert to m2/s

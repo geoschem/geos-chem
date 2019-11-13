@@ -5,7 +5,7 @@
 #
 # !IROUTINE: Makefile_MakeDoc.mk (in doc subdirectory)
 #
-# !DESCRIPTION: This Makefile fragment contains commands to build the 
+# !DESCRIPTION: This Makefile fragment contains commands to build the
 #  documentation for the GEOS-Chem Makefiles  It is inlined into
 #  the Makefile (in the doc subdirectory) by an "include" command.
 #\\
@@ -20,7 +20,7 @@
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_1.*"
 #  15 Jan 2014 - R. Yantosca - Now only create *.pdf output
@@ -59,7 +59,7 @@ DVI5 :=GC_v11-02_Makefiles.dvi
 PDF5 :=GC_v11-02_Makefiles.pdf
 
 # Make command
-makedoc: 
+makedoc:
 	rm -f $(TEX5)
 	./protex -sfS $(SRC5) > $(TEX5)
 	latex $(TEX5)

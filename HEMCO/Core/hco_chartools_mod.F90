@@ -5,12 +5,12 @@
 !
 ! !MODULE: hco_chartools_mod.F90
 !
-! !DESCRIPTION: Module HCO\_CHARTOOLS\_MOD contains a collection of 
-! helper routines to handle character strings and parse tokens. It also 
-! contains definitions of special characters such as space, tab and 
-! comment. 
+! !DESCRIPTION: Module HCO\_CHARTOOLS\_MOD contains a collection of
+! helper routines to handle character strings and parse tokens. It also
+! contains definitions of special characters such as space, tab and
+! comment.
 ! \\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCO_CharTools_Mod
 !
@@ -40,12 +40,12 @@ MODULE HCO_CharTools_Mod
 !  17 Oct 2014 - C. Keller   - Added parser and tokens ROOT, MET, and RES.
 !  12 Aug 2015 - R. Yantosca - Add new value of DEF_MET for MERRA2
 !  12 Aug 2015 - R. Yantosca - Add new value of DEF_RES for 0.5 x 0.625 grids
-!  20 Sep 2015 - C. Keller   - Moved tokens to hco_extlist_mod.F90 
+!  20 Sep 2015 - C. Keller   - Moved tokens to hco_extlist_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !MODULE INTERFACES: 
+! !MODULE INTERFACES:
 !
   INTERFACE HCO_CharSplit
      MODULE PROCEDURE HCO_CharSplit_R8
@@ -73,17 +73,17 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCO\_CharSplit\_R8 splits the passed character
 ! string into N real8 values, using character SEP as separator. Wildcard
-! values (WC) are set to -999. 
+! values (WC) are set to -999.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharSplit_R8( CharStr, SEP, WC, Reals, N, RC ) 
+  SUBROUTINE HCO_CharSplit_R8( CharStr, SEP, WC, Reals, N, RC )
 !
 ! !USES:
 !
     USE CharPak_Mod,  ONLY : StrSplit
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   ) :: CharStr   ! Character string
     CHARACTER(LEN=1), INTENT(IN   ) :: SEP       ! Separator
@@ -97,9 +97,9 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT) :: RC         ! Return code
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller - Initial version (update) 
+!
+! !REVISION HISTORY:
+!  18 Sep 2013 - C. Keller - Initial version (update)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,12 +121,12 @@ CONTAINS
     ! Init
     Reals(:) = -999_dp
 
-    ! Extract strings to be translated into integers 
+    ! Extract strings to be translated into integers
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
        WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
-       RC = HCO_FAIL 
+       RC = HCO_FAIL
        RETURN
     ENDIF
 
@@ -141,12 +141,12 @@ CONTAINS
        ELSEIF ( TRIM(SUBSTR(I)) == '-' ) THEN
           Reals(I) = -999_dp
        ELSE
-          READ( SUBSTR(I), * ) Reals(I) 
+          READ( SUBSTR(I), * ) Reals(I)
        ENDIF
     ENDDO
 
     ! Leave w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_CharSplit_R8
 !EOC
@@ -155,21 +155,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_CharSplit_R4 
+! !IROUTINE: HCO_CharSplit_R4
 !
 ! !DESCRIPTION: Subroutine HCO\_CharSplit\_R4 splits the passed character
 ! string into N real4 values, using character SEP as separator. Wildcard
-! values (WC) are set to -999. 
+! values (WC) are set to -999.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharSplit_R4( CharStr, SEP, WC, Reals, N, RC ) 
+  SUBROUTINE HCO_CharSplit_R4( CharStr, SEP, WC, Reals, N, RC )
 !
 ! !USES:
 !
     USE CharPak_Mod,  ONLY : StrSplit
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   ) :: CharStr    ! Character string
     CHARACTER(LEN=1), INTENT(IN   ) :: SEP        ! Separator
@@ -183,9 +183,9 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT) :: RC         ! Return code
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller - Initial version (update) 
+!
+! !REVISION HISTORY:
+!  18 Sep 2013 - C. Keller - Initial version (update)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,7 +194,7 @@ CONTAINS
 !
     INTEGER               :: I
     CHARACTER(LEN=255)    :: SUBSTR(255)
-    CHARACTER(LEN=255)    :: LOC 
+    CHARACTER(LEN=255)    :: LOC
 
     !=================================================================
     ! HCO_CharSplit_R4 begins here!
@@ -206,17 +206,17 @@ CONTAINS
     ! Init
     Reals(:) = -999_sp
 
-    ! Extract strings to be translated into integers 
+    ! Extract strings to be translated into integers
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Reals,1) ) THEN
        WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
-       RC = HCO_FAIL 
+       RC = HCO_FAIL
        RETURN
     ENDIF
 
     ! Return here if no entry found
-    IF ( N == 0 ) RETURN 
+    IF ( N == 0 ) RETURN
 
     ! Pass all extracted strings to integer vector. Replace wildcard
     ! character with -999!
@@ -226,12 +226,12 @@ CONTAINS
        ELSEIF ( TRIM(SUBSTR(I)) == '-' ) THEN
           Reals(I) = -999_sp
        ELSE
-          READ( SUBSTR(I), * ) Reals(I) 
+          READ( SUBSTR(I), * ) Reals(I)
        ENDIF
     ENDDO
 
     ! Leave w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_CharSplit_R4
 !EOC
@@ -240,21 +240,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_CharSplit_Int 
+! !IROUTINE: HCO_CharSplit_Int
 !
 ! !DESCRIPTION: Subroutine HCO\_CharSplit\_Int splits the passed character
 ! string into N integers, using character SEP as separator. Wildcard
-! values (WC) are set to -999. 
+! values (WC) are set to -999.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CharSplit_INT( CharStr, SEP, WC, Ints, N, RC ) 
+  SUBROUTINE HCO_CharSplit_INT( CharStr, SEP, WC, Ints, N, RC )
 !
 ! !USES:
 !
     USE CharPak_Mod, ONLY : StrSplit
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN   ) :: CharStr    ! Character string
     CHARACTER(LEN=1), INTENT(IN   ) :: SEP        ! Separator
@@ -268,9 +268,9 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT) :: RC         ! Return code
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller - Initial version (update) 
+!
+! !REVISION HISTORY:
+!  18 Sep 2013 - C. Keller - Initial version (update)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -279,7 +279,7 @@ CONTAINS
 !
     INTEGER               :: I
     CHARACTER(LEN=255)    :: SUBSTR(255)
-    CHARACTER(LEN=255)    :: LOC 
+    CHARACTER(LEN=255)    :: LOC
 
     !=================================================================
     ! HCO_CharSplit_INT begins here!
@@ -298,25 +298,25 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Extract strings to be translated into integers 
+    ! Extract strings to be translated into integers
     !CALL STRSPLIT( CharStr, TRIM(SEP), SUBSTR, N )
     CALL STRSPLIT( CharStr, SEP, SUBSTR, N )
     IF ( N > SIZE(Ints,1) ) THEN
        WRITE(*,*) 'Too many substrings - error in ', TRIM(LOC)
-       RC = HCO_FAIL 
+       RC = HCO_FAIL
        RETURN
     ENDIF
 
     ! Return here if no entry found
-    IF ( N == 0 ) RETURN 
+    IF ( N == 0 ) RETURN
 
     ! Pass all extracted strings to integer vector.
     DO I = 1, N
-       READ( SUBSTR(I), * ) Ints(I) 
+       READ( SUBSTR(I), * ) Ints(I)
     ENDDO
 
     ! Leave w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_CharSplit_INT
 !EOC
@@ -327,21 +327,21 @@ CONTAINS
 !
 ! !IROUTINE: HCO_CharMatch
 !
-! !DESCRIPTION: Subroutine HCO\_CharMatch returns the index of each 
+! !DESCRIPTION: Subroutine HCO\_CharMatch returns the index of each
 ! vector element of vec1 in vec2. nnmatch denotes the number of
 ! vec1 elements which have a matching counterpart in vec2.
-! For example, if vec1 is (/ 'NO', 'CO', 'ALK4', 'HBr' /), and 
+! For example, if vec1 is (/ 'NO', 'CO', 'ALK4', 'HBr' /), and
 ! vec2 is (/ 'CO', 'NO', 'CH3Br' /), then matchidx becomes
-! (/ 2, 1, -1, -1 /) and nnmatch is 2. 
+! (/ 2, 1, -1, -1 /) and nnmatch is 2.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE HCO_CharMatch( vec1, n1, vec2, n2, matchidx, nnmatch )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   ) :: vec1(n1)     ! char. vector 1 
+    CHARACTER(LEN=*), INTENT(IN   ) :: vec1(n1)     ! char. vector 1
     INTEGER,          INTENT(IN   ) :: n1           ! len of vec1
     CHARACTER(LEN=*), INTENT(IN   ) :: vec2(n2)     ! char. vector 2
     INTEGER,          INTENT(IN   ) :: n2           ! len of vec2
@@ -350,16 +350,16 @@ CONTAINS
 !
     INTEGER,          INTENT(  OUT) :: matchidx(n1) ! index of vec2 in vec1
     INTEGER,          INTENT(  OUT) :: nnmatch      ! # of matches
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller - Initial version (update) 
+!
+! !REVISION HISTORY:
+!  18 Sep 2013 - C. Keller - Initial version (update)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: I, J 
+    INTEGER :: I, J
 
     !=================================================================
     ! HCO_CharMatch begins here!
@@ -392,21 +392,21 @@ CONTAINS
 !
 ! !IROUTINE: HCO_CharParse
 !
-! !DESCRIPTION: Routine HCO\_CharParse parses the provided character string 
-! by searching for tokens such as \$ROOT, \$YYYY, etc., within the string and 
-! replacing those values by the intendend characters. 
+! !DESCRIPTION: Routine HCO\_CharParse parses the provided character string
+! by searching for tokens such as \$ROOT, \$YYYY, etc., within the string and
+! replacing those values by the intendend characters.
 !\\
 !\\
 ! The following list shows the 'default' HEMCO tokens. These are available
-! in any HEMCO simulation. Tokens \$ROOT, \$MET, and \$RES are internally 
+! in any HEMCO simulation. Tokens \$ROOT, \$MET, and \$RES are internally
 ! stored as a HEMCO option in module hco\_extlist\_mod.F90 (see subroutine
-! HCO\_SetDefaultToken). 
+! HCO\_SetDefaultToken).
 ! \begin{itemize}
 ! \item \$ROOT: will be replaced by the root path specified in the settings
 ! section of the configuration file.
-! \item \$MET: will be replaced by the met-field token. 
-! \item \$RES: will be replaced by the resolution token. 
-! \item \$YYYY: will be replaced by the (4-digit) year according to the 
+! \item \$MET: will be replaced by the met-field token.
+! \item \$RES: will be replaced by the resolution token.
+! \item \$YYYY: will be replaced by the (4-digit) year according to the
 ! source time settings set in the configuration file.
 ! \item \$MM: will be replaced by the (2-digit) month according to the
 ! source time settings set in the configuration file.
@@ -428,9 +428,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(ConfigObj),  POINTER        :: HcoConfig 
-    INTEGER,          INTENT(IN   )  :: yyyy  ! replace $YYYY with this value 
-    INTEGER,          INTENT(IN   )  :: mm    ! replace $MM with this value 
+    TYPE(ConfigObj),  POINTER        :: HcoConfig
+    INTEGER,          INTENT(IN   )  :: yyyy  ! replace $YYYY with this value
+    INTEGER,          INTENT(IN   )  :: mm    ! replace $MM with this value
     INTEGER,          INTENT(IN   )  :: dd    ! replace $DD with this value
     INTEGER,          INTENT(IN   )  :: hh    ! replace $HH with this value
     INTEGER,          INTENT(IN   )  :: mn    ! replace $MN with this value
@@ -451,7 +451,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+!
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255)  :: MSG
@@ -472,7 +472,7 @@ CONTAINS
 
     ! Check for year token
     !-------------------------------------------------------------------
-    DO 
+    DO
        IDX = INDEX( str, '$YYYY' )
        IF ( IDX <= 0 ) EXIT
        LN = LEN(str)
@@ -494,7 +494,7 @@ CONTAINS
     !-------------------------------------------------------------------
     DO
        IDX = INDEX( str, '$MM' )
-       IF ( IDX <= 0 ) EXIT 
+       IF ( IDX <= 0 ) EXIT
        LN = LEN(str)
        IF ( IDX > 1 ) THEN
           BEFORE = str(1:(IDX-1))
@@ -514,7 +514,7 @@ CONTAINS
     !-------------------------------------------------------------------
     DO
        IDX = INDEX( str, '$DD' )
-       IF ( IDX <= 0 ) EXIT 
+       IF ( IDX <= 0 ) EXIT
        LN = LEN(str)
        IF ( IDX > 1 ) THEN
           BEFORE = str(1:(IDX-1))
@@ -534,7 +534,7 @@ CONTAINS
     !-------------------------------------------------------------------
     DO
        IDX = INDEX( str, '$HH' )
-       IF ( IDX <= 0 ) EXIT 
+       IF ( IDX <= 0 ) EXIT
        LN = LEN(str)
        IF ( IDX > 1 ) THEN
           BEFORE = str(1:(IDX-1))
@@ -544,7 +544,7 @@ CONTAINS
        OFF   = 3
        AFTER = str((IDX+OFF):LN)
 
-       WRITE(str2,'(i2.2)') hh 
+       WRITE(str2,'(i2.2)') hh
 
        ! Updated string
        str = TRIM(BEFORE) // TRIM(str2) // TRIM(AFTER)
@@ -554,7 +554,7 @@ CONTAINS
     !-------------------------------------------------------------------
     DO
        IDX = INDEX( str, '$MN' )
-       IF ( IDX <= 0 ) EXIT 
+       IF ( IDX <= 0 ) EXIT
        LN = LEN(str)
        IF ( IDX > 1 ) THEN
           BEFORE = str(1:(IDX-1))
@@ -589,14 +589,14 @@ CONTAINS
 
     ! Check for any other token
     !-------------------------------------------------------------------
-    DO 
+    DO
        IDX = INDEX( str, '$' )
        IF ( IDX <= 0 ) EXIT
        LN = LEN(TRIM(str))
 
        ! Determine token name:
-       ! Find end of token by starting at the first character after the 
-       ! token and then advance in string until a 'token end character' 
+       ! Find end of token by starting at the first character after the
+       ! token and then advance in string until a 'token end character'
        ! is encountered.
        DO I = IDX+1,LN
 
@@ -635,7 +635,7 @@ CONTAINS
                str(I:I) == '7'  .OR. &
                str(I:I) == '8'  .OR. &
                str(I:I) == '9'  .OR. &
-               str(I:I) == SEP        ) THEN 
+               str(I:I) == SEP        ) THEN
 
              TOKEN = str( (IDX+1) : (I-1) )
              OFF   = I
@@ -659,7 +659,7 @@ CONTAINS
              TRIM(HCO_GetOpt(HcoConfig%ExtList,TOKEN)) // &
              TRIM(AFTER)
 
-    ENDDO 
+    ENDDO
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -679,7 +679,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetBase ( str, base, RC ) 
+  SUBROUTINE HCO_GetBase ( str, base, RC )
 !
 ! !USES:
 !
@@ -687,11 +687,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   )  :: str   ! string to be checked 
+    CHARACTER(LEN=*), INTENT(IN   )  :: str   ! string to be checked
 !
 ! !OUTPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(  OUT)  :: base  ! base 
+    CHARACTER(LEN=*), INTENT(  OUT)  :: base  ! base
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -702,7 +702,7 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+!
 ! !LOCAL VARIABLES:
 !
     INTEGER             :: I, N
@@ -716,10 +716,10 @@ CONTAINS
     IF ( N <= 1 ) THEN
        base = '.'
     ELSE
-       base = '/' // TRIM(SUBSTR(1)) 
+       base = '/' // TRIM(SUBSTR(1))
        IF ( N > 2 ) THEN
           DO I = 2,(N-1)
-             base = TRIM(base) // '/' // TRIM(SUBSTR(I)) 
+             base = TRIM(base) // '/' // TRIM(SUBSTR(I))
           ENDDO
        ENDIF
     ENDIF
@@ -737,12 +737,12 @@ CONTAINS
 !
 ! !IROUTINE: IsInWord
 !
-! !DESCRIPTION: Function IsInWord checks if the word InString contains the 
-! sequence of SearchString. 
+! !DESCRIPTION: Function IsInWord checks if the word InString contains the
+! sequence of SearchString.
 !\\
 ! !INTERFACE:
 !
-  FUNCTION IsInWord( InString, SearchString ) RESULT ( Cnt ) 
+  FUNCTION IsInWord( InString, SearchString ) RESULT ( Cnt )
 !
 ! !INPUT PARAMETERS:
 !
@@ -767,16 +767,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: NextCharPos 
+! !IROUTINE: NextCharPos
 !
-! !DESCRIPTION: Function NextCharPos returns the position of the next 
+! !DESCRIPTION: Function NextCharPos returns the position of the next
 ! occurrence of character CHR in word WORD, starting from position START.
 ! Returns -1 if the word does not contain CHR at all (after position START).
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION NextCharPos ( WORD, CHR, START ) RESULT ( POS ) 
+  FUNCTION NextCharPos ( WORD, CHR, START ) RESULT ( POS )
 !
 ! !USES:
 !
@@ -785,7 +785,7 @@ CONTAINS
 !
     CHARACTER(LEN=*),           INTENT(IN)  :: WORD
     CHARACTER(LEN=1),           INTENT(IN)  :: CHR
-    INTEGER,          OPTIONAL, INTENT(IN)  :: START 
+    INTEGER,          OPTIONAL, INTENT(IN)  :: START
 !
 ! !RETURN ARGUMENT:
 !
@@ -799,7 +799,7 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                         :: LNG, N, BEG 
+    INTEGER                         :: LNG, N, BEG
 
     !=================================================================
     ! NextCharPos begins here
@@ -821,10 +821,10 @@ CONTAINS
     ! Error traps
     IF ( BEG > LNG ) RETURN
 
-    ! Search for occurrence of CHR 
+    ! Search for occurrence of CHR
     DO N = BEG, LNG
        IF ( WORD(N:N) == CHR ) THEN
-          POS = N 
+          POS = N
           EXIT
        ENDIF
     ENDDO
@@ -836,14 +836,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GetNextLine 
+! !IROUTINE: GetNextLine
 !
-! !DESCRIPTION: Subroutine GetNextLine returns the next line. 
+! !DESCRIPTION: Subroutine GetNextLine returns the next line.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetNextLine( am_I_Root, LUN, LINE, EOF, RC ) 
+  SUBROUTINE GetNextLine( am_I_Root, LUN, LINE, EOF, RC )
 !
 ! !USES:
 !
@@ -859,7 +859,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
-    LOGICAL,          INTENT(INOUT) :: EOF         ! End of file encountered? 
+    LOGICAL,          INTENT(INOUT) :: EOF         ! End of file encountered?
     INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
@@ -885,7 +885,7 @@ CONTAINS
        CALL HCO_ReadLine( LUN, DUM, EOF, RC )
        IF ( EOF .OR. RC /= HCO_SUCCESS ) RETURN
 
-       ! Skip if empty or commented line 
+       ! Skip if empty or commented line
        IF ( TRIM(DUM) == ''      ) CYCLE
        IF ( DUM(1:1)  == HCO_CMT ) CYCLE
 
@@ -897,14 +897,14 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE GetNextLine 
+  END SUBROUTINE GetNextLine
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ReadLine 
+! !IROUTINE: HCO_ReadLine
 !
 ! !DESCRIPTION: Subroutine HCO\_Line reads a line from the provided stream.
 !\\
@@ -913,18 +913,18 @@ CONTAINS
 !
   SUBROUTINE HCO_ReadLine( LUN, LINE, EOF, RC )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    INTEGER,          INTENT(IN   ) :: LUN      ! Stream LUN 
+    INTEGER,          INTENT(IN   ) :: LUN      ! Stream LUN
 !
 ! !OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(INOUT) :: LINE     ! Line
     LOGICAL,          INTENT(INOUT) :: EOF      ! End of file?
-    INTEGER,          INTENT(INOUT) :: RC       ! Return code 
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller - Initial version (adapted from B. Yantosca's code) 
+    INTEGER,          INTENT(INOUT) :: RC       ! Return code
+!
+! !REVISION HISTORY:
+!  18 Sep 2013 - C. Keller - Initial version (adapted from B. Yantosca's code)
 !  15 Jul 2014 - R. Yantosca - Remove dependency on routine IOERROR
 !EOP
 !------------------------------------------------------------------------------
@@ -960,18 +960,18 @@ CONTAINS
 100    FORMAT( 'ERROR ', i5, ' in HCO_Readline (hco_chartools_mod.F90)' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
        RC = HCO_FAIL
-       RETURN 
+       RETURN
     ENDIF
 
     ! Make sure that character string DUM is not longer than LINE
     IF ( LEN(TRIM(DUM)) > LEN(LINE) ) THEN
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, * ) ' Line is too long - cannot read line ', TRIM(DUM)   
+       WRITE( 6, * ) ' Line is too long - cannot read line ', TRIM(DUM)
        WRITE( 6, * ) ' '
        WRITE( 6, * ) ' To fix this, increase length of argument `LINE` in '
-       WRITE( 6, * ) ' HCO_ReadLine (hco_chartools_mod.F90)' 
+       WRITE( 6, * ) ' HCO_ReadLine (hco_chartools_mod.F90)'
        RC = HCO_FAIL
-       RETURN 
+       RETURN
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ELSE
        LINE = DUM(1:LEN(LINE))

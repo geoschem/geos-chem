@@ -5,18 +5,18 @@
 !
 ! !MODULE: diag41_mod.F
 !
-! !DESCRIPTION: Module DIAG41\_MOD contains arrays and routines for 
+! !DESCRIPTION: Module DIAG41\_MOD contains arrays and routines for
 !  archiving the ND41 diagnostic -- Afternoon PBL heights.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DIAG41_MOD
 !
 ! !USES:
 !
       USE PRECISION_MOD           ! For GEOS-Chem Precision (fp)
-     
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -26,7 +26,7 @@
       INTEGER, PUBLIC, PARAMETER :: PD41 = 2
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-! 
+!
       PUBLIC :: ZERO_DIAG41
       PUBLIC :: WRITE_DIAG41
       PUBLIC :: DIAG41
@@ -76,8 +76,8 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  17 Feb 2005 - R. Yantosca - Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !EOP
@@ -124,7 +124,7 @@
 !
 ! !IROUTINE: write_diag41
 !
-! !DESCRIPTION: Subroutine WRITE\_DIAG41 writes the ND41 diagnostic arrays 
+! !DESCRIPTION: Subroutine WRITE\_DIAG41 writes the ND41 diagnostic arrays
 !  to the binary punch file at the proper time.
 !\\
 !\\
@@ -136,7 +136,7 @@
 !
       USE BPCH2_MOD,      ONLY : BPCH2
       USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
-      USE BPCH2_MOD,      ONLY : GET_MODELNAME 
+      USE BPCH2_MOD,      ONLY : GET_MODELNAME
       USE FILE_MOD,       ONLY : IU_BPCH
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
@@ -158,10 +158,10 @@
 !   #  Field    : Description             : Units  : Scale factor
 !  -------------------------------------------------------------------
 !  (1) PBLDEPTH : Afternoon PBL heights   : m      : GOOD_CT
-! 
+!
 ! !REVISION HISTORY:
 !  17 Feb 2005 - R. Yantosca - Initial version
-!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
@@ -182,7 +182,7 @@
       REAL(f4)           :: LONRES,    LATRES,      EPS
       REAL(f8)           :: DIAGb,     DIAGe
       REAL(fp)           :: SCALE
-      CHARACTER(LEN=20)  :: MODELNAME 
+      CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY,  RESERVED,    UNIT
 
       !=================================================================
@@ -207,20 +207,20 @@
       MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       RESERVED  = ''
       EPS       = 1e-32_f4
-         
+
       !=================================================================
       ! Write data to the bpch file
       !=================================================================
-      
+
       ! Loop over ND41 diagnostic tracers
       DO M = 1, TMAX(41)
          N = TINDEX(41,M)
          IF ( N > PD41 ) CYCLE
 
          ! Select proper unit string
-         IF ( N == 1 ) UNIT = 'm' 
+         IF ( N == 1 ) UNIT = 'm'
          IF ( N == 2 ) UNIT = 'level'
-                     
+
          ! Divide by # of afternoon boxes at each longitude
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
@@ -231,9 +231,9 @@
 
          ! Write to bpch file
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,    
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               State_Grid%NX, State_Grid%NY, 1, IFIRST,     
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDDO
 #endif
@@ -247,9 +247,9 @@
 !
 ! !IROUTINE: diag41
 !
-! !DESCRIPTION: Subroutine DIAG41 produces monthly mean boundary layer 
-!  height in meters  between 1200-1600 local time for the U.S. geographical 
-!  domain. 
+! !DESCRIPTION: Subroutine DIAG41 produces monthly mean boundary layer
+!  height in meters  between 1200-1600 local time for the U.S. geographical
+!  domain.
 !\\
 !\\
 ! !INTERFACE:
@@ -266,10 +266,10 @@
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-! 
+!
 ! !REVISION HISTORY:
 !  18 Nov 1999 - A. Fiore, S. Wu - Initial version
-!  (1 ) DIAG41 is written in Fixed-Format F90. 
+!  (1 ) DIAG41 is written in Fixed-Format F90.
 !  (2 ) XTRA2 must be computed by turning TURBDAY on first.  Also,
 !        XTRA2 is a global-size array, so use window offsets IREF, JREF
 !        to index it correctly. (bmy, 11/18/99)
@@ -277,8 +277,8 @@
 !        in the correct order (J first, then I). (bmy, 11/18/99)
 !  (4 ) AD41 is now declared allocatable in "diag_mod.f". (bmy, 12/6/99)
 !  (5 ) AFTTOT is now declared allocatable in "diag_mod.f". (bmy, 3/17/00)
-!  (6 ) Remove NYMD from the argument list -- it wasn't used (bmy, 6/22/00) 
-!  (7 ) XTRA2(IREF,JREF,5) is now XTRA2(I,J).  Also updated comments. 
+!  (6 ) Remove NYMD from the argument list -- it wasn't used (bmy, 6/22/00)
+!  (7 ) XTRA2(IREF,JREF,5) is now XTRA2(I,J).  Also updated comments.
 !        (bmy, 9/25/01)
 !  (8 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
 !  (9 ) Now reference BXHEIGHT from "dao_mod.f".  Also removed obsolete
@@ -287,8 +287,8 @@
 !  (11) Bug fix in DO-loop for calculating local time (bmy, 7/9/03)
 !  (12) For GEOS-4, PBL depth is already in meters, so we only have to
 !        multiply that by the GOOD array.  Also now references PBL array
-!        from "dao_mod.f".  Bug fix: now use barometric law to compute PBL 
-!        height in meters for GEOS-1, GEOS-STRAT, GEOS-3.  This eliminates an 
+!        from "dao_mod.f".  Bug fix: now use barometric law to compute PBL
+!        height in meters for GEOS-1, GEOS-STRAT, GEOS-3.  This eliminates an
 !        overprediction of the PBL height. (swu, bmy, 11/6/03)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
@@ -313,7 +313,7 @@
 
          ! Local time
          LT = GET_LOCALTIME( I, 1, 1, State_Grid )
-   
+
          ! Find points between 12 and 16 GMT
          IF ( LT >= 12e+0_fp .and. LT <= 16e+0_fp ) THEN
             GOOD(I) = 1
@@ -334,7 +334,7 @@
       DO N = 1, PD41
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-         
+
          IF ( N == 1 ) THEN
 
             ! Afternoon PBL top [m]
@@ -346,12 +346,12 @@
             PBLTOP = State_Met%PBL_TOP_L(I,J) * GOOD(I)
 
          ENDIF
-           
+
          ! Store in AD41 array
          AD41(I,J,N) = AD41(I,J,N) + PBLTOP
 
-      ENDDO    
-      ENDDO    
+      ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -365,7 +365,7 @@
 !
 ! !IROUTINE: init_diag41
 !
-! !DESCRIPTION: Subroutine CLEANUP\_DIAG41 allocates and zeroes all 
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG41 allocates and zeroes all
 !  module arrays.
 !\\
 !\\
@@ -381,8 +381,8 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  17 Feb 2005 - R. Yantosca - Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !EOP
@@ -392,7 +392,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-      
+
       !=================================================================
       ! INIT_DIAG41 begins here!
       !=================================================================
@@ -428,8 +428,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_DIAG41
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  17 Feb 2005 - R. Yantosca - Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !EOP
@@ -439,7 +439,7 @@
       ! CLEANUP_DIAG41 begins here!
       !=================================================================
 #if defined( BPCH_DIAG )
-      IF ( ALLOCATED( AD41    ) ) DEALLOCATE( AD41    ) 
+      IF ( ALLOCATED( AD41    ) ) DEALLOCATE( AD41    )
       IF ( ALLOCATED( GOOD_CT ) ) DEALLOCATE( GOOD_CT )
 #endif
 

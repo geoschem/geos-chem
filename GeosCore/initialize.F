@@ -10,8 +10,8 @@
 ! \begin{enumerate}
 ! \item Zeroes globally defined GEOS-CHEM variables.
 ! \item Zeroes accumulating diagnostic arrays.
-! \item Resets certain year/month/day and counter variables used 
-!       in GEOS-Chem diagnostic subroutines. 
+! \item Resets certain year/month/day and counter variables used
+!       in GEOS-Chem diagnostic subroutines.
 ! \end{enumerate}
 !
 ! !INTERFACE:
@@ -22,7 +22,7 @@
 ! !USES:
 !
       ! Modules from Headers subdirectory
-      USE CMN_SIZE_MOD          
+      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PRECISION_MOD
@@ -45,14 +45,14 @@
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 
 
-      ! If IFLAG=1, zero global CTM arrays 
+      ! If IFLAG=1, zero global CTM arrays
       ! If IFLAG=2, zero accumulating diagnostic arrays
       ! If IFLAG=3, zero accumulating diagnostic counters
       INTEGER,        INTENT(IN)  :: IFLAG
@@ -64,8 +64,8 @@
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
 !   more consistent fashion.  Think about this later (bmy, 11/14/02)
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  15 Jun 1998 - M. Prather  - Initial version
 !  (1 ) INITIALIZE is written in Fixed-Form Fortran 90.
 !  (2 ) To ensure double precision accuracy, use 0e+0_fp instead of 0.0.
@@ -87,7 +87,7 @@
 !  (15) Eliminated obsolete code from 1/02.  Now also zero CTNO2, CTHO2
 !        counter arrays. (bmy, 2/27/02)
 !  (16) Bug fix: CTHO2 and CTNO2 should be zeroed if ND43 > 0, not if
-!        ND45 > 0.  Fix this typo. (bmy, 4/19/02) 
+!        ND45 > 0.  Fix this typo. (bmy, 4/19/02)
 !  (17) Now also zero AD01, AD02 arrays (bmy, 8/7/02)
 !  (18) Remove reference to arrays P, SIG, SIGE from "CMN", since we now
 !        use floating pressure + the hybrid grid. (dsa, bdf, bmy, 8/21/02)
@@ -106,9 +106,9 @@
 !        reference to DIAGCHLORO, it's obsolete. (bmy, 7/20/04)
 !  (29) Now initialize extra arrays for ND03 mercury diag.  Also remove
 !        reference to obsolete TOFDY0 variable. (eck, bmy, 12/7/04)
-!  (30) Now initialize AD21_cr array for ND21 diag.  Also references 
+!  (30) Now initialize AD21_cr array for ND21 diag.  Also references
 !        LCRYST from "logical_mod.f"  Now call ZERO_DIAG03 from "diag03_mod.f"
-!        to zero ND03 arrays (bmy, 1/21/05) 
+!        to zero ND03 arrays (bmy, 1/21/05)
 !  (31) Now call ZERO_DIAG41 from "diag41_mod.f".  Also removed references
 !        to AD41 and AFTTOT. (bmy, 2/17/05)
 !  (32) Now zero AD09 and AD09_em for HCN simulation (xyp, bmy, 6/27/05)
@@ -126,7 +126,7 @@
 !  (42) Now zero AD52 for Gamma HO2 diag. (ccc, jaegle, 2/26/09)
 !  (43) Updated to diagnose GLYX production of SOAG in ND07. (tmf, 1/7/09)
 !  (44) Add initialization of counter for diag time steps. (ccc, 7/20/09)
-!  (45) Define new diagnostics, ND19, ND58, ND60 for methane 
+!  (45) Define new diagnostics, ND19, ND58, ND60 for methane
 !       (kjw, 8/18/09)
 !  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
 !  (47) Add potential temperature diagnostic. (fp, 06/09)
@@ -135,7 +135,7 @@
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
 !  08 Feb 2012 - R. Yantosca - Now also reset the counter for I3 timesteps
-!  15 Oct 2012 - R. Yantosca - Bug fix, make sure Counter arrays CTLBRO2H etc. 
+!  15 Oct 2012 - R. Yantosca - Bug fix, make sure Counter arrays CTLBRO2H etc.
 !                              are allocated before we use them
 !  02 Apr 2013 - M. Payer    - Remove code for CTNO, CTNO2, and CTNO3. These
 !                              are no onger needed because NO, NO2, and NO3
@@ -167,7 +167,7 @@
       ! Error condition if IFLAG does not equal 2, or 3!
       IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
          CALL ERROR_STOP( 'Invalid IFLAG!', 'initialize.f' )
-      ENDIF  
+      ENDIF
 
       !=================================================================
       ! If IFLAG=2 then zero the accumulating arrays
@@ -184,7 +184,7 @@
          IF ( ND15 > 0 ) TURBFLUP = 0e+0_fp
          IF ( ND16 > 0 ) AD16     = 0e0
          IF ( ND17 > 0 ) AD17     = 0e0
-         IF ( ND18 > 0 ) AD18     = 0e0         
+         IF ( ND18 > 0 ) AD18     = 0e0
          IF ( ND19 > 0 ) AD19     = 0e0
          IF ( ND22 > 0 ) AD22     = 0e0
          IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp  ! netcdf TRANSPORT diag group
@@ -253,7 +253,7 @@
             AD07_OC    = 0e0
             AD07_HC    = 0e0
          ENDIF
- 
+
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0
@@ -276,7 +276,7 @@
 
 #if   defined( TOMAS )
          ! For ND59 - size-resolved primary aerosol emissions (win, 7/28/09)
-         IF ( ND59 > 0 ) THEN 
+         IF ( ND59 > 0 ) THEN
             AD59_NUMB = 0e0
             AD59_SULF = 0e0
             AD59_SALT = 0e0
@@ -305,14 +305,14 @@
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
          ENDIF
-      ENDIF  
+      ENDIF
 
-      !================================================================= 
+      !=================================================================
       ! If IFLAG=3 then zero the counter variables & arrays
       !=================================================================
       IF ( IFLAG == 3 ) THEN
 
-         ! Now reset timesteps here for now 
+         ! Now reset timesteps here for now
          CALL SET_CT_A1(   RESET=.TRUE. )
          CALL SET_CT_A3(   RESET=.TRUE. )
          CALL SET_CT_CHEM( RESET=.TRUE. )

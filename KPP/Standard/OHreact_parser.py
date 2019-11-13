@@ -2,12 +2,12 @@
 #
 # Helper routine to generate a Fortran code snipped that computes the OH reactivity
 # based on the reactions listed in gckpp_Monitor.F90.
-# The OH reactivity is defined as the inverse of its lifetime and is determined using 
-# the reaction rates of all reactions that consume OH. The generated code snipped can 
+# The OH reactivity is defined as the inverse of its lifetime and is determined using
+# the reaction rates of all reactions that consume OH. The generated code snipped can
 # then be inserted into one of the Fortran modules, e.g. gckpp_Util.F90.
 #
-# Usage: 
-# python OHreact_parser.py 
+# Usage:
+# python OHreact_parser.py
 #
 # Revision History:
 # 2018-06-18 - christoph.a.keller@nasa.gov - initial version
@@ -55,7 +55,7 @@ ntot = 0
 # get all lines with a reaction
 rxt = [i for i in lines if '-->' in i]
 
-# walk through all reactions 
+# walk through all reactions
 irct = 0
 for irxt in rxt:
     irct += 1

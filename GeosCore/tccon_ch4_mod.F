@@ -8,7 +8,7 @@
 ! !DESCRIPTION: Module TCCON\_CH4\_MOD
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE TCCON_CH4_MOD
 !
@@ -20,7 +20,7 @@
       USE m_netcdf_io_close      ! netCDF close
       USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
-      IMPLICIT NONE 
+      IMPLICIT NONE
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -49,7 +49,7 @@
 ! !MODULE VARIABLES
 !
       ! Record to store data from each TCCON obs
-      TYPE TCCON_CH4_OBS 
+      TYPE TCCON_CH4_OBS
          INTEGER           :: LTCC(1)
          REAL(fp)          :: LAT(1)
          REAL(fp)          :: LON(1)
@@ -75,7 +75,7 @@
          REAL(fp)          :: H2O(MAXLEV)
          CHARACTER(LEN=2)  :: SITE(MAXLEV)
          INTEGER           :: QFLAG(1)
-      ENDTYPE TCCON_CH4_OBS  
+      ENDTYPE TCCON_CH4_OBS
 
       TYPE(TCCON_CH4_OBS)             :: TCC(MAXTCC)
 
@@ -89,7 +89,7 @@
 ! !IROUTINE: read_tcc_ch4_obs
 !
 ! !DESCRIPTION: Subroutine READ\_TCC\_CH4\_OBS reads the file and passes back
-!  info contained therein. (ajt, 01/13/14) 
+!  info contained therein. (ajt, 01/13/14)
 !\\
 !\\
 ! !INTERFACE:
@@ -110,10 +110,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,            INTENT(OUT) :: NTCC     ! Number of TCC retrievals
-!     
+!
 ! !REVISION HISTORY:
-!  (1 ) Add calculation of S_OER_INV, though eventually we probably want to 
-!        do this offline. (dkh, 05/04/10) 
+!  (1 ) Add calculation of S_OER_INV, though eventually we probably want to
+!        do this offline. (dkh, 05/04/10)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,9 +181,9 @@
 
       ! Filename
       nc_file = 'TCCON_dat_YYYYMMDD.ncdf'
-      CALL Expand_Date( nc_file, YYYYMMDD, 9999 ) 
+      CALL Expand_Date( nc_file, YYYYMMDD, 9999 )
 
-      ! Construct complete filename 
+      ! Construct complete filename
       dir = '/n/regal/jacob_lab/msulprizio/ExtData/Obs/TCCON/' //
      &                CYEAR // '/'
       nc_file = TRIM( dir ) // TRIM( nc_file )
@@ -345,9 +345,9 @@
       ct2d   = (/ StrLen, NTCC /)
       CALL NcRd( TCCON_site, fId, TRIM(v_name), st2d, ct2d )
 
-      !-------------------------------- 
+      !--------------------------------
       ! Read 2-D Data
-      !-------------------------------- 
+      !--------------------------------
 
       ! APRIORI (ppb)
       v_name = 'ch4_apriori'
@@ -385,9 +385,9 @@
       ct2d   = (/ NLEV, NTCC /)
       CALL NcRd( tccon_h2o, fId, TRIM(v_name), st2d, ct2d )
 
-      !-------------------------------- 
+      !--------------------------------
       ! Place data into TCC structure
-      !-------------------------------- 
+      !--------------------------------
       DO N = 1, NTCC
 
          ! 0-D data
@@ -443,9 +443,9 @@
 
       ENDDO
 
-      !-------------------------------- 
+      !--------------------------------
       ! Close netCDF file
-      !-------------------------------- 
+      !--------------------------------
 
       ! Echo info
       WRITE( 6, 20 ) YYYYMMDD
@@ -586,8 +586,8 @@
 !------------------------------------------------------------------------------
 
       ! For miscellaneous
-      LOGICAL, SAVE      :: FIRST = .TRUE. 
-      LOGICAL            :: WRITE_FILE = .TRUE. 
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      LOGICAL            :: WRITE_FILE = .TRUE.
       INTEGER            :: IOS
       INTEGER, SAVE      :: TotalObs = 0
       CHARACTER(LEN=255) :: FILENAME
@@ -644,8 +644,8 @@
             WRITE( 119, 281 ) '       NNN',
      &                     '   I', '   J', '     LON','     LAT','YYYY',
      &                     'MM', 'DD', 'hh', 'mm', 'ss', 'site',
-     &                     '         TAU', '       TCCON', 
-     &                     '       model', '       S_OBS', 
+     &                     '         TAU', '       TCCON',
+     &                     '       model', '       S_OBS',
      &                     '    COST_FUN', 'XH2O', 'XH2O_ERROR'
          ENDIF
 
@@ -662,16 +662,16 @@
       OLD_COST = COST_FUNC
 
       ! Read Observations at first call and at end of the day
-!      IF ( FIRST .OR.  ( ( GET_HOUR() .EQ. 23 ) 
+!      IF ( FIRST .OR.  ( ( GET_HOUR() .EQ. 23 )
 !     &           .AND. (LANAL_INV .EQ. .FALSE.) )
 !     &           .OR.  ( ITS_A_NEW_DAY() .AND. LANAL_INV  ) ) THEN
       IF ( FIRST .OR. ITS_A_NEW_DAY() ) THEN
- 
-         ! Read the TCC CH4 file for this month 
+
+         ! Read the TCC CH4 file for this month
          YYYYMMDD = 1d4*GET_YEAR() + 1d2*GET_MONTH() + GET_DAY()
          CALL READ_TCC_CH4_OBS( YYYYMMDD, NTCC )
 
-         IF ( FIRST ) FIRST = .FALSE. 
+         IF ( FIRST ) FIRST = .FALSE.
 
          ! Make sure there are observations on this day
          IF ( NTCC .EQ. -1d0 ) RETURN
@@ -682,12 +682,12 @@
 !         S_OBS_MAT(:,:) = -1d0
 !------------------------------------------------------------------------------
 
-      ENDIF 
+      ENDIF
 
       ! Get indices of TCC observations in the current hour
-      !   At the start of each hour, assimilate observations that 
+      !   At the start of each hour, assimilate observations that
       !   were made in the previous 60 minutes.
-      !   For example, at time 18:00, assimilate observations 
+      !   For example, at time 18:00, assimilate observations
       !   made from 18:00 - 18:59
       INDS(:) = 0d0
       NOBS    = 0
@@ -703,17 +703,17 @@
          ENDIF
       ENDDO
 
-      IF ( NOBS == 0 ) THEN 
+      IF ( NOBS == 0 ) THEN
          print*, ' No matching TCCON CH4 obs for this hour'
          RETURN
-      ENDIF 
+      ENDIF
 
       print*, ' for hour range: ', GET_HOUR(), GET_HOUR()+1
       print*, ' found # observations: ', NOBS
-      
 
-!! need to update this in order to do i/o with this loop parallel 
-!!      ! Now do a parallel loop for analyzing data 
+
+!! need to update this in order to do i/o with this loop parallel
+!!      ! Now do a parallel loop for analyzing data
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( PRIVATE )
 !!!$OMP+PRIVATE( IND, NT, MAP, LTCC, IIJJ,  I, J,  L,   LL, JLOOP )
@@ -726,16 +726,16 @@
       DO IND = 1, NOBS
 
          NT = INDS(IND)
-         !print*, '     - CALC_TCCON_CH4_FORCE: analyzing record ', NT 
+         !print*, '     - CALC_TCCON_CH4_FORCE: analyzing record ', NT
 
          ! quality screening (0 is good!)
-         IF ( TCC(NT)%QFLAG(1) .NE. 0 ) THEN 
+         IF ( TCC(NT)%QFLAG(1) .NE. 0 ) THEN
             print*, ' BAD QFLAG, skipping record        ', NT
             CYCLE
          ENDIF
 
          ! Check for NaN in data
-         IF ( IT_IS_NAN( TCC(NT)%CH4(1) ) ) THEN 
+         IF ( IT_IS_NAN( TCC(NT)%CH4(1) ) ) THEN
             print*, ' XCH4 is NaN, skipping record      ', NT
             CYCLE
          ENDIF
@@ -747,14 +747,14 @@
          ENDIF
 
          ! Check for negative/zero data
-         IF ( TCC(NT)%CH4(1) <= 0d0 ) THEN 
+         IF ( TCC(NT)%CH4(1) <= 0d0 ) THEN
             print*, ' XCH4 is <= 0, skipping record     ', NT
             CYCLE
          ENDIF
 
          ! Skip observations outside the nested domain
          IF ( TCC(NT)%LAT(1) < State_Grid%YMin .OR.
-     &        TCC(NT)%LAT(1) > State_Grid%YMax .OR. 
+     &        TCC(NT)%LAT(1) > State_Grid%YMax .OR.
      &        TCC(NT)%LON(1) < State_Grid%XMin .OR.
      &        TCC(NT)%LON(1) > State_Grid%XMax ) THEN
             print*, ' Outside nested domain, skipping record ', NT
@@ -767,7 +767,7 @@
          I     = IIJJ(1)
          J     = IIJJ(2)
 
-!         ! skip observations where the TCCON surface pressure is 
+!         ! skip observations where the TCCON surface pressure is
 !         ! less than the model.  Use w/ updated interp (ajt, 11/6/13)
 !         IF ( (TCC(NT)%PSURF(1) - GET_PEDGE(I,J,1)) .GT. 50d0 ) THEN
 !            print*, ' Psurf threshold not met, skipping record ', NT
@@ -780,9 +780,9 @@
 
          ! For safety, initialize these up to LTCC
          LTCC            = 0
-         GC_CH4(:)       = 0.0_fp 
-         MAP(:,:)        = 0.0_fp 
-         FORCE           = 0.0_fp 
+         GC_CH4(:)       = 0.0_fp
+         MAP(:,:)        = 0.0_fp
+         FORCE           = 0.0_fp
          CH4_PRIOR(:)    = 0.0_fp
 
 
@@ -792,21 +792,21 @@
             CH4_PRIOR(L) = TCC(NT)%PRIOR(L)
          ENDDO
 
-         ! Get GC pressure levels (mbar) 
+         ! Get GC pressure levels (mbar)
          DO L = 1, State_Grid%NZ
             GC_PRES(L) = State_Met%PMID(I,J,L)
          ENDDO
 
-         ! Get GC pressure edges (mbar) 
+         ! Get GC pressure edges (mbar)
          DO L = 1, State_Grid%NZ+1
             GC_PEDGE(L) = State_Met%PEDGE(I,J,L)
          ENDDO
 
-         ! Get GC surface pressure (mbar) 
+         ! Get GC surface pressure (mbar)
          GC_PSURF = State_Met%PEDGE(I,J,1)
 
 
-         ! Calculate the interpolation weight matrix 
+         ! Calculate the interpolation weight matrix
          MAP(:,:) = 0.0_fp
          CALL GET_INTMAP( State_Grid, GC_PRES, TCC(NT)%PRES, MAP )
 
@@ -840,25 +840,25 @@
 
          ! Get species concentrations
          ! Convert from [kg/box] --> [v/v]
-         GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4) * ( AIRMW / 
+         GC_CH4_NATIVE(:) = State_Chm%Species(I,J,:,id_CH4) * ( AIRMW /
      &                      State_Chm%SpcData(id_CH4)%Info%emMW_g )
 
          GC_H2O_NATIVE(:) = State_Met%AVGW(I,J,:)
- 
+
 !         ! Interpolate GC CH4 column to TCCON grid
 !         ! use the method of Parker et al., (2011)
-!         GC_CH4 = INTERP_GC_TCC( LTCC, State_Grid%NZ, GC_PRES, GC_PEDGE, 
+!         GC_CH4 = INTERP_GC_TCC( LTCC, State_Grid%NZ, GC_PRES, GC_PEDGE,
 !     &               TCC(NT)%PRES(1:LTCC), GC_CH4_NATIVE )
 
 ! Old interpolation method from kjw
          DO LL = 1, LTCC
             GC_CH4(LL) = 0.0_fp
             GC_H2O(LL) = 0.0_fp
-            DO L = 1, State_Grid%NZ 
-               GC_CH4(LL) = GC_CH4(LL) 
-     &                    + MAP(L,LL) * GC_CH4_NATIVE(L) 
-               GC_H2O(LL) = GC_H2O(LL) 
-     &                    + MAP(L,LL) * GC_H2O_NATIVE(L) 
+            DO L = 1, State_Grid%NZ
+               GC_CH4(LL) = GC_CH4(LL)
+     &                    + MAP(L,LL) * GC_CH4_NATIVE(L)
+               GC_H2O(LL) = GC_H2O(LL)
+     &                    + MAP(L,LL) * GC_H2O_NATIVE(L)
 !               GC_H2O(LL) = TCC(NT)%H2O(LL)
             ENDDO
          ENDDO
@@ -869,12 +869,12 @@
          TCC_XCH4_ERROR = TCC(NT)%CH4_ERROR(1) * 1e-9_fp
 
          ! Remove any TCCON bias (probably not...)
-!         TCC_XCH4 = TCC_XCH4 + 1d-9 * ( SATELLITE_BIAS(1) 
+!         TCC_XCH4 = TCC_XCH4 + 1d-9 * ( SATELLITE_BIAS(1)
 !     &                       + SATELLITE_BIAS(2)*(TCC(NT)%LAT(1))
 !     &                       + SATELLITE_BIAS(3)*(TCC(NT)%LAT(1))**2 )
 
          ! Get the S_obs, assume stddev adds in quadrature, variance
-         ! adds linearly.  (ajt, 03/27/2013) 
+         ! adds linearly.  (ajt, 03/27/2013)
          S_OBS = TCC_XCH4_ERROR**2 + (GC_XCH4_ERROR * 1e-9_fp)**2
 
 !------------------------------------------------------------------------------
@@ -882,7 +882,7 @@
 !         ! Specify the observational error externally
 !         ! (ajt, 11/5/13)
 !         IF (EXT_OBS_MAT) THEN
-!         
+!
 !            ! Read in the obs error matrix
 !            FILENAME = '../ext_sat_obs.gosat.nc'
 !            FILENAME = TRIM( DIAGADJ_DIR ) //  TRIM( FILENAME )
@@ -896,7 +896,7 @@
 !     &           (S_OBS_MAT(I,J) .GT. TCC(NT)%CH4_ERROR(1)) ) THEN
 !               S_OBS = (S_OBS_MAT(I,J) * 1d-9)**2
 !            ENDIF
-!         
+!
 !         ENDIF
 !------------------------------------------------------------------------------
 
@@ -904,7 +904,7 @@
          ! Apply TCCON observation operator
          !
          !   Xch4_m = Xch4_a + SUM_j( h_j * a_j * (x_m - x_a) )
-         !  
+         !
          !   Xch4_m  - model XCH4
          !   Xch4_a  - apriori XCH4 = h^T * x_a
          !   h       - pressure weighting function
@@ -912,7 +912,7 @@
          !   x_m     - model CH4 [v/v]
          !   x_a     - apriori CH4 [v/v]
          !
-         !   The pressure weighting function is defined in Connor et al. 2008 
+         !   The pressure weighting function is defined in Connor et al. 2008
          !     and the OCO-2 ATBD
          !--------------------------------------------------------------
 
@@ -943,8 +943,8 @@
          ENDDO
 
          ! Now return to the orientation of the other variables
-         IF (LTCC .GT. 1) THEN 
-            IF(TCC(NT)%PRES(2) .LT. TCC(NT)%PRES(1)) THEN 
+         IF (LTCC .GT. 1) THEN
+            IF(TCC(NT)%PRES(2) .LT. TCC(NT)%PRES(1)) THEN
                h(1:LTCC) = h(LTCC:1:-1)
                p(1:LTCC) = p(LTCC:1:-1)
             ENDIF
@@ -956,16 +956,16 @@
          ! Compute h and convert the prior to a dry-air mole fraction
          DO L = 1, LTCC
 !            h(L) = ( ( TCC_P_EDGE(L) - TCC_P_EDGE(L+1) )
-!     &           / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!     &           * (1e0 + GC_H2O(L) / ( 1e0 - GC_H2O(L) ) 
+!     &           / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!     &           * (1e0 + GC_H2O(L) / ( 1e0 - GC_H2O(L) )
 !     &           * (TCC(NT)%MH2O(1) / TCC(NT%MAIR(1)) ) ) ) )
 !     &           / ( psurf
-!     &           / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!     &           * (1e0 + GC_H2O(L) / ( 1e0 - GC_H2O(L) ) 
+!     &           / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!     &           * (1e0 + GC_H2O(L) / ( 1e0 - GC_H2O(L) )
 !     &           * (TCC(NT)%MH2O(1) / TCC(NT%MAIR(1)) ) ) ) )
 !            h(L) = ( TCC_P_EDGE(L) - TCC_P_EDGE(L+1) )
-!     &           / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!     &           * (1e0 + GC_H2O(L) / ( 1e0 - GC_H2O(L) ) 
+!     &           / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!     &           * (1e0 + GC_H2O(L) / ( 1e0 - GC_H2O(L) )
 !     &           * (TCC(NT)%MH2O(1) / TCC(NT%MAIR(1)) ) ) )
 
             prior(L) = prior(L) / ( 1.0_fp - GC_H2O(L) )
@@ -1005,7 +1005,7 @@
 !------------------------------------------------------------------------------
 ! For adjoint model only:
 !         !--------------------------------------------------------------
-!         ! Begin adjoint calculations 
+!         ! Begin adjoint calculations
 !         !--------------------------------------------------------------
 !
 !         ! The adjoint forcing  is S_{obs}^{-1} * DIFF = FORCE
@@ -1019,7 +1019,7 @@
 !         DO LL = 1, LTCC
 !            GC_CH4_ADJ(LL) = h(LL) * ak(LL)*GC_XCH4_ADJ
 !         ENDDO
-! 
+!
 !!         ! Need to integrate from the surface to the toa (ajt, 01/16/2014)
 !!         VC_a   = 0d0
 !!         VC_m   = 0d0
@@ -1031,27 +1031,27 @@
 !!            delta_p   = TCC_P_EDGE(L) - TCC_P_EDGE(L+1)
 !!
 !!            ! Prior
-!!            VC_a = VC_a + prior(L) * ak(L) * delta_p / 
-!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!!     &           * (1d0 + f_dry_h2o 
+!!            VC_a = VC_a + prior(L) * ak(L) * delta_p /
+!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!!     &           * (1d0 + f_dry_h2o
 !!     &           * (TCC(NT)%MH2O(1)/TCC(NT%MAIR(1)) ) )  )
 !!
 !!            ! GEOS-Chem
-!!            VC_m = VC_m + GC_CH4(L) * ak(L) * delta_p / 
-!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
+!!            VC_m = VC_m + GC_CH4(L) * ak(L) * delta_p /
+!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
 !!     &           * (1d0 + f_dry_h2o
 !!     &           * (TCC(NT)%MH2O(1)/TCC(NT%MAIR(1)) ) )  )
 !!
 !!            ! Air
-!!            VC_air = VC_air + delta_p / 
-!!     &             ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
+!!            VC_air = VC_air + delta_p /
+!!     &             ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
 !!     &             * (1d0 + f_dry_h2o
 !!     &             * (TCC(NT)%MH2O(1)/TCC(NT%MAIR(1)) ) )  )
 !!
 !!            ! XCH4_prior
-!!            XCH4a = XCH4a + f_dry_gas * delta_p / 
-!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!!     &           * (1d0 + f_dry_h2o 
+!!            XCH4a = XCH4a + f_dry_gas * delta_p /
+!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!!     &           * (1d0 + f_dry_h2o
 !!     &           * (TCC(NT)%MH2O(1)/TCC(NT%MAIR(1)) ) )  )
 !!         ENDDO
 !!
@@ -1060,15 +1060,15 @@
 !
 !
 !! Old interpolation from kjw
-!         ! adjoint of interpolation 
+!         ! adjoint of interpolation
 !         DO L  = 1, State_Grid%NZ
-!            GC_CH4_NATIVE_ADJ(L) = 0d0 
+!            GC_CH4_NATIVE_ADJ(L) = 0d0
 !            DO LL = 1, LTCC
 !               GC_CH4_NATIVE_ADJ(L) = GC_CH4_NATIVE_ADJ(L)
 !     &                              + MAP(L,LL) * GC_CH4_ADJ(LL)
 !            ENDDO
 !         ENDDO
-!         
+!
 !
 !!         ! Updated adjoint of interpolation
 !!         GC_CH4_NATIVE_ADJ = INTERP_GC_TCC( State_Grid%NZ, LTCC,
@@ -1076,9 +1076,9 @@
 !!     &                       TCC_PEDGE( LTCC, TCC(NT)%PRES(1:LTCC) ),
 !!     &                       GC_PRES, GC_CH4_ADJ )
 !
-!         ! Adjoint of unit conversion 
+!         ! Adjoint of unit conversion
 !         GC_CH4_NATIVE_ADJ(:) = GC_CH4_NATIVE_ADJ(:) * TCVV_CH4
-!     &                        / AD(I,J,:) 
+!     &                        / AD(I,J,:)
 !
 !        ! Pass adjoint back to adjoint tracer array
 !         STT_ADJ(I,J,:,IDTCH4)  = STT_ADJ(I,J,:,IDTCH4)
@@ -1088,11 +1088,11 @@
          TotalObs = TotalObs + 1
 
          ! Record information for satellite diagnostics
-         IF ( LDCH4SAT ) THEN 
+         IF ( LDCH4SAT ) THEN
             WRITE( 119, 282 ) TotalObs, I, J, TCC(NT)%LON(1),
-     &           TCC(NT)%LAT(1),TCC(NT)%YEAR(1), 
-     &           TCC(NT)%MONTH(1),TCC(NT)%DAY(1), TCC(NT)%HOUR(1), 
-     &           TCC(NT)%MINUTE(1), TCC(NT)%SEC(1), TCC(NT)%SITE(1), 
+     &           TCC(NT)%LAT(1),TCC(NT)%YEAR(1),
+     &           TCC(NT)%MONTH(1),TCC(NT)%DAY(1), TCC(NT)%HOUR(1),
+     &           TCC(NT)%MINUTE(1), TCC(NT)%SEC(1), TCC(NT)%SITE(1),
      &           GET_TAU(), TCC_XCH4, GC_XCH4, S_OBS, 0.5d0*FORCE*DIFF,
      &           TCC(NT)%XH2O(1), TCC(NT)%XH2OE(1)
          ENDIF
@@ -1105,7 +1105,7 @@
       ! Number of observations processed in total
       !TotalObs = TotalObs + NOBS
 
-      ! Update cost function 
+      ! Update cost function
       IF ( FORCE_TCCON ) THEN
          COST_FUNC = COST_FUNC + SUM(NEW_COST(:))
       ELSE
@@ -1143,13 +1143,13 @@
 !      I     = IIJJ(1)
 !      J     = IIJJ(2)
 !
-!      ! Get GC pressure levels (mbar) 
+!      ! Get GC pressure levels (mbar)
 !      DO L = 1, State_Grid%NZ
 !         GC_PRES(L) = GET_PCENTER(I,J,L)
 !      ENDDO
 !
-!      ! Get GC surface pressure (mbar) 
-!      GC_PSURF = GET_PEDGE(I,J,1) 
+!      ! Get GC surface pressure (mbar)
+!      GC_PSURF = GET_PEDGE(I,J,1)
 !
 !      ! Write identifying information to top of satellite diagnostic file
 !      WRITE(118,'(a)') '----------------------------------------------'
@@ -1189,8 +1189,8 @@
 !         ! Write information to satellite diagnostic file
 !         WRITE(118, 211)  LL,     GC_PRES(LL),
 !     &                    FD_POS(LL),   FD_NEG(LL),
-!     &                    FD_CEN(LL),   ADJ_SAVE(LL), 
-!     &                    COST_FUNC_pos, COST_FUNC_neg, 
+!     &                    FD_CEN(LL),   ADJ_SAVE(LL),
+!     &                    COST_FUNC_pos, COST_FUNC_neg,
 !     &                    FD_POS(LL)/ADJ_SAVE(LL),
 !     &                    FD_NEG(LL)/ADJ_SAVE(LL),
 !     &                    FD_CEN(LL)/ADJ_SAVE(LL)
@@ -1216,8 +1216,8 @@
      &        2x,I2,2x,I2,2x,A4,2x,F12.3,2x,E36.30,2x,E36.30,2x,E36.30,
      &        2x,E36.30,2x,E36.30,2x,E36.30)
 
-      print*, ' Updated value of COST_FUNC = ', COST_FUNC 
-      print*, ' TCC contribution           = ', COST_FUNC - OLD_COST  
+      print*, ' Updated value of COST_FUNC = ', COST_FUNC
+      print*, ' TCC contribution           = ', COST_FUNC - OLD_COST
       print*, ' Number of observations this hour = ', NOBS
       print*, ' Number of observations total     = ', TotalObs
 
@@ -1231,16 +1231,16 @@
 !!
 !!******************************************************************************
 !!  Subroutine CALC_TCC_CH4_FORCE calculates the adjoint forcing from the TCCON
-!!  CH4 observations and updates the cost function. (dkh, 10/12/10) 
-!! 
+!!  CH4 observations and updates the cost function. (dkh, 10/12/10)
+!!
 !!
 !!  Arguments as Input/Output:
 !!  ============================================================================
 !!  (1 ) COST_FUNC (REAL(fp)) : Cost funciton                        [unitless]
-!!     
-!!     
+!!
+!!
 !!  NOTES:
-!!  
+!!
 !!******************************************************************************
 !!
 !      ! Reference to f90 modules
@@ -1264,7 +1264,7 @@
 !
 !      !ajt. Analytical inversion
 !      USE LOGICAL_ADJ_MOD,    ONLY : LANAL_INV
-!      
+!
 !      ! ajt. Forward mode
 !      USE ADJ_ARRAYS_MOD,     ONLY : OBS_STT
 !
@@ -1340,16 +1340,16 @@
 !      !=================================================================
 !
 !      print*, '     - CALC_TCC_CH4_FORCE_FD '
-!    
+!
 !      ! Reset
 !      COST_FUNC_A = 0d0
 !      ADJ(:)      = 0d0
 !
 !      ! For safety, initialize these up to LLTCC
 !      LTCC            = 0d0
-!      GC_CH4(:)       = 0d0 
-!      MAP(:,:)        = 0d0 
-!      FORCE           = 0d0 
+!      GC_CH4(:)       = 0d0
+!      MAP(:,:)        = 0d0
+!      FORCE           = 0d0
 !      CH4_PRIOR(:)    = 0d0
 !
 !      ! Initialize the observational error matrix (-1 if not read
@@ -1367,21 +1367,21 @@
 !      I     = IIJJ(1)
 !      J     = IIJJ(2)
 !
-!      ! Get GC pressure levels (mbar) 
+!      ! Get GC pressure levels (mbar)
 !      DO L = 1, State_Grid%NZ
 !         GC_PRES(L) = GET_PCENTER(I,J,L)
 !      ENDDO
 !
-!      ! Get GC pressure edges (mbar) 
-!      DO L = 1, State_Grid%NZ+1           
+!      ! Get GC pressure edges (mbar)
+!      DO L = 1, State_Grid%NZ+1
 !         GC_PEDGE(L) = GET_PEDGE(I,J,L)
 !      ENDDO
 !
-!      ! Get GC surface pressure (mbar) 
-!      GC_PSURF = GET_PEDGE(I,J,1) 
+!      ! Get GC surface pressure (mbar)
+!      GC_PSURF = GET_PEDGE(I,J,1)
 !
 !
-!      ! Calculate the interpolation weight matrix 
+!      ! Calculate the interpolation weight matrix
 !      MAP(:,:) = 0d0
 !      CALL GET_INTMAP( State_Grid, GC_PRES, TCC(NT)%PRES, MAP )
 !
@@ -1405,24 +1405,24 @@
 !
 !      ! Convert from kg/box to v/v
 !      GC_CH4_NATIVE(:) = GC_CH4_NATIVE(:) * TCVV_CH4
-!     &                    / AD(I,J,:) 
-! 
+!     &                    / AD(I,J,:)
+!
 !!      ! Interpolate GC CH4 column to TCCON grid
 !!      ! use the method of Parker et al., (2011)
 !!      GC_CH4 = INTERP_GC_TCC( LTCC, State_Grid%NZ, GC_PRES, GC_PEDGE,
 !!     &         TCC(NT)%PRES(1:LTCC), GC_CH4_NATIVE )
 !
 !! Old interpolation method from kjw
-!      ! Interpolate GC CH4 column to TCCON grid 
+!      ! Interpolate GC CH4 column to TCCON grid
 !      DO LL = 1, LTCC
-!         GC_CH4(LL) = 0d0 
-!         GC_H2O(LL) = 0d0 
-!         DO L = 1, State_Grid%NZ 
-!            GC_CH4(LL) = GC_CH4(LL) 
-!     &           + MAP(L,LL) * GC_CH4_NATIVE(L) 
+!         GC_CH4(LL) = 0d0
+!         GC_H2O(LL) = 0d0
+!         DO L = 1, State_Grid%NZ
+!            GC_CH4(LL) = GC_CH4(LL)
+!     &           + MAP(L,LL) * GC_CH4_NATIVE(L)
 !            GC_H2O(LL) = TCC(NT)%H2O(LL)
-!!            GC_H2O(LL) = GC_H2O(LL) 
-!!     &           + MAP(L,LL) * GC_H2O_NATIVE(L) 
+!!            GC_H2O(LL) = GC_H2O(LL)
+!!     &           + MAP(L,LL) * GC_H2O_NATIVE(L)
 !         ENDDO
 !      ENDDO
 !
@@ -1431,18 +1431,18 @@
 !      TCC_XCH4_ERROR = TCC(NT)%CH4_ERROR(1) * 1d-9
 !
 !      ! Remove any biases
-!!      TCC_XCH4 = TCC_XCH4 + 1d-9 * ( SATELLITE_BIAS(1) 
+!!      TCC_XCH4 = TCC_XCH4 + 1d-9 * ( SATELLITE_BIAS(1)
 !!     &                    + SATELLITE_BIAS(2)*(TCC(NT)%LAT(1))
 !!     &                    + SATELLITE_BIAS(3)*(TCC(NT)%LAT(1))**2 )
 !
 !      ! Get the S_obs, assume stddev adds in quadrature, variance
-!      ! adds linearly.  (ajt, 03/27/2013) 
+!      ! adds linearly.  (ajt, 03/27/2013)
 !      S_OBS = TCC_XCH4_ERROR**2 + (GC_XCH4_ERROR * 1d-9)**2
 !
 !      ! Specify the observational error externally
 !      ! (ajt, 11/5/13)
 !      IF (EXT_OBS_MAT) THEN
-!         
+!
 !         ! Read in the obs error matrix
 !         FILENAME = '../ext_sat_obs.gosat.nc'
 !         FILENAME = TRIM( DIAGADJ_DIR ) //  TRIM( FILENAME )
@@ -1456,14 +1456,14 @@
 !     &        (S_OBS_MAT(I,J) .GT. TCC(NT)%CH4_ERROR(1)) ) THEN
 !            S_OBS = (S_OBS_MAT(I,J) * 1d-9)**2
 !         ENDIF
-!      
+!
 !      ENDIF
 !
 !      !--------------------------------------------------------------
 !      ! Apply TCCON observation operator
 !      !
 !      !   Xch4_m = Xch4_a + SUM_j( h_j * a_j * (x_m - x_a) )
-!      !  
+!      !
 !      !   Xch4_m  - model XCH4
 !      !   Xch4_a  - apriori XCH4 = h^T * x_a
 !      !   h       - pressure weighting function
@@ -1471,7 +1471,7 @@
 !      !   x_m     - model CH4 [v/v]
 !      !   x_a     - apriori CH4 [v/v]
 !      !
-!      !   The pressure weighting function is defined in Connor et al. 2008 
+!      !   The pressure weighting function is defined in Connor et al. 2008
 !      !     and the OCO-2 ATBD
 !      !--------------------------------------------------------------
 !
@@ -1515,18 +1515,18 @@
 !      ! Compute h and convert the prior to a dry-air mole fraction
 !      DO L = 1, LTCC
 !!         h(L) = ( ( TCC_P_EDGE(L) - TCC_P_EDGE(L+1) )
-!!     &        / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!!     &        * (1d0 + GC_H2O(L) / ( 1d0 - GC_H2O(L) ) 
+!!     &        / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!!     &        * (1d0 + GC_H2O(L) / ( 1d0 - GC_H2O(L) )
 !!     &        * (TCC(NT)%MH2O(1) / TCC(NT%MAIR(1)) ) ) ) )
 !!     &        / ( psurf
-!!     &        / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!!     &        * (1d0 + GC_H2O(L) / ( 1d0 - GC_H2O(L) ) 
+!!     &        / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!!     &        * (1d0 + GC_H2O(L) / ( 1d0 - GC_H2O(L) )
 !!     &        * (TCC(NT)%MH2O(1) / TCC(NT%MAIR(1)) ) ) ) )
 !!         h(L) = ( TCC_P_EDGE(L) - TCC_P_EDGE(L+1) )
-!!     &        / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!!     &        * (1d0 + GC_H2O(L) / ( 1d0 - GC_H2O(L) ) 
+!!     &        / ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!!     &        * (1d0 + GC_H2O(L) / ( 1d0 - GC_H2O(L) )
 !!     &        * (TCC(NT)%MH2O(1) / TCC(NT%MAIR(1)) ) ) )
-!            
+!
 !         prior(L) = prior(L) / ( 1d0 - GC_H2O(L) )
 !      ENDDO
 !
@@ -1564,12 +1564,12 @@
 !
 !
 !      !--------------------------------------------------------------
-!      ! Begin adjoint calculations 
+!      ! Begin adjoint calculations
 !      !--------------------------------------------------------------
 !
 !      ! The adjoint forcing  is S_{obs}^{-1} * DIFF = FORCE
 !      DIFF_ADJ = FORCE
-! 
+!
 !      ! Adjoint of difference
 !      GC_XCH4_ADJ = DIFF_ADJ
 !
@@ -1591,27 +1591,27 @@
 !!            delta_p   = TCC_P_EDGE(L) - TCC_P_EDGE(L+1)
 !!
 !!            ! Prior
-!!            VC_a = VC_a + prior(L) * ak(L) * delta_p / 
-!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!!     &           * (1d0 + f_dry_h2o 
+!!            VC_a = VC_a + prior(L) * ak(L) * delta_p /
+!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!!     &           * (1d0 + f_dry_h2o
 !!     &           * (TCC(NT)%MH2O(1)/TCC(NT%MAIR(1)) ) )  )
 !!
 !!            ! GEOS-Chem
-!!            VC_m = VC_m + GC_CH4(L) * ak(L) * delta_p / 
-!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
+!!            VC_m = VC_m + GC_CH4(L) * ak(L) * delta_p /
+!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
 !!     &           * (1d0 + f_dry_h2o
 !!     &           * (TCC(NT)%MH2O(1)/TCC(NT%MAIR(1)) ) )  )
 !!
 !!            ! Air
-!!            VC_air = VC_air + delta_p / 
-!!     &             ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
+!!            VC_air = VC_air + delta_p /
+!!     &             ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
 !!     &             * (1d0 + f_dry_h2o
 !!     &             * (TCC(NT)%MH2O(1)/TCC(NT%MAIR(1)) ) )  )
 !!
 !!            ! XCH4_prior
-!!            XCH4a = XCH4a + f_dry_gas * delta_p / 
-!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1) 
-!!     &           * (1d0 + f_dry_h2o 
+!!            XCH4a = XCH4a + f_dry_gas * delta_p /
+!!     &           ( TCC(NT)%GRAV(L) * TCC(NT)%MAIR(1)
+!!     &           * (1d0 + f_dry_h2o
 !!     &           * (TCC(NT)%MH2O(1)/TCC(NT%MAIR(1)) ) )  )
 !!         ENDDO
 !!
@@ -1620,9 +1620,9 @@
 !
 !
 !! Old interpolation from kjw
-!      ! adjoint of interpolation 
+!      ! adjoint of interpolation
 !      DO L  = 1, State_Grid%NZ
-!         GC_CH4_NATIVE_ADJ(L) = 0d0 
+!         GC_CH4_NATIVE_ADJ(L) = 0d0
 !         DO LL = 1, LTCC
 !            GC_CH4_NATIVE_ADJ(L) = GC_CH4_NATIVE_ADJ(L)
 !     &                           + MAP(L,LL) * GC_CH4_ADJ(LL)
@@ -1635,9 +1635,9 @@
 !!     &                    TCC_PEDGE( LTCC, TCC(NT)%PRES(1:LTCC) ),
 !!     &                    GC_PRES, GC_CH4_ADJ, MAP )
 !
-!      ! Adjoint of unit conversion 
+!      ! Adjoint of unit conversion
 !      GC_CH4_NATIVE_ADJ(:) = GC_CH4_NATIVE_ADJ(:) * TCVV_CH4
-!     &                     / AD(I,J,:) 
+!     &                     / AD(I,J,:)
 !
 !
 !      ! Calculate adjoint sensitivity to values in CHK_STT
@@ -1657,7 +1657,7 @@
 !
 !!------------------------------------------------------------------------------
 !
-!      FUNCTION INTERP_GC_TCC( LTCC, LGC, GC_P_I, PEDGE_I, TCC_P_I, 
+!      FUNCTION INTERP_GC_TCC( LTCC, LGC, GC_P_I, PEDGE_I, TCC_P_I,
 !     &                        GC_CH4_NATIVE_I )
 !!
 !!******************************************************************************
@@ -1671,11 +1671,11 @@
 !!  (4 ) PEDGE_I         : GEOS-Chem pressure edges            [mbar]
 !!  (5 ) TCC_P_I         : TCCON pressure levels               [mbar]
 !!  (6 ) GC_CH4_NATIVE_I : GEOS-Chem CH4 on the native grid    [kg/box]
-!!     
+!!
 !!  Arguments as Output:
 !!  ============================================================================
 !!  (1 ) INTERP_GC_TCC   : GEOS-Chem CH4 interpolated to TCCON [v/v]
-!!     
+!!
 !!  NOTES:
 !!  (1 ) Converts to Layer Column Density (LCD) before performing interpolation
 !!       because LCD is a monotonically increasing function of pressure.
@@ -1691,14 +1691,14 @@
 !      REAL(fp), INTENT(IN)             :: TCC_P_I(LTCC)
 !
 !      ! Parameters
-!      REAL(fp), PARAMETER              :: AV_NUM = 6.0221418d23 
-!      REAL(fp), PARAMETER              :: MOLWT  = 16.0426*1d-3 
+!      REAL(fp), PARAMETER              :: AV_NUM = 6.0221418d23
+!      REAL(fp), PARAMETER              :: MOLWT  = 16.0426*1d-3
 !      REAL(fp), PARAMETER              :: GRAV   = 9.81d0
 !
-!      ! Return value 
+!      ! Return value
 !      REAL(fp)                         :: INTERP_GC_TCC(LTCC)
 !
-!      ! Local variables 
+!      ! Local variables
 !      INTEGER                        :: L, LL
 !      REAL(fp)                         :: SCD(LGC+1)
 !      REAL(fp)                         :: GC_CH4_NATIVE(LGC)
@@ -1739,7 +1739,7 @@
 !         ENDIF
 !      ENDIF
 !
-!      ! Interpolate GC CH4 column to TCCON grid 
+!      ! Interpolate GC CH4 column to TCCON grid
 !      ! use the method of Parker et al., (2011)
 !      TOTAL_SCD  = 0D0
 !      SCD(:)     = 0D0 ! SCD at toa is zero
@@ -1753,7 +1753,7 @@
 !
 !      ! Determine how much a level influences the levels above and below it
 !      DO LL = 1, LTCC
-!         
+!
 !         ! Make coding cleaner
 !         p = TCC_P
 !
@@ -1820,11 +1820,11 @@
 !!  (3 ) U  : Abscissa values to interpolate onto              [unit]
 !!  (4 ) Na : Length of "Y" and "X"                            [unit]
 !!  (5 ) Nb : Length of "U"                                    [unit]
-!!     
+!!
 !!  Arguments as Output:
 !!  ============================================================================
 !!  (1 ) INTERPOL : Interpolated data                          [unit]
-!!     
+!!
 !!  NOTES:
 !!  (1 ) N/A
 !!
@@ -1836,11 +1836,11 @@
 !      REAL(fp),  INTENT(IN)            :: Y(Na)
 !      REAL(fp),  INTENT(IN)            :: X(Na)
 !      REAL(fp),  INTENT(IN)            :: U(Nb)
-! 
-!      ! Return value 
+!
+!      ! Return value
 !      REAL(fp)                         :: INTERPOL(Nb)
 !
-!      ! Local variables 
+!      ! Local variables
 !      REAL(fp)   :: X_S, X_L, X_H
 !      REAL(fp)   :: Y_S, Y_L, Y_H
 !      INTEGER  :: I, J
@@ -1849,7 +1849,7 @@
 !      ! INTERPOL begins here!
 !      !=================================================================
 !
-!      INTERPOL(:) = 0D0 
+!      INTERPOL(:) = 0D0
 !
 !      ! Loop over the variable we're interpolating to
 !      DO I = 1, Nb
@@ -1859,7 +1859,7 @@
 !
 !         ! Is the data in forward or reverse order?
 !         IF ( X(2) .GE. X(1) ) THEN
-!            
+!
 !            ! Checks to see if we're outside of the "X" data
 !            IF ( X_S .LT. X(1) ) THEN
 !               X_L = X(1)
@@ -1882,7 +1882,7 @@
 !                  ENDIF
 !               ENDDO
 !            ENDIF
-!         
+!
 !         ELSE ! Data is in reverse order
 !
 !            ! Checks to see if we're outside of the "X" data
@@ -1909,7 +1909,7 @@
 !            ENDIF
 !
 !         ENDIF
-!         
+!
 !         ! Interpolate
 !         Y_S = ( (Y_H - Y_L) / (X_H - X_L) ) * (X_S - X_L) + Y_L
 !
@@ -1925,7 +1925,7 @@
 !      ! Return to calling program
 !      END FUNCTION INTERPOL
 !
-!============================================================================== 
+!==============================================================================
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1949,7 +1949,7 @@
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid
       REAL(fp), INTENT(IN)  :: GCPCEN(State_Grid%NZ)
-      REAL(fp), INTENT(IN)  :: TCCPCEN(MAXLEV) 
+      REAL(fp), INTENT(IN)  :: TCCPCEN(MAXLEV)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2006,8 +2006,8 @@
             ENDIF
 
             ! Match TCCON level to the GEOS-Chem level
-            IF ( ( MID <= HI ) .AND. (  MID  > LOW ) ) THEN 
-               DIFF = HI - LOW  
+            IF ( ( MID <= HI ) .AND. (  MID  > LOW ) ) THEN
+               DIFF = HI - LOW
                IF (MAXLEV > State_Grid%NZ) THEN
                   HINTERPZ(LGC+1,LTM) = ( HI - MID  ) / DIFF
                   HINTERPZ(LGC  ,LTM) = ( MID - LOW ) / DIFF
@@ -2021,7 +2021,7 @@
        ENDDO
 
        ! Correct for case where TCCON pressure is higher than the
-       ! highest GC pressure center.  In this case, just 1:1 map. 
+       ! highest GC pressure center.  In this case, just 1:1 map.
        DO LTM = 1, MAXLEV
           IF ( TCCPCEN(LTM) > GCPCEN(1) ) THEN
              HINTERPZ(:,LTM) = 0e+0_fp
@@ -2084,7 +2084,7 @@
 
       ! Determine how much a level influences the levels above and below it
       DO LL = 1, LTCC
-         
+
          ! Make coding cleaner
          p = TCC_P
 
@@ -2108,7 +2108,7 @@
          LAYER_BOT(LL) = ( TCC_P(LL) + test1 )
          LAYER_TOP(LL) = ( TCC_P(LL) - test2 )
       ENDDO
-      
+
       ! Get the edges
       DO LL = 1, LTCC+1
 

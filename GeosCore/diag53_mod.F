@@ -9,10 +9,10 @@
 !  the ND53 diagnostic -- POPS emissions, mass, and production. (eck 9/20/10)
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DIAG53_MOD
-! 
+!
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -53,7 +53,7 @@
       REAL*4,  PUBLIC, ALLOCATABLE :: AD53_POPP_BCPI_NO3(:,:,:)
 !
 ! !REMARKS:
-!  Nomenclature: 
+!  Nomenclature:
 !  ============================================================================
 !  (1 ) POPG                  : Gas phase POP
 !  (2 ) POPP                  : Particulate phase POP
@@ -77,7 +77,7 @@
 !
 ! !IROUTINE: zero_diag53
 !
-! !DESCRIPTION: Subroutine ZERO\_DIAG53 zeroes all module arrays. 
+! !DESCRIPTION: Subroutine ZERO\_DIAG53 zeroes all module arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -87,8 +87,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD  ! Size parameters
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version
 !  27 Nov 2012 - M. Payer    - Added ProTeX headers
 !EOP
@@ -131,7 +131,7 @@
 !
 ! !IROUTINE: write_diag53
 !
-! !DESCRIPTION: Subroutine WRITE\_DIAG53 writes the ND53 diagnostic arrays to 
+! !DESCRIPTION: Subroutine WRITE\_DIAG53 writes the ND53 diagnostic arrays to
 !  the binary punch file at the proper time.
 !\\
 !\\
@@ -153,7 +153,7 @@
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! TINDEX
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
@@ -165,7 +165,7 @@
 !  (1 ) PG-SRCE  : POP emissions                   : kg/s     : 1
 !  (2 ) PG-PP-$  : Gas phase POP reacted with OH   : kg/s     : SCALE
 !                   or partitioned
-! 
+!
 ! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version
 !  27 Nov 2012 - M. Payer    - Added ProTeX headers
@@ -190,8 +190,8 @@
      &                               State_Grid%NZ)
       REAL(f4)              :: LONRES,    LATRES
       REAL(fp)              :: SCALE,     SECONDS
-      REAL(f8)              :: DIAGb,     DIAGe       
-      CHARACTER(LEN=20)     :: MODELNAME 
+      REAL(f8)              :: DIAGb,     DIAGe
+      CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY,  RESERVED,    UNIT
       REAL(fp)              :: NCHEMSTEP !CDH for sea salt loss rate
 
@@ -242,7 +242,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_PG_OC_NEG(:,:,1:LMAX) / SCALE
 
@@ -253,7 +253,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_PG_OC_POS(:,:,1:LMAX) / SCALE
 
@@ -264,7 +264,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_PG_BC_NEG(:,:,1:LMAX) / SCALE
 
@@ -275,7 +275,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_PG_BC_POS(:,:,1:LMAX) / SCALE
 
@@ -287,7 +287,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPG_OH(:,:,1:LMAX) / SCALE
 
@@ -298,7 +298,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPP_OCPO_O3(:,:,1:LMAX) / SCALE
 
@@ -309,7 +309,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPP_OCPI_O3(:,:,1:LMAX) / SCALE
 
@@ -320,9 +320,9 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
-            ARRAY(:,:,1:LMAX) = AD53_POPP_BCPO_O3(:,:,1:LMAX) / SCALE 
+            ARRAY(:,:,1:LMAX) = AD53_POPP_BCPO_O3(:,:,1:LMAX) / SCALE
 
          ELSE IF ( N == 25  ) THEN
 
@@ -331,7 +331,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPP_BCPI_O3(:,:,1:LMAX) / SCALE
 
@@ -342,7 +342,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPP_OCPO_NO3(:,:,1:LMAX) / SCALE
 
@@ -353,7 +353,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPP_OCPI_NO3(:,:,1:LMAX) / SCALE
 
@@ -364,7 +364,7 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPP_BCPO_NO3(:,:,1:LMAX) / SCALE
 
@@ -375,10 +375,10 @@
             !-----------------------------------------------------------
             CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg/s'
-            LMAX              = LD53 
+            LMAX              = LD53
             NN                = N-16
             ARRAY(:,:,1:LMAX) = AD53_POPP_BCPI_NO3(:,:,1:LMAX) / SCALE
-  
+
          ELSE
 
             ! Otherwise skip to next N
@@ -389,8 +389,8 @@
          ! Write data to disk
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, NN,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &               State_Grid%NX, State_Grid%NY, LMAX, IFIRST,
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
       ENDDO
 #endif
@@ -419,7 +419,7 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
-! 
+!
 ! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version
 !  27 Nov 2012 - M. Payer    - Added ProTeX headers
@@ -430,7 +430,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
-      
+
       !=================================================================
       ! INIT_DIAG53 begins here!
       !=================================================================
@@ -497,7 +497,7 @@
       ALLOCATE( AD53_POPP_BCPI_NO3( State_Grid%NX, State_Grid%NY, LD53),
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPI_NO3' )
-    
+
       ! Zero arrays
       CALL ZERO_DIAG53
 #endif
@@ -517,7 +517,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_DIAG53
-! 
+!
 ! !REVISION HISTORY:
 !  20 Sep 2010 - N.E. Selin  - Initial Version
 !  27 Nov 2012 - M. Payer    - Added ProTeX headers
@@ -528,7 +528,7 @@
       ! CLEANUP_DIAG53 begins here!
       !=================================================================
 #if defined( BPCH_DIAG )
-      IF (ALLOCATED(AD53_PG_OC_NEG    )) DEALLOCATE(AD53_PG_OC_NEG    ) 
+      IF (ALLOCATED(AD53_PG_OC_NEG    )) DEALLOCATE(AD53_PG_OC_NEG    )
       IF (ALLOCATED(AD53_PG_OC_POS    )) DEALLOCATE(AD53_PG_OC_POS    )
       IF (ALLOCATED(AD53_PG_BC_NEG    )) DEALLOCATE(AD53_PG_BC_NEG    )
       IF (ALLOCATED(AD53_PG_BC_POS    )) DEALLOCATE(AD53_PG_BC_POS    )

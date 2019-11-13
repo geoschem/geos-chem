@@ -10,7 +10,7 @@ MODULE gckpp_Precision
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% KLUDGE FOR FLEX PRECISION (bmy, 12/22/16)
 !%%% Because the precision of variables is set when you build KPP, in order
-!%%% to get KPP to run in single precision, we have to manually toggle the 
+!%%% to get KPP to run in single precision, we have to manually toggle the
 !%%% "DP" parameter to a 4-byte real KIND.  This will be alleviated when
 !%%% we build KPP on-the-fly in GEOS-Chem. (bmy, 12/22/16)
 !----------------------------------------------------------

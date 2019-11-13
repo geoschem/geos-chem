@@ -5,12 +5,12 @@
 !
 ! !MODULE: tagged_o3_mod.F
 !
-! !DESCRIPTION: Module TAGGED\_O3\_MOD contains variables and routines to 
-!  perform a tagged O3 simulation.  P(O3) and L(O3) rates need to be archived 
-!  from a full chemistry simulation before you can run w/ Tagged O3. 
+! !DESCRIPTION: Module TAGGED\_O3\_MOD contains variables and routines to
+!  perform a tagged O3 simulation.  P(O3) and L(O3) rates need to be archived
+!  from a full chemistry simulation before you can run w/ Tagged O3.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE TAGGED_O3_MOD
 !
@@ -22,20 +22,20 @@
       PRIVATE
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% If you want to the EXTENDED SIMULATION with all 13 tagged O3 species, 
+!%%% If you want to the EXTENDED SIMULATION with all 13 tagged O3 species,
 !%%% then uncomment this #ifdef statement. (bmy, 4/11/14)
 !#define USE_ALL_TAGO3_SPECIES 1
 !%%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-! 
-      PUBLIC  :: CHEM_TAGGED_O3 
-      PUBLIC  :: CLEANUP_TAGGED_O3 
+!
+      PUBLIC  :: CHEM_TAGGED_O3
+      PUBLIC  :: CLEANUP_TAGGED_O3
       PUBLIC  :: INIT_TAGGED_O3
 !
 ! !PRIVATE MEMBER FUNCTIONS:
-! 
+!
       PRIVATE :: GET_REGIONAL_PO3
 !
 ! !REMARKS:
@@ -48,7 +48,7 @@
 !  ----------------------------------------------------------------------------
 !  (1 ) O3      : Total O3
 !  (2 ) O3Strt  : O3 from the Stratosphere      (tropopause - atm top   )
-!  (3 ) O3Ut    : O3 produced in Upper Trop     (350 hPa    - tropopause) 
+!  (3 ) O3Ut    : O3 produced in Upper Trop     (350 hPa    - tropopause)
 !  (4 ) O3Mt    : O3 produced in Middle Trop    (PBL top    - 350 hPa   )
 !  (5 ) O3Row   : O3 produced in Rest of World  (surface    - PBL top   )
 !  (6 ) O3PcBl  : O3 produced in Pacific BL     (surface    - PBL top   )
@@ -66,7 +66,7 @@
 !       the Linoz stratospheric O3 chemistry scheme is written.  We have
 !       accordingly reorganized the species numbers below.
 !                                                                             .
-!  (2) The name "tagged_ox_mod.F" is historical.  The Ox species in GEOS-Chem 
+!  (2) The name "tagged_ox_mod.F" is historical.  The Ox species in GEOS-Chem
 !       has now been replaced with O3.  O3 usually makes up about 95% of Ox.
 !       The nomenclature "tagged Ox" is interchangeable with "tagged O3".
 !       As of Aug 2016, most uses of "tagged Ox" have been replaced with
@@ -85,11 +85,11 @@
 !  (4) When starting a long tagged O3 simulation, we recommend that you use
 !      a restart file where all species concentrations are set to zero.
 !      Then spin up for as many years as it takes to get into steady-state.
-!      This will ensure that the sum of tagged O3 species (#2  - #12) will 
+!      This will ensure that the sum of tagged O3 species (#2  - #12) will
 !      equal the total O3 species (#1).
 !
 ! !REVISION HISTORY:
-!  20 Aug 2003 - A. Fiore    - Initial version  
+!  20 Aug 2003 - A. Fiore    - Initial version
 !  (1 ) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
 !  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
 !  (3 ) Now bracket AD44 with an !$OMP CRITICAL block (bmy, 3/24/04)
@@ -125,7 +125,7 @@
 !  16 Jun 2016 - M. Sulprizio- Replace IDTO3Strt from tracerid_mod.F with
 !                              a local definition (module variable id_O3Strat)
 !  12 Jul 2016 - R. Yantosca - Remove routine ADD_STRAT_POX, we now just
-!                              directly add into State_Chm%Species in 
+!                              directly add into State_Chm%Species in
 !                              strat_chm_mod.F90
 !  10 Aug 2016 - M. Sulprizio- Rename from tagged_ox_mod.F to tagged_o3_mod.F
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
@@ -148,7 +148,7 @@
 
 !
 ! !DEFINED PARAMETERS:
-! 
+!
       ! To convert m3 to cm3
       REAL(fp), PARAMETER          :: CM3PERM3 = 1.0e+6_fp
 
@@ -181,9 +181,9 @@
 !
 ! !IROUTINE: get_regional_po3
 !
-! !DESCRIPTION: Subroutine GET\_REGIONAL\_PO3 returns the P(O3) for each of 
-!  the tagged O3 species. Tagged O3 species are defined by both geographic 
-!  location and altitude. 
+! !DESCRIPTION: Subroutine GET\_REGIONAL\_PO3 returns the P(O3) for each of
+!  the tagged O3 species. Tagged O3 species are defined by both geographic
+!  location and altitude.
 !\\
 !\\
 ! !INTERFACE:
@@ -201,7 +201,7 @@
       USE CMN_DIAG_MOD             ! ND44, ND65, LD65
 #endif
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN)  :: I, J, L     ! Grid box indices
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
@@ -212,7 +212,7 @@
       ! Array containing P(O3) for each tagged species
       REAL(fp),  INTENT(OUT) :: PP(State_Grid%NX,State_Grid%NY,
      &                             State_grid%NZ,N_TAGGED)
-! 
+!
 ! !REVISION HISTORY:
 !  19 Aug 2003 - A. Fiore - Initial version
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
@@ -257,15 +257,15 @@
 
       ! Initialize
       PP(I,J,L,:) = 0e+0_fp
-      
+
       ! IS TROP is TRUE if we are in the troposphere
       ITS_IN_TROP = State_Met%InTroposphere(I,J,L)
-      
+
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
 
       ! Longitude and latitude [degrees]
-      X          = State_Grid%XMid(I,J)   
+      X          = State_Grid%XMid(I,J)
       Y          = State_Grid%YMid(I,J)
 
       ! PBLTOP is the model level at ~ 750 hPa
@@ -276,7 +276,7 @@
 #if defined( USE_ALL_TAGO3_SPECIES )
 
       !=================================================================
-      ! For the simulation with all tagged O3 species: find the 
+      ! For the simulation with all tagged O3 species: find the
       ! regions corresponding to this particular longitude & latitude
       !=================================================================
 
@@ -292,10 +292,10 @@
       ITS_IN_ATL = ( ITS_IN_NH  .and. ( X >  -65.0 .and. X <=  -15.0 ) )
       ITS_IN_PAC = ( ITS_IN_NH  .and. ( X >  145.0  .or. X <= -127.5 ) )
 
-      ITS_IN_NAF = ( ( X >= -15.0 .and. X <=  55.0 ) .and. 
-     &               ( Y >=   0.0 .and. Y <   36.0 ) )  
+      ITS_IN_NAF = ( ( X >= -15.0 .and. X <=  55.0 ) .and.
+     &               ( Y >=   0.0 .and. Y <   36.0 ) )
 
-      ITS_IN_USA = ( ( X > -127.5 .and. X <= -65.0 ) .and. 
+      ITS_IN_USA = ( ( X > -127.5 .and. X <= -65.0 ) .and.
      &               ( Y >   22.0 .and. Y <=  50.0 ) )
 
 #endif
@@ -333,13 +333,13 @@
       !-----------------------
       IF ( ITS_IN_UT ) THEN
          PP(I,J,L,3) = PPROD
-         
+
       !-----------------------
-      ! #3: P(O3) in MT 
+      ! #3: P(O3) in MT
       !-----------------------
       ELSE IF ( ITS_IN_MT ) THEN
          PP(I,J,L,4) = PPROD
-                                
+
       !-----------------------
       ! #5: P(O3) in Pac BL
       !-----------------------
@@ -349,37 +349,37 @@
       !-----------------------
       ! #6: P(O3) in NAm BL
       !-----------------------
-      ELSE IF ( ITS_IN_NAM .and. ITS_IN_PBL ) THEN     
+      ELSE IF ( ITS_IN_NAM .and. ITS_IN_PBL ) THEN
          PP(I,J,L,7) = PPROD
-                  
+
       !-----------------------
       ! #7: P(O3) in Atl BL
       !-----------------------
       ELSE IF ( ITS_IN_ATL .and. ITS_IN_PBL ) THEN
-         PP(I,J,L,8) = PPROD  
-         
+         PP(I,J,L,8) = PPROD
+
       !-----------------------
       ! #8: P(O3) in Eur BL
       !-----------------------
       ELSE IF ( ITS_IN_EUR .and. ITS_IN_PBL ) THEN
          PP(I,J,L,9) = PPROD
-                  
+
       !-----------------------
       ! #9: P(O3) in NAfr BL
       !-----------------------
       ELSE IF ( ITS_IN_NAF .and. ITS_IN_PBL ) THEN
          PP(I,J,L,10) = PPROD
- 
+
       !-----------------------
       ! #10: P(O3) in Asia BL
-      !-----------------------          
+      !-----------------------
       ELSE IF ( ITS_IN_AS .and. ITS_IN_PBL ) THEN
-         PP(I,J,L,11) = PPROD                   
+         PP(I,J,L,11) = PPROD
 
       !-----------------------
       ! #4: P(O3) in R.O.W
       !-----------------------
-      ELSE 
+      ELSE
          PP(I,J,L,5) = PPROD
 
       ENDIF
@@ -388,7 +388,7 @@
       ! #13: P(O3) in USA
       !-------------------------
       IF ( ITS_IN_USA ) THEN
-         PP(I,J,L,13) = PPROD               
+         PP(I,J,L,13) = PPROD
       ENDIF
 
 #endif
@@ -400,10 +400,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: chem_tagged_o3 
+! !IROUTINE: chem_tagged_o3
 !
-! !DESCRIPTION: Subroutine CHEM\_TAGGED\_O3 performs chemistry for several 
-!  O3 species which are tagged by geographic and altitude regions. 
+! !DESCRIPTION: Subroutine CHEM\_TAGGED\_O3 performs chemistry for several
+!  O3 species which are tagged by geographic and altitude regions.
 !\\
 !\\
 ! !INTERFACE:
@@ -446,7 +446,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
+!
 ! !REMAKRS:
 !  Dry deposition is now applied in mixing_mod.F90.  We have the application
 !  of Ox dry deposition from this routine, as well as the archival of the
@@ -459,8 +459,8 @@
 !  (3 ) Now use ND44_TMP array to store vertical levels of drydep flux, then
 !        sum into AD44 array.  This prevents numerical differences when using
 !        multiple processors. (bmy, 3/24/04)
-!  (4 ) Now references LDRYD from "logical_mod.f".  Now references STT 
-!        and N_TRACERS from "tracer_mod.f".  Now references AD65 from 
+!  (4 ) Now references LDRYD from "logical_mod.f".  Now references STT
+!        and N_TRACERS from "tracer_mod.f".  Now references AD65 from
 !        "diag_pl_mod.f".  Now uses ITS_A_NEW_DAY from "time_mod.f".
 !        (bmy, 7/20/04)
 !  (5 ) Bug fix: Now avoid a SEG FAULT error if PBLFRAC isn't allocated.
@@ -468,8 +468,8 @@
 !  (6 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP
 !        from "pbl_mix_mod.f".  Now only sum ND44 diagnostic up to the
 !        maximum tropopsheric level. (bmy, 2/17/05)
-!  (7 ) Resize PP, N D44_TMP arrays from LLTROP to LLTROP_FIX.  Now only loop 
-!        up to LLTROP_FIX (phs, 1/19/07) 
+!  (7 ) Resize PP, N D44_TMP arrays from LLTROP to LLTROP_FIX.  Now only loop
+!        up to LLTROP_FIX (phs, 1/19/07)
 !  (8 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !  (9 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  (10) Now only compute loss rate in troposphere (dbj, bmy, 10/26/09)
@@ -539,7 +539,7 @@
 
       !=================================================================
       ! Get production and loss frequencies from HEMCO. The target
-      ! will be updated automatically by HEMCO. 
+      ! will be updated automatically by HEMCO.
       !
       ! Important: the file data are converted by HEMCO to HEMCO
       ! concentration units, e.g. the imported data is in kg/m3
@@ -574,7 +574,7 @@
 
          ! Get emissions timestep (seconds)
          TS_EMIS = HcoState%TS_EMIS
-         
+
          ! Reset first-time variable
          ! so that this won't be executed again
          FIRST    = .FALSE.
@@ -624,16 +624,16 @@
             ! P(O3) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
             ! ALSO NOTE: PP is 4-D so it doesn't have to be PRIVATE.
-            IF ( N == 1 ) THEN 
+            IF ( N == 1 ) THEN
                CALL GET_REGIONAL_PO3(I, J, L, PP, State_Grid, State_Met)
             ENDIF
-            
+
             ! L(O3) is now in [1/m3] (ckeller, 9/17/2014)
             IF ( State_Met%InTroposphere(I,J,L) ) THEN
                LL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
             ELSE
                LL = 0.0e+0_fp
-            ENDIF 
+            ENDIF
 
 #if defined( BPCH_DIAG )
             !===========================================================
@@ -666,14 +666,14 @@
             ! Production of tagged O3 species [kg/s]
             IF ( State_Diag%Archive_Prod ) THEN
                IF ( PP(I,J,L,N) > 0e+0_fp ) THEN
-                  State_Diag%Prod(I,J,L,N) = P24H(I,J,L) 
+                  State_Diag%Prod(I,J,L,N) = P24H(I,J,L)
      &                                     * BOXVL / TS_EMIS
                ENDIF
             ENDIF
 
             ! Loss of tagged O3 species [kg/s]
             IF ( State_Diag%Archive_Loss ) THEN
-               State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * L24H(I,J,L) 
+               State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * L24H(I,J,L)
      &                                  * BOXVL        / TS_EMIS
             ENDIF
 
@@ -705,7 +705,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_O3( am_I_Root, Input_Opt, 
+      SUBROUTINE INIT_TAGGED_O3( am_I_Root, Input_Opt,
      &                           State_Chm, State_Diag, RC )
 !
 ! !USES:
@@ -731,7 +731,7 @@
 !
 ! !REMARKS:
 !  This routine is now called from GC_INIT_EXTRA in GeosCore/input_mod.F.
-! 
+!
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Now reference N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
@@ -760,7 +760,7 @@
       ! Assume success
       RC      = GC_SUCCESS
       ErrMsg  = ''
-      ThisLoc = 
+      ThisLoc =
      &     ' -> at Init_Tagged_O3 (in module GeosCore/tagged_o3_mod.F)'
 
       ! Define species ID flag
@@ -790,13 +790,13 @@
 !
 ! !IROUTINE: cleanup_tagged_o3
 !
-! !DESCRIPTION:Subroutine CLEANUP\_TAGGED\_O3 deallocates all module arrays. 
+! !DESCRIPTION:Subroutine CLEANUP\_TAGGED\_O3 deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_TAGGED_O3()
-! 
+!
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
@@ -804,7 +804,7 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Deallocate module arrays
-      IF ( ASSOCIATED( P24H ) ) P24H => NULL() 
+      IF ( ASSOCIATED( P24H ) ) P24H => NULL()
       IF ( ASSOCIATED( L24H ) ) L24H => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_O3

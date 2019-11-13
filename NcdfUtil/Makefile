@@ -30,7 +30,7 @@
 #
 # F90, LD, LINK_NC are included from "Makefile_header.mk"
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  See the Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ LIBRARY  :=libNcUtils.a
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###
@@ -187,7 +187,7 @@ lib: libnc
 
 ncdfcheck: $(OBJECTSx)
 	$(LD) $(OBJECTSx) -L$(LIB) -lNcUtils $(NC_LINK_CMD) -o $(EXE)
-	./$(EXE) 
+	./$(EXE)
 
 check: ncdfcheck
 test: ncdfcheck

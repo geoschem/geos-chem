@@ -5,15 +5,15 @@
 !
 ! !MODULE: pressure_mod.F90
 !
-! !DESCRIPTION: Module PRESSURE\_MOD contains variables and routines which 
-!  specify the grid box pressures for both hybrid or pure-sigma models.  
+! !DESCRIPTION: Module PRESSURE\_MOD contains variables and routines which
+!  specify the grid box pressures for both hybrid or pure-sigma models.
 !  This is necessary for running GEOS-Chem with the hybrid grids.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE PRESSURE_MOD
-! 
+!
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -28,8 +28,8 @@
       PUBLIC  :: GET_PEDGE                ! wet air P at lower grid edge
       PUBLIC  :: GET_PCENTER              ! wet air P at grid center
       PUBLIC  :: GET_PEDGE_FULLGRID
-      PUBLIC  :: GET_PEDGE_DRY     
-      PUBLIC  :: GET_DELP_DRY      
+      PUBLIC  :: GET_PEDGE_DRY
+      PUBLIC  :: GET_DELP_DRY
       PUBLIC  :: INIT_PRESSURE
       PUBLIC  :: SET_FLOATING_PRESSURES
       PUBLIC  :: CLEANUP_PRESSURE
@@ -64,10 +64,10 @@
 !  ----------------------------------------------------------------------------
 !  (1) Bp(NZ+1) = 0.0       (L=NZ+1 is the atmosphere top)
 !  (2) Bp(1)    = 1.0       (L=1    is the surface       )
-!  (3) PTOP     = Ap(NZ+1)  (L=NZ+1 is the atmosphere top) 
+!  (3) PTOP     = Ap(NZ+1)  (L=NZ+1 is the atmosphere top)
 !
 ! !REVISION HISTORY:
-!  27 Aug 2002 - D. Abbot & R. Yantosca - Initial version 
+!  27 Aug 2002 - D. Abbot & R. Yantosca - Initial version
 !  (1 ) Be sure to check PFLT for NaN or Infinities (bmy, 8/27/02)
 !  (2 ) Updated comments (bmy, 5/8/03)
 !  (3 ) Updated format string for fvDAS (bmy, 6/19/03)
@@ -108,7 +108,7 @@
       REAL(fp), ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
       REAL(fp), ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
 #if defined( ESMF_ ) || defined( MODEL_ )
-      REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
+      REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from
                                                       !  external grid
 #endif
 
@@ -117,74 +117,74 @@
 
 ! GEOS-5 132 levels (from /src/GMAO_Shared/GMAO_hermes/m_set_eta.F90
 ! --------------
-       data a132_loc /  
-     & 1.000000,     1.996276,     3.093648,     4.651099,     
-     &  6.804155,     9.711212,     13.553898,    18.536953, 
-     & 24.887674,    32.854966,    42.708057,    54.734916,    
+       data a132_loc /
+     & 1.000000,     1.996276,     3.093648,     4.651099,
+     &  6.804155,     9.711212,     13.553898,    18.536953,
+     & 24.887674,    32.854966,    42.708057,    54.734916,
      & 69.240493,    86.544776,    106.980758,   130.892382,
-     & 158.632424,   190.560538,   227.041195,   268.441904,   
+     & 158.632424,   190.560538,   227.041195,   268.441904,
      & 315.131439,   367.478204,   425.848769,   490.606509,
-     & 562.110455,   640.714290,   726.765342,   820.603888,   
+     & 562.110455,   640.714290,   726.765342,   820.603888,
      & 922.562490,   1032.965616,  1152.128995,  1280.359406,
-     & 1417.954457,  1565.202880,  1722.383803,  1889.767115,  
+     & 1417.954457,  1565.202880,  1722.383803,  1889.767115,
      & 2067.613829,  2256.175598,  2455.695564,  2666.408361,
-     & 2888.539866,  3122.308425,  3367.924596,  3625.591648,  
+     & 2888.539866,  3122.308425,  3367.924596,  3625.591648,
      & 3895.506041,  4177.787642,  4472.464900,  4779.536600,
-     & 5098.971133,  5430.705281,  5774.647623,  6130.914868,  
+     & 5098.971133,  5430.705281,  5774.647623,  6130.914868,
      & 6500.271455,  6883.621876,  7281.985387,  7695.829790,
-     & 8126.006088,  8573.341452,  9039.303976,  9523.598485, 
+     & 8126.006088,  8573.341452,  9039.303976,  9523.598485,
      & 10024.837122, 10541.370406, 11071.225963, 11612.410025,
-     & 12161.636274, 12714.691534, 13270.207397, 13824.594107, 
+     & 12161.636274, 12714.691534, 13270.207397, 13824.594107,
      & 14373.151226, 14914.405313, 15444.869700, 15960.611311,
-     & 16459.769620, 16939.268383, 17396.217121, 17828.450893, 
+     & 16459.769620, 16939.268383, 17396.217121, 17828.450893,
      & 18233.600515, 18609.343488, 18953.501254, 19264.447677,
-     & 19539.848583, 19778.217887, 19977.939176, 20137.018678, 
+     & 19539.848583, 19778.217887, 19977.939176, 20137.018678,
      & 20254.734748, 20328.875760, 20358.523606, 20342.231101,
-     & 20278.589963, 20166.744330, 20004.982477, 19792.792832, 
+     & 20278.589963, 20166.744330, 20004.982477, 19792.792832,
      & 19528.424768, 19211.380327, 18840.138412, 18414.132983,
-     & 17933.325139, 17400.426408, 16819.657745, 16195.578563, 
+     & 17933.325139, 17400.426408, 16819.657745, 16195.578563,
      & 15532.946677, 14837.558610, 14115.393726, 13372.886551,
-     & 12616.479397, 11852.696266, 11087.800514, 10327.790957, 
-     & 9578.207359,  8844.157660,  8129.832058,  7440.098773, 
-     & 6777.003948,  6143.217998,  5541.186971,  4972.725810,  
+     & 12616.479397, 11852.696266, 11087.800514, 10327.790957,
+     & 9578.207359,  8844.157660,  8129.832058,  7440.098773,
+     & 6777.003948,  6143.217998,  5541.186971,  4972.725810,
      & 4438.905073,  3940.077056,  3475.984433,  3045.886238,
-     & 2648.697264,  2283.946319,  1951.862407,  1652.526827,  
-     & 1385.902714,  1151.874101,  950.288155,   780.991556, 
-     & 643.875906,   538.919476,   466.225293,   426.071190,   
+     & 2648.697264,  2283.946319,  1951.862407,  1652.526827,
+     & 1385.902714,  1151.874101,  950.288155,   780.991556,
+     & 643.875906,   538.919476,   466.225293,   426.071190,
      & 0.000000      /
 
-       data b132_loc /  
-     & 0.000000, 0.000000, 0.000000, 0.000000, 
+       data b132_loc /
      & 0.000000, 0.000000, 0.000000, 0.000000,
-     & 0.000000, 0.000000, 0.000000, 0.000000, 
      & 0.000000, 0.000000, 0.000000, 0.000000,
-     & 0.000000, 0.000000, 0.000000, 0.000000, 
      & 0.000000, 0.000000, 0.000000, 0.000000,
-     & 0.000000, 0.000000, 0.000000, 0.000000, 
      & 0.000000, 0.000000, 0.000000, 0.000000,
-     & 0.000000, 0.000000, 0.000000, 0.000000, 
      & 0.000000, 0.000000, 0.000000, 0.000000,
-     & 0.000000, 0.000000, 0.000000, 0.000000, 
      & 0.000000, 0.000000, 0.000000, 0.000000,
-     & 0.000000, 0.000000, 0.000000, 0.000000, 
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000,
      & 0.000000, 0.000000, 0.000000, 0.000007,
-     & 0.000024, 0.000059, 0.000112, 0.000198, 
+     & 0.000024, 0.000059, 0.000112, 0.000198,
      & 0.000339, 0.000560, 0.000886, 0.001347,
-     & 0.001984, 0.002845, 0.003955, 0.005356, 
+     & 0.001984, 0.002845, 0.003955, 0.005356,
      & 0.007104, 0.009223, 0.011758, 0.014755,
-     & 0.018243, 0.022264, 0.026854, 0.032044, 
+     & 0.018243, 0.022264, 0.026854, 0.032044,
      & 0.037871, 0.044366, 0.051561, 0.059484,
-     & 0.068168, 0.077639, 0.087925, 0.099055, 
+     & 0.068168, 0.077639, 0.087925, 0.099055,
      & 0.111049, 0.123939, 0.137748, 0.152499,
-     & 0.168220, 0.184930, 0.202659, 0.221424, 
+     & 0.168220, 0.184930, 0.202659, 0.221424,
      & 0.241254, 0.262166, 0.284188, 0.307337,
-     & 0.331578, 0.356790, 0.382792, 0.409444, 
+     & 0.331578, 0.356790, 0.382792, 0.409444,
      & 0.436599, 0.464098, 0.491782, 0.519487,
-     & 0.547056, 0.574335, 0.601181, 0.627461, 
+     & 0.547056, 0.574335, 0.601181, 0.627461,
      & 0.653056, 0.677861, 0.701765, 0.724759,
-     & 0.746767, 0.767710, 0.787535, 0.806224, 
+     & 0.746767, 0.767710, 0.787535, 0.806224,
      & 0.823790, 0.840276, 0.855742, 0.870260,
-     & 0.883905, 0.896733, 0.908781, 0.920085, 
+     & 0.883905, 0.896733, 0.908781, 0.920085,
      & 0.930681, 0.940600, 0.949868, 0.958500,
      & 0.966498, 0.973850, 0.980526, 0.986474, 1.000000 /
 #endif
@@ -198,7 +198,7 @@
 !
 ! !IROUTINE: Get_Ap
 !
-! !DESCRIPTION: Function GET\_AP returns the "A" term [hPa] for the 
+! !DESCRIPTION: Function GET\_AP returns the "A" term [hPa] for the
 !  hybrid ETA coordinate.
 !\\
 !\\
@@ -210,17 +210,17 @@
 !
       USE CMN_SIZE_MOD                ! Size parameters
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: L        ! GEOS-Chem level index
 !
-! !RETURN VALUE: 
+! !RETURN VALUE:
 !
       REAL(fp)            :: AP_TEMP  ! Corresponding "A" value [hPa]
                                       !  at bottom edge of level L
 !
 ! !REVISION HISTORY:
-!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !EOP
 !------------------------------------------------------------------------------
@@ -236,7 +236,7 @@
 !
 ! !IROUTINE: Get_Bp
 !
-! !DESCRIPTION: Function GET\_BP returns the "B" term [unitless] for the 
+! !DESCRIPTION: Function GET\_BP returns the "B" term [unitless] for the
 !  hybrid ETA coordinate.
 !\\
 !\\
@@ -248,17 +248,17 @@
 !
       USE CMN_SIZE_MOD                ! Size parameters
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: L        ! GEOS-Chem level index
 !
-! !RETURN VALUE: 
+! !RETURN VALUE:
 !
       REAL(fp)            :: BP_TEMP  ! Corresponding "B" value [unitless]
                                       !  at bottom edge of level L
 !
 ! !REVISION HISTORY:
-!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !EOP
 !------------------------------------------------------------------------------
@@ -274,8 +274,8 @@
 !
 ! !IROUTINE: Set_Floating_Pressures
 !
-! !DESCRIPTION: Subroutine SET\_FLOATING\_PRESSURES initializes the 
-!  dry and wet floating pressure fields PFLT\_DRY and PFLT\_WET with the 
+! !DESCRIPTION: Subroutine SET\_FLOATING\_PRESSURES initializes the
+!  dry and wet floating pressure fields PFLT\_DRY and PFLT\_WET with the
 !  "true" surface pressures PSC2\_DRY and PSC2\_WET, stored in State\_Met.
 !\\
 !\\
@@ -292,7 +292,7 @@
       USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
@@ -314,7 +314,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       INTEGER            :: I, J, L
       INTEGER            :: ERR_LOC(4)
       CHARACTER(LEN=255) :: ERR_VAR
@@ -374,7 +374,7 @@
 !
 ! !IROUTINE: Get_Pedge
 !
-! !DESCRIPTION: Function GET\_PEDGE returns the pressure at the bottom edge 
+! !DESCRIPTION: Function GET\_PEDGE returns the pressure at the bottom edge
 !  of level L.  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
@@ -386,7 +386,7 @@
 !
       USE CMN_SIZE_MOD   ! PTOP
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)   :: I        ! GEOS-Chem lon   index
       INTEGER, INTENT(IN)   :: J        ! GEOS-Chem lat   index
@@ -397,7 +397,7 @@
       REAL(f8)              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
 !
 ! !REVISION HISTORY:
-!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version
 !  (1 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
 !  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
@@ -405,7 +405,7 @@
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
 !  10 Aug 2012 - R. Yantosca - Need to put #ifdef for EXTERNAL_PEDGE in the
 !                              section for GEOS-4, GEOS-5, MERRA, GEOS-5.7.x
-!  10 Aug 2012 - R. Yantosca - Now only use Cpp switches EXTERNAL_GRID or 
+!  10 Aug 2012 - R. Yantosca - Now only use Cpp switches EXTERNAL_GRID or
 !                              EXTERNAL_FORCING to use the GCM pressures.
 !                              This prevents problems when compiling G-C with
 !                              the DEVEL tag when using traditional main.F.
@@ -427,7 +427,7 @@
       PEDGE = AP(L) + ( BP(L) * PFLT_WET(I,J) )
 #endif
 
-      END FUNCTION GET_PEDGE 
+      END FUNCTION GET_PEDGE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -448,7 +448,7 @@
 !
       USE CMN_SIZE_MOD   ! PTOP
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: I        ! GEOS-Chem lon   index
       INTEGER, INTENT(IN) :: J        ! GEOS-Chem lat   index
@@ -459,7 +459,7 @@
       REAL(fp)              :: PCENTER  ! Pressure @ center of (I,J,L) [hPa]
 !
 ! !REVISION HISTORY:
-!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version
 !  (1 ) Updated format string for fvDAS (bmy, 6/19/03)
 !  (2 ) Removed reference to "CMN", it's obsolete (bmy, 4/25/06)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
@@ -481,7 +481,7 @@
 ! !IROUTINE: Get_Pedge_Fullgrid
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
-!  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
+!  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface,
 !  L=LState\_Grid%NZ+1 is the atm top.
 !\\
 !\\
@@ -493,7 +493,7 @@
 !
       USE CMN_SIZE_MOD   ! PTOP
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
       INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
@@ -527,8 +527,8 @@
 !
 ! !IROUTINE: Get_Pedge_Dry
 !
-! !DESCRIPTION: Function GET\_PEDGE\_DRY returns the pressure at the 
-!  bottom edge of level L, reconstructed using the dry surface pressure. 
+! !DESCRIPTION: Function GET\_PEDGE\_DRY returns the pressure at the
+!  bottom edge of level L, reconstructed using the dry surface pressure.
 !  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
@@ -540,7 +540,7 @@
 !
       USE CMN_SIZE_MOD   ! PTOP
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
       INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
@@ -553,7 +553,7 @@
 ! !REMARKS:
 !  Dry pressures at the edges calculated within this routine should not
 !  be used as height proxies. Wet pressure edge should be used instead.
-! 
+!
 ! !REVISION HISTORY:
 !  16 Jun 2016 - E. Lundgren - Initial version
 !EOP
@@ -562,7 +562,7 @@
 
       PEDGE_DRY = AP(L) + ( BP(L) * PFLT_DRY(I,J) )
 
-      END FUNCTION GET_PEDGE_DRY 
+      END FUNCTION GET_PEDGE_DRY
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -571,9 +571,9 @@
 !
 ! !IROUTINE: Get_Delp_Dry
 !
-! !DESCRIPTION: Function GET\_DELP\_DRY returns the delta dry pressure 
-!  between the bottom edge of level L and top edge of level L+1, 
-!  constructed using the dry surface pressure and A and B parameters. 
+! !DESCRIPTION: Function GET\_DELP\_DRY returns the delta dry pressure
+!  between the bottom edge of level L and top edge of level L+1,
+!  constructed using the dry surface pressure and A and B parameters.
 !  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
@@ -585,7 +585,7 @@
 !
       USE CMN_SIZE_MOD   ! PTOP
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
       INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
@@ -594,7 +594,7 @@
 ! !RETURN VALUE:
 !
       REAL(f8) :: DELP_DRY          ! Prssr difference [hPa] between
-                                    ! bottom edge of (I,J,L) and 
+                                    ! bottom edge of (I,J,L) and
                                     ! bottom edge of (I,J,L+1)
 !
 ! !REVISION HISTORY:
@@ -604,7 +604,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       REAL(fp)           :: PEDGE_DRY_BOT, PEDGE_DRY_TOP
 
       PEDGE_DRY_BOT = AP(L)   + ( BP(L)   * PFLT_DRY(I,J) )
@@ -612,7 +612,7 @@
 
       DELP_DRY = PEDGE_DRY_BOT - PEDGE_DRY_TOP
 
-      END FUNCTION GET_DELP_DRY 
+      END FUNCTION GET_DELP_DRY
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -621,8 +621,8 @@
 !
 ! !IROUTINE: Init_Pressure
 !
-! !DESCRIPTION: Subroutine INIT\_PRESSURE allocates and initializes the AP 
-!  and BP arrays.  It must be called in "main.f", after SIGE is defined.  
+! !DESCRIPTION: Subroutine INIT\_PRESSURE allocates and initializes the AP
+!  and BP arrays.  It must be called in "main.f", after SIGE is defined.
 !\\
 !\\
 ! !INTERFACE:
@@ -646,7 +646,7 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
-!  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 
+!  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version
 !  (1 ) Now reference ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Now echo Ap, Bp to std output (bmy, 3/14/03)
 !  (3 ) Now print LLPAR+1 levels for Ap, Bp.  Remove reference to SIGE, it's
@@ -721,12 +721,12 @@
 
       !-----------------------------------------------------------------
       ! 47-level reduced vertical grid
-      !  
+      !
       !  Bottom   Bottom    # levels
-      !  edge of  edge prs  lumped 
+      !  edge of  edge prs  lumped
       !  level    (hPa)     together
       !
-      !   PTOP       0.010   
+      !   PTOP       0.010
       !    47        0.066     4
       !    46        0.211     4
       !    45        0.617     4
@@ -739,7 +739,7 @@
       !    38       56.388     2
       !    37       78.512     2
       ! %%%% START LUMPING LEVELS ABOVE HERE %%%%%
-      !    36       92.366       
+      !    36       92.366
       !    35      108.663
       !    34      127.837
       !    33      150.393
@@ -757,8 +757,8 @@
      &        2.032590d+02, 2.121500d+02, 2.187760d+02, 2.238980d+02,
      &        2.243630d+02, 2.168650d+02, 2.011920d+02, 1.769300d+02,
      &        1.503930d+02, 1.278370d+02, 1.086630d+02, 9.236572d+01,
-     &        7.851231d+01, 5.638791d+01, 4.017541d+01, 2.836781d+01, 
-     &        1.979160d+01, 9.292942d+00, 4.076571d+00, 1.650790d+00, 
+     &        7.851231d+01, 5.638791d+01, 4.017541d+01, 2.836781d+01,
+     &        1.979160d+01, 9.292942d+00, 4.076571d+00, 1.650790d+00,
      &        6.167791d-01, 2.113490d-01, 6.600001d-02, 1.000000d-02 /)
 
       ! Bp [unitless] for 47 levels (48 edges)
@@ -827,7 +827,7 @@
 
       !-----------------------------------------------------------------
       ! 72 level grid
-      !----------------------------------------------------------------- 
+      !-----------------------------------------------------------------
 
       ! Ap [hPa] for 72 levels (73 edges)
       AP = (/ 0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
@@ -877,7 +877,7 @@
       !-----------------------------------------------------------------
       ! 132 level grid
       !-----------------------------------------------------------------
-    
+
          DO L=1,State_Grid%NZ+1
             ! Ap [hPa] for 132 levels (133 edges)
             AP(L) = a132_loc(State_Grid%NZ+2-L)/100.0
@@ -896,7 +896,7 @@
          RETURN
 
       ENDIF
-      
+
 #if ( !defined( ESMF_ ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS )
       ! Echo info to std output (skip if interfacing with external models)
       IF ( am_I_Root ) THEN
@@ -919,7 +919,7 @@
 !
 ! !IROUTINE: Cleanup_Pressure
 !
-! !DESCRIPTION: Subroutine CLEANUP\_PRESSURE deallocates all allocated arrays 
+! !DESCRIPTION: Subroutine CLEANUP\_PRESSURE deallocates all allocated arrays
 !  at the end of a GEOS-Chem model run.
 !\\
 !\\
@@ -928,7 +928,7 @@
       SUBROUTINE CLEANUP_PRESSURE
 !
 ! !REVISION HISTORY:
-!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !EOP
 !------------------------------------------------------------------------------
@@ -966,8 +966,8 @@
 !
       USE ErrCode_Mod
       USE State_Met_Mod,      ONLY : MetState
-!     
-! !INPUT PARAMETERS: 
+!
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
@@ -977,11 +977,11 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the 
+!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the
 !  EXTERNAL_PEDGE array PRIVATE to this module, which is good programming
 !  practice.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  06 Dec 2012 - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -993,7 +993,7 @@
 
       ! Return successfully
       RC             = GC_SUCCESS
-      
+
       END SUBROUTINE Accept_External_Pedge
 !EOC
 #endif
@@ -1012,7 +1012,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Accept_External_ApBp( am_I_Root, State_Grid, 
+      SUBROUTINE Accept_External_ApBp( am_I_Root, State_Grid,
      &                                 ApIn, BpIn, RC )
 !
 ! !USES:

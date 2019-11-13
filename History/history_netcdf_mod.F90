@@ -3,10 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: history_netcdf_mod.F90 
+! !MODULE: history_netcdf_mod.F90
 !
 ! !DESCRIPTION: Contains routines to create a netCDF file for each GEOS-Chem
-!  diagnostic collection (as specified by each HISTORY CONTAINER in the 
+!  diagnostic collection (as specified by each HISTORY CONTAINER in the
 !  master collection list located within in history_mod.F90).
 !\\
 !\\
@@ -18,7 +18,7 @@ MODULE History_Netcdf_Mod
 !
   USE Precision_Mod
   USE MetaHistItem_Mod, ONLY : MetaHistItem
-  
+
   IMPLICIT NONE
   PRIVATE
 
@@ -58,8 +58,8 @@ CONTAINS
 !
 ! !IROUTINE: History_Netcdf_Close
 !
-! !DESCRIPTION: Closes the netCDF file specified by the the given HISTORY 
-!  CONTAINER object.  Also resets the relevant fields of the HISTORY CONTAINER 
+! !DESCRIPTION: Closes the netCDF file specified by the the given HISTORY
+!  CONTAINER object.  Also resets the relevant fields of the HISTORY CONTAINER
 !  object (as well as the fields in each HISTORY ITEM contained within the
 !  HISTORY CONTAINER) to undefined values.
 !\\
@@ -76,15 +76,15 @@ CONTAINS
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE Ncdf_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HistContainer), POINTER     :: Container   ! HISTORY CONTAINER obj
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,             INTENT(OUT) :: RC          ! Success or failure?
 !
@@ -133,7 +133,7 @@ CONTAINS
        ! belonging to this HISTORY CONTAINER object
        !--------------------------------------------------------------------
 
-       ! Set CURRENT to the first entry in the list of 
+       ! Set CURRENT to the first entry in the list of
        ! HISTORY ITEMS belonging to this collection
        Current => Container%HistItems
 
@@ -146,7 +146,7 @@ CONTAINS
           Current%Item%NcZDimId  = UNDEFINED_INT
           Current%Item%NcTDimId  = UNDEFINED_INT
           Current%Item%NcVarId   = UNDEFINED_INT
-          
+
           ! Go to the next entry in the list of HISTORY ITEMS
           Current => Current%Next
        ENDDO
@@ -186,7 +186,7 @@ CONTAINS
     USE Ncdf_Mod
     USE Registry_Params_Mod, ONLY : KINDVAL_F4
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
 !
@@ -194,7 +194,7 @@ CONTAINS
 !
     TYPE(HistContainer), POINTER     :: Container  ! Diagnostic collection obj
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,             INTENT(OUT) :: RC         ! Success or failure
 !
@@ -227,7 +227,7 @@ CONTAINS
     INTEGER                     :: nLev,       nILev
     INTEGER                     :: DataType
 
-    ! Strings                   
+    ! Strings
     CHARACTER(LEN=5)            :: Z
     CHARACTER(LEN=8)            :: D
     CHARACTER(LEN=10)           :: T
@@ -268,7 +268,7 @@ CONTAINS
     ! Do not exit netCDF define mode just yet
     !=======================================================================
     IF ( .not. Container%IsFileOpen ) THEN
- 
+
        !--------------------------------------------------------------------
        ! Compute reference date and time fields in the HISTORY CONTAINER
        ! These are needed to compute the time stamps for each data field
@@ -283,7 +283,7 @@ CONTAINS
 
           !-----------------------------
           ! TIME-AVERAGED COLLECTIONS
-          !----------------------------- 
+          !-----------------------------
 
           ! Subtract the file write alarm interval that we added to
           ! the current date/time (CurrentJd) field at initialization
@@ -294,8 +294,8 @@ CONTAINS
 
           !-----------------------------
           ! INSTANTANEOUS COLLECTIONS
-          !----------------------------- 
-         
+          !-----------------------------
+
           ! If this is the first time we are writing a file, then set
           ! the reference date/time to the date/time at the start of
           ! the simulation (EpochJd).  This will make sure the file names
@@ -332,7 +332,7 @@ CONTAINS
                               yyyymmdd   = Container%ReferenceYmd,           &
                               hhmmss     = Container%ReferenceHms,           &
                               MAPL_Style = .TRUE. )
-   
+
 !------------------------------------------------------------------------------
 ! TEMPORARY FIX (bmy, 9/20/17)
 ! NOTE: The different timestamps will cause the binary diff in the unit
@@ -354,7 +354,7 @@ CONTAINS
 !                               i2.2, ':', i2.2, ':', i2.2, ' UTC', a        )
 !
        ! For now, just set History and ProdDateTime to blanks
-       ! to get binary file diffs to pass. 
+       ! to get binary file diffs to pass.
        Container%History      = ''
        Container%ProdDateTime = ''
 !------------------------------------------------------------------------------
@@ -528,7 +528,7 @@ CONTAINS
              VarUnits = Container%Spc_Units
           ENDIF
 
-          ! Define each HISTORY ITEM in this collection 
+          ! Define each HISTORY ITEM in this collection
           ! as a variable in the netCDF file
           CALL Nc_Var_Def( DefMode      = .TRUE.,                            &
                            Compress     = .TRUE.,                            &
@@ -578,7 +578,7 @@ CONTAINS
 
        ! Free pointers
        Current => NULL()
- 
+
        !--------------------------------------------------------------------
        ! Write the index variable data
        !--------------------------------------------------------------------
@@ -608,7 +608,7 @@ CONTAINS
                                 Arr1d   = Current%Item%Source_1d_8          )
 
 
-          ELSE 
+          ELSE
 
              ! ... except P0, which is a scalar (8-byte precision)
              CALL Nc_Var_Write( fId     = Container%FileId,                  &
@@ -665,7 +665,7 @@ CONTAINS
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
     USE Roundoff_Mod,       ONLY : RoundOff
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
 !
@@ -673,7 +673,7 @@ CONTAINS
 !
     TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,             INTENT(OUT) :: RC        ! Success or failure
 !
@@ -711,23 +711,23 @@ CONTAINS
     REAL(f8)                    :: NcTimeVal(1    )
 
     ! Objects
-    TYPE(MetaHistItem), POINTER :: Current 
+    TYPE(MetaHistItem), POINTER :: Current
     TYPE(HistItem),     POINTER :: Item
 
     !=======================================================================
     ! Make sure the netCDF file is open and defined
     !=======================================================================
     IF ( ( .not. Container%IsFileOpen   )    .and.                          &
-         ( .not. Container%IsFileDefined ) ) THEN 
+         ( .not. Container%IsFileDefined ) ) THEN
        RC     = GC_FAILURE
        ErrMsg = 'NetCDF file is not open or defined for collection: ' // &
-                 TRIM( Container%Name ) 
+                 TRIM( Container%Name )
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     !=======================================================================
-    ! Initialize 
+    ! Initialize
     !=======================================================================
     RC        =  GC_SUCCESS
     Dim1      =  UNDEFINED_INT
@@ -753,10 +753,10 @@ CONTAINS
 
     ! Compute the elapsed time in seconds since the file creation
     CALL Compute_Elapsed_Time( CurrentJsec  = Container%CurrentJsec,         &
-                               TimeBaseJsec = Container%ReferenceJsec,       & 
+                               TimeBaseJsec = Container%ReferenceJsec,       &
                                ElapsedSec   = Container%TimeStamp           )
 
-    ! For time-averaged collections, offset the timestamp 
+    ! For time-averaged collections, offset the timestamp
     ! by 1/2 of the file averaging interval in minutes
     IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
        Container%TimeStamp = Container%TimeStamp -                           &
@@ -814,12 +814,12 @@ CONTAINS
        ! (4) Zero the Item's update counter
        !--------------------------------------------------------------------
        SELECT CASE( Item%SpaceDim )
-          
+
           !------------
           ! 3-D data
           !------------
-          CASE( 3 )   
-             
+          CASE( 3 )
+
              ! Get dimensions of data
              Dim1 = SIZE( Item%Data_3d, 1 )
              Dim2 = SIZE( Item%Data_3d, 2 )
@@ -846,7 +846,7 @@ CONTAINS
 
              ! Write data to disk
              CALL NcWr( NcData_3d, NcFileId, Item%Name, St4d, Ct4d )
-             
+
              ! Deallocate output array
              DEALLOCATE( NcData_3d, STAT=RC )
 
@@ -861,7 +861,7 @@ CONTAINS
 
              ! Allocate the REAL*4 output array
              ALLOCATE( NcData_2d( Dim1, Dim2 ), STAT=RC )
- 
+
              ! Copy or average the data and store in a REAL*4 array
              IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                 NcData_2d     = Item%Data_2d
@@ -880,7 +880,7 @@ CONTAINS
 
              ! Write data to disk
              CALL NcWr( NcData_2d, NcFileId, Item%Name, St3d, Ct3d )
-             
+
              ! Deallocate output array
              DEALLOCATE( NcData_2d, STAT=RC )
 
@@ -914,7 +914,7 @@ CONTAINS
 
              ! Write data to disk
              CALL NcWr( NcData_1d, NcFileId, Item%Name, St2d, Ct2d )
-             
+
              ! Deallocate output array
              DEALLOCATE( NcData_1d, STAT=RC )
 
@@ -922,7 +922,7 @@ CONTAINS
 
        !--------------------------------------------------------------------
        ! Go to next entry in the list of HISTORY ITEMS
-       !-------------------------------------------------------------------- 
+       !--------------------------------------------------------------------
        Current => Current%Next
        Item    => NULL()
     ENDDO
@@ -944,7 +944,7 @@ CONTAINS
 !
 ! !IROUTINE: Expand_Date_Time
 !
-! !DESCRIPTION: Replaces date and time tokens in a string with actual 
+! !DESCRIPTION: Replaces date and time tokens in a string with actual
 !  date and time values.
 !\\
 !\\
@@ -957,13 +957,13 @@ CONTAINS
     USE Charpak_Mod, ONLY : StrRepl
     USE Time_Mod,    ONLY : Ymd_Extract
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)    :: yyyymmdd    ! Date in YYYYMMDD format
     INTEGER,          INTENT(IN)    :: hhmmss      ! Time in hhmmss format
     LOGICAL,          OPTIONAL      :: MAPL_Style  ! Use MAPL-style tokens
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(INOUT) :: DateStr     ! String with date tokens
 !
@@ -979,12 +979,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL          :: Is_Mapl_Style 
+    LOGICAL          :: Is_Mapl_Style
     INTEGER          :: Year,          Month,      Day
     INTEGER          :: Hour,          Minute,     Second
 
     ! Strings
-    CHARACTER(LEN=2) :: MonthStr,      DayStr 
+    CHARACTER(LEN=2) :: MonthStr,      DayStr
     CHARACTER(LEN=2) :: HourStr,       MinuteStr,  SecondStr
     CHARACTER(LEN=4) :: YearStr
 
@@ -1018,7 +1018,7 @@ CONTAINS
     !=======================================================================
 
     IF ( Is_Mapl_Style ) THEN
-       
+
        ! Use MAPL-style tokens
        CALL StrRepl( DateStr, '%y4',  YearStr   )
        CALL StrRepl( DateStr, '%m2',  MonthStr  )
@@ -1028,7 +1028,7 @@ CONTAINS
        CALL StrRepl( DateStr, '%s2',  SecondStr )
 
     ELSE
-       
+
        ! Use GEOS-Chem style tokens
        CALL StrRepl( DateStr, 'YYYY', YearStr   )
        CALL StrRepl( DateStr, 'MM',   MonthStr  )
@@ -1051,8 +1051,8 @@ CONTAINS
 ! !DESCRIPTION: For a given HISTORY ITEM, returns the name and the netCDF
 !  dimension ID's pertaining to the data array.  Dimension ID's that do not
 !  pertain to the data will be set to UNDEFINED_INT.  Certain metadata for
-!  netCDF index variables will also be returned.  In particular, the unit 
-!  string for the "time" index variable will be updated with the reference 
+!  netCDF index variables will also be returned.  In particular, the unit
+!  string for the "time" index variable will be updated with the reference
 !  date and time.
 !\\
 !\\
@@ -1062,14 +1062,14 @@ CONTAINS
                              zDimId,   iDimId,      tDimID,                  &
                              RefDate,  RefTime,     OnLevelEdges,            &
                              VarAxis,  VarCalendar, VarPositive,             &
-                             VarUnits, VarStdName,  VarFormula              )  
+                             VarUnits, VarStdName,  VarFormula              )
 !
 ! !USES:
 !
     USE History_Util_Mod
     USE HistItem_Mod,       ONLY : HistItem
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,            INTENT(IN)  :: xDimId       ! Id # of X (lon     ) dim
     INTEGER,            INTENT(IN)  :: yDimId       ! Id # of Y (lat     ) dim
@@ -1107,12 +1107,12 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: IsOnLevelEdges
-    INTEGER            :: ReferenceYmd,   ReferenceHms  
+    INTEGER            :: ReferenceYmd,   ReferenceHms
     INTEGER            :: Year,           Month,        Day
     INTEGER            :: Hour,           Minute,       Second
 
     ! Strings
-    CHARACTER(LEN=2)   :: MonthStr,       DayStr 
+    CHARACTER(LEN=2)   :: MonthStr,       DayStr
     CHARACTER(LEN=2)   :: HourStr,        MinuteStr,    SecondStr
     CHARACTER(LEN=4)   :: YearStr
     CHARACTER(LEN=255) :: TmpAxis,        TmpCalendar,  TmpStdName
@@ -1132,7 +1132,7 @@ CONTAINS
     Item%NcZDimId   = UNDEFINED_INT
     Item%NcIDimId   = UNDEFINED_INT
     Item%NcTDimId   = UNDEFINED_INT
-    
+
     IF ( PRESENT( RefDate ) ) THEN
        ReferenceYmd = RefDate
     ELSE
@@ -1222,8 +1222,8 @@ CONTAINS
        ! All other variable names
        CASE DEFAULT
 
-          ! Set the various netCDF dimension variables that will be passed 
-          ! to NC_CREATE.  If the data is defined on vertical level edges 
+          ! Set the various netCDF dimension variables that will be passed
+          ! to NC_CREATE.  If the data is defined on vertical level edges
           ! (aka "interfaces), then use iDimId instead of zDimId.
           SELECT CASE( TRIM( Item%DimNames ) )
 
@@ -1285,8 +1285,8 @@ CONTAINS
 
           END SELECT
 
-    END SELECT      
-    
+    END SELECT
+
     ! Return optional attributes for index variables: axis and calendar
     IF ( PRESENT( VarAxis     ) ) VarAxis     = TmpAxis
     IF ( PRESENT( VarCalendar ) ) VarCalendar = TmpCalendar
@@ -1322,7 +1322,7 @@ CONTAINS
     USE HistItem_Mod
     USE MetaHistItem_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root    ! Are we on the root core?
 !
@@ -1330,7 +1330,7 @@ CONTAINS
 !
     TYPE(HistContainer), POINTER     :: Container    ! Collection object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     TYPE(MetaHistItem),  POINTER     :: IndexVarList ! Linked list of index
                                                      !  variables for netCDF
@@ -1400,7 +1400,7 @@ CONTAINS
 
     !=======================================================================
     ! Define the names that will be used to create the HISTORY ITEMS
-    ! for fields to be used as netCDF metadata 
+    ! for fields to be used as netCDF metadata
     !=======================================================================
 
     ! Fields saved in the Registry object in GeosUtil/grid_registry_mod.F90
@@ -1415,7 +1415,7 @@ CONTAINS
     RegistryName(9 ) = 'GRID_ILEV'
     RegistryName(10) = 'GRID_LEV'
     RegistryName(11) = 'GRID_TIME'
-   
+
     ! Name for each HISTORY ITEM
     ItemName(1 )     = 'AREA'
     ItemName(2 )     = 'P0'
@@ -1447,7 +1447,7 @@ CONTAINS
     !=======================================================================
 
     ! Get the number of levels (nLev) and level interfaces (nIlev)
-    CALL Get_Number_Of_Levels( Container, nLev, nIlev ) 
+    CALL Get_Number_Of_Levels( Container, nLev, nIlev )
 
     ! Subset indices
     Subset_X  = (/ Container%X0, Container%X1 /)
@@ -1499,7 +1499,7 @@ CONTAINS
        !---------------------------------------------------------------------
        CALL HistItem_Create( am_I_Root      = am_I_Root,                     &
                              Item           = Item,                          &
-                             Id             = N,                             & 
+                             Id             = N,                             &
                              ContainerId    = 0,                             &
                              Name           = ItemName(N),                   &
                              LongName       = Description,                   &
@@ -1567,7 +1567,7 @@ CONTAINS
     USE ErrCode_Mod
     USE MetaHistItem_Mod,  ONLY: MetaHistItem_Destroy
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root    ! Are we on the root core?
 !

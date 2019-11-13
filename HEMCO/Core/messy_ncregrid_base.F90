@@ -135,7 +135,7 @@ CONTAINS
 
 ! ------------------------------------------------------------------
 INTEGER FUNCTION QTYPE_NARRAY(na)
-  
+
   IMPLICIT NONE
 
   ! I/O
@@ -214,7 +214,7 @@ SUBROUTINE INIT_NARRAY(na, n, dim, qtype)
         CALL ERRMSG(substr,status,6)
      END IF
      NULLIFY(na%vb)
-  END IF  
+  END IF
 
   IF (PRESENT(dim) .AND. PRESENT(n)) THEN
      IF (SIZE(dim) /= n) THEN
@@ -281,7 +281,7 @@ SUBROUTINE INIT_AXIS(a)
 
   ! I/O
   TYPE (axis), INTENT(INOUT) :: a
-  
+
   ! LOCAL
   CHARACTER(LEN=*), PARAMETER :: substr = 'INIT_AXIS'
   INTEGER :: status
@@ -309,7 +309,7 @@ SUBROUTINE COPY_NARRAY(d, s)
   ! I/O
   TYPE (narray), INTENT(OUT) :: d
   TYPE (narray), INTENT(IN)  :: s
-  
+
   ! LOCAL
   CHARACTER(LEN=*), PARAMETER :: substr = 'COPY_NARRAY'
   INTEGER :: n
@@ -333,7 +333,7 @@ SUBROUTINE COPY_NARRAY(d, s)
      IF (n > 0) THEN
         ALLOCATE(d%vi(n),STAT=status)
         CALL ERRMSG(substr,status,2)
-        d%vi(:) = s%vi(:) 
+        d%vi(:) = s%vi(:)
      END IF
   CASE(VTYPE_REAL)
      n = SIZE(s%vr)
@@ -354,7 +354,7 @@ SUBROUTINE COPY_NARRAY(d, s)
      IF (n > 0) THEN
         ALLOCATE(d%vc(n),STAT=status)
         CALL ERRMSG(substr,status,5)
-        d%vc(:) = s%vc(:) 
+        d%vc(:) = s%vc(:)
      END IF
   CASE(VTYPE_BYTE)
      n = SIZE(s%vb)
@@ -367,7 +367,7 @@ SUBROUTINE COPY_NARRAY(d, s)
      ! DO NOTHING, EMPTY N-ARRAY IS COPIED
   CASE DEFAULT
      CALL RGMSG(substr, RGMLE,                              &
-          'N-ARRAY OF UNRECOGNIZED TYPE CANNOT BE COPIED !' )          
+          'N-ARRAY OF UNRECOGNIZED TYPE CANNOT BE COPIED !' )
   END SELECT
 
 END SUBROUTINE COPY_NARRAY
@@ -452,11 +452,11 @@ SUBROUTINE SORT_NARRAY(na, nx, reverse)
      CASE(VTYPE_INT)
         DO i=1,n
            na%vi(nx%vi(i)) = nh%vi(i)
-        END DO        
+        END DO
      CASE(VTYPE_BYTE)
         DO i=1,n
            na%vb(nx%vi(i)) = nh%vb(i)
-        END DO        
+        END DO
      CASE(VTYPE_CHAR)
      CALL RGMSG(substr,RGMLE,'UN-SORTING OF TYPE CHAR IS NOT IMPLEMENTED !')
      CASE(VTYPE_UNDEF)
@@ -508,7 +508,7 @@ SUBROUTINE REORDER_NARRAY(na, nx)
   TYPE (narray) :: nh   ! copy of na
   INTEGER       :: vtype
   INTEGER       :: i, n
-  
+
   IF (na%n == 0) THEN
      CALL RGMSG(substr, RGMLW, 'EMPTY ARRAY ! NOTHING TO DO !')
      RETURN
@@ -536,7 +536,7 @@ SUBROUTINE REORDER_NARRAY(na, nx)
      CALL RGMSG(substr, RGMLEC, 'INDEX N-ARRAY (',PRODUCT(nx%dim),') !')
   END IF
 
-  vtype = QTYPE_NARRAY(na) 
+  vtype = QTYPE_NARRAY(na)
   CALL COPY_NARRAY(nh, na)
   n = PRODUCT(na%dim)
 
@@ -566,7 +566,7 @@ SUBROUTINE REORDER_NARRAY(na, nx)
   CASE DEFAULT
   CALL RGMSG(substr, RGMLE, 'ARRAY OF UNRECOGNIZED TYPE CANNOT BE UN-SORTED !')
   END SELECT
-  
+
   ! CLEAN UP
   CALL INIT_NARRAY(nh)
 
@@ -643,7 +643,7 @@ SUBROUTINE SCALE_NARRAY(na, sc)
   CASE(VTYPE_REAL)
      na%vr(:) = na%vr(:) * REAL(sc, SP)
   CASE(VTYPE_DOUBLE)
-     na%vd(:) = na%vd(:) * REAL(sc, DP) 
+     na%vd(:) = na%vd(:) * REAL(sc, DP)
   CASE(VTYPE_INT)
      CALL RGMSG(substr, RGMLI, 'N-ARRAY OF TYPE INTEGER CONVERTED TO REAL !')
      ALLOCATE(na%vr(SIZE(na%vi)), STAT=status)
@@ -671,7 +671,7 @@ SUBROUTINE SCALE_NARRAY(na, sc)
   CASE DEFAULT
      CALL RGMSG(substr, RGMLE, 'UNRECOGNIZED N-ARRAY TYPE !')
   END SELECT
-  
+
 END SUBROUTINE SCALE_NARRAY
 ! ------------------------------------------------------------------
 
@@ -716,44 +716,44 @@ SUBROUTINE CAT_NARRAY(na, nb)
   SELECT CASE(vtype2)
   CASE(VTYPE_REAL)
      DO i=1, n
-        nh%vr(i) = na%vr(i) 
+        nh%vr(i) = na%vr(i)
      END DO
      DO i=1, m
-        nh%vr(n+i) = nb%vr(i) 
+        nh%vr(n+i) = nb%vr(i)
      END DO
   CASE(VTYPE_DOUBLE)
      DO i=1, n
-        nh%vd(i) = na%vd(i) 
+        nh%vd(i) = na%vd(i)
      END DO
      DO i=1, m
-        nh%vd(n+i) = nb%vd(i) 
+        nh%vd(n+i) = nb%vd(i)
      END DO
   CASE(VTYPE_INT)
      DO i=1, n
-        nh%vi(i) = na%vi(i) 
+        nh%vi(i) = na%vi(i)
      END DO
      DO i=1, m
-        nh%vi(n+i) = nb%vi(i) 
+        nh%vi(n+i) = nb%vi(i)
      END DO
   CASE(VTYPE_BYTE)
      DO i=1, n
-        nh%vb(i) = na%vb(i) 
+        nh%vb(i) = na%vb(i)
      END DO
      DO i=1, m
-        nh%vb(n+i) = nb%vb(i) 
+        nh%vb(n+i) = nb%vb(i)
      END DO
   CASE(VTYPE_CHAR)
      DO i=1, n
-        nh%vc(i) = na%vc(i) 
+        nh%vc(i) = na%vc(i)
      END DO
      DO i=1, m
-        nh%vc(n+i) = nb%vc(i) 
+        nh%vc(n+i) = nb%vc(i)
      END DO
   CASE(VTYPE_UNDEF)
      ! NOTHING TO DO FOR UNDEFINED ARRAYS
   CASE DEFAULT
      ! NOTHING TO DO FOR UNRECOGNIZED ARRAYS
-  END SELECT  
+  END SELECT
 
   CALL COPY_NARRAY(na, nh)
   ! CLEAN UP
@@ -772,7 +772,7 @@ RECURSIVE SUBROUTINE QSORT_I(data,index,ileft,iright)
   INTEGER (I8), DIMENSION(:), POINTER              :: index  ! index list
   INTEGER (I8),               INTENT(IN), OPTIONAL :: ileft, iright
 
-  ! LOCAL 
+  ! LOCAL
   CHARACTER(LEN=*), PARAMETER :: substr = 'QSORT_I'
   INTEGER (I8)  :: temp            ! temporal data
   INTEGER       :: n               ! LENGTH OF LIST
@@ -1100,7 +1100,7 @@ SUBROUTINE OVL_RR (sl,sr,dl,dr,fs,fd,modulo)
   IMPLICIT NONE
 
   ! I/O
-  REAL (SP), INTENT(IN)              :: sl, sr  ! 'box' edges 
+  REAL (SP), INTENT(IN)              :: sl, sr  ! 'box' edges
   REAL (SP), INTENT(IN)              :: dl, dr  ! 'box' edges
   REAL (DP), INTENT(IN),  OPTIONAL   :: modulo  ! shift for 'modulo' axis
   REAL (DP), INTENT(OUT)             :: fs, fd  ! overlap fractions
@@ -1117,7 +1117,7 @@ SUBROUTINE OVL_RR (sl,sr,dl,dr,fs,fd,modulo)
   fd = (x2-x1)*REAL(fx, DP)/ABS(dr-dl)
 
   IF (PRESENT(modulo)) THEN
-     
+
      shift = REAL(INT((dl/modulo) + REAL(1.5, DP)), DP) * modulo
      x1 = MAX(DBLE(MIN(dl,dr))+shift,DBLE(MIN(sl,sr)))
      x2 = MIN(DBLE(MAX(dl,dr))+shift,DBLE(MAX(sl,sr)))

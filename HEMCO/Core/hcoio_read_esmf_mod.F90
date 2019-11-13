@@ -3,10 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcoio_read_esmf_mod.F90 
+! !MODULE: hcoio_read_esmf_mod.F90
 !
 ! !DESCRIPTION: Module HCOIO\_Read\_ESMF\_mod is the HEMCO interface for
-!  data reading within the ESMF framework. 
+!  data reading within the ESMF framework.
 !\\
 !\\
 ! !INTERFACE:
@@ -52,7 +52,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOIO_Read_ESMF( am_I_Root, HcoState, Lct, RC ) 
+  SUBROUTINE HCOIO_Read_ESMF( am_I_Root, HcoState, Lct, RC )
 !
 ! !USES:
 !
@@ -66,7 +66,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState
-    TYPE(ListCont),   POINTER        :: Lct 
+    TYPE(ListCont),   POINTER        :: Lct
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -78,14 +78,14 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+!
 ! !LOCAL VARIABLES:
 !
     INTEGER                    :: II, JJ, LL, TT
     INTEGER                    :: I, J, L, T
     INTEGER                    :: STAT
     REAL,             POINTER  :: Ptr3D(:,:,:)
-    REAL,             POINTER  :: Ptr2D(:,:)  
+    REAL,             POINTER  :: Ptr2D(:,:)
     TYPE(ESMF_State), POINTER  :: IMPORT
     CHARACTER(LEN=255)         :: MSG
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_READ_ESMF (hcoi_read_esmf_mod.F90)'
@@ -115,7 +115,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Read 3D data from ESMF 
+    ! Read 3D data from ESMF
     !-----------------------------------------------------------------
     IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
 
@@ -124,17 +124,17 @@ CONTAINS
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
        ! Check for MAPL error
-       IF( STAT /= ESMF_SUCCESS ) THEN 
+       IF( STAT /= ESMF_SUCCESS ) THEN
           MSG = 'Cannot get xyz pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
-          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC ) 
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
           RETURN
        ENDIF
 
-       ! Get array dimensions 
+       ! Get array dimensions
        II = SIZE(Ptr3D,1)
-       JJ = SIZE(Ptr3D,2) 
+       JJ = SIZE(Ptr3D,2)
        LL = SIZE(Ptr3D,3)
-       TT = 1 
+       TT = 1
 
        ! Define HEMCO array if not yet defined.
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
@@ -156,7 +156,7 @@ CONTAINS
        endif
 
     !-----------------------------------------------------------------
-    ! Read 2D data from ESMF 
+    ! Read 2D data from ESMF
     !-----------------------------------------------------------------
     ELSEIF ( Lct%Dct%Dta%SpaceDim == 2 ) THEN
 
@@ -164,18 +164,18 @@ CONTAINS
        CALL MAPL_GetPointer( IMPORT, Ptr2D, &
                              TRIM(Lct%Dct%Dta%ncFile), RC=STAT )
 
-       ! Check for MAPL error 
-       IF( STAT /= ESMF_SUCCESS ) THEN 
+       ! Check for MAPL error
+       IF( STAT /= ESMF_SUCCESS ) THEN
           MSG = 'Cannot get xy pointer: ' // TRIM(Lct%Dct%Dta%ncFile)
-          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC ) 
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
           RETURN
        ENDIF
 
-       ! Get array dimensions 
+       ! Get array dimensions
        II = SIZE(Ptr2D,1)
-       JJ = SIZE(Ptr2D,2) 
-       LL = 1 
-       TT = 1 
+       JJ = SIZE(Ptr2D,2)
+       LL = 1
+       TT = 1
 
        ! Define HEMCO array pointer if not yet defined
        IF ( .NOT. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
@@ -189,13 +189,13 @@ CONTAINS
        !Lct%Dct%Dta%V2(1)%Val = Ptr2D
 
     ENDIF
- 
+
     !-----------------------------------------------------------------
-    ! Cleanup and leave 
+    ! Cleanup and leave
     !-----------------------------------------------------------------
     Ptr3D  => NULL()
     Ptr2D  => NULL()
-    IMPORT => NULL()   
+    IMPORT => NULL()
 
     ! Return w/ success
     CALL HCO_LEAVE ( HcoState%Config%Err,  RC )

@@ -5,19 +5,19 @@
 !
 ! !MODULE: hcox_custom_mod.F90
 !
-! !DESCRIPTION: Customizable HEMCO emission extension. 
+! !DESCRIPTION: Customizable HEMCO emission extension.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE HCOX_Custom_Mod 
+MODULE HCOX_Custom_Mod
 !
 ! !USES:
 !
   USE HCO_Error_MOD
   USE HCO_Diagn_MOD
   USE HCOX_State_MOD, ONLY : Ext_State
-  USE HCO_State_MOD,  ONLY : HCO_State 
+  USE HCO_State_MOD,  ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
@@ -29,7 +29,7 @@ MODULE HCOX_Custom_Mod
   PUBLIC :: HCOX_Custom_Final
 !
 ! !REVISION HISTORY:
-!  13 Dec 2013 - C. Keller   - Initial version 
+!  13 Dec 2013 - C. Keller   - Initial version
 !  06 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Jun 2014 - R. Yantosca - Now indented with F90 free-format
 !  12 Sep 2018 - C. Keller   - Wrapped into instance
@@ -40,7 +40,7 @@ MODULE HCOX_Custom_Mod
 ! !MODULE VARIABLES:
 !
   TYPE :: MyInst
-   INTEGER                         :: Instance 
+   INTEGER                         :: Instance
    INTEGER                         :: ExtNr   = -1
    INTEGER                         :: nOcWind = -1
    INTEGER                         :: nIceSrc = -1
@@ -61,8 +61,8 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_Custom_Run
 !
-! !DESCRIPTION: Subroutine HCOX\_Custom\_Run is the driver routine 
-! for the customizable HEMCO extension. 
+! !DESCRIPTION: Subroutine HCOX\_Custom\_Run is the driver routine
+! for the customizable HEMCO extension.
 !\\
 !\\
 ! !INTERFACE:
@@ -81,14 +81,14 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER       :: HcoState    ! Hemco state 
+    TYPE(HCO_State), POINTER       :: HcoState    ! Hemco state
     INTEGER,         INTENT(INOUT) :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  
+!
 !
 ! !REVISION HISTORY:
-!  13 Dec 2013 - C. Keller   - Initial version 
+!  13 Dec 2013 - C. Keller   - Initial version
 !  05 Jun 2014 - R. Yantosca - Now store the results of HCO_LANDTYPE
 !                              in a PRIVATE variable for the !OMP loop
 !  05 Jun 2014 - R. Yantosca - Cosmetic changes
@@ -131,7 +131,7 @@ CONTAINS
     ! Get instance
     Inst => NULL()
     CALL InstGet ( ExtState%Custom, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
+    IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find custom instance Nr. ', ExtState%Custom
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
@@ -171,7 +171,7 @@ CONTAINS
           ! Set flux to wind speed
           FLUXWIND(I,J) = W10M * SCALWIND
 
-         ! Ice:         
+         ! Ice:
        ELSE IF ( LANDTYPE == 2 ) THEN
 
           ! Set uniform flux
@@ -185,10 +185,10 @@ CONTAINS
     ! Check exit status
     IF ( ERR ) THEN
        RC = HCO_FAIL
-       RETURN 
+       RETURN
     ENDIF
 
-    ! Add wind fluxes to emission arrays & diagnostics 
+    ! Add wind fluxes to emission arrays & diagnostics
     DO N = 1, Inst%nOcWind
 
        ! Emissions array
@@ -197,7 +197,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO !N
 
-    ! Add ice fluxes to emission arrays & diagnostics 
+    ! Add ice fluxes to emission arrays & diagnostics
     DO N = 1, Inst%nIceSrc
 
        ! Emissions array
@@ -237,12 +237,12 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName    ! Extension name
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state 
-    INTEGER,          INTENT(INOUT) :: RC 
+    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state
+    INTEGER,          INTENT(INOUT) :: RC
 
 ! !REVISION HISTORY:
 !  13 Dec 2013 - C. Keller   - Now a HEMCO extension
@@ -258,7 +258,7 @@ CONTAINS
     INTEGER,           ALLOCATABLE :: HcoIDs(:)
     LOGICAL                        :: verb
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-    CHARACTER(LEN=255)             :: MSG 
+    CHARACTER(LEN=255)             :: MSG
     TYPE(MyInst), POINTER          :: Inst
 
     !=================================================================
@@ -272,7 +272,7 @@ CONTAINS
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_Custom_Init (hcox_custom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    verb = HCO_IsVerb(HcoState%Config%Err,1) 
+    verb = HCO_IsVerb(HcoState%Config%Err,1)
 
     Inst => NULL()
     CALL InstCreate ( ExtNr, ExtState%Custom, Inst, RC )
@@ -281,7 +281,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Set species IDs      
+    ! Set species IDs
     CALL HCO_GetExtHcoID( HcoState, Inst%ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -291,14 +291,14 @@ CONTAINS
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
- 
-    ! Pass # of sources 
+
+    ! Pass # of sources
     Inst%nOcWind = nSpc / 2
     Inst%nIceSrc = nSpc / 2
 
-    ! Allocate vector w/ the species IDs 
-    ALLOCATE ( Inst%OcWindIDs(Inst%nOcWind) ) 
-    ALLOCATE ( Inst%IceSrcIDs(Inst%nIceSrc) ) 
+    ! Allocate vector w/ the species IDs
+    ALLOCATE ( Inst%OcWindIDs(Inst%nOcWind) )
+    ALLOCATE ( Inst%IceSrcIDs(Inst%nIceSrc) )
     Inst%OcWindIDs(:) = HcoIDs(1:Inst%nOcWind)
     N = Inst%nOcWind + 1
     Inst%IceSrcIDs(:) = HcoIDs(N:nSpc)
@@ -317,10 +317,10 @@ CONTAINS
     ENDIF
 
     ! Activate met fields required by this extension
-    ExtState%U10M%DoUse = .TRUE. 
-    ExtState%V10M%DoUse = .TRUE. 
-    ExtState%ALBD%DoUse = .TRUE. 
-    ExtState%WLI%DoUse  = .TRUE. 
+    ExtState%U10M%DoUse = .TRUE.
+    ExtState%V10M%DoUse = .TRUE.
+    ExtState%ALBD%DoUse = .TRUE.
+    ExtState%WLI%DoUse  = .TRUE.
 
     ! Activate this extension
     !ExtState%Custom = .TRUE.
@@ -329,7 +329,7 @@ CONTAINS
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
 
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_Custom_Init
 !EOC
@@ -350,7 +350,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !REVISION HISTORY:
 !  13 Dec 2013 - C. Keller   - Now a HEMCO extension
@@ -372,14 +372,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -389,7 +389,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -398,11 +398,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -419,21 +419,21 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
-! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+! !DESCRIPTION: Subroutine InstCreate creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -446,7 +446,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -462,7 +462,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -479,7 +479,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -502,18 +502,18 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+! !DESCRIPTION: Subroutine InstRemove creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( Instance ) 
+  SUBROUTINE InstRemove ( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: Instance 
+    INTEGER                         :: Instance
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -529,15 +529,15 @@ CONTAINS
     ! InstRemove begins here!
     !=================================================================
 
-    ! Init 
+    ! Init
     PrevInst => NULL()
     Inst     => NULL()
-    
+
     ! Get instance. Also archive previous instance.
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
+    IF ( ASSOCIATED(Inst) ) THEN
        ! Pop off instance from list
        IF ( ASSOCIATED(Inst%OcWindIDs) ) DEALLOCATE ( Inst%OcWindIDs )
        IF ( ASSOCIATED(Inst%IceSrcIDs) ) DEALLOCATE ( Inst%IceSrcIDs )
@@ -547,9 +547,9 @@ CONTAINS
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_Custom_Mod

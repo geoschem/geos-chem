@@ -6,10 +6,10 @@
 ! !MODULE: olson_landmap_mod.F90
 !
 ! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
-!  computes the IREG, ILAND, IUSE, and FRCLND State\_Met arrays. 
+!  computes the IREG, ILAND, IUSE, and FRCLND State\_Met arrays.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE Olson_LandMap_Mod
 !
@@ -26,31 +26,31 @@ MODULE Olson_LandMap_Mod
   PUBLIC  :: Compute_Olson_Landmap
 !
 ! !REMARKS:
-!  Eloise Marais and the GEOS-Chem Support Team updated the Olson 2001 
+!  Eloise Marais and the GEOS-Chem Support Team updated the Olson 2001
 !  landcover dataset and corresponding GEOS-Chem modules in 2012. The Olson
 !  2001 landmap superceded the Olson 1992 landmap starting following v9-01-03.
-!  The option to use Olson 1992 has been removed from v11-02 and later. 
+!  The option to use Olson 1992 has been removed from v11-02 and later.
 !  The following text is taken from the data processing README:
 !
-!  "The Olson 2001 landcover map is at a native resolution of 1km x 1km. I've 
-!  identified the dominant vegetation types in each 0.25x0.25 degree gridbox 
-!  and use this as input to GEOS-Chem. 
-!  
-!  The Olson 2001 landcover map also has 96 vegetation types compared with 74 
-!  for Olson 1992. For the most part vegetation types 75-96 are either not 
-!  dominant vegetation types at 0.25x0.25 degrees or they are crop types that 
-!  I lump with other similar vegetation types (either crops or mixed 
-!  forest/field vegetation) so that the Olson 2001 landcover dataset at 
+!  "The Olson 2001 landcover map is at a native resolution of 1km x 1km. I've
+!  identified the dominant vegetation types in each 0.25x0.25 degree gridbox
+!  and use this as input to GEOS-Chem.
+!
+!  The Olson 2001 landcover map also has 96 vegetation types compared with 74
+!  for Olson 1992. For the most part vegetation types 75-96 are either not
+!  dominant vegetation types at 0.25x0.25 degrees or they are crop types that
+!  I lump with other similar vegetation types (either crops or mixed
+!  forest/field vegetation) so that the Olson 2001 landcover dataset at
 !  0.25x0.25 degrees has 74 vegetation types.
-!  
-!  There are also new vegetation types that are defined in the Olson 2001 
-!  dataset from 1-74 that were previously listed as "not used" in 
-!  drydep.table. These are assigned appropriate deposition ID # and z0 values. 
-!  
-!  Vegetation types that are listed as "not used" in the updated drydep.table 
-!  dataset are those that are not dominant at 0.25x0.25, but may be present 
+!
+!  There are also new vegetation types that are defined in the Olson 2001
+!  dataset from 1-74 that were previously listed as "not used" in
+!  drydep.table. These are assigned appropriate deposition ID # and z0 values.
+!
+!  Vegetation types that are listed as "not used" in the updated drydep.table
+!  dataset are those that are not dominant at 0.25x0.25, but may be present
 !  in the 1kmx1km dataset."
-!  
+!
 !  The following table shows the the translation between the Olson 2001 and
 !  Olson 1992 land maps:
 !
@@ -74,7 +74,7 @@ MODULE Olson_LandMap_Mod
 !   15	Sea Water				0		1
 !   16	Shrub Evergreen				16		17
 !   17	Shrub Deciduous				18		19
-!   18	Mixed Forest and Field			none present	
+!   18	Mixed Forest and Field			none present
 !   19	Evergreen Forest and Fields		19		20
 !   20	Cool Rain Forest			20		21
 !   21	Conifer Boreal Forest			21		22
@@ -95,7 +95,7 @@ MODULE Olson_LandMap_Mod
 !   36	Rice Paddy and Field			36		37
 !   37	Hot Irrigated Cropland			37		38
 !   38	Cool Irrigated Cropland			38		39
-!   39	Cold Irrigated Cropland			none present	
+!   39	Cold Irrigated Cropland			none present
 !   40	Cool Grasses and Shrubs			40		41
 !   41	Hot and Mild Grasses and Shrubs		41		42
 !   42	Cold Grassland				42		43
@@ -104,9 +104,9 @@ MODULE Olson_LandMap_Mod
 !   45	Marsh Wetland				45		46
 !   46	Mediterranean Scrub			46		47
 !   47	Dry Woody Scrub				47		48
-!   48	Dry Evergreen Woods			none present	
-!   49	Volcanic Rock				none present	
-!   50	Sand Desert				none present	
+!   48	Dry Evergreen Woods			none present
+!   49	Volcanic Rock				none present
+!   50	Sand Desert				none present
 !   51	Semi Desert Shrubs			51		52
 !   52	Semi Desert Sage			52		53
 !   53	Barren Tundra				53		54
@@ -121,30 +121,30 @@ MODULE Olson_LandMap_Mod
 !   62	Narrow Conifers				62		63
 !   63	Wooded Tundra				63		64
 !   64	Heath Scrub				64		65
-!   65	Coastal Wetland, NW			none present	
-!   66	Coastal Wetland, NE			none present	
-!   67	Coastal Wetland, SE			none present	
-!   68	Coastal Wetland, SW			none present	
+!   65	Coastal Wetland, NW			none present
+!   66	Coastal Wetland, NE			none present
+!   67	Coastal Wetland, SE			none present
+!   68	Coastal Wetland, SW			none present
 !   69	Polar and Alpine Desert			69		70
-!   70	Glacier Rock				none present	
-!   71	Salt Playas				none present	
+!   70	Glacier Rock				none present
+!   71	Salt Playas				none present
 !   72	Mangrove				72		73
-!   73	Water and Island Fringe			none present	
-!   74	Land, Water, and Shore (see Note 1)	none present	
-!   75	Land and Water, Rivers (see Note 1)	none present	
+!   73	Water and Island Fringe			none present
+!   74	Land, Water, and Shore (see Note 1)	none present
+!   75	Land and Water, Rivers (see Note 1)	none present
 !   76	Crop and Water Mixtures			36		37
-!   77	Southern Hemisphere Conifers		none present	
+!   77	Southern Hemisphere Conifers		none present
 !   78	Southern Hemisphere Mixed Forest	32		33
 !   79	Wet Sclerophylic Forest			26		27
-!   80	Coastline Fringe			none present	
-!   81	Beaches and Dunes			none present	
-!   82	Sparse Dunes and Ridges			none present	
-!   83	Bare Coastal Dunes			none present	
-!   84	Residual Dunes and Beaches		none present	
-!   85	Compound Coastlines			none present	
-!   86	Rocky Cliffs and Slopes			none present	
-!   87	Sandy Grassland and Shrubs		none present	
-!   88	Bamboo					none present	
+!   80	Coastline Fringe			none present
+!   81	Beaches and Dunes			none present
+!   82	Sparse Dunes and Ridges			none present
+!   83	Bare Coastal Dunes			none present
+!   84	Residual Dunes and Beaches		none present
+!   85	Compound Coastlines			none present
+!   86	Rocky Cliffs and Slopes			none present
+!   87	Sandy Grassland and Shrubs		none present
+!   88	Bamboo					none present
 !   89	Moist Eucalyptus			26		27
 !   90	Rain Green Tropical Forest		33		34
 !   91	Woody Savanna				43		44
@@ -153,13 +153,13 @@ MODULE Olson_LandMap_Mod
 !   94	Crops, Grass, Shrubs			41		42
 !   95	Evergreen Tree Crop			33		34
 !   96	Deciduous Tree Crop			33		34
-!                                                                             
+!
 !  Arrays computed by olson_landmap_mod.F90
 !  ============================================================================
 !  (1) State_Met%IREG(I,J)    : # of land types in horizontal grid cell (I,J)
 !  (2) State_Met%ILAND(I,J,T) : Land type ID for land types T=1,IREG(I,J)
 !  (3) State_Met%IUSE(I,J,T)  : Fraction area (per mil) occupied by land types
-!                               T=1,IREG(I,J) 
+!                               T=1,IREG(I,J)
 !  (4) State_Met%FRCLND(I,J)  : Fraction area occupied by land for cell (I,J)
 !
 ! !REVISION HISTORY:
@@ -199,8 +199,8 @@ CONTAINS
 !
 ! !IROUTINE: compute_olson_landmap
 !
-! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP computes the 
-!  GEOS-Chem State\_Met variables that are dependent on the Olson Landmap, 
+! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP computes the
+!  GEOS-Chem State\_Met variables that are dependent on the Olson Landmap,
 !  specifically IREG, ILAND, IUSE, and FRCLND.
 !\\
 !\\
@@ -231,7 +231,7 @@ CONTAINS
 !
     INTEGER,         INTENT(INOUT) :: RC          ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  27 Sep 2016 - E. Lundgren - Initial version
 !  14 Feb 2019 - R. Yantosca - Changed name to Compute_Olson_Landmap, since
 !                              we now also use this for GC-Classic, etc.
@@ -255,7 +255,7 @@ CONTAINS
     !=======================================================================
     ! Compute_Olson_Landmap begins here!
     !=======================================================================
-    
+
     ! Initialize
     RC     = GC_SUCCESS
     ErrMsg = ''
@@ -292,7 +292,7 @@ CONTAINS
              ! Store type index in ILAND array for this grid cell.
              ! Use 0-based index for compatibility with legacy drydep code.
              State_Met%ILAND(I,J,typeCounter) = T-1
-             
+
              ! Store fractional coverage in IUSE array for this grid cell.
              ! Units are [mil] for compatibility with legacy drydep code.
              State_Met%IUSE(I,J,typeCounter) = State_Met%LandTypeFrac(I,J,T) &
@@ -359,7 +359,7 @@ CONTAINS
 !
   SUBROUTINE Init_LandTypeFrac( am_I_Root, Input_Opt, State_Met, RC )
 !
-! !USES: 
+! !USES:
 !
     USE CMN_SIZE_Mod,      ONLY : NSURFTYPE
     USE ErrCode_Mod
@@ -402,11 +402,11 @@ CONTAINS
 
     ! Pointers
     REAL(f4), POINTER  :: Ptr2D(:,:)
-    
+
     !=======================================================================
     ! Init_LandTypeFrac begins here!
     !=======================================================================
-    
+
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
@@ -417,14 +417,14 @@ CONTAINS
     Ptr2D => NULL()
 
     ! Loop over the number of Olson land types
-    DO T = 1, NSURFTYPE    
+    DO T = 1, NSURFTYPE
 
-       ! Get the HEMCO pointer to each Olson landtype mask 
+       ! Get the HEMCO pointer to each Olson landtype mask
        ! (variable names are LANDTYPE00, LANDTYPE01 .. LANDTYPE72)
        WRITE( Name, 100 ) T-1
  100   FORMAT( 'LANDTYPE', i2.2 )
        CALL HCO_GetPtr( am_I_Root, HcoState, Name, Ptr2D, RC )
-       
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to HEMCO field: ' // TRIM( Name )

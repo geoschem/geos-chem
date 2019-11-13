@@ -20,7 +20,7 @@ module m_netcdf_io_open
 ! !DESCRIPTION: Routines to open a netCDF file.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -62,7 +62,7 @@ CONTAINS
 ! !DESCRIPTION: Opens a netCDF file for reading and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -115,11 +115,11 @@ CONTAINS
 !!  ncid    : opened netCDF file id
     integer          , intent (out)   :: ncid
 !
-! !DESCRIPTION: Opens a netCDF file for reading/writing and does some 
+! !DESCRIPTION: Opens a netCDF file for reading/writing and does some
 !  error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:

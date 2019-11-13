@@ -6,7 +6,7 @@
 ! !MODULE: mixing_mod.F90
 !
 ! !DESCRIPTION: Module mixing\_mod.F90 is a wrapper module for the PBL mixing
-! in GEOS-Chem. 
+! in GEOS-Chem.
 !\\
 !\\
 ! !INTERFACE:
@@ -22,14 +22,14 @@ MODULE MIXING_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: INIT_MIXING 
-  PUBLIC :: DO_MIXING 
-  PUBLIC :: DO_TEND 
+  PUBLIC :: INIT_MIXING
+  PUBLIC :: DO_MIXING
+  PUBLIC :: DO_TEND
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
 ! !REVISION HISTORY:
-!  04 Mar 2015 - C. Keller   - Initial version. 
+!  04 Mar 2015 - C. Keller   - Initial version.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -44,10 +44,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_mixing 
+! !IROUTINE: init_mixing
 !
 ! !DESCRIPTION: Subroutine INIT\_MIXING initialized the pbl mixing wrapper
-! module. 
+! module.
 !\\
 !\\
 ! !INTERFACE:
@@ -62,7 +62,7 @@ CONTAINS
     USE PBL_MIX_MOD,     ONLY : COMPUTE_PBL_HEIGHT
     USE PBL_MIX_MOD,     ONLY : DO_PBL_MIX
     USE State_Chm_Mod,   ONLY : ChmState
-    USE State_Diag_Mod,  ONLY : DgnState 
+    USE State_Diag_Mod,  ONLY : DgnState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
     USE VDIFF_MOD,       ONLY : DO_PBL_MIX_2
@@ -82,10 +82,10 @@ CONTAINS
 !
 ! !REMARKS
 !  (A) While all dry deposition rates are calculated either in
-!      DO_PBL_MIX2 or DO_TEND, settling of aerosols is still 
+!      DO_PBL_MIX2 or DO_TEND, settling of aerosols is still
 !      computed in the dust/seasalt modules.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller   - Initial version
 !  26 Oct 2016 - R. Yantosca - Now also call COMPUTE_PBL_HEIGHT so that we
 !                              populate PBL quantities w/ the initial met
@@ -107,7 +107,7 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
-   
+
     !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme
     !-----------------------------------------------------------------------
@@ -124,12 +124,12 @@ CONTAINS
           RETURN
        ENDIF
 
-    ELSE 
+    ELSE
 
        ! Initialize full PBL mixing scheme
        CALL DO_PBL_MIX( am_I_Root,  .FALSE.,    Input_Opt, State_Chm,        &
                         State_Diag, State_Grid, State_Met, RC               )
-       
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "DO_PBL_MIX" at initialization!'
@@ -163,16 +163,16 @@ CONTAINS
     ENDIF
 #endif
 
-  END SUBROUTINE INIT_MIXING 
+  END SUBROUTINE INIT_MIXING
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_mixing 
+! !IROUTINE: do_mixing
 !
-! !DESCRIPTION: Subroutine DO\_MIXING performs the PBL mixing. 
+! !DESCRIPTION: Subroutine DO\_MIXING performs the PBL mixing.
 !\\
 !\\
 ! !INTERFACE:
@@ -206,12 +206,12 @@ CONTAINS
 !
 ! !REMARKS
 !  (A) While all dry deposition rates are calculated either in
-!      DO_PBL_MIX2 or DO_TEND, settling of aerosols is still 
+!      DO_PBL_MIX2 or DO_TEND, settling of aerosols is still
 !      computed in the dust/seasalt modules.
 !
-! !REVISION HISTORY: 
-!  04 Mar 2015 - C. Keller   - Initial version 
-!  12 Aug 2015 - E. Lundgren - Input tracer units are now [kg/kg] and 
+! !REVISION HISTORY:
+!  04 Mar 2015 - C. Keller   - Initial version
+!  12 Aug 2015 - E. Lundgren - Input tracer units are now [kg/kg] and
 !                              are converted to [v/v] for mixing
 !  30 Sep 2014 - E. Lundgren - Move unit conversion for DO_TEND to DO_TEND
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
@@ -246,14 +246,14 @@ CONTAINS
     ! deposition rates, including dust.
     !
     ! Set OnlyAbovePBL flag (used below by DO_TEND) to indicate that
-    ! fluxes within the PBL have already been applied. 
+    ! fluxes within the PBL have already been applied.
     ! ----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
 
        !--------------------------------------------------------------------
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
        !
-       ! Initialize the diagnostic array for the History Component.  This will 
+       ! Initialize the diagnostic array for the History Component.  This will
        ! prevent leftover values from being carried over to this timestep.
        ! (For example, if on the last iteration, the PBL height was higher than
        ! it is now, then we will have stored drydep fluxes up to that height,
@@ -268,7 +268,7 @@ CONTAINS
        CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
                           State_Chm, State_Diag,      State_Grid,            &
                           State_Met, RC                                     )
- 
+
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountred in "DO_PBL_MIX_2"!'
@@ -287,10 +287,10 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Apply tendencies. This will apply dry deposition rates and 
+    ! Apply tendencies. This will apply dry deposition rates and
     ! emission fluxes below the PBL if it has not yet been done
-    ! via the non-local PBL mixing. It also adds the emissions above 
-    ! the PBL to the species array. Emissions of some species may be 
+    ! via the non-local PBL mixing. It also adds the emissions above
+    ! the PBL to the species array. Emissions of some species may be
     ! capped at the tropopause to avoid build-up in stratosphere.
     !-----------------------------------------------------------------------
 
@@ -306,18 +306,18 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Do full pbl mixing. This fully mixes the updated species 
-    ! concentrations within the PBL. 
-    ! 
-    ! Now also archive concentrations and calculate turbulence 
+    ! Do full pbl mixing. This fully mixes the updated species
+    ! concentrations within the PBL.
+    !
+    ! Now also archive concentrations and calculate turbulence
     ! tendencies (ckeller, 7/15/2015)
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
 
-       ! Initialize the diagnostic array for the History Component. This 
-       ! will prevent leftover values from being carried over to this 
-       ! timestep. (For example, if on the last iteration, the PBL height 
-       ! was higher than it is now, then we will have stored drydep fluxes 
+       ! Initialize the diagnostic array for the History Component. This
+       ! will prevent leftover values from being carried over to this
+       ! timestep. (For example, if on the last iteration, the PBL height
+       ! was higher than it is now, then we will have stored drydep fluxes
        ! up to that height, so we need to zero these out.)
        IF ( State_Diag%Archive_DryDepMix .or.  &
             State_Diag%Archive_DryDep        ) THEN
@@ -338,14 +338,14 @@ CONTAINS
 
     ENDIF
 
-  END SUBROUTINE DO_MIXING 
+  END SUBROUTINE DO_MIXING
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_tend 
+! !IROUTINE: do_tend
 !
 ! !DESCRIPTION: Subroutine DO\_TEND adds the species tendencies (dry deposition
 !  and emissions) to the species array.
@@ -354,7 +354,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE DO_TEND( am_I_Root,  Input_Opt, State_Chm,    State_Diag,       &
-                      State_Grid, State_Met, OnlyAbovePBL, RC,        DT    ) 
+                      State_Grid, State_Met, OnlyAbovePBL, RC,        DT    )
 !
 ! !USES:
 !
@@ -393,17 +393,17 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT)           :: State_Chm    ! Chemistry state 
+    TYPE(ChmState),   INTENT(INOUT)           :: State_Chm    ! Chemistry state
     TYPE(DgnState),   INTENT(INOUT)           :: State_Diag   ! Diags State
     INTEGER,          INTENT(INOUT)           :: RC           ! Success/Failure
 !
-! !REVISION HISTORY: 
-!  04 Mar 2015 - C. Keller   - Initial version 
+! !REVISION HISTORY:
+!  04 Mar 2015 - C. Keller   - Initial version
 !  09 Mar 2015 - R. Yantosca - Bug fix: Use the drydep ID number instead of the
 !                              tracer number to index the AD44 drydep array
 !  09 Mar 2015 - R. Yantosca - Bug fix: Remove an IF ( L1 == 1 ) block where
 !                              we define DRYDEPID.  This isn't needed here.
-!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO 
+!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO
 !                              diagnostics.
 !  12 Jun 2015 - R. Yantosca - Bug fix in SAFE_DIV: the denominator was
 !                              arranged wrongly.  Now corrected.
@@ -450,7 +450,7 @@ CONTAINS
     CHARACTER(LEN=63)       :: OrigUnit
     CHARACTER(LEN=255)      :: MSG
 
-    ! PARANOX loss fluxes (kg/m2/s). These are obtained from the 
+    ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
     ! HEMCO PARANOX extension via the diagnostics module.
     REAL(fp)                :: PNOXLOSS
     REAL(f4), POINTER, SAVE :: PNOXLOSS_O3  (:,:) => NULL()
@@ -459,8 +459,8 @@ CONTAINS
     ! SAVEd scalars (defined on first call only)
     LOGICAL,           SAVE :: FIRST = .TRUE.
     INTEGER,           SAVE :: id_MACR,  id_RCHO,  id_ACET, id_ALD2
-    INTEGER,           SAVE :: id_ALK4,  id_C2H6,  id_C3H8, id_CH2O 
-    INTEGER,           SAVE :: id_PRPE,  id_O3,    id_HNO3, id_BrO 
+    INTEGER,           SAVE :: id_ALK4,  id_C2H6,  id_C3H8, id_CH2O
+    INTEGER,           SAVE :: id_PRPE,  id_O3,    id_HNO3, id_BrO
     INTEGER,           SAVE :: id_Br2,   id_Br,    id_HOBr, id_HBr
     INTEGER,           SAVE :: id_BrNO3
 
@@ -513,7 +513,7 @@ CONTAINS
                                  State_Diag%Archive_BudgetEmisDryDepTrop, &
                                  State_Diag%Archive_BudgetEmisDryDepPBL,  &
                                  State_Diag%BudgetMass1,                  &
-                                 RC ) 
+                                 RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Emissions/dry deposition budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -523,7 +523,7 @@ CONTAINS
 
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
-    ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
+    ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
     ! remove area-dependency (ewl, 9/30/15)
     CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
                             State_Grid, State_Met, 'kg/m2',   &
@@ -534,7 +534,7 @@ CONTAINS
        MSG = 'Unit conversion error!'
        CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
        RETURN
-    ENDIF 
+    ENDIF
 
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
@@ -551,7 +551,7 @@ CONTAINS
        id_RCHO = Ind_('RCHO' )
        id_ACET = Ind_('ACET' )
        id_ALD2 = Ind_('ALD2' )
-       id_ALK4 = Ind_('ALK4' ) 
+       id_ALK4 = Ind_('ALK4' )
        id_C2H6 = Ind_('C2H6' )
        id_C3H8 = Ind_('C3H8' )
        id_CH2O = Ind_('CH2O' )
@@ -566,25 +566,25 @@ CONTAINS
        id_BrNO3= Ind_('BrNO3')
 
        ! On first call, get pointers to the PARANOX loss fluxes. These are
-       ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and 
-       ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers 
+       ! stored in diagnostics 'PARANOX_O3_DEPOSITION_FLUX' and
+       ! 'PARANOX_HNO3_DEPOSITION_FLUX'. The call below links pointers
        ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
        ! respective diagnostics. The pointers will remain unassociated if
        ! the diagnostics do not exist.
-       ! This is only needed if non-local PBL scheme is not being used. 
+       ! This is only needed if non-local PBL scheme is not being used.
        ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F.
-       !  (ckeller, 4/10/2015) 
+       !  (ckeller, 4/10/2015)
        IF ( .NOT. Input_Opt%LNLPBL ) THEN
           CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
-                            .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          ) 
+                            .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          )
           CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
-                            .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        ) 
+                            .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        )
        ENDIF
        FIRST = .FALSE.
     ENDIF
 
 #if defined( USE_TEND )
-    ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
+    ! Archive concentrations for tendencies (ckeller, 7/15/2015)
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, &
                       State_Met, 'FLUX', RC )
 #endif
@@ -616,7 +616,7 @@ CONTAINS
        SpcInfo => State_Chm%SpcData(N)%Info
 
        !--------------------------------------------------------------------
-       ! Check if we need to do dry deposition for this species 
+       ! Check if we need to do dry deposition for this species
        !--------------------------------------------------------------------
 
        ! Initialize
@@ -631,7 +631,7 @@ CONTAINS
           ! This is now stored in the species database object. (bmy, 7/6/16)
           DryDepID = SpcInfo%DryDepId
 
-          ! Check if this is a HEMCO drydep species 
+          ! Check if this is a HEMCO drydep species
           DryDepSpec = ( DryDepId > 0 )
           IF ( .NOT. DryDepSpec ) THEN
              CALL GetHcoVal ( N, 1, 1, 1, DryDepSpec, dep = TMP )
@@ -639,13 +639,13 @@ CONTAINS
 
           ! Special case for O3 or HNO3: include PARANOX loss
           IF ( N == id_O3   .AND. ASSOCIATED(PNOXLOSS_O3  ) )    &
-               DryDepSpec = .TRUE. 
+               DryDepSpec = .TRUE.
           IF ( N == id_HNO3 .AND. ASSOCIATED(PNOXLOSS_HNO3) )    &
-               DryDepSpec = .TRUE. 
+               DryDepSpec = .TRUE.
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Check if we need to do emissions for this species 
+       ! Check if we need to do emissions for this species
        !--------------------------------------------------------------------
        IF ( LEMIS ) THEN
           CALL GetHcoVal ( N, 1, 1, 1, EmisSpec, emis = TMP )
@@ -654,14 +654,14 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Can go to next species if this species does not have 
+       ! Can go to next species if this species does not have
        ! dry deposition and/or emissions
        !--------------------------------------------------------------------
        IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
 
        ! Loop over all grid boxes
-       DO J = 1, State_Grid%NY    
-       DO I = 1, State_Grid%NX    
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
 
           !-----------------------------------------------------------------
           ! Define various quantities before computing tendencies
@@ -673,19 +673,19 @@ CONTAINS
           ! Molecular weight in kg
           MWkg = SpcInfo%emMW_g * 1.e-3_fp
 
-          ! Determine lower level L1 to be used: 
+          ! Determine lower level L1 to be used:
           ! If specified so, apply emissions only above the PBL_TOP.
-          ! This will also disable dry deposition. 
-          IF ( OnlyAbovePBL ) THEN 
+          ! This will also disable dry deposition.
+          IF ( OnlyAbovePBL ) THEN
              L1 = PBL_TOP + 1
           ELSE
-             L1 = 1 
+             L1 = 1
           ENDIF
 
           ! Set dry deposition top level based on PBL_DRYDEP flag of
           ! Input_Opt.
           IF ( PBL_DRYDEP ) THEN
-             DRYD_TOP = PBL_TOP 
+             DRYD_TOP = PBL_TOP
           ELSE
              DRYD_TOP = 1
           ENDIF
@@ -695,23 +695,23 @@ CONTAINS
           ! in stratosphere wants to be avoided.
           ChemGridOnly = .FALSE.
 
-          ! Set emissions to zero above chemistry grid for the following 
+          ! Set emissions to zero above chemistry grid for the following
           ! VOCs (adopted from aeic_mod.F).
           IF ( N == id_MACR .OR. N == id_RCHO .OR. &
-               N == id_ACET .OR. N == id_ALD2 .OR. & 
-               N == id_ALK4 .OR. N == id_C2H6 .OR. & 
-               N == id_C3H8 .OR. N == id_CH2O .OR. & 
-               N == id_PRPE                         ) THEN 
-             ChemGridOnly = .TRUE. 
+               N == id_ACET .OR. N == id_ALD2 .OR. &
+               N == id_ALK4 .OR. N == id_C2H6 .OR. &
+               N == id_C3H8 .OR. N == id_CH2O .OR. &
+               N == id_PRPE                         ) THEN
+             ChemGridOnly = .TRUE.
           ENDIF
 
           ! Bry concentrations become prescribed in lin. strat. chemistry.
-          ! Therefore avoid any emissions of these compounds above the 
+          ! Therefore avoid any emissions of these compounds above the
           ! chemistry grid (lin. strat. chem. applies above chemistry grid
           ! only).
           IF ( LSCHEM ) THEN
              IF ( N == id_BrO  .OR. N == id_Br2   .OR. &
-                  N == id_Br   .OR. N == id_HOBr  .OR. & 
+                  N == id_Br   .OR. N == id_HOBr  .OR. &
                   N == id_HBr  .OR. N == id_BrNO3       ) THEN
                 ChemGridOnly = .TRUE.
              ENDIF
@@ -739,7 +739,7 @@ CONTAINS
           ! This should not happen:
           IF ( L2 < L1 ) CYCLE
 
-          ! Loop over selected vertical levels 
+          ! Loop over selected vertical levels
           DO L = L1, L2
 
              !--------------------------------------------------------------
@@ -751,14 +751,14 @@ CONTAINS
                 ! Init
                 FRQ = 0.0_fp
 
-                ! Dry deposition frequency from drydep_mod.F. This is 
+                ! Dry deposition frequency from drydep_mod.F. This is
                 ! stored in DEPSAV. Units are [s-1].
                 IF ( DRYDEPID > 0 ) THEN
                    FRQ = DEPSAV(I,J,DRYDEPID)
                 ENDIF
 
                 ! Dry deposition frequency from HEMCO. HEMCO calculates
-                ! dry deposition frequencies for air-sea exchange and 
+                ! dry deposition frequencies for air-sea exchange and
                 ! from ship NOx plume parameterization (PARANOx). The
                 ! units are [s-1].
                 CALL GetHcoVal ( N, I, J, 1, FND, dep=TMP )
@@ -786,7 +786,7 @@ CONTAINS
                    FRAC = EXP(-RKT)
 
                    ! Loss in kg/m2
-                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Species(I,J,L,N) 
+                   FLUX = ( 1.0_fp - FRAC ) * State_Chm%Species(I,J,L,N)
 
                    ! Apply dry deposition
                    State_Chm%Species(I,J,L,N) = FRAC *    &
@@ -799,7 +799,7 @@ CONTAINS
                       State_Chm%Species(I,J,L,N) = &
                          State_Chm%Species(I,J,L,N) - ( PNOXLOSS * TS )
                       FLUX = FLUX + ( PNOXLOSS * TS )
-                   ENDIF 
+                   ENDIF
 
 !                   IF (AREA_M2 .eq. 0.0_fp) THEN
 !                     PRINT*, "FLUX: ", FLUX
@@ -811,7 +811,7 @@ CONTAINS
 !                   ENDIF
 
                    ! Loss in [molec/cm2/s]
-                   ! Added a safe_div due to small parallelization error 
+                   ! Added a safe_div due to small parallelization error
                    ! (mdy, 5/15)
                    !
                    ! NOTE: The original computation was:
@@ -845,29 +845,29 @@ CONTAINS
                    !--------------------------------------------------------
                    IF ( ND44 > 0 .and. DryDepID > 0 ) THEN
                       AD44(I,J,DryDepID,1) = AD44(I,J,DryDepID,1) + FLUX &
-                                             * GET_TS_CONV() / GET_TS_CHEM() 
+                                             * GET_TS_CONV() / GET_TS_CHEM()
                    ENDIF
 #endif
 
                    !--------------------------------------------------------
-                   ! HISTORY: Archive drydep flux loss from mixing 
+                   ! HISTORY: Archive drydep flux loss from mixing
                    ! Units = molec/cm2/s
                    !
-                   ! NOTE: we don't need to multiply by the ratio of 
-                   ! TS_CONV / TS_CHEM, as the updating frequency for 
-                   ! HISTORY is determined by the "frequency" setting in 
-                   ! the "HISTORY.rc"input file.  The old bpch diagnostics 
-                   ! archived the drydep due to chemistry every chemistry 
-                   ! timestep = 2X the dynamic timestep.  So in order to 
-                   ! avoid double-counting the drydep flux from mixing, 
+                   ! NOTE: we don't need to multiply by the ratio of
+                   ! TS_CONV / TS_CHEM, as the updating frequency for
+                   ! HISTORY is determined by the "frequency" setting in
+                   ! the "HISTORY.rc"input file.  The old bpch diagnostics
+                   ! archived the drydep due to chemistry every chemistry
+                   ! timestep = 2X the dynamic timestep.  So in order to
+                   ! avoid double-counting the drydep flux from mixing,
                    ! you had to multiply by TS_CONV / TS_CHEM.
-                   !         
-                   ! ALSO NOTE: When comparing History output to bpch 
-                   ! output, you must use an updating frequency equal to 
-                   ! the dynamic timestep so that the drydep fluxes due to 
-                   ! mixing will be equivalent w/ the bpch output.  It is 
-                   ! also recommended to turn off chemistry so as to be 
-                   ! able to compare the drydep fluxes due to mixing in 
+                   !
+                   ! ALSO NOTE: When comparing History output to bpch
+                   ! output, you must use an updating frequency equal to
+                   ! the dynamic timestep so that the drydep fluxes due to
+                   ! mixing will be equivalent w/ the bpch output.  It is
+                   ! also recommended to turn off chemistry so as to be
+                   ! able to compare the drydep fluxes due to mixing in
                    ! bpch vs. History as an "apples-to-apples" comparison.
                    !
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
@@ -889,7 +889,7 @@ CONTAINS
 
                 ! Get HEMCO emissions. Units are [kg/m2/s].
                 CALL GetHcoVal ( N, I, J, L, FND, emis=TMP )
-           
+
                 ! Add emissions (if any)
                 ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
                 !IF ( FND .AND. (TMP > 0.0_fp) ) THEN
@@ -899,8 +899,8 @@ CONTAINS
                    FLUX = TMP * TS
 
                    ! Add to species array
-                   State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) & 
-                                              + FLUX 
+                   State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
+                                              + FLUX
                 ENDIF
              ENDIF
 
@@ -930,7 +930,7 @@ CONTAINS
 
                          ! Apply soil absorption as loss
                          State_Chm%Species(I,J,L,N) =                       &
-                         State_Chm%Species(I,J,L,N) - FLUX 
+                         State_Chm%Species(I,J,L,N) - FLUX
                       ENDIF
 
                    ENDIF
@@ -1008,7 +1008,7 @@ CONTAINS
        MSG = 'Unit conversion error!'
        CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
        RETURN
-    ENDIF  
+    ENDIF
 
     !----------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 2 of 2
@@ -1022,7 +1022,7 @@ CONTAINS
                                  State_Diag%Archive_BudgetEmisDryDepTrop,     &
                                  State_Diag%Archive_BudgetEmisDryDepPBL,      &
                                  State_Diag%BudgetMass2,                      &
-                                 RC )  
+                                 RC )
        CALL Compute_Budget_Diagnostics( am_I_Root,                            &
                                      State_Grid,                              &
                                      State_Chm%Map_Advect,                    &
@@ -1046,6 +1046,6 @@ CONTAINS
   ! Nullify pointers
   NULLIFY( DEPSAV )
 
-  END SUBROUTINE DO_TEND 
+  END SUBROUTINE DO_TEND
 !EOC
-END MODULE MIXING_MOD 
+END MODULE MIXING_MOD

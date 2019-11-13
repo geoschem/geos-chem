@@ -5,7 +5,7 @@
 #
 # !MODULE: Makefile (in doc subdirectory)
 #
-# !DESCRIPTION: Makefile for building the documentation (in PDF and 
+# !DESCRIPTION: Makefile for building the documentation (in PDF and
 #  PostScript formats) for the GEOS-Chem model source code, makefiles,
 #  and related scripts.
 #\\
@@ -20,7 +20,7 @@
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
 #                              display the help screen options

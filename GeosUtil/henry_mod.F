@@ -10,14 +10,14 @@
 ! effective Henry constant HEFF, which accounts for hydrolysis.
 !\\
 !\\
-! KH   = K0 * exp ( CR * (1/T - 1/Tref)  ) * R * T / 101.325 
+! KH   = K0 * exp ( CR * (1/T - 1/Tref)  ) * R * T / 101.325
 !\\
 !\\
 ! HEFF = KH * ( 1 + 10\^(pH-pKa) )
 !\\
 !\\
 ! where K0 is the value of KH at standard conditions [M/atm], CR is the
-! temperature dependency of KH [K], T is the temperature in Kelvin, Tref 
+! temperature dependency of KH [K], T is the temperature in Kelvin, Tref
 ! is the reference temperature (298.15 K), and R is the universal gas
 ! constant R = 8.314 JK-1mol-1.
 !\\
@@ -29,7 +29,7 @@
 ! \item  http://www.mpch-mainz.mpg.de/~sander/res/henry.html.
 ! \end{itemize}
 !
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE HENRY_MOD
 
@@ -74,11 +74,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_KH ( thisK0, thisCR, TK, KH, RC ) 
+      SUBROUTINE CALC_KH ( thisK0, thisCR, TK, KH, RC )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(IN)    :: thisK0  ! [M/atm] 
+      REAL*8,  INTENT(IN)    :: thisK0  ! [M/atm]
       REAL*8,  INTENT(IN)    :: thisCR  ! [-d ln kH / d(1/T) ]
       REAL*8,  INTENT(IN)    :: TK      ! Temperature [K]
 !
@@ -88,7 +88,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(INOUT) :: RC      ! Error handling 
+      INTEGER, INTENT(INOUT) :: RC      ! Error handling
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
@@ -107,7 +107,7 @@
          RC = -999
          KH = -999
          RETURN
-      ENDIF 
+      ENDIF
 
       ! Calculate Henry coefficient for given temperature
       KH = thisK0 * exp( thisCR * (1/TK - 1/TREF) ) * R * TK / ATM
@@ -122,8 +122,8 @@
 ! !IROUTINE: calc_heff
 !
 ! !DESCRIPTION: Function CALC\_HEFF calculates the effective Henry
-! constant taking into account hydrolysis effects. For instance, aqueous 
-! HBr will dissociate to Br- (and H+), and often we are interested in the 
+! constant taking into account hydrolysis effects. For instance, aqueous
+! HBr will dissociate to Br- (and H+), and often we are interested in the
 ! total Br concentration in water, i.e. Brx = HBr + Br-, with the equilibrium
 ! concentration of Brx and gaseous HBr being the effective Henry
 ! constant. This function provides the correction factor to calculate
@@ -153,21 +153,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_HEFF ( thispKa, PH, KH, HEFF, RC ) 
+      SUBROUTINE CALC_HEFF ( thispKa, PH, KH, HEFF, RC )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(IN)    :: thispKa  ! pKa value [-] 
-      REAL*8,  INTENT(IN)    :: PH       ! PH value [-] 
-      REAL*8,  INTENT(IN)    :: KH       ! gas/aq Henry constant [-] 
+      REAL*8,  INTENT(IN)    :: thispKa  ! pKa value [-]
+      REAL*8,  INTENT(IN)    :: PH       ! PH value [-]
+      REAL*8,  INTENT(IN)    :: KH       ! gas/aq Henry constant [-]
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT)   :: HEFF     ! effective gas/aq constant [-] 
+      REAL*8,  INTENT(OUT)   :: HEFF     ! effective gas/aq constant [-]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(INOUT) :: RC       ! for error handling 
+      INTEGER, INTENT(INOUT) :: RC       ! for error handling
 !
 ! !REMARKS:
 ! It should be noted that the correction term calculated here is from a

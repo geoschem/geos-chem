@@ -6,23 +6,23 @@
 ! !MODULE: hco_restart_mod.F90
 !
 ! !DESCRIPTION: Module HCO\_RESTART\_MOD contains wrapper routines to define,
-! get and write restart fields.  
+! get and write restart fields.
 !\\
 !\\
 ! Restart variables are required by some of the HEMCO extensions. The
-! HEMCO restart variables can be organized through the HEMCO restart 
+! HEMCO restart variables can be organized through the HEMCO restart
 ! diagnostics collection. At the end of a simulation, all diagnostic fields
-! ('containers') of the restart collection are written to the HEMCO restart 
+! ('containers') of the restart collection are written to the HEMCO restart
 ! file.
 !\\
-!\\ 
-! All fields from the HEMCO restart file can be easily read back into HEMCO 
-! via the HEMCO I/O infrastructure, i.e. by listing them in the HEMCO 
-! configuration file. 
+!\\
+! All fields from the HEMCO restart file can be easily read back into HEMCO
+! via the HEMCO I/O infrastructure, i.e. by listing them in the HEMCO
+! configuration file.
 !\\
 !\\
-! In an ESMF/MAPL environment, restart variables should be organized through 
-! the ESMF internal state object. This is particularly important for 
+! In an ESMF/MAPL environment, restart variables should be organized through
+! the ESMF internal state object. This is particularly important for
 ! simulation that rely on checkpoint files (e.g. replay simulations).
 ! In this cases, the restart variables are obtained from / written to the
 ! ESMF internal state object, rather than the HEMCO restart file.
@@ -30,68 +30,68 @@
 !\\
 ! This module contains wrapper routines to define, obtain and write restart
 ! fields for the two aforementioned restart types. The routines work both for
-! 'traditional' and ESMF restart variables. In an ESMF application, the first 
-! check is always performed within the internal state, e.g. it is first 
+! 'traditional' and ESMF restart variables. In an ESMF application, the first
+! check is always performed within the internal state, e.g. it is first
 ! checked if the given field variable exists in the internal state of the
 ! gridded component that HEMCO sits in. If so, the field is obtained from /
 ! written to the internal state. If no internal state object exist, an
 ! attempt is made to obtain the field through the HEMCO data list, i.e. it
 ! is checked if the restart variable is specified in the HEMCO configuration
 ! file.
-! A HEMCO diagnostics container is created in the diagnostics restart 
-! collection in both the traditional and the ESMF environment. 
+! A HEMCO diagnostics container is created in the diagnostics restart
+! collection in both the traditional and the ESMF environment.
 !\\
 !\\
 ! Routine HCO\_RestartDefine should be called during the initialization stage.
 ! Routine HCO\_RestartGet should be called on the first run call and after
-! each rewinding of the clock. HEMCO routines HcoClock\_First and 
+! each rewinding of the clock. HEMCO routines HcoClock\_First and
 ! HcoClock\_Rewind can be used to determine if it's time to read/update the
-! restart variable. 
-! HCO\_RestartWrite should be called *on every time step*. This is important 
+! restart variable.
+! HCO\_RestartWrite should be called *on every time step*. This is important
 ! in ESMF applications that rely on checkpoint files (e.g. replay simulations)
 ! that are written out by ESMF/MAPL throughout the simulation. In a non-ESMF
 ! environment, the HCO\_RestartWrite call is basically void but it should be
-! called nevertheless. 
+! called nevertheless.
 !\\
 !\\
-! !INTERFACE: 
-!      
+! !INTERFACE:
+!
 MODULE HCO_RESTART_MOD
 !
 ! !USES:
-!      
+!
   USE HCO_ERROR_MOD
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-!      
+!
   ! defined in all environment
   PUBLIC :: HCO_RestartDefine
   PUBLIC :: HCO_RestartGet
   PUBLIC :: HCO_RestartWrite
 !
 ! !PRIVATE MEMBER FUNCTIONS:
-!      
+!
 #if defined(ESMF_)
   PRIVATE :: HCO_CopyFromIntnal_ESMF
 #endif
 
-  INTERFACE HCO_RestartDefine 
-     MODULE PROCEDURE HCO_RestartDefine_3D 
-     MODULE PROCEDURE HCO_RestartDefine_2D 
-  END INTERFACE HCO_RestartDefine 
+  INTERFACE HCO_RestartDefine
+     MODULE PROCEDURE HCO_RestartDefine_3D
+     MODULE PROCEDURE HCO_RestartDefine_2D
+  END INTERFACE HCO_RestartDefine
 
-  INTERFACE HCO_RestartGet 
-     MODULE PROCEDURE HCO_RestartGet_3D 
-     MODULE PROCEDURE HCO_RestartGet_2D 
-  END INTERFACE HCO_RestartGet 
+  INTERFACE HCO_RestartGet
+     MODULE PROCEDURE HCO_RestartGet_3D
+     MODULE PROCEDURE HCO_RestartGet_2D
+  END INTERFACE HCO_RestartGet
 
-  INTERFACE HCO_RestartWrite 
-     MODULE PROCEDURE HCO_RestartWrite_3D 
-     MODULE PROCEDURE HCO_RestartWrite_2D 
-  END INTERFACE HCO_RestartWrite 
+  INTERFACE HCO_RestartWrite
+     MODULE PROCEDURE HCO_RestartWrite_3D
+     MODULE PROCEDURE HCO_RestartWrite_2D
+  END INTERFACE HCO_RestartWrite
 !
 ! !REVISION HISTORY:
 !  10 Mar 2015 - C. Keller   - Initial version
@@ -108,11 +108,11 @@ CONTAINS
 ! !ROUTINE: HCO_RestartDefine_3D
 !
 ! !DESCRIPTION: Subroutine HCO\_RestartDefine\_3D defines a restart diagnostics.
-! This adds a diagnostics with output frequency 'End' to the HEMCO diagnostics 
+! This adds a diagnostics with output frequency 'End' to the HEMCO diagnostics
 ! list. Arr3D is the 3D field of interest. The diagnostics will not copy the
 ! current content of Arr3D but establish a 'link' (e.g. pointer) to it. This
 ! way, any updates to Arr3D will automatically be seen by the diagnostics
-! and there is no need to explicitly update the content of the diagnostics. 
+! and there is no need to explicitly update the content of the diagnostics.
 !\\
 !\\
 ! !INTERFACE:
@@ -178,11 +178,11 @@ CONTAINS
 ! !ROUTINE: HCO_RestartDefine_2D
 !
 ! !DESCRIPTION: Subroutine HCO\_RestartDefine\_2D defines a restart diagnostics.
-! This adds a diagnostics with output frequency 'End' to the HEMCO diagnostics 
+! This adds a diagnostics with output frequency 'End' to the HEMCO diagnostics
 ! list. Arr2D is the 2D field of interest. The diagnostics will not copy the
 ! current content of Arr2D but establish a 'link' (e.g. pointer) to it. This
 ! way, any updates to Arr2D will automatically be seen by the diagnostics
-! and there is no need to explicitly update the content of the diagnostics. 
+! and there is no need to explicitly update the content of the diagnostics.
 !\\
 !\\
 ! !INTERFACE:
@@ -221,7 +221,7 @@ CONTAINS
     ! ================================================================
 
     ! Define diagnostics array
-    CALL Diagn_Create ( am_I_Root, HcoState,                    & 
+    CALL Diagn_Create ( am_I_Root, HcoState,                    &
                         cName      = TRIM(Name),                &
                         ExtNr      = -1,                        &
                         Cat        = -1,                        &
@@ -253,7 +253,7 @@ CONTAINS
 ! these values. If not found or if not in an ESMF environment, the HEMCO data
 ! list (specified in the HEMCO configuration file) is searched. A default value
 ! can be specified in case that no field could be imported via ESMF and/or the
-! HEMCO interface. 
+! HEMCO interface.
 !\\
 !\\
 ! !INTERFACE:
@@ -311,19 +311,19 @@ CONTAINS
     FLD = .FALSE.
 
     ! ------------------------------------------------------------------
-    ! Try to get from ESMF internal state 
+    ! Try to get from ESMF internal state
     ! ------------------------------------------------------------------
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name),   &
                                   1,         FLD,      RC, Arr3D=Arr3D )
     IF ( RC /= HCO_SUCCESS ) RETURN
- 
+
     ! If field is all zero assume it to be not filled
     IF ( FLD ) THEN
        IF ( SUM(Arr3D) == 0.0 ) FLD = .FALSE.
     ENDIF
 
-    ! Log output 
+    ! Log output
     IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
        IF ( am_I_Root .AND. FLD ) THEN
           MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
@@ -340,12 +340,12 @@ CONTAINS
        ! Try to get pointer from HEMCO configuration
        CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(Name), Ptr3D, RC, FILLED=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
-      
+
        ! Eventually pass data
        IF ( FLD ) THEN
           Arr3D = Ptr3D
 
-          ! Log output 
+          ! Log output
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
              IF ( am_I_Root ) THEN
                 MSG = 'Obtained restart variable from HEMCO config: '//TRIM(Name)
@@ -359,7 +359,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------------
-    ! If still not filled, assign default values 
+    ! If still not filled, assign default values
     ! ------------------------------------------------------------------
     IF ( .NOT. FLD ) THEN
        IF ( PRESENT(Def3D) ) THEN
@@ -384,7 +384,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------------
-    ! Leave 
+    ! Leave
     ! ------------------------------------------------------------------
     IF ( PRESENT(FILLED) ) THEN
        FILLED = FLD
@@ -408,7 +408,7 @@ CONTAINS
 ! these values. If not found or if not in an ESMF environment, the HEMCO data
 ! list (specified in the HEMCO configuration file) is searched. A default value
 ! can be specified in case that no field could be imported via ESMF and/or the
-! HEMCO interface. 
+! HEMCO interface.
 !\\
 !\\
 ! !INTERFACE:
@@ -466,19 +466,19 @@ CONTAINS
     FLD = .FALSE.
 
     ! ------------------------------------------------------------------
-    ! Try to get from ESMF internal state 
+    ! Try to get from ESMF internal state
     ! ------------------------------------------------------------------
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name),   &
                                   1,         FLD,      RC, Arr2D=Arr2D )
     IF ( RC /= HCO_SUCCESS ) RETURN
- 
+
     ! If field is all zero assume it to be not filled
     IF ( FLD ) THEN
        IF ( SUM(Arr2D) == 0.0 ) FLD = .FALSE.
     ENDIF
 
-    ! Log output 
+    ! Log output
     IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
        IF ( am_I_Root .AND. FLD ) THEN
           MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
@@ -496,12 +496,12 @@ CONTAINS
        ! Try to get pointer from HEMCO configuration
        CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(Name), Ptr2D, RC, FOUND=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
-      
+
        ! Eventually pass data
        IF ( FLD ) THEN
           Arr2D = Ptr2D
 
-          ! Log output 
+          ! Log output
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
              IF ( am_I_Root ) THEN
                 MSG = 'Obtained restart variable from HEMCO config: '//TRIM(Name)
@@ -516,7 +516,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------------
-    ! If still not filled, assign default values 
+    ! If still not filled, assign default values
     ! ------------------------------------------------------------------
     IF ( .NOT. FLD ) THEN
        IF ( PRESENT(Def2D) ) THEN
@@ -543,7 +543,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------------
-    ! Leave 
+    ! Leave
     ! ------------------------------------------------------------------
     IF ( PRESENT(FILLED) ) FILLED = FLD
 
@@ -569,14 +569,14 @@ CONTAINS
 ! !ROUTINE: HCO_RestartWrite_3D
 !
 ! !DESCRIPTION: Subroutine HCO\_RestartWrite\_3D writes a restart variable to
-! the ESMF internal state. This is only of relevance in an ESMF environment. 
-! The 'regular' HEMCO diagnostics created in HCO\_RestartDefine becomes 
-! automatically written to disk. 
+! the ESMF internal state. This is only of relevance in an ESMF environment.
+! The 'regular' HEMCO diagnostics created in HCO\_RestartDefine becomes
+! automatically written to disk.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartWrite_3D( am_I_Root, HcoState, Name, Arr3D, RC, FOUND ) 
+  SUBROUTINE HCO_RestartWrite_3D( am_I_Root, HcoState, Name, Arr3D, RC, FOUND )
 !
 ! !USES:
 !
@@ -586,7 +586,7 @@ CONTAINS
 !
     LOGICAL,             INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),     POINTER                 :: HcoState
-    CHARACTER(LEN=*),    INTENT(IN   )           :: Name 
+    CHARACTER(LEN=*),    INTENT(IN   )           :: Name
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -613,10 +613,10 @@ CONTAINS
 
     ! Data written to internal state?
     WRITTEN = .FALSE.
-    
+
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
-                                  -1,       WRITTEN,    RC, Arr3D=Arr3D ) 
+                                  -1,       WRITTEN,    RC, Arr3D=Arr3D )
 #endif
 
     ! Pass to output
@@ -637,14 +637,14 @@ CONTAINS
 ! !ROUTINE: HCO_RestartWrite_2D
 !
 ! !DESCRIPTION: Subroutine HCO\_RestartWrite\_2D writes a restart variable to
-! the ESMF internal state. This is only of relevance in an ESMF environment. 
-! The 'regular' HEMCO diagnostics created in HCO\_RestartDefine becomes 
-! automatically written to disk. 
+! the ESMF internal state. This is only of relevance in an ESMF environment.
+! The 'regular' HEMCO diagnostics created in HCO\_RestartDefine becomes
+! automatically written to disk.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartWrite_2D( am_I_Root, HcoState, Name, Arr2D, RC, FOUND ) 
+  SUBROUTINE HCO_RestartWrite_2D( am_I_Root, HcoState, Name, Arr2D, RC, FOUND )
 !
 ! !USES:
 !
@@ -654,7 +654,7 @@ CONTAINS
 !
     LOGICAL,             INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),     POINTER                 :: HcoState
-    CHARACTER(LEN=*),    INTENT(IN   )           :: Name 
+    CHARACTER(LEN=*),    INTENT(IN   )           :: Name
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -681,10 +681,10 @@ CONTAINS
 
     ! Data written to internal state?
     WRITTEN = .FALSE.
-    
+
 #if defined(ESMF_)
     CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
-                                  -1,       WRITTEN,    RC, Arr2D=Arr2D ) 
+                                  -1,       WRITTEN,    RC, Arr2D=Arr2D )
 #endif
 
     ! Pass to output
@@ -705,8 +705,8 @@ CONTAINS
 !
 ! !ROUTINE: HCO_CopyFromIntnal_ESMF
 !
-! !DESCRIPTION: Subroutine HCO\_CopyFromIntnal\_ESMF attempts to transfer 
-! data to and from the ESMF/MAPL internal state. 
+! !DESCRIPTION: Subroutine HCO\_CopyFromIntnal\_ESMF attempts to transfer
+! data to and from the ESMF/MAPL internal state.
 !\\
 !\\
 ! !INTERFACE:
@@ -765,18 +765,18 @@ CONTAINS
     ! Try to import field
     IF ( PRESENT(Arr2D) ) THEN
        CALL MAPL_GetPointer( INTERNAL, Ptr2D, TRIM(Name), &
-                             NotFoundOk=.TRUE., __RC__ ) 
-   
-       ! Eventually copy data to or from output array 
+                             NotFoundOk=.TRUE., __RC__ )
+
+       ! Eventually copy data to or from output array
        IF ( ASSOCIATED(Ptr2D) ) THEN
-    
+
           ! Make sure we can copy the data
-          ASSERT_(SIZE(Arr2D,1)==SIZE(Ptr2D,1))   
+          ASSERT_(SIZE(Arr2D,1)==SIZE(Ptr2D,1))
           ASSERT_(SIZE(Arr2D,2)==SIZE(Ptr2D,2))
-    
+
           ! transfer direction must be 1 or -1
           ASSERT_(Direction==1 .OR. Direction==-1)
- 
+
           ! Transfer data
           IF ( Direction == 1 ) THEN
              Arr2D = Ptr2D
@@ -795,19 +795,19 @@ CONTAINS
     ! Try to import field
     IF ( PRESENT(Arr3D) ) THEN
        CALL MAPL_GetPointer( INTERNAL, Ptr3D, TRIM(Name), &
-                             NotFoundOk=.TRUE., __RC__ ) 
-   
-       ! Eventually copy data to or from output array 
+                             NotFoundOk=.TRUE., __RC__ )
+
+       ! Eventually copy data to or from output array
        IF ( ASSOCIATED(Ptr3D) ) THEN
-    
+
           ! Make sure we can copy the data
-          ASSERT_(SIZE(Arr3D,1)==SIZE(Ptr3D,1))   
+          ASSERT_(SIZE(Arr3D,1)==SIZE(Ptr3D,1))
           ASSERT_(SIZE(Arr3D,2)==SIZE(Ptr3D,2))
           ASSERT_(SIZE(Arr3D,3)==SIZE(Ptr3D,3))
-    
+
           ! transfer direction must be 1 or -1
           ASSERT_(Direction==1 .OR. Direction==-1)
- 
+
           ! Transfer data
           IF ( Direction == 1 ) THEN
              Arr3D = Ptr3D
@@ -824,9 +824,9 @@ CONTAINS
     ENDIF
 
     ! Return success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_CopyFromIntnal_ESMF 
+  END SUBROUTINE HCO_CopyFromIntnal_ESMF
 !EOC
 #endif
 END MODULE HCO_RESTART_MOD

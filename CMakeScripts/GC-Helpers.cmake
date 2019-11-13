@@ -4,27 +4,27 @@
 Stringify a list of strings.
 
 Usage:
-    stringify_list(<list> 
-        [PRINT] 
-        [LINE_LENGTH <length>] 
-        [HIGHLIGHT <keyword> ...] 
-        [JOIN <token> ...] 
+    stringify_list(<list>
+        [PRINT]
+        [LINE_LENGTH <length>]
+        [HIGHLIGHT <keyword> ...]
+        [JOIN <token> ...]
         [AFTER]
     )
 
 Options:
-    PRINT           Print the stringified list to console. Highlighted text 
+    PRINT           Print the stringified list to console. Highlighted text
                     will also be colorized.
-    
+
     LINE_LENGTH     When JOINing a list of string, the resulting lines will
                     be limited to <length> characters. The resulting <list>
-                    will be a list of lines that can then be JOINed with 
+                    will be a list of lines that can then be JOINed with
                     newlines.
-    
+
     HIGHLIGHT       A list of keywords to highlight.
 
     JOIN            A list of tokens that will be used sequentially to join
-                    list items. The last token will be used to join all 
+                    list items. The last token will be used to join all
                     remaining items.
 
     AFTER           Place the JOIN tokens after the item, rather than before.
@@ -32,9 +32,9 @@ Options:
 ]]
 function(stringify_list LIST)
     cmake_parse_arguments(BETTER
-        "PRINT;AFTER" 
-        "LINE_LENGTH" 
-        "HIGHLIGHT;JOIN" 
+        "PRINT;AFTER"
+        "LINE_LENGTH"
+        "HIGHLIGHT;JOIN"
         ${ARGN}
     )
 
@@ -43,7 +43,7 @@ function(stringify_list LIST)
     endif()
 
     set(STR ${${LIST}})
-    
+
     # Limit joined line length
     if(DEFINED BETTER_JOIN)
         set(TEMP "")
@@ -51,16 +51,16 @@ function(stringify_list LIST)
 
         set(JOIN_IDX "0 - 1")
         list(LENGTH BETTER_JOIN JOIN_LEN)
-        
+
         foreach(ITEM ${STR})
-            # Get the join token    
+            # Get the join token
             math(EXPR JOIN_IDX "${JOIN_IDX} + 1")
             if(${JOIN_IDX} LESS ${JOIN_LEN})
                 list(GET BETTER_JOIN "${JOIN_IDX}" JOIN_TOKEN)
             endif()
             string(LENGTH "${JOIN_TOKEN}" SEP_LEN)
 
-            # If a line length was 
+            # If a line length was
             string(LENGTH "${ITEM}" WORD_LEN)
             math(EXPR POST_LEN "${WORD_LEN} + ${CUR_LEN} + ${SEP_LEN}")
             if("${POST_LEN}" LESS "${BETTER_LINE_LENGTH}")
@@ -90,7 +90,7 @@ function(stringify_list LIST)
             string(REPLACE "${KEYWORD}" "[${KEYWORD}]" STR "${STR}")
         endforeach()
     endif()
-    
+
     if(${BETTER_PRINT})
         string(ASCII 27 Esc)
         if(${CMAKE_COLOR_MAKEFILE})
@@ -102,7 +102,7 @@ function(stringify_list LIST)
         message("${COLORIZED}")
     endif()
 
-    
+
     # Export the new string
     set(${LIST} "${STR}" PARENT_SCOPE)
 endfunction()
@@ -114,7 +114,7 @@ of the last commit to the repo at ${DIR}.
 
 Usage:
     get_repo_version(VARNAME DIR)
-    
+
 ]]
 macro(get_repo_version VARNAME DIR)
     execute_process(
@@ -137,12 +137,12 @@ function(gc_pretty_print)
         if(ARGS_IS_BOOLEAN)
             set(LOGLINE "ON" "OFF")
             # Split list with "  "
-            stringify_list(LOGLINE 
-                JOIN "  " 
+            stringify_list(LOGLINE
+                JOIN "  "
                 LINE_LENGTH 60
             )
             # Wrap lines
-            stringify_list(LOGLINE 
+            stringify_list(LOGLINE
                 JOIN "  * ${ARGS_VARIABLE}:\t" "\n  ...       \t"
             )
             if("${${ARGS_VARIABLE}}")
@@ -153,12 +153,12 @@ function(gc_pretty_print)
         elseif(DEFINED ARGS_OPTIONS)
             set(LOGLINE ${ARGS_OPTIONS})
             # Split list with "  "
-            stringify_list(LOGLINE 
-                JOIN "  " 
+            stringify_list(LOGLINE
+                JOIN "  "
                 LINE_LENGTH 60
             )
             # Wrap lines
-            stringify_list(LOGLINE 
+            stringify_list(LOGLINE
                 JOIN "  * ${ARGS_VARIABLE}:\t" "\n  ...       \t"
             )
             stringify_list(LOGLINE PRINT HIGHLIGHT ${${ARGS_VARIABLE}})
@@ -169,12 +169,12 @@ function(gc_pretty_print)
                 set(LOGLINE ${${ARGS_VARIABLE}})
             endif()
             # Split list with "  "
-            stringify_list(LOGLINE 
-                JOIN "  " 
+            stringify_list(LOGLINE
+                JOIN "  "
                 LINE_LENGTH 60
             )
             # Wrap lines
-            stringify_list(LOGLINE 
+            stringify_list(LOGLINE
                 JOIN "  + ${ARGS_VARIABLE}:\t" "\n  ...       \t"
             )
             stringify_list(LOGLINE PRINT)

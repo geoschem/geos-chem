@@ -8,14 +8,14 @@
 ! !DESCRIPTION: Common blocks for anthro emissions (via SMVGEAR!)
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE CMN_O3_MOD
 !
 ! !USES:
 !
       USE PRECISION_MOD
-      
+
       IMPLICIT NONE
       PUBLIC
 !
@@ -87,8 +87,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  01 Feb 2013 - R. Yantosca - Now allocate EMISS_BVOC to 19 emission species
 !  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
@@ -144,8 +144,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  29 Mar 2013 - M. Payer    - Removed FRACO3, FRACNO, FRACNO2, SAVENO, SAVENO2,
 !                              and SAVENO3. They are no longer needed because
@@ -156,7 +156,7 @@
 !BOC
       ! Assume success
       RC = GC_SUCCESS
-      
+
       ! Deallocate arrays
       IF ( ALLOCATED( SAVEEOH     ) ) DEALLOCATE( SAVEEOH     )
       IF ( ALLOCATED( SAVEGLYX    ) ) DEALLOCATE( SAVEGLYX    )

@@ -7,7 +7,7 @@
 #
 # !DESCRIPTION: This Makefile builds header files that replace ASCII file
 #  reads with hard-coded F90 assignment statements.  This facilitates
-#  file I/O in the ESMF environment. 
+#  file I/O in the ESMF environment.
 #\\
 #\\
 # !REMARKS:
@@ -17,7 +17,7 @@
 #                                                                             .
 # To display a complete list of options, type "make help".
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  11 Aug 2014 - R. Yantosca - Initial version
 #  26 Feb 2015 - R. Yantosca - Remove lightdist script, we now read CDF table
 #                              data from a file to reduce compilation time

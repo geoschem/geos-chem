@@ -5,9 +5,9 @@
 !
 ! !MODULE: planeflight_mod.F
 !
-! !DESCRIPTION: Module PLANEFLIGHT\_MOD contains variables and routines which 
-!  are used to "fly" a plane through the GEOS-Chem model simulation.  This is 
-!  useful for comparing model results with aircraft observations. 
+! !DESCRIPTION: Module PLANEFLIGHT\_MOD contains variables and routines which
+!  are used to "fly" a plane through the GEOS-Chem model simulation.  This is
+!  useful for comparing model results with aircraft observations.
 !\\
 !\\
 ! !INTERFACE:
@@ -61,11 +61,11 @@
 !  (6 ) Bug fix: use NAMEGAS instead of NAMESPEC (lyj, bmy, 7/9/03)
 !  (7 ) Bug fix: avoid referencing JLOP for non-SMVGEAR runs (bmy, 7/18/03)
 !  (8 ) Bug fix: Use T instead of T3 for GMAO temperature.  Also replace
-!        NAMESPEC w/ NAMEGAS in RO2_SETUP.  Now locate reordered rxn 
+!        NAMESPEC w/ NAMEGAS in RO2_SETUP.  Now locate reordered rxn
 !        numbers for SMVGEAR II.(tdf, mje, bmy, 8/1/03)
 !  (9 ) Now print out N2O5 hydrolysis rxn as a special case.   Also rename
 !        output file. (bmy, 8/8/03)
-!  (10) Changed "DAO" to "GMAO" for met field variable names.  Now can save 
+!  (10) Changed "DAO" to "GMAO" for met field variable names.  Now can save
 !        aerosol optical depths.  Bug fix in TEST_VALID. (bmy, 4/23/03)
 !  (11) Now references "tracer_mod.f" (bmy, 7/20/04)
 !  (12) Bug fix in READ_VARIABLES (1/7/05)
@@ -78,7 +78,7 @@
 !  (17) Bug fix in PLANEFLIGHT (cdh, bmy, 12/12/06)
 !  (18) Bug fix in RO2_SETUP (tmf, bmy, 4/23/07)
 !  (19) Set very small values to zero.  (tmf, 1/7/09)
-!  (20) Add new RO2 species according to 'globchem.dat' (tmf, 1/7/09) 
+!  (20) Add new RO2 species according to 'globchem.dat' (tmf, 1/7/09)
 !  (21) Make sure we have 3 spaces in the exponential format (phs, 7/13/09)
 !  (22) Output the grid cell indexes (kjw, 8/18/09)
 !  (23) Add AN and NOy species. (fp, 3/10/10)
@@ -103,7 +103,7 @@
       ! MAXPOINTS   : Maximum # of flight track points allowed
       ! MAXREAC     : Maximum # of reactions allowed
       ! MAXRO2      : Maximum # of RO2 constituents allowed
-      ! NPOINTS     : Number of flight track points 
+      ! NPOINTS     : Number of flight track points
       ! PPOINT      : Pointer to last measured output
       ! PDATE       : Array of dates     at each flight point
       ! PTIME       : Array of times     at each flight point
@@ -121,7 +121,7 @@
       ! NRO2        : # number of RO2 constituents
       ! PRO2        : Array of species that are RO2 const's
       ! INFILENAME  : Name of input file defining the flight track
-      ! OUTFILENAME : Name of output file 
+      ! OUTFILENAME : Name of output file
       !=================================================================
 
       ! Logicals
@@ -136,36 +136,36 @@
       INTEGER,           PARAMETER   :: MAXNOY    = 15
 
       ! For specifying flight track points
-      INTEGER                        :: NPOINTS           
+      INTEGER                        :: NPOINTS
       INTEGER                        :: PPOINT
 
       ! For specifying date/time
       INTEGER,           ALLOCATABLE :: PDATE(:)
       INTEGER,           ALLOCATABLE :: PTIME(:)
-      ! Change to REAL(fp) for more precise times (skim, 7/24/13)              
-      REAL(fp),            ALLOCATABLE :: PTAU(:)               
+      ! Change to REAL(fp) for more precise times (skim, 7/24/13)
+      REAL(fp),            ALLOCATABLE :: PTAU(:)
 
       ! For specifying lat/lon/alt and ID type
-      REAL*4,            ALLOCATABLE :: PLAT(:)               
-      REAL*4,            ALLOCATABLE :: PLON(:)               
-      REAL*4,            ALLOCATABLE :: PPRESS(:)             
+      REAL*4,            ALLOCATABLE :: PLAT(:)
+      REAL*4,            ALLOCATABLE :: PLON(:)
+      REAL*4,            ALLOCATABLE :: PPRESS(:)
       REAL*4,            ALLOCATABLE :: POBS(:)
       REAL*4,            ALLOCATABLE :: PTAMB(:)
       REAL*4,            ALLOCATABLE :: PH2OMR(:)
       REAL*4,            ALLOCATABLE :: PPOTTEMP(:)
       REAL*4,            ALLOCATABLE :: PRH(:)
       REAL*4,            ALLOCATABLE :: PGPSALT(:)
-      CHARACTER(LEN=7),  ALLOCATABLE :: PTYPE(:)              
+      CHARACTER(LEN=7),  ALLOCATABLE :: PTYPE(:)
 
       ! For specifying variables to save at each flight point
-      INTEGER                        :: NPVAR        
-      INTEGER,           ALLOCATABLE :: PVAR(:) 
-      CHARACTER(LEN=10), ALLOCATABLE :: PNAME(:)              
-      
+      INTEGER                        :: NPVAR
+      INTEGER,           ALLOCATABLE :: PVAR(:)
+      CHARACTER(LEN=10), ALLOCATABLE :: PNAME(:)
+
       ! For specifying rxns to save at each flight point
-      INTEGER                        :: NPREAC        
-      INTEGER,           ALLOCATABLE :: PREAC(:) 
-      REAL(fp),          ALLOCATABLE :: PRRATE(:,:,:,:) 
+      INTEGER                        :: NPREAC
+      INTEGER,           ALLOCATABLE :: PREAC(:)
+      REAL(fp),          ALLOCATABLE :: PRRATE(:,:,:,:)
 
       ! For rate of production
       INTEGER                        :: NPROD
@@ -192,7 +192,7 @@
       INTEGER                        :: IU_PLANE
 
       !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
+      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
 !EOC
@@ -203,8 +203,8 @@
 !
 ! !IROUTINE: setup_planeflight
 !
-! !DESCRIPTION: Subroutine SETUP\_PLANEFLIGHT reads information from the 
-!  input file in order to initialize the planeflight diagnostic.  Also 
+! !DESCRIPTION: Subroutine SETUP\_PLANEFLIGHT reads information from the
+!  input file in order to initialize the planeflight diagnostic.  Also
 !  calls INIT\_PLANEFLIGHT to allocate and zero module arrays.
 !\\
 !\\
@@ -218,7 +218,7 @@
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : FILE_EXISTS
       USE FILE_MOD,           ONLY : IOERROR
-      USE Input_Opt_Mod,      ONLY : OptInput 
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
@@ -239,8 +239,8 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Rename from "plane.dat" to "plane.log", since "*.dat" implies an input
 !        file name. (bmy, 8/8/03)
@@ -248,7 +248,7 @@
 !  (3 ) Now references GET_NYMD, GET_NHMS, and EXPAND_DATE from "time_mod.f".
 !        Now also replaces date & time tokens in the filenames. (bmy, 7/20/04)
 !  (4 ) Now references FILE_EXISTS from "file_mod.f".  Modified so that we
-!        check if a flight track file exists on each day.  Open file for 
+!        check if a flight track file exists on each day.  Open file for
 !        output on each day and write header. (bmy, 3/25/05)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -286,13 +286,13 @@
       ! Copy file names to local variables
       INF     = INFILENAME
       OUTF    = OUTFILENAME
-      
+
       ! Replace any date & time tokens in the file names
       CALL EXPAND_DATE( INF,  NYMD, NHMS )
       CALL EXPAND_DATE( OUTF, NYMD, NHMS )
 
       ! If we can't find a flighttrack file for today's date, return
-      IF ( .not. FILE_EXISTS( INF ) ) THEN 
+      IF ( .not. FILE_EXISTS( INF ) ) THEN
          DO_PF = .FALSE.
          RETURN
       ENDIF
@@ -304,7 +304,7 @@
          WRITE( 6, 100   ) TRIM( INF ), IU_FILE
  99      FORMAT( 'P L A N E   F L I G H T   D I A G N O S T I C' )
  100     FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a, ' on unit ', i4 )
-         WRITE( 6, '(a)' )  
+         WRITE( 6, '(a)' )
       ENDIF
 
       ! Compute # of species and # of points & allocate arrays
@@ -338,7 +338,7 @@
       ! Close the file
       CLOSE( IU_FILE )
 
-      ! Set the pointer to the first record 
+      ! Set the pointer to the first record
       PPOINT = 1
 
       !=================================================================
@@ -355,7 +355,7 @@
       ! Find the species # for all components of AN (fullchem only)
       !=================================================================
       CALL AN_SETUP( am_I_Root, Input_Opt, State_Chm, RC )
-    
+
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
@@ -385,7 +385,7 @@
       IF ( am_I_Root ) THEN
 
          WRITE( IU_PLANE, 110 ) 'POINT', 'TYPE',  'YYYYMMDD', 'HHMM',
-     &                          'LAT',   'LON',   'PRESS',    'OBS', 
+     &                          'LAT',   'LON',   'PRESS',    'OBS',
      &                          'T-IND', 'P-IND', 'I-IND',    'J-IND',
      &                          ( PNAME(I), I=1,NPVAR )
       ENDIF
@@ -408,7 +408,7 @@
 !
 ! !IROUTINE: read_variables
 !
-! !DESCRIPTION: Subroutine READ\_VARIABLES reads the list of variables 
+! !DESCRIPTION: Subroutine READ\_VARIABLES reads the list of variables
 !  (chemical species, rxn rates, GMAO met fields, or GEOS-Chem species) to be
 !  printed out and sorts the information into the appropriate module variables.
 !\\
@@ -438,7 +438,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
-! 
+!
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
@@ -453,7 +453,7 @@
 !        (bmy, 7/20/04)
 !  (8 ) Bug fix: extract tracer # when reading rxn rates (bmy, 1/7/05)
 !  (9 ) Now computes column AOD's and AOD's below plane (bmy, 10/24/05)
-!  (10) We need to trim NAMEGAS before comparing to LINE so that comparisons 
+!  (10) We need to trim NAMEGAS before comparing to LINE so that comparisons
 !        for species like "O3" will work.  Also set NCS=NCSURBAN at the top
 !        of the subroutine, to avoid out of bounds error. (dbm, bmy, 10/16/06)
 !  (11) Add tracer TMS_?? for TOMAS microphysics rate diagnostic (win, 7/28/09)
@@ -496,7 +496,7 @@
       SpcInfo => NULL()
 
       ! Read four lines of header
-      DO N = 1, 4 
+      DO N = 1, 4
          READ( IU_FILE, '(a)', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_variables:1')
       ENDDO
@@ -538,7 +538,7 @@
          PNAME(N) = LINE(1:10)
 
          ! We are searching for a ...
-         SELECT CASE ( LINE(1:4) ) 
+         SELECT CASE ( LINE(1:4) )
 
             !===========================================================
             ! GEOS-CHEM tracer: listed as "TRA_001", etc.
@@ -550,7 +550,7 @@
                READ( LINE(5:14), '(i10)' ) NUM
 
                ! Make sure the tracer # is valid!
-               IF ( NUM < 0 .or. NUM > nAdvect ) THEN                   
+               IF ( NUM < 0 .or. NUM > nAdvect ) THEN
                   IF ( am_I_Root ) THEN
                      WRITE( 6, 100 ) TRIM( LINE )
  100                 FORMAT( 'TRACER ', i4, ' is out of range!' )
@@ -575,7 +575,7 @@
                READ( LINE(5:14), '(i10)' ) NUM
 
                ! Make sure the tracer # is valid!
-               IF ( NUM < 0 .or. NUM > nAdvect ) THEN                   
+               IF ( NUM < 0 .or. NUM > nAdvect ) THEN
                   WRITE( 6, 100 ) TRIM( LINE )
                   WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -591,13 +591,13 @@
             ! PVAR offset: 1000
             !===========================================================
             CASE ( 'GMAO' )
-               
+
                IF ( LINE == 'GMAO_TEMP'  ) PVAR(N) = 1001
                IF ( LINE == 'GMAO_ABSH'  ) PVAR(N) = 1002
-               IF ( LINE == 'GMAO_SURF'  ) PVAR(N) = 1003 
+               IF ( LINE == 'GMAO_SURF'  ) PVAR(N) = 1003
                IF ( LINE == 'GMAO_PSFC'  ) PVAR(N) = 1004
-               IF ( LINE == 'GMAO_UWND'  ) PVAR(N) = 1005      
-               IF ( LINE == 'GMAO_VWND'  ) PVAR(N) = 1006 
+               IF ( LINE == 'GMAO_UWND'  ) PVAR(N) = 1005
+               IF ( LINE == 'GMAO_VWND'  ) PVAR(N) = 1006
                IF ( LINE == 'GMAO_IIEV'  ) PVAR(N) = 1007
                IF ( LINE == 'GMAO_JJEV'  ) PVAR(N) = 1008
                IF ( LINE == 'GMAO_LLEV'  ) PVAR(N) = 1009
@@ -623,12 +623,12 @@
             ! PVAR offset: 2000
             !===========================================================
             CASE ( 'AODC' )
-            
+
                IF ( LINE == 'AODC_SULF'  ) PVAR(N) = 2001
                IF ( LINE == 'AODC_BLKC'  ) PVAR(N) = 2002
                IF ( LINE == 'AODC_ORGC'  ) PVAR(N) = 2003
                IF ( LINE == 'AODC_SALA'  ) PVAR(N) = 2004
-               IF ( LINE == 'AODC_SALC'  ) PVAR(N) = 2005   
+               IF ( LINE == 'AODC_SALC'  ) PVAR(N) = 2005
                IF ( LINE == 'AODC_DUST'  ) PVAR(N) = 2006
 
             !===========================================================
@@ -636,14 +636,14 @@
             ! (same order as for FAST-J)  PVAR offset: 3000
             !===========================================================
             CASE ( 'AODB' )
-            
+
                IF ( LINE == 'AODB_SULF'  ) PVAR(N) = 3001
                IF ( LINE == 'AODB_BLKC'  ) PVAR(N) = 3002
                IF ( LINE == 'AODB_ORGC'  ) PVAR(N) = 3003
                IF ( LINE == 'AODB_SALA'  ) PVAR(N) = 3004
                IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005
                IF ( LINE == 'AODB_DUST'  ) PVAR(N) = 3006
- 
+
             !===========================================================
             ! Hg(II) Partitioning - eds 10/27/11  PVAR offset: 4000
             !===========================================================
@@ -680,7 +680,7 @@
             CASE( 'GAMM' )
 
                ! Skip if not full-chemistry
-               IF ( IS_FULLCHEM ) THEN 
+               IF ( IS_FULLCHEM ) THEN
 
                   ! Increment reaction counter:
                   R = R + 1
@@ -688,11 +688,11 @@
                   IF ( LINE == 'GAMM_EPOX' ) THEN
                      PVAR(N)  = 22001
                      PREAC(R) = 22001
-                     
+
                   ELSE IF ( LINE == 'GAMM_IMAE' ) THEN
                      PVAR(N)  = 22002
                      PREAC(R) = 22002
-                     
+
                   ELSE IF ( LINE == 'GAMM_ISOPN' ) THEN
                      PVAR(N)  = 22003
                      PREAC(R) = 22003
@@ -722,7 +722,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! This code needs to be updated to work with FlexChem (mps, 6/13/17)
 !            !===========================================================
-!            ! Production rate of CSPEC species (molec/cm3/s) 
+!            ! Production rate of CSPEC species (molec/cm3/s)
 !            ! (eam, 08/2015):
 !            !===========================================================
 !            CASE( 'PROD' )
@@ -745,15 +745,15 @@
 !                        ! Loop through family members:
 !                        DO FM = 1, FAM_NMEM(NF)
 !                           ! Loop through JSPEC species:
-!                           DO J = 1, NSPEC(NCS) 
+!                           DO J = 1, NSPEC(NCS)
 !                              IF ( NAMEGAS(J) == FAM_MEMB(FM, NF) ) THEN
 !                                 IPROD(PR) = J
 !                              ENDIF
 !                           ENDDO   ! CSPEC species
 !                        ENDDO   ! family members
 !                     ENDIF
-!                  ENDDO 
-!                  
+!                  ENDDO
+!
 !                  PVAR(N) = 8000 + PR
 !
 !               ENDIF
@@ -768,8 +768,8 @@
 !            CASE ( 'REA_' )
 !
 !               ! Skip if not full-chemistry
-!               IF ( IS_FULLCHEM ) THEN 
-!               
+!               IF ( IS_FULLCHEM ) THEN
+!
 !                  ! Increment rxn counter
 !                  R = R + 1
 !
@@ -788,10 +788,10 @@
 !
 !                  ELSE
 !                     !==================================================
-!                     ! NOTE: the reaction numbers listed in smv2.log 
-!                     ! aren't really used to index rxns.  The 
-!                     ! rxns get reordered.  Find the right rxn number, 
-!                     ! which is stored in NOLDFNEW.  We assume only one 
+!                     ! NOTE: the reaction numbers listed in smv2.log
+!                     ! aren't really used to index rxns.  The
+!                     ! rxns get reordered.  Find the right rxn number,
+!                     ! which is stored in NOLDFNEW.  We assume only one
 !                     ! chemistry scheme. (mje, bmy, 8/1/03)
 !                     !==================================================
 !
@@ -803,18 +803,18 @@
 !                     PREAC(R) = -999
 !
 !                     ! Search for proper rxn number
-!                     DO IK = 1, NMTRATE 
+!                     DO IK = 1, NMTRATE
 !
 !                        ! Offset other reaction rates by 10000
-!                        IF ( NOLDFNEW(IK,1) == NUM ) THEN 
+!                        IF ( NOLDFNEW(IK,1) == NUM ) THEN
 !                           PVAR(N)  = 10000 + IK
 !                           PREAC(R) = 10000 + IK
 !                           EXIT
 !                        ENDIF
 !                     ENDDO
 !
-!                     ! Stop w/ error 
-!                     IF ( PVAR(N) == -999 ) THEN 
+!                     ! Stop w/ error
+!                     IF ( PVAR(N) == -999 ) THEN
 !                        IF ( am_I_Root ) THEN
 !                           WRITE (6,*) 'Cant match up reaction number'
 !                           WRITE (6,*) NUM
@@ -827,7 +827,7 @@
 !                  ENDIF
 !               ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-              
+
             !===========================================================
             ! Species: listed as "O3", "C2H6", etc.
             ! PVAR offset: 0
@@ -864,7 +864,7 @@
                   IF ( TRIM( LINE ) == 'NOy' ) PVAR(N) = 997
 
                   ! Error check
-                  IF ( PVAR(N) == 0 ) THEN 
+                  IF ( PVAR(N) == 0 ) THEN
                      WRITE( 6, '(a)' ) 'ERROR: invalid species!'
                      WRITE( 6, 110   ) TRIM( LINE )
  110                 FORMAT( 'Species ', a, ' not found!' )
@@ -874,7 +874,7 @@
                ENDIF
 
          END SELECT
-      
+
          ! Echo species names/numbers to screen
          WRITE( 6, 120 ) N, TRIM( LINE ), PVAR(N)
  120     FORMAT( i4, 1x, a12, 1x, i10 )
@@ -890,8 +890,8 @@
 !
 ! !IROUTINE: read_points
 !
-! !DESCRIPTION: Subroutine READ\_POINTS reads the information (ID, date, time, 
-!  lat, lon, pressure) for each measurement listed in the input file, and 
+! !DESCRIPTION: Subroutine READ\_POINTS reads the information (ID, date, time,
+!  lat, lon, pressure) for each measurement listed in the input file, and
 !  sorts these into the appropriate module variables.
 !\\
 !\\
@@ -924,8 +924,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
@@ -966,9 +966,9 @@
       ! We have previously computed NPOINTS in INIT_PLANEFLIGHT
       !=================================================================
       DO N = 1, NPOINTS
-         
+
          ! Read a line from the file
-         READ( IU_FILE, 100, IOSTAT=IOS ) 
+         READ( IU_FILE, 100, IOSTAT=IOS )
      &        TYPE, QDD, QMM, QYY, QHH, QMN, LAT, LON, PRES, OBS
  100     FORMAT( 5x,a7,x,i2,x,i2,x,i4,x,i2,x,i2,x,f7.2,x,f7.2,x,f7.2,
      &           x,f10.3 )
@@ -987,7 +987,7 @@
          IF ( QMM < 1 .or. QMM > 12 ) THEN
             IF ( am_I_Root ) THEN
                WRITE( 6, 105 ) QMM
-               WRITE( 6, 106 ) 
+               WRITE( 6, 106 )
  105           FORMAT( 'ERROR: MONTH out of range: ', f8.3 )
  106           FORMAT( 'STOP in READ_POINTS (planeflight_mod.f)' )
             ENDIF
@@ -998,10 +998,10 @@
          IF ( QDD < 1 .or. QDD > 31 ) THEN
             IF ( am_I_Root ) THEN
                WRITE( 6, 110 ) QDD
- 111           WRITE( 6, 106 ) 
+ 111           WRITE( 6, 106 )
  110           FORMAT( 'ERROR: DAY out of range: ', f8.3 )
             ENDIF
-            CALL GEOS_CHEM_STOP 
+            CALL GEOS_CHEM_STOP
          ENDIF
 
          ! Error check HOUR
@@ -1011,7 +1011,7 @@
                WRITE( 6, 106 )
  115           FORMAT( 'ERROR: HOUR out of range: ', f8.3 )
             ENDIF
-            CALL GEOS_CHEM_STOP  
+            CALL GEOS_CHEM_STOP
          ENDIF
 
          ! Error check MINUTES
@@ -1045,7 +1045,7 @@
          IF ( LON > 180.0 ) LON = LON - 360e0
 
          ! Error check LONGITUDE
-         IF ( LON < -180.0 .OR. LON > 180.0 ) THEN 
+         IF ( LON < -180.0 .OR. LON > 180.0 ) THEN
             IF ( am_I_Root ) THEN
                WRITE( 6, 125 ) LON
                WRITE( 6, 106 ) 'STOP in READ_POINTS (planeflight_mod.f)'
@@ -1055,7 +1055,7 @@
          ENDIF
 
          ! Error check LATITUDE
-         IF ( LAT < -90.0 .OR. LAT > 90.0 ) THEN 
+         IF ( LAT < -90.0 .OR. LAT > 90.0 ) THEN
             IF ( am_I_Root ) THEN
                WRITE( 6, 130 ) LAT
                WRITE( 6, 106 ) 'STOP in READ_POINTS (planeflight_mod.f)'
@@ -1063,14 +1063,14 @@
             ENDIF
             CALL GEOS_CHEM_STOP
          ENDIF
-        
+
          ! Skip observations outside the domain
-         IF ( LAT < State_Grid%YMin .OR. LAT > State_Grid%YMax .OR. 
+         IF ( LAT < State_Grid%YMin .OR. LAT > State_Grid%YMax .OR.
      &        LON < State_Grid%XMin .OR. LON > State_Grid%XMax ) THEN
             PRINT*, ' Outside nested domain, skipping record ', N
             CYCLE
          ENDIF
- 
+
          ! Convert from altitude to pressure if we have CCCG data or
          ! tower data
          NAME = ADJUSTL(PTYPE(N))
@@ -1152,8 +1152,8 @@
 !
 ! !IROUTINE: ro2_setup
 !
-! !DESCRIPTION: Subroutine RO2\_SETUP saves the species indices of RO2 
-!  constituents in the PRO2 array.  Also computes the count NPRO2. 
+! !DESCRIPTION: Subroutine RO2\_SETUP saves the species indices of RO2
+!  constituents in the PRO2 array.  Also computes the count NPRO2.
 !\\
 !\\
 ! !INTERFACE:
@@ -1179,7 +1179,7 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Aug 2003 - M. Evans    - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
@@ -1207,15 +1207,15 @@
       !=================================================================
       ! RO2_SETUP begins here!
       !=================================================================
-    
-      ! Initialize 
+
+      ! Initialize
       NPRO2   =  0
       SpcInfo => NULL()
       RC = GC_SUCCESS
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
-      
+
       !=================================================================
       ! Loop over all species, test for RO2 components
       !=================================================================
@@ -1226,18 +1226,18 @@
 
          ! If we have found an RO2 compoent, add its species # to
          ! the PRO2 global array, and increment counter
-         ! NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09) 
+         ! NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09)
          SELECT CASE( TRIM( SpcInfo%Name ) )
 
-            CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
-     &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3', 
-     &             'MCO3', 'MRO2', 'PO2',  'RIO2', 'VRO2', 
-     &             'ACO3', 'EO2', 'ENCO3', 'ENO2', 'GLCO3', 
+            CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2',
+     &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3',
+     &             'MCO3', 'MRO2', 'PO2',  'RIO2', 'VRO2',
+     &             'ACO3', 'EO2', 'ENCO3', 'ENO2', 'GLCO3',
      &             'IACO3', 'INO2', 'MACO3', 'NICO3', 'NIO2',
-     &             'VOHRO2', 'RIO1', 'C59O2', 'MAPO2', 
+     &             'VOHRO2', 'RIO1', 'C59O2', 'MAPO2',
      &             'BRO2', 'TRO2', 'XRO2', 'NRO2',
-     &             'MOBAOO', 'ISOPNBO2', 'ISOPNDO2', 'IEPOXOO', 
-     &             'PYPO2', 'MACRNO2', 'PMNO2', 'HC5OO', 'RCO3') 
+     &             'MOBAOO', 'ISOPNBO2', 'ISOPNDO2', 'IEPOXOO',
+     &             'PYPO2', 'MACRNO2', 'PMNO2', 'HC5OO', 'RCO3')
                NPRO2       = NPRO2 + 1
                PRO2(NPRO2) = M
 
@@ -1252,7 +1252,7 @@
       ENDDO
 
       ! Error check
-      IF ( NPRO2 > MAXRO2 ) THEN 
+      IF ( NPRO2 > MAXRO2 ) THEN
          WRITE( 6, '(a)' ) 'NPRO2 exceeds maximum allowed value!'
          WRITE( 6, '(a)' ) 'STOP in RO2_SETUP (planeflight_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1274,8 +1274,8 @@
 !
 ! !IROUTINE: noy_setup
 !
-! !DESCRIPTION: Subroutine NOY\_SETUP saves the species indices of NOy 
-!  constituents in the PNOY array.  Also computes the count NPNOY. 
+! !DESCRIPTION: Subroutine NOY\_SETUP saves the species indices of NOy
+!  constituents in the PNOY array.  Also computes the count NPNOY.
 !\\
 !\\
 ! !INTERFACE:
@@ -1300,8 +1300,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  01 Jun 2009 - F. Paulot   - Initial version
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
@@ -1322,15 +1322,15 @@
       !=================================================================
       ! NOY_SETUP begins here!
       !=================================================================
-    
-      ! Initialize 
+
+      ! Initialize
       NPNOY   =  0
       SpcInfo => NULL()
       RC = GC_SUCCESS
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
-      
+
       !=================================================================
       ! Loop over all species, test for NOY components
       !=================================================================
@@ -1366,7 +1366,7 @@
       ENDDO
 
       ! Error check
-      IF ( NPNOY > MAXNOY ) THEN 
+      IF ( NPNOY > MAXNOY ) THEN
          WRITE( 6, '(a)' ) 'NPNOY exceeds maximum allowed value!'
          WRITE( 6, '(a)' ) 'STOP in NOY_SETUP (planeflight_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1388,7 +1388,7 @@
 !
 ! !IROUTINE: an_setup
 !
-! !DESCRIPTION: Subroutine AN\_SETUP saves the species indices of AN 
+! !DESCRIPTION: Subroutine AN\_SETUP saves the species indices of AN
 !  constituents in the P\_AN array.  Also computes the count NPAN.
 !\\
 !\\
@@ -1414,8 +1414,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  01 Jun 2009 - F. Paulot   - Initial version
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
@@ -1436,15 +1436,15 @@
       !=================================================================
       ! AN_SETUP begins here!
       !=================================================================
-    
-      ! Initialize 
+
+      ! Initialize
       NPAN    =  0
       SpcInfo => NULL()
       RC = GC_SUCCESS
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
-      
+
       !=================================================================
       ! Loop over all species, test for AN components
       !=================================================================
@@ -1475,7 +1475,7 @@
       ENDDO
 
       ! Error check
-      IF ( NPAN > MAXAN ) THEN 
+      IF ( NPAN > MAXAN ) THEN
          WRITE( 6, '(a)' ) 'NPAN exceeds maximum allowed value!'
          WRITE( 6, '(a)' ) 'STOP in AN_SETUP (planeflight_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1497,7 +1497,7 @@
 !
 ! !IROUTINE: planeflight
 !
-! !DESCRIPTION: Subroutine PLANEFLIGHT saves concentrations to disk at 
+! !DESCRIPTION: Subroutine PLANEFLIGHT saves concentrations to disk at
 !  locations corresponding to a flight track.
 !\\
 !\\
@@ -1513,7 +1513,7 @@
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
+      USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
@@ -1545,7 +1545,7 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now reference AD from "dao_mod.f".  Now references GEOS_CHEM_STOP from
 !        "error_mod.f", which frees memory before stopping. (bmy, 10/15/02)
@@ -1576,7 +1576,7 @@
 !  19 Nov 2014 - M. Yannetti - Edited OCEAN_MERCURY_MOD Fp to OMMFP
 !  12 Jan 2015 - L. Schiferl - Allow for more precision in TAUE computation
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!                              Remove dependency on pressure_mod. 
+!                              Remove dependency on pressure_mod.
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  21 Dec 2015 - M. Sulprizio- Get air density directly from State_Met object
@@ -1608,11 +1608,11 @@
       CHARACTER(LEN=63)   :: OrigUnit
       CHARACTER(LEN=7)    :: NAME
 
-      ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
+      ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
 
       ! Allow for more accurate computation of TAU (L. Schiferl, 1/12/15)
-      INTEGER             :: YEAR, MONTH, DAY, HOUR, MINUTE 
+      INTEGER             :: YEAR, MONTH, DAY, HOUR, MINUTE
 
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -1620,7 +1620,7 @@
 ! !DEFINED PARAMETERS:
 !
       REAL(fp), PARAMETER :: MISSING = -999.99999999e+0_fp  ! Missing data value
-      REAL(fp), PARAMETER :: TINY    = 1.e-36_fp           ! arbitary small # to 
+      REAL(fp), PARAMETER :: TINY    = 1.e-36_fp           ! arbitary small # to
                                                         !  avoid faulty output
       ! Expand from 4 to 5 for Fast-JX
       INTEGER, PARAMETER  :: IND999  = 4
@@ -1642,7 +1642,7 @@
 
       ! Update from kyu (03/2015):
       !print*, 'IN PLANEFLIGHT, ELAPSED_SEC', GET_ELAPSED_SEC()
-      CHEMSTEP = ( MOD(GET_ELAPSED_SEC(), GET_TS_DIAG() ) == 
+      CHEMSTEP = ( MOD(GET_ELAPSED_SEC(), GET_TS_DIAG() ) ==
      &           ( GET_TS_DIAG() / 2) )
       !print*, 'CHEMSTEP', CHEMSTEP
 
@@ -1688,7 +1688,7 @@
                EXIT
             ENDIF
          ENDIF
-         
+
          !print*, 'PTAUE = ', PTAUE
          !print*, 'PTAUS = ', PTAUS
          !print*, 'PTAU(M) = ', PTAU(M)
@@ -1709,7 +1709,7 @@
 !            PRINT*, PTAU(M), PTAUS
 
             ! Write all missing values to disk for point #M
-            CALL WRITE_VARS_TO_FILE( State_Grid, State_Met, M, VARI )      
+            CALL WRITE_VARS_TO_FILE( State_Grid, State_Met, M, VARI )
 
             ! Increment pointer
             PPOINT = PPOINT + 1
@@ -1731,9 +1731,9 @@
          ! We have found a plane point at the proper time & location!
          !==============================================================
          ELSE
-            
+
             ! Print the flight track point number
-            WRITE( 6, 100 ) PTYPE(M), PDATE(M), PTIME(M) 
+            WRITE( 6, 100 ) PTYPE(M), PDATE(M), PTIME(M)
  100        FORMAT( '     - PLANEFLIGHT: Archived ',a7,1x,i8.8,1x,i4.4 )
 
             ! Return grid box indices for the chemistry region
@@ -1770,7 +1770,7 @@
             PR = 0
 
             ! Convert species units to [v/v]
-            CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+            CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
      &                              State_Grid, State_Met, 'v/v dry',
      &                              RC,         OrigUnit=OrigUnit )
 
@@ -1793,7 +1793,7 @@
                      IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
                         ! Species concentration [v/v] -> [molec/cm3]
-                        VARI(V) = Spc(I,J,L,PVAR(V)) * 
+                        VARI(V) = Spc(I,J,L,PVAR(V)) *
      &                            State_Met%AIRNUMDEN(I,J,L)
 
                      ENDIF
@@ -1801,14 +1801,14 @@
                   ! FP 04/01/2010
                   !-------------------------
                   ! NOy family
-                  !-------------------------   
+                  !-------------------------
                   CASE ( 997 )
 
                      ! Only archive where chemistry is done
                      ! Sum all AN contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
 
-                     IF ( IS_FULLCHEM .and. 
+                     IF ( IS_FULLCHEM .and.
      &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPNOY
@@ -1823,14 +1823,14 @@
                   ! FP 04/01/2010
                   !-------------------------
                   ! AN family
-                  !-------------------------   
+                  !-------------------------
                   CASE ( 998 )
 
                      ! Only archive where chemistry is done
                      ! Sum all AN contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
 
-                     IF ( IS_FULLCHEM .and. 
+                     IF ( IS_FULLCHEM .and.
      &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPAN
@@ -1844,14 +1844,14 @@
 
                   !-------------------------
                   ! RO2 family
-                  !-------------------------   
+                  !-------------------------
                   CASE ( 999 )
 
                      ! Only archive where chemistry is done
                      ! Sum all RO2 contributions, save as [v/v]
                      VARI(V) = 0e+0_fp
-                           
-                     IF ( IS_FULLCHEM .and. 
+
+                     IF ( IS_FULLCHEM .and.
      &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPRO2
@@ -1872,21 +1872,21 @@
                   !--------------------------
                   ! GMAO abs humidity [frac]
                   !--------------------------
-                  CASE ( 1002 ) 
-                     
+                  CASE ( 1002 )
+
                      ! Only archive where chemistry is done
                      ! Code skalooched from "calcrate.f"
                      IF ( State_Met%InChemGrid(I,J,L) ) THEN
                         VARI(V)  = State_Met%AVGW(I,J,L) *
      &                             State_Met%AIRNUMDEN(I,J,L)
                         TK       = State_Met%T(I,J,L)
-                        CONSEXP  = 17.2693882e+0_fp * 
-     &                             (TK - 273.16e+0_fp) / 
+                        CONSEXP  = 17.2693882e+0_fp *
+     &                             (TK - 273.16e+0_fp) /
      &                             (TK - 35.86e+0_fp)
-                           
-                        VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp 
+
+                        VPRESH2O = CONSVAP * EXP(CONSEXP) * 1e+0_fp
      &                             / TK
-                           
+
                         VARI(V)  = VARI(V) * VPRESH2O /
      &                             State_Met%AIRNUMDEN(I,J,L)
                      ENDIF
@@ -2010,17 +2010,17 @@
                      VARI(V) = State_Met%SEAICE90(I,J)
 
                   !--------------------------
-                  ! Column aerosol optical 
+                  ! Column aerosol optical
                   ! depths [unitless]
                   !--------------------------
                   CASE ( 2001:2006 )
-                  
+
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
-                  
+
                    ! Aerosol number
                    N = PVAR(V) - 2000
-                  
+
                    ! Loop over RH bins
                    DO  ISPC= 1, NAER
                     IF ( .not. LINTERP ) THEN
@@ -2078,10 +2078,10 @@
                   ! below plane [unitless]
                   !--------------------------
                   CASE ( 3001:3006 )
-                  
+
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
-                  
+
                    ! Aerosol number
                    N = PVAR(V) - 3000
 
@@ -2202,7 +2202,7 @@
                      IF ( XRH .gt. CRITRH ) THEN
                         VARI(V) = State_Chm%AeroArea(I,J,L,8)
                      ENDIF
-                        
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! This code needs to be updated to work with FlexChem (mps, 6/13/17)
 !                  !--------------------------
@@ -2214,15 +2214,15 @@
 !                     PR = PR + 1
 !
 !                        ! Production rate in molec/cm3/s:
-!                        ! Only archive where SMVGEAR chem is done 
+!                        ! Only archive where SMVGEAR chem is done
 !                        IF ( JLOOP /= 0 ) THEN
-!                             VARI(V) = 
+!                             VARI(V) =
 !     &                          CSPEC( JLOOP, IPROD(PR) )/CHEMINTV
 !
 !                           ! Make small values as zero:
 !                           IF ( VARI(V) < TINY ) VARI(V) = 0d0
 !
-!                           IF ( I .ge. 34 .and. I .le. 37 .and. 
+!                           IF ( I .ge. 34 .and. I .le. 37 .and.
 !     &                          J .ge. 60 .and. J .le. 64 .and.
 !     &                          L .eq. 1 ) THEN
 !                              PRINT*, 'VARI = ', VARI(V)
@@ -2245,7 +2245,7 @@
 !                     ! Increment reaction count
 !                     R = R + 1
 !
-!                     ! Only archive where chemistry is done 
+!                     ! Only archive where chemistry is done
 !                     VARI(V) = PRRATE(I,J,L,R)
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2256,7 +2256,7 @@
 
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
-                     
+
                      ! Species concentration [v/v]
                      VARI(V) = Spc(I,J,L,N)
 
@@ -2270,7 +2270,7 @@
 
                      ! Remove offset from PVAR
                      N = PVAR(V) - 200000
-                     
+
                      ! Archive the microphysics rate
                      VARI(V) = AD61_INST(I,J,L,N)
 !debug
@@ -2284,7 +2284,7 @@
                   !--------------------------
                   CASE DEFAULT
                      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                     WRITE( 6, '(a)' ) 'PLANEFLIGHT: Bad variable #!' 
+                     WRITE( 6, '(a)' ) 'PLANEFLIGHT: Bad variable #!'
                      WRITE( 6, '(a)' ) 'STOP in PLANEFLIGHT!'
                      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
                      CALL GEOS_CHEM_STOP
@@ -2292,8 +2292,8 @@
                END SELECT
             ENDDO
 
-           ! Convert species units back to original unit 
-           CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+           ! Convert species units back to original unit
+           CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
      &                             State_Grid, State_Met, OrigUnit,
      &                             RC )
 
@@ -2318,14 +2318,14 @@
 !
 ! !IROUTINE: test_valid
 !
-! !DESCRIPTION: Subroutine TEST\_VALID tests to see if we are w/in the 
+! !DESCRIPTION: Subroutine TEST\_VALID tests to see if we are w/in the
 !  tropopause, which is where chemistry is done.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE TEST_VALID( IND, I, J, L, Input_Opt, State_Grid,
-     &                       State_Met, RC ) 
+     &                       State_Met, RC )
 !
 ! !USES:
 !
@@ -2333,7 +2333,7 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN ) :: IND         ! # of the flight track point
       TYPE(OptInput), INTENT(IN ) :: Input_Opt   ! Input Options object
@@ -2347,22 +2347,22 @@
       INTEGER,        INTENT(OUT) :: L           ! GEOS-Chem level index
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now use GET_PEDGE of "pressure_mod.f" to return the pressure at the
 !        bottom edge of box (I,J,L), for hybrid grid. (dsa, bdf, bmy, 8/21/02)
-!  (2 ) Since JLOP is not allocated for non-SMVGEAR runs, set PCHEM=F and 
+!  (2 ) Since JLOP is not allocated for non-SMVGEAR runs, set PCHEM=F and
 !        JLOOP=0 even if we are in the troposphere. (bmy, 7/18/03)
 !  (3 ) Bug fix: add 0.5 in expression for I so that the rounding will
 !        be done correctly.  Also make sure that I is computed correctly
 !	 for points near the date line.  (bmy, 4/23/04)
 !  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
-!  (6 ) Reference GET_XOFFSET and GET_YOFFSET from "grid_mod.f" and also 
+!  (6 ) Reference GET_XOFFSET and GET_YOFFSET from "grid_mod.f" and also
 !        add for the case of nested-grid simulation (win, 7/28/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
-!  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
+!  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J
 !                              based on nested regions
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
@@ -2375,7 +2375,7 @@
 !
       INTEGER :: IL
       LOGICAL :: FOUND
-      
+
       !=================================================================
       ! TEST_VALID begins here!
       !=================================================================
@@ -2393,18 +2393,18 @@
 
       ! Get J corresponding to PLAT(IND)
       J = INT( ( PLAT(IND) +  90e+0_fp -
-     &    ( State_Grid%YMinOffset * State_Grid%DY ) ) / State_Grid%DY 
+     &    ( State_Grid%YMinOffset * State_Grid%DY ) ) / State_Grid%DY
      &     + 1.5e+0_fp )
 
       ! Get L corresponding to PRESS(IND)
       L = 1
       DO IL = 1, State_Grid%NZ
-         IF ( State_Met%PEDGE(I,J,IL) <= PPRESS(IND) 
+         IF ( State_Met%PEDGE(I,J,IL) <= PPRESS(IND)
      &                            .AND..NOT. FOUND ) THEN
             L     = IL-1
             FOUND =.TRUE.
             EXIT
-         ENDIF          
+         ENDIF
       ENDDO
 
       ! Error check: L must be 1 or higher
@@ -2419,8 +2419,8 @@
 !
 ! !IROUTINE: write_vars_to_file
 !
-! !DESCRIPTION: Subroutine WRITE\_VARS\_TO\_FILE writes the values of all 
-!  the variables for a given flight track point to the output file.  
+! !DESCRIPTION: Subroutine WRITE\_VARS\_TO\_FILE writes the values of all
+!  the variables for a given flight track point to the output file.
 !\\
 !\\
 ! !INTERFACE:
@@ -2436,14 +2436,14 @@
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid    ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
       INTEGER,        INTENT(IN) :: IND           ! # of the flight track point
       REAL(fp),       INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans    - Initial version
 !  (1 ) The max line length for output seems to be 1024 characters.  Adjust
 !        MAXVARS accordingly so that we don't exceed this. (bmy, 7/8/02)
@@ -2471,7 +2471,7 @@
 
       ! Skip observations outside the domain
       IF ( LAT_TMP < State_Grid%YMin .OR.
-     &     LAT_TMP > State_Grid%YMax .OR. 
+     &     LAT_TMP > State_Grid%YMax .OR.
      &     LON_TMP < State_Grid%XMin .OR.
      &     LON_TMP > State_Grid%XMax ) THEN
          PRINT*, ' Outside nested domain, skipping record ', IND
@@ -2480,8 +2480,8 @@
 
       ! Get Lat, Lon, and Pressure indicies (ajt, 5/26/13)
       IIJJ = GET_IJ( LON_TMP, LAT_TMP, State_Grid )
-      II = IIJJ(1)      
-      JJ = IIJJ(2)    
+      II = IIJJ(1)
+      JJ = IIJJ(2)
       LL = 0
       IF ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,1) ) LL = 1
       DO L = 1, State_Grid%NZ
@@ -2492,16 +2492,16 @@
 
 
       ! Write data to file
-      WRITE( IU_PLANE, 110, IOSTAT=IOS ) 
+      WRITE( IU_PLANE, 110, IOSTAT=IOS )
      &     IND, PTYPE(IND), INT( PDATE(IND) ), INT( PTIME(IND) ),
      &     PLAT(IND), PLON(IND), PPRESS(IND), POBS(IND),
      &     INT( GET_ELAPSED_SEC() / GET_TS_DYN() ),
      &     LL, II, JJ,
      &     ( VARI(I), I=1,NPVAR )
-      
+
       ! Format string
       ! FP replace 95 by 200
-! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
+! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X,
 !     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
 #if   defined( TOMAS )
  110  FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3,
@@ -2530,9 +2530,9 @@
 !!
 !! !IROUTINE: archive_rxns_for_PF
 !!
-!! !DESCRIPTION: Subroutine ARCHIVE\_RXNS\_FOR\_PF is called from "calcrate.f" 
-!!  to pass reaction rates from the SMVGEAR solver for the planeflight 
-!!  diagnostic. 
+!! !DESCRIPTION: Subroutine ARCHIVE\_RXNS\_FOR\_PF is called from "calcrate.f"
+!!  to pass reaction rates from the SMVGEAR solver for the planeflight
+!!  diagnostic.
 !!\\
 !!\\
 !! !INTERFACE:
@@ -2551,7 +2551,7 @@
 !      USE COMODE_LOOP_MOD                  ! RRATE, JLOOPLO, KBLOOP
 !      USE CMN_DIAG_MOD                     ! ND40 switch
 !!
-!! !INPUT PARAMETERS: 
+!! !INPUT PARAMETERS:
 !!
 !      REAL(fp), INTENT(INOUT) :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
 !      REAL(fp), INTENT(INOUT) :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
@@ -2560,18 +2560,18 @@
 !      REAL(fp), INTENT(INOUT)  :: ISOPN(KBLOOP) ! ISOPN uptake coefficient [unitless]
 !      REAL(fp), INTENT(INOUT)  :: DHDN(KBLOOP)  ! DHDN uptake coefficient [unitless]
 !      REAL(fp), INTENT(INOUT)  :: GLYX(KBLOOP)  ! GLYX uptake coefficient [unitless]
-!! 
-!! !REVISION HISTORY: 
+!!
+!! !REVISION HISTORY:
 !!  08 Jul 2002 - M. Evans    - Initial version
 !!  (1 ) Now avoid overflow/underflow errors in PRATE (bmy, 7/8/02)
 !!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
 !!        allocated memory before stopping the run (bmy, 10/15/02)
 !!  (3 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
-!!  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.  
+!!  (4 ) Now also pass N2O5 hydrolysis rxn rate array via the arg list.
 !!        Also bug fix: replace TMP with RATE in under/overflow checking
-!!        for JO1D and N2O5. (bmy, 8/8/03)      
-!!  (5 ) Bug fix: Replace with DO_PF since this variable is reset to either T 
-!!        or F each day depending on whether there is plane flight data 
+!!        for JO1D and N2O5. (bmy, 8/8/03)
+!!  (5 ) Bug fix: Replace with DO_PF since this variable is reset to either T
+!!        or F each day depending on whether there is plane flight data
 !!        available (bmy, 5/20/05)
 !!  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !!EOP
@@ -2580,7 +2580,7 @@
 !!
 !! !LOCAL VARIABLES:
 !!
-!      INTEGER            :: KLOOP, JLOOP, V, R, I, J, L 
+!      INTEGER            :: KLOOP, JLOOP, V, R, I, J, L
 !      REAL(fp)             :: RATE
 !!
 !! !DEFINED PARAMETERS:
@@ -2597,14 +2597,14 @@
 !         DO R = 1, NPREAC
 !
 !            ! Test SMVGEAR rxn number
-!            SELECT CASE ( PREAC(R) ) 
+!            SELECT CASE ( PREAC(R) )
 !
 !               !-----------------------
 !               ! All except JO1D, N2O5, and
 !               ! uptake coefficients of EPOX, IMAE, ORGN
 !               !-----------------------
 !               CASE( 10000:19999 )
-!                         
+!
 !                  ! Store rate in PRRATE
 !                  DO KLOOP = 1, KTLOOP
 !                     JLOOP = JLOOPLO + KLOOP
@@ -2618,7 +2618,7 @@
 !                  ENDDO
 !
 !               !-----------------------
-!               ! JO1D photolysis rxn 
+!               ! JO1D photolysis rxn
 !               !-----------------------
 !               CASE ( 20000 )
 !
@@ -2629,15 +2629,15 @@
 !
 !                     ! Avoid overflow/underflow
 !                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
 !                     PRRATE(JLOOP,R) = RATE
 !                  ENDDO
-!                 
+!
 !               !-----------------------
 !               ! N2O5 hydrolysis rxn
 !               !-----------------------
-!               CASE ( 21000 ) 
+!               CASE ( 21000 )
 !
 !                  ! Store rate in PRATE
 !                  DO KLOOP = 1, KTLOOP
@@ -2646,7 +2646,7 @@
 !
 !                     ! Avoid overflow/underflow
 !                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
 !                     PRRATE(JLOOP,R) = RATE
 !                  ENDDO
@@ -2654,7 +2654,7 @@
 !               !-----------------------
 !               ! EPOX reactive uptake
 !               !-----------------------
-!               CASE ( 22001 ) 
+!               CASE ( 22001 )
 !
 !                  ! Store rate in PRATE
 !                  DO KLOOP = 1, KTLOOP
@@ -2663,7 +2663,7 @@
 !
 !                     ! Avoid overflow/underflow
 !                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
 !                     PRRATE(JLOOP,R) = RATE
 !                  ENDDO
@@ -2671,7 +2671,7 @@
 !               !-----------------------
 !               ! IMAE reactive uptake
 !               !-----------------------
-!               CASE ( 22002 ) 
+!               CASE ( 22002 )
 !
 !                  ! Store rate in PRATE
 !                  DO KLOOP = 1, KTLOOP
@@ -2680,7 +2680,7 @@
 !
 !                     ! Avoid overflow/underflow
 !                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
 !                     PRRATE(JLOOP,R) = RATE
 !                  ENDDO
@@ -2688,7 +2688,7 @@
 !               !-----------------------
 !               ! Isoprene nitrate gamma
 !               !-----------------------
-!               CASE ( 22003 ) 
+!               CASE ( 22003 )
 !
 !                  ! Store rate in PRATE
 !                  DO KLOOP = 1, KTLOOP
@@ -2697,7 +2697,7 @@
 !
 !                     ! Avoid overflow/underflow
 !                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
 !                     PRRATE(JLOOP,R) = RATE
 !                  ENDDO
@@ -2705,7 +2705,7 @@
 !               !-----------------------
 !               ! DHDN gamma
 !               !-----------------------
-!               CASE ( 22004 ) 
+!               CASE ( 22004 )
 !
 !                  ! Store rate in PRATE
 !                  DO KLOOP = 1, KTLOOP
@@ -2714,7 +2714,7 @@
 !
 !                     ! Avoid overflow/underflow
 !                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
 !                     PRRATE(JLOOP,R) = RATE
 !                  ENDDO
@@ -2722,7 +2722,7 @@
 !               !-----------------------
 !               ! Glyoxal gamma
 !               !-----------------------
-!               CASE ( 22005 ) 
+!               CASE ( 22005 )
 !
 !                  ! Store rate in PRATE
 !                  DO KLOOP = 1, KTLOOP
@@ -2731,7 +2731,7 @@
 !
 !                     ! Avoid overflow/underflow
 !                     IF ( RATE < SMALLEST ) RATE = 0e0
-!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST
 !
 !                     PRRATE(JLOOP,R) = RATE
 !                  ENDDO
@@ -2760,7 +2760,7 @@
 !
 ! !IROUTINE: set_planeflight
 !
-! !DESCRIPTION: Subroutine SET\_PLANEFLIGHT is used to pass values read in 
+! !DESCRIPTION: Subroutine SET\_PLANEFLIGHT is used to pass values read in
 !  from the GEOS-Chem input file to "planeflight\_mod.f".
 !\\
 !\\
@@ -2768,13 +2768,13 @@
 !
       SUBROUTINE SET_PLANEFLIGHT( PF, IN_FILE, OUT_FILE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,            INTENT(IN) :: PF         ! Turn on planeflight diag?
       CHARACTER(LEN=255), INTENT(IN) :: IN_FILE    ! Input file to read
       CHARACTER(LEN=255), INTENT(IN) :: OUT_FILE   ! Output file to write
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !EOP
@@ -2794,8 +2794,8 @@
 !
 ! !IROUTINE: init_planeflight
 !
-! !DESCRIPTION: Subroutine INIT\_PLANEFLIGHT reads the input file to compute 
-!  the number of variables and flight track points to print out.  Also 
+! !DESCRIPTION: Subroutine INIT\_PLANEFLIGHT reads the input file to compute
+!  the number of variables and flight track points to print out.  Also
 !  allocates all module arrays.
 !\\
 !\\
@@ -2814,8 +2814,8 @@
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run.  Also reference ALLOC_ERR
@@ -2851,7 +2851,7 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 
       ! Read four lines of header
-      DO N = 1, 4 
+      DO N = 1, 4
          READ( IU_FILE, '(a)', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'init_planeflight:2')
       ENDDO
@@ -2911,21 +2911,21 @@
          READ( IU_FILE, '(a)', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'init_planeflight:6')
       ENDDO
-  
+
       !=================================================================
       ! Read plane track points -- plane, lat/lon/alt, date/time
       !=================================================================
       NPOINTS = 0
 
-      DO 
-         
+      DO
+
          ! Read a line from the file
          READ( IU_FILE, '(a)', IOSTAT=IOS ) LINE
 
          ! Exit at end of file
-         IF ( IOS < 0 ) EXIT 
+         IF ( IOS < 0 ) EXIT
          IF ( IOS > 0 ) CALL IOERROR( IOS,IU_FILE,'init_planeflight:7' )
-         
+
          ! Check for END
          IF ( INDEX( LINE, 'END' ) == 0 ) THEN
             NPOINTS = NPOINTS + 1
@@ -2936,7 +2936,7 @@
 
       ! Close file
       CLOSE( IU_FILE )
- 
+
       ! If there are no flight-track points then just return
       IF ( NPOINTS < 1 ) THEN
          DO_PF = .FALSE.
@@ -2952,14 +2952,14 @@
          ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
-         
+
       !=================================================================
       ! Allocate arrays to maximum sizes
       !
       ! NOTE: To save space, NPREAC is the actual number of reactions
       !       found.  We will worry about this later.  (bmy, 3/25/05)
       !=================================================================
-      IF ( .not. IS_INIT ) THEN 
+      IF ( .not. IS_INIT ) THEN
 
          !-------------------------
          ! Arrays of size NPREAC
@@ -3000,7 +3000,7 @@
 
          ALLOCATE( PTAU( MAXPOINTS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
-         
+
          ALLOCATE( PLAT( MAXPOINTS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLAT' )
 
@@ -3018,7 +3018,7 @@
       ENDIF
 
       !=================================================================
-      ! Initialize arrays 
+      ! Initialize arrays
       !=================================================================
       PREAC  = 0
       NPROD  = 0
@@ -3044,15 +3044,15 @@
 !
 ! !IROUTINE: cleanup_planeflight
 !
-! !DESCRIPTION: Subroutine CLEANUP\_PLANEFLIGHT deallocates all allocatable 
+! !DESCRIPTION: Subroutine CLEANUP\_PLANEFLIGHT deallocates all allocatable
 !  module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_PLANEFLIGHT
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  01 Jul 2001 - M. Evans    - Initial version
 !  (1 ) Renamed PRATE to PRRATE to avoid conflict w/ SMVGEAR II (bmy, 4/1/03)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
@@ -3064,10 +3064,10 @@
       IF ( ALLOCATED( IPROD  ) ) DEALLOCATE( IPROD  )
       IF ( ALLOCATED( PNAME  ) ) DEALLOCATE( PNAME  )
       IF ( ALLOCATED( PRRATE ) ) DEALLOCATE( PRRATE )
-      IF ( ALLOCATED( PTYPE  ) ) DEALLOCATE( PTYPE  ) 
-      IF ( ALLOCATED( PDATE  ) ) DEALLOCATE( PDATE  ) 
-      IF ( ALLOCATED( PTIME  ) ) DEALLOCATE( PTIME  ) 
-      IF ( ALLOCATED( PTAU   ) ) DEALLOCATE( PTAU   ) 
+      IF ( ALLOCATED( PTYPE  ) ) DEALLOCATE( PTYPE  )
+      IF ( ALLOCATED( PDATE  ) ) DEALLOCATE( PDATE  )
+      IF ( ALLOCATED( PTIME  ) ) DEALLOCATE( PTIME  )
+      IF ( ALLOCATED( PTAU   ) ) DEALLOCATE( PTAU   )
       IF ( ALLOCATED( PLAT   ) ) DEALLOCATE( PLAT   )
       IF ( ALLOCATED( PLON   ) ) DEALLOCATE( PLON   )
       IF ( ALLOCATED( PPRESS ) ) DEALLOCATE( PPRESS )

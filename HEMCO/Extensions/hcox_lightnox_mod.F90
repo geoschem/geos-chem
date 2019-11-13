@@ -5,17 +5,17 @@
 !
 ! !MODULE: hcox_lightnox_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_LightNOx\_Mod contains routines to 
+! !DESCRIPTION: Module HCOX\_LightNOx\_Mod contains routines to
 !  compute NO lightning emissions, according to the GEOS-Chem lightning
-!  algorithms.  
+!  algorithms.
 !\\
 !\\
-! This is a HEMCO extension module that uses many of the HEMCO core 
-! utilities. In particular, the LIS-OTD local redistribution factors are 
-! now read through the HEMCO framework, and the corresponding netCDF 
-! input file is specified in the HEMCO configuration file. The table of 
-! cumulative distribution functions used to vertically distribute lightning 
-! NOx emissions is specified in the extension switch section of the 
+! This is a HEMCO extension module that uses many of the HEMCO core
+! utilities. In particular, the LIS-OTD local redistribution factors are
+! now read through the HEMCO framework, and the corresponding netCDF
+! input file is specified in the HEMCO configuration file. The table of
+! cumulative distribution functions used to vertically distribute lightning
+! NOx emissions is specified in the extension switch section of the
 ! configuration file.
 !\\
 !\\
@@ -71,7 +71,7 @@ MODULE HCOX_LightNOx_Mod
 !  (2 ) Price & Rind (1994), M. Weather Rev, vol. 122, 1930-1939.
 !  (3 ) Allen & Pickering (2002), JGR, 107, D23, 4711, doi:10.1029/2002JD002066
 !  (4 ) Hudman et al (2007), JGR, 112, D12S05, doi:10.1029/2006JD007912
-!  (5 ) Sauvage et al, 2007, ACP, 
+!  (5 ) Sauvage et al, 2007, ACP,
 !        http://www.atmos-chem-phys.net/7/815/2007/acp-7-815-2007.pdf
 !  (6 ) Ott et al., (2010), JGR
 !  (7 ) Allen et al., (2010), JGR
@@ -81,22 +81,22 @@ MODULE HCOX_LightNOx_Mod
 !  14 Apr 2004 - L. Murray, R. Hudman - Initial version
 !  (1 ) Based on "lightnox_nox_mod.f", but updated for near-land formulation
 !        and for CTH, MFLUX, PRECON parameterizations (ltm, bmy, 5/10/06)
-!  (2 ) Now move computation of IC/CG flash ratio out of routines FLASHES_CTH, 
+!  (2 ) Now move computation of IC/CG flash ratio out of routines FLASHES_CTH,
 !        FLASHES_MFLUX, FLASHES_PRECON, and into routine GET_IC_CG_RATIO.
-!        Added a fix in LIGHTDIST for pathological grid boxes.  Set E_IC_CG=1 
+!        Added a fix in LIGHTDIST for pathological grid boxes.  Set E_IC_CG=1
 !        according to Allen & Pickering [2002].  Rename OTDSCALE array to
-!        OTD_REG_REDIST, and also add OTD_LOC_REDIST array.  Now scale 
+!        OTD_REG_REDIST, and also add OTD_LOC_REDIST array.  Now scale
 !        lightnox to 6 Tg N/yr for both 2x25 and 4x5.  Rename routine
 !        GET_OTD_LIS_REDIST to GET_REGIONAL_REDIST.  Add similar routine
-!        GET_LOCAL_REDIST.  Removed GET_OTD_LOCp AL_REDIST.  Bug fix: divide 
+!        GET_LOCAL_REDIST.  Removed GET_OTD_LOCp AL_REDIST.  Bug fix: divide
 !        A_M2 by 1d6 to get A_KM2. (rch, ltm, bmy, 2/22/07)
-!  (3 ) Rewritten for separate treatment of LNOx emissions at tropics & 
+!  (3 ) Rewritten for separate treatment of LNOx emissions at tropics &
 !        midlatitudes, based on Hudman et al 2007.  Removed obsolete
 !        variable E_IC_CG. (rch, ltm, bmy, 3/27/07)
 !  (4 ) Changes implemented in this version (ltm, bmy, 10/3/07)
 !        * Revert to not classifying near-land as land
 !        * Eliminate NOx emisisons per path length entirely
-!        * Scale tropics to 260 mol/fl constraint from Randall Martin's 
+!        * Scale tropics to 260 mol/fl constraint from Randall Martin's
 !           4.4 Tg and OTD-LIS avg ann flash rate
 !        * Remove top-down scaling (remove the three functions)
 !        * Allow option of mid-level scaling to match global avg ann flash
@@ -107,7 +107,7 @@ MODULE HCOX_LightNOx_Mod
 !  (6 ) Updated OTD/LIS scaling for GEOS-5 to get more realistic totals
 !        (ltm, bmy, 2/20/08)
 !  (7 ) Now add the proper scale factors for the GEOS-5 0.5 x 0.666 grid
-!        and the GEOS-3 1x1 nested N. America grid in routine 
+!        and the GEOS-3 1x1 nested N. America grid in routine
 !        GET_OTD_LIS_SCALE. (yxw, dan, ltm, bmy, 11/14/08)
 !  (8 ) Added quick fix for GEOS-5 reprocessed met fields (ltm, bmy, 2/18/09)
 !  (9 ) Added quick fix for GEOS-5 years 2004, 2005, 2008 (ltm, bmy, 4/29/09)
@@ -125,15 +125,15 @@ MODULE HCOX_LightNOx_Mod
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
-!  22 Jul 2014 - R. Yantosca - Now hardwire the Lesley Ott et al CDF's in 
+!  22 Jul 2014 - R. Yantosca - Now hardwire the Lesley Ott et al CDF's in
 !                              lightning_cdf_mod.F90.  This avoids having to
 !                              read an ASCII input in the ESMF environment.
 !  13 Jan 2015 - L. Murray   - Add most recent lightning updates to HEMCO version
 !  26 Feb 2015 - R. Yantosca - Restore reading the lightning CDF's from an
 !                              ASCII file into the PROFILE array.  This helps
 !                              to reduce compilation time.
-!  31 Jul 2015 - C. Keller   - Added option to define scalar/gridded scale 
-!                              factors via HEMCO configuration file. 
+!  31 Jul 2015 - C. Keller   - Added option to define scalar/gridded scale
+!                              factors via HEMCO configuration file.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  02 Dec 2016 - M. Sulprizio- Update WEST_NS_DIV from 23d0 to 35d0 (K. Travis)
 !  16 Feb 2017 - L. Murray   - Updated BETA factors for all GEOS-FP/MERRA-2
@@ -144,11 +144,11 @@ MODULE HCOX_LightNOx_Mod
 !  17 Oct 2017 - C. Keller   - Add option to use GEOS-5 lightning flash rate
 !                              (LFR). Autoselection of flash rate scale factor.
 !  16 Jan 2019 - L. Murray   - Lightning flash densities and convective depths
-!                              for vertical distribution are now calculated offline 
-!                              at the native model resolution and prescribed in 
+!                              for vertical distribution are now calculated offline
+!                              at the native model resolution and prescribed in
 !                              HEMCO_Config.rc as the other model meteorology.
-!                              Model flash climatology remains constrained to the 
-!                              LIS/OTD climatology, as described by Murray et al. 
+!                              Model flash climatology remains constrained to the
+!                              LIS/OTD climatology, as described by Murray et al.
 !                              (2012). Removed obsolete subroutines and code.
 !EOP
 !------------------------------------------------------------------------------
@@ -172,16 +172,16 @@ MODULE HCOX_LightNOx_Mod
    INTEGER                       :: IDTNO     ! NO tracer ID
    INTEGER                       :: ExtNr     ! HEMCO Extension ID
    LOGICAL                       :: DoDiagn
-   LOGICAL                       :: LCNVFRC   ! Use convective fractions? 
-   LOGICAL                       :: LLFR      ! Use GEOS-5 flash rates 
+   LOGICAL                       :: LCNVFRC   ! Use convective fractions?
+   LOGICAL                       :: LLFR      ! Use GEOS-5 flash rates
 
    ! Arrays
    REAL(dp), POINTER             :: PROFILE(:,:)
    REAL(hp), POINTER             :: SLBASE(:,:,:)
 
    ! Overall scale factor to be applied to lightning NOx emissions. Must
-   ! be defined in the HEMCO configuration file as extension attribute 
-   ! 'Scaling_NO'. 
+   ! be defined in the HEMCO configuration file as extension attribute
+   ! 'Scaling_NO'.
    ! SpcScalFldNme is the name of the gridded scale factor. Must be provided
    ! in the HEMCO configuration file as extension attribute 'ScaleField_NO'.
    REAL(sp), ALLOCATABLE          :: SpcScalVal(:)
@@ -213,26 +213,26 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd 
+    USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   )  :: am_I_Root
     TYPE(Ext_State), POINTER        :: ExtState   ! Module options
-    TYPE(HCO_State), POINTER        :: HcoState   ! HEMCO options 
+    TYPE(HCO_State), POINTER        :: HcoState   ! HEMCO options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(INOUT)  :: RC
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  09 Oct 1997 - R. Yantosca - Initial version
 !  (1 ) Remove IOFF, JOFF from the argument list.  Also remove references
 !        to header files "CMN_O3" and "comtrid.h" (bmy, 3/16/00)
-!  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)  
+!  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)
 !  (3 ) Now reference BXHEIGHT from "dao_mod.f".  Updated comments, cosmetic
 !        changes.  Replace LCONVM with the parameter LLCONVM. (bmy, 9/18/02)
-!  (4 ) Removed obsolete reference to "CMN".  Now bundled into 
+!  (4 ) Removed obsolete reference to "CMN".  Now bundled into
 !        "lightnox_mod.f" (bmy, 4/14/04)
 !  (5 ) Renamed from EMLIGHTNOX_NL to EMLIGHTNOX.  Now replace GEMISNOX
 !        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
@@ -241,7 +241,7 @@ CONTAINS
 !                              derived type object
 !  25 Mar 2013 - R. Yantosca - Now accept State_Chm
 !  22 Oct 2013 - C. Keller   - Now a HEMCO extension.
-!  07 Oct 2013 - C. Keller   - Now allow OTD-LIS scale factor to be set 
+!  07 Oct 2013 - C. Keller   - Now allow OTD-LIS scale factor to be set
 !                              externally. Check for transition to Sep 2008.
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
@@ -249,7 +249,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!   
+!
     TYPE(MyInst), POINTER :: Inst
     INTEGER               :: Yr, Mt
     LOGICAL               :: FOUND
@@ -263,45 +263,45 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_LightNOx_Run (hcox_lightnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Return if extension disabled 
+    ! Return if extension disabled
     IF ( ExtState%LightNOx <= 0 ) THEN
        CALL HCO_LEAVE( HcoState%Config%Err,RC )
        RETURN
     ENDIF
 
-    ! Get pointer to this instance. Varible Inst contains all module 
+    ! Get pointer to this instance. Varible Inst contains all module
     ! variables for the current instance. The instance number is
-    ! ExtState%<yourname>. 
+    ! ExtState%<yourname>.
     Inst => NULL()
     CALL InstGet ( ExtState%LightNOx, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
+    IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find lightning NOx instance Nr. ', ExtState%LightNOx
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
     ENDIF
 
-    ! Update lightnox NOx emissions (fill SLBASE) 
+    ! Update lightnox NOx emissions (fill SLBASE)
     CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=================================================================
-    ! Pass to HEMCO State and update diagnostics 
+    ! Pass to HEMCO State and update diagnostics
     !=================================================================
     IF ( Inst%IDTNO > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%SLBASE, Inst%IDTNO, & 
+       CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%SLBASE, Inst%IDTNO, &
                          RC, ExtNr=Inst%ExtNr)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: SLBASE', RC )
-          RETURN 
+          RETURN
        ENDIF
 
     ENDIF
 
     ! Return w/ success
     Inst => NULL()
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_LightNOx_Run
 !EOC
@@ -312,7 +312,7 @@ CONTAINS
 !
 ! !IROUTINE: LightNOx
 !
-! !DESCRIPTION: Subroutine LIGHTNOX uses Price \& Rind's formulation for 
+! !DESCRIPTION: Subroutine LIGHTNOX uses Price \& Rind's formulation for
 !  computing NOx emission from lightning (with various updates).
 !\\
 !\\
@@ -323,7 +323,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
-    USE HCO_EmisList_Mod, ONLY : HCO_GetPtr      
+    USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
     USE HCO_GeoTools_Mod, ONLY : HCO_LANDTYPE
     USE HCO_Clock_Mod,    ONLY : HcoClock_Get
     USE HCO_Clock_Mod,    ONLY : HcoClock_First
@@ -335,26 +335,26 @@ CONTAINS
     LOGICAL,         INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State), POINTER        :: HcoState  ! Output obj
     TYPE(Ext_State), POINTER        :: ExtState    ! Module options
-    TYPE(MyInst   ), POINTER        :: Inst 
+    TYPE(MyInst   ), POINTER        :: Inst
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(INOUT)  :: RC
 !
 ! !REMARKS:
-! 
-! !REVISION HISTORY: 
-!  10 May 2006 - L. Murray - Initial version  
-!  (1 ) Now recompute the cold cloud thickness according to updated formula 
-!        from Lee Murray.  Rearranged argument lists to routines FLASHES_CTH, 
+!
+! !REVISION HISTORY:
+!  10 May 2006 - L. Murray - Initial version
+!  (1 ) Now recompute the cold cloud thickness according to updated formula
+!        from Lee Murray.  Rearranged argument lists to routines FLASHES_CTH,
 !        FLASHES_MFLUX, FLASHES_PRECON.  Now call READ_REGIONAL_REDIST and
-!        READ_LOCAL_REDIST. Updated comments accordingly.  Now apply 
+!        READ_LOCAL_REDIST. Updated comments accordingly.  Now apply
 !        FLASH_SCALE to scale the total lightnox NOx to 6 Tg N/yr.  Now apply
-!        OTD/LIS regional or local redistribution (cf. B. Sauvage) to the ND56 
+!        OTD/LIS regional or local redistribution (cf. B. Sauvage) to the ND56
 !        diagnostic. lightnox redistribution to the ND56 diag.  Renamed
 !        REGSCALE variable to REDIST.  Bug fix: divide A_M2 by 1d6 to get
 !        A_KM2. (rch, ltm, bmy, 2/14/07)
-!  (2 ) Rewritten for separate treatment of LNOx emissions at tropics & 
+!  (2 ) Rewritten for separate treatment of LNOx emissions at tropics &
 !        midlatitudes (rch, ltm, bmy, 3/27/07)
 !  (3 ) Remove path-length algorithm.  Renamed from LIGHTNOX_NL to LIGHTNOX.
 !        Other improvements. (ltm, bmy, 9/24/07)
@@ -372,7 +372,7 @@ CONTAINS
 !                              this will only work in an ESMF environment.
 !  31 Jul 2015 - C. Keller   - Take into account scalar/gridded scale factors
 !                              defined in HEMCO configuration file.
-!  03 Mar 2016 - C. Keller   - Use buoyancy in combination with convective 
+!  03 Mar 2016 - C. Keller   - Use buoyancy in combination with convective
 !                              fraction CNV_FRC (ESMF only).
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !  30 Aug 2018 - C. Keller   - Use diagnostic names for special diagnostics.
@@ -396,7 +396,7 @@ CONTAINS
     REAL*8            :: TOTAL
     REAL*8            :: TOTAL_CG
     REAL*8            :: TOTAL_IC
-    REAL*8            :: X       
+    REAL*8            :: X
     REAL*8            :: YMID
     REAL*8            :: XMID
     REAL*8            :: VERTPROF(HcoState%NZ)
@@ -420,7 +420,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
-    Arr2D  => NULL() 
+    Arr2D  => NULL()
     TmpCnt => NULL()
 
     ! ----------------------------------------------------------------
@@ -433,7 +433,7 @@ CONTAINS
 
     ENDIF
 
-    ! Reset arrays 
+    ! Reset arrays
     Inst%SLBASE = 0.0_hp
     IF (Inst%DoDiagn) THEN
        DIAGN    = 0.0_hp
@@ -450,7 +450,7 @@ CONTAINS
     !=================================================================
     ! Compute lightning NOx emissions for each (I,J) column
     !=================================================================
-    
+
 !$OMP PARALLEL DO                                                     &
 !$OMP DEFAULT( SHARED )                                               &
 !$OMP PRIVATE( I,         J,           L,        A_M2,        A_KM2  ) &
@@ -475,10 +475,10 @@ CONTAINS
        ! Make sure xmid is between -180 and +180
        IF ( XMID >= 180.0d0 ) XMID = XMID - 360.0d0
 
-       ! Get surface type. Note that these types are different than 
+       ! Get surface type. Note that these types are different than
        ! the types used elsewhere: 0 = land, 1=water, 2=ice!
-       LNDTYPE = HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J),  & 
-                               ExtState%ALBD%Arr%Val(I,J) ) 
+       LNDTYPE = HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J),  &
+                               ExtState%ALBD%Arr%Val(I,J) )
 
        ! Adjusted SFCTYPE variable for this module:
        IF ( LNDTYPE == 2 ) THEN
@@ -491,7 +491,7 @@ CONTAINS
 
        ! Tropopause pressure. Convert to Pa
        TROPP = ExtState%TROPP%Arr%Val(I,J) !* 100.0_hp
-       
+
        !===========================================================
        ! Initialize
        !===========================================================
@@ -499,58 +499,58 @@ CONTAINS
        RATE_SAVE     = 0.0
        H0            = 0.0
        IC_CG_RATIO   = 1.0
-       
+
        TOTAL         = 0d0
        TOTAL_IC      = 0d0
        TOTAL_CG      = 0d0
 
-       !===========================================================       
+       !===========================================================
        ! (1) Get flash density [#/km2/s] from meteorology
        !===========================================================
-       
+
        !-----------------------------------------------------------
        ! (1a) Prescribed in HEMCO_Config.rc
-       !-----------------------------------------------------------              
+       !-----------------------------------------------------------
        RATE        = ExtState%FLASH_DENS%Arr%Val(I,J)
-       
+
        !-----------------------------------------------------------
        ! (1b) From GEOS-5
-       !-----------------------------------------------------------       
+       !-----------------------------------------------------------
        IF ( Inst%LLFR                                  &
             .AND. ASSOCIATED( ExtState%LFR%Arr%Val   ) &
             .AND. ASSOCIATED( ExtState%BYNCY%Arr%Val )  ) THEN
           RATE     = ExtState%LFR%Arr%Val(I,J)
        ENDIF
-       
+
        ! Error check: do not continue if flash rate is zero
        IF ( RATE <= 0.0 ) CYCLE
 
        !===========================================================
        ! (2) Get depth of convection [m] and find associated LTOP
        !===========================================================
-       
+
        !-----------------------------------------------------------
        ! (2a) Prescribed in HEMCO_Config.rc
-       !-----------------------------------------------------------                     
+       !-----------------------------------------------------------
        H0          = ExtState%CONV_DEPTH%Arr%Val(I,J)
-       LTOP = 1       
+       LTOP = 1
        DO L = 1, HcoState%NZ
           IF ( SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:L)) > H0 ) THEN
              LTOP = L
              EXIT
           ENDIF
        ENDDO
-       ! Reset H0 to be the height of that layer in the model, 
+       ! Reset H0 to be the height of that layer in the model,
        ! to avoid negative values in the partitioning
        H0          = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP))
 
        !-----------------------------------------------------------
        ! (2b) From GEOS-5
-       !-----------------------------------------------------------       
+       !-----------------------------------------------------------
        IF ( Inst%LLFR                                  &
             .AND. ASSOCIATED( ExtState%LFR%Arr%Val   ) &
             .AND. ASSOCIATED( ExtState%BYNCY%Arr%Val )  ) THEN
-       
+
           ! Set LTOP to top of buoyancy
           DO L = HcoState%NZ, 1, -1
              IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN
@@ -568,14 +568,14 @@ CONTAINS
        IF ( Inst%DoDiagn ) THEN
           TOPDIAGN(I,J) = LTOP
        ENDIF
-       
-       !===========================================================       
+
+       !===========================================================
        ! (3) Compute ratio of CG vs total flashes
        !===========================================================
-       
+
        ! Ratio of cloud-to-ground flashes to total # of flashes
        X    = 1d0 / ( 1d0 + IC_CG_RATIO )
-       
+
        !-----------------------------------------------------------
        ! Store flash rates [flashes/km2/min] for BPCH diagnostics
        !-----------------------------------------------------------
@@ -583,31 +583,31 @@ CONTAINS
 
           ! AD56 diagnostic historically is flashes per km2 per minute
           RATE_SAVE   = RATE / 360d0
-          
+
           ! Store total, IC, and CG flash rates in AD56
           DIAGN(I,J,1) = RATE_SAVE
-          DIAGN(I,J,3) = RATE_SAVE * X 
+          DIAGN(I,J,3) = RATE_SAVE * X
           DIAGN(I,J,2) = H0 * 1d-3
 
        ENDIF
-       
-       !===========================================================       
+
+       !===========================================================
        ! (4) Compute LNOx yield for IC and CG flashes (molec/km2/s)
        !===========================================================
-       
-       ! Compute LNOx emissions for tropics or midlats 
-       IF ( XMID > EAST_WEST_DIV ) THEN 
-          
+
+       ! Compute LNOx emissions for tropics or midlats
+       IF ( XMID > EAST_WEST_DIV ) THEN
+
           !--------------------------------------------------------
           ! (4a) We are in EURASIA
           !--------------------------------------------------------
-          IF ( YMID > EAST_NS_DIV ) THEN 
+          IF ( YMID > EAST_NS_DIV ) THEN
 
              ! Eurasian Mid-Latitudes
              TOTAL_IC = RFLASH_MIDLAT * RATE * ( 1d0 - X )
              TOTAL_CG = RFLASH_MIDLAT * RATE * X
 
-          ELSE                           
+          ELSE
 
              ! Eurasian Tropics
              TOTAL_IC = RFLASH_TROPIC * RATE * ( 1d0 - X )
@@ -615,18 +615,18 @@ CONTAINS
 
           ENDIF
 
-       ELSE   
-          
+       ELSE
+
           !--------------------------------------------------------
           ! (4b) We are in the AMERICAS
           !--------------------------------------------------------
-          IF ( YMID > WEST_NS_DIV ) THEN 
+          IF ( YMID > WEST_NS_DIV ) THEN
 
              ! American Mid-Latitudes
              TOTAL_IC = RFLASH_MIDLAT * RATE * ( 1d0 - X )
              TOTAL_CG = RFLASH_MIDLAT * RATE * X
 
-          ELSE                           
+          ELSE
 
              ! American Tropics
              TOTAL_IC = RFLASH_TROPIC * RATE * ( 1d0 - X )
@@ -638,40 +638,40 @@ CONTAINS
        !===========================================================
        ! (5) Compute column total lightning NOx yield (kg/km2/s)
        !===========================================================
-       
+
        ! Sum of IC + CG
-       TOTAL = TOTAL_IC + TOTAL_CG 
-       
+       TOTAL = TOTAL_IC + TOTAL_CG
+
        ! Convert from molec km-2 s-1 to kg(NO) m-2 s-1
        TOTAL = TOTAL * ( HcoState%Spc(Inst%IDTNO)%EmMW_g / 1000.0_hp ) / &
                          HcoState%Phys%Avgdr / 1000000.0_hp
-       
+
        !===========================================================
        ! (6) Distribute column LNOx vertically from surface to LTOP
        !===========================================================
 
        !-----------------------------------------------------------
-       ! LIGHTDIST computes the lightning NOx distribution from 
+       ! LIGHTDIST computes the lightning NOx distribution from
        ! the ground to the convective cloud top using cumulative
        ! distribution functions for ocean flashes, tropical land
        ! flashes, and non-tropical land flashes, as specified by
        ! Lesley Ott [JGR, 2010]
        !-----------------------------------------------------------
-       
+
        ! If there's lightning NOx w/in the column ...
        IF ( TOTAL > 0d0 ) THEN
 
-          ! Partition the column total NOx [kg/m2/s] from lightning 
+          ! Partition the column total NOx [kg/m2/s] from lightning
           ! into the vertical using Ott et al. [2010] PDF functions
           CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF, &
                           ExtState, HcoState, SFCTYPE, MONTH, MTYPE, Inst )
-          
+
           ! Add vertically partitioned NOx into SLBASE array
           DO L = 1, HcoState%NZ
-             Inst%SLBASE(I,J,L) = VERTPROF(L) 
-                          
+             Inst%SLBASE(I,J,L) = VERTPROF(L)
+
              ! No lightning NOx emissions in the stratosphere (cdh, 4/25/2013)
-             IF ( HcoState%Grid%PEDGE%Val(I,J,L) < TROPP ) THEN 
+             IF ( HcoState%Grid%PEDGE%Val(I,J,L) < TROPP ) THEN
                 Inst%SLBASE(I,J,L) = 0.0_hp
              ENDIF
 
@@ -681,9 +681,9 @@ CONTAINS
     ENDDO
     ENDDO
 !$OMP END PARALLEL DO
-    
+
     !-----------------------------------------------------------------
-    ! Eventually add scale factors 
+    ! Eventually add scale factors
     !-----------------------------------------------------------------
 
     ! Eventually apply species specific scale factor
@@ -697,7 +697,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
-    ! Eventually add diagnostics 
+    ! Eventually add diagnostics
     !-----------------------------------------------------------------
 
     ! Eventually add individual diagnostics. These go by names!
@@ -706,39 +706,39 @@ CONTAINS
        Arr2D   => DIAGN(:,:,1)
         CALL Diagn_Update( am_I_Root, HcoState,               &
                           cName='LIGHTNING_TOTAL_FLASHRATE',  &
-                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         )
 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-   
-       ! Intracloud flash rates 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()
+
+       ! Intracloud flash rates
        Arr2D     => DIAGN(:,:,2)
        CALL Diagn_Update( am_I_Root, HcoState,                    &
                           cName='LIGHTNING_INTRACLOUD_FLASHRATE', &
-                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
-   
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()
+
        ! Cloud to ground flash rates
        Arr2D     => DIAGN(:,:,3)
        CALL Diagn_Update( am_I_Root, HcoState,                     &
                           cName='LIGHTNING_CLOUDGROUND_FLASHRATE', &
-                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()
 
        ! Cloud top height
        Arr2D     => TOPDIAGN(:,:)
        CALL Diagn_Update( am_I_Root,   HcoState,       &
                           cName='LIGHTNING_CLOUD_TOP', &
-                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
-       Arr2D => NULL() 
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Arr2D => NULL()
 
     ENDIF
 
     ! Return w/ success
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE LightNOx
 !EOC
@@ -749,8 +749,8 @@ CONTAINS
 !
 ! !IROUTINE: LightDist
 !
-! !DESCRIPTION: Subroutine LightDist reads in the CDF used to partition the 
-!  column lightning NOx into the GEOS-Chem vertical layers. 
+! !DESCRIPTION: Subroutine LightDist reads in the CDF used to partition the
+!  column lightning NOx into the GEOS-Chem vertical layers.
 !\\
 !\\
 ! !INTERFACE:
@@ -758,24 +758,24 @@ CONTAINS
   SUBROUTINE LightDist( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF, &
                         ExtState, HcoState, SFCTYPE, MONTH, MTYPE, Inst )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,         INTENT(IN)  :: I          ! Longitude index
-    INTEGER,         INTENT(IN)  :: J          ! Latitude index 
+    INTEGER,         INTENT(IN)  :: J          ! Latitude index
     INTEGER,         INTENT(IN)  :: LTOP       ! Level of conv cloud top
     REAL*8,          INTENT(IN)  :: H0         ! Conv cloud top height [m]
     REAL*8,          INTENT(IN)  :: XLAT       ! Latitude value [degrees]
-    REAL*8,          INTENT(IN)  :: TOTAL      ! Column Total # of LNOx molec 
+    REAL*8,          INTENT(IN)  :: TOTAL      ! Column Total # of LNOx molec
     TYPE(Ext_State), POINTER     :: ExtState   ! Module options
-    TYPE(HCO_State), POINTER     :: HcoState   ! Hemco state object 
-    INTEGER,         INTENT(IN)  :: SFCTYPE    ! Surface type 
-    INTEGER,         INTENT(IN)  :: MONTH      ! Current month 
-    TYPE(MyInst),    POINTER     :: Inst       ! Hemco state object 
+    TYPE(HCO_State), POINTER     :: HcoState   ! Hemco state object
+    INTEGER,         INTENT(IN)  :: SFCTYPE    ! Surface type
+    INTEGER,         INTENT(IN)  :: MONTH      ! Current month
+    TYPE(MyInst),    POINTER     :: Inst       ! Hemco state object
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,          INTENT(OUT) :: VERTPROF(HcoState%NZ) ! Vertical profile 
-    INTEGER,         INTENT(OUT) :: MTYPE                 ! lightning type 
+    REAL*8,          INTENT(OUT) :: VERTPROF(HcoState%NZ) ! Vertical profile
+    INTEGER,         INTENT(OUT) :: MTYPE                 ! lightning type
 !
 ! !REMARKS:
 !  References:
@@ -783,19 +783,19 @@ CONTAINS
 !  (1 ) Pickering et al., JGR 103, 31,203 - 31,316, 1998.
 !  (2 ) Ott et al., JGR, 2010
 !  (3 ) Allen et al., JGR, 2010
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  18 Sep 2002 - M. Evans - Initial version (based on Yuhang Wang's code)
 !  (1 ) Use functions IS_LAND and IS_WATER to determine if the given grid
 !        box is over land or water.  These functions work for all DAO met
 !        field data sets. (bmy, 4/2/02)
 !  (2 ) Renamed M2 to LTOP and THEIGHT to H0 for consistency w/ variable names
-!        w/in "lightning.f".  Now read the "light_dist.dat.geos3" file for 
+!        w/in "lightning.f".  Now read the "light_dist.dat.geos3" file for
 !        GEOS-3 directly from the DATA_DIR/lightning_NOx_200203/ subdirectory.
-!        Now read the "light_dist.dat" file for GEOS-1, GEOS-STRAT directly 
-!        from the DATA_DIR/lightning_NOx_200203/ subdirectory.  Added 
-!        descriptive comment header.  Now trap I/O errors across all 
-!        platforms with subroutine "ioerror.f".  Updated comments, cosmetic 
+!        Now read the "light_dist.dat" file for GEOS-1, GEOS-STRAT directly
+!        from the DATA_DIR/lightning_NOx_200203/ subdirectory.  Added
+!        descriptive comment header.  Now trap I/O errors across all
+!        platforms with subroutine "ioerror.f".  Updated comments, cosmetic
 !        changes.  Redimension FRAC(NNLIGHT) to FRAC(LLPAR). (bmy, 4/2/02)
 !  (3 ) Deleted obsolete code from April 2002.  Now reference IU_FILE and
 !        IOERROR from "file_mod.f".  Now use IU_FILE instead of IUNIT as the
@@ -830,7 +830,7 @@ CONTAINS
       ! LIGHTDIST begins here!
       !=================================================================
 
-    ! Initialize 
+    ! Initialize
     MTYPE    = 0
     VERTPROF = 0d0
 
@@ -843,18 +843,18 @@ CONTAINS
     !=================================================================
     ! Test whether location (I,J) is continental, marine, or snow/ice
     !
-    ! Depending on the combination of land/water and latitude, 
+    ! Depending on the combination of land/water and latitude,
     ! assign a flag describing the type of lightning:
     !
     !   MTYPE = 1: ocean lightning
     !   MTYPE = 2: tropical continental lightning
-    !   MTYPE = 3: midlatitude continental lightning 
+    !   MTYPE = 3: midlatitude continental lightning
     !   MTYPE = 4: subtropical lightning
-    !             
+    !
     ! (ltm, bmy, 1/25/11)
     !=================================================================
 
-    ! Assign profile kind to grid box, following Allen et al. 
+    ! Assign profile kind to grid box, following Allen et al.
     ! [JGR, 2010] (ltm, 1/25,11)
 
     SELECT CASE ( MONTH )
@@ -907,7 +907,7 @@ CONTAINS
            ELSE
               MTYPE = 3           ! Midlatitude
            ENDIF
-         
+
     END SELECT
 
     ! Extra safety check for pathological grid boxes (bmy, 11/29/06)
@@ -930,7 +930,7 @@ CONTAINS
     DO L = LTOP, 2, - 1
        FRAC(L) = FRAC(L) - FRAC(L-1)
     ENDDO
-        
+
     ! Partition lightning NOx by layer into VERTPROF
     DO L = 1, LTOP
        VERTPROF(L) = ( FRAC(L) * TOTAL )
@@ -945,14 +945,14 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_LightNOx_Init
 !
-! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_INIT allocates all module arrays.  
-!  It also reads the lightning CDF data from disk before the first lightning 
-!  timestep. 
+! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_INIT allocates all module arrays.
+!  It also reads the lightning CDF data from disk before the first lightning
+!  timestep.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_LightNOx_Init( am_I_Root, HcoState, ExtName, ExtState, RC ) 
+  SUBROUTINE HCOX_LightNOx_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -969,13 +969,13 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco options
-    CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name 
+    CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState     ! Module options
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(  OUT)  :: RC
-! 
+!
 ! !REVISION HISTORY:
 !  14 Apr 2004 - R. Yantosca - Initial version
 !  (1 ) Now reference DATA_DIR from "directory_mod.f"
@@ -983,13 +983,13 @@ CONTAINS
 !        each met field type and grid resolution (bmy, 8/25/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now get the box area at 30N for MFLUX, PRECON (lth, bmy, 5/10/06)
-!  (5 ) Rename OTDSCALE to OTD_REG_REDIST.  Also add similar array 
+!  (5 ) Rename OTDSCALE to OTD_REG_REDIST.  Also add similar array
 !        OTD_LOC_REDIST.  Now call GET_FLASH_SCALE_CTH, GET_FLASH_SCALE_MFLUX,
 !        GET_FLASH_SCALE_PRECON depending on the type of lightning param used.
 !        Updated comments.  (ltm, bmy, 1/31/07)
 !  (6 ) Removed near-land stuff.  Renamed from HCOX_LightNOX_Init_NL to
 !        HCOX_LightNOX_Init.  Now allocate EMIS_LI_NOx. (ltm, bmy, 10/3/07)
-!  (7 ) Also update location of PDF file to lightning_NOx_200709 directory. 
+!  (7 ) Also update location of PDF file to lightning_NOx_200709 directory.
 !        (bmy, 1/24/08)
 !  (8 ) Read in new Ott profiles from lightning_NOx_201101. Remove
 !        depreciated options. (ltm, bmy, 1/25/11)
@@ -1033,12 +1033,12 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Check for usage of convective fractions. This becomes only active 
+    ! Check for usage of convective fractions. This becomes only active
     ! if both the convective fraction and the buoyancy field are available.
     CALL GetExtOpt( HcoState%Config, ExtNr, 'Use CNV_FRC', &
                      OptValBool=Inst%LCNVFRC, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND ) Inst%LCNVFRC = .FALSE. 
+    IF ( .NOT. FOUND ) Inst%LCNVFRC = .FALSE.
 
     ! Check for usage of GEOS-5 lightning flash rates. If on, the GEOS-5
     ! flash rates (where available) are used instead of the computed flash
@@ -1052,7 +1052,7 @@ CONTAINS
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( nSpc /= 1 ) THEN
-       MSG = 'Lightning NOx module must have exactly one species!' 
+       MSG = 'Lightning NOx module must have exactly one species!'
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
@@ -1071,9 +1071,9 @@ CONTAINS
     IF ( am_I_Root ) THEN
        MSG = 'Use lightning NOx emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
-       WRITE(MSG,*) ' - Use species ', TRIM(SpcNames(1)), '->', Inst%IDTNO 
+       WRITE(MSG,*) ' - Use species ', TRIM(SpcNames(1)), '->', Inst%IDTNO
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-       WRITE(MSG,*) ' - Use GEOS-5 flash rates: ', Inst%LLFR 
+       WRITE(MSG,*) ' - Use GEOS-5 flash rates: ', Inst%LLFR
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - Use scalar scale factor: ', Inst%SpcScalVal(1)
        CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -1125,7 +1125,7 @@ CONTAINS
 
     ! Find a free file LUN
     IU_FILE = findFreeLUN()
-      
+
     ! Open file containing lightning NOx PDF data
     OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
     IF ( IOS /= 0 ) THEN
@@ -1136,14 +1136,14 @@ CONTAINS
 
     ! Read 12 header lines
     DO III = 1, 12
-       READ( IU_FILE, '(a)', IOSTAT=IOS ) 
+       READ( IU_FILE, '(a)', IOSTAT=IOS )
        IF ( IOS /= 0 ) THEN
           MSG = 'IOERROR: LightDist: 2'
           CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
           RETURN
        ENDIF
     ENDDO
-         
+
     ! Read NNLIGHT types of lightning profiles
     DO III = 1, NNLIGHT
        READ( IU_FILE,*,IOSTAT=IOS) (Inst%PROFILE(III,JJJ),JJJ=1,NLTYPE)
@@ -1153,7 +1153,7 @@ CONTAINS
           RETURN
        ENDIF
     ENDDO
-         
+
     ! Close file
     CLOSE( IU_FILE )
 
@@ -1172,7 +1172,7 @@ CONTAINS
 
     ExtState%FLASH_DENS%DoUse = .TRUE.
     ExtState%CONV_DEPTH%DoUse = .TRUE.
-    
+
     ! Only activate BYNCY and LFR if they are needed
     IF ( Inst%LCNVFRC .OR. Inst%LLFR ) ExtState%BYNCY%DoUse = .TRUE.
     IF ( Inst%LLFR ) ExtState%LFR%DoUse = .TRUE.
@@ -1192,9 +1192,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: hcox_lightnox_final 
+! !IROUTINE: hcox_lightnox_final
 !
-! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_FINAL deallocates all module 
+! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_FINAL deallocates all module
 !  arrays.
 !\\
 !\\
@@ -1204,9 +1204,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
-! 
-! !REVISION HISTORY: 
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
+!
+! !REVISION HISTORY:
 !  14 Apr 2004 - R. Yantosca - Initial version
 !  (1 ) Now deallocates OTDSCALE (ltm, bmy, 5/10/06)
 !  (2 ) Rename OTDSCALE to OTD_REG_REDIST.  Now deallocate OTD_LOC_REDIST.
@@ -1224,7 +1224,7 @@ CONTAINS
 !BOC
 
     !=================================================================
-    ! Cleanup module arrays 
+    ! Cleanup module arrays
     !=================================================================
     CALL InstRemove ( ExtState%LightNOx )
 
@@ -1235,14 +1235,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a pointer to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a pointer to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1252,7 +1252,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1261,11 +1261,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -1282,23 +1282,23 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
 ! !DESCRIPTION: Subroutine InstCreate adds a new instance to the list of
 !  instances, assigns a unique instance number to this new instance, and
-!  archives this instance number to output argument Instance. 
+!  archives this instance number to output argument Instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1311,7 +1311,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -1327,7 +1327,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -1344,7 +1344,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -1368,22 +1368,22 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove removes an instance from the list of 
+! !DESCRIPTION: Subroutine InstRemove removes an instance from the list of
 ! instances.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( Instance ) 
+  SUBROUTINE InstRemove ( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: Instance 
+    INTEGER                         :: Instance
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
@@ -1395,20 +1395,20 @@ CONTAINS
     !=================================================================
     ! InstRemove begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
     PrevInst => NULL()
     Inst     => NULL()
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
+    IF ( ASSOCIATED(Inst) ) THEN
        ! Free pointer
        IF ( ASSOCIATED( Inst%PROFILE       ) ) DEALLOCATE ( Inst%PROFILE       )
        IF ( ASSOCIATED( Inst%SLBASE        ) ) DEALLOCATE ( Inst%SLBASE        )
        IF ( ALLOCATED ( Inst%SpcScalVal    ) ) DEALLOCATE ( Inst%SpcScalVal    )
        IF ( ALLOCATED ( Inst%SpcScalFldNme ) ) DEALLOCATE ( Inst%SpcScalFldNme )
-   
+
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
           PrevInst%NextInst => Inst%NextInst
@@ -1416,9 +1416,9 @@ CONTAINS
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_LightNOx_Mod

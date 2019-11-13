@@ -5,15 +5,15 @@
 !
 ! !MODULE: hcoi_esmf_mod
 !
-! !DESCRIPTION: Module HCOI\_ESMF\_MOD is the HEMCO-ESMF interface module. 
+! !DESCRIPTION: Module HCOI\_ESMF\_MOD is the HEMCO-ESMF interface module.
 !\\
 !\\
-! !INTERFACE: 
-!      
+! !INTERFACE:
+!
 MODULE HCOI_ESMF_MOD
 !
 ! !USES:
-!      
+!
   USE HCO_ERROR_MOD
   USE HCO_Types_Mod
 
@@ -26,15 +26,15 @@ MODULE HCOI_ESMF_MOD
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-!      
+!
 
   ! ESMF environment only:
-  PUBLIC :: HCO_SetServices 
+  PUBLIC :: HCO_SetServices
   PUBLIC :: HCO_SetExtState_ESMF
   PUBLIC :: HCO_Imp2Ext
 !
 ! !PRIVATE MEMBER FUNCTIONS:
-!      
+!
   PRIVATE :: Diagn2Exp
   PRIVATE :: HCO_Imp2Ext2R
   PRIVATE :: HCO_Imp2Ext2S
@@ -67,27 +67,27 @@ CONTAINS
 !
 ! !ROUTINE: HCO_SetServices
 !
-! !DESCRIPTION: Subroutine HCO\_SetServices registers all required HEMCO 
+! !DESCRIPTION: Subroutine HCO\_SetServices registers all required HEMCO
 ! data so that it can be imported through the ESMF import state.
-! This routine determines all required HEMCO input fields from the HEMCO 
+! This routine determines all required HEMCO input fields from the HEMCO
 ! configuration file. Note that each file needs an equivalent ESMF-style
-! entry in the registry file (typically ExtData.rc). Otherwise, ESMF won't 
-! read these files and HEMCO will fail when attempting to get pointers to 
+! entry in the registry file (typically ExtData.rc). Otherwise, ESMF won't
+! read these files and HEMCO will fail when attempting to get pointers to
 ! these data arrays.
 !\\
 !\\
-! The field names provided in ExtData.rc must match the names in the HEMCO 
-! configuration file! Also, all time settings (average and update interval) 
+! The field names provided in ExtData.rc must match the names in the HEMCO
+! configuration file! Also, all time settings (average and update interval)
 ! and data units need to be properly specified in ExtData.rc.
 ! For now, ExtData.rc and HEMCO configuration file need to be synchronized
-! manually. The pyHEMCO interface will automate this process! 
+! manually. The pyHEMCO interface will automate this process!
 !\\
 !\\
 ! This routine also prepares an emissions export field for every species
 ! found in the HEMCO configuration file. These export fields will only
 ! be filled if specified so in the MAPL History registry.
 ! The corresponding HEMCO diagnostics must be created separately via
-! Diagn\_Create (e.g. in hcoi\_gc\_diagn\_mod.F90). 
+! Diagn\_Create (e.g. in hcoi\_gc\_diagn\_mod.F90).
 !\\
 !\\
 ! !INTERFACE:
@@ -135,9 +135,9 @@ CONTAINS
       INTEGER                    :: DefaultDim
       LOGICAL                    :: EOF
       LOGICAL                    :: FOUND, DefaultSet
-      CHARACTER(LEN=31)          :: cName, SpcName, OutUnit 
+      CHARACTER(LEN=31)          :: cName, SpcName, OutUnit
       CHARACTER(LEN=63)          :: DefaultSNAME, DefaultLNAME, DefaultUnit
-      CHARACTER(LEN=63)          :: SNAME, UnitName 
+      CHARACTER(LEN=63)          :: SNAME, UnitName
       CHARACTER(LEN=127)         :: LNAME
       CHARACTER(LEN=63), POINTER :: Spc(:)
       TYPE(ListCont),    POINTER :: CurrCont
@@ -150,7 +150,7 @@ CONTAINS
       __Iam__('HCO_SetServices (HCOI_ESMF_MOD.F90)')
 
       ! Init
-      Spc      => NULL() 
+      Spc      => NULL()
       CurrCont => NULL()
 
       ! ---------------------------------------------------------------------
@@ -184,7 +184,7 @@ CONTAINS
          ! is automatically determined by ESMF based upon the registry file
          ! content!.
          ! Ignore containers with ncRead flag disabled. These are typically
-         ! scalar fields directly read from the configuration file. 
+         ! scalar fields directly read from the configuration file.
          IF ( .NOT. CurrCont%Dct%Dta%ncRead ) THEN
 
          ! Multiple data containers can use the same source data. In this
@@ -230,7 +230,7 @@ CONTAINS
                VERIFY_(STATUS)
             ENDIF
 
-         ! Return w/ error if not 2D or 3D data 
+         ! Return w/ error if not 2D or 3D data
          ELSE
             ASSERT_(.FALSE.)
          ENDIF
@@ -244,7 +244,7 @@ CONTAINS
       CurrCont => NULL()
 
       ! ---------------------------------------------------------------------
-      ! Try to open diagnostics definition file 
+      ! Try to open diagnostics definition file
       ! ---------------------------------------------------------------------
       CALL DiagnFileOpen( am_I_Root, HcoConfig, LUN, RC )
       ASSERT_(RC == HCO_SUCCESS )
@@ -257,12 +257,12 @@ CONTAINS
 
          IF ( am_I_Root ) WRITE(*,*) 'Reading HEMCO configuration file: ', &
                                      TRIM(HcoConfig%ConfigFileName)
-         DO 
+         DO
 
             ! Get next line
             CALL DiagnFileGetNext( am_I_Root, HcoConfig, LUN, cName, &
                SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC, &
-               lName=lName, UnitName=UnitName ) 
+               lName=lName, UnitName=UnitName )
             IF ( RC /= HCO_SUCCESS ) RETURN
 
             ! Leave here if end of file
@@ -272,20 +272,20 @@ CONTAINS
             IF ( SpaceDim == 3 ) THEN
                DIMS = MAPL_DimsHorzVert
                VLOC = MAPL_VLocationCenter
-            ELSE 
+            ELSE
                DIMS = MAPL_DimsHorzOnly
                VLOC = MAPL_VLocationNone
             ENDIF
- 
+
             ! Remove any underscores in unit name by spaces
             DO I = 1, LEN(TRIM(ADJUSTL(UnitName)))
                IF ( UnitName(I:I) == '_' ) UnitName(I:I) = ' '
-            ENDDO 
+            ENDDO
             DO I = 1, LEN(TRIM(ADJUSTL(lName)))
                IF ( lName(I:I) == '_' ) lName(I:I) = ' '
             ENDDO
- 
-            ! Add to export state 
+
+            ! Add to export state
             CALL MAPL_AddExportSpec(GC,       &
                SHORT_NAME         = cName,    &
                LONG_NAME          = lName,    &
@@ -308,13 +308,13 @@ CONTAINS
 
       ! ---------------------------------------------------------------------
       ! Eventually prepare a diagnostics export for every potential HEMCO
-      ! species. This is optional and controlled by HEMCO setting 
+      ! species. This is optional and controlled by HEMCO setting
       ! DefaultDiagnSet.
       ! ---------------------------------------------------------------------
       CALL GetExtOpt( HcoConfig, -999, 'DefaultDiagnOn', &
                       OptValBool=DefaultSet, FOUND=FOUND, RC=RC )
       IF ( .NOT. FOUND ) DefaultSet = .FALSE.
-      IF ( DefaultSet ) THEN 
+      IF ( DefaultSet ) THEN
 
          ! Search for default diagnostics variable prefix
          CALL GetExtOpt( HcoConfig, -999, 'DefaultDiagnSname', &
@@ -339,7 +339,7 @@ CONTAINS
          ! Get # of species and species names
          nSpc = Config_GetnSpecies( HcoConfig )
          CALL Config_GetSpecNames( HcoConfig, Spc, nSpc, RC )
-         ASSERT_(RC == HCO_SUCCESS) 
+         ASSERT_(RC == HCO_SUCCESS)
 
          ! Loop over all species and add to export state
          DO I = 1, nSpc
@@ -364,15 +364,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: Diagn2Exp 
+! !ROUTINE: Diagn2Exp
 !
 ! !DESCRIPTION: Subroutine Diagn2Exp is a helper routine to add a potential
-! HEMCO diagnostics to the Export state. 
+! HEMCO diagnostics to the Export state.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Diagn2Exp( GC, SNAME, LNAME, UNITS, NDIM, RC ) 
+      SUBROUTINE Diagn2Exp( GC, SNAME, LNAME, UNITS, NDIM, RC )
 !
 ! !USES:
 !
@@ -407,7 +407,7 @@ CONTAINS
       IF ( NDIM == 3 ) THEN
          DIMS = MAPL_DimsHorzVert
          VLOC = MAPL_VLocationCenter
-      ELSE 
+      ELSE
          DIMS = MAPL_DimsHorzOnly
          VLOC = MAPL_VLocationNone
       ENDIF
@@ -438,7 +438,7 @@ CONTAINS
 ! !ROUTINE: HCO_SetExtState_ESMF
 !
 ! !DESCRIPTION: Subroutine HCO\_SetExtState\_ESMF tries to populate some
-! fields of the ExtState object from the ESMF import state. 
+! fields of the ExtState object from the ESMF import state.
 !\\
 !\\
 ! !INTERFACE:
@@ -482,16 +482,16 @@ CONTAINS
 #endif
 
       ! Return success
-      RC = HCO_SUCCESS 
+      RC = HCO_SUCCESS
 
-      END SUBROUTINE HCO_SetExtState_ESMF 
+      END SUBROUTINE HCO_SetExtState_ESMF
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCO_Imp2Ext2S 
+! !ROUTINE: HCO_Imp2Ext2S
 !
 ! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
 ! the HEMCO ExtState object.
@@ -557,7 +557,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Return success
-      RETURN_(ESMF_SUCCESS)      
+      RETURN_(ESMF_SUCCESS)
 
       END SUBROUTINE HCO_Imp2Ext2S
 !EOC
@@ -642,16 +642,16 @@ CONTAINS
 
 
       ! Return success
-      RETURN_(ESMF_SUCCESS)      
+      RETURN_(ESMF_SUCCESS)
 
-      END SUBROUTINE HCO_Imp2Ext3S 
+      END SUBROUTINE HCO_Imp2Ext3S
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCO_Imp2Ext2R 
+! !ROUTINE: HCO_Imp2Ext2R
 !
 ! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
 ! the HEMCO ExtState object.
@@ -717,7 +717,7 @@ CONTAINS
             Filled = .TRUE.
          ELSE
             IF ( PRESENT(Fld) ) THEN
-               ExtDat%Arr%Val = Fld 
+               ExtDat%Arr%Val = Fld
                Filled = .TRUE.
             ENDIF
          ENDIF
@@ -737,7 +737,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Return success
-      RETURN_(ESMF_SUCCESS)      
+      RETURN_(ESMF_SUCCESS)
 
       END SUBROUTINE HCO_Imp2Ext2R
 !EOC
@@ -746,7 +746,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCO_Imp2Ext3R 
+! !ROUTINE: HCO_Imp2Ext3R
 !
 ! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
 ! the HEMCO ExtState object.
@@ -821,7 +821,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Return success
-      RETURN_(ESMF_SUCCESS)      
+      RETURN_(ESMF_SUCCESS)
 
       END SUBROUTINE HCO_Imp2Ext3R
 !EOC
@@ -830,7 +830,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: HCO_Imp2Ext2I 
+! !ROUTINE: HCO_Imp2Ext2I
 !
 ! !DESCRIPTION: Subroutine HCO\_Imp2Ext copies fields from the import state to
 ! the HEMCO ExtState object.
@@ -899,7 +899,7 @@ CONTAINS
       ENDIF ! DoUse
 
       ! Return success
-      RETURN_(ESMF_SUCCESS)      
+      RETURN_(ESMF_SUCCESS)
 
       END SUBROUTINE HCO_Imp2Ext2I
 !EOC

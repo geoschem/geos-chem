@@ -19,7 +19,7 @@ module m_Do_Err_Out
 ! !DESCRIPTION: Provides a routine to print an error message and exit the code.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -67,7 +67,7 @@ CONTAINS
 ! !DESCRIPTION: Outputs error messages, and exits if requested.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REMARKS:
@@ -85,7 +85,7 @@ CONTAINS
 
     ! Write separator
     WRITE( 6, '(/,a,/)' ) REPEAT( '!', 79 )
-    
+
     ! Write error message
     WRITE( 6,'(a)' ) TRIM( err_msg )
 
@@ -110,7 +110,7 @@ CONTAINS
 
     ! Stop with error (if requested)
     ! NOTE: We should pass back the error code to the main routine
-    IF ( err_do_stop ) THEN 
+    IF ( err_do_stop ) THEN
         WRITE( 6, '(a,/)' ) 'Code stopped from DO_ERR_OUT '               // &
                             '(in module NcdfUtil/m_do_err_out.F90) '
         WRITE( 6, '(a)'   ) 'This is an error that was encountered '      // &

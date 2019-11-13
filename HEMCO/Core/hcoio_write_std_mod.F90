@@ -6,8 +6,8 @@
 !
 ! !MODULE: hcoio_write_std_mod.F90
 !
-! !DESCRIPTION: Module HCOIO\_write\_std\_mod.F90 is the HEMCO data output 
-! interface for the 'standard' model environment. It contains routines to 
+! !DESCRIPTION: Module HCOIO\_write\_std\_mod.F90 is the HEMCO data output
+! interface for the 'standard' model environment. It contains routines to
 ! write out diagnostics into a netCDF file.
 !\\
 !\\
@@ -30,14 +30,14 @@ MODULE HCOIO_WRITE_STD_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: ConstructTimeStamp 
+  PRIVATE :: ConstructTimeStamp
 !
 ! !REMARKS:
 !  HEMCO diagnostics are still in testing mode. We will fully activate them
 !  at a later time.  They will be turned on when debugging & unit testing.
 !
 ! !REVISION HISTORY:
-!  04 May 2014 - C. Keller   - Initial version. 
+!  04 May 2014 - C. Keller   - Initial version.
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  28 Jul 2014 - C. Keller   - Removed GC specific initialization calls and
@@ -53,7 +53,7 @@ MODULE HCOIO_WRITE_STD_MOD
 !
   ! Fill value used in HEMCO diagnostics netCDF files.
 !  REAL(hp), PARAMETER :: FillValue = 1.e-31_hp
-  REAL(sp), PARAMETER :: FillValue = HCO_MISSVAL 
+  REAL(sp), PARAMETER :: FillValue = HCO_MISSVAL
 
 CONTAINS
 !EOC
@@ -64,13 +64,13 @@ CONTAINS
 !
 ! !IROUTINE: HCOIO_write_std
 !
-! !DESCRIPTION: Subroutine HCOIO\_write\_std writes diagnostics to 
+! !DESCRIPTION: Subroutine HCOIO\_write\_std writes diagnostics to
 ! netCDF file. If the ForceWrite flag is set to TRUE, all diagnostics are
 ! written out except they have already been written out during this time
 ! step. This option is usually only used at the end of a simulation run.
 ! If ForceWrite is False, only the diagnostics that are at the end of their
 ! time averaging interval are written. For example, if the current month
-! is different from the previous (emissions) month, all diagnostics with 
+! is different from the previous (emissions) month, all diagnostics with
 ! hourly, daily and monthly time averaging intervals are written out.
 ! If the optional argument OnlyIfFirst is set to TRUE, diagnostics will
 ! only be written out if its nnGetCalls is 1. This can be used to avoid
@@ -113,26 +113,26 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,                    INTENT(IN   ) :: am_I_Root   ! root CPU?
-    TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object 
-    LOGICAL,                    INTENT(IN   ) :: ForceWrite  ! Write all diagnostics? 
+    TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object
+    LOGICAL,                    INTENT(IN   ) :: ForceWrite  ! Write all diagnostics?
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
-    LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time 
+    LOGICAL,          OPTIONAL, INTENT(IN   ) :: UsePrevTime ! Use previous time
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst ! Only write if nnDiagn is 1
-    INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr. 
+    INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr.
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 
     INTEGER,          INTENT(INOUT) :: RC          ! Failure or success
 !
-! !REVISION HISTORY: 
-!  12 Sep 2013 - C. Keller   - Initial version 
+! !REVISION HISTORY:
+!  12 Sep 2013 - C. Keller   - Initial version
 !  11 Jun 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Jun 2014 - R. Yantosca - Now use F90 freeform indentation
 !  19 Feb 2015 - C. Keller   - Added optional argument OnlyIfFirst
 !  23 Feb 2015 - R. Yantosca - Now make Arr1D REAL(sp) so that we can write
 !                              out lon & lat as float instead of double
-!  06 Nov 2015 - C. Keller   - Output time stamp is now determined from 
+!  06 Nov 2015 - C. Keller   - Output time stamp is now determined from
 !                              variable OutTimeStamp.
 !  14 Jan 2016 - E. Lundgren - Create netcdf title out of filename prefix
 !  20 Jan 2016 - C. Keller   - Added options DiagnRefTime and DiagnNoLevDim.
@@ -140,7 +140,7 @@ CONTAINS
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !  21 Jan 2017 - C. Holmes   - Write all variable metadata in define mode, then
 !                              switch to data mode just once. Much faster
-!                              writing. 
+!                              writing.
 !  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
 !  08 Mar 2017 - R. Yantosca - Use unlimited time dimensions for netCDF files
 !  29 Dec 2017 - C. Keller   - Now accept writing multiple time slices into
@@ -172,30 +172,30 @@ CONTAINS
     TYPE(DiagnCont), POINTER  :: ThisDiagn
     INTEGER                   :: FLAG
     CHARACTER(LEN=255)        :: ncFile
-    CHARACTER(LEN=255)        :: Pfx, title, Reference, Contact 
+    CHARACTER(LEN=255)        :: Pfx, title, Reference, Contact
     CHARACTER(LEN=255)        :: myLName, mySName, myFterm
-    CHARACTER(LEN=255)        :: MSG 
-    CHARACTER(LEN=255)        :: RefTime 
+    CHARACTER(LEN=255)        :: MSG
+    CHARACTER(LEN=255)        :: RefTime
     CHARACTER(LEN=4 )         :: Yrs
-    CHARACTER(LEN=2 )         :: Mts, Dys, hrs, mns 
+    CHARACTER(LEN=2 )         :: Mts, Dys, hrs, mns
     CHARACTER(LEN=31)         :: myName, myUnit, OutOper
     CHARACTER(LEN=63)         :: timeunit
     INTEGER                   :: fId, lonId, latId, levId, TimeId
     INTEGER                   :: VarCt
-    INTEGER                   :: nLon, nLat, nLev, nLevTmp, nTime 
+    INTEGER                   :: nLon, nLat, nLev, nLevTmp, nTime
     INTEGER                   :: Prc,  L
-    INTEGER                   :: lymd, lhms 
+    INTEGER                   :: lymd, lhms
     INTEGER                   :: refYYYY, refMM, refDD, refh, refm, refs
     LOGICAL                   :: EOI, DoWrite, PrevTime, FOUND
     LOGICAL                   :: NoLevDim, DefMode
     LOGICAL                   :: IsOldFile
 
-    CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_WRITE_STD (hcoio_write_std_mod.F90)' 
+    CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_WRITE_STD (hcoio_write_std_mod.F90)'
 
     !=================================================================
     ! HCOIO_WRITE_STD begins here!
     !=================================================================
-  
+
     ! Init
     RC        =  HCO_SUCCESS
     CNT       =  0
@@ -211,13 +211,13 @@ CONTAINS
     ! Collection number
     PS = HcoState%Diagn%HcoDiagnIDDefault
     IF ( PRESENT(COL) ) PS = COL
-   
-    ! Check if it's time to write out this collection. Also set the 
+
+    ! Check if it's time to write out this collection. Also set the
     ! end-of-interval EOI flag accordingly. This will be used lateron
-    ! when calling Diagn_Get. Since all diagnostic containers in a 
+    ! when calling Diagn_Get. Since all diagnostic containers in a
     ! given collection have the same output frequency, this is somewhat
-    ! redundant (because we already check here if it is time to write 
-    ! out this particular collection). Keep it here for backwards 
+    ! redundant (because we already check here if it is time to write
+    ! out this particular collection). Keep it here for backwards
     ! consistency (ckeller, 8/6/2015).
     IF ( ForceWrite ) THEN
        DoWrite = .TRUE.
@@ -227,26 +227,26 @@ CONTAINS
        EOI     = .TRUE.
     ENDIF
 
-    ! Create current time stamps (to be used to archive time stamps) 
+    ! Create current time stamps (to be used to archive time stamps)
     CALL HcoClock_Get(am_I_Root,HcoState%Clock,sYYYY=YYYY,sMM=MM,&
                       sDD=DD,sH=h,sM=m,sS=s,RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
     lymd = YYYY*10000 + MM*100 + DD
     lhms = h   *10000 + m *100 + s
 
-    ! Leave here if it's not time to write diagnostics. On the first 
+    ! Leave here if it's not time to write diagnostics. On the first
     ! time step, set lastYMD and LastHMS to current dates.
     IF ( .NOT. DoWrite ) THEN
        IF ( .NOT. DiagnCollection_LastTimesSet(HcoState%Diagn,PS) ) THEN
           CALL DiagnCollection_Set ( HcoState%Diagn, COL=PS, &
-                                     LastYMD=lymd, LastHMS=lhms, RC=RC ) 
+                                     LastYMD=lymd, LastHMS=lhms, RC=RC )
        ENDIF
        RETURN
-    ENDIF 
+    ENDIF
 
-    ! Inherit precision from HEMCO 
+    ! Inherit precision from HEMCO
     Prc = HP
- 
+
     ! Get PrevTime flag from input argument or set to default (=> TRUE)
     IF ( PRESENT(UsePrevTime) ) THEN
        PrevTime = UsePrevTime
@@ -258,29 +258,29 @@ CONTAINS
     ! Don't define level dimension if there are no 3D fields to write
     ! This is an optional feature. By default, all diagnostics have
     ! the full dimension definitions (lon,lat,lev,time) even if all
-    ! output fields are only 2D. If the flag DiagnNoLevDim is 
+    ! output fields are only 2D. If the flag DiagnNoLevDim is
     ! enabled, the lev dimension is not defined if there are no 3D
-    ! fields on the file. 
+    ! fields on the file.
     !-----------------------------------------------------------------
     NoLevDim = .FALSE.
     CALL GetExtOpt ( HcoState%Config, CoreNr, 'DiagnNoLevDim', &
                      OptValBool=NoLevDim, Found=Found, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( Found ) THEN 
+    IF ( Found ) THEN
        IF ( NoLevDim ) THEN
 
           ! Loop over all diagnostics to see if any is 3D
           ThisDiagn => NULL()
           DO WHILE ( .TRUE. )
 
-             ! Get next diagnostics in list. This will return the next 
-             ! diagnostics container that contains content. 
+             ! Get next diagnostics in list. This will return the next
+             ! diagnostics container that contains content.
              CALL Diagn_Get ( am_I_Root, HcoState, EOI, &
-                              ThisDiagn, FLAG, RC, COL=PS ) 
-             IF ( RC /= HCO_SUCCESS ) RETURN 
+                              ThisDiagn, FLAG, RC, COL=PS )
+             IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( FLAG /= HCO_SUCCESS ) EXIT
-              
-             ! If this is a 3D diagnostics, we must write the level 
+
+             ! If this is a 3D diagnostics, we must write the level
              ! coordinate
              IF ( ThisDiagn%SpaceDim == 3 ) THEN
                 NoLevDim = .FALSE.
@@ -298,7 +298,7 @@ CONTAINS
     nLon  = HcoState%NX
     nLat  = HcoState%NY
     nLev  = HcoState%NZ
-    nTime = 1 
+    nTime = 1
 
     ! Initialize mirror variables
     allocate(Arr4D(nlon,nlat,nlev,ntime))
@@ -312,7 +312,7 @@ CONTAINS
     CALL ConstructTimeStamp ( am_I_Root, HcoState, PS, PrevTime, &
                               YYYY, MM, DD, h, m, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
- 
+
     ! Write datetime
     WRITE( Yrs, '(i4.4)' ) YYYY
     WRITE( Mts, '(i2.2)' ) MM
@@ -367,9 +367,9 @@ CONTAINS
     ! (instead of creating a new one)
     INQUIRE( FILE=ncFile, EXIST=IsOldFile )
 
-    ! Disable multiple time slice update since causes an issue writing 
+    ! Disable multiple time slice update since causes an issue writing
     ! restart files. Re-enable when restart files are written via HISTORY
-    ! rather than HEMCO by deleting the forcing of IsOldFile below. 
+    ! rather than HEMCO by deleting the forcing of IsOldFile below.
     ! (ewl, 10/19/18)
     IsOldFile = .FALSE.
 
@@ -383,19 +383,19 @@ CONTAINS
 
     ! Create output file
     ELSE
- 
-       ! Define a variable for the number of levels, which will either be -1 
+
+       ! Define a variable for the number of levels, which will either be -1
        ! (if all 2D data) or the number of levels in the grid (for 3D data).
        IF ( NoLevDim ) THEN
           nLevTmp = -1
        ELSE
           nLevTmp = nLev
        ENDIF
-       
+
        ! Define extra metadata for global attributes
        Reference = 'http://wiki.geos-chem.org/The_HEMCO_Users_Guide'
        Contact   = 'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
-       
+
        ! Create output file
        ! Pass CREATE_NC4 to make file format netCDF-4 (mps, 3/3/16)
        ! Now create netCDF file with time dimension as UNLIMITED (bmy, 3/8/17)
@@ -418,11 +418,11 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Write grid dimensions (incl. time) 
+    ! Write grid dimensions (incl. time)
     !-----------------------------------------------------------------
     IF ( .NOT. IsOldFile ) THEN
 
-       ! Write longitude axis variable ("lon") to file   
+       ! Write longitude axis variable ("lon") to file
        CALL NC_Var_Def( fId         = fId,                                &
                         lonId       = lonId,                              &
                         latId       = -1,                                 &
@@ -433,14 +433,14 @@ CONTAINS
                         VarUnit     = 'degrees_east',                     &
                         Axis        = 'X',                                &
                         DataType    = dp,                                 &
-                        VarCt       = VarCt,                              & 
+                        VarCt       = VarCt,                              &
                         Compress    = .TRUE.                             )
        ALLOCATE( Arr1D( nLon ) )
        Arr1D = HcoState%Grid%XMID%Val(:,1)
        CALL NC_Var_Write( fId, 'lon', Arr1D=Arr1D )
        DEALLOCATE( Arr1D )
-       
-       ! Write latitude axis variable ("lat") to file    
+
+       ! Write latitude axis variable ("lat") to file
        CALL NC_Var_Def( fId         = fId,                              &
                         lonId       = -1,                               &
                         latId       = latId,                            &
@@ -451,40 +451,40 @@ CONTAINS
                         VarUnit     = 'degrees_north',                  &
                         Axis        = 'Y',                              &
                         DataType    = dp,                               &
-                        VarCt       = VarCt,                            & 
+                        VarCt       = VarCt,                            &
                         Compress    = .TRUE.                           )
        ALLOCATE( Arr1D( nLat ) )
        Arr1D = HcoState%Grid%YMID%Val(1,:)
        CALL NC_Var_Write( fId, 'lat', Arr1D=Arr1D )
        DEALLOCATE( Arr1D )
-       
+
        ! Write vertical grid parameters to file (if necessary)
        IF ( .NOT. NoLevDim ) THEN
-       
+
           ! Reference pressure [Pa]
           P0 = 1.0e+05_dp
-       
+
           ! Allocate vertical coordinate arrays
           ALLOCATE( Arr1D( nLev ) )
           ALLOCATE( hyam ( nLev ) )
           ALLOCATE( hybm ( nLev ) )
-       
+
           ! Construct vertical level coordinates
           DO L = 1, nLev
-       
+
              ! A parameter at grid midpoints
              hyam(L)  = ( HcoState%Grid%zGrid%Ap(L)                         &
                       +   HcoState%Grid%zGrid%Ap(L+1) ) * 0.5_dp
-       
+
              ! B parameter at grid midpoints
              hybm(L)  = ( HcoState%Grid%zGrid%Bp(L)                         &
                       +   HcoState%Grid%zGrid%Bp(L+1) ) * 0.5_dp
-       
+
              ! Vertical level coordinate
              Arr1d(L) = ( hyam(L) / P0 ) + hybm(L)
-       
+
           ENDDO
-       
+
           ! Write level axis variable ("lev") to file
           ! Define extra metadata for calls to NC_Var_Def
           myLName = 'hybrid level at midpoints ((A/P0)+B)'
@@ -503,10 +503,10 @@ CONTAINS
                            Axis         = 'Z',                            &
                            Positive     = 'up',                           &
                            DataType     = dp,                             &
-                           VarCt        = VarCt,                          & 
+                           VarCt        = VarCt,                          &
                            Compress     = .TRUE.                         )
           CALL NC_Var_Write( fId, 'lev', Arr1D=Arr1D )
-       
+
           ! Write hybrid A coordinate ("hyam") to file
           ! Define extra metadata for calls to NC_Var_Def
           myLName = 'hybrid A coefficient at layer midpoints'
@@ -519,10 +519,10 @@ CONTAINS
                            VarLongName  = MyLName,                        &
                            VarUnit      = 'Pa',                           &
                            DataType     = dp,                             &
-                           VarCt        = VarCt,                          & 
+                           VarCt        = VarCt,                          &
                            Compress     = .TRUE.                         )
           CALL NC_Var_Write ( fId, 'hyam', Arr1D=hyam )
-       
+
           ! Write hybrid B coordinate ("hybm") to file
           ! Define extra metadata for calls to NC_Var_Def
           myLName = 'hybrid B coefficient at layer midpoints'
@@ -535,10 +535,10 @@ CONTAINS
                            VarLongName  = MyLName,                       &
                            VarUnit      = '1',                           &
                            DataType     = dp,                            &
-                           VarCt        = VarCt,                         & 
+                           VarCt        = VarCt,                         &
                            Compress     = .TRUE.                        )
           CALL NC_Var_Write( fId, 'hybm', Arr1D=hybm )
-       
+
           ! Write out reference pressure (P0) to file
           CALL NC_Var_Def( fId         = fId,                             &
                            lonId       = -1,                              &
@@ -549,21 +549,21 @@ CONTAINS
                            VarLongName = 'Reference pressure',            &
                            VarUnit     = 'Pa',                            &
                            DataType    = dp,                              &
-                           VarCt       = VarCt,                           & 
+                           VarCt       = VarCt,                           &
                            Compress    = .TRUE.                          )
           CALL NC_Var_Write( fId, 'P0', P0 )
-       
+
           ! Deallocate arrays
           DEALLOCATE( Arr1d )
           DEALLOCATE( hyam  )
           DEALLOCATE( hybm  )
-       
+
        ENDIF
     ENDIF
 
     !------------------------------------------------------------------------
     ! Write time axis variable ("time") to file
-    !------------------------------------------------------------------------ 
+    !------------------------------------------------------------------------
 
     ! JD1 is the julian day of the data slice
     GMT     = REAL(h,dp) + (REAL(m,dp)/60.0_dp) + (REAL(s,dp)/3600.0_dp)
@@ -592,13 +592,13 @@ CONTAINS
     ELSE
        WRITE(timeunit,100) YYYY,MM,DD,h,m,s
        JD1985 = JD1
-    ENDIF 
+    ENDIF
 100 FORMAT ( 'hours since ',i4.4,'-',i2.2,'-',i2.2,' ',i2.2,':',i2.2,':',i2.2,' GMT' )
 
-    ! Calculate time value 
+    ! Calculate time value
     JD_DELTA = (JD1 - JD1985 )
 
-    ! Default is 'days since'. Adjust for 'hours since', 'minutes since', 
+    ! Default is 'days since'. Adjust for 'hours since', 'minutes since',
     ! 'seconds since'.
     IF ( timeunit(1:4) == 'days' ) THEN
        ! all ok
@@ -612,7 +612,7 @@ CONTAINS
        MSG = 'Unrecognized output reference time, will ' // &
              'assume `days since`: '//TRIM(timeunit)
        CALL HCO_WARNING( MSG, WARNLEV=2, THISLOC=LOC, RC=RC )
-    ENDIF    
+    ENDIF
 
     ! Special case where we have an old file but it has the same time stamp: in
     ! that case simply overwrite the current values
@@ -628,7 +628,7 @@ CONTAINS
        nctime(1:ntime-1) = timeVec(:)
     ENDIF
     nctime(ntime) = JD_DELTA
-    
+
     IF ( .NOT. IsOldFile ) THEN
        CALL NC_Var_Def( fId         = fId,                                &
                         lonId       = -1,                                 &
@@ -641,7 +641,7 @@ CONTAINS
                         Axis        = 'T',                                &
                         Calendar    = 'gregorian',                        &
                         DataType    = 8,                                  &
-                        VarCt       = VarCt,                              & 
+                        VarCt       = VarCt,                              &
                         Compress    = .TRUE.                             )
     ENDIF
     CALL NC_VAR_WRITE( fId, 'time', Arr1D=nctime )
@@ -649,7 +649,7 @@ CONTAINS
     IF ( ASSOCIATED(timeVec) ) DEALLOCATE( timeVec )
 
     !-----------------------------------------------------------------
-    ! Write out grid box areas 
+    ! Write out grid box areas
     !-----------------------------------------------------------------
 
     IF ( .NOT. IsOldFile ) THEN
@@ -662,16 +662,16 @@ CONTAINS
                         VarLongName = 'Grid box area',                    &
                         VarUnit     = 'm2',                               &
                         DataType    = Prc,                                &
-                        VarCt       = VarCt,                              & 
+                        VarCt       = VarCt,                              &
                         Compress    = .TRUE.                             )
        CALL NC_Var_Write ( fId, 'AREA', Arr2D=HcoState%Grid%Area_M2%Val )
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Write diagnostics 
+    ! Write diagnostics
     !-----------------------------------------------------------------
 
-    ! Run this section twice, first in define mode for metadata, then in 
+    ! Run this section twice, first in define mode for metadata, then in
     ! data mode to write variables
     DO I=1,2
 
@@ -680,32 +680,32 @@ CONTAINS
 
     IF (I==1) THEN
        ! Open netCDF define mode
-       CALL NcBegin_Def( fID ) 
+       CALL NcBegin_Def( fID )
        DefMode=.TRUE.
     ELSE
 !       IF ( .NOT. IsOldFile ) THEN
           ! Close netCDF define mode
-          CALL NcEnd_Def( fID )   
+          CALL NcEnd_Def( fID )
 !       ENDIF
        DefMode=.False.
     ENDIF
-    
-    ! Loop over all diagnostics in diagnostics list 
+
+    ! Loop over all diagnostics in diagnostics list
     ThisDiagn => NULL()
     DO WHILE ( .TRUE. )
 
-       ! Get next diagnostics in list. This will return the next 
-       ! diagnostics container that contains content. 
+       ! Get next diagnostics in list. This will return the next
+       ! diagnostics container that contains content.
        CALL Diagn_Get ( am_I_Root, HcoState, EOI, &
-                        ThisDiagn, FLAG, RC, COL=PS ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+                        ThisDiagn, FLAG, RC, COL=PS )
+       IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
        ! Only write diagnostics if this is the first Diagn_Get call for
        ! this container and time step.
        IF ( PRESENT( OnlyIfFirst ) ) THEN
           IF ( OnlyIfFirst .AND. ThisDiagn%nnGetCalls > 1 ) CYCLE
-       ENDIF 
+       ENDIF
 
        ! Define variable
        myName = ThisDiagn%cName
@@ -721,7 +721,7 @@ CONTAINS
           MSG = 'Level dimension undefined but 3D container found: ' &
                 // TRIM(myName)
           CALL HCO_ERROR(MSG,RC,THISLOC=LOC)
-          RETURN 
+          RETURN
        ENDIF
 
        IF (DefMode) THEN
@@ -742,7 +742,7 @@ CONTAINS
                            AvgMethod    = ThisDiagn%AvgName,                 &
                            MissingValue = FillValue,                         &
                            DataType     = sp,                                &
-                           VarCt        = VarCt,                             & 
+                           VarCt        = VarCt,                             &
                            DefMode      = DefMode,                           &
                            Compress     = .True.                            )
 
@@ -776,7 +776,7 @@ CONTAINS
              CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
           ELSE
              IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
-                Arr3D(:,:,ntime) = ThisDiagn%Arr2D%Val 
+                Arr3D(:,:,ntime) = ThisDiagn%Arr2D%Val
                 Arr3D(:,:,1) = ThisDiagn%Arr2D%Val
              ENDIF
              CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
@@ -798,15 +798,15 @@ CONTAINS
     ! Close file
     CALL NC_CLOSE ( fId )
 
-    ! Cleanup local variables 
+    ! Cleanup local variables
     Deallocate(Arr3D,Arr4D)
     ThisDiagn => NULL()
-   
-    ! Archive time stamp 
-    CALL DiagnCollection_Set ( HcoState%Diagn, COL=PS, &
-                               LastYMD=lymd, LastHMS=lhms, RC=RC ) 
 
-    ! Return 
+    ! Archive time stamp
+    CALL DiagnCollection_Set ( HcoState%Diagn, COL=PS, &
+                               LastYMD=lymd, LastHMS=lhms, RC=RC )
+
+    ! Return
     RC = HCO_SUCCESS
 
   END SUBROUTINE HCOIO_write_std
@@ -816,10 +816,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ConstructTimeStamp 
+! !IROUTINE: ConstructTimeStamp
 !
 ! !DESCRIPTION: Subroutine ConstructTimeStamp is a helper routine to construct
-! the time stamp of a given diagnostics collection. 
+! the time stamp of a given diagnostics collection.
 !\\
 !\\
 ! !INTERFACE:
@@ -835,9 +835,9 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   )    :: am_I_Root    ! Root CPU?
-    TYPE(HCO_State), POINTER          :: HcoState     ! HEMCO state obj 
+    TYPE(HCO_State), POINTER          :: HcoState     ! HEMCO state obj
     INTEGER,         INTENT(IN   )    :: PS           ! collecion ID
-    LOGICAL,         INTENT(IN   )    :: PrevTime     ! Use previous time? 
+    LOGICAL,         INTENT(IN   )    :: PrevTime     ! Use previous time?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -845,14 +845,14 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(  OUT)    :: Yr 
-    INTEGER,         INTENT(  OUT)    :: Mt 
-    INTEGER,         INTENT(  OUT)    :: Dy 
+    INTEGER,         INTENT(  OUT)    :: Yr
+    INTEGER,         INTENT(  OUT)    :: Mt
+    INTEGER,         INTENT(  OUT)    :: Dy
     INTEGER,         INTENT(  OUT)    :: hr
     INTEGER,         INTENT(  OUT)    :: mn
 !
-! !REVISION HISTORY: 
-!  06 Nov 2015 - C. Keller   - Initial version 
+! !REVISION HISTORY:
+!  06 Nov 2015 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -912,14 +912,14 @@ CONTAINS
 
        UTC = ( REAL(h1,dp) / 24.0_dp    ) + &
              ( REAL(n1,dp) / 1440.0_dp  ) + &
-             ( REAL(s1,dp) / 86400.0_dp ) 
+             ( REAL(s1,dp) / 86400.0_dp )
        DAY = REAL(D1,dp) + UTC
        JD1 = JULDAY( Y1, M1, DAY )
 
        ! Julian day of end interval:
        UTC = ( REAL(h2,dp) / 24.0_dp    ) + &
              ( REAL(n2,dp) / 1440.0_dp  ) + &
-             ( REAL(s2,dp) / 86400.0_dp ) 
+             ( REAL(s2,dp) / 86400.0_dp )
        DAY = REAL(D2,dp) + UTC
        JD2 = JULDAY( Y2, M2, DAY )
 
@@ -933,7 +933,7 @@ CONTAINS
        Dy = FLOOR ( MOD( YYYYMMDD, 100      ) / 1.0e0_dp )
        Hr = FLOOR ( MOD(   HHMMSS, 1000000  ) / 1.0e4_dp )
        Mn = FLOOR ( MOD(   HHMMSS, 10000    ) / 1.0e2_dp )
- 
+
     ! Otherwise, use end date
     ELSE
        Yr = Y2
@@ -946,7 +946,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE ConstructTimeStamp 
+  END SUBROUTINE ConstructTimeStamp
 !EOC
 #endif
 END MODULE HCOIO_WRITE_STD_MOD

@@ -203,8 +203,8 @@
       INTEGER       :: KBOT(State_Grid%NZ)
       INTEGER       :: KTOP(State_Grid%NZ)
       INTEGER       :: INDICATOR(State_Grid%NZ+2)
-      REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction 
-                                              !  in a block, size can be to 
+      REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction
+                                              !  in a block, size can be to
                                               !  FIX(State_Grid%NZ)+1
       REAL(fp)      :: CLDF1D(State_Grid%NZ)
       REAL(fp)      :: ODNEW(State_Grid%NZ)
@@ -3749,7 +3749,7 @@ C-----------------------------------------------------------------------
      &                                ZPJ(L,112,ILON,ILAT)
                AD22(ILON,ILAT,L,37) = AD22(ILON,ILAT,L,37) +  ! JHONIT
      &                                ZPJ(L,113,ILON,ILAT)
-               ! lei, 05/15/17 - added new halogen species below 
+               ! lei, 05/15/17 - added new halogen species below
                IF ( IS_HALOGENS ) THEN
                AD22(ILON,ILAT,L,38) = AD22(ILON,ILAT,L,38) +  ! JCH3Br
      &                                ZPJ(L,50,ILON,ILAT)

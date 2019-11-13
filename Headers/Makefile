@@ -33,14 +33,14 @@
 # AR         Sys var w/ name of library creator program (i.e., "ar", "ranlib")
 # MAKE       Sys var w/ name of Make command (i.e, "make" or "gmake")
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  23 Aug 2011 - M. Long     - Initial version
 #  19 Mar 2012 - M. Payer    - Added EF_MGN20_mod for SOA + semivolatile POA
 #                              simulation (H. Pye)
 #  09 Apr 2012 - R. Yantosca - Removed CMN_VEL_mod.F; it's obsolete
 #  19 Oct 2012 - R. Yantosca - Add modules for Grid-Independent GEOS-Chem
 #  01 Nov 2012 - R. Yantosca - Added gigc_input_opt_mod.F90
-#  16 Nov 2012 - R. Yantosca - Added more GIGC updates, removed obsolete 
+#  16 Nov 2012 - R. Yantosca - Added more GIGC updates, removed obsolete
 #  15 Jan 2013 - R. Yantosca - Removed CMN_DEP_mod.F, it's obsolete
 #  15 Jan 2013 - R. Yantosca - Added dependency for gigc_input_opt_mod.o
 #                              to comode_loop_mod.F, to make it compile
@@ -240,7 +240,7 @@ registry_params_mod.o  : registry_params_mod.F90 \
 species_mod.o          : species_mod.F90          \
                          charpak_mod.o            \
                          physconstants.o          \
-                         precision_mod.o 
+                         precision_mod.o
 
 species_database_mod.o : species_database_mod.F90 \
                          errcode_mod.o            \

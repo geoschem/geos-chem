@@ -5,13 +5,13 @@
 !
 ! !MODULE: hco_geotools_mod.F90
 !
-! !DESCRIPTION: Module HCO\_GeoTools\_Mod contains a collection of 
-! helper routines for extracting geographical information. These 
+! !DESCRIPTION: Module HCO\_GeoTools\_Mod contains a collection of
+! helper routines for extracting geographical information. These
 ! routines are based upon GEOS-5 data and may need to be revised
-! for other met. fields! 
+! for other met. fields!
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCO_GeoTools_Mod
 !
@@ -71,7 +71,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_LandType_Sp
 !
-! !DESCRIPTION: Function HCO\_LANDTYPE returns the land type based upon 
+! !DESCRIPTION: Function HCO\_LANDTYPE returns the land type based upon
 !  the land water index (0=water,1=land,2=ice) and the surface albedo.
 !  Inputs are in single precision.
 !\\
@@ -90,7 +90,7 @@ CONTAINS
     INTEGER              :: LandType  ! Land type: 0=water,1=land,2=ice
 !
 ! !REMARKS:
-!  This function is largely based on the GEOS-Chem functions in dao_mod.F. 
+!  This function is largely based on the GEOS-Chem functions in dao_mod.F.
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller - Initialization!
@@ -100,7 +100,7 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-    ! Set threshold for albedo over ice. All surfaces w/ an albedo above 
+    ! Set threshold for albedo over ice. All surfaces w/ an albedo above
     ! this value will be classified as ice.
     REAL(sp), PARAMETER :: albd_ice = 0.695_sp
 
@@ -112,7 +112,7 @@ CONTAINS
     IF ( NINT(WLI) == 0 .AND. Albedo < albd_ice ) THEN
        LandType = 0
 
-    ! Land: 
+    ! Land:
     ELSEIF ( NINT(WLI) == 1 .AND. Albedo < albd_ice ) THEN
        LandType = 1
 
@@ -128,9 +128,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_LandType_Dp 
+! !IROUTINE: HCO_LandType_Dp
 !
-! !DESCRIPTION: Function HCO\_LandType\_Dp returns the land type based upon 
+! !DESCRIPTION: Function HCO\_LandType\_Dp returns the land type based upon
 ! the land water index (0=water,1=land,2=ice) and the surface albedo.
 ! Inputs are in double precision.
 !\\
@@ -149,7 +149,7 @@ CONTAINS
     INTEGER              :: LandType  ! Land type: 0=water,1=land,2=ice
 !
 ! !REMARKS:
-!  This function is largely based on the GEOS-Chem functions in dao_mod.F. 
+!  This function is largely based on the GEOS-Chem functions in dao_mod.F.
 !
 ! !REVISION HISTORY:
 !  18 Dec 2013 - C. Keller - Initialization
@@ -159,7 +159,7 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS::
 !
-    ! Set threshold for albedo over ice. All surfaces w/ an albedo above 
+    ! Set threshold for albedo over ice. All surfaces w/ an albedo above
     ! this value will be classified as ice.
     REAL(dp), PARAMETER :: albd_ice = 0.695_dp
 
@@ -170,8 +170,8 @@ CONTAINS
     ! Water:
     IF ( NINT(WLI) == 0 .AND. Albedo < albd_ice ) THEN
        LandType = 0
-         
-    ! Land: 
+
+    ! Land:
     ELSEIF ( NINT(WLI) == 1 .AND. Albedo < albd_ice ) THEN
        LandType = 1
 
@@ -189,7 +189,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_ValidateLon_Sp
 !
-! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
+! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed
 ! single precision longitude axis LON is steadily increasing.
 !\\
 !\\
@@ -272,7 +272,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_ValidateLon_Dp
 !
-! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed 
+! !DESCRIPTION: Subroutine HCO\_ValidateLon\_Sp ensures that the passed
 ! double precision longitude axis LON is steadily increasing.
 !\\
 !\\
@@ -369,7 +369,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: DT             ! Time shift relative to current date [hrs]
 !
@@ -396,7 +396,7 @@ CONTAINS
     LOGICAL              :: ERR
     REAL(hp)             :: YMID_R, S_YMID_R,  C_YMID_R
     REAL(hp)             :: R,      DEC
-    REAL(hp)             :: S_DEC,  C_DEC 
+    REAL(hp)             :: S_DEC,  C_DEC
     REAL(hp)             :: SC,     LHR
     REAL(hp)             :: AHR
 
@@ -410,14 +410,14 @@ CONTAINS
     REAL(hp),  PARAMETER :: B3 = 0.000148e+0_hp
 
     !-------------------------------
-    ! HCO_GetSUNCOS starts here! 
+    ! HCO_GetSUNCOS starts here!
     !-------------------------------
 
     ! Get current time information
     CALL HcoClock_Get( am_I_Root, HcoState%Clock, cDOY=DOY, cH=HOUR, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Add time adjustment 
+    ! Add time adjustment
     HOUR = HOUR + DT
 
     ! Make sure HOUR is within valid range (0-24)
@@ -454,11 +454,11 @@ CONTAINS
 !$OMP DEFAULT( SHARED )                                   &
 !$OMP PRIVATE( I,      J,   YMID_R, S_YMID_R,  C_YMID_R ) &
 !$OMP PRIVATE( LHR,    AHR, SC,     RC                  )
-    DO J = 1, HcoState%NY 
+    DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
 
          ! Latitude of grid box [radians]
-         YMID_R     = HcoState%Grid%YMID%Val(I,J) * HcoState%Phys%PI_180 
+         YMID_R     = HcoState%Grid%YMID%Val(I,J) * HcoState%Phys%PI_180
 
          ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
          S_YMID_R   = SIN( YMID_R )
@@ -472,7 +472,7 @@ CONTAINS
 !-----------------------------------------------------------------------------
 ! Prior to 3/2/17:
 ! Seb Eastham suggested to comment out the call to HcoClock_GetLocal.  If
-! the Voronoi timezones are used, this will compute the timezones on political 
+! the Voronoi timezones are used, this will compute the timezones on political
 ! boundaries and not strictly on longitude.  This will cause funny results.
 ! Replace this with a strict longitudinal local time. (bmy, 3/27/17)
 !         ! Local time [hours] at box (I,J) at the midpt of the chem timestep
@@ -499,7 +499,7 @@ CONTAINS
 
          ! Hour angle at box (I,J) [radians]
          AHR = ABS( LHR - 12.0_hp ) * 15.0_hp * HcoState%Phys%PI_180
-         
+
          ! Corresponding cosine( SZA ) at box (I,J) [unitless]
          SC = ( S_YMID_R * S_DEC              ) &
             + ( C_YMID_R * C_DEC * COS( AHR ) )
@@ -512,7 +512,7 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     ! Check error status
-    IF ( ERR ) THEN 
+    IF ( ERR ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, &
          'Cannot calculate SZA', RC, &
           THISLOC='HCO_GetSUNCOS (hco_geotools_mod.F90)' )
@@ -532,13 +532,13 @@ CONTAINS
 !
 ! !IROUTINE: HCO_GetHorzIJIndex
 !
-! !DESCRIPTION: Function HCO\_GetHorzIJIndex returns the grid box index for 
+! !DESCRIPTION: Function HCO\_GetHorzIJIndex returns the grid box index for
 !  the given longitude (deg E, -180...180), and latitude (deg N, -90...90).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC ) 
+  SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC )
 !
 ! !USES
 !
@@ -549,9 +549,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
-    INTEGER,         INTENT(IN   )  :: N           
+    INTEGER,         INTENT(IN   )  :: N
     REAL(hp),        INTENT(IN   )  :: Lon(N)
     REAL(hp),        INTENT(IN   )  :: Lat(N)
 !
@@ -562,7 +562,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(  OUT)  :: IDX(N), JDX(N)
-! 
+!
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller - Initial version
 !  10 Jul 2015 - R. Yantosca - Corrected issues in ProTeX header
@@ -585,11 +585,11 @@ CONTAINS
 
     ! Get grid
     ASSERT_(ASSOCIATED(HcoState%GridComp))
-    CALL ESMF_GridCompGet( HcoState%GridComp, Grid=Grid, __RC__ ) 
+    CALL ESMF_GridCompGet( HcoState%GridComp, Grid=Grid, __RC__ )
 
     ! Shadow variables
-    LonR(:) = Lon / radToDeg 
-    LatR(:) = Lat / radToDeg 
+    LonR(:) = Lon / radToDeg
+    LatR(:) = Lat / radToDeg
 
     ! Get indeces
     CALL MAPL_GetHorzIJIndex( npts=N,   II=idx,   JJ=jdx,    &
@@ -602,7 +602,7 @@ CONTAINS
     ! Return w/ success
     RC =  HCO_SUCCESS
 
-  END SUBROUTINE HCO_GetHorzIJIndex 
+  END SUBROUTINE HCO_GetHorzIJIndex
 !EOC
 #else
 !------------------------------------------------------------------------------
@@ -612,13 +612,13 @@ CONTAINS
 !
 ! !IROUTINE: HCO_GetHorzIJIndex
 !
-! !DESCRIPTION: Function HCO\_GetHorzIJIndex returns the grid box index for 
+! !DESCRIPTION: Function HCO\_GetHorzIJIndex returns the grid box index for
 !  the given longitude (deg E, -180...180), and latitude (deg N, -90...90).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC ) 
+  SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC )
 !
 ! !USES:
 !
@@ -626,9 +626,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
-    INTEGER,         INTENT(IN   )  :: N           
+    INTEGER,         INTENT(IN   )  :: N
     REAL(hp),        INTENT(IN   )  :: Lon(N)
     REAL(hp),        INTENT(IN   )  :: Lat(N)
 !
@@ -639,7 +639,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(  OUT)  :: IDX(N), JDX(N)
-! 
+!
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller - Initial version
 !  10 Jul 2015 - R. Yantosca - Corrected issues in ProTeX header
@@ -649,7 +649,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER  :: I, J, L, FOUND 
+    INTEGER  :: I, J, L, FOUND
     REAL(hp) :: iLon1, iLon2
     REAL(hp) :: iLat1, iLat2
     REAL(hp) :: delta
@@ -663,14 +663,14 @@ CONTAINS
     JDX(:) = -1
     FOUND  =  0
 
-    ! do for every grid box 
-    DO J = 1, HcoState%NY 
-    DO I = 1, HcoState%NX 
+    ! do for every grid box
+    DO J = 1, HcoState%NY
+    DO I = 1, HcoState%NX
 
        ! Get grid edges for this box
- 
-       ! Longitude edges 
-       IF ( ASSOCIATED(HcoState%Grid%XEDGE%Val) ) THEN 
+
+       ! Longitude edges
+       IF ( ASSOCIATED(HcoState%Grid%XEDGE%Val) ) THEN
           iLon1 = HcoState%Grid%XEDGE%Val(I,  J)
           iLon2 = HcoState%Grid%XEDGE%Val(I+1,J)
 
@@ -687,7 +687,7 @@ CONTAINS
        ENDIF
 
        ! Latitude edges
-       IF ( ASSOCIATED(HcoState%Grid%YEDGE%Val) ) THEN 
+       IF ( ASSOCIATED(HcoState%Grid%YEDGE%Val) ) THEN
           iLat1 = HcoState%Grid%YEDGE%Val(I,J)
           iLat2 = HcoState%Grid%YEDGE%Val(I,J+1)
 
@@ -705,7 +705,7 @@ CONTAINS
 
        ! Check if it's within this box
        DO L = 1, N
-          IF ( IDX(L) > 0 ) CYCLE 
+          IF ( IDX(L) > 0 ) CYCLE
 
           IF ( Lon(L) >= HcoState%Grid%XEDGE%Val(I,  J  ) .AND. &
                Lon(L) <= HcoState%Grid%XEDGE%Val(I+1,J  ) .AND. &
@@ -716,14 +716,14 @@ CONTAINS
              FOUND  = FOUND + 1
              IF ( FOUND == N ) EXIT
           ENDIF
-       ENDDO 
-    ENDDO 
-    ENDDO 
+       ENDDO
+    ENDDO
+    ENDDO
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_GetHorzIJIndex 
+  END SUBROUTINE HCO_GetHorzIJIndex
 !EOC
 #endif
 !------------------------------------------------------------------------------
@@ -733,15 +733,15 @@ CONTAINS
 !
 ! !IROUTINE: HCO_CalcVertGrid
 !
-! !DESCRIPTION: Function HCO\_CalcVertGrid calculates the vertical grid 
+! !DESCRIPTION: Function HCO\_CalcVertGrid calculates the vertical grid
 !  quantities surface pressure PSFC [Pa], surface geopotential height ZSFC
 !  [m], grid box height BXHEIGHT [m], and pressure edges PEDGE [Pa]. Any of
 !  these fields can be passed explicitly to the routine, in which case these
-!  fields are being used. If not passed through the routine (i.e. if the 
+!  fields are being used. If not passed through the routine (i.e. if the
 !  corresponding input argument pointer is nullified), the field is searched
-!  in the HEMCO configuration file. If not found in the configuration file, 
+!  in the HEMCO configuration file. If not found in the configuration file,
 !  the field is approximated from other quantities (if possible). For example,
-!  if surface pressures are provided (either passed as argument or in the 
+!  if surface pressures are provided (either passed as argument or in the
 !  HEMCO configuration file as field PSFC), pressure edges are calculated
 !  from PSFC and the vertical grid coordinates (Ap and Bp for a hybrid sigma
 !  coordinate system). The temperature field TK [K] is needed to approximate
@@ -751,7 +751,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE HCO_CalcVertGrid ( am_I_Root, HcoState, PSFC,    &
-                                ZSFC,  TK, BXHEIGHT, PEDGE, RC ) 
+                                ZSFC,  TK, BXHEIGHT, PEDGE, RC )
 !
 ! !USES
 !
@@ -761,18 +761,18 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
     REAL(hp),        POINTER        :: PSFC(:,:)       ! surface pressure (Pa)
-    REAL(hp),        POINTER        :: ZSFC(:,:)       ! surface geopotential height (m) 
-    REAL(hp),        POINTER        :: TK  (:,:,:)     ! air temperature (K) 
-    REAL(hp),        POINTER        :: BXHEIGHT(:,:,:) ! grid box height (m) 
-    REAL(hp),        POINTER        :: PEDGE(:,:,:)    ! pressure edges (Pa) 
+    REAL(hp),        POINTER        :: ZSFC(:,:)       ! surface geopotential height (m)
+    REAL(hp),        POINTER        :: TK  (:,:,:)     ! air temperature (K)
+    REAL(hp),        POINTER        :: BXHEIGHT(:,:,:) ! grid box height (m)
+    REAL(hp),        POINTER        :: PEDGE(:,:,:)    ! pressure edges (Pa)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(INOUT)  :: RC
-! 
+!
 ! !REVISION HISTORY:
 !  28 Sep 2015 - C. Keller - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
@@ -784,13 +784,13 @@ CONTAINS
 !
     INTEGER                       :: NX, NY, NZ
     INTEGER                       :: I,  J,  L
-    LOGICAL                       :: Verb 
+    LOGICAL                       :: Verb
     LOGICAL                       :: FoundPSFC
     LOGICAL                       :: FoundZSFC
     LOGICAL                       :: FoundTK
     LOGICAL                       :: FoundPEDGE
     LOGICAL                       :: FoundBXHEIGHT
-    LOGICAL                       :: ERRBX, ERRZSFC 
+    LOGICAL                       :: ERRBX, ERRZSFC
     REAL(hp)                      :: P1, P2
     REAL(hp), ALLOCATABLE, TARGET :: TmpTK(:,:,:)
     REAL(hp), POINTER             :: ThisTK(:,:,:)
@@ -829,7 +829,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------------
-    ! TK  
+    ! TK
     ! ------------------------------------------------------------------
 
     ! If associated, make sure that array size is correct
@@ -843,7 +843,7 @@ CONTAINS
           WRITE(MSG,*) 'Wrong TK array size: ', NX, NY, NZ, &
                        '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-          RETURN 
+          RETURN
        ENDIF
 
        ! TK is not a field in grid, so don't pass
@@ -851,7 +851,7 @@ CONTAINS
        FoundTK = .TRUE.
 
        ! Verbose
-       IF ( Verb ) THEN 
+       IF ( Verb ) THEN
           WRITE(MSG,*) ' - Temperature field TK obtained from model interface (min,max): ', MINVAL(ThisTK), MAXVAL(ThisTK)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
@@ -890,14 +890,14 @@ CONTAINS
           WRITE(MSG,*) 'Wrong PSFC array size: ', NX, NY, &
                        '; should be: ', HcoState%NX, HcoState%NY
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-          RETURN 
+          RETURN
        ENDIF
-   
+
        ! Pass to HcoState array
        HcoState%Grid%PSFC%Val = PSFC
        FoundPSFC              = .TRUE.
 
-       ! Verbose 
+       ! Verbose
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - Surface pressure PSFC [Pa] obtained from model interface (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -909,7 +909,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_PSFC = FoundPSFC
 
-       ! Verbose 
+       ! Verbose
        IF ( Verb ) THEN
           IF ( FoundPSFC ) THEN
              WRITE(MSG,*) ' - Surface pressure PSFC [Pa] obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%PSFC%Val), MAXVAL(HcoState%Grid%PSFC%VAL)
@@ -936,14 +936,14 @@ CONTAINS
           WRITE(MSG,*) 'Wrong ZSFC array size: ', NX, NY, &
                        '; should be: ', HcoState%NX, HcoState%NY
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-          RETURN 
+          RETURN
        ENDIF
-   
+
        ! Pass to HcoState array
        HcoState%Grid%ZSFC%Val = ZSFC
        FoundZSFC              = .TRUE.
 
-       ! Verbose 
+       ! Verbose
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - Surface geopotential height ZSFC [m] obtained from model interface (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -955,7 +955,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_ZSFC = FoundZSFC
 
-       ! Verbose 
+       ! Verbose
        IF ( Verb ) THEN
           IF ( FoundZSFC ) THEN
              WRITE(MSG,*) ' - Surface geopotential height ZSFC [m] obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%VAL)
@@ -968,7 +968,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------------
-    ! PEDGE 
+    ! PEDGE
     ! ------------------------------------------------------------------
     CALL HCO_ArrAssert( HcoState%Grid%PEDGE, HcoState%NX, &
                         HcoState%NY,         HcoState%NZ+1, RC )
@@ -984,13 +984,13 @@ CONTAINS
           WRITE(MSG,*) 'Wrong PEDGE array size: ', NX, NY, NZ, &
                        '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ+1
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-          RETURN 
+          RETURN
        ENDIF
 
        HcoState%Grid%PEDGE%Val = PEDGE
        FoundPEDGE = .TRUE.
 
-       ! Verbose 
+       ! Verbose
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - Pressure edges PEDGE obtained from model interface (min, max): ', MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%VAL)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -1002,7 +1002,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_PEDGE = FoundPEDGE
 
-       ! Verbose 
+       ! Verbose
        IF ( Verb ) THEN
           IF ( FoundPEDGE ) THEN
              WRITE(MSG,*) ' - Pressure edges PEDGE obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%VAL)
@@ -1015,7 +1015,7 @@ CONTAINS
     ENDIF
 
     ! ------------------------------------------------------------------
-    ! BXHEIGHT 
+    ! BXHEIGHT
     ! ------------------------------------------------------------------
     CALL HCO_ArrAssert( HcoState%Grid%BXHEIGHT_M, HcoState%NX, &
                         HcoState%NY,              HcoState%NZ, RC )
@@ -1031,13 +1031,13 @@ CONTAINS
           WRITE(MSG,*) 'Wrong BXHEIGHT array size: ', NX, NY, NZ, &
                        '; should be: ', HcoState%NX, HcoState%NY, HcoState%NZ
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-          RETURN 
+          RETURN
        ENDIF
 
        HcoState%Grid%BXHEIGHT_M%Val = BXHEIGHT
        FoundBXHEIGHT = .TRUE.
 
-       ! Verbose 
+       ! Verbose
        IF ( Verb ) THEN
           WRITE(MSG,*) ' - Boxheights BXHEIGHT_M obtained from model interface (min, max): ', MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%VAL)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -1050,7 +1050,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_BXHEIGHT = FoundBXHEIGHT
 
-       ! Verbose 
+       ! Verbose
        IF ( Verb ) THEN
           IF ( FoundBXHEIGHT ) THEN
              WRITE(MSG,*) ' - Boxheights BXHEIGHT_M obtained from configuration file (min, max): ', MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%VAL)
@@ -1065,19 +1065,19 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! Calculate various quantities: the goal is to have the following
     ! quantities defined: ZSFC, PSFC, PEDGE, BXHEIGHT_M.
-    ! - If PEDGE is not yet defined, it is calculated from surface 
+    ! - If PEDGE is not yet defined, it is calculated from surface
     !   pressure (PSFC).
-    ! - If BXHEIGHT is not yet defined, it is calculated from PEDGE 
+    ! - If BXHEIGHT is not yet defined, it is calculated from PEDGE
     !   and TK.
     ! - If PSFC is not yet defined, it is set to the first level of
-    !   PEDGE (if defined) or uniformly set to 101325 Pa. 
+    !   PEDGE (if defined) or uniformly set to 101325 Pa.
     ! - If ZSFC is not yet defined, it is calculated from PSFC and TK.
-    ! - If TK is not defined, no attempt is made to initialize it to 
+    ! - If TK is not defined, no attempt is made to initialize it to
     !   a useful quantity. Calculations that require TK are omitted.
     ! ------------------------------------------------------------------
-  
+
     ! Verbose
-    IF ( Verb ) THEN 
+    IF ( Verb ) THEN
        MSG = '2. Grid calculations: '
        CALL HCO_MSG(MSG,SEP1=' ')
     ENDIF
@@ -1091,7 +1091,7 @@ CONTAINS
           IF ( Verb ) THEN
              MSG = ' - Surface pressure set to surface pressure edge.'
              CALL HCO_MSG(HcoState%Config%Err,MSG)
-          ENDIF          
+          ENDIF
        ELSE
           HcoState%Grid%PSFC%Val(:,:) = 101325.0_hp
           IF ( FIRST .AND. am_I_Root ) THEN
@@ -1106,7 +1106,7 @@ CONTAINS
           IF ( Verb ) THEN
              MSG = ' - Surface pressure uniformly set to 101325.0 Pa.'
              CALL HCO_MSG(HcoState%Config%Err,MSG)
-          ENDIF          
+          ENDIF
        ENDIF
        FoundPSFC = .TRUE.
     ENDIF
@@ -1132,10 +1132,10 @@ CONTAINS
 
        ! Verbose
        IF ( Verb ) THEN
-          WRITE(MSG,*) ' - PEDGE calculated from PSFC, Ap, and Bp (min, max): ', & 
+          WRITE(MSG,*) ' - PEDGE calculated from PSFC, Ap, and Bp (min, max): ', &
              MINVAL(HcoState%Grid%PEDGE%Val), MAXVAL(HcoState%Grid%PEDGE%Val)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
-       ENDIF          
+       ENDIF
     ENDIF
 
     ! Set surface height and/or grid box height
@@ -1191,15 +1191,15 @@ CONTAINS
                    'surface geopotential height to your configuration file (ZSFC)'
              CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
-          ELSE 
+          ELSE
              FoundZSFC = .TRUE.
 
              ! Verbose
              IF ( Verb ) THEN
-                WRITE(MSG,*) ' - ZSFC calculated from PSFC and T (min, max): ', & 
+                WRITE(MSG,*) ' - ZSFC calculated from PSFC and T (min, max): ', &
                    MINVAL(HcoState%Grid%ZSFC%Val), MAXVAL(HcoState%Grid%ZSFC%Val)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
-             ENDIF          
+             ENDIF
           ENDIF
 
           IF ( ERRBX ) THEN
@@ -1209,13 +1209,13 @@ CONTAINS
                    'grid box heights to your configuration file (BOXHEIGHT_M)'
              CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
              RETURN
-          ELSE 
+          ELSE
              FoundZSFC = .TRUE.
 
              ! Verbose
              IF ( Verb ) THEN
-                WRITE(MSG,*) ' - Boxheights calculated from PEDGE and T (min, max): ', & 
-                   MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%Val) 
+                WRITE(MSG,*) ' - Boxheights calculated from PEDGE and T (min, max): ', &
+                   MINVAL(HcoState%Grid%BXHEIGHT_M%Val), MAXVAL(HcoState%Grid%BXHEIGHT_M%Val)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
           ENDIF
@@ -1237,10 +1237,10 @@ CONTAINS
              CALL HCO_WARNING( HcoState%Config%Err,MSG, RC, THISLOC=LOC, WARNLEV=1 )
           ENDIF
        ENDIF
-    ENDIF 
+    ENDIF
 
     ! ------------------------------------------------------------------
-    ! Wrap up and leave 
+    ! Wrap up and leave
     ! ------------------------------------------------------------------
 
     ! Verbose
@@ -1268,7 +1268,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_SetPBLm
 !
-! !DESCRIPTION: Subroutine HCO\_SetPBLm sets the HEMCO PBL mixing height in 
+! !DESCRIPTION: Subroutine HCO\_SetPBLm sets the HEMCO PBL mixing height in
 ! meters. It first tries to read it from field 'FldName' (from the HEMCO data
 ! list), then to fill it from field 'PBLM', and then assigns the default value
 ! 'DefVal' to it.
@@ -1286,16 +1286,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )            :: am_I_Root   ! Root CPU? 
+    LOGICAL,          INTENT(IN   )            :: am_I_Root   ! Root CPU?
     TYPE(HCO_State),  POINTER                  :: HcoState    ! HEMCO state object
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   )  :: FldName     ! field name
-    REAL(hp),         OPTIONAL, POINTER        :: PBLM(:,:)   ! pbl mixing height  
-    REAL(hp),         OPTIONAL, INTENT(IN   )  :: DefVal      ! default value 
+    REAL(hp),         OPTIONAL, POINTER        :: PBLM(:,:)   ! pbl mixing height
+    REAL(hp),         OPTIONAL, INTENT(IN   )  :: DefVal      ! default value
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT)  :: RC
-! 
+!
 ! !REVISION HISTORY:
 !  28 Sep 2015 - C. Keller - Initial version
 !EOP
@@ -1316,7 +1316,7 @@ CONTAINS
     ! Init
     FOUND = .FALSE.
 
-    ! Try to read from file first 
+    ! Try to read from file first
     IF ( PRESENT( FldName ) ) THEN
        CALL HCO_EvalFld ( am_I_Root, HcoState, FldName, &
           HcoState%Grid%PBLHEIGHT%Val, RC, FOUND=FOUND )
@@ -1342,15 +1342,15 @@ CONTAINS
                 WRITE(MSG,*) 'Wrong PBLM array size: ', NX, NY, &
                              '; should be: ', HcoState%NX, HcoState%NY
                 CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-                RETURN 
+                RETURN
              ENDIF
 
-             ! Make sure size is ok   
+             ! Make sure size is ok
              CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, &
                                  HcoState%NX, HcoState%NY, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
-             ! Pass data 
+             ! Pass data
              HcoState%Grid%PBLHEIGHT%Val = PBLM
              FOUND                       = .TRUE.
 
@@ -1367,29 +1367,29 @@ CONTAINS
 !    IF ( .NOT. FOUND .AND. PRESENT(DefVal) ) THEN
     IF ( .NOT. FOUND ) THEN
        IF ( PRESENT(DefVal) ) THEN
-          ! Make sure size is ok   
+          ! Make sure size is ok
           CALL HCO_ArrAssert( HcoState%Grid%PBLHEIGHT, &
                               HcoState%NX, HcoState%NY, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
-          ! Pass data 
+          ! Pass data
           HcoState%Grid%PBLHEIGHT%Val = DefVal
           FOUND                       = .TRUE.
 
           ! Verbose
           IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-             WRITE(MSG,*) 'HEMCO PBL heights uniformly set to ', DefVal 
+             WRITE(MSG,*) 'HEMCO PBL heights uniformly set to ', DefVal
              CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
           ENDIF
        ENDIF
     ENDIF
 
     ! Error check
-    IF ( .NOT. FOUND ) THEN 
+    IF ( .NOT. FOUND ) THEN
        WRITE(MSG,*) 'Cannot set PBL height: a valid HEMCO data field, ', &
           'an explicit 2D field or a default value must be provided!'
        CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
-       RETURN 
+       RETURN
     ENDIF
 
     ! Return w/ success
@@ -1404,7 +1404,7 @@ CONTAINS
 !!
 !! !SUBROUTINE: HCO_CalcPBLlev3D
 !!
-!! !DESCRIPTION: 
+!! !DESCRIPTION:
 !!\\
 !!\\
 !! !INTERFACE:
@@ -1418,14 +1418,14 @@ CONTAINS
 !!
 !! !INPUT PARAMETERS:
 !!
-!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU? 
+!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU?
 !    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
-!    REAL(hp),        POINTER        :: PBLFRAC(:,:,:)  ! planetary PBL fraction 
+!    REAL(hp),        POINTER        :: PBLFRAC(:,:,:)  ! planetary PBL fraction
 !!
 !! !INPUT/OUTPUT PARAMETERS:
 !!
 !    INTEGER,         INTENT(INOUT)  :: RC
-!! 
+!!
 !! !REVISION HISTORY:
 !!  05 May 2016 - C. Keller - Initial version
 !!EOP
@@ -1436,7 +1436,7 @@ CONTAINS
 !!
 !    INTEGER             :: I,  J,  L
 !    CHARACTER(LEN=255)  :: MSG
-!    CHARACTER(LEN=255)  :: LOC = 'HCO_CalcPBLlev3D (hco_geotools_mod.F90)' 
+!    CHARACTER(LEN=255)  :: LOC = 'HCO_CalcPBLlev3D (hco_geotools_mod.F90)'
 !
 !    !-------------------------------
 !    ! HCO_CalcPBLlev3D begins here
@@ -1444,7 +1444,7 @@ CONTAINS
 !
 !    ! Check input array size
 !    IF ( SIZE(PBLFRAC,1) /= HcoState%NX .OR. &
-!         SIZE(PBLFRAC,2) /= HcoState%NY .OR. & 
+!         SIZE(PBLFRAC,2) /= HcoState%NY .OR. &
 !         SIZE(PBLFRAC,3) /= HcoState%NZ        ) THEN
 !       WRITE(MSG,*) 'Input array PBLFRAC has wrong horiz. dimensions: ', &
 !                     SIZE(PBLFRAC,1),SIZE(PBLFRAC,2),SIZE(PBLFRAC,3)
@@ -1453,7 +1453,7 @@ CONTAINS
 !    ENDIF
 !
 !    ! Make sure array is associated
-!    CALL HCO_ArrAssert( HcoState%Grid%PBL, HcoState%NX, HcoState%NY, RC ) 
+!    CALL HCO_ArrAssert( HcoState%Grid%PBL, HcoState%NX, HcoState%NY, RC )
 !    IF ( RC /= HCO_SUCCESS ) RETURN
 !
 !    ! Initialize values
@@ -1487,7 +1487,7 @@ CONTAINS
 !!
 !! !SUBROUTINE: HCO_CalcPBLlev2D
 !!
-!! !DESCRIPTION: 
+!! !DESCRIPTION:
 !!\\
 !!\\
 !! !INTERFACE:
@@ -1501,14 +1501,14 @@ CONTAINS
 !!
 !! !INPUT PARAMETERS:
 !!
-!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU? 
+!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU?
 !    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
-!    INTEGER,         POINTER        :: PBLlev(:,:)     ! planetary PBL lev 
+!    INTEGER,         POINTER        :: PBLlev(:,:)     ! planetary PBL lev
 !!
 !! !INPUT/OUTPUT PARAMETERS:
 !!
 !    INTEGER,         INTENT(INOUT)  :: RC
-!! 
+!!
 !! !REVISION HISTORY:
 !!  05 May 2016 - C. Keller - Initial version
 !!EOP
@@ -1519,14 +1519,14 @@ CONTAINS
 !!
 !    INTEGER             :: I,  J,  L
 !    CHARACTER(LEN=255)  :: MSG
-!    CHARACTER(LEN=255)  :: LOC = 'HCO_CalcPBLlev2D (hco_geotools_mod.F90)' 
+!    CHARACTER(LEN=255)  :: LOC = 'HCO_CalcPBLlev2D (hco_geotools_mod.F90)'
 !
 !    !-------------------------------
 !    ! HCO_CalcPBLlev2D begins here
 !    !-------------------------------
 !
 !    ! Make sure array is associated
-!    CALL HCO_ArrAssert( HcoState%Grid%PBL, HcoState%NX, HcoState%NY, RC ) 
+!    CALL HCO_ArrAssert( HcoState%Grid%PBL, HcoState%NX, HcoState%NY, RC )
 !    IF ( RC /= HCO_SUCCESS ) RETURN
 !
 !    ! Check input array size

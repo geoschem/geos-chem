@@ -1,7 +1,7 @@
 #[[ FindNetCDF.cmake
 
 This module finds NetCDF-C and NetCDF-F. It uses nc-config and nf-config to
-get HINTS for the find_xxxx's that are used to find the files/directories 
+get HINTS for the find_xxxx's that are used to find the files/directories
 listed below.
 
 If a file or directory cannot be found, the user should add the appropriate
@@ -29,7 +29,7 @@ find_program(NF_CONFIG NAMES "nf-config" DOC "Location of nf-config utility")
 function(inspect_netcdf_config VAR NX_CONFIG ARG)
     execute_process(
         COMMAND ${NX_CONFIG} ${ARG}
-        RESULT_VARIABLE NX_CONFIG_RET   
+        RESULT_VARIABLE NX_CONFIG_RET
         OUTPUT_VARIABLE NX_CONFIG_OUTPUT
         ERROR_VARIABLE  NX_CONFIG_STDERR
         OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -109,7 +109,7 @@ find_library(NETCDF_F_LIBRARY
         "lib"
 )
 
-# Make a readable error message 
+# Make a readable error message
 set(NetCDF_ERRMSG "\nCounldn't find one or more of NetCDF's files! The following files/directories weren't found:")
 if(NOT NETCDF_F_LIBRARY)
     set(NetCDF_ERRMSG "${NetCDF_ERRMSG}
@@ -136,21 +136,21 @@ set(NetCDF_ERRMSG "${NetCDF_ERRMSG}\nFind the directories/files that are listed 
 # Conform to the find_package standards
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args(NetCDF
-    REQUIRED_VARS 
-        NETCDF_F_LIBRARY 
+    REQUIRED_VARS
+        NETCDF_F_LIBRARY
         NETCDF_C_LIBRARY
-        NETCDF_C_INCLUDE_DIR 
-        NETCDF_F90_INCLUDE_DIR 
-        NETCDF_F77_INCLUDE_DIR 
+        NETCDF_C_INCLUDE_DIR
+        NETCDF_F90_INCLUDE_DIR
+        NETCDF_F77_INCLUDE_DIR
     FAIL_MESSAGE "${NetCDF_ERRMSG}"
 )
 mark_as_advanced(
     NC_CONFIG
-    NF_CONFIG 
-    NETCDF_F_LIBRARY 
+    NF_CONFIG
+    NETCDF_F_LIBRARY
     NETCDF_C_LIBRARY
-    NETCDF_C_INCLUDE_DIR 
-    NETCDF_F90_INCLUDE_DIR 
+    NETCDF_C_INCLUDE_DIR
+    NETCDF_F90_INCLUDE_DIR
     NETCDF_F77_INCLUDE_DIR
 )
 

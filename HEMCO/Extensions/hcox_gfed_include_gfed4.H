@@ -6,7 +6,7 @@
 !
 ! !IROUTINE: hcox_gfed_include_gfed4.H
 !
-! !DESCRIPTION: Include file with GFED emission factor data that was 
+! !DESCRIPTION: Include file with GFED emission factor data that was
 !  originally contained in file GFED\_emission\_factors.txt.  We have now
 !  transformed this file into hardwired F90 commands in order to avoid reading
 !  an ASCII file in the ESMF environment.
@@ -20,7 +20,7 @@
 !    cd HEMCO/Extensions/Preprocess
 !    make gfed
 !
-!  This will regenerate this include file from the original data and 
+!  This will regenerate this include file from the original data and
 !  automatically place it in the HEMCO/Extensions directory.
 !
 !  White space has been removed in order to reduce the file size as much
@@ -37,14 +37,14 @@
 !  Inst%GFED4_EMFAC(N,5) = Peat fires Emission Factor
 !  Inst%GFED4_EMFAC(N,6) = Agricultural waste burning Emission Factor
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  08 Aug 2014 - R. Yantosca - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
 !  08 Mar 2017 - M. Sulprizio- Added the following updates from E. Fischer:
 !                              - Added EOH and MTPA for PAN updates
 !  29 Mar 2018 - K. Travis   - Updated to latest GFED4 emission factors from
 !                           https://www.geo.vu.nl/~gwerf/GFED/GFED4/ancill/
-!                            - Added HAC, GLYX, Hg0   
+!                            - Added HAC, GLYX, Hg0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -57,8 +57,8 @@ Inst%GFED4_EMFAC(1,3)=8.80E-02_hp
 Inst%GFED4_EMFAC(1,4)=9.30E-02_hp
 Inst%GFED4_EMFAC(1,5)=2.10E-01_hp
 Inst%GFED4_EMFAC(1,6)=1.02E-01_hp
- 
-! ALK4 (Higher_Alkanes) - already in kgC 
+
+! ALK4 (Higher_Alkanes) - already in kgC
 GFED4_SPEC_NAME(2)="ALK4"
 Inst%GFED4_EMFAC(2,1)=5.50E-05_hp
 Inst%GFED4_EMFAC(2,2)=3.49E-04_hp
@@ -177,7 +177,7 @@ Inst%GFED4_EMFAC(14,6)=3.11E-03_hp
 
 ! MGLY (CH3COCHO) - not traced per carbon
 GFED4_SPEC_NAME(15)="MGLY"
-Inst%GFED4_EMFAC(15,1)=7.30E-04_hp 
+Inst%GFED4_EMFAC(15,1)=7.30E-04_hp
 Inst%GFED4_EMFAC(15,2)=7.30E-04_hp
 Inst%GFED4_EMFAC(15,3)=7.30E-04_hp
 Inst%GFED4_EMFAC(15,4)=7.30E-04_hp
@@ -338,7 +338,7 @@ Inst%GFED4_EMFAC(32,5)=7.56E-08_hp ! PET -- PEAT
 Inst%GFED4_EMFAC(32,6)=4.48E-08_hp ! AGW -- AGRI
 
 ! HAC - not traced per carbon - from Akagi et al, 2011
-GFED4_SPEC_NAME(33)="HAC" 
+GFED4_SPEC_NAME(33)="HAC"
 Inst%GFED4_EMFAC(33,1)=4.50E-04_hp !SAV - Savannah
 Inst%GFED4_EMFAC(33,2)=0.00E+00_hp !BORF - Boreal
 Inst%GFED4_EMFAC(33,3)=0.00E+00_hp !TEMP - Temperate
