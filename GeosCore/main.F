@@ -2744,7 +2744,7 @@
       INTEGER            :: nArg,   ArgLen
 
       ! Strings
-      CHARACTER(LEN=255) :: ArgVal, ArgVal2, ErrMsg, ThisLoc
+      CHARACTER(LEN=255) :: ArgVal, ErrMsg, ThisLoc
 
       !=================================================================
       ! Test_For_Dry_Run begins here!
@@ -2764,7 +2764,6 @@
          ! Initialize for next argument
          ArgLen  = 0
          ArgVal  = ''
-         ArgVal2 = ''
 
          ! Get the next argument
          CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
@@ -2778,19 +2777,13 @@
                 Input_Opt%DryRun    = .TRUE.
                 Input_Opt%DryRunLUN = FindFreeLUN()
 
-            ! Test for the log file name
-            CASE( '--log', '-L' )
-               nArg = nArg + 1
-               CALL Get_Command_Argument( nArg, ArgVal2, ArgLen )
-               print*, '### arglen: ', arglen
-               print*, '### argval2: ', trim(argval2)
-               IF ( ArgLen == 0 ) THEN
-                  ErrMsg =
-     &             '--log was found but no log file name was given!'
-                  CALL GC_Error( ErrMsg, RC, ThisLoc )
-                  RETURN
-               ENDIF
-               Input_Opt%DryRunLog = TRIM( ArgVal2 )
+                ! Look for the log file following the dry-run argument
+                ! Otherwise use the default dry run logfile name.
+                nArg = nArg + 1
+                CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
+                IF ( ArgLen > 0 ) THEN
+                   Input_Opt%DryRunLog = TRIM( ArgVal )
+                ENDIF
 
             ! Otherwise pass through
             CASE DEFAULT

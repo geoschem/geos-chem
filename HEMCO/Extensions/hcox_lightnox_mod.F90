@@ -947,10 +947,10 @@ CONTAINS
 !
     INTEGER                        :: AS, III, IOS, JJJ, IU_FILE, nSpc
     INTEGER                        :: ExtNr
-    LOGICAL                        :: FOUND
+    LOGICAL                        :: FOUND, FileExists
     INTEGER, ALLOCATABLE           :: HcoIDs(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-    CHARACTER(LEN=255)             :: MSG, LOC, FILENAME
+    CHARACTER(LEN=255)             :: MSG, LOC, FILENAME, FileMsg
     TYPE(MyInst), POINTER          :: Inst
 
     !=======================================================================
@@ -1082,12 +1082,39 @@ CONTAINS
     CALL HCO_CharParse( HcoState%Config, FILENAME, -999, -1, -1, -1, -1, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Echo info
-    IF ( am_I_Root ) THEN
-       WRITE( MSG, 100 ) TRIM( FILENAME )
-       CALL HCO_MSG(HcoState%Config%Err,MSG)
+    !-----------------------------------------------------------------------
+    ! In dry-run mode, print file path to dryrun log and exit.
+    ! Otherwise, print file path to the HEMCO log file and continue.
+    !-----------------------------------------------------------------------
+
+    ! Test if the file exists
+    INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+
+    ! Create a display string based on whether or not the file is found
+    IF ( FileExists ) THEN
+       FileMsg = 'HEMCO-X (INIT_LIGHTNOX): Opening'
+    ELSE
+       FileMsg = 'HEMCO-X (INIT_LIGHTNOX): REQUIRED FILE NOT FOUND'
     ENDIF
-100 FORMAT( '     - INIT_LIGHTNOX: Reading ', a )
+
+    ! Print file path for either dry-run or regular simulations
+    IF ( HcoState%Options%IsDryRun ) THEN
+       IF ( am_I_Root ) THEN
+          WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
+                                                   TRIM( FileName )
+ 100      FORMAT( a, ' ', a )
+       ENDIF
+       RETURN
+    ELSE
+       IF ( am_I_Root ) THEN
+          WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FILENAME )
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Read data from file
+    !-----------------------------------------------------------------------
 
     ! Find a free file LUN
     IU_FILE = findFreeLUN()

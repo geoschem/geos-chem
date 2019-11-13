@@ -144,6 +144,7 @@ MODULE HCO_TYPES_MOD
      LOGICAL  :: TimeShiftCap   ! Cap time shift to same day. Defaults to no.
      LOGICAL  :: isESMF         ! Are we using ESMF?
      LOGICAL  :: isDryRun       ! Are we in a dry run?
+     INTEGER  :: DryRunLUN      ! Logical unit number for dry run log file
   END TYPE HcoOpt
 
   !=========================================================================

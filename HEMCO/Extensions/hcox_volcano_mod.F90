@@ -502,9 +502,9 @@ CONTAINS
     REAL(sp)              :: Dum(10)
     REAL(hp), ALLOCATABLE :: VolcLon(:)      ! Volcano longitude [deg E]
     REAL(hp), ALLOCATABLE :: VolcLat(:)      ! Volcano latitude  [deg N]
-    LOGICAL               :: FileExist, EOF
+    LOGICAL               :: FileExists, EOF
     CHARACTER(LEN=255)    :: ThisFile, ThisLine
-    CHARACTER(LEN=255)    :: MSG
+    CHARACTER(LEN=255)    :: MSG,      FileMsg
     CHARACTER(LEN=255)    :: LOC = 'ReadVolcTable (hcox_volcano_mod.F90)'
 
     !=================================================================
@@ -528,15 +528,42 @@ CONTAINS
        CALL HCO_CharParse( HcoState%Config, ThisFile, YYYY, MM, DD, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Verbose
-       IF ( am_I_Root ) THEN
-          MSG = 'AeroCom: reading ' // TRIM(ThisFile)
-          CALL HCO_MSG( HcoState%Config%Err, MSG)
+       !--------------------------------------------------------------------
+       ! In dry-run mode, print file path to dryrun log and exit.
+       ! Otherwise, print file path to the HEMCO log file and continue.
+       !--------------------------------------------------------------------
+
+       ! Test if the file exists
+       INQUIRE( FILE=TRIM( ThisFile ), EXIST=FileExists )
+
+       ! Create a display string based on whether or not the file is found
+       IF ( FileExists ) THEN
+          FileMsg = 'HEMCO-X (ReadVolcTable): Opening'
+       ELSE
+          FileMsg = 'HEMCO-X (ReadVolcTable): REQUIRED FILE NOT FOUND'
        ENDIF
 
+       ! Print file path for either dry-run or regular simulations
+       IF ( HcoState%Options%IsDryRun ) THEN
+          IF ( am_I_Root ) THEN
+             WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),      &
+                                                      TRIM( ThisFile )
+100          FORMAT( a, ' ', a )
+          ENDIF
+          RETURN
+       ELSE
+          IF ( am_I_Root ) THEN
+             WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( ThisFile )
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Read data from files
+       !--------------------------------------------------------------------
+
        ! Check if file exists
-       INQUIRE ( FILE=TRIM(ThisFile), EXIST=FileExist )
-       IF ( .NOT. FileExist ) THEN
+       IF ( .NOT. FileExists ) THEN
           MSG = 'Cannot find ' // TRIM(ThisFile)
           CALL HCO_ERROR( HcoState%Config%Err,  MSG, RC, THISLOC=LOC )
           RETURN

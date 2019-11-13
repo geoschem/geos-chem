@@ -409,18 +409,29 @@ CONTAINS
     HcoState%Options%isESMF = .FALSE.
 #endif
 
-    ! Are we running HEMCO in a dry-run mode?
-    ! This is dictated by the GEOS-Chem environment. If GEOS-Chem is in a dry-run
-    ! mode, no compute is performed and files are only "checked". Simulations will
-    ! NOT stop on missing files. This is intended to be a quick sanity check to make
-    ! sure that GEOS-Chem IO are all correctly set up, which is why most of the runs
-    ! fail to complete successfully. (hplin, 11/2/19)
-    HcoState%Options%isDryRun = Input_Opt%DryRun
-
     ! Set deposition length scale. This determines if dry deposition
     ! frequencies are calculated over the entire PBL or the first
     ! model layer only.
     HcoState%Options%PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+
+    !----------------------------------------------------------------------
+    ! Are we running HEMCO in a dry-run mode?
+    ! This is dictated by the GEOS-Chem environment. If GEOS-Chem is in a
+    ! dry-run mode, no compute is performed and files are only "checked".
+    ! Simulations will NOT stop on missing files. This is intended to be a
+    ! quick sanity check to make sure that GEOS-Chem IO are all correctly
+    ! set up, which is why most of the runs fail to complete successfully.
+    ! (hplin, 11/2/19)
+    !
+    ! Dry-run simulations now send output to a log file that is separate
+    ! from the GEOS-Chem and HEMCO log files. (bmy, 11/11/19)
+    !
+    ! NOTE: The dry-run option is only invoked in GEOS-Chem "Classic",
+    ! so these values will remain at their defaults (.FALSE. and -1,
+    ! respectively) when we use HEMCO in external ESMs (bmy, 11/13/19)
+    !----------------------------------------------------------------------
+    HcoState%Options%isDryRun  = Input_Opt%DryRun
+    HcoState%Options%DryRunLUN = Input_Opt%DryRunLUN
 
     !=======================================================================
     ! Initialize HEMCO internal lists and variables. All data

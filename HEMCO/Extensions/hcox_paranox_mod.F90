@@ -1596,23 +1596,51 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
+
+   ! Scalars
+   LOGICAL             :: FileExists
    INTEGER             :: AS, IOS
    INTEGER             :: fID
+
+   ! arrays
    INTEGER             :: st1d(1), ct1d(1)
    INTEGER             :: st7d(7), ct7d(7)
 
-   CHARACTER(LEN=255)  :: MSG
+   CHARACTER(LEN=255)  :: MSG,     FileMsg
 
    !=================================================================
-   ! READ_LUT_NCFILE begins here
+   ! In dry-run mode, print file path to dryrun log and exit.
+   ! Otherwise, print file path to the HEMCO log file and continue.
    !=================================================================
 
-   ! Echo info
-   IF ( am_I_Root ) THEN
-      WRITE( MSG, 100 ) TRIM( FILENAME )
-      CALL HCO_MSG(HcoState%Config%Err,MSG)
-100   FORMAT( 'READ_LUT_NCFILE: Reading ', a )
+   ! Test if the file exists
+   INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+
+   ! Create a display string based on whether or not the file is found
+   IF ( FileExists ) THEN
+      FileMsg = 'HEMCO-X (READ_LUT_NCFILE): Opening'
+   ELSE
+      FileMsg = 'HEMCO-X (READ_LUT_NCFILE): REQUIRED FILE NOT FOUND'
    ENDIF
+
+   ! Print file path for either dry-run or regular simulations
+   IF ( HcoState%Options%IsDryRun ) THEN
+      IF ( am_I_Root ) THEN
+         WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
+                                                  TRIM( FileName )
+ 100     FORMAT( a, ' ', a )
+      ENDIF
+      RETURN
+   ELSE
+      IF ( am_I_Root ) THEN
+         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FILENAME )
+         CALL HCO_MSG(HcoState%Config%Err,MSG)
+      ENDIF
+   ENDIF
+
+   !=================================================================
+   ! READ_LUT_NCFILE begins here!
+   !=================================================================
 
    ! Open file for reading
    CALL Ncop_Rd( fId, TRIM(FILENAME) )
@@ -1855,26 +1883,55 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
+!
+   ! Scalars
+   LOGICAL             :: FileExists
    INTEGER             :: fId, IOS
 
 !   INTEGER             :: I, I1, I2, I3, I4, I5, I6, I7
 !   REAL*4, POINTER     :: TMPARR(:,:,:,:,:,:,:) => NULL()
 
-   CHARACTER(LEN=255)  :: MSG
+   CHARACTER(LEN=255)  :: MSG, FileMsg
+!
+! !DEFINED PARAMETERS:
+!
    CHARACTER(LEN=255), PARAMETER :: FMAT = "(E40.32)"
    CHARACTER(LEN=255), PARAMETER :: LOC  = &
                         'READ_LUT_TXTFILE (hcox_paranox_mod.F90)'
 
    !=================================================================
-   ! READ_LUT_TXTFILE begins here
+   ! In dry-run mode, print file path to dryrun log and exit.
+   ! Otherwise, print file path to the HEMCO log file and continue.
    !=================================================================
 
-   ! Echo info
-   IF ( am_I_Root ) THEN
-      WRITE( MSG, 100 ) TRIM( FILENAME )
-      CALL HCO_MSG(HcoState%Config%Err,MSG)
-100   FORMAT( 'READ_LUT_TXTFILE: Reading ', a )
+   ! Test if the file exists
+   INQUIRE ( FILE=TRIM( FileName ), EXIST=FileExists )
+
+   ! Create a display string based on whether or not the file is found
+   IF ( FileExists ) THEN
+      FileMsg = 'HEMCO-X (READ_LUT_TXTFILE): Opening'
+   ELSE
+      FileMsg = 'HEMCO-X (READ_LUT_TXTFILE): REQUIRED FILE NOT FOUND'
    ENDIF
+
+   ! Print file path for either dry-run or regular simulations
+   IF ( HcoState%Options%IsDryRun ) THEN
+      IF ( am_I_Root ) THEN
+         WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
+                                                  TRIM( FileName )
+ 100     FORMAT( a, ' ', a )
+      ENDIF
+      RETURN
+   ELSE
+      IF ( am_I_Root ) THEN
+         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FILENAME )
+         CALL HCO_MSG(HcoState%Config%Err,MSG)
+      ENDIF
+   ENDIF
+
+   !=================================================================
+   ! READ_LUT_TXTFILE begins here
+   !=================================================================
 
    ! Find a free file LUN
    fId = findFreeLUN()
