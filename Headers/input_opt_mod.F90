@@ -36,12 +36,18 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! General Runtime & Distributed Comp Info
      !----------------------------------------
-     INTEGER                     :: numCPUs   ! Number of MPI procs
-     INTEGER                     :: thisCPU   ! Local MPI process handle
-     INTEGER                     :: MPIComm   ! MPI Communicator Handle
-     LOGICAL                     :: isMPI     ! Is this an MPI sim?
-     LOGICAL                     :: amIRoot   ! Is this the root cpu?
-     LOGICAL                     :: DryRun    ! Is this a dry run? (no actual processing, only file check)
+     INTEGER                     :: numCPUs    ! Number of MPI procs
+     INTEGER                     :: thisCPU    ! Local MPI process handle
+     INTEGER                     :: MPIComm    ! MPI Communicator Handle
+     LOGICAL                     :: isMPI      ! Is this an MPI sim?
+     LOGICAL                     :: amIRoot    ! Is this the root cpu?
+
+     !----------------------------------------
+     ! Dry run info (print out file names)
+     !----------------------------------------
+     LOGICAL                     :: DryRun     ! Is this a dry run?
+     CHARACTER(LEN=255)          :: DryRunLog  ! Dry run log filename
+     INTEGER                     :: DryRunLUN  ! Logical unit for dryrun log
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -507,7 +513,13 @@ CONTAINS
     Input_Opt%numCPUs                = 1
     Input_Opt%thisCPU                = -1
     Input_Opt%MPIComm                = -1
-    Input_Opt%DryRun                 = .FALSE. ! Assume real run, not dry run
+
+    !----------------------------------------
+    ! Dry run info (print out file names)
+    !----------------------------------------
+    Input_Opt%DryRun                 = .FALSE.
+    Input_Opt%DryRunLog              = 'GEOSChem.DryRun.log'
+    Input_Opt%DryRunLUN              = -1
 
     !----------------------------------------
     ! SIZE PARAMETER fields

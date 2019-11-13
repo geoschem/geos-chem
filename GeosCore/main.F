@@ -434,7 +434,7 @@
       LWETD               =  Input_Opt%LWETD
 
       ! Set a flag to denote if we should print ND70 debug output
-      prtDebug            = ( LPRT .and. am_I_Root .and. notDryRun )
+      prtDebug            = ( LPRT .and. am_I_Root )
 
       ! Debug output
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_INPUT_FILE' )
@@ -449,38 +449,27 @@
       ! The "dry-run" option is initialized using the command line extra
       ! argument ./geos --dry-run
       !
-      ! Logs will be directly printed to standard output.
+      ! A log file can be specified with --log FILENAME.
+      ! If no log file is specified, the default logfile will be
+      ! "GEOSChem.DryRun.log".
+      !
       ! This option is currently only supported in GEOS-Chem Classic.
       !
       ! Additionally, this flag must be set after reading input file, or
       ! its value will be overwritten by READ_INPUT_FILE.
       ! (hplin, 11/1/19)
       !-----------------------------------------------------------------
-      CALL GETARG( 1, Argv )   ! Need to allow for multiple argvs later
-      IF ( Argv == '--dry-run' ) THEN
-         Input_Opt%DryRun = .TRUE.
+      CALL Init_Dry_Run( Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Dry_Run"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
       ! Define a local convenience variable for negating Input_Opt%DryRun
       notDryRun = ( .not. Input_Opt%DryRun )
 
-      ! Are we running in "Dry-run" mode?
-      ! If Input_Opt%DryRun is set to TRUE, then GEOS-Chem is in a dry run mode.
-      ! No actual processing and calculations are performed and only time-stepping
-      ! through to verify config, input and output correctness is done.
-      ! (hplin, 11/1/19)
-      IF ( Input_Opt%DryRun ) THEN
-         WRITE( 6, '(a)' )
-         WRITE( 6, '(a)' ) REPEAT( '!', 79 )
-         WRITE( 6, '(a)' ) 'GEOS-CHEM IS IN A DRY RUN MODE!'
-         WRITE( 6, '(a)' ) 'You will NOT get output for this run!'
-         WRITE( 6, '(a)' ) '--dry-run is used for checking existence' //
-     &                     ' input files and config correctness.'
-         WRITE( 6, '(a)' ) 'REMOVE --dry-run FROM COMMAND ONCE CHECK' //
-     &                     ' IS PASSED TO RUN GEOS-CHEM PROPER!'
-         WRITE( 6, '(a)' ) REPEAT( '!', 79 )
-         WRITE( 6, '(a)' )
-      ENDIF
+      ! Turn off debug output for the dry-runs simulation
+      prtDebug = ( prtDebug .and. notDryRun )
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -2336,6 +2325,9 @@
       CALL GEOS_Timer_Start( "Finalization", RC )
 #endif
 
+      ! Cleanup the dry-run simulation (if necessary)
+      CALL Cleanup_Dry_Run( Input_Opt, RC )
+
       ! Close all files
       CALL CLOSE_FILES()
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a CLOSE_FILES' )
@@ -2391,12 +2383,16 @@
       ENDIF
 
       ! Deallocate fields of the diagnostics list object
-      CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Cleanup_DiagList"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
+      IF ( notDryRun ) THEN
+         CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Cleanup_DiagList"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+         IF ( prtDebug ) THEN
+            CALL Debug_Msg( '### MAIN: a cleanup Diag_List' )
+         ENDIF
       ENDIF
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup Diag_List' )
 
 #ifdef APM
       ! Clean up arrays for APM microphysics, etc.
@@ -2443,25 +2439,6 @@
 
       ! Print ending time of simulation
       CALL Display_End_Time()
-
-      ! Again remind the user that we are in a DRY-RUN MODE
-      ! This is NOT an actual simulation
-      IF ( Input_Opt%DryRun ) THEN
-         WRITE( 6, '(a)' )
-         WRITE( 6, '(a)' ) REPEAT( '!', 79 )
-         WRITE( 6, '(a)' ) 'GEOS-CHEM IS IN A DRY RUN MODE!'
-         WRITE( 6, '(a)' ) 'You will NOT get output for this run!'
-         WRITE( 6, '(a)' ) '--dry-run is used for checking existence' //
-     &                     ' input files and config correctness.'
-         WRITE( 6, '(a)' ) 'Please verify the output above for any ' //
-     &                     'missing input files and/or use tools for '
-         WRITE( 6, '(a)' ) 'processing the above debug output and get'//
-     &                     'any required data that is missing.'
-         WRITE( 6, '(a)' ) 'REMOVE --dry-run FROM COMMAND ONCE CHECK' //
-     &                     ' IS PASSED TO RUN GEOS-CHEM PROPER!'
-         WRITE( 6, '(a)' ) REPEAT( '!', 79 )
-         WRITE( 6, '(a)' )
-      ENDIF
 
       ! Flush the buffer to get output
       CALL Flush( 6 )
@@ -2716,6 +2693,252 @@
       ENDIF
 
       END SUBROUTINE Get_Overhead_O3_For_FastJ
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_Dry_Run
+!
+! !DESCRIPTION: Looks at the input arguments to determine if the user
+!  has selected to do a GEOS-Chem dry-run.  If so, then the proper
+!  fields of Input_Opt will be populated accordingly, and the dry-run
+!  log file will be opened.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_Dry_Run( Input_Opt, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE InquireMod,    ONLY : FindFreeLUN
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options Object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  If in a "dry-run" mode, GEOS-Chem will simply check whether files
+!  are present (and possibly in the correct format) and go through
+!  time-steps to check met fields and other IO issues.
+!  No actual "compute" is performed.
+!
+! !REVISION HISTORY:
+!  13 Nov 2019 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: nArg,   ArgLen
+
+      ! Strings
+      CHARACTER(LEN=255) :: ArgVal, ArgVal2, ErrMsg, ThisLoc
+
+      !=================================================================
+      ! Test_For_Dry_Run begins here!
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      nArg    = 0
+      ErrMsg  = ''
+      ThisLoc = ' -> at Init_Dry_Run (in GeosCore/main.F)'
+
+      !=================================================================
+      ! Parse arguments to determine if the dry-run has been selected
+      !=================================================================
+      DO
+
+         ! Initialize for next argument
+         ArgLen  = 0
+         ArgVal  = ''
+         ArgVal2 = ''
+
+         ! Get the next argument
+         CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
+         IF ( ArgLen == 0 ) EXIT
+
+         ! Parse the arguments
+         SELECT CASE( TRIM( ArgVal ) )
+
+            ! Test for the dry-run switch
+            CASE( '--dry-run', '--dryrun', '-D' )
+                Input_Opt%DryRun    = .TRUE.
+                Input_Opt%DryRunLUN = FindFreeLUN()
+
+            ! Test for the log file name
+            CASE( '--log', '-L' )
+               nArg = nArg + 1
+               CALL Get_Command_Argument( nArg, ArgVal2, ArgLen )
+               print*, '### arglen: ', arglen
+               print*, '### argval2: ', trim(argval2)
+               IF ( ArgLen == 0 ) THEN
+                  ErrMsg =
+     &             '--log was found but no log file name was given!'
+                  CALL GC_Error( ErrMsg, RC, ThisLoc )
+                  RETURN
+               ENDIF
+               Input_Opt%DryRunLog = TRIM( ArgVal2 )
+
+            ! Otherwise pass through
+            CASE DEFAULT
+               ! pass
+
+         END SELECT
+
+         ! Increment the argument counter
+         nArg = nArg + 1
+      ENDDO
+
+      !=================================================================
+      ! If GEOS-Chem is running in dry-run mode:
+      !
+      ! (1) Open the dry-run log file (where file names are printed)
+      ! (2) Print a warning to both to stdout and the dryrun log file
+      !=================================================================
+      IF ( Input_Opt%DryRun ) THEN
+
+         ! Open log file
+         OPEN( UNIT   = Input_Opt%DryRunLUN,
+     &         FILE   = TRIM( Input_Opt%DryRunLog ),
+     &         FORM   = 'FORMATTED',
+     &         STATUS = 'UNKNOWN'                    )
+
+         ! Echo info to stdout (i.e. the GC log file)
+         CALL Print_Dry_Run_Warning( LUN = 6 )
+
+         ! Echo info to the GEOS-Chem dryrun log file
+         CALL Print_Dry_Run_Warning( LUN = Input_Opt%DryRunLUN )
+
+      ENDIF
+
+      END SUBROUTINE Init_Dry_Run
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Cleanup_Dry_Run
+!
+! !DESCRIPTION: Looks at the input arguments to determine if the user
+!  has selected to do a GEOS-Chem dry-run.  If so, then the proper
+!  fields of Input_Opt will be populated accordingly.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_Dry_Run( Input_Opt, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options Object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Uses the intrinsic F2003 function Get_Command_Argument.
+!
+! !REVISION HISTORY:
+!  13 Nov 2019 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      !=================================================================
+      ! Cleanup_Dry_Run begins here!
+      !=================================================================
+
+      ! Initialize
+      RC = GC_SUCCESS
+
+      ! Only do the following for the dry-run simulation
+      IF ( Input_Opt%DryRun ) THEN
+
+         ! Echo info to stdout (i.e. the GC log file)
+         CALL Print_Dry_Run_Warning( LUN = 6 )
+
+         ! Echo info to the GEOS-Chem dryrun log file
+         CALL Print_Dry_Run_Warning( LUN = Input_Opt%DryRunLUN )
+
+         ! Close the dry-run log file
+         CLOSE( Input_Opt%DryRunLUN )
+      ENDIF
+
+      END SUBROUTINE Cleanup_Dry_Run
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_Dry_Run_Warning
+!
+! !DESCRIPTION: Prints the warning for the GEOS-Chem dry run to either
+!  stdout (aka the GC log file) and the dry-run log file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Print_Dry_Run_Warning( LUN )
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: LUN   ! Logical unit number
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      !=================================================================
+      ! Print warning info to the desired file
+      !=================================================================
+      WRITE( LUN, 100 )
+      WRITE( LUN, 100 ) REPEAT( '!', 79 )
+      WRITE( LUN, 100 ) 'GEOS-CHEM IS IN A DRY RUN MODE!'
+      WRITE( LUN, 100 ) 'You will NOT get output for this run!'
+      WRITE( LUN, 100 ) '--dry-run is used for checking existence' //
+     &                  ' input files and config correctness.'
+      WRITE( LUN, 100 ) 'REMOVE --dry-run FROM COMMAND ONCE CHECK' //
+     &                  ' IS PASSED TO RUN GEOS-CHEM PROPER!'
+      WRITE( LUN, 100 ) REPEAT( '!', 79 )
+      WRITE( LUN, 110 ) 'Dry run log file       : ',
+     &                  TRIM( Input_Opt%DryRunLog )
+      WRITE( LUN, 120 ) 'Dry run logical unit # : ',
+     &                  Input_Opt%DryRunLUN
+      WRITE( LUN, 100 ) REPEAT( '!', 79 )
+      WRITE( LUN, 100 )
+
+      ! Format statements
+ 100  FORMAT( a     )
+ 110  FORMAT( a, a  )
+ 120  FORMAT( a, i4 )
+
+      END SUBROUTINE Print_Dry_Run_Warning
 !EOC
       END PROGRAM GEOS_Chem
 #endif
