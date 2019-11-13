@@ -2070,7 +2070,7 @@ MODULE GCKPP_HETRATES
       real(fp), intent(in) :: Cl       ! aerosol chloride concentration
                                        !  [molecule/cm3(air)
       real(fp), intent(in) :: T        ! air temperature [K]
-      real(fp), intent(in) :: RH       ! relative humidity [fraction, 0-1]
+      real(fp), intent(in) :: RH       ! relative humidity [%]
 !
 ! !RETURN VALUE:
 !
