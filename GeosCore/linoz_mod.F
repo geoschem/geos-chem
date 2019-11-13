@@ -1101,9 +1101,9 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE FILE_MOD,           ONLY : IOERROR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE InquireMod,         ONLY : findFreeLun
+      USE File_Mod,      ONLY : File_Exists
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE InquireMod,    ONLY : findFreeLun
 !
 ! !INPUT PARAMETERS:
 !
@@ -1150,6 +1150,8 @@
       CHARACTER(LEN=80)  :: HEADING, TITL1
       CHARACTER(LEN=255) :: ERRMSG
       CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=255) :: FileMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
       !=================================================================
       ! LINOZ_READ begins here!
@@ -1157,6 +1159,8 @@
 
       ! Assume success
       RC             = GC_SUCCESS
+      ErrMsg         = ''
+      ThisLoc        = ' -> at LINOZ_READ (in GeosCore/linoz_mod.F)'
 
       ! Get fields from Input_Opt
       NFIELDS_LINOZ  = Input_Opt%LINOZ_NFIELDS
@@ -1168,14 +1172,35 @@
       FILENAME       = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
      &                 'Linoz_200910/Linoz_March2007.dat'
 
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - LINOZ_READ: Reading ', a )
+      !=================================================================
+      ! In dry-run mode, print file path to dryrun log and exit.
+      ! Otherwise, print file path to stdout and continue.
+      !=================================================================
+
+      ! Test if the file exists and define an output string
+      IF ( File_Exists( FileName ) ) THEN
+         FileMsg = 'LINOZ_READ: Reading'
+      ELSE
+         FileMsg = 'LINOZ_READ: REQUIRED FILE NOT FOUND'
       ENDIF
 
-      ! Exit if we are running in dry-run mode (after printing filename)
-      IF ( Input_Opt%DryRun ) RETURN
+      ! Print a message for either dry-run or normal run
+      IF ( Input_Opt%DryRun ) THEN
+         IF ( Input_Opt%AmIRoot ) THEN
+            WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
+     &                                        TRIM( FileName )
+         ENDIF
+         RETURN
+      ELSE
+         IF ( Input_Opt%AmIRoot ) THEN
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+         ENDIF
+      ENDIF
+ 300  FORMAT( a, ' ', a )
+
+      !=================================================================
+      ! Read climatological data from the LINOZ lookup tables
+      !=================================================================
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -1187,9 +1212,11 @@
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD',
      &               FORM='FORMATTED',      IOSTAT=IOS )
 
-      ! Stop on error
+      ! Return if we can't find the file
       IF ( IOS /= 0 ) THEN
-         CALL IOERROR( IOS, IU_FILE, ERRMSG )
+         WRITE( FileMsg, 300 ) TRIM( FileMsg ), TRIM( FileName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Read header
@@ -1221,7 +1248,9 @@
 
                ! Stop on error
                IF ( IOS > 0 ) THEN
-                  CALL IOERROR( IOS, IU_FILE, ERRMSG )
+                  ErrMsg = 'Error reading ' // TRIM( FileName )
+                  CALL GC_Error( ErrMsg, RC, ThisLoc )
+                  RETURN
                ENDIF
 
                ! Loop over # of levels in the LINOZ climatology

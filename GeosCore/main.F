@@ -815,7 +815,7 @@
       !=================================================================
 
       ! Initialize the UCX module
-      IF ( LUCX .and. notDryRun ) THEN
+      IF ( LUCX ) THEN
          CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm, State_Diag,
      &                  State_Grid )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )

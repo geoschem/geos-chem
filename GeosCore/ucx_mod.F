@@ -5049,7 +5049,7 @@
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IoError
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -5066,16 +5066,24 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
+! !DEFINED PARAMETERS
 !
-      INTEGER            :: I, N, NX, IOS, AS
-      INTEGER            :: IU_FILE
-      CHARACTER(LEN=30)  :: FM
       ! Max. number of lines in ascii files. Monthly values btw 1950-2100 = 1800
       INTEGER, PARAMETER :: MAXLINES = 3000
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: I, N, NX, IOS, AS
+      INTEGER            :: IU_FILE
       REAL(fp)           :: SCALEFAC, TMPYR, TMPMR
+
+      ! Arrays
       REAL(fp)           :: YR(MAXLINES), MR(MAXLINES)
-      CHARACTER(LEN=255) :: FILENAME, DBGMSG, DUMMY
+
+      ! Strings
+      CHARACTER(LEN=30)  :: FM
+      CHARACTER(LEN=255) :: FILENAME, DBGMSG, DUMMY, FileMsg
 
       !=================================================================
       ! SFCMR_READ begins here!
@@ -5094,6 +5102,36 @@
          ! Construct file name
          FILENAME = TRIM(MONTREAL_FILE_ROOT)//TRIM(iName)//'_boundary'
 
+         !--------------------------------------------------------------
+         ! In dry-run mode, print file path to dryrun log and exit.
+         ! Otherwise, print file path to stdout and continue.
+         !--------------------------------------------------------------
+
+         ! Test if the file exists and define an output string
+         IF ( File_Exists( FileName ) ) THEN
+            FileMsg = 'UCX (SFCMR_READ): Opening'
+         ELSE
+            FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+         ENDIF
+
+         ! Print a message for either dry-run or normal run
+         IF ( Input_Opt%DryRun ) THEN
+            IF ( Input_Opt%AmIRoot ) THEN
+               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
+     &                                           TRIM( FileName )
+            ENDIF
+            RETURN
+         ELSE
+            IF ( Input_Opt%AmIRoot ) THEN
+               WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+            ENDIF
+         ENDIF
+ 300     FORMAT( a, ' ', a )
+
+         !--------------------------------------------------------------
+         ! Read data from the file
+         !--------------------------------------------------------------
+
          IF ( doPrint ) THEN
             WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ',
      &           TRIM(iNAME), ' from ', TRIM( FILENAME )
@@ -5106,12 +5144,6 @@
          ! Initialize values
          IOS = 1
          NX  = 0  ! number of values
-
-         ! Print the name of the file being read to stdout (bmy, 10/23/19)
-         IF ( am_I_Root ) THEN
-            WRITE( 6, 300 ) TRIM( FileName )
- 300        FORMAT( 'UCX (SFCMR_READ): Reading ', a )
-         ENDIF
 
          ! Open the file for reading
          OPEN(IU_FILE, FILE=TRIM( FILENAME ),
@@ -5326,7 +5358,7 @@
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
+      USE FILE_MOD,           ONLY : File_Exists, IoError
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
 !
@@ -5347,13 +5379,17 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
+      LOGICAL            :: LPRT
       INTEGER            :: I, AS, IOS
       INTEGER            :: IMON, ITRAC, ILEV
       INTEGER            :: IU_FILE
+
+      ! Strings
       CHARACTER(LEN=255) :: NOX_FILE
       CHARACTER(LEN=255) :: TARG_TRAC
       CHARACTER(LEN=255) :: DBGMSG
-      LOGICAL            :: LPRT
+      CHARACTER(LEN=255) :: FileMsg
 
       !=================================================================
       ! NOXCOEFF_INIT begins here!
@@ -5361,6 +5397,58 @@
 
       ! Copy fields from INPUT_OPT
       LPRT = Input_Opt%LPRT
+
+      !=================================================================
+      ! In dry-run mode, print file paths to dryrun log and exit.
+      !=================================================================
+      IF ( Input_Opt%DryRun ) THEN
+
+         ! Loop over months and tracers
+         DO IMON  = 1,12
+            DO ITRAC = 1,6
+
+               ! Pick tracer name
+               SELECT CASE (ITRAC)
+                  CASE ( 1 )
+                     TARG_TRAC = 'O'
+                  CASE ( 2 )
+                     TARG_TRAC = 'O1D'
+                  CASE ( 3 )
+                     TARG_TRAC = 'JNO'
+                  CASE ( 4 )
+                     TARG_TRAC = 'JNO2'
+                  CASE ( 5 )
+                     TARG_TRAC = 'JNO3'
+                  CASE ( 6 )
+                     TARG_TRAC = 'JN2O'
+               END SELECT
+
+               ! Create file name for each tracer and month
+               WRITE( NOx_File, '(a,a,a,I0.2,a)' )
+     &              TRIM(NOON_FILE_ROOT),
+     &              TRIM(TARG_TRAC), '_', IMON, '.dat'
+
+               ! Test if the file exists and define an output string
+               IF ( File_Exists( NOx_File ) ) THEN
+                  FileMsg = 'UCX (NOXCOEFF_INIT): Reading'
+               ELSE
+                  FileMsg =
+     &               'UCX (NOXCOEFF_INIT):  REQUIRED FILE NOT FOUND'
+               ENDIF
+
+               ! Print a message for either dry-run or normal run
+               IF ( Input_Opt%AmIRoot ) THEN
+                  WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
+     &                                              TRIM( NOx_File )
+ 300              FORMAT( a, ' ', a )
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDIF
+
+      !=================================================================
+      ! If this is a regular simulation, then read data from files
+      !=================================================================
 
       ! Number of latitude levels of NOXCOEFF array. Data is only
       ! available for 2x25 and 4x5. Use 2x25 for any different grid
@@ -5419,8 +5507,8 @@
 
          ! Print the name of the file being read to stdout (bmy, 10/23/19)
          IF ( am_I_Root ) THEN
-            WRITE( 6, 300 ) TRIM( NOx_File )
- 300        FORMAT( 'UCX (NOXCOEFF_INIT): Reading ', a )
+            WRITE( 6, 310 ) TRIM( NOx_File )
+ 310        FORMAT( 'UCX (NOXCOEFF_INIT): Reading ', a )
          ENDIF
 
          OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS)
@@ -5555,6 +5643,7 @@
       USE ERROR_MOD,      ONLY : ALLOC_ERR
       USE ERROR_MOD,      ONLY : IS_SAFE_DIV
       USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE File_Mod,       ONLY : File_Exists
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PhysConstants,  ONLY : PI_180
       USE State_Chm_Mod,  ONLY : ChmState
@@ -5586,8 +5675,8 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER            :: N, AS
-      CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
       INTEGER            :: JIN, JOUT
       REAL(fp)           :: JMIN_IN, JMAX_IN, JDIF_IN
       REAL(fp)           :: JMIN_OUT,JMAX_OUT,JDIF_OUT
@@ -5604,6 +5693,9 @@
       LOGICAL            :: LOCSEMIS
       LOGICAL            :: LN2OEMIS
       LOGICAL            :: LBREMIS
+
+      ! Strings
+      CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC, FileMsg, FileName
 
       ! Return code
       INTEGER :: RC
@@ -5746,11 +5838,47 @@
 #endif
       ENDIF
 
-      ! Print the name of the file being read to stdout (bmy, 10/23/19)
+      !=================================================================
+      ! In dry-run mode, print file path to dryrun log and return.
+      !=================================================================
+      IF ( Input_Opt%DryRun ) THEN
+
+         ! Loop over 2 files
+         DO N = 1, 2
+
+            ! Pick one file or the other
+            IF ( N == 1 ) THEN
+               FileName = Noon_File_Root
+            ELSE
+               FileName = Montreal_File_Root
+            ENDIF
+
+            ! Test if the file exists and define an output string
+            IF ( File_Exists( FileName ) ) THEN
+               FileMsg = 'UCX (INIT_UCX): Reading'
+            ELSE
+               FileMsg = 'UCX (Init_UCX): REQUIRED FILE NOT FOUND'
+            ENDIF
+
+            ! Print a message for either dry-run or normal run
+            IF ( Input_Opt%AmIRoot ) THEN
+               WRITE( Input_Opt%DryRunLUN, 300 )
+     &              TRIM( FileMsg ), TRIM( FileName )
+ 300           FORMAT( a, ' ', a )
+            ENDIF
+         ENDDO
+
+         ! Exit without doing any computation
+         RETURN
+      ENDIF
+
+      !=================================================================
+      ! For regular simulations, read data from files
+      !=================================================================
       IF ( am_I_Root ) THEN
-         WRITE( 6, 300 ) TRIM( NOON_FILE_ROOT     )
-         WRITE( 6, 300 ) TRIM( MONTREAL_FILE_ROOT )
- 300     FORMAT( 'UCX (INIT_UCX): Reading ', a )
+         WRITE( 6, 310 ) TRIM( NOON_FILE_ROOT     )
+         WRITE( 6, 310 ) TRIM( MONTREAL_FILE_ROOT )
+ 310     FORMAT( 'UCX (INIT_UCX): Reading ', a )
       ENDIF
 
       IF ( LPRT ) THEN

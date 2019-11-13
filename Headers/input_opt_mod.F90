@@ -508,7 +508,7 @@ CONTAINS
     !----------------------------------------
     ! General Runtime & Distributed Comp Info
     !----------------------------------------
-    Input_Opt%amIRoot                = .FALSE.
+    Input_Opt%amIRoot                = am_I_Root
     Input_Opt%isMPI                  = .FALSE.
     Input_Opt%numCPUs                = 1
     Input_Opt%thisCPU                = -1
