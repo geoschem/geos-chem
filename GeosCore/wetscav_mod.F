@@ -5961,14 +5961,9 @@
       ! We need to initialize the H2O2s and SO2s arrays to the values
       ! of State_Chm%Species for H2O2 and SO2.  This only needs to be
       ! done the first time this routine is called (which happens after
-      ! the restart file is read from disk).
-      !
-      ! Prior to GEOS-Chem v11-01, this was done in routine INIT_WETSCAV, 
-      ! which also allocated the arrays.  In GEOS-Chem v11-01 and higher
-      ! versions, we do array allocations only in INIT_WETSCAV, which is
-      ! called in the init phase (before restart file I/O).  We now
-      ! call SETUP_WETSCAV to compute the CLDLIQ, CLDICE, and CH2O 
-      ! arrays on each dynamic timestep.  (bmy, 9/22/15)
+      ! the restart file is read from disk). If State_Chm%H2O2AftreChem
+      ! or State_Chm%SO2AfterChem are already populated from the restart
+      ! restart file then do not overwrite. (ewl, 11/13/19)
       !====================================================================
       IF ( FIRST ) THEN 
 
@@ -5977,7 +5972,8 @@
          ! While State_Chm%Species are now in units of [kg/kg dry air] for
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
-         IF ( id_H2O2 > 0 ) THEN
+         IF ( ( id_H2O2 > 0 ) .AND.
+     &        ( SUM(State_Chm%H2O2AfterChem(:,:,:)) < 1e-31 ) ) THEN
             State_Chm%H2O2AfterChem = State_Chm%Species(:,:,:,id_H2O2)
      &            * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%emMW_g )
          ENDIF
@@ -5987,7 +5983,8 @@
          ! While State_Chm%Species are now in units of [kg/kg dry air] for 
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
-         IF ( id_SO2 > 0 ) THEN
+         IF ( ( id_SO2 > 0 ) .AND.
+     &        ( SUM(State_Chm%SO2AfterChem(:,:,:)) < 1e-31 ) ) THEN
             State_Chm%SO2AfterChem = State_Chm%Species(:,:,:,id_SO2)
      &           * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%emMW_g )
          ENDIF
