@@ -752,8 +752,7 @@ SUBROUTINE Get_OHreactivity ( CC, RR, OHreact )
           + RR(538)*CC(149) + RR(545)*CC(137) + RR(546)*CC(131) + RR(547)*CC(97) + RR(548)*CC(158) &
           + RR(549)*CC(144) + RR(550)*CC(111) + RR(556)*CC(113) + RR(568)*CC(128) + RR(569)*CC(72) &
           + RR(570)*CC(176) + RR(571)*CC(104) + RR(572)*CC(119) + RR(573)*CC(138) + RR(574)*CC(185) &
-          + RR(575)*CC(216) + RR(577)*CC(87) + RR(578)*CC(71) + RR(580)*CC(146) + RR(581)*CC(146) &
-
+          + RR(575)*CC(216) + RR(577)*CC(87) + RR(578)*CC(71) + RR(580)*CC(146) + RR(581)*CC(146)
 
 END SUBROUTINE Get_OHreactivity
 ! End of Get_OHreactivity subroutine
