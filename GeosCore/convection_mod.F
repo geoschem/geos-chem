@@ -5,7 +5,7 @@
 !
 ! !MODULE: convection_mod.F90
 !
-! !DESCRIPTION: Module CONVECTION\_MOD contains routines which select the 
+! !DESCRIPTION: Module CONVECTION\_MOD contains routines which select the
 !  proper convection code for different met field data sets.
 !\\
 !\\
@@ -450,7 +450,7 @@
       INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
       REAL(fp),       INTENT(IN)    :: AREA_M2     ! Surface area [m2]
       REAL(fp),       INTENT(IN)    :: F(:,:)      ! Fraction of soluble species
-                                                   !  for updraft scavenging 
+                                                   !  for updraft scavenging
                                                    !  [unitless].  Computed by
                                                    !  routine  COMPUTE_F.
       REAL(fp),       INTENT(IN)    :: TS_DYN      ! Dynamic timestep [sec]
@@ -565,7 +565,7 @@
       SpcInfo  => NULL()                            ! Species database entry
 
       ! PFICU and PFLCU are on level edges
-      PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv 
+      PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv
                                                             !  ice precip
                                                             !  [kg/m2/s]
       PFLCU    => State_Met%PFLCU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flux of conv
@@ -671,7 +671,7 @@
          DO ISTEP = 1, NS
 
             ! Initialize
-            QC     = 0e+0_fp    ! [kg species/kg dry air]                  
+            QC     = 0e+0_fp    ! [kg species/kg dry air]
             T0_SUM = 0e+0_fp    ! [kg species/m2/timestep]
 
             !----------------------------------------------------------
@@ -785,13 +785,13 @@
                   !
                   ! If ENTRN > 0 then compute the new value of QC:
                   !
-                  !      species mass from below      (i.e. level K-1) + 
+                  !      species mass from below      (i.e. level K-1) +
                   !      species mass from this level (i.e. level K)
                   !  = -----------------------------------------------------
                   !             dry mass coming into cloud
                   !
-                  ! Otherwise, preserve the previous value of QC.  This will 
-                  ! ensure that TERM1 - TERM2 is not a negative quantity (see 
+                  ! Otherwise, preserve the previous value of QC.  This will
+                  ! ensure that TERM1 - TERM2 is not a negative quantity (see
                   ! below).
                   !
                   ! Entrainment must be >= 0 (since we cannot have a negative 
@@ -818,8 +818,8 @@
                   ! - - - - - - - - FOR SOLUBLE SPECIES ONLY - - - - - - - - - 
                   IF ( QC_SCAV > 0e+0_fp ) THEN
 
-                     ! The fraction ALPHA is the fraction of raindrops that 
-                     ! will re-evaporate soluble species while falling from 
+                     ! The fraction ALPHA is the fraction of raindrops that
+                     ! will re-evaporate soluble species while falling from
                      ! grid box K+1 down to grid box K.  Avoid div-by-zero.
 
                      ! Initialize
@@ -828,12 +828,12 @@
                      IF ( PDOWN(K+1)  > TINYNUM ) THEN
 
                         ! %%%% CASE 1 %%%%
-                        ! Partial re-evaporation. Less precip is leaving 
+                        ! Partial re-evaporation. Less precip is leaving
                         ! the grid box then entered from above.
                         IF ( PDOWN(K+1) > PDOWN(K) .AND.
      &                       PDOWN(K)   > TINYNUM        ) THEN
 
-                           ! Define ALPHA, the fraction of raindrops that 
+                           ! Define ALPHA, the fraction of raindrops that
                            ! re-evaporate when falling from grid box
                            ! (I,J,L+1) to (I,J,L):
                            ! NOTE:
@@ -852,16 +852,16 @@
                               ALPHA = 1e+0_fp
                            ENDIF
 
-                           ! We assume that 1/2 of the soluble species w/in 
-                           ! the raindrops actually gets resuspended into 
+                           ! We assume that 1/2 of the soluble species w/in
+                           ! the raindrops actually gets resuspended into
                            ! the atmosphere
                            ALPHA2   = ALPHA * 0.5e+0_fp
 
                         ENDIF
 
                         ! %%%% CASE 2 %%%%
-                        ! Total re-evaporation. Precip entered from above, 
-                        ! but no precip is leaving grid box (ALPHA = 2 so 
+                        ! Total re-evaporation. Precip entered from above,
+                        ! but no precip is leaving grid box (ALPHA = 2 so
                         ! that  ALPHA2 = 1)
                         IF ( PDOWN(K) < TINYNUM ) THEN
                            ALPHA2 = 1e+0_fp
@@ -877,7 +877,7 @@
                      QC_SCAV  = QC_SCAV * ( 1e+0_fp    - ALPHA2     )
 
                   ENDIF
-                  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+                  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
                   ! Update QC taking entrainment into account [kg/kg]
                   ! Prevent div by zero condition
@@ -912,7 +912,7 @@
                   ! F(k,IC) is computed by routine COMPUTE_UPDRAFT_FSOL
                   ! and passed to this routine as an argument.
                   !
-                  ! The cumulus transport above the cloud base is done as 
+                  ! The cumulus transport above the cloud base is done as
                   ! follows:
                   !
                   !                 ||///////////////////||
@@ -925,7 +925,7 @@
                   !   k      C_k    ||2)   C_k * QC_k    ||         V
                   !                 ||                   ||
                   !                 ||                   ||
-                  !           ^     ||         ^         ||4)   C_k-1 * Q_k 
+                  !           ^     ||         ^         ||4)   C_k-1 * Q_k
                   !           |     ||         |         ||         |
                   !   --------|-----++---------|---------++---------|--------
                   !           |     ||         |         ||         |
@@ -938,10 +938,10 @@
                   ! There are 4 terms that contribute to mass flow in
                   ! and out of level k:
                   !
-                  ! 1) C_k-1 * QC_PRES = species convected from k-1 to k 
-                  ! 2) C_k   * QC_k    = species convected from k   to k+1 
-                  ! 3) C_k   * Q_k+1   = species subsiding from k+1 to k 
-                  ! 4) C_k-1 * Q_k     = species subsiding from k   to k-1 
+                  ! 1) C_k-1 * QC_PRES = species convected from k-1 to k
+                  ! 2) C_k   * QC_k    = species convected from k   to k+1
+                  ! 3) C_k   * Q_k+1   = species subsiding from k+1 to k
+                  ! 4) C_k-1 * Q_k     = species subsiding from k   to k-1
                   !
                   ! Therefore the change in species concentration is given by
                   !
@@ -949,7 +949,7 @@
                   !
                   ! and Q(K,IC) = Q(K,IC) + DELQ.
                   !
-                  ! The term T0 is the amount of species that is scavenged 
+                  ! The term T0 is the amount of species that is scavenged
                   ! out of the box.
                   !
                   ! Units of T0, T1, T2, T3, T4, and TSUM are
@@ -1016,8 +1016,8 @@
                   !------------------------------------------------------------
                   ! (3.4)  N D 3 8   D i a g n o s t i c
                   !
-                  ! Archive the loss of soluble species to wet scavenging in 
-                  ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
+                  ! Archive the loss of soluble species to wet scavenging in
+                  ! cloud updrafts [kg/s].  We must divide by DNS, the # of
                   ! internal timesteps so that the sum represents the
                   ! average loss rate across all internal timesteps.
                   !------------------------------------------------------------
@@ -1037,7 +1037,7 @@
                ELSE
 
                   !------------------------------------------------------------
-                  ! (3.5)  N o   C l o u d   M a s s   F l u x   B e l o w 
+                  ! (3.5)  N o   C l o u d   M a s s   F l u x   B e l o w
                   !------------------------------------------------------------
 
                   ! If there is no cloud mass flux coming from below, set
@@ -1183,8 +1183,8 @@
                         ALPHA2 = 1e+0_fp
                      ENDIF
 
-                     ! GAINED is the rained out aerosol coming down from 
-                     ! grid box (I,J,L+1) that will evaporate and re-enter 
+                     ! GAINED is the rained out aerosol coming down from
+                     ! grid box (I,J,L+1) that will evaporate and re-enter
                      ! the atmosphere in the gas phase in grid box (I,J,L)
                      ! [kg species/m2/timestep]
                      GAINED  = T0_SUM * ALPHA2
@@ -1216,7 +1216,7 @@
                      ! This is modeled as an equilibrium process
                      !---------------------------------------------------------
 
-                     ! MASS_NOWASH is the amount of non-aerosol species in 
+                     ! MASS_NOWASH is the amount of non-aerosol species in
                      ! grid box (I,J,L) that is NOT available for washout.
                      ! Calculate in units of [kg/kg]
                      MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K,IC)
@@ -1268,10 +1268,10 @@
                   !------------------------------------------------------------
                   !  N D 3 8   D i a g n o s t i c
                   !
-                  ! Archive the loss of soluble species to wet scavenging in 
-                  ! cloud updrafts [kg/s].  We must divide by NDT, the # of 
-                  ! seconds in the convective timestep, equal to DNS * SDT, 
-                  ! in order to make diag38 represent the average loss rate 
+                  ! Archive the loss of soluble species to wet scavenging in
+                  ! cloud updrafts [kg/s].  We must divide by NDT, the # of
+                  ! seconds in the convective timestep, equal to DNS * SDT,
+                  ! in order to make diag38 represent the average loss rate
                   ! across all internal timesteps. Note that the units of
                   ! WETLOSS are [kg/m2/timestep].
                   !------------------------------------------------------------

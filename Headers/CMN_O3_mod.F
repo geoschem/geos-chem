@@ -9,14 +9,14 @@
 ! !DESCRIPTION: Common blocks for anthro emissions (via SMVGEAR!)
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE CMN_O3_MOD
 !
 ! !USES:
 !
       USE PRECISION_MOD
-      
+
       IMPLICIT NONE
       PUBLIC
 !
@@ -70,8 +70,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  See the Git history with the gitk browser!
 !EOP
@@ -120,8 +120,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
 !  See the Git history with the gitk browser!
 !EOP
@@ -129,7 +129,7 @@
 !BOC
       ! Assume success
       RC = GC_SUCCESS
-      
+
       ! Deallocate arrays
       IF ( ALLOCATED( SAVEEOH     ) ) DEALLOCATE( SAVEEOH  )
       IF ( ALLOCATED( SAVEGLYX    ) ) DEALLOCATE( SAVEGLYX )

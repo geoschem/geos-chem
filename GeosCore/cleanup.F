@@ -79,7 +79,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
+      LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error?
       TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid state object
 !
 ! !OUTPUT PARAMETERS:

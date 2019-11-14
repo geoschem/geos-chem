@@ -11,7 +11,7 @@
 !  accordingly. (bec, rjp, bmy, 6/22/00, 11/23/09)
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE SEASALT_MOD
 !
@@ -62,7 +62,7 @@
 !        v. 102, 3805-3818, 1997.
 !
 ! !REVISION HISTORY:
-!  (1 ) Now references "logical_mod.f" and "tracer_mod.f".  Comment out 
+!  (1 ) Now references "logical_mod.f" and "tracer_mod.f".  Comment out
 !        SS_SIZE, this has been replaced by SALA_REDGE_um and SALC_REDGE_um
 !        from "tracer_mod.f".  Increased NR_MAX to 200. (bmy, 7/20/04)
 !  (2 ) Added error check in EMISSSEASALT (bmy, 1/20/05)
@@ -77,7 +77,7 @@
 !  (10) Save surface emissions separately (emis_save) for non-local scheme.
 !        (ccc, 5/14/09)
 !  (11) Bug fixes in GET_ALK and SRCSALT (bec, lyj, bmy, 11/23/09)
-!  (12) Add size-resolved emission subroutine SRCSALT30 and reference to 
+!  (12) Add size-resolved emission subroutine SRCSALT30 and reference to
 !        tomas_mod.f. (win, 7/17/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  16 Feb 2012 - R. Yantosca - Moved SRCSALT30 to end of module
@@ -86,7 +86,7 @@
 !                              which facilitates connection to GEOS-5 GCM
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  23 Jun 2014 - R. Yantosca - Remove code now made obsolete by HEMCO
-!  03 Nov 2014 - C. Keller   - Moved GET_ALK to sulfate_mod.F. 
+!  03 Nov 2014 - C. Keller   - Moved GET_ALK to sulfate_mod.F.
 !  20 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  12 Jun 2015 - R. Yantosca - Removed DRY_DEPOSITION routine, because we
 !                              now apply drydep in mixing_mod.F90
@@ -111,10 +111,10 @@
       ! ALK_EMIS : Array for alkalinity [kg]
       ! N_DENS   : Number density of seasalt emissions [#/m3]
       ! SALT_V   : Log-normal volum size distribution for sea salt
-      ! 
+      !
       ! Note: sea salt emissions are now calculated in HEMCO following the
       ! original code (hcox_seasalt_mod.F). This has made some of the arrays
-      ! obsolete. Alkalinity and number density are now calculated in 
+      ! obsolete. Alkalinity and number density are now calculated in
       ! sulfate_mod.F through the HEMCO interface (ckeller, 11/03/2014).
       !=======================================================================-
 !
@@ -147,7 +147,7 @@
       INTEGER               :: id_SS1
 
       !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
+      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
 !EOC
@@ -190,15 +190,15 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
-!      
+!
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
+!
 ! !REMARKS:
 !  Dry deposition is now handled in mixing_mod.F90.  We have removed
 !  the calls to the DRY_DEPOSITION routine here. (bmy, 6/12/15)
@@ -274,13 +274,13 @@
      &                     State_Diag, State_Grid, State_Met,
      &                     Spc(:,:,:,id_SALC), 2,  RC )
 
-         IF ( prtDebug ) THEN 
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
          ENDIF
       ENDIF
 
       !=================================================================
-      ! Do chemistry for marine organic aerosol tracers 
+      ! Do chemistry for marine organic aerosol tracers
       !=================================================================
       IF ( Input_Opt%LMPOA ) THEN
 
@@ -308,10 +308,10 @@
       !----------------------------------------
       ! Sea salt emissions for extra APM bins
       !----------------------------------------
-      SEASALTS = 
+      SEASALTS =
      &  Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1))
       CALL SRCSALTBIN( SEASALTS, State_Grid, State_Met )
-      Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)) = 
+      Spc(:,:,:,APMIDS%id_SEABIN1:(APMIDS%id_SEABIN1+NSALTBIN-1)) =
      &  SEASALTS
 
       IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
@@ -359,7 +359,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN)    :: N           ! 1=accum mode;
                                                    ! 2=coarse mode
@@ -369,7 +369,7 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
       REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX, ! Sea salt [kg]
@@ -423,19 +423,19 @@
       LOGICAL                  :: PrtDebug
       INTEGER                  :: I,      J,     L,        ND
       REAL(fp)                 :: DELZ,   DELZ1, REFF,     DEN
-      REAL(fp)                 :: P,      DP,    PDP,      TEMP        
+      REAL(fp)                 :: P,      DP,    PDP,      TEMP
       REAL(fp)                 :: CONST,  SLIP,  VISC,     FAC1
       REAL(fp)                 :: FAC2,   FLUX,  AREA_CM2, RHB
       ! replace RCM with RUM (radis in micron) jaegle 5/11/11
       REAL(fp)                 :: RUM,    RWET,  RATIO_R
       REAL(fp)                 :: TOT1,   TOT2,  DTCHEM
-      REAL(fp)                 :: VTS(State_Grid%NZ)  
+      REAL(fp)                 :: VTS(State_Grid%NZ)
       REAL(fp)                 :: TC0(State_Grid%NZ)
       ! New variables (jaegle 5/11/11)
       REAL(fp)                 :: SW
       REAL(fp)                 :: R0,       R1, NR, DEDGE, SALT_MASS
       REAL(fp)                 :: SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW
-      REAL(f8)                 :: WTP 
+      REAL(f8)                 :: WTP
       INTEGER                  :: ID
       LOGICAL, SAVE            :: FIRST = .TRUE.
       REAL(f8)                 :: RHO, RHO1
@@ -443,9 +443,9 @@
       CHARACTER(LEN=255)       :: ThisLoc
 !
 ! !DEFINED PARAMETERS:
-!      
-      REAL(fp),  PARAMETER     :: C1 =  0.7674e+0_fp 
-      REAL(fp),  PARAMETER     :: C2 =  3.079e+0_fp 
+!
+      REAL(fp),  PARAMETER     :: C1 =  0.7674e+0_fp
+      REAL(fp),  PARAMETER     :: C2 =  3.079e+0_fp
       REAL(fp),  PARAMETER     :: C3 =  2.573e-11_fp
       REAL(fp),  PARAMETER     :: C4 = -1.424e+0_fp
       ! Parameters for polynomial coefficients to derive seawater
@@ -479,11 +479,11 @@
       RC       = GC_SUCCESS
       prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
       ErrMsg   = ''
-      ThisLoc  = 
+      ThisLoc  =
      &  ' -> at WET_SETTLING (in module GeosCore/seasalt_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
+      SALA_REDGE_um = Input_Opt%SALA_REDGE_um
       SALC_REDGE_um = Input_Opt%SALC_REDGE_um
 
       ! Chemistry timestep [s]
@@ -503,17 +503,17 @@
             R1 = SALA_REDGE_um(2)
 
          ! Coarse mode
-         CASE( 2 ) 
+         CASE( 2 )
             REFF = 0.5e-6_fp * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
             R0 = SALC_REDGE_um(1)
             R1 = SALC_REDGE_um(2)
-            
+
       END SELECT
 
       ! Number of dry radius size bins between lowest radius (accumulation
       ! mode) and largest radii (coarse mode) (jaegle 5/11/11)
-      
-      NR = INT( ( ( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR ) 
+
+      NR = INT( ( ( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR )
      &                  + 0.5e+0_fp )
 
       ! Trap potential errors
@@ -525,8 +525,8 @@
 
       !=================================================================
       ! Define the volume size distribution of sea-salt. This only has
-      ! to be done once. We assume that sea-salt is the combination of a 
-      ! coarse mode and accumulation model log-normal distribution 
+      ! to be done once. We assume that sea-salt is the combination of a
+      ! coarse mode and accumulation model log-normal distribution
       ! functions (jaegle 5/11/11)
       !=================================================================
       IF ( FIRST) THEN
@@ -539,11 +539,11 @@
            ! Diameter of mid-point in microns
            DMID(ID)  = DEDGE + ( DR )
 
-	   ! Calculate the dry volume size distribution as the sum of two 
-           ! log-normal size distributions. The parameters for the size 
+	   ! Calculate the dry volume size distribution as the sum of two
+           ! log-normal size distributions. The parameters for the size
            ! distribution are based on Reid et al. and Quinn et al.
-	   ! The scaling factors 13. and 0.8 for acc and coarse mode 
-           ! aerosols are chosen to obtain a realistic distribution  
+	   ! The scaling factors 13. and 0.8 for acc and coarse mode
+           ! aerosols are chosen to obtain a realistic distribution
 	   ! SALT_V (D) = dV/dln(D) [um3]
 	   SALT_V(ID) = PI / 6e+0_fp* (DMID(ID)**3) * (
      &         13e+0_fp*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2e+0_fp) )
@@ -563,11 +563,11 @@
       IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
 
       ! Sea salt radius [cm]
-      !RCM  = REFF * 100e+0_fp  
+      !RCM  = REFF * 100e+0_fp
       ! The radius used in the Gerber formulation for hygroscopic growth
       ! of sea salt should be in microns (RUM) instead of cm (RCM). Replace RCM
       ! with RUM (jaegle 5/11/11)
-      !RUM  = REFF * 1d6  
+      !RUM  = REFF * 1d6
 
       ! Exponential factors
       !FAC1 = C1 * ( RCM**C2 )
@@ -578,7 +578,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,        J,     L,     VTS,             P          )     
+!$OMP+PRIVATE( I,        J,     L,     VTS,             P          )
 !$OMP+PRIVATE( TEMP,     RHB,   RWET,  RATIO_R,         RHO        )
 !$OMP+PRIVATE( DP,       PDP,   CONST, SLIP,            VISC       )
 !$OMP+PRIVATE( TC0,      DELZ,  DELZ1, TOT1,            TOT2       )
@@ -586,9 +586,9 @@
 !$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       ND         )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, State_Grid%NY
-      DO I = 1, State_Grid%NX       
+      DO I = 1, State_Grid%NX
 
-         ! Initialize 
+         ! Initialize
          DO L = 1, State_Grid%NZ
             VTS(L) = 0e+0_fp
          ENDDO
@@ -602,22 +602,22 @@
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)
 
-            ! Cap RH at 0.99 
+            ! Cap RH at 0.99
             RHB     = MIN( 0.99e+0_fp, State_Met%RH(I,J,L) * 1e-2_fp )
 
             ! Safety check (phs, 5/1/08)
             RHB     = MAX( TINY(RHB), RHB           )
 
-            ! Aerosol growth with relative humidity in radius [m] 
+            ! Aerosol growth with relative humidity in radius [m]
             ! (Gerber, 1985)
             !RWET    = 0.01e+0_fp*(FAC1/(FAC2-DLOG(RHB))+RCM**3.e+0_fp)**0.33e+0_fp
-	    ! Fix bugs in the Gerber formula:  a log10 (instead of ln) 
-            ! should be used and the dry radius should be expressed in 
-            ! micrometers (instead of cm) also add more significant 
+	    ! Fix bugs in the Gerber formula:  a log10 (instead of ln)
+            ! should be used and the dry radius should be expressed in
+            ! micrometers (instead of cm) also add more significant
 	    ! digits to the exponent (should be 1/3) (jaegle 5/11/11)
             !RWET    = 1d-6*(FAC1/(FAC2-LOG10(RHB))+RUM**3.e+0_fp)**0.33333e+0_fp
 
-            ! Use equation 5 in Lewis and Schwartz (2006) for sea 
+            ! Use equation 5 in Lewis and Schwartz (2006) for sea
             ! salt growth (bec, jaegle 5/11/11)
             RWET = REFF * (4.e+0_fp / 3.7e+0_fp) *
      &       ( (2.e+0_fp - RHB)/(1.e+0_fp - RHB) )**(1.e+0_fp/3.e+0_fp)
@@ -629,34 +629,34 @@
             ! Density of the wet aerosol (kg/m3)
             RHO = RATIO_R * DEN + ( 1.e+0_fp - RATIO_R ) * 1000.e+0_fp
 
-            ! Above density calculation is chemically unsound because 
-            ! it ignores chemical solvation.   Iteratively solve Tang et al., 
-            ! 1997 equation 5 to calculate density of wet aerosol (kg/m3) 
+            ! Above density calculation is chemically unsound because
+            ! it ignores chemical solvation.   Iteratively solve Tang et al.,
+            ! 1997 equation 5 to calculate density of wet aerosol (kg/m3)
             ! (bec, jaegle 5/11/11)
             RATIO_R = ( REFF / RWET )
             ! Assume an initial density of 1000 kg/m3
             RHO  = 1000.e+0_f8
             RHO1 = 0.e+0_f8 !initialize (bec, 6/21/10)
             DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
-                ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
+                ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet)
                 WTP    = 100.e+0_f8 * DEN/RHO * RATIO_R**3.e+0_f8
-                ! Then calculate density of wet aerosol using equation 5 
+                ! Then calculate density of wet aerosol using equation 5
                 ! in Tang et al., 1997 [kg/m3]
                 RHO1 = (0.9971e+0_f8 + (A1 * WTP) + (A2 * WTP**2.e+0_f8)
-     $               + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) ) 
+     $               + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) )
      $               * 1000.e+0_f8
-                ! Now calculate new weight percent using above density 
+                ! Now calculate new weight percent using above density
                 ! calculation
                 WTP    = 100.e+0_f8 * DEN/RHO1 * RATIO_R**3.e+0_f8
                 ! Now recalculate new wet density [kg/m3]
                 RHO = (0.9971e+0_f8 + (A1 * WTP) + (A2 * WTP**2.e+0_f8)
-     $              + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) ) 
+     $              + (A3 * WTP**3.e+0_f8) + (A4 * WTP**4.e+0_f8) )
      $              * 1000.e+0_f8
             ENDDO
 
 
             ! Dp = particle diameter [um]
-            DP      = 2.e+0_fp * RWET * 1.e+6_fp        
+            DP      = 2.e+0_fp * RWET * 1.e+6_fp
 
             ! PdP = P * dP [hPa * um]
             PDp     = P * Dp
@@ -665,64 +665,64 @@
             CONST   = 2.e+0_fp * RHO * RWET**2 * g0 / 9.e+0_fp
 
             !===========================================================
-            ! NOTE: Slip correction factor calculations following 
-            ! Seinfeld, pp464 which is thought to be more accurate 
+            ! NOTE: Slip correction factor calculations following
+            ! Seinfeld, pp464 which is thought to be more accurate
             ! but more computation required. (rjp, 1/24/02)
             !
             ! # air molecule number density
-            ! num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+            ! num = P * 1d3 * 6.023d23 / (8.314 * Temp)
             !
             ! # gas mean free path
-            ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+            ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 )
             !
             ! # Slip correction
-            ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+            ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp
             !     &     / (2. * lamda))) / Dp
             !
             ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
             ! which produces slip correction factore with small error
             ! compared to the above with less computation.
-            !===========================================================  
-          
+            !===========================================================
+
             ! Slip correction factor (as function of P*dp)
-            Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp 
+            Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp
      &            * EXP(-0.059e+0_fp * PDp)) / PDp
 
-            ! Viscosity [Pa*s] of air as a function of temperature 
-            VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp) 
+            ! Viscosity [Pa*s] of air as a function of temperature
+            VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp)
      &            / ( Temp + 110.4e+0_fp )
 
             ! Settling velocity [m/s]
             VTS(L) = CONST * Slip / VISC
 
-            ! This settling velocity is for the mid-point of the size bin. 
+            ! This settling velocity is for the mid-point of the size bin.
             ! In the following we derive scaling factors to take into account
 	    ! the strong dependence on radius of the settling velocity and the
 	    ! mass size distribution:
-	    !  VTS_WEIGHTED = total( M(k) x VTS(k)) / total( M(k) ) 
-	    ! The settling velocity is a function of the radius squared 
-            ! (see definition of CONST above) 
+	    !  VTS_WEIGHTED = total( M(k) x VTS(k)) / total( M(k) )
+	    ! The settling velocity is a function of the radius squared
+            ! (see definition of CONST above)
 	    ! so VTS(k) = VTS * (RMID(k)/RWET)^2
             ! (jaegle 5/11/11)
 
 	    SALT_MASS_TOTAL = 0e+0_fp
 	    VTS_WEIGHT      = 0e+0_fp
 	    DO ID = 1, NR
-	       ! Calculate mass of wet aerosol (Dw = wet diameter, D = 
-               ! dry diameter): dM/dlnDw = dV/dlnDw * RHO, we assume that 
-               ! the density of sea-salt doesn't change much over the size 
-               ! range.  and  dV/dlnDw = dV/dlnD * dlnD/dlnDw = 
+	       ! Calculate mass of wet aerosol (Dw = wet diameter, D =
+               ! dry diameter): dM/dlnDw = dV/dlnDw * RHO, we assume that
+               ! the density of sea-salt doesn't change much over the size
+               ! range.  and  dV/dlnDw = dV/dlnD * dlnD/dlnDw =
                ! dV/dlnD * Dw/D = dV/dlnD * Rwet/Rdry
-	       ! Further convert to dM/dDw = dM/dln(Dw) * dln(Dw)/Dw = 
+	       ! Further convert to dM/dDw = dM/dln(Dw) * dln(Dw)/Dw =
                ! dM/dln(Dw)/Dw
 	       ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * RHO /Rw
-	       ! 
-	       IF ( DMID(ID) .ge. R0*2e+0_fp   .and. 
+	       !
+	       IF ( DMID(ID) .ge. R0*2e+0_fp   .and.
      &              DMID(ID) .le. R1*2e+0_fp ) THEN
 	         DMIDW = DMID(ID) * RWET/REFF  ! wet radius [um]
-	         SALT_MASS = SALT_V(ID) * RWET/REFF * RHO 
+	         SALT_MASS = SALT_V(ID) * RWET/REFF * RHO
      &                      / (DMIDW*0.5e+0_fp)
-	         VTS_WEIGHT  = VTS_WEIGHT + 
+	         VTS_WEIGHT  = VTS_WEIGHT +
      &              SALT_MASS * VTS(L) * (DMIDW/(RWET*1d6*2e+0_fp) )
      &              ** 2e+0_fp * (2e+0_fp * DR *  RWET/REFF)
 	         SALT_MASS_TOTAL=SALT_MASS_TOTAL+SALT_MASS *
@@ -781,7 +781,7 @@
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-            FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW 
+            FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW
      &                 / State_Chm%SpcData(id_SALA)%Info%emMW_g )
      &                 * 1.e-3_fp ) / AREA_CM2
 
@@ -808,7 +808,7 @@
 ! !IROUTINE: chem_mopo
 !
 ! !DESCRIPTION: Subroutine CHEM\_MOPO modifies hydrophobic marine organic
-!  aerosol concentrations based on the conversion to hydrophilic marine 
+!  aerosol concentrations based on the conversion to hydrophilic marine
 !  organic aerosols.
 !\\
 !\\
@@ -827,13 +827,13 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
@@ -843,8 +843,8 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  10 Jul 2015 - E. Lundgren - Initial version (based on routine Chem_OCPO)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
@@ -880,17 +880,17 @@
 
       ! Set pointer to GEOS-Chem tracer array [kg]
       Spc      => State_Chm%Species
-      
+
       !=================================================================
-      ! For tracers with dry deposition, the loss rate of dry dep is 
+      ! For tracers with dry deposition, the loss rate of dry dep is
       ! combined in chem loss term.
       !
-      ! Conversion from hydrophobic to hydrophilic:  
-      ! e-folding time 1.15 days 
+      ! Conversion from hydrophobic to hydrophilic:
+      ! e-folding time 1.15 days
       ! ----------------------------------------
-      ! Use an e-folding time of 1.15 days or a convertion rate 
-      ! of 1.0e-5 /sec. 
-      !    Hydrophobic --> Hydrophilic,  k  = 1.0e-5          
+      ! Use an e-folding time of 1.15 days or a convertion rate
+      ! of 1.0e-5 /sec.
+      !    Hydrophobic --> Hydrophilic,  k  = 1.0e-5
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -924,7 +924,7 @@
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO  
+!$OMP END PARALLEL DO
 
       ! Free pointer
       Spc => NULL()
@@ -939,7 +939,7 @@
 ! !IROUTINE: chem_mopi
 !
 ! !DESCRIPTION: Subroutine CHEM\_MOPI modifies hydrophilic marine organic
-!  aerosol concentrations based on the conversion from hydrophobic marine 
+!  aerosol concentrations based on the conversion from hydrophobic marine
 !  organic aerosols.
 !\\
 !\\
@@ -958,13 +958,13 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
@@ -974,7 +974,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-! 
+!
 ! !REVISION HISTORY:
 !  10 Jul 2015 - E. Lundgren - Initial version (based on routine Chem_OCPI)
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
@@ -1000,7 +1000,7 @@
 
       ! Set pointer to GEOS-Chem tracer array [kg]
       Spc      => State_Chm%Species
-      
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
@@ -1027,7 +1027,7 @@
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO  
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Cleanup and quit
@@ -1082,7 +1082,7 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
+!  (1 ) Now exit if we have allocated arrays before.  Now also allocate
 !        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
 !  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
@@ -1151,11 +1151,11 @@
       SS_DEN = 0
 
       ! Find drydep species in DEPSAV
-      IF ( Input_Opt%LDRYD ) THEN 
+      IF ( Input_Opt%LDRYD ) THEN
 
          ! Loop over all species
          DO N = 1, State_Chm%nSpecies
-            
+
             ! Get info about this species from the species database
             SpcInfo => State_Chm%SpcData(N)%Info
 
@@ -1169,7 +1169,7 @@
                   SS_DEN(2) = SpcInfo%Density
                CASE DEFAULT
                   ! Nothing
-            END SELECT        
+            END SELECT
 
             ! Free pointer
             SpcInfo => NULL()
@@ -1188,7 +1188,7 @@
 !
 ! !IROUTINE: cleanup_seasalt
 !
-! !DESCRIPTION: Subroutine CLEANUP\_SEASALT deallocates all module arrays 
+! !DESCRIPTION: Subroutine CLEANUP\_SEASALT deallocates all module arrays
 !  (bmy, 4/26/04, 4/13/05)
 !\\
 !\\
@@ -1223,8 +1223,8 @@
 !
 ! !IROUTINE: srcsalt30
 !
-! !DESCRIPTION: Subroutine SRCSALT30 emits sea-salt into the 30-bin sea-salt 
-!  mass and aerosol number arrays.  Sea-salt emission parameterization of 
+! !DESCRIPTION: Subroutine SRCSALT30 emits sea-salt into the 30-bin sea-salt
+!  mass and aerosol number arrays.  Sea-salt emission parameterization of
 !  Clarke et al. [2006] (win, 7/17/09)
 !\\
 !\\
@@ -1247,7 +1247,7 @@
       USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
 #endif
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
@@ -1260,20 +1260,20 @@
      &                                State_Grid%NZ,IBINS)
       REAL(fp),  INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,
      &                                State_Grid%NZ,IBINS)
-! 
+!
 ! !AUTHOR:
-!  Contact: Win Trivitayanurak (win@cmu.edu)  
-! 
+!  Contact: Win Trivitayanurak (win@cmu.edu)
+!
 !  Arguments as Input/Output:
 !  ============================================================================
 !
 ! !REMARKS:
 !  References:
 !  ============================================================================
-!  (1 ) Clarke, A.D., Owens, S., Zhou, J. " An ultrafine sea-salt flux from 
+!  (1 ) Clarke, A.D., Owens, S., Zhou, J. " An ultrafine sea-salt flux from
 !        breaking waves: Implications for CCN in the remote marine atmosphere"
 !        JGR, 2006
-! 
+!
 ! !REVISION HISTORY:
 !  (1 ) Originally from emisnaN3clarke.f in GISS GCM-II' (win, 7/18/07)
 !  (2 ) Now partition emission throughout the PBL (win, 7/18/07)
@@ -1345,7 +1345,7 @@
      & 418247.5535, 273217.6572, 183340.5653, 132174.9032,      0.0000/
 
 #endif
-     
+
       !=================================================================
       ! SRCSALT30 begins here!
       !=================================================================
@@ -1369,7 +1369,7 @@
 
          ! Grid box surface area [m2]
          A_M2  = State_Grid%Area_M2(I,J)
-         
+
          ! Check if over ocean assuming only gridcells that are
          ! at least 50% water are oceans (J. Pierce, 3/10/14)
          IF ( IS_WATER( I, J, State_Met ) ) THEN
@@ -1378,10 +1378,10 @@
             FOCEAN = 0.e+0_fp
          ENDIF
 
-         IF (FOCEAN > 0.5e+0_fp) THEN 
+         IF (FOCEAN > 0.5e+0_fp) THEN
 
             ! Wind speed at 10 m altitude [m/s]
-            SFCWINDSQR = State_Met%U10M(I,J)**2  
+            SFCWINDSQR = State_Met%U10M(I,J)**2
      &                 + State_Met%V10M(I,J)**2
             W10M       = SQRT( SFCWINDSQR )
 
@@ -1393,9 +1393,9 @@
             DO  K = 1, IBINS
 
                F100 = A(K)
-               
+
                !===============================================================
-               ! Calculate sea-salt emission 
+               ! Calculate sea-salt emission
                !===============================================================
                NUM = F100 * W * A_M2 * FOCEAN * DTEMIS * COEF
 
@@ -1405,7 +1405,7 @@
 
                ! Layer in which the PBL top occurs
                NTOP = CEILING( State_Met%PBL_TOP_L(I,J))
-             
+
                ! Loop thru the boundary layer
                DO L = 1, NTOP
 
@@ -1417,11 +1417,11 @@
                !================================================================
 
                   TC1(I,J,L,K) = TC1(I,J,L,K) + ( NUM * FEMIS )
-                  TC2(I,J,L,K) = TC2(I,J,L,K) + 
+                  TC2(I,J,L,K) = TC2(I,J,L,K) +
      &                           NUM * SQRT( Xk(K) * Xk(K+1)) * FEMIS
 
 !                  TC1(I,J,1,K) = TC1(I,J,1,K) + NUM
-!                  TC2(I,J,1,K) = TC2(I,J,1,K) + 
+!                  TC2(I,J,1,K) = TC2(I,J,1,K) +
 !     &                           NUM * SQRT( Xk(K) * Xk(K+1))
 
                !===============================================================
@@ -1438,18 +1438,18 @@
                ENDDO
 
                !==============================================================
-               ! ND59 Diagnostic: Sea salt emission in [kg/box/timestep]       
+               ! ND59 Diagnostic: Sea salt emission in [kg/box/timestep]
                !==============================================================
 #ifdef BPCH_DIAG
                IF ( ND59 > 0) THEN
                   AD59_NUMB(I,J,1,k) = AD59_NUMB(I,J,1,k) + NUM
-                  AD59_SALT(I,J,1,k) = AD59_SALT(I,J,1,k) + 
+                  AD59_SALT(I,J,1,k) = AD59_SALT(I,J,1,k) +
      &                                       NUM*sqrt(xk(k)*xk(k+1))
                ENDIF
 #endif
 
             ENDDO
-            
+
          ENDIF
       ENDDO
       ENDDO
@@ -1484,7 +1484,7 @@
       USE APM_INIT_MOD,   ONLY : IFSSTSCALE
       USE CMN_SIZE_MOD
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -1494,7 +1494,7 @@
       REAL*8,         INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,
      &                                    State_Grid%NZ,NSALTBIN)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -1551,10 +1551,10 @@
             FOCEAN = 0.e+0_fp
          ENDIF
 
-         IF ( FOCEAN > 0.5e+0_fp ) THEN 
+         IF ( FOCEAN > 0.5e+0_fp ) THEN
 
             ! Wind speed at 10 m altitude [m/s]
-            SFCWINDSQR = State_Met%U10M(I,J)**2  
+            SFCWINDSQR = State_Met%U10M(I,J)**2
      &                    + State_Met%V10M(I,J)**2
             W10M       = SQRT( SFCWINDSQR )
 
@@ -1564,7 +1564,7 @@
                SST = State_Met%TSKIN(I,J) - 273.15d0
 
                ! Limit SST to 0-30C range
-               ! Yu adjust per disc with Gan SST = MAX( SST , 0d0 )  
+               ! Yu adjust per disc with Gan SST = MAX( SST , 0d0 )
                !  ! limit to  0C
                SST = MAX( SST, 5d0  ) ! limit to  0C
                SST = MIN( SST, 30d0 ) ! limit to 30C
@@ -1572,17 +1572,17 @@
                ! Empirical SST scaling factor (jaegle 5/11/11)
                SCALESST = 0.329d0 + 0.0904d0*SST -
      &              0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
-               
+
                ! Update seasalt source into SALT [kg]
                SALT(I,J)   = SALT(I,J) +
-                  ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) 
+                  ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1)
                   ! at U10 = 9 m/s
      &            DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS
      &            *FOCEAN*SCALESST
             ELSE
                ! Update seasalt source into SALT [kg]
                SALT(I,J)   = SALT(I,J) +
-                  ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1) 
+                  ! DFMSALT9: Sea-salt mass flux dFM (kg m-2 s-1)
                   ! at U10 = 9  m/s
      &            DFMSALT9(N)*(W10M/9.0)**3.41d0 *A_M2* DTEMIS*FOCEAN
             ENDIF
@@ -1597,7 +1597,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, NTOP, L, FEMIS )
-!$OMP+SCHEDULE( DYNAMIC ) 
+!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -1617,11 +1617,11 @@
 
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO  
+!$OMP END PARALLEL DO
 
       ENDDO
 
-      END SUBROUTINE SRCSALTBIN          
+      END SUBROUTINE SRCSALTBIN
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1630,7 +1630,7 @@
 !
 ! !IROUTINE: dry_settlingbin
 !
-! !DESCRIPTION: Subroutine WET\_SETTLINGBIN computes the dry settling of 
+! !DESCRIPTION: Subroutine WET\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
 !\\
 !\\
@@ -1657,7 +1657,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
@@ -1672,7 +1672,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
-! 
+!
 ! !REVISION HISTORY:
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -1689,28 +1689,28 @@
       INTEGER               :: I, J, L, N, K
       INTEGER               :: IDTEMP1, IDTEMP2
       REAL*8                :: DT_SETTL, DELZ,  DELZ1
-      REAL*8                :: REFF,     DEN,   CONST   
+      REAL*8                :: REFF,     DEN,   CONST
       REAL*8                :: NUM,      LAMDA, FLUX
       REAL*8                :: AREA_CM2, TC0(State_Grid%NZ)
       REAL*8                :: TOT1,     TOT2
 
-      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
-      REAL*8                :: P 
+      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
+      REAL*8                :: P
 
       ! Diameter of aerosol [um]
       REAL*8                :: Dp
 
       ! Pressure * DP
-      REAL*8                :: PDp 
+      REAL*8                :: PDp
 
-      ! Temperature (K)    
-      REAL*8                :: TEMP        
+      ! Temperature (K)
+      REAL*8                :: TEMP
 
       ! Slip correction factor
-      REAL*8                :: Slip        
+      REAL*8                :: Slip
 
       ! Viscosity of air (Pa s)
-      REAL*8                :: Visc   
+      REAL*8                :: Visc
 
       ! Settling velocity of particle (m/s)
       REAL*8                :: VTS(State_Grid%NZ)
@@ -1776,7 +1776,7 @@
                   PDP  = P * DP
 
                   ! Slip correction factor as function of (P*dp)
-                  SLIP = 1d0 + 
+                  SLIP = 1d0 +
      &                 ( 15.60d0 + 7.0d0 * EXP(-0.059d0*PDP) ) / PDP
 
                   ! Viscosity [Pa s] of air as a function of temp (K)
@@ -1790,7 +1790,7 @@
 
             ENDDO
 
-            ! Method is to solve bidiagonal matrix 
+            ! Method is to solve bidiagonal matrix
             ! which is implicit and first order accurate in Z
             L    = State_Grid%NZ
             IF(MASS(L)>1.D-30)THEN

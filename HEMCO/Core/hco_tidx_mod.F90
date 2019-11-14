@@ -9,50 +9,50 @@
 ! to organize and index data array time slices.
 !\\
 !\\
-! The HEMCO data containers can hold multiple 2D or 3D data arrays 
-! (aligned in a vector), providing a 4th dimension (time). During 
-! emission calculation, only the vector element ('time slice') 
-! representative for the given time will be used. Currently, the 
+! The HEMCO data containers can hold multiple 2D or 3D data arrays
+! (aligned in a vector), providing a 4th dimension (time). During
+! emission calculation, only the vector element ('time slice')
+! representative for the given time will be used. Currently, the
 ! following time slice intervals are supported:
 !
 ! \begin{itemize}
 ! \item Constant: Only one time slice (default)
-! \item Hourly: Between 2-24 time slices. These slices will be split 
-!         into even day bins, and are cycled through accordingly. 
-!         the local time is used to obtain the current valid index at 
+! \item Hourly: Between 2-24 time slices. These slices will be split
+!         into even day bins, and are cycled through accordingly.
+!         the local time is used to obtain the current valid index at
 !         each longitude.
 ! \item Hourly\_gridded: As hourly, but uses the same time slice index
 !         across all longitudes (based upon UTC time).
-! \item Weekdaily: Seven time slices, representing the days of the  
+! \item Weekdaily: Seven time slices, representing the days of the
 !         week: Sun, Mon, ..., Sat. Uses local time.
-! \item Monthly: 12 time slices, representing the months of the year: 
-!         Jan, ..., Dec. Uses local time. 
+! \item Monthly: 12 time slices, representing the months of the year:
+!         Jan, ..., Dec. Uses local time.
 ! \end{itemize}
-! 
-! The time slice cycling frequency is automatically determined during 
-! creation of a data container - based upon the time stamp settings in 
-! the HEMCO configuration file and the time information read from the 
+!
+! The time slice cycling frequency is automatically determined during
+! creation of a data container - based upon the time stamp settings in
+! the HEMCO configuration file and the time information read from the
 ! data (netCDF) file.
 !\\
 !\\
-! Spatial uniform data (i.e. nx = ny = 1) is always assigned the local 
+! Spatial uniform data (i.e. nx = ny = 1) is always assigned the local
 ! time cycle intervals (hourly, weekdaily, or monthly), e.g. the local
 ! time is used at every grid box when picking the time slice at a given
-! time. For gridded data, it's assumed that local-time effects are already 
+! time. For gridded data, it's assumed that local-time effects are already
 ! taken into account and UTC time is used at all locations to select the
 ! currently valid time slice. The exception is weekdaily data, which is
 ! always assumed to be in local time.
 !\\
 !\\
 ! Structure AlltIDx organizes the indexing of the vector arrays. It
-! contains the current valid time slice index for each of the above 
+! contains the current valid time slice index for each of the above
 ! defined time slice intervals. Each data container points to one of the
-! elements of AlltIDx, according to the temporal dimension of its array. 
-! The values of AlltIDx become update on every HEMCO time step. 
+! elements of AlltIDx, according to the temporal dimension of its array.
+! The values of AlltIDx become update on every HEMCO time step.
 !\\
 !\\
 !
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCO_tIdx_Mod
 !
@@ -75,13 +75,13 @@ MODULE HCO_tIdx_Mod
   PUBLIC :: HCO_GetPrefTimeAttr
   PUBLIC :: HCO_ExtractTime
 !
-! !REMARKS: 
+! !REMARKS:
 !  The current local time implementation assumes a regular grid,
-!  i.e. local time does not change with latitude! 
+!  i.e. local time does not change with latitude!
 !
 ! !REVISION HISTORY:
 !  29 Dec 2012 - C. Keller   - Initialization
-!  22 Aug 2013 - C. Keller   - Some time slice updates. 
+!  22 Aug 2013 - C. Keller   - Some time slice updates.
 !  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  03 Dec 2014 - C. Keller   - Major update: now calculate the time slice
@@ -118,7 +118,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER        :: HcoState  ! Hemco state 
+    TYPE(HCO_State), POINTER        :: HcoState  ! Hemco state
     INTEGER,         INTENT(INOUT)  :: RC        ! Return code
 !
 ! !REVISION HISTORY:
@@ -136,19 +136,19 @@ CONTAINS
     CALL HCO_ENTER ( HcoState%Config%Err, 'tIDx_Init (hco_tidx_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Allocate collection of time indeces 
-    ALLOCATE ( HcoState%AlltIDx ) 
+    ! Allocate collection of time indeces
+    ALLOCATE ( HcoState%AlltIDx )
 
-    ! Initialize the vectors holding the currently valid time slice 
-    ! indices for the various cycle intervals. Only create longitude- 
-    ! dependent time slice vector if cycle interval changes with 
+    ! Initialize the vectors holding the currently valid time slice
+    ! indices for the various cycle intervals. Only create longitude-
+    ! dependent time slice vector if cycle interval changes with
     ! longitude, i.e. if it is time-zone dependent.
 
     ! ----------------------------------------------------------------
     ! "CONSTANT" => only one time slice, no cycling.
     ! ----------------------------------------------------------------
     ALLOCATE ( HcoState%AlltIDx%CONSTANT )
-    HcoState%AlltIDx%CONSTANT%TypeID       = 0 
+    HcoState%AlltIDx%CONSTANT%TypeID       = 0
     HcoState%AlltIDx%CONSTANT%TempRes      = "Constant"
 
     ! ----------------------------------------------------------------
@@ -191,17 +191,17 @@ CONTAINS
 !
 ! !ROUTINE: tIDx_Set
 !
-! !DESCRIPTION: Subroutine tIDx\_Set linkes the passed TimeIDx type to the 
-! corresponding element in the TimeIdx collection, according to the given 
+! !DESCRIPTION: Subroutine tIDx\_Set linkes the passed TimeIDx type to the
+! corresponding element in the TimeIdx collection, according to the given
 ! TypeID. TypeID can be one of the following:
 !
 ! \begin{itemize}
-! \item 1:   Constant 
-! \item 24:  Hourly 
-! \item 241: Hourly\_Grid 
-! \item 7:   Weekday 
+! \item 1:   Constant
+! \item 24:  Hourly
+! \item 241: Hourly\_Grid
+! \item 7:   Weekday
 ! \item 71:  Weekday\_Grid
-! \item 12:  Monthly 
+! \item 12:  Monthly
 ! \end{itemize}
 !
 ! !INTERFACE:
@@ -261,7 +261,7 @@ CONTAINS
 ! !ROUTINE: tIDx_Cleanup
 !
 ! !DESCRIPTION: Subroutine tIDx\_Cleanup deallocates the time slice
-! index collection. 
+! index collection.
 !\\
 !\\
 ! !INTERFACE:
@@ -269,7 +269,7 @@ CONTAINS
   SUBROUTINE tIDx_Cleanup( AlltIDx )
 !
 ! !Input/output arguments:
-!     
+!
      TYPE(TimeIdxCollection), POINTER :: AlltIDx
 !
 ! !REVISION HISTORY:
@@ -283,28 +283,28 @@ CONTAINS
     !======================================================================
 
     IF ( ASSOCIATED( AlltIDx ) ) THEN
-       
+
        IF ( ASSOCIATED(AlltIDx%CONSTANT) ) THEN
-          DEALLOCATE(AlltIDx%CONSTANT) 
+          DEALLOCATE(AlltIDx%CONSTANT)
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%HOURLY) ) THEN
-          DEALLOCATE(AlltIDx%HOURLY) 
+          DEALLOCATE(AlltIDx%HOURLY)
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%HOURLY_GRID) ) THEN
-          DEALLOCATE(AlltIDx%HOURLY_GRID) 
+          DEALLOCATE(AlltIDx%HOURLY_GRID)
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%WEEKDAY) ) THEN
-          DEALLOCATE(AlltIDx%WEEKDAY) 
+          DEALLOCATE(AlltIDx%WEEKDAY)
        ENDIF
 
        IF ( ASSOCIATED(AlltIDx%MONTHLY) ) THEN
-          DEALLOCATE(AlltIDx%MONTHLY) 
+          DEALLOCATE(AlltIDx%MONTHLY)
        ENDIF
-  
-       ! Also deallocate AlltIDx pointer 
+
+       ! Also deallocate AlltIDx pointer
        DEALLOCATE( AlltIDx )
     ENDIF
     AlltIDx => NULL()
@@ -318,9 +318,9 @@ CONTAINS
 !
 ! !ROUTINE: tIDx_GetIndx
 !
-! !DESCRIPTION: Subroutine tIDx\_GetIndx calculates the current valid 
+! !DESCRIPTION: Subroutine tIDx\_GetIndx calculates the current valid
 ! index values for the given file data time slice type and longitude
-! location 
+! location
 !\\
 ! !INTERFACE:
 !
@@ -329,20 +329,20 @@ CONTAINS
 ! !USES:
 !
     USE HCO_State_Mod,    ONLY : HCO_State
-    USE HCO_Types_Mod,    ONLY : FileData 
+    USE HCO_Types_Mod,    ONLY : FileData
     USE HCO_CLOCK_MOD,    ONLY : HcoClock_Get, HcoClock_GetLocal
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN) :: am_I_Root ! Longitude index of interest
-    TYPE(HCO_State), POINTER    :: HcoState  ! Hemco state 
-    TYPE(FileData),  POINTER    :: Dta       ! File data object 
+    TYPE(HCO_State), POINTER    :: HcoState  ! Hemco state
+    TYPE(FileData),  POINTER    :: Dta       ! File data object
     INTEGER,         INTENT(IN) :: I         ! Longitude index of interest
     INTEGER,         INTENT(IN) :: J         ! Latitude  index of interest
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER                     :: Indx      ! Index 
+    INTEGER                     :: Indx      ! Index
 !
 ! !REVISION HISTORY:
 !  02 Dec 2014 - C. Keller - Initial version
@@ -364,19 +364,19 @@ CONTAINS
     Indx = -1
 
     ! ----------------------------------------------------------------
-    ! Calculate time slice index for the given time slice type 
+    ! Calculate time slice index for the given time slice type
     ! ----------------------------------------------------------------
     SELECT CASE ( Dta%tIDx%TypeID )
 
        ! Constant: there is only one time slice
-       CASE ( 1 ) 
+       CASE ( 1 )
           Indx = 1
 
-       ! Hourly data (local time)   
+       ! Hourly data (local time)
        ! Indx returns the time slice representative for the LOCAL time
        ! at longitude Lon.
        CASE ( 24 )
-          CALL HcoClock_GetLocal( HcoState, I, J, cH=LonHH, RC=RC ) 
+          CALL HcoClock_GetLocal( HcoState, I, J, cH=LonHH, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Indx = FLOOR(LonHH) + 1
 
@@ -415,13 +415,13 @@ CONTAINS
 
     ! For hourly data with less than 24 time slices, i.e. time
     ! intervals of more than 1 hour, map 24 hour index onto the
-    ! reduced time slice. 
-    ! For example, for 3-hourly data (8 vector elements), this will 
+    ! reduced time slice.
+    ! For example, for 3-hourly data (8 vector elements), this will
     ! return index 1 for hours 0-2am, index 2 for 3-5am, etc.
     ! Dta%DeltaT denotes the time difference between between two time
     ! slices (in hours).
     IF ( Dta%DeltaT > 1 .AND. Dta%DeltaT < 24 ) THEN
-       frac = DBLE(Indx) / DBLE(Dta%DeltaT) 
+       frac = DBLE(Indx) / DBLE(Dta%DeltaT)
        Indx = CEILING( frac )
     ENDIF
 
@@ -438,53 +438,53 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: tIDx_Assign 
+! !IROUTINE: tIDx_Assign
 !
 ! !DESCRIPTION: Subroutine tIDx\_Assign assigns the time index
-! pointer of the file data object of the passed list container 
-! to the corresponding time index element of the time index 
-! collection. The time slice cycle interval is determined from 
-! the number of time slices (length of the data array vector) and 
+! pointer of the file data object of the passed list container
+! to the corresponding time index element of the time index
+! collection. The time slice cycle interval is determined from
+! the number of time slices (length of the data array vector) and
 ! the time difference (deltaT) between them.
 !\\
-!\\ 
+!\\
 ! Note: Scale factors read directly from the HEMCO configuration file
-! become their delta T assigned upon reading from file (see 
+! become their delta T assigned upon reading from file (see
 ! subroutine Register\_Scal in hco\_config\_mod.F90).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE tIDx_Assign( HcoState, Dct, RC ) 
+  SUBROUTINE tIDx_Assign( HcoState, Dct, RC )
 !
 ! !USES:
 !
     USE HCO_State_Mod,    ONLY : HCO_State
     USE HCO_Types_Mod,    ONLY : DataCont
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state 
+    TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state
     TYPE(DataCont),  POINTER       :: Dct       ! Data container
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(INOUT) :: RC        ! Success or failure?
 !
-! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+! !REVISION HISTORY:
+!  13 Jan 2014 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: nx, ny, nt, ntexp, dt 
+    INTEGER            :: nx, ny, nt, ntexp, dt
     INTEGER            :: cTypeID
     CHARACTER(LEN=255) :: MSG
 
     !-----------------------------------
-    ! tIDx_Assign begins here! 
+    ! tIDx_Assign begins here!
     !-----------------------------------
 
     ! Enter
@@ -505,7 +505,7 @@ CONTAINS
     IF ( nt > 0 ) THEN
 
        ! -------------------------------------------------------------
-       ! Extract data array dimensions and delta t [h] between time 
+       ! Extract data array dimensions and delta t [h] between time
        ! slices
        ! -------------------------------------------------------------
        dt = Dct%Dta%DeltaT
@@ -518,19 +518,19 @@ CONTAINS
        ENDIF
 
        ! -------------------------------------------------------------
-       ! Auto detection of temporal resolution. 
+       ! Auto detection of temporal resolution.
        ! -------------------------------------------------------------
 
        ! No time variation
        IF ( nt == 1 ) THEN
-          cTypeID = 1 
+          cTypeID = 1
 
        ! -------------------------------------------------------------
-       ! Daily varying data. 
-       ! For now, these arrays must contain seven time slices, i.e. 
-       ! one for every weekday (starting w/ sunday!). 
+       ! Daily varying data.
+       ! For now, these arrays must contain seven time slices, i.e.
+       ! one for every weekday (starting w/ sunday!).
        ! -------------------------------------------------------------
-       ELSEIF ( nt == 7 ) THEN 
+       ELSEIF ( nt == 7 ) THEN
 
           ! Sanity check if dt = 24 hours
           IF ( dt /= 24 ) THEN
@@ -544,7 +544,7 @@ CONTAINS
           ! accordingly. Data will only be in local time if data is
           ! spatially uniform or country-specific data. The IsLocTime
           ! flag is set in hco_config_mod.F90 (for data read from other
-          ! sources than netCDF) or in hcoio_dataread_mod.F90 (for 
+          ! sources than netCDF) or in hcoio_dataread_mod.F90 (for
           ! weekdaily data read from netCDF).
           IF ( .NOT. Dct%Dta%IsLocTime ) THEN
              MSG = 'Weekday data must be in local time!' // &
@@ -553,18 +553,18 @@ CONTAINS
              RETURN
 
           ELSE
-             cTypeID = 7 
-!             cTypeID = 71 
+             cTypeID = 7
+!             cTypeID = 71
           ENDIF
 
        ! -------------------------------------------------------------
        ! Monthly varying data
-       ! This must be a scalar. Gridded monthly data should be read 
+       ! This must be a scalar. Gridded monthly data should be read
        ! slice by slice!
        ! -------------------------------------------------------------
-       ELSEIF ( nt == 12 .AND. dt /= 2 ) THEN 
+       ELSEIF ( nt == 12 .AND. dt /= 2 ) THEN
           IF ( nx == 1 .AND. ny == 1 ) THEN
-             cTypeID = 12 
+             cTypeID = 12
           ELSE
              MSG = 'Monthly data must not be gridded:' // &
                   TRIM(Dct%cName)
@@ -573,15 +573,15 @@ CONTAINS
           ENDIF
 
        ! -------------------------------------------------------------
-       ! Hourly varying data. 
-       ! Hourly time slices can represent more than just one hour, 
-       ! e.g. an array can hold only 8 time slices, each representing 
-       ! 3-hourly intervals of the day. The only constraint is that 
+       ! Hourly varying data.
+       ! Hourly time slices can represent more than just one hour,
+       ! e.g. an array can hold only 8 time slices, each representing
+       ! 3-hourly intervals of the day. The only constraint is that
        ! the number of time slices have to be a factor of 24!
        ! -------------------------------------------------------------
-       ELSEIF ( dt < 24 .AND. dt > 0 ) THEN 
+       ELSEIF ( dt < 24 .AND. dt > 0 ) THEN
 
-          ! Check if we can evenly split up data within a day 
+          ! Check if we can evenly split up data within a day
           IF ( MOD(24,dt) /= 0 ) THEN
              MSG = 'Cannot properly split up hourly data!' // &
                   TRIM(Dct%cName)
@@ -601,11 +601,11 @@ CONTAINS
           ! Check if data is in local time or not, set TempRes attribute
           ! accordingly. Data will only be in local time if data is
           ! read from other sources than netCDF. The corresponding
-          ! IsLocTime flag is set in hco_config_mod.F90. 
+          ! IsLocTime flag is set in hco_config_mod.F90.
           IF ( Dct%Dta%IsLocTime ) THEN
-             cTypeID = 24 
+             cTypeID = 24
           ELSE
-             cTypeID = 241 
+             cTypeID = 241
           ENDIF
 
        ! -------------------------------------------------------------
@@ -622,8 +622,8 @@ CONTAINS
        ! Establish the appropriate pointer for the
        ! 4th dimension (temporal resolution) of the field array
        ! -------------------------------------------------------------
-       CALL tIDx_Set( HcoState, Dct%Dta%tIDx, cTypeID ) 
-     
+       CALL tIDx_Set( HcoState, Dct%Dta%tIDx, cTypeID )
+
     ENDIF
 
     ! Leave w/ success
@@ -651,7 +651,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(ListCont),  POINTER    :: Lct       ! File data object 
+    TYPE(ListCont),  POINTER    :: Lct       ! File data object
     INTEGER,         INTENT(IN) :: Yr
     INTEGER,         INTENT(IN) :: Mt
     INTEGER,         INTENT(IN) :: Dy
@@ -669,33 +669,33 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Init 
+    ! Init
     InRange = .TRUE.
 
     IF ( Lct%Dct%Dta%ncYrs(1) /= Lct%Dct%Dta%ncYrs(2) ) THEN
        IF ( Yr < Lct%Dct%Dta%ncYrs(1) .OR. &
-            Yr > Lct%Dct%Dta%ncYrs(2)       ) THEN 
+            Yr > Lct%Dct%Dta%ncYrs(2)       ) THEN
           InRange = .FALSE.
        ENDIF
     ENDIF
 
     IF ( Lct%Dct%Dta%ncMts(1) /= Lct%Dct%Dta%ncMts(2) ) THEN
        IF ( Mt < Lct%Dct%Dta%ncMts(1) .OR. &
-            Mt > Lct%Dct%Dta%ncMts(2)       ) THEN 
+            Mt > Lct%Dct%Dta%ncMts(2)       ) THEN
           InRange = .FALSE.
        ENDIF
     ENDIF
 
     IF ( Lct%Dct%Dta%ncDys(1) /= Lct%Dct%Dta%ncDys(2) ) THEN
        IF ( Dy < Lct%Dct%Dta%ncDys(1) .OR. &
-            Dy > Lct%Dct%Dta%ncDys(2)       ) THEN 
+            Dy > Lct%Dct%Dta%ncDys(2)       ) THEN
           InRange = .FALSE.
        ENDIF
     ENDIF
 
     IF ( Lct%Dct%Dta%ncHrs(1) /= Lct%Dct%Dta%ncHrs(2) ) THEN
        IF ( Hr < Lct%Dct%Dta%ncHrs(1) .OR. &
-            Hr > Lct%Dct%Dta%ncHrs(2)       ) THEN 
+            Hr > Lct%Dct%Dta%ncHrs(2)       ) THEN
           InRange = .FALSE.
        ENDIF
     ENDIF
@@ -710,54 +710,54 @@ CONTAINS
 ! !IROUTINE: HCO_GetPrefTimeAttr
 !
 ! !DESCRIPTION: Subroutine HCO\_GetPrefTimeAttr returns the preferred time
-! reading attributes for a given field, based upon the specs set in the HEMCO 
-! configuration file and the current simulation date. This routine is used 
+! reading attributes for a given field, based upon the specs set in the HEMCO
+! configuration file and the current simulation date. This routine is used
 ! to select the proper time slice to be read at the given time.
 !\\
 !\\
-! The time reading attributes are set to the value that is closest (or equal) 
-! to the current datetime but within the range provided in the configuration 
-! file. If the year, month, or day is not specified, the current simulation 
-! date values are taken. For unspecified hours, a value of -1 is returned 
-! (this allows to read all hourly slices at once). 
+! The time reading attributes are set to the value that is closest (or equal)
+! to the current datetime but within the range provided in the configuration
+! file. If the year, month, or day is not specified, the current simulation
+! date values are taken. For unspecified hours, a value of -1 is returned
+! (this allows to read all hourly slices at once).
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE HCO_GetPrefTimeAttr( am_I_Root, HcoState, Lct,    &
                                   readYr,    readMt,   readDy, &
-                                  readHr,    readMn,   RC       ) 
+                                  readHr,    readMn,   RC       )
 !
 ! !USES:
 !
     USE HCO_STATE_MOD,     ONLY : HCO_State
     USE HCO_TYPES_MOD,     ONLY : ListCont
-    USE HCO_TYPES_MOD,     ONLY : HCO_CFLAG_RANGE, HCO_CFLAG_EXACT 
+    USE HCO_TYPES_MOD,     ONLY : HCO_CFLAG_RANGE, HCO_CFLAG_EXACT
     USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
     USE HCO_TIMESHIFT_MOD, ONLY : TimeShift_Apply
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root ! preferred year 
+    LOGICAL,         INTENT(IN   ) :: am_I_Root ! preferred year
     TYPE(HCO_State), POINTER       :: HcoState  ! List container
     TYPE(ListCont),  POINTER       :: Lct       ! List container
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(  OUT) :: readYr    ! preferred year 
-    INTEGER,         INTENT(  OUT) :: readMt    ! preferred month 
+    INTEGER,         INTENT(  OUT) :: readYr    ! preferred year
+    INTEGER,         INTENT(  OUT) :: readMt    ! preferred month
     INTEGER,         INTENT(  OUT) :: readDy    ! preferred day
-    INTEGER,         INTENT(  OUT) :: readHr    ! preferred hour 
-    INTEGER,         INTENT(  OUT) :: readMn    ! preferred minute 
+    INTEGER,         INTENT(  OUT) :: readHr    ! preferred hour
+    INTEGER,         INTENT(  OUT) :: readMn    ! preferred minute
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(INOUT) :: RC        ! Success or failure?
 !
-! !REVISION HISTORY: 
-!  13 Jan 2014 - C. Keller - Initial version 
+! !REVISION HISTORY:
+!  13 Jan 2014 - C. Keller - Initial version
 !  29 Feb 2016 - C. Keller - Added time shift option
-!  03 Mar 2017 - C. Keller - Added option to deal with UTC weekdays 
+!  03 Mar 2017 - C. Keller - Added option to deal with UTC weekdays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -768,36 +768,36 @@ CONTAINS
     LOGICAL   :: InRange
 
     !-----------------------------------
-    ! HCO_GetPrefTimeAttr begins here! 
+    ! HCO_GetPrefTimeAttr begins here!
     !-----------------------------------
 
-    ! Init 
+    ! Init
     RC = HCO_SUCCESS
 
     ! Get current time
     CALL HcoClock_Get( am_I_Root, HcoState%Clock,                   &
                        cYYYY    = cYr, cMM = cMt, cDD = cDy,        &
                        cWEEKDAY = cWd, cH  = cHr, cM  = cMn,        &
-                       sYYYY    = sYr, RC = RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN 
+                       sYYYY    = sYr, RC = RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Always use simulation year when specified
     IF ( Lct%Dct%Dta%UseSimYear ) cYr = sYr
-    
+
     ! preferred minute is always current one
     readMn = cMn
 
     ! If data is in weekdays, set day to weekday: 1=Sun, ..., 7=Sat
     IF ( Lct%Dct%Dta%ncDys(1) == 1 .AND. &
          Lct%Dct%Dta%ncDys(2) == 7        ) THEN
-       cDy = cWd + 1 
+       cDy = cWd + 1
     ENDIF
 
-    ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to range, the preferred datetime is 
-    ! the current date if we are within the provided range, and 
+    ! -------------------------------------------------------------
+    ! If CycleFlag is set to range, the preferred datetime is
+    ! the current date if we are within the provided range, and
     ! invalid otherwise.
-    ! ------------------------------------------------------------- 
+    ! -------------------------------------------------------------
     IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
 
        ! Are we in range?
@@ -828,10 +828,10 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ------------------------------------------------------------- 
-    ! If CycleFlag is set to exact, the preferred datetime is 
+    ! -------------------------------------------------------------
+    ! If CycleFlag is set to exact, the preferred datetime is
     ! always the current date.
-    ! ------------------------------------------------------------- 
+    ! -------------------------------------------------------------
     IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
        readYr = cYr
        readMt = cMt
@@ -851,11 +851,11 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ------------------------------------------------------------- 
+    ! -------------------------------------------------------------
     ! If CycleFlag is anything else, select the time attributes
-    ! as specified in the configuration file and closest to 
+    ! as specified in the configuration file and closest to
     ! current simulation date.
-    ! ------------------------------------------------------------- 
+    ! -------------------------------------------------------------
 
     ! Year
     IF ( Lct%Dct%Dta%ncYrs(1) == Lct%Dct%Dta%ncYrs(2) ) THEN
@@ -865,7 +865,7 @@ CONTAINS
                          Lct%Dct%Dta%ncYrs(2)          )
     ENDIF
 
-    ! Month 
+    ! Month
     IF ( Lct%Dct%Dta%ncMts(1) == Lct%Dct%Dta%ncMts(2) ) THEN
        readMt = Lct%Dct%Dta%ncMts(1)
     ELSE
@@ -890,14 +890,14 @@ CONTAINS
     ENDIF
 
     ! For weekday data, set day to 1. The seven day slices to be
-    ! read will be detected based upon the current year/month. 
+    ! read will be detected based upon the current year/month.
     IF ( Lct%Dct%Dta%ncDys(1) == -10 ) readDy = 1
 
     ! Don't allow invalid entries for years, months or days, i.e.
     ! force readYr, readMt and readDy to be positive!
     ! readHr can be negative, in which case all hourly fields will
     ! become read!
-    IF ( readYr < 0 ) readYr = cYr 
+    IF ( readYr < 0 ) readYr = cYr
     IF ( readMt < 0 ) readMt = cMt
     IF ( readDy < 0 ) readDy = cDy
 
@@ -908,7 +908,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_GetPrefTimeAttr
 !EOC
@@ -917,7 +917,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_ExtractTime 
+! !IROUTINE: HCO_ExtractTime
 !
 ! !DESCRIPTION: Subroutine HCO\_ExtractTime extracts the time stamp (ranges)
 ! from the passed character string. The string is expected to be in
@@ -931,9 +931,9 @@ CONTAINS
 !  found in the data set.
 ! \item Time tokens: $YYYY, $MM, $DD, $HH. When reading the data, these values
 !  will be substituted by the current simulation date.
-! \item String 'WD'. Denotes that the data contains weekday data. It is 
+! \item String 'WD'. Denotes that the data contains weekday data. It is
 !  expected that the first slice represents Sunday. Weekday data can be used
-!  in combination with annual or monthly data. In that case, there need to be 
+!  in combination with annual or monthly data. In that case, there need to be
 !  seven entries for every year and/or month, respectively.
 ! \end{enumerate}
 !
@@ -943,31 +943,31 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ExtractTime ( HcoConfig, CharStr, Dta, RC ) 
+  SUBROUTINE HCO_ExtractTime ( HcoConfig, CharStr, Dta, RC )
 !
 ! !USES:
 !
     USE CHARPAK_MOD,        ONLY : STRSPLIT
-    USE HCO_TYPES_MOD,      ONLY : FileData 
+    USE HCO_TYPES_MOD,      ONLY : FileData
     USE HCO_TYPES_MOD,      ONLY : ConfigObj
-    USE HCO_TYPES_MOD,      ONLY : HCO_UFLAG_ALWAYS 
+    USE HCO_TYPES_MOD,      ONLY : HCO_UFLAG_ALWAYS
     USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
     USE HCO_TIMESHIFT_MOD,  ONLY : TimeShift_Set
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    TYPE(ConfigObj),  POINTER       :: HcoConfig  ! config obj 
-    CHARACTER(LEN=*), INTENT(IN   ) :: CharStr 
-    TYPE(FileData),   POINTER       :: Dta 
+    TYPE(ConfigObj),  POINTER       :: HcoConfig  ! config obj
+    CHARACTER(LEN=*), INTENT(IN   ) :: CharStr
+    TYPE(FileData),   POINTER       :: Dta
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT) :: RC 
-! 
-! !REVISION HISTORY: 
-!  18 Sep 2013 - C. Keller - Initial version (update) 
+    INTEGER,          INTENT(INOUT) :: RC
+!
+! !REVISION HISTORY:
+!  18 Sep 2013 - C. Keller - Initial version (update)
 !  29 Feb 2016 - C. Keller - Added time shift option
-!  03 Mar 2017 - C. Keller - Added option to deal with UTC weekdays 
+!  03 Mar 2017 - C. Keller - Added option to deal with UTC weekdays
 !  08 Aug 2018 - C. Keller - Don't set hours to -1 for local time,
 !                            this is obsolete.
 !EOP
@@ -985,16 +985,16 @@ CONTAINS
     ! HCO_ExtractTime begins here!
     !=================================================================
 
-    ! Check for case where time flag is set to just one wildcard 
+    ! Check for case where time flag is set to just one wildcard
     ! character. In this case, we want to update the file on every
     ! HEMCO time step, i.e. it will be added to readlist 'Always'
     ! (in hco_readlist_mod.F90).
     IF ( TRIM(CharStr) == HCO_GetOpt(HcoConfig%ExtList,'Wildcard') ) THEN
        Dta%UpdtFlag = HCO_UFLAG_ALWAYS
-       Dta%ncYrs    = -999 
-       Dta%ncMts    = -999 
-       Dta%ncDys    = -999 
-       Dta%ncHrs    = -999 
+       Dta%ncYrs    = -999
+       Dta%ncMts    = -999
+       Dta%ncDys    = -999
+       Dta%ncHrs    = -999
 
        RC = HCO_SUCCESS
        RETURN
@@ -1003,13 +1003,13 @@ CONTAINS
     ! Init
     TimeVec(:) = -1
 
-    ! Extract strings to be translated into integers 
+    ! Extract strings to be translated into integers
     CALL STRSPLIT( CharStr, HCO_GetOpt(HcoConfig%ExtList,'Separator'), SUBSTR, N )
     IF ( N < 4 ) THEN
        MSG = 'Time stamp must have at least 4 elements: ' // TRIM(CharStr)
        CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
        RETURN
-    ENDIF   
+    ENDIF
 
     ! Extract year, month, day, and hour range from the four
     ! substrings
@@ -1024,31 +1024,31 @@ CONTAINS
        ! For wildcard character, set lower and upper limit both to -1.
        ! In this case, the whole time slice will be read into file!
        IF ( TRIM(SUBSTR(I)) == TRIM(HCO_GetOpt(HcoConfig%ExtList,'Wildcard') ) ) THEN
-          TimeVec(I0:I1) = -1 
+          TimeVec(I0:I1) = -1
 
        ! Characters YYYY, MM, DD, and/or HH can be used to ensure that
        ! the current simulation time is being used.
        ELSEIF ( INDEX( TRIM(SUBSTR(I)), 'YYYY' ) > 0 .OR. &
                 INDEX( TRIM(SUBSTR(I)), 'MM'   ) > 0 .OR. &
                 INDEX( TRIM(SUBSTR(I)), 'DD'   ) > 0 .OR. &
-                INDEX( TRIM(SUBSTR(I)), 'HH'   ) > 0       ) THEN 
+                INDEX( TRIM(SUBSTR(I)), 'HH'   ) > 0       ) THEN
           TimeVec(I0:I1) = -999
 
-       ! For weekdaily data in UTC coordinates, set day flags to 1-7. 
+       ! For weekdaily data in UTC coordinates, set day flags to 1-7.
        ELSEIF ( I==3 .AND. INDEX( TRIM(SUBSTR(I)), 'UTCWD' ) > 0 ) THEN
           TimeVec(I0) = 1
           TimeVec(I1) = 7
-          Dta%IsLocTime = .FALSE. 
+          Dta%IsLocTime = .FALSE.
 
-       ! For the daily index, value 'WD' is also supported. This 
+       ! For the daily index, value 'WD' is also supported. This
        ! indicates weekdays (Sun, Mon, ..., Sat). Use a special
-       ! flag here to expliclity state that these are weekday data. 
+       ! flag here to expliclity state that these are weekday data.
        ELSEIF ( I==3 .AND. INDEX( TRIM(SUBSTR(I)), 'WD' ) > 0 ) THEN
           TimeVec(I0:I1) = -10
 
-       ! For the hourly index, value 'LH' is also supported. This 
-       ! indicates local hours. Use a special flag here to expliclity 
-       ! state that these data are local hours. 
+       ! For the hourly index, value 'LH' is also supported. This
+       ! indicates local hours. Use a special flag here to expliclity
+       ! state that these data are local hours.
        ELSEIF ( I==4 .AND. INDEX( TRIM(SUBSTR(I)), 'LH' ) > 0 ) THEN
           TimeVec(I0:I1) = -10
           Dta%IsLocTime = .TRUE.
@@ -1084,7 +1084,7 @@ CONTAINS
 
     ! Check for local times.
     ! Hourly and daily data that is in local time shall be completely
-    ! read into memory. This will ensure that for every time zone, the 
+    ! read into memory. This will ensure that for every time zone, the
     ! correct values can be selected.
 !    !IF ( Dta%IsLocTime ) THEN
 !       !Dta%ncDys = -1
@@ -1095,7 +1095,7 @@ CONTAINS
     ! be read into memory.
     IF ( Dta%ncDys(1) == -10 ) Dta%IsLocTime  = .TRUE.
 
-    ! If time shift is specified, archive it in attribute 'tShift'. 
+    ! If time shift is specified, archive it in attribute 'tShift'.
     IF ( N > 4 ) THEN
        CALL TimeShift_Set( HcoConfig, Dta, SUBSTR(5), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN

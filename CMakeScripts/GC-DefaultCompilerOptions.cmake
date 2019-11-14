@@ -8,7 +8,7 @@ if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -check arg_temp_created -debug all -DDEBUG")
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     target_compile_options(BaseTarget INTERFACE
-        -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian 
+        -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian
         -fno-range-check -mcmodel=medium -fbacktrace -g -DLINUX_GFORTRAN
     )
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -funroll-loops")

@@ -5,8 +5,8 @@
 !
 ! !ROUTINE: ifort_errmsg.F
 !
-! !DESCRIPTION: Function IFORT\_ERRMSG returns an error message string that 
-!  corresponds to an I/O error number obtained via the IOSTAT or STAT 
+! !DESCRIPTION: Function IFORT\_ERRMSG returns an error message string that
+!  corresponds to an I/O error number obtained via the IOSTAT or STAT
 !  specifiers.  (This is specifically for the Intel Fortran compiler.)
 !\\
 !\\
@@ -14,7 +14,7 @@
 !
       FUNCTION IFORT_ERRMSG( ERROR_NUM ) RESULT( MSG )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: ERROR_NUM   ! Error condition from IOSTAT
 !
@@ -29,12 +29,12 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      ! Select a error message based on the error codes 
+      ! Select a error message based on the error codes
       ! for Intel Fortran Compiler v9.0.
-      SELECT CASE( ERROR_NUM ) 
-         CASE( 0   ) 
+      SELECT CASE( ERROR_NUM )
+         CASE( 0   )
             MSG = ''
-         CASE( 1   ) 
+         CASE( 1   )
             MSG = 'Not a Fortran-specific error'
          CASE( 8   )
             MSG = 'Internal consistency check failure'
@@ -225,7 +225,7 @@
          CASE( 266 )
             MSG = 'Fortran abort routine called'
          CASE( 268 )
-            MSG = 'End of record during read'         
+            MSG = 'End of record during read'
          CASE( 269 )
             MSG = 'Floating invalid traps'
          CASE( 298 )

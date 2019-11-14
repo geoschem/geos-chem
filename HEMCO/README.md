@@ -1,11 +1,11 @@
 hemco
 =====
 
-This is the Harvard-NASA Emissions Component (HEMCO) source code. The Harvard-NASA Emissions Component (HEMCO) is a software 
-component for computing (atmospheric) emissions from different sources, regions, and species on a user-defined grid. It 
-can combine, overlay, and update a set of data inventories ('base emissions') and scale factors, as specified by the 
-user through the HEMCO configuration file. Emissions that depend on environmental variables and non-linear 
-parameterizations are calculated in separate HEMCO extensions. HEMCO can be run in standalone mode or coupled to an 
+This is the Harvard-NASA Emissions Component (HEMCO) source code. The Harvard-NASA Emissions Component (HEMCO) is a software
+component for computing (atmospheric) emissions from different sources, regions, and species on a user-defined grid. It
+can combine, overlay, and update a set of data inventories ('base emissions') and scale factors, as specified by the
+user through the HEMCO configuration file. Emissions that depend on environmental variables and non-linear
+parameterizations are calculated in separate HEMCO extensions. HEMCO can be run in standalone mode or coupled to an
 atmospheric model.
 A more detailed description of HEMCO is given in Keller et al. (2014).
 

@@ -7,7 +7,7 @@ add_library(Transport STATIC EXCLUDE_FROM_ALL
 	tpcore_window_mod.F90
 	pjc_pfix_window_mod.F
 	transport_mod.F
-	
+
 	# TODO: can this safely be omitted?
 	# tendencies_mod.F90
 )
@@ -105,8 +105,8 @@ if(("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU") AND NOT (CMAKE_Fortran_COMPIL
 endif()
 
 target_link_libraries(GeosCore
-	PUBLIC 
-		Transport ObsPack HCOI History 
+	PUBLIC
+		Transport ObsPack HCOI History
 
 		# Add dependency on the correct KPP library
 		$<$<STREQUAL:${MECH},SOA_SVPOA>:KPP_SOA_SVPOA>

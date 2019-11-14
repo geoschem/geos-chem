@@ -289,9 +289,9 @@ C (10) S    : VALUES AT POINTS IN SURFACE AREA DIMENSION
 !        CHARACTER*6 YPATH
 !        YPATH = './'
 !----------------------------------------------------------
-        CHARACTER(LEN=255) :: DATA_DIR 
+        CHARACTER(LEN=255) :: DATA_DIR
         CHARACTER(LEN=255) :: FNAME
-        
+
         ! Assume success
         RC       = GC_SUCCESS
 
@@ -351,7 +351,7 @@ C
 C Use the formula to calculate C and Q to get values with more digits, otherwise
 C may cause problem when input C and Q are very close to C(IC),Q(IQ) as
 C IC and IQ are decided with formula
-C 
+C
        C(1) = 5.0E5
         DO IC = 2, MC
            C11 = C(IC)

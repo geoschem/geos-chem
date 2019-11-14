@@ -5,11 +5,11 @@
 !
 ! !MODULE: diag03_mod.F
 !
-! !DESCRIPTION:  Module DIAG03\_MOD contains arrays and routines for archiving 
+! !DESCRIPTION:  Module DIAG03\_MOD contains arrays and routines for archiving
 !  the ND03 diagnostic -- Hg emissions, mass, and production.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DIAG03_MOD
 #ifdef BPCH_DIAG
@@ -36,8 +36,8 @@
       ! Arrays
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:,:)
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br(:,:,:,:) 
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br_Y(:,:,:,:) 
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br(:,:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br_Y(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_OH(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_O3(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_BRY(:,:,:,:)
@@ -52,14 +52,14 @@
 
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-! 
+!
       PUBLIC :: ZERO_DIAG03
       PUBLIC :: WRITE_DIAG03
       PUBLIC :: INIT_DIAG03
       PUBLIC :: CLEANUP_DIAG03
 !
 ! !REMARKS:
-!  Nomenclature: 
+!  Nomenclature:
 !  ============================================================================
 !  (1 ) Hg(0)  a.k.a. Hg0     : Elemental   mercury
 !  (2 ) Hg(II) a.k.a. Hg2     : Divalent    mercury
@@ -95,14 +95,14 @@
 !
 ! !IROUTINE: zero_diag03
 !
-! !DESCRIPTION: Subroutine ZERO\_DIAG03 zeroes all module arrays. 
+! !DESCRIPTION: Subroutine ZERO\_DIAG03 zeroes all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE ZERO_DIAG03
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Jan 2005 - R. Yantosca - Initial version
 !  (1 ) Now references N_Hg_CATS from "tracerid_mod.f".  Now zero AD03_Hg2_SS
 !        array. (bmy, 4/6/06)
@@ -129,17 +129,17 @@
       ! Zero arrays
       AD03           = 0e+0_fp
       AD03_Hg2_Hg0   = 0e+0_fp
-      AD03_Hg2_Br    = 0e+0_fp 
+      AD03_Hg2_Br    = 0e+0_fp
       AD03_Hg2_OH    = 0e+0_fp
       AD03_Hg2_BRY   = 0e+0_fp
       AD03_Hg2_CLY   = 0e+0_fp
       AD03_Hg2_Br_Y  = 0e+0_fp
       AD03_Hg2_O3    = 0e+0_fp
       AD03_Hg2_SS    = 0e+0_fp
-      AD03_Hg2_SSR   = 0e+0_fp 
+      AD03_Hg2_SSR   = 0e+0_fp
       AD03_nat       = 0e+0_fp
-      AD03_Br        = 0e+0_fp  
-      AD03_RGM       = 0e+0_fp     
+      AD03_Br        = 0e+0_fp
+      AD03_RGM       = 0e+0_fp
       AD03_PBM       = 0e+0_fp
       AD03_RIV       = 0e+0_fp
 
@@ -152,7 +152,7 @@
 !
 ! !IROUTINE: write_diag03
 !
-! !DESCRIPTION: Subroutine WRITE\_DIAG03 writes the ND03 diagnostic arrays to 
+! !DESCRIPTION: Subroutine WRITE\_DIAG03 writes the ND03 diagnostic arrays to
 !  the binary punch file at the proper time.
 !\\
 !\\
@@ -176,7 +176,7 @@
       USE TIME_MOD,           ONLY : GET_CT_EMIS
       USE TIME_MOD,           ONLY : GET_DIAGb
       USE TIME_MOD,           ONLY : GET_DIAGe
-      USE TIME_MOD,           ONLY : GET_CT_CHEM  
+      USE TIME_MOD,           ONLY : GET_CT_CHEM
       USE TIME_MOD,           ONLY : GET_CT_DIAG, GET_Hg2_DIAG !H Amos, 20100218
 !
 ! !INPUT PARAMETERS:
@@ -221,8 +221,8 @@
 !  ( 1) PL-HG2-$ : Production of Hg2 from Hg0      : kg       : 1
 !  ( 2) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
 !  ( 3) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
-!  ( 4) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : kg       : 1 
-!  ( 5) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : 1/s      : 1 
+!  ( 4) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : kg       : 1
+!  ( 5) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : 1/s      : 1
 !  ( 6) PL-HG2-$ : Prod of Hg2 form rxn w/ Br      : kg       : 1
 !  ( 7) PL-HG2-$ : Br concentration                : molec/cm3: 1
 !  ( 8) PL-HG2-$ : BrO concentration               : molec/cm3: 1
@@ -233,10 +233,10 @@
 !  (13) PL-HG2-$ : Polar O3 concentration          : ppbv     : 1
 !
 !  NOTES:
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Jan 2005 - R. Yantosca - Initial version
-!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
+!  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Add HgC ocean mass and converted to colloidal to ND03 diagnostic.
@@ -265,9 +265,9 @@
       REAL(f4)          :: LONRES,    LATRES
       REAL(fp)          :: SCALE
       REAL(f8)          :: DIAGb,     DIAGe
-      CHARACTER(LEN=20) :: MODELNAME 
+      CHARACTER(LEN=20) :: MODELNAME
       CHARACTER(LEN=40) :: CATEGORY,  RESERVED,    UNIT
-      REAL(fp)          :: NCHEMSTEP 
+      REAL(fp)          :: NCHEMSTEP
       REAL(fp)          :: NDIAGSTEP       ! hma, for RGM and PBM
       REAL(fp)          :: NDIAGSTEP_Hg2   ! hma, for Fg and Fp
 
@@ -294,7 +294,7 @@
       MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
-      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp ) !CDH for sea salt loss rat   
+      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp ) !CDH for sea salt loss rat
       NDIAGSTEP = DBLE( GET_CT_DIAG() ) + TINY( 1e+0_fp ) ! for RGM and PBM
       NDIAGSTEP_Hg2 = DBLE ( GET_Hg2_DIAG() )+ TINY( 1e+0_fp ) ! for Fg and Fp
 
@@ -335,7 +335,7 @@
             ELSE IF ( N == 2 )  THEN
 
                !--------------------------------
-               ! #1 Hg(0) Ocean Mass    
+               ! #1 Hg(0) Ocean Mass
                !--------------------------------
        	       CATEGORY   	      =	'HG0-AQUA'
                UNIT              = 'kg'
@@ -352,7 +352,7 @@
                CATEGORY          = 'HGNET-OC'
                UNIT              = 'kg'
                LMAX              = 1
-               NN                = N        
+               NN                = N
                ARRAY(:,:,1)      = AD03(:,:,N,NT)
 
 
@@ -418,7 +418,7 @@
             ELSE IF ( N == 8 ) THEN
 
                IF ( NT == 1 ) THEN
- 
+
                   !--------------------------------
                   ! #8 Hg(II) Sinking
                   !--------------------------------
@@ -489,7 +489,7 @@
                   LMAX           = 1
                   NN             = N
                   ARRAY(:,:,1)   = AD03(:,:,N,NT)
- 
+
                ELSE
                   CYCLE
                ENDIF
@@ -634,7 +634,7 @@
                LMAX              = 1
                ARRAY(:,:,1)      = AD03_Hg2_SS(:,:,NT)
 
-      
+
             ELSE IF ( N == 23 ) THEN
 
                !--------------------------------
@@ -650,7 +650,7 @@
             ELSE IF ( N == 24 ) THEN
 
                !--------------------------------
-               ! #24: Prod of Hg(II) from rxn w/Br 
+               ! #24: Prod of Hg(II) from rxn w/Br
                !--------------------------------
                CATEGORY          = 'HG2-OXBR'
                UNIT              = 'kg'
@@ -674,7 +674,7 @@
                ELSE
                   CYCLE
                ENDIF
-      
+
             ELSE IF ( N == 26 ) THEN
 
                IF ( NT == 2 ) THEN
@@ -704,12 +704,12 @@
             ! Write data to disk
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NT,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, LMAX, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
          ENDDO
-         ENDDO 
+         ENDDO
 
       ELSE ! Total Hg simulation
 
@@ -735,9 +735,9 @@
                LMAX              = 1
                NN                = N
                ARRAY(:,:,1)      = AD03(:,:,N,1) / SCALE
-               
+
             ELSE IF ( N <= 21 ) THEN
-            
+
                !--------------------------------
                ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
                ! #8: Hg2_tot sinking
@@ -754,7 +754,7 @@
                LMAX              = 1
                NN                = N
                ARRAY(:,:,1)      = AD03(:,:,N,1)
-   
+
             ELSE IF ( N == 22 ) THEN
 
                !--------------------------------
@@ -762,10 +762,10 @@
                !--------------------------------
                CATEGORY          = 'HG-SRCE'
                UNIT              = 'kg'
-               LMAX              = 1 
-               NN                = N 
+               LMAX              = 1
+               NN                = N
                ARRAY(:,:,1)      = AD03_riv(:,:)
-    
+
             ELSE
 
                !--------------------------------
@@ -778,8 +778,8 @@
             ! Write data to disk
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                 HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                 UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                 State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
+     &                 UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                 State_Grid%NX, State_Grid%NY, LMAX, IFIRST,
      &                 JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
          ENDDO
@@ -798,7 +798,7 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX,1)
-   
+
             ELSE IF ( N == 2 ) THEN
 
                !--------------------------------
@@ -820,9 +820,9 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX,1)
-      
+
             ELSE IF ( N == 4 ) THEN
-            
+
                !--------------------------------
                ! #4: Loss of Hg2 from rxn w/sea salt
                !--------------------------------
@@ -831,9 +831,9 @@
                LMAX              = N_Hg_CATS
                NN                = N
                ARRAY(:,:,1)      = AD03_Hg2_SS(:,:,1)
-      
+
             ELSE IF ( N == 5 ) THEN
-            
+
                !--------------------------------
                ! #5: Loss of Hg2 from rxn w/sea salt
                !--------------------------------
@@ -846,25 +846,25 @@
             ELSE IF ( N == 6 ) THEN
 
                !--------------------------------
-               ! #6: Prod of Hg(II) from rxn w/Br 
+               ! #6: Prod of Hg(II) from rxn w/Br
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br(:,:,1:LMAX,1)
-      
+
             ELSE IF ( N == 7 ) THEN
 
                !--------------------------------
-               ! #7: Prod of Hg(II) from rxn w/BrY 
+               ! #7: Prod of Hg(II) from rxn w/BrY
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_BRY(:,:,1:LMAX,1)
-      
+
             ELSE IF ( N == 8 ) THEN
 
                !--------------------------------
@@ -875,7 +875,7 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_CLY(:,:,1:LMAX,1)
-      
+
             ELSE IF ( N == 9 ) THEN
 
                !--------------------------------
@@ -886,7 +886,7 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,1) / NCHEMSTEP
-      
+
             ELSE IF ( N == 10 ) THEN
 
                !--------------------------------
@@ -918,52 +918,52 @@
                UNIT              = 'pptv'
                LMAX              = LD03
                NN                = N
-               ARRAY(:,:,1:LMAX) = AD03_RGM(:,:,1:LMAX) / NDIAGSTEP 
+               ARRAY(:,:,1:LMAX) = AD03_RGM(:,:,1:LMAX) / NDIAGSTEP
 
             ELSE IF ( N == 13 ) THEN
 
                !--------------------------------
-               ! #13: Polar Br concentration    
+               ! #13: Polar Br concentration
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'pptv'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,3) / NCHEMSTEP
-            
+
             ELSE IF ( N == 14 ) THEN
 
                !--------------------------------
-               ! #14: Polar BrO concentration   
+               ! #14: Polar BrO concentration
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'pptv'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,4) / NCHEMSTEP
-            
+
             ELSE IF ( N == 15 ) THEN
 
                !--------------------------------
-               ! #15: Polar O3 concentration    
+               ! #15: Polar O3 concentration
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'ppbv'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,5) / NCHEMSTEP
- 
+
             ELSE IF ( N == 16 ) THEN
 
                !--------------------------------
-               ! #16: HgBr + Br2 
+               ! #16: HgBr + Br2
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,1)
- 
+
             ELSE IF ( N == 17 ) THEN
 
                !--------------------------------
@@ -974,7 +974,7 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,2)
- 
+
             ELSE IF ( N == 18 ) THEN
 
                !--------------------------------
@@ -985,7 +985,7 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,3)
- 
+
             ELSE IF ( N == 19 ) THEN
 
                !--------------------------------
@@ -996,7 +996,7 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,4)
- 
+
             ELSE IF ( N == 20 ) THEN
 
                !--------------------------------
@@ -1007,7 +1007,7 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,5)
- 
+
             ELSE IF ( N == 21 ) THEN
 
                !--------------------------------
@@ -1018,7 +1018,7 @@
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,6)
- 
+
             ELSE
 
                !--------------------------------
@@ -1031,8 +1031,8 @@
             ! Write data to disk
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, LMAX, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
          ENDDO
@@ -1057,7 +1057,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD 
+      USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
@@ -1069,8 +1069,8 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Jan 2005 - R. Yantosca - Initial version
 !  (1 ) Now allocates AD03_Hg2_SS (eck, bmy, 4/6/06)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
@@ -1083,7 +1083,7 @@
 !
       INTEGER :: AS
       INTEGER :: N_HG_CATS
-      
+
       !=================================================================
       ! INIT_DIAG03 begins here!
       !=================================================================
@@ -1185,8 +1185,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_DIAG03
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Jan 2005 - R. Yantosca - Initial version
 !  (1 ) Now deallocates AD03_Hg2_SS (eck, bmy, 4/6/06)
 !  (2 ) Now deallocates AD03_PBM, AD03_RGM (hma 20100216)
@@ -1197,7 +1197,7 @@
       !=================================================================
       ! CLEANUP_DIAG03 begins here!
       !=================================================================
-      IF ( ALLOCATED( AD03          ) ) DEALLOCATE( AD03          ) 
+      IF ( ALLOCATED( AD03          ) ) DEALLOCATE( AD03          )
       IF ( ALLOCATED( AD03_Hg2_Hg0  ) ) DEALLOCATE( AD03_Hg2_Hg0  )
       IF ( ALLOCATED( AD03_Hg2_OH   ) ) DEALLOCATE( AD03_Hg2_OH   )
       IF ( ALLOCATED( AD03_Hg2_Br   ) ) DEALLOCATE( AD03_Hg2_Br   )
@@ -1207,8 +1207,8 @@
       IF ( ALLOCATED( AD03_Hg2_O3   ) ) DEALLOCATE( AD03_Hg2_O3   )
       IF ( ALLOCATED( AD03_Hg2_SS   ) ) DEALLOCATE( AD03_Hg2_SS   )
       IF ( ALLOCATED( AD03_nat      ) ) DEALLOCATE( AD03_nat      )
-      IF ( ALLOCATED( AD03_Hg2_SSR  ) ) DEALLOCATE( AD03_Hg2_SSR  ) 
-      IF ( ALLOCATED( AD03_Br       ) ) DEALLOCATE( AD03_Br       ) 
+      IF ( ALLOCATED( AD03_Hg2_SSR  ) ) DEALLOCATE( AD03_Hg2_SSR  )
+      IF ( ALLOCATED( AD03_Br       ) ) DEALLOCATE( AD03_Br       )
 ! added hma 20100216-----------------------------------------------------------
       IF ( ALLOCATED( AD03_PBM      ) ) DEALLOCATE( AD03_PBM      )
       IF ( ALLOCATED( AD03_RGM      ) ) DEALLOCATE( AD03_RGM      )

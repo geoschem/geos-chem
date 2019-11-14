@@ -246,7 +246,7 @@ CONTAINS
                       KppSpcId        = KppSpcId(N),                         &
                       oFullName       = FullName,                            &
                       oFormula        = Formula,                             &
-                      oMW_g           = MW_g,                                & 
+                      oMW_g           = MW_g,                                &
                       oEmMW_g         = EmMW_g,                              &
                       oMolecRatio     = MolecRatio,                          &
                       oBackgroundVV   = BackgroundVV,                        &
@@ -272,16 +272,16 @@ CONTAINS
                       oWD_RainoutEff  = WD_RainoutEff,                       &
                       oWD_CoarseAer   = WD_CoarseAer,                        &
                       oIs_DryAlt      = Is_DryAlt,                           &
-                      oIs_Drydep      = Is_Drydep,                           & 
+                      oIs_Drydep      = Is_Drydep,                           &
                       oIs_Gas         = Is_Gas,                              &
                       oIs_HygroGrowth = Is_HygroGrowth,                      &
                       oIs_Photolysis  = Is_Photolysis,                       &
                       oIs_Wetdep      = Is_Wetdep,                           &
                       oIs_InRestart   = Is_InRestart,                        &
                       oIs_Hg0         = Is_Hg0,                              &
-                      oIs_Hg2         = Is_Hg2,                              &  
+                      oIs_Hg2         = Is_Hg2,                              &
                       oIs_HgP         = Is_HgP,                              &
-                      RC              = RC                                  )  
+                      RC              = RC                                  )
        ! Error
        IF ( RC /= GC_SUCCESS ) THEN
           PRINT*, '### Could not get species info!',TRIM(NameAllCaps)
@@ -296,17 +296,17 @@ CONTAINS
        ! Handle exceptions
        IF ( TRIM(Name) == 'POx' ) Name = 'POX'
        IF ( TRIM(Name) == 'LOx' ) Name = 'LOX'
-       IF ( TRIM(FullName) == '' ) FullName = TRIM(Name) 
+       IF ( TRIM(FullName) == '' ) FullName = TRIM(Name)
        CALL Spc_Create( am_I_Root      = am_I_Root,                          &
                         ThisSpc        = SpcData(N)%Info,                    &
                         ModelID        = N,                                  &
-                        KppSpcId       = KppSpcId(N),                        & 
-                        KppVarId       = KppVarId(N),                        & 
+                        KppSpcId       = KppSpcId(N),                        &
+                        KppVarId       = KppVarId(N),                        &
                         KppFixId       = KppFixId(N),                        &
-                        Name           = TRIM(Name),                         & 
+                        Name           = TRIM(Name),                         &
                         FullName       = FullName,                           &
                         Formula        = Formula,                            &
-                        MW_g           = MW_g,                               & 
+                        MW_g           = MW_g,                               &
                         EmMW_g         = EmMW_g,                             &
                         MolecRatio     = MolecRatio,                         &
                         BackgroundVV   = BackgroundVV,                       &
@@ -315,8 +315,8 @@ CONTAINS
                         Henry_PKA      = Henry_PKA,                          &
                         Density        = Density,                            &
                         Radius         = Radius,                             &
-                        DD_AeroDryDep  = DD_AeroDryDep,                      & 
-                        DD_DustDryDep  = DD_DustDryDep,                      & 
+                        DD_AeroDryDep  = DD_AeroDryDep,                      &
+                        DD_DustDryDep  = DD_DustDryDep,                      &
                         DD_DvzAerSnow  = DD_DvzAerSnow,                      &
                         DD_DvzMinVal   = DD_DvzMinVal,                       &
                         DD_F0          = DD_F0,                              &
@@ -331,18 +331,18 @@ CONTAINS
                         WD_KcScaleFac  = WD_KcScaleFac,                      &
                         WD_RainoutEff  = WD_RainoutEff,                      &
                         WD_CoarseAer   = WD_CoarseAer,                       &
-                        Is_Advected    = Is_Advected,                        & 
+                        Is_Advected    = Is_Advected,                        &
                         Is_DryAlt      = Is_DryAlt,                          &
-                        Is_Drydep      = Is_Drydep,                          & 
+                        Is_Drydep      = Is_Drydep,                          &
                         Is_Gas         = Is_Gas,                             &
                         Is_HygroGrowth = Is_HygroGrowth,                     &
                         Is_Photolysis  = Is_Photolysis,                      &
                         Is_Wetdep      = Is_Wetdep,                          &
                         Is_InRestart   = Is_InRestart,                       &
                         Is_Hg0         = Is_Hg0,                             &
-                        Is_Hg2         = Is_Hg2,                             &  
+                        Is_Hg2         = Is_Hg2,                             &
                         Is_HgP         = Is_HgP,                             &
-                        RC             = RC                                 )  
+                        RC             = RC                                 )
        ! Error
        IF ( RC /= GC_SUCCESS ) THEN
           PRINT*, '### Could not initialize species vector!',TRIM(NameAllCaps)
@@ -371,7 +371,7 @@ CONTAINS
 ! !IROUTINE: Spc_Info
 !
 ! !DESCRIPTION: Routine Spc\_Info is a helper function that returns the
-!  properties of a species. 
+!  properties of a species.
 !\\
 !\\
 ! !INTERFACE:
@@ -400,14 +400,14 @@ CONTAINS
     USE SPECIES_MOD,             ONLY : ZERO, ZERO_R8, MISSING_MW, MISSING_VV
 !
 ! !INPUT PARAMETERS:
-! 
+!
     LOGICAL,           INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
     CHARACTER(LEN=*),  INTENT(IN)  :: iName            ! Short name of species
     TYPE(OptInput),    OPTIONAL    :: Input_Opt        ! Input Options object
-    INTEGER,           INTENT(IN)  :: KppSpcId         ! KPP ID 
+    INTEGER,           INTENT(IN)  :: KppSpcId         ! KPP ID
 !
 ! !OUTPUT PARAMETERS:
-! 
+!
     CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oFullName         ! Long name of species
     CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oFormula          ! Chemical formula
     REAL(fp),INTENT(OUT), OPTIONAL    :: oMW_g             ! Molecular weight [g]
@@ -448,15 +448,15 @@ CONTAINS
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg0           ! Denotes Hg0 species
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg2           ! Denotes Hg2 species
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_HgP           ! Denotes HgP species
-    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oDiagName ! Diagnostics long-name 
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oDiagName ! Diagnostics long-name
     INTEGER, INTENT(OUT)              :: RC                ! Return code
-    LOGICAL, INTENT(OUT), OPTIONAL    :: Found             ! Species found? If arg present, 
-                                                           ! no error if not found 
-    LOGICAL, INTENT(IN),  OPTIONAL    :: Underscores       ! Replace blanks with underscores 
-! 
+    LOGICAL, INTENT(OUT), OPTIONAL    :: Found             ! Species found? If arg present,
+                                                           ! no error if not found
+    LOGICAL, INTENT(IN),  OPTIONAL    :: Underscores       ! Replace blanks with underscores
+!
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  14 Sep 2018 - C. Keller   - Created standalone subroutine so that species
 !                              info can be queried independently.
 !  23 Oct 2018 - R. Yantosca - Cosmetic changes (consistent indentation)
@@ -515,9 +515,9 @@ CONTAINS
     REAL(fp)            :: KOA, HStar
     INTEGER             :: P, IDX, CNT
     LOGICAL             :: IsPassive
-    LOGICAL             :: Uscore    
+    LOGICAL             :: Uscore
     INTEGER             :: C !ramnarine 12/2018
-    
+
     CHARACTER(LEN=8)    :: sMW
 
     ! Arrays
@@ -551,7 +551,7 @@ CONTAINS
     DD_DvzMinVal(:)  = MISSING
     DD_KOA           = MISSING
     DD_Hstar_Old     = MISSING
-    Henry_K0         = MISSING_R8 
+    Henry_K0         = MISSING_R8
     Henry_CR         = MISSING_R8
     Henry_PKA        = MISSING_R8
     WD_RetFactor     = MISSING
@@ -774,7 +774,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-             
+
           CASE( 'BR' )
              FullName      = 'Atomic bromine'
              Formula       = 'Br'
@@ -890,7 +890,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-             
+
           CASE( 'CFC12' )
              FullName      = 'CFC-12'
              Formula       = 'CCl2F2'
@@ -2379,7 +2379,7 @@ CONTAINS
              Henry_CR      = 9200.0_f8
 #endif
              WD_RetFactor  = 2.0e-2_fp
-                              
+
           CASE( 'N2O' )
              FullName      = 'Nitrous oxide'
              Formula       = 'N2O'
@@ -2572,7 +2572,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )                                          
+#if defined( NEW_HENRY_CONSTANTS )
              Henry_K0      = 1.90e-5_f8 * To_M_atm
              Henry_CR      = 1600.0_f8
 #endif
@@ -2777,7 +2777,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-             
+
           CASE( 'OPOA1', 'OPOA2' )
              FullName      = 'Lumped aerosol product of SVOC oxidation'
 
@@ -2841,7 +2841,7 @@ CONTAINS
              KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              FullName      = 'Anthropogenic iron'
              Formula       = 'Fe'
@@ -3065,7 +3065,7 @@ CONTAINS
                    RC = -1
                    RETURN
                 ENDIF
-                Radius     = ( Input_Opt%SALA_REDGE_um(1) +                  & 
+                Radius     = ( Input_Opt%SALA_REDGE_um(1) +                  &
                                Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
@@ -5679,7 +5679,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-             
+
           CASE( 'MAOP' )
              FullName      = 'Peroxide from MAO3'
              Formula       = 'CH2=C(CH3)C(O)OOH'
@@ -5770,7 +5770,7 @@ CONTAINS
 
              IF ( Present(Input_Opt) ) THEN
                 IF ( Input_Opt%NPASSIVE > 0 ) THEN
-   
+
                    ! Loop over all passive species
                    DO P = 1, Input_Opt%NPASSIVE
 
@@ -5821,7 +5821,7 @@ CONTAINS
                 Is_Gas        = T
                 Is_Drydep     = F
                 Is_Wetdep     = F
-                
+
              ELSE
 
                 IF ( Present(Found) ) THEN
@@ -5851,7 +5851,7 @@ CONTAINS
        IF ( Uscore ) THEN
           CNT = 0
           IDX = INDEX(TRIM(oFullName),' ')
-          DO WHILE ( IDX > 0 ) 
+          DO WHILE ( IDX > 0 )
              CNT = CNT + 1
              IF ( CNT > 100 ) EXIT
              oFullName(IDX:IDX) = '_'
@@ -5917,7 +5917,7 @@ CONTAINS
        IF ( Uscore ) THEN
           CNT = 0
           IDX = INDEX(TRIM(oDiagName),' ')
-          DO WHILE ( IDX > 0 ) 
+          DO WHILE ( IDX > 0 )
              CNT = CNT + 1
              IF ( CNT > 100 ) EXIT
              oDiagName(IDX:IDX) = '_'
@@ -5926,7 +5926,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE Spc_Info 
+  END SUBROUTINE Spc_Info
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6240,9 +6240,9 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_Work_Arrays
 !
-! !DESCRIPTION: Cleans working (temporary) arrays used by this module, 
-!  restoring them to an unused state. It is called at the end of 
-!  Init\_Species\_Database or by an external module when needed to 
+! !DESCRIPTION: Cleans working (temporary) arrays used by this module,
+!  restoring them to an unused state. It is called at the end of
+!  Init\_Species\_Database or by an external module when needed to
 !  reinitialize the species DB.
 !\\
 !\\
@@ -6322,7 +6322,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255)     :: FileName
-    
+
     ! Pointers
     TYPE(Species), POINTER :: ThisSpc
 
@@ -6345,7 +6345,7 @@ CONTAINS
     ! Write species database to JSON format
     !
     ! NOTE: Some species database fields are only relevant for passing
-    ! parameters to specific GEOS-Chem operations (e.g. drydep, wetdep, 
+    ! parameters to specific GEOS-Chem operations (e.g. drydep, wetdep,
     ! etc).  Therefore, we have only included those properties which we
     ! feel would be most relevant to post-processing of data in Python
     ! or other tools. (bmy, 2/4/18)
@@ -6422,7 +6422,7 @@ CONTAINS
        IF ( ThisSpc%Radius > 0.0_fp ) THEN
           WRITE( Unit, 120 ) '"Radius"',     ThisSpc%Radius
        ENDIF
-          
+
        IF ( ThisSpc%Henry_K0 > 0.0_fp ) THEN
           WRITE( Unit, 130 ) '"Henry_K0"',   ThisSpc%Henry_K0
        ENDIF
@@ -6435,7 +6435,7 @@ CONTAINS
           WRITE( Unit, 130 ) '"Henry_PKA"',  ThisSpc%Henry_PKA
        ENDIF
 
-       IF ( ThisSpc%Mw_g > 0.0_fp ) THEN 
+       IF ( ThisSpc%Mw_g > 0.0_fp ) THEN
           WRITE( Unit, 120 ) '"MW_g"',       ThisSpc%MW_g
        ENDIF
 

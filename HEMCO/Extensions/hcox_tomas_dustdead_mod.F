@@ -7,8 +7,8 @@
 ! !MODULE: hcox_dust_dead_mod.F
 !
 ! !DESCRIPTION: Module hcox\_dust\_dead\_mod.F contains routines and
-!  variables from Charlie Zender's DEAD dust mobilization model.  
-!  Most routines are from Charlie Zender, but have been modified and/or 
+!  variables from Charlie Zender's DEAD dust mobilization model.
+!  Most routines are from Charlie Zender, but have been modified and/or
 !  cleaned up for inclusion into GEOS-Chem.
 !\\
 !\\
@@ -17,26 +17,26 @@
 !\\
 !\\
 ! NOTE: The current (dust) code was validated at 2 x 2.5 resolution.
-!  We have found that running at 4x5 we get much lower (~50%) dust 
+!  We have found that running at 4x5 we get much lower (~50%) dust
 !  emissions than at 2x2.5.  Recommend we either find a way to scale
 !  the U* computed in the dust module, or run a 1x1 and store the the
-!  dust emissions, with which to drive lower resolution runs.     
+!  dust emissions, with which to drive lower resolution runs.
 !  -- Duncan Fairlie, 1/25/07
 !\\
-!\\ 
-!  (We'll) implement the [dust] code in the standard [GEOS-Chem] 
-!  model and put a warning about expected low bias when the simulation 
-!  is run at 4x5.  Whoever is interested in running dust at 4x5 in the 
-!  future can deal with making the fix.                                
-!  -- Daniel Jacob, 1/25/07                                         
+!\\
+!  (We'll) implement the [dust] code in the standard [GEOS-Chem]
+!  model and put a warning about expected low bias when the simulation
+!  is run at 4x5.  Whoever is interested in running dust at 4x5 in the
+!  future can deal with making the fix.
+!  -- Daniel Jacob, 1/25/07
 !\\
 !\\
 ! !REFERENCES:
 !
 ! \begin{itemize}
-! \item Zender, C. S., Bian, H., and Newman, D.: Mineral Dust Entrainment and 
-!   Deposition (DEAD) model: Description and 1990s dust climatology, 
-!   Journal of Geophysical Research: Atmospheres, 108, 2003. 
+! \item Zender, C. S., Bian, H., and Newman, D.: Mineral Dust Entrainment and
+!   Deposition (DEAD) model: Description and 1990s dust climatology,
+!   Journal of Geophysical Research: Atmospheres, 108, 2003.
 ! \end{itemize}
 !
 ! !INTERFACE:
@@ -48,7 +48,7 @@
       USE HCO_ERROR_MOD
       USE HCO_DIAGN_MOD
       USE HCOX_State_MOD,    ONLY : Ext_State
-      USE HCO_STATE_MOD,     ONLY : HCO_State 
+      USE HCO_STATE_MOD,     ONLY : HCO_State
 
       IMPLICIT NONE
       PRIVATE
@@ -73,8 +73,8 @@
 !  25 Nov 2013 - C. Keller   - Now a HEMCO extension
 !  06 Oct 2014 - C. Keller   - Allow mass flux tuning factor be set in
 !                              configuration file.
-!  07 Jan 2016 - E. Lundgren - Change dry air gas constant and molec wt to 
-!                              match GC values and update acc due to gravity 
+!  07 Jan 2016 - E. Lundgren - Change dry air gas constant and molec wt to
+!                              match GC values and update acc due to gravity
 !                              and universal gas constant to NIST 2014 values
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, and MERRA
@@ -92,40 +92,40 @@
        INTEGER                   :: ExtNr           ! Extension number
        INTEGER, ALLOCATABLE      :: HcoIDs(:)       ! tracer IDs for DustDead
        REAL*8                    :: FLX_MSS_FDG_FCT
- 
+
        !---------------------------------------
        ! 2-D pointers pointing to netCDF arrays
        !---------------------------------------
- 
+
        ! Time-invariant fields
        REAL(hp), POINTER         :: ERD_FCT_GEO  (:,:) => NULL()
 !      REAL,    POINTER          :: ERD_FCT_HYDRO(:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_TOPO (:,:,:,:)
 !      REAL,    POINTER          :: ERD_FCT_UNITY(:,:,:,:)
 !      REAL,    POINTER          :: MBL_BSN_FCT  (:,:,:,:)
- 
+
        ! GOCART source function (tdf, bmy, 1/25/07)
        REAL(hp), POINTER          :: SRCE_FUNC(:,:) => NULL()
- 
+
        ! Land surface that is not lake or wetland (by area)
        REAL(hp), POINTER          :: LND_FRC_DRY  (:,:) => NULL()
        REAL(hp), POINTER          :: MSS_FRC_CACO3(:,:) => NULL()
        REAL(hp), POINTER          :: MSS_FRC_CLY  (:,:) => NULL()
        REAL(hp), POINTER          :: MSS_FRC_SND  (:,:) => NULL()
        REAL(hp), POINTER          :: SFC_TYP      (:,:) => NULL()
- 
+
        REAL(hp), POINTER          :: VAI_DST(:,:) => NULL()
- 
+
        ! Time-varying surface info from CTM
 !       REAL*8,  ALLOCATABLE :: FLX_LW_DWN_SFC(:,:)
 !       REAL*8,  ALLOCATABLE :: FLX_SW_ABS_SFC(:,:)
 !       REAL*8,  ALLOCATABLE :: TPT_GND(:,:)
 !       REAL*8,  ALLOCATABLE :: TPT_SOI(:,:)
 !       REAL*8,  ALLOCATABLE :: VWC_SFC(:,:)
- 
+
        ! Variables initialized in dst_tvbds_ntp() and dst_tvbds_ini()
 !       REAL*8,  ALLOCATABLE :: SRC_STR(:,:)
- 
+
        ! LSM plant type, 28 land surface types plus 0 for ocean
        ! Also account for 3 different land types in each grid box
        ! NN_SFCTYP denotes the highest possible surface type number.
@@ -133,7 +133,7 @@
        INTEGER, ALLOCATABLE :: PLN_TYP(:,:)
        REAL*8,  ALLOCATABLE :: PLN_FRC(:,:)
        REAL*8,  ALLOCATABLE :: TAI(:,:)
- 
+
        ! Other fields
        REAL*8,  ALLOCATABLE :: DMT_VWR(:)
 !       REAL*8,  ALLOCATABLE :: DNS_AER(:)
@@ -152,11 +152,11 @@
       TYPE(MyInst), POINTER :: AllInst => NULL()
 
       !---------------------------------------
-      ! MODULE PARAMETER 
+      ! MODULE PARAMETER
       !---------------------------------------
       ! JKodros - want to change number of bins, but cant reference
       ! HcoState%MicroPhys?
-      INTEGER, PARAMETER   :: NBINS = 15      ! # of dust bins 
+      INTEGER, PARAMETER   :: NBINS = 15      ! # of dust bins
       INTEGER, PARAMETER   :: NN_SFCTYP = 28
 
       ! Fundamental physical constants
@@ -179,7 +179,7 @@
      &                                                   / MMW_H2O
       REAL*8,  PARAMETER   :: KAPPA_DRY_AIR    = GAS_CST_DRY_AIR
      &                                         / SPC_HEAT_DRY_AIR
- 
+
       ! Fixed-size grid information
       INTEGER, PARAMETER   :: DST_SRC_NBR      = 3
       INTEGER, PARAMETER   :: MVT              = 14
@@ -191,9 +191,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_TOMAS_DustDead_Run 
+! !IROUTINE: HCOX_TOMAS_DustDead_Run
 !
-! !DESCRIPTION: Subroutine HcoX\_DustDead\_Run is the driver routine 
+! !DESCRIPTION: Subroutine HcoX\_DustDead\_Run is the driver routine
 ! for the HEMCO DEAD dust extension.
 !\\
 !\\
@@ -205,7 +205,7 @@
 ! !USES:
 !
       USE HCO_CALC_MOD,      ONLY : HCO_EvalFld
-      USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
+      USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_First
       USE HCO_State_Mod,     ONLY : HCO_GetHcoID
@@ -214,11 +214,11 @@
 !
       LOGICAL,         INTENT(IN   )  :: am_I_Root
       TYPE(Ext_State), POINTER        :: ExtState    ! Module options
-      TYPE(HCO_State), POINTER        :: HcoState    ! Hemco state 
+      TYPE(HCO_State), POINTER        :: HcoState    ! Hemco state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER,         INTENT(INOUT)  :: RC 
+      INTEGER,         INTENT(INOUT)  :: RC
 
 ! !REVISION HISTORY:
 !  08 Apr 2004 - T. D. Fairlie - Initial version
@@ -268,15 +268,15 @@
       REAL*8                 :: VLON(HcoState%NX)          ! V-wind (L=1)
       REAL*8                 :: BHT2(HcoState%NX)          ! half box height (L=1)
       REAL*8                 :: Q_H2O(HcoState%NX)         ! specific humidity (L=1)
-      REAL*8                 :: ORO(HcoState%NX)           ! "orography" 
+      REAL*8                 :: ORO(HcoState%NX)           ! "orography"
       REAL*8                 :: SNW_HGT_LQD(HcoState%NX)   ! equivalent snow ht.
       REAL*8                 :: DSRC(HcoState%NX,
      & HcoState%MicroPhys%nBins)    ! dust mixing ratio incr.
-      REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY, 
-     & HcoState%MicroPhys%nBins) ! Flux array [kg/m2/s]   
+      REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,
+     & HcoState%MicroPhys%nBins) ! Flux array [kg/m2/s]
       ! JKodros
       REAL(hp), TARGET       :: FLUXN(HcoState%NX,HcoState%NY,
-     & HcoState%MicroPhys%nBins) ! Flux NUMB array [number units??]   
+     & HcoState%MicroPhys%nBins) ! Flux NUMB array [number units??]
 
       TYPE(MyInst), POINTER  :: Inst
 
@@ -288,7 +288,7 @@
 ! !DEFINED PARAMETERS:
 !
 !      REAL*8, PARAMETER      :: Ch_dust = 9.375d-10
-!      REAL*8, PARAMETER      :: g0      = 9.80665d0 
+!      REAL*8, PARAMETER      :: g0      = 9.80665d0
 !      REAL*8, PARAMETER      :: G       = g0 * 1.D2
 !      REAL*8, PARAMETER      :: RHOA    = 1.25D-3
       REAL*8, PARAMETER      :: CP      = 1004.16d0
@@ -296,7 +296,7 @@
       REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
       REAL*8, PARAMETER      :: P1000   = 1000d0
       CHARACTER(LEN=255)     :: MSG
-      
+
       ! temp debugging - jkodros
       INTEGER                :: jj=30, ii=40
 
@@ -304,21 +304,21 @@
       ! HCOX_DUSTDEAD_RUN begins here!
       !=================================================================
 
-      ! Return if extension disabled 
+      ! Return if extension disabled
       IF ( ExtState%TOMAS_DustDead <= 0 ) RETURN
 
       ! Enter
-      CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_TOMAS_DustDead_Run 
+      CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_TOMAS_DustDead_Run
      & (hcox_tomas_dustdead_mod.F)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! am I root? 
+      ! am I root?
       aIR = am_I_Root
 
       ! Get instance
       Inst => NULL()
       CALL InstGet ( ExtState%TOMAS_DustDead, Inst, RC )
-      IF ( RC /= HCO_SUCCESS ) THEN 
+      IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find TOMAS DEAD instance Nr. ',
      &               ExtState%TOMAS_DustDead
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
@@ -349,31 +349,31 @@
          CALL HCO_EvalFld( aIR, HcoState, 'DEAD_EF_GEO',
      &                     Inst%ERD_FCT_GEO, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
-   
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_LF_DRY', 
+
+         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_LF_DRY',
      &                     Inst%LND_FRC_DRY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
          CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CACO3',
      &                     Inst%MSS_FRC_CACO3,  RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
          CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CLY',
      &                     Inst%MSS_FRC_CLY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
          CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_SND',
      &                     Inst%MSS_FRC_SND, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
          CALL HCO_EvalFld( aIR, HcoState, 'DEAD_SFC_TYP',
      &                     Inst%SFC_TYP, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
          CALL HCO_EvalFld( aIR, HcoState, 'DEAD_GOC_SRC',
      &                     Inst%SRCE_FUNC, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN 
-   
+         IF ( RC /= HCO_SUCCESS ) RETURN
+
          CALL HCO_EvalFld( aIR, HcoState, 'DEAD_VAI',
      &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
@@ -382,15 +382,15 @@
       !ENDIF
 
       !=================================================================
-      ! CALL DUST MOBILIZATION SCHEME 
+      ! CALL DUST MOBILIZATION SCHEME
       !=================================================================
 
       ! Make OROGRAPHY array from GEOS-CHEM LWI
       CALL GET_ORO( aIR, HcoState, ExtState, OROGRAPHY, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! Get emissions time step 
-      DTSRCE = HcoState%TS_EMIS   
+      ! Get emissions time step
+      DTSRCE = HcoState%TS_EMIS
 
       ! Get day of year, convert to real!!
       CALL HcoClock_Get( aIR, HcoState%Clock, cDOY = intDOY, RC=RC )
@@ -410,35 +410,35 @@
 !$OMP+PRIVATE( N,     YMID_R, DSRC,  RC,   AREA_M2                    )
 
       ! Loop over latitudes
-      DO J = 1, HcoState%NY 
+      DO J = 1, HcoState%NY
 
          ! Don't do calculations if there has been an error
-         IF ( ERR ) CYCLE 
+         IF ( ERR ) CYCLE
 
          ! Loop over longitudes
          DO I = 1, HcoState%NX
- 
+
             ! Pressure [Pa] at bottom and top edge of level 1
-            P1             = HcoState%Grid%PEDGE%Val(I,J,1) 
-            P2             = HcoState%Grid%PEDGE%Val(I,J,2) 
+            P1             = HcoState%Grid%PEDGE%Val(I,J,1)
+            P2             = HcoState%Grid%PEDGE%Val(I,J,2)
 
             ! Pressure thickness of 1st layer [Pa]
-            PTHICK(I)      = ( P1 - P2 ) 
+            PTHICK(I)      = ( P1 - P2 )
 
             ! Pressure at midpt of surface layer [Pa]
             PMID(I)        = ( P1 + P2 ) / 2.0_hp
 
-            ! Temperature [K] at midpoint of surface layer 
+            ! Temperature [K] at midpoint of surface layer
             TLON(I)        = ExtState%TK%Arr%Val(I,J,1)
 
-            ! Potential temperature [K] at midpoint 
+            ! Potential temperature [K] at midpoint
             THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
 
             ! U and V winds at surface [m/s]
             ! --> These variables won't be used at all...
             ULON(I)        = ExtState%U10M%Arr%Val(I,J)
             VLON(I)        = ExtState%V10M%Arr%Val(I,J)
- 
+
             ! Half box height at surface [m]
             BHT2(I)        = HcoState%Grid%BXHEIGHT_M%Val(I,J,1) / 2.d0
 
@@ -458,27 +458,27 @@
          ENDDO !I
 
          !==============================================================
-         ! CALL DUST MOBILIZATION DRIVER (DST_MBL) FOR LATITUDE J 
+         ! CALL DUST MOBILIZATION DRIVER (DST_MBL) FOR LATITUDE J
          !==============================================================
 
          ! Latitude in RADIANS
          YMID_R = HcoState%Grid%YMID%Val(1,J) * HcoState%Phys%PI /180.d0
 
          ! Call DEAD dust mobilization
-         CALL DST_MBL( aIR,    HcoState, ExtState,  Inst, DOY,    
-     &                 BHT2,   J,      YMID_R, ORO, 
+         CALL DST_MBL( aIR,    HcoState, ExtState,  Inst, DOY,
+     &                 BHT2,   J,      YMID_R, ORO,
      &                 PTHICK, PMID,  Q_H2O,  DSRC,   SNW_HGT_LQD,
-     &                 DTSRCE, TLON,  THLON,  VLON,   ULON,       
-     &                 J,      RC ) 
+     &                 DTSRCE, TLON,  THLON,  VLON,   ULON,
+     &                 J,      RC )
 
          ! Error check
          IF ( RC /= HCO_SUCCESS ) THEN
             ERR = .TRUE.
-            CYCLE 
-         ENDIF 
+            CYCLE
+         ENDIF
 
          ! Write to emissions array
-         DO I = 1, HcoState%NX 
+         DO I = 1, HcoState%NX
 
             ! Loop over dust tracers
             ! Write into flux array: kg/box --> kg/m2/s
@@ -488,34 +488,34 @@
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
                   FLUXN(I,J,N) = FLUX(I,J,N)/
-     &                 (SQRT( HcoState%MicroPhys%BinBound(N  ) *    
+     &                 (SQRT( HcoState%MicroPhys%BinBound(N  ) *
      &                             HcoState%MicroPhys%BinBound(N+1)   ))
                ENDIF
             ENDDO !N
          ENDDO !I
-      ENDDO !J 
+      ENDDO !J
 !$OMP END PARALLEL DO
 
-      ! Error check 
+      ! Error check
       IF ( ERR ) THEN
          RC = HCO_FAIL
-         RETURN 
+         RETURN
       ENDIF
 
       !=================================================================
-      ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
+      ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS
       !=================================================================
       DO N = 1, HcoState%MicroPhys%nBins
          IF ( Inst%HcoIDs(N) > 0 ) THEN
             !print*, 'DUST EMISS: ', FLUX(ii,jj,N)
             !print*, 'DUST EMISS TOT: ', sum(FLUX(:,:,N))
             ! Add to emissions array
-            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX(:,:,N), 
+            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX(:,:,N),
      &                        Inst%HcoIDs(N), RC,  ExtNr=Inst%ExtNr )
             IF ( RC /= HCO_SUCCESS ) THEN
                WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-               RETURN 
+               RETURN
             ENDIF
 
 ! Get the proper species name
@@ -568,7 +568,7 @@
             CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXN(:,:,N), HcoID,
      &                        RC)
             IF ( RC /= HCO_SUCCESS ) THEN
-               CALL HCO_ERROR( HcoState%Config%Err, 
+               CALL HCO_ERROR( HcoState%Config%Err,
      &                        'HCO_EmisAdd error: FLUXNDUST', RC )
                RETURN
             ENDIF
@@ -612,7 +612,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER,          INTENT(INOUT)  :: RC 
+      INTEGER,          INTENT(INOUT)  :: RC
 
 ! !REVISION HISTORY:
 !  25 Nov 2013 - C. Keller   - Now a HEMCO extension
@@ -641,7 +641,7 @@
       IF ( ExtNr <= 0 ) RETURN
 
       ! Enter
-      CALL HCO_ENTER(HcoState%Config%Err,'HCOX_TOMAS_DustDead_Init 
+      CALL HCO_ENTER(HcoState%Config%Err,'HCOX_TOMAS_DustDead_Init
      & (hcox_tomas_dustdead_mod.F)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -649,7 +649,7 @@
       Inst => NULL()
       CALL InstCreate ( ExtNr, ExtState%TOMAS_DustDead, Inst, RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 
+       CALL HCO_ERROR ( HcoState%Config%Err,
      &                 'Cannot create TOMAS DEAD instance', RC )
        RETURN
       ENDIF
@@ -659,10 +659,10 @@
       J = HcoState%NY
 
       !-----------------------------------------------------------------
-      ! Get species IDs 
+      ! Get species IDs
       !-----------------------------------------------------------------
 
-      CALL HCO_GetExtHcoID( HcoState, ExtNr, Inst%HcoIDs, 
+      CALL HCO_GetExtHcoID( HcoState, ExtNr, Inst%HcoIDs,
      &                      SpcNames, nSpc, RC)
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -676,8 +676,8 @@
       ! Set scale factor: first try to read from configuration file. If
       ! not specified, call wrapper function which sets teh scale factor
       ! based upon compiler switches.
-      CALL GetExtOpt( HcoState%Config, ExtNr, 
-     &                 'Mass tuning factor', 
+      CALL GetExtOpt( HcoState%Config, ExtNr,
+     &                 'Mass tuning factor',
      &                 OptValDp=TmpScal, Found=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -686,7 +686,7 @@
       IF ( FOUND ) THEN
          Inst%FLX_MSS_FDG_FCT = TmpScal
       ELSE
-         Inst%FLX_MSS_FDG_FCT = 
+         Inst%FLX_MSS_FDG_FCT =
      &      HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root, HcoState )
          IF ( Inst%FLX_MSS_FDG_FCT < 0.0_dp ) THEN
             MSG = 'Error in getting TOMAS dust DEAD mass tuning factor'
@@ -699,14 +699,14 @@
       IF ( am_I_Root ) THEN
          MSG = 'Use DEAD dust emissions (extension module)'
          CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
-   
-         MSG = 'Use the following species (Name: HcoID):' 
+
+         MSG = 'Use the following species (Name: HcoID):'
          CALL HCO_MSG(HcoState%Config%Err,MSG)
          DO N = 1, nSpc
             WRITE(MSG,*) TRIM(SpcNames(N)), ':', Inst%HcoIDs(N)
             CALL HCO_MSG(HcoState%Config%Err,MSG)
          ENDDO
-            
+
          WRITE(MSG,*) 'Global mass flux tuning factor: ',
      &                 Inst%FLX_MSS_FDG_FCT
          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
@@ -714,7 +714,7 @@
       ENDIF
 
       !-----------------------------------------------------------------
-      ! Init module arrays 
+      ! Init module arrays
       !-----------------------------------------------------------------
 
       ALLOCATE ( Inst%ERD_FCT_GEO   ( HcoState%NX, HcoState%NY),
@@ -726,7 +726,7 @@
      &           Inst%SFC_TYP       ( HcoState%NX, HcoState%NY),
      &           Inst%VAI_DST       ( HcoState%NX, HcoState%NY),
      &           STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'Allocation error', RC )
         RETURN
       ENDIF
@@ -741,109 +741,109 @@
 
 !      ! Allocate arrays
 !      ALLOCATE( Inst%FLX_LW_DWN_SFC( I, J ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'FLX_LW_DWN_SFC', RC )
 !        RETURN
 !      ENDIF
 !      Inst%FLX_LW_DWN_SFC = 0d0
 
 !      ALLOCATE( Inst%FLX_SW_ABS_SFC( I, J ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'FLX_SW_ABS_SFC', RC )
 !        RETURN
 !      ENDIF
 !      Inst%FLX_SW_ABS_SFC = 0d0
 
 !      ALLOCATE( Inst%TPT_GND( I, J ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'TPT_GND', RC )
 !        RETURN
 !      ENDIF
 !      Inst%TPT_GND = 0d0
- 
+
 !      ALLOCATE( Inst%TPT_SOI( I, J ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'TPT_SOI', RC )
 !        RETURN
 !      ENDIF
 !      Inst%TPT_SOI = 0d0
- 
+
 !      ALLOCATE( Inst%VWC_SFC( I, J ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'VWC_SFC', RC )
 !        RETURN
 !      ENDIF
 !      Inst%VWC_SFC = 0d0
- 
+
 !      ALLOCATE( Inst%SRC_STR( I, J ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'SRC_STR', RC )
 !        RETURN
 !      ENDIF
 !      Inst%SRC_STR = 0d0
 
       ALLOCATE( Inst%PLN_TYP( 0:28, 3 ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'PLN_TYP', RC )
         RETURN
       ENDIF
       Inst%PLN_TYP = 0
 
       ALLOCATE( Inst%PLN_FRC( 0:28, 3 ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'PLN_FRC', RC )
         RETURN
       ENDIF
       Inst%PLN_FRC = 0d0
 
       ALLOCATE( Inst%TAI( MVT, 12 ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'TAI', RC )
         RETURN
       ENDIF
       Inst%TAI = 0d0
 
       ALLOCATE( Inst%DMT_VWR( NBINS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_VWR', RC )
         RETURN
       ENDIF
       Inst%DMT_VWR = 0d0
 
 !      ALLOCATE( Inst%DNS_AER( NBINS ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'DNS_AER', RC )
 !        RETURN
 !      ENDIF
 !      Inst%DNS_AER = 0d0
 
       ALLOCATE( Inst%OVR_SRC_SNK_FRC( DST_SRC_NBR, NBINS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'OVR_SRC_SNK_FRC', RC )
         RETURN
       ENDIF
       Inst%OVR_SRC_SNK_FRC = 0d0
 
       ALLOCATE( Inst%OVR_SRC_SNK_MSS( DST_SRC_NBR, NBINS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'OVR_SRC_SNK_MSS', RC )
         RETURN
       ENDIF
       Inst%OVR_SRC_SNK_MSS = 0d0
 
 !      ALLOCATE( Inst%OROGRAPHY( I, J ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'OROGRAPHY', RC )
 !        RETURN
 !      ENDIF
 !      Inst%OROGRAPHY = 0
-      
+
 !----------------------------------------------------------------
 !   JKODROS - TESTING TO GET DUST IN WITH TOMAS
 !----------------------------------------------------------------
       ! Bin size min diameter [m]
       ALLOCATE( Inst%DMT_MIN( NBINS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_MIN', RC )
         RETURN
       ENDIF
@@ -852,11 +852,11 @@
          Inst%DMT_MIN(k) = (HcoState%MicroPhys%BinBound(k)/2650.*6./
      &                      HcoState%Phys%PI)
      &                      **(1.d0/3.d0)
-      ENDDO   
+      ENDDO
 
       ! Bin size max diameter [m]
       ALLOCATE( Inst%DMT_MAX( NBINS ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_MAX', RC )
         RETURN
       ENDIF
@@ -864,7 +864,7 @@
       DO k=1,HcoState%MicroPhys%nBins
          Inst%DMT_MAX(k) = (HcoState%MicroPhys%BinBound(k+1)
      &                     /2650.*6./HcoState%Phys%PI)**(1.d0/3.d0)
-      ENDDO   
+      ENDDO
 
 !----------------------------------------------------------------
 !   JKODROS - TESTING TO GET DUST IN WITH TOMAS
@@ -872,7 +872,7 @@
 
       ! Bin size min diameter [m]
 !      ALLOCATE( Inst%DMT_MIN( NBINS ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_MIN', RC )
 !        RETURN
 !      ENDIF
@@ -883,7 +883,7 @@
 
       ! Bin size max diameter [m]
 !      ALLOCATE( Inst%DMT_MAX( NBINS ), STAT=AS )
-!      IF ( AS /= 0 ) THEN 
+!      IF ( AS /= 0 ) THEN
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_MAX', RC )
 !        RETURN
 !      ENDIF
@@ -897,7 +897,7 @@
       ! These modes also summarized in BSM96 p. 73 Table 2
       ! Mass median diameter BSM96 p. 73 Table 2
       ALLOCATE( Inst%DMT_VMA_SRC( DST_SRC_NBR ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'DMT_VMA_SRC', RC )
         RETURN
       ENDIF
@@ -908,7 +908,7 @@
       ! GSD_ANL_SRC: Geometric standard deviation [fraction]
       ! BSM96 p. 73 Table 2
       ALLOCATE( Inst%GSD_ANL_SRC( DST_SRC_NBR ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'GSD_ANL_SRC', RC )
         RETURN
       ENDIF
@@ -918,7 +918,7 @@
 
       ! MSS_FRC_SRC:  Mass fraction BSM96 p. 73 Table 2
       ALLOCATE( Inst%MSS_FRC_SRC( DST_SRC_NBR ), STAT=AS )
-      IF ( AS /= 0 ) THEN 
+      IF ( AS /= 0 ) THEN
         CALL HCO_ERROR ( HcoState%Config%Err, 'MSS_FRC_SRC', RC )
         RETURN
       ENDIF
@@ -930,7 +930,7 @@
       ! Compute mass overlaps, Mij, between "source" PDFs
       ! and size bins (Zender et al., 2K3, Equ. 12, and Table 1)
       !=================================================================
-      CALL OVR_SRC_SNK_FRC_GET( HcoState, 
+      CALL OVR_SRC_SNK_FRC_GET( HcoState,
      &                          DST_SRC_NBR,   Inst%DMT_VMA_SRC,
      &                          Inst%GSD_ANL_SRC,   NBINS,
      &                          Inst%DMT_MIN,  Inst%DMT_MAX,
@@ -968,7 +968,7 @@
       ! Leave w/ success
       Inst => NULL()
       IF ( ALLOCATED(SpcNames   ) ) DEALLOCATE(SpcNames   )
-      CALL HCO_LEAVE( HcoState%Config%Err, RC ) 
+      CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
       END SUBROUTINE HCOX_TOMAS_DustDead_Init
 !EOC
@@ -989,12 +989,12 @@
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+      TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !REVISION HISTORY:
 !  25 Nov 2013 - C. Keller - Now a HEMCO extension
 !
-! !NOTES: 
+! !NOTES:
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1013,13 +1013,13 @@
 ! ORIGINAL ROUTINES FOLLOW BELOW
 !******************************************************************************
 
-      SUBROUTINE DST_MBL( am_I_Root,   HcoState,    ExtState, Inst, 
+      SUBROUTINE DST_MBL( am_I_Root,   HcoState,    ExtState, Inst,
      &                    DOY,         HGT_MDP,     LAT_IDX,
      &                    LAT_RDN,     ORO,         PRS_DLT,
      &                    PRS_MDP,     Q_H2O_VPR,   DSRC,
      &                    SNW_HGT_LQD, TM_ADJ,      TPT_MDP,
      &                    TPT_PTN_MDP, WND_MRD_MDP, WND_ZNL_MDP,
-     &                    NSTEP,       RC ) 
+     &                    NSTEP,       RC )
 !
 !******************************************************************************
 !  Subroutine DST_MBL is the driver for aerosol mobilization (DEAD model).
@@ -1054,18 +1054,18 @@
 !  NOTES:
 !  (1 ) Cleaned up and added comments.  Also force double precision with
 !        "D" exponents. (bmy, 3/30/04)
-!  (2 ) Now get GOCART source function. (tdf, bmy, 1/25/07)      
+!  (2 ) Now get GOCART source function. (tdf, bmy, 1/25/07)
 !  (3 ) Tune nested-domain emissions dust to the same as 2x2.5 simulation
 !        Also tune GEOS-3 1x1 N. America nested-grid dust emissions to
-!        the 4x5 totals from the GEOS-5 4x5 v8-01-01-Run0 benchmark. 
+!        the 4x5 totals from the GEOS-5 4x5 v8-01-01-Run0 benchmark.
 !        (yxw, bmy, dan, 11/6/08)
 !  (4 ) New scale parameter for 2x2.5 GEOS-5 (tdf, jaf, phs, 10/30/09)
-!  (5 ) Defined FLX_MSS_FDG_FCT for GEOS_4 2x2.5, GEOS_5 2x2.5, NESTED_NA and 
+!  (5 ) Defined FLX_MSS_FDG_FCT for GEOS_4 2x2.5, GEOS_5 2x2.5, NESTED_NA and
 !        NESTED_EU.  Redefined FLX_MSS_FDG_FCT for NESTED_CH, based upon above
 !        changes. (amv, bmy, 12/18/09)
 !  (6 ) For now treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
-!  08 Feb 2012 - R. Yantosca - For now, use same FLX_MSS_FDG_FCT for 
+!  08 Feb 2012 - R. Yantosca - For now, use same FLX_MSS_FDG_FCT for
 !                              GEOS-5.7.x as for MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -1075,8 +1075,8 @@
 !******************************************************************************
 !
       ! Arguments
-      LOGICAL,        INTENT(IN)    :: am_I_Root 
-      TYPE(HCO_State), POINTER      :: HcoState   ! Hemco state 
+      LOGICAL,        INTENT(IN)    :: am_I_Root
+      TYPE(HCO_State), POINTER      :: HcoState   ! Hemco state
       TYPE(Ext_State), POINTER      :: ExtState    ! Module options
       TYPE(MyInst),    POINTER      :: Inst
       INTEGER,        INTENT(IN)    :: LAT_IDX
@@ -1095,7 +1095,7 @@
       REAL*8,         INTENT(IN)    :: WND_ZNL_MDP(HcoState%NX)
       INTEGER,        INTENT(IN)    :: NSTEP
       REAL*8,         INTENT(INOUT) :: DSRC(HcoState%NX, NBINS)
-      INTEGER,        INTENT(INOUT)  :: RC 
+      INTEGER,        INTENT(INOUT)  :: RC
 
       !--------------
       ! Parameters
@@ -1243,7 +1243,7 @@
          ! Stop occasional haywire model runs
 !         IF ( TPT_MDP(I) > 350.0d0 ) THEN
 !            MSG = 'TPT_MDP(i) > 350.0'
-!            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC='DST_MBL' ) 
+!            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, THISLOC='DST_MBL' )
 !            RETURN
 !         ENDIF
          ! Now simply restrict to 350K, rather than crashing
@@ -1282,7 +1282,7 @@
       !=================================================================
 
       ! Get LSM Surface type (0..28)
-      CALL SFC_TYP_GET( HcoState, ExtState, Inst, 
+      CALL SFC_TYP_GET( HcoState, ExtState, Inst,
      &                  LAT_IDX,  SFC_TYP_SLICE, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1320,8 +1320,8 @@
 
       ! Get time-varying vegetation area index
       CALL DST_TVBDS_GET(
-     &    Inst,                ! # of lons 
-     &    HcoState%NX,         ! # of lons 
+     &    Inst,                ! # of lons
+     &    HcoState%NX,         ! # of lons
      &    LAT_IDX,             ! I [idx] Latitude index
      &    VAI_DST_SLICE)       ! O [m2 m-2] Vegetation area index, one-sided
 
@@ -1378,9 +1378,9 @@
       ! Get reference wind at 10m
       !=================================================================
       DO I = 1, HcoState%NX
-         W10M = ExtState%U10M%Arr%Val(I,LAT_IDX)**2 + 
+         W10M = ExtState%U10M%Arr%Val(I,LAT_IDX)**2 +
      &          ExtState%V10M%Arr%Val(I,LAT_IDX)**2
-         W10M = SQRT(W10M) 
+         W10M = SQRT(W10M)
 
          ! add mobilisation criterion flag
          IF ( FLG_MBL_SLICE(I) ) THEN
@@ -1454,7 +1454,7 @@
 !     &    FLG_MBL_SLICE,       ! I [flg] Mobilization candidate flag
 !     &    RGH_MMN_MBL,         ! I [m] Rgh length momentum for erodible sfcs
 !     &    RGH_MMN_SMT,         ! I [m] Smooth roughness length, Z0,m,s
-!     &    RC )        
+!     &    RC )
 !-----------------------------------------------------------------------------
 
       ! Now set roughness factor to 1.0 (tdf, bmy, 1/25/07)
@@ -1494,7 +1494,7 @@
      &    FLG_MBL_SLICE,       ! I mobilisation flag
      &    DNS_MDP,             ! I [kg m-3] Midlayer density
      &    WND_FRC_THR_SLT,     ! O [m s-1] Threshold friction velocity
-     &    RC )    
+     &    RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Adjust threshold friction velocity to account
@@ -1592,7 +1592,7 @@
       ! computed in DST_PSD_MSS, called from "dust_mod.f" (tdf, 3/30/04)
       !=================================================================
       CALL FLX_MSS_VRT_DST_PRT( Inst,
-     &    HcoState%NX, 
+     &    HcoState%NX,
      &    FLG_MBL_SLICE,       ! I [flg] Mobilization candidate flag
      &    FLX_MSS_VRT_DST,     ! O [kg m-2 s-1] Vertical mass flux of dust
      &    FLX_MSS_VRT_DST_TTL) ! I [kg m-2 s-1] Total vertical mass flux of dus
@@ -1670,7 +1670,7 @@
 !******************************************************************************
 !
       ! Arguments
-      TYPE(HCO_State), POINTER :: HcoState   ! Hemco state 
+      TYPE(HCO_State), POINTER :: HcoState   ! Hemco state
       TYPE(MyInst),    POINTER :: Inst
       INTEGER, INTENT(IN)      :: LAT_IDX
       REAL*8,  INTENT(OUT)     :: SRCE_FUNC_OUT(HcoState%NX)
@@ -1695,7 +1695,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOI_TXT_GET( HcoState, ExtState, Inst, J, 
+      SUBROUTINE SOI_TXT_GET( HcoState, ExtState, Inst, J,
      &                        LND_FRC_DRY_OUT,
      &                        MBL_BSN_FCT_OUT, MSS_FRC_CACO3_OUT,
      &                        MSS_FRC_CLY_OUT, MSS_FRC_SND_OUT )
@@ -1722,8 +1722,8 @@
 !
 
       ! Arguments
-      TYPE(HCO_State), POINTER :: HcoState   ! Hemco state 
-      TYPE(Ext_State), POINTER :: ExtState    ! Module options 
+      TYPE(HCO_State), POINTER :: HcoState   ! Hemco state
+      TYPE(Ext_State), POINTER :: ExtState    ! Module options
       TYPE(MyInst),    POINTER :: Inst
       INTEGER, INTENT(IN)  :: J
       REAL*8,  INTENT(OUT) :: LND_FRC_DRY_OUT(HcoState%NX)
@@ -1762,7 +1762,7 @@
          !     into sand
          MSS_FRC_CLY_OUT(I) = MSS_FRC_CLY_GLB
          MSS_FRC_SND_OUT(I) = Inst%MSS_FRC_SND(I,J) +
-     &                        Inst%MSS_FRC_CLY(I,J) - 
+     &                        Inst%MSS_FRC_CLY(I,J) -
      &                        MSS_FRC_CLY_GLB
 
       ENDDO
@@ -1772,7 +1772,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SFC_TYP_GET( HcoState, ExtState, 
+      SUBROUTINE SFC_TYP_GET( HcoState, ExtState,
      &                        Inst, J, SFC_TYP_OUT, RC )
 !
 !******************************************************************************
@@ -1789,12 +1789,12 @@
 !
 !  NOTES
 !  (1 ) Updated comments & cosmetic changes (bmy, 3/30/04)
-!  (2 ) Added error trap (ckeller, 7/24/2014) 
+!  (2 ) Added error trap (ckeller, 7/24/2014)
 !******************************************************************************
 !
 
       ! Arguments
-      TYPE(HCO_State), POINTER :: HcoState   ! Hemco state 
+      TYPE(HCO_State), POINTER :: HcoState   ! Hemco state
       TYPE(Ext_State), POINTER :: ExtState
       TYPE(MyInst),    POINTER :: Inst
       INTEGER, INTENT(IN)      :: J
@@ -1812,7 +1812,7 @@
          TMP = INT(Inst%SFC_TYP(I,J))
 
          ! Make sure value is within valid range (1 - NN_SFCTYP).
-         SFC_TYP_OUT(I) = MAX( MIN(TMP,NN_SFCTYP), 0 )         
+         SFC_TYP_OUT(I) = MAX( MIN(TMP,NN_SFCTYP), 0 )
       ENDDO
 
       ! Return with success
@@ -1823,7 +1823,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TPT_GND_SOI_GET( HcoState, J, TS, 
+      SUBROUTINE TPT_GND_SOI_GET( HcoState, J, TS,
      &                            TPT_GND_OUT, TPT_SOI_OUT )
 !
 !******************************************************************************
@@ -1847,7 +1847,7 @@
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
-      TYPE(HCO_State), POINTER :: HcoState   ! Hemco state 
+      TYPE(HCO_State), POINTER :: HcoState   ! Hemco state
       REAL(hp),INTENT(IN)  :: TS(HcoState%NX,HcoState%NY)
       REAL*8,  INTENT(OUT) :: TPT_GND_OUT(HcoState%NX)
       REAL*8,  INTENT(OUT) :: TPT_SOI_OUT(HcoState%NX)
@@ -1892,7 +1892,7 @@
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
-      TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state 
+      TYPE(HCO_State), POINTER        :: HcoState   ! Hemco state
       REAL(hp), INTENT(IN)  :: GWETTOP(HcoState%NX,HcoState%NY)
       REAL*8,  INTENT(OUT) :: VWC_SFC_OUT(HcoState%NX)
 
@@ -2166,7 +2166,7 @@
 
          ! Set orography to land type
          OROGRAPHY (I,J) = HCO_LANDTYPE( ExtState%WLI%Arr%Val(I,J),
-     &                                   ExtState%ALBD%Arr%Val(I,J) ) 
+     &                                   ExtState%ALBD%Arr%Val(I,J) )
 
       ENDDO
       ENDDO
@@ -2179,7 +2179,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE HYD_PRP_GET( HcoState,     FLG_MBL, MSS_FRC_CLY_SLC, 
+      SUBROUTINE HYD_PRP_GET( HcoState,     FLG_MBL, MSS_FRC_CLY_SLC,
      &                        MSS_FRC_SND_SLC, VWC_DRY, VWC_OPT,
      &                        VWC_SAT                            )
 !
@@ -2274,7 +2274,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE CND_TRM_SOI_GET( HcoState,CND_TRM_SOI,FLG_MBL,LVL_DLT,
-     &                            MSS_FRC_CLY_SLC, MSS_FRC_SND_SLC, 
+     &                            MSS_FRC_CLY_SLC, MSS_FRC_SND_SLC,
      &                            TPT_SOI,
      &                            VWC_DRY,     VWC_OPT,     VWC_SAT,
      &                            VWC_SFC )
@@ -2584,7 +2584,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE BLM_MBL( HcoState, FLG_MBL, RGH_MMN, 
+      SUBROUTINE BLM_MBL( HcoState, FLG_MBL, RGH_MMN,
      &                    WND_10M,  MNO_LNG, WND_FRC, RC )
 !
 !******************************************************************************
@@ -2908,7 +2908,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE RGH_MMN_GET( HcoState,Inst,ORO, RGH_MMN, 
+      SUBROUTINE RGH_MMN_GET( HcoState,Inst,ORO, RGH_MMN,
      &                        SFC_TYP_SLC, SNW_FRC, WND_10M, RC )
 !
 !******************************************************************************
@@ -3131,8 +3131,8 @@
 
               ! Presumably ocean snuck through
               ELSE
-                 CALL HCO_ERROR( HcoState%Config%Err, 
-     &                          'pln_typ_idx == 0', RC, 
+                 CALL HCO_ERROR( HcoState%Config%Err,
+     &                          'pln_typ_idx == 0', RC,
      &                           THISLOC='RGH_MMN_GET' )
                  RETURN
               ENDIF            ! endif
@@ -3241,7 +3241,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE WND_RFR_GET( HcoState, FLG_ORO, HGT_MDP, HGT_RFR, 
+      SUBROUTINE WND_RFR_GET( HcoState, FLG_ORO, HGT_MDP, HGT_RFR,
      &                        HGT_ZPD,  MNO_LNG, WND_FRC, WND_MDP,
      &                        WND_MIN,  WND_RFR )
 !
@@ -3393,7 +3393,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE WND_FRC_THR_SLT_GET( HcoState, FLG_MBL, 
+      SUBROUTINE WND_FRC_THR_SLT_GET( HcoState, FLG_MBL,
      &                                DNS_MDP, WND_FRC_THR_SLT, RC )
 !
 !******************************************************************************
@@ -3516,14 +3516,14 @@
          ENDIF
       ENDDO
 
-      ! Return w/ success 
+      ! Return w/ success
       RC = HCO_SUCCESS
 
       END SUBROUTINE WND_FRC_THR_SLT_GET
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE WND_RFR_THR_SLT_GET( HcoState, WND_FRC, 
+      SUBROUTINE WND_RFR_THR_SLT_GET( HcoState, WND_FRC,
      &                                WND_FRC_THR_SLT, WND_MDP, WND_RFR,
      &                                WND_RFR_THR_SLT )
 !
@@ -3661,7 +3661,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE FRC_THR_NCR_WTR_GET( HcoState,    FLG_MBL, 
+      SUBROUTINE FRC_THR_NCR_WTR_GET( HcoState,    FLG_MBL,
      &               FRC_THR_NCR_WTR, MSS_FRC_CLY_SLC, GWC_SFC )
 !
 !******************************************************************************
@@ -3831,7 +3831,7 @@
 
          ENDIF
       ENDDO
-     
+
       ! Return w/ success
       RC = HCO_SUCCESS
 
@@ -3839,7 +3839,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE WND_FRC_SLT_GET( HcoState, FLG_MBL, WND_FRC, 
+      SUBROUTINE WND_FRC_SLT_GET( HcoState, FLG_MBL, WND_FRC,
      &                            WND_FRC_SLT, WND_RFR, WND_RFR_THR_SLT)
 !
 !******************************************************************************
@@ -3952,12 +3952,12 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE FLX_MSS_CACO3_MSK( HcoState, ExtState, 
-     &                              DMT_VWR, 
+      SUBROUTINE FLX_MSS_CACO3_MSK( HcoState, ExtState,
+     &                              DMT_VWR,
      &                              FLG_MBL,
      &                              FLX_MSS_VRT_DST_CACO3,
      &                              MSS_FRC_CACO3_SLC,
-     &                              MSS_FRC_CLY_SLC, 
+     &                              MSS_FRC_CLY_SLC,
      &                              MSS_FRC_SND_SLC, RC )
 !
 !******************************************************************************
@@ -4112,7 +4112,7 @@
                IF ( MSS_FRC_CACO3_SZ_CRR < 0.0D0  .OR.
      &              MSS_FRC_CACO3_SZ_CRR > 1.0D0 ) THEN
                   MSG = 'mss_frc_CaC_s < 0.0.or.mss_frc_CaC_s > 1.0!'
-                  CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, 
+                  CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &               THISLOC='FLX_MSS_CACO3_MSK' )
                   RETURN
                ENDIF
@@ -4144,7 +4144,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE FLX_MSS_HRZ_SLT_TTL_WHI79_GET( HcoState, DNS_MDP, 
+      SUBROUTINE FLX_MSS_HRZ_SLT_TTL_WHI79_GET( HcoState, DNS_MDP,
      &                                    FLG_MBL, QS_TTL,  U_S,  U_ST )
 !
 !******************************************************************************
@@ -4229,7 +4229,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE FLX_MSS_VRT_DST_TTL_MAB95_GET( HcoState, 
+      SUBROUTINE FLX_MSS_VRT_DST_TTL_MAB95_GET( HcoState,
      &                                          DST_SLT_FLX_RAT_TTL,
      &                                          FLG_MBL,
      &                                          FLX_MSS_HRZ_SLT_TTL,
@@ -4320,7 +4320,7 @@
 
          ENDIF
       ENDDO
-    
+
       ! Return to calling program
       END SUBROUTINE FLX_MSS_VRT_DST_TTL_MAB95_GET
 
@@ -4442,7 +4442,7 @@
 
       ! Arguments
       TYPE(MyInst), POINTER :: Inst
-      INTEGER, INTENT(IN)   :: NX 
+      INTEGER, INTENT(IN)   :: NX
       LOGICAL, INTENT(IN)   :: FLG_MBL(NX)
       REAL*8,  INTENT(IN)   :: FLX_MSS_VRT_DST_TTL(NX)
       REAL*8,  INTENT(OUT)  :: FLX_MSS_VRT_DST(NX,NBINS)
@@ -4490,7 +4490,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE LND_FRC_MBL_GET( am_I_Root,   HcoState,    DOY,      
+      SUBROUTINE LND_FRC_MBL_GET( am_I_Root,   HcoState,    DOY,
      &                            FLG_MBL,     LAT_RDN,
      &                            LND_FRC_DRY_SLC, LND_FRC_MBL, MBL_NBR,
      &                            ORO,         SFC_TYP_SLC,     SNW_FRC,
@@ -4628,7 +4628,7 @@
       ! Error check
       IF ( VAI_MBL_THR <= 0.0d0 ) THEN
          MSG = 'VAI_MBL_THR <= 0.0'
-         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, 
+         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &        THISLOC='LND_FRC_MBL_GET' )
          RETURN
       ENDIF
@@ -4750,21 +4750,21 @@
          ! Temporary fix for 1 x 1.25 grids -- Lok Lamsal 1/13/10
          IF ( LND_FRC_MBL(LON_IDX) .GT. 1.0D0 ) THEN
             LND_FRC_MBL(LON_IDX) = 0.99D0
-         ENDIF         
+         ENDIF
 
          ! Error check
          IF ( LND_FRC_MBL(lon_idx) > 1.0D0 ) THEN
             MSG = 'LND_FRC_MBL > 1'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &         THISLOC='LND_FRC_MBL_GET' )
-            RETURN 
+            RETURN
          ENDIF
 
          IF ( LND_FRC_MBL(LON_IDX) < 0.0D0 )   then
             MSG = 'LND_FRC_MBL < 0'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &         THISLOC='LND_FRC_MBL_GET' )
-            RETURN 
+            RETURN
          ENDIF
 
          ! If there is dry land in this longitude
@@ -4863,7 +4863,7 @@
 
       ! Arguments
       TYPE(MyInst), POINTER  :: Inst
-      INTEGER, INTENT(IN)    :: NX 
+      INTEGER, INTENT(IN)    :: NX
       INTEGER, INTENT(IN)    :: LAT_IDX
       REAL*8,  INTENT(OUT)   :: VAI_DST_OUT(:)
 
@@ -4884,7 +4884,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OVR_SRC_SNK_FRC_GET( HcoState, 
+      SUBROUTINE OVR_SRC_SNK_FRC_GET( HcoState,
      &                                SRC_NBR,         MDN_SRC,
      &                                GSD_SRC,         SNK_NBR,
      &                                DMT_MIN_SNK,     DMT_MAX_SNK,
@@ -4954,15 +4954,15 @@
             MSG = 'ERF error 1 in OVR_SRC_SNK_FRC_GET!'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &         THISLOC='OVR_SRC_SNK_FRC_GET' )
-            RETURN 
+            RETURN
          ENDIF
 
          ! Another ERF check
          IF ( ERF( 0.0D0 ) /= 0.0D0 ) THEN
             MSG = 'ERF error 2 in OVR_SRC_SNK_FRC_GET!'
-            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, 
+            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      &         THISLOC='OVR_SRC_SNK_FRC_GET' )
-            RETURN 
+            RETURN
          ENDIF
 
          ! Reset first-time flag
@@ -4994,7 +4994,7 @@
 
       ! Return w/ success
       RC = HCO_SUCCESS
- 
+
       END SUBROUTINE OVR_SRC_SNK_FRC_GET
 
 !------------------------------------------------------------------------------
@@ -5465,7 +5465,7 @@ c Fix up for negative argument, erf, etc.
 
 !******************************************************************************
 
-      FUNCTION HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root, HcoState ) 
+      FUNCTION HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root, HcoState )
      & RESULT( FLX_MSS_FDG_FCT )
 !
 !******************************************************************************
@@ -5475,7 +5475,7 @@ c Fix up for negative argument, erf, etc.
 !
       ! Input argument
       LOGICAL :: am_I_Root
-      TYPE(HCO_State), POINTER :: HcoState    ! Hemco state 
+      TYPE(HCO_State), POINTER :: HcoState    ! Hemco state
 
       ! Output argument
       REAL*8  :: FLX_MSS_FDG_FCT
@@ -5660,12 +5660,12 @@ c Fix up for negative argument, erf, etc.
 !      FLX_MSS_FDG_FCT = 7.0d-4
       FLX_MSS_FDG_FCT = -999.0d0
 
-      ! Error 
+      ! Error
       MSG = 'Cannot assign mass flux tuning factor - ' //
      &      'please explicitly set it by adding ' //
      &      '` --> Mass tuning factor: XX.X` to the extension ' //
      &      'options in your config. file.'
-         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC, 
+         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC,
      & THISLOC='HCOX_TOMAS_DustDead_GetFluxTun')
       RETURN
 
@@ -5679,14 +5679,14 @@ c Fix up for negative argument, erf, etc.
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a pointer to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a pointer to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+      SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -5696,20 +5696,20 @@ c Fix up for negative argument, erf, etc.
       TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       TYPE(MyInst),     POINTER    :: PrvInst
-  
+
       !=================================================================
       ! InstGet begins here!
       !=================================================================
-   
+
       ! Get instance. Also archive previous instance.
-      PrvInst => NULL() 
+      PrvInst => NULL()
       Inst    => AllInst
-      DO WHILE ( ASSOCIATED(Inst) ) 
+      DO WHILE ( ASSOCIATED(Inst) )
          IF ( Inst%Instance == Instance ) EXIT
          PrvInst => Inst
          Inst    => Inst%NextInst
@@ -5718,29 +5718,29 @@ c Fix up for negative argument, erf, etc.
          RC = HCO_FAIL
          RETURN
       ENDIF
-  
+
       ! Pass output arguments
       IF ( PRESENT(PrevInst) ) PrevInst => PrvInst
-  
+
       ! Cleanup & Return
       PrvInst => NULL()
       RC = HCO_SUCCESS
-  
-      END SUBROUTINE InstGet 
+
+      END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
-! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+! !DESCRIPTION: Subroutine InstCreate creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+      SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -5753,28 +5753,28 @@ c Fix up for negative argument, erf, etc.
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER,       INTENT(INOUT)    :: RC 
+      INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       TYPE(MyInst), POINTER          :: TmpInst
       INTEGER                        :: nnInst
-  
+
       !=================================================================
       ! InstCreate begins here!
       !=================================================================
-  
+
       ! ----------------------------------------------------------------
-      ! Generic instance initialization 
+      ! Generic instance initialization
       ! ----------------------------------------------------------------
-  
+
       ! Initialize
       Inst => NULL()
-  
+
       ! Get number of already existing instances
       TmpInst => AllInst
       nnInst = 0
@@ -5782,16 +5782,16 @@ c Fix up for negative argument, erf, etc.
          nnInst  =  nnInst + 1
          TmpInst => TmpInst%NextInst
       END DO
-  
+
       ! Create new instance
       ALLOCATE(Inst)
       Inst%Instance = nnInst + 1
-      Inst%ExtNr    = ExtNr 
-  
+      Inst%ExtNr    = ExtNr
+
       ! Attach to instance list
       Inst%NextInst => AllInst
       AllInst       => Inst
-  
+
       ! Update output instance
       Instance = Inst%Instance
 
@@ -5816,18 +5816,18 @@ c Fix up for negative argument, erf, etc.
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+! !DESCRIPTION: Subroutine InstRemove creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE InstRemove ( Instance ) 
+      SUBROUTINE InstRemove ( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER                         :: Instance 
+      INTEGER                         :: Instance
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -5842,14 +5842,14 @@ c Fix up for negative argument, erf, etc.
       !=================================================================
       ! InstRemove begins here!
       !=================================================================
- 
+
       ! Get instance. Also archive previous instance.
       PrevInst => NULL()
       Inst     => NULL()
       CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
       ! Instance-specific deallocation
-      IF ( ASSOCIATED(Inst) ) THEN 
+      IF ( ASSOCIATED(Inst) ) THEN
 
       !-----------------------------------------------------------------
       ! Nullify pointers
@@ -5863,50 +5863,50 @@ c Fix up for negative argument, erf, etc.
       IF(ASSOCIATED( Inst%VAI_DST      )) DEALLOCATE(Inst%VAI_DST      )
 
       !-----------------------------------------------------------------
-      ! Cleanup module arrays 
+      ! Cleanup module arrays
       !-----------------------------------------------------------------
 
-!      IF ( ALLOCATED( Inst%FLX_LW_DWN_SFC  ) ) 
+!      IF ( ALLOCATED( Inst%FLX_LW_DWN_SFC  ) )
 !     &    DEALLOCATE( Inst%FLX_LW_DWN_SFC  )
-!      IF ( ALLOCATED( Inst%FLX_SW_ABS_SFC  ) ) 
+!      IF ( ALLOCATED( Inst%FLX_SW_ABS_SFC  ) )
 !     &    DEALLOCATE( Inst%FLX_SW_ABS_SFC  )
-!      IF ( ALLOCATED( Inst%TPT_GND         ) ) 
+!      IF ( ALLOCATED( Inst%TPT_GND         ) )
 !     &    DEALLOCATE( Inst%TPT_GND         )
-!      IF ( ALLOCATED( Inst%TPT_SOI         ) ) 
+!      IF ( ALLOCATED( Inst%TPT_SOI         ) )
 !     &    DEALLOCATE( Inst%TPT_SOI         )
-!      IF ( ALLOCATED( Inst%VWC_SFC         ) ) 
+!      IF ( ALLOCATED( Inst%VWC_SFC         ) )
 !     &    DEALLOCATE( Inst%VWC_SFC         )
-!      IF ( ALLOCATED( Inst%SRC_STR         ) ) 
+!      IF ( ALLOCATED( Inst%SRC_STR         ) )
 !     &    DEALLOCATE( Inst%SRC_STR         )
-      IF ( ALLOCATED( Inst%PLN_TYP         ) ) 
+      IF ( ALLOCATED( Inst%PLN_TYP         ) )
      &    DEALLOCATE( Inst%PLN_TYP         )
-      IF ( ALLOCATED( Inst%PLN_FRC         ) ) 
+      IF ( ALLOCATED( Inst%PLN_FRC         ) )
      &    DEALLOCATE( Inst%PLN_FRC         )
-      IF ( ALLOCATED( Inst%TAI             ) ) 
+      IF ( ALLOCATED( Inst%TAI             ) )
      &    DEALLOCATE( Inst%TAI             )
-      IF ( ALLOCATED( Inst%DMT_VWR         ) ) 
+      IF ( ALLOCATED( Inst%DMT_VWR         ) )
      &    DEALLOCATE( Inst%DMT_VWR         )
-!      IF ( ALLOCATED( Inst%DNS_AER         ) ) 
+!      IF ( ALLOCATED( Inst%DNS_AER         ) )
 !     &    DEALLOCATE( Inst%DNS_AER         )
-      IF ( ALLOCATED( Inst%OVR_SRC_SNK_FRC ) ) 
+      IF ( ALLOCATED( Inst%OVR_SRC_SNK_FRC ) )
      &    DEALLOCATE( Inst%OVR_SRC_SNK_FRC )
-      IF ( ALLOCATED( Inst%OVR_SRC_SNK_MSS ) ) 
+      IF ( ALLOCATED( Inst%OVR_SRC_SNK_MSS ) )
      &    DEALLOCATE( Inst%OVR_SRC_SNK_MSS )
-!      IF ( ALLOCATED( Inst%OROGRAPHY       ) ) 
+!      IF ( ALLOCATED( Inst%OROGRAPHY       ) )
 !     &    DEALLOCATE( Inst%OROGRAPHY       )
-      IF ( ALLOCATED( Inst%DMT_MIN         ) ) 
+      IF ( ALLOCATED( Inst%DMT_MIN         ) )
      &    DEALLOCATE( Inst%DMT_MIN         )
-      IF ( ALLOCATED( Inst%DMT_MAX         ) ) 
+      IF ( ALLOCATED( Inst%DMT_MAX         ) )
      &    DEALLOCATE( Inst%DMT_MAX         )
-      IF ( ALLOCATED( Inst%DMT_VMA_SRC     ) ) 
+      IF ( ALLOCATED( Inst%DMT_VMA_SRC     ) )
      &    DEALLOCATE( Inst%DMT_VMA_SRC     )
-      IF ( ALLOCATED( Inst%GSD_ANL_SRC     ) ) 
+      IF ( ALLOCATED( Inst%GSD_ANL_SRC     ) )
      &    DEALLOCATE( Inst%GSD_ANL_SRC     )
-      IF ( ALLOCATED( Inst%MSS_FRC_SRC     ) ) 
+      IF ( ALLOCATED( Inst%MSS_FRC_SRC     ) )
      &    DEALLOCATE( Inst%MSS_FRC_SRC     )
-      IF ( ALLOCATED( Inst%HcoIDs          ) ) 
+      IF ( ALLOCATED( Inst%HcoIDs          ) )
      &    DEALLOCATE( Inst%HcoIDs          )
-   
+
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
           PrevInst%NextInst => Inst%NextInst
@@ -5914,9 +5914,9 @@ c Fix up for negative argument, erf, etc.
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
       ENDIF
-   
+
       END SUBROUTINE InstRemove
 !EOC
       END MODULE HCOX_TOMAS_DustDead_Mod

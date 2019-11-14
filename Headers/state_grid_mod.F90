@@ -84,7 +84,7 @@ MODULE State_Grid_Mod
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  11 Nov 2018 - M. Sulprizio- Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -99,7 +99,7 @@ CONTAINS
 !
 ! !IROUTINE: Init_State_Grid
 !
-! !DESCRIPTION: Subroutine INIT\_STATE\_GRID initializes all fields of 
+! !DESCRIPTION: Subroutine INIT\_STATE\_GRID initializes all fields of
 !  the Grid State derived type object.
 !\\
 !\\
@@ -111,7 +111,7 @@ CONTAINS
 !
 !
 ! !INPUT PARAMETERS:
-! 
+!
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -124,8 +124,8 @@ CONTAINS
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
-!  11 Nov 2018 - M. Sulprizio- Initial version 
+! !REVISION HISTORY:
+!  11 Nov 2018 - M. Sulprizio- Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,7 +205,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU 
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -224,7 +224,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
     ! Scalars
     INTEGER :: AS
 
@@ -243,17 +243,17 @@ CONTAINS
     CALL GC_CheckVar( 'State_Grid%XMid', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%XMid = 0e+0_fp
-    
+
     ALLOCATE( State_Grid%XEdge( State_Grid%NX+1, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%XEdge', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%XEdge = 0e+0_fp
-    
+
     ALLOCATE( State_Grid%YMid( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%YMid', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%YMid = 0e+0_fp
-    
+
     ALLOCATE( State_Grid%YEdge( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%YEdge', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -263,7 +263,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Grid%YMid_R', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%YMid_R = 0e+0_fp
-   
+
     ALLOCATE( State_Grid%YEdge_R( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%YEdge_R', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -288,7 +288,7 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_State_Grid
 !
-! !DESCRIPTION: Subroutine CLEANUP\_STATE\_GRID deallocates all fields 
+! !DESCRIPTION: Subroutine CLEANUP\_STATE\_GRID deallocates all fields
 !  of the grid state object.
 !\\
 !\\
@@ -300,7 +300,7 @@ CONTAINS
 !
 !
 ! !INPUT PARAMETERS:
-! 
+!
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -311,8 +311,8 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Return code
 !
-! !REVISION HISTORY: 
-!  11 Nov 2018 - M. Sulprizio- Initial version 
+! !REVISION HISTORY:
+!  11 Nov 2018 - M. Sulprizio- Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -380,7 +380,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Grid%YSIN ) ) THEN
-       DEALLOCATE( State_Grid%YSIN, STAT=RC ) 
+       DEALLOCATE( State_Grid%YSIN, STAT=RC )
        CALL GC_CheckVar( 'State_Grid%YSIN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Grid%YSIN => NULL()

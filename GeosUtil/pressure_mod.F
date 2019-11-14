@@ -5,8 +5,8 @@
 !
 ! !MODULE: pressure_mod.F90
 !
-! !DESCRIPTION: Module PRESSURE\_MOD contains variables and routines which 
-!  specify the grid box pressures for both hybrid or pure-sigma models.  
+! !DESCRIPTION: Module PRESSURE\_MOD contains variables and routines which
+!  specify the grid box pressures for both hybrid or pure-sigma models.
 !  This is necessary for running GEOS-Chem with the hybrid grids.
 !\\
 !\\
@@ -108,7 +108,7 @@
       REAL(fp), ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
       REAL(fp), ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
 #if defined( ESMF_ ) || defined( MODEL_ )
-      REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
+      REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from
                                                       !  external grid
 #endif
 
@@ -236,7 +236,7 @@
 !
 ! !IROUTINE: Get_Bp
 !
-! !DESCRIPTION: Function GET\_BP returns the "B" term [unitless] for the 
+! !DESCRIPTION: Function GET\_BP returns the "B" term [unitless] for the
 !  hybrid ETA coordinate.
 !\\
 !\\
@@ -374,7 +374,7 @@
 !
 ! !IROUTINE: Get_Pedge
 !
-! !DESCRIPTION: Function GET\_PEDGE returns the pressure at the bottom edge 
+! !DESCRIPTION: Function GET\_PEDGE returns the pressure at the bottom edge
 !  of level L.  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
@@ -405,7 +405,7 @@
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
 !  10 Aug 2012 - R. Yantosca - Need to put #ifdef for EXTERNAL_PEDGE in the
 !                              section for GEOS-4, GEOS-5, MERRA, GEOS-5.7.x
-!  10 Aug 2012 - R. Yantosca - Now only use Cpp switches EXTERNAL_GRID or 
+!  10 Aug 2012 - R. Yantosca - Now only use Cpp switches EXTERNAL_GRID or
 !                              EXTERNAL_FORCING to use the GCM pressures.
 !                              This prevents problems when compiling G-C with
 !                              the DEVEL tag when using traditional main.F.
@@ -481,7 +481,7 @@
 ! !IROUTINE: Get_Pedge_Fullgrid
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
-!  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
+!  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface,
 !  L=LState\_Grid%NZ+1 is the atm top.
 !\\
 !\\
@@ -621,8 +621,8 @@
 !
 ! !IROUTINE: Init_Pressure
 !
-! !DESCRIPTION: Subroutine INIT\_PRESSURE allocates and initializes the AP 
-!  and BP arrays.  It must be called in "main.f", after SIGE is defined.  
+! !DESCRIPTION: Subroutine INIT\_PRESSURE allocates and initializes the AP
+!  and BP arrays.  It must be called in "main.f", after SIGE is defined.
 !\\
 !\\
 ! !INTERFACE:
@@ -829,7 +829,7 @@
 
       !-----------------------------------------------------------------
       ! 72 level grid
-      !----------------------------------------------------------------- 
+      !-----------------------------------------------------------------
 
       ! Ap [hPa] for 72 levels (73 edges)
       AP = (/ 0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
@@ -921,7 +921,7 @@
 !
 ! !IROUTINE: Cleanup_Pressure
 !
-! !DESCRIPTION: Subroutine CLEANUP\_PRESSURE deallocates all allocated arrays 
+! !DESCRIPTION: Subroutine CLEANUP\_PRESSURE deallocates all allocated arrays
 !  at the end of a GEOS-Chem model run.
 !\\
 !\\
@@ -979,7 +979,7 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the 
+!  This routine is a setter for EXTERNAL_PEDGE.  It allows us to keep the
 !  EXTERNAL_PEDGE array PRIVATE to this module, which is good programming
 !  practice.
 !

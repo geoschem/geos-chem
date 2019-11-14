@@ -10,8 +10,8 @@
 ! \begin{enumerate}
 ! \item Zeroes globally defined GEOS-CHEM variables.
 ! \item Zeroes accumulating diagnostic arrays.
-! \item Resets certain year/month/day and counter variables used 
-!       in GEOS-Chem diagnostic subroutines. 
+! \item Resets certain year/month/day and counter variables used
+!       in GEOS-Chem diagnostic subroutines.
 ! \end{enumerate}
 !
 ! !INTERFACE:
@@ -26,7 +26,7 @@
       USE State_Grid_Mod, ONLY : GrdState
       USE ErrCode_Mod
 #ifdef BPCH_DIAG
-      USE CMN_SIZE_MOD          
+      USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
       USE DIAG_MOD
       USE DIAG03_MOD
@@ -37,13 +37,13 @@
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 
-      ! If IFLAG=1, zero global CTM arrays 
+      ! If IFLAG=1, zero global CTM arrays
       ! If IFLAG=2, zero accumulating diagnostic arrays
       ! If IFLAG=3, zero accumulating diagnostic counters
       INTEGER,        INTENT(IN)  :: IFLAG
@@ -55,8 +55,8 @@
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
 !   more consistent fashion.  Think about this later (bmy, 11/14/02)
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  15 Jun 1998 - M. Prather  - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -76,7 +76,7 @@
       ! Error condition if IFLAG does not equal 2, or 3!
       IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
          CALL ERROR_STOP( 'Invalid IFLAG!', 'initialize.f' )
-      ENDIF  
+      ENDIF
 
       !=================================================================
       ! If IFLAG=2 then zero the accumulating arrays
@@ -88,11 +88,11 @@
 
 #ifdef TOMAS
          !------------------------------
-         ! TOMAS-specific diagnostics 
+         ! TOMAS-specific diagnostics
          !------------------------------
          IF ( ND44 > 0 ) AD44 = 0e0 ! netcdf DRYDEP diag group
 
-         IF ( ND59 > 0 ) THEN 
+         IF ( ND59 > 0 ) THEN
             AD59_NUMB = 0e0
             AD59_SULF = 0e0
             AD59_SALT = 0e0
@@ -136,14 +136,14 @@
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
          ENDIF
-      ENDIF  
+      ENDIF
 
-      !================================================================= 
+      !=================================================================
       ! If IFLAG=3 then zero the counter variables & arrays
       !=================================================================
       IF ( IFLAG == 3 ) THEN
 
-         ! Now reset timesteps here for now 
+         ! Now reset timesteps here for now
          CALL SET_CT_CHEM( RESET=.TRUE. )
          CALL SET_CT_RAD ( RESET=.TRUE. )
          CALL SET_CT_CONV( RESET=.TRUE. )

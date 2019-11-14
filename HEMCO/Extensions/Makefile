@@ -5,7 +5,7 @@
 #
 # !MODULE: Makefile (in the HEMCO/Extensions subdirectory)
 #
-# !DESCRIPTION: This Makefile builds the HEMCO extensions routines into 
+# !DESCRIPTION: This Makefile builds the HEMCO extensions routines into
 #  library file libHCOX.a.
 #\\
 #\\
@@ -16,7 +16,7 @@
 #                                                                             .
 # To display a complete list of options, type "make help".
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  15 Jul 2014 - R. Yantosca - Initial version
 #  22 Jul 2014 - R. Yantosca - Now compile lightning_cdf_mod.F90
 #  22 Jul 2014 - R. Yantosca - Turn off optimization for lightning_cdf_mod.F90
@@ -109,7 +109,7 @@ debug:
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###
@@ -123,7 +123,7 @@ hcox_ch4wetland_mod.o       : hcox_ch4wetland_mod.F90         \
                               hcox_tools_mod.o
 
 hcox_custom_mod.o           : hcox_custom_mod.F90             \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o
 
 hcox_driver_mod.o           : hcox_driver_mod.F90             \
                               hcox_ch4wetland_mod.o           \
@@ -148,16 +148,16 @@ hcox_driver_mod.o           : hcox_driver_mod.F90             \
                               hcox_volcano_mod.o
 
 hcox_dustdead_mod.o         : hcox_dustdead_mod.F             \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o
 
 hcox_dustginoux_mod.o       : hcox_dustginoux_mod.F90         \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o
 
 hcox_gc_POPs_mod.o          : hcox_gc_POPs_mod.F90            \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o
 
 hcox_gc_RnPbBe_mod.o        : hcox_gc_RnPbBe_mod.F90          \
-                              hcox_state_mod.o                
+                              hcox_state_mod.o
 
 hcox_gfed_mod.o             : hcox_gfed_mod.F90               \
                               hcox_gfed_include_gfed3.H       \
@@ -166,7 +166,7 @@ hcox_gfed_mod.o             : hcox_gfed_mod.F90               \
                               hcox_tools_mod.o
 
 hcox_iodine_mod.o           : hcox_iodine_mod.F90             \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o
 
 hcox_finn_mod.o             : hcox_finn_mod.F90               \
                               hcox_finn_include.H             \
@@ -185,10 +185,10 @@ hcox_paranox_mod.o          : hcox_paranox_mod.F90            \
 
 hcox_seaflux_mod.o          : hcox_seaflux_mod.F90            \
                               hcox_state_mod.o                \
-                              ocean_toolbox_mod.o	      
+                              ocean_toolbox_mod.o
 
 hcox_seasalt_mod.o          : hcox_seasalt_mod.F90            \
-                              hcox_state_mod.o		      
+                              hcox_state_mod.o
 
 hcox_soilnox_mod.o          : hcox_soilnox_mod.F90            \
                               hcox_state_mod.o                \

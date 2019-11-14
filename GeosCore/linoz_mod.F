@@ -5,7 +5,7 @@
 !
 ! !MODULE: linoz_mod.F
 !
-! !DESCRIPTION: Module LINOZ\_MOD contains routines to perform the Linoz 
+! !DESCRIPTION: Module LINOZ\_MOD contains routines to perform the Linoz
 !  stratospheric ozone chemistry.
 !\\
 !\\
@@ -146,7 +146,7 @@
 !
 ! !REVISION HISTORY:
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
-!  10 Jun 2012 - L. Murray - Move call to DO_LINOZ from transport code to 
+!  10 Jun 2012 - L. Murray - Move call to DO_LINOZ from transport code to
 !                chemistry code, so the use of DT_TS_CHEM is now correct.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
@@ -198,7 +198,7 @@
 !
 ! !IROUTINE: linoz_chem3
 !
-! !DESCRIPTION: Subroutine LINOZ\_CHEM3 applies linearized chemistry based on 
+! !DESCRIPTION: Subroutine LINOZ\_CHEM3 applies linearized chemistry based on
 !  tables from PRATMO model using climatological T, O3, time of year
 !\\
 !\\
@@ -241,8 +241,8 @@
 !
 ! !REVISION HISTORY:
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
-!  18 Nov 2009 - D. Jones            - For now, set tagged stratospheric 
-!                                      tracer to total O3 in the overworld 
+!  18 Nov 2009 - D. Jones            - For now, set tagged stratospheric
+!                                      tracer to total O3 in the overworld
 !                                      to avoid issues with spin ups
 !  08 Feb 2010 - R. Yantosca         - Deleted obsolete local variables
 !  22 Oct 2010 - R. Yantosca         - Added OMP parallel loop
@@ -486,14 +486,14 @@
                ! ++++++ local ozone feedback: ++++++
                dero3=tlstt(i,j,l,5)               ! Derivative w.r.t. O3. 
                                                 !  dero3=-1/(time constant)
-               IF (dero3.EQ.0) CYCLE            ! Skip Linoz if lifetime 
+               IF (dero3.EQ.0) CYCLE            ! Skip Linoz if lifetime
                                                 !  is infinite.
                climo3=tlstt(i,j,l,1)              ! Climatological O3 = f^o
                derco3=tlstt(i,j,l,7)              ! Derivative w.r.t. Column O3
                dco3=(colo3(i,j,l)-tlstt(i,j,l,3)) ! deviation from o3 climatology.
                ! ++++++ temperature feedback: ++++++
                dertmp=tlstt(i,j,l,6)              ! Derivative w.r.t. Temperature
-               dtmp=(State_Met%T(I,J,L) -       ! Deviation in Temperature 
+               dtmp=(State_Met%T(I,J,L) -       ! Deviation in Temperature
      &                tlstt(i,j,l,2))             !  from climatology.
 
                ! ++++++ calculate steady-state ozone: ++++++
@@ -540,7 +540,7 @@
 !
 ! !IROUTINE: linoz_stratl
 !
-! !DESCRIPTION: Subroutine LINOZ\_STRATL performs a monthly fixup of chemistry 
+! !DESCRIPTION: Subroutine LINOZ\_STRATL performs a monthly fixup of chemistry
 !  parameters for the Linoz stratospheric ozone chemistry.
 !\\
 !\\
@@ -780,7 +780,7 @@
                STRTX(K) = Input_Opt%LINOZ_TPARM(K,JJ,MONTH,N)
             ENDDO
 
-            ! *PJC* Interpolate and calculate moments of column distribution 
+            ! *PJC* Interpolate and calculate moments of column distribution
             CALL LINOZ_STRT2M( am_I_Root,     Input_Opt, State_Grid,
      &                         State_Grid%NZ, STRTX,     P0L,
      &                         STRT0L,        STRT1L,    STRT2L,    RC )
@@ -973,7 +973,7 @@
 !
 ! !IROUTINE: linoz_somlfq
 !
-! !DESCRIPTION: subroutine LINOZ\_SOMLFQ calculates loss freq moments from a 
+! !DESCRIPTION: subroutine LINOZ\_SOMLFQ calculates loss freq moments from a
 !  set of loss frequencies at std z*, given a CTM model interval pressure
 !  range: P1 > P2 (decreasing up)
 !\\

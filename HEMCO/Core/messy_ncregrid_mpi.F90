@@ -14,7 +14,7 @@ MODULE MESSY_NCREGRID_MPI
   PUBLIC   :: ncregrid_abort
 
 CONTAINS
-  
+
 ! --------------------------------------------------------------
   SUBROUTINE ncregrid_abort (name, text, exit_no)
 
@@ -38,7 +38,7 @@ CONTAINS
     ELSE
        WRITE (*,'(1x,a,a)') TRIM(name), ': '
     ENDIF
-    
+
     IF (iexit /=0) WRITE (*,'(/,80("*"),/)')
 
 #if defined(MESSY)
@@ -64,7 +64,7 @@ CONTAINS
 ! --------------------------------------------------------------
   SUBROUTINE p_abort
 
-    ! this routine should be used instead of abort, util_abort() or STOP 
+    ! this routine should be used instead of abort, util_abort() or STOP
     ! in all routines for proper clean up of all PEs
 
     IMPLICIT NONE
@@ -72,7 +72,7 @@ CONTAINS
     EXTERNAL :: MPI_ABORT
 
     INTEGER :: p_error
-    
+
     CALL MPI_ABORT (MPI_COMM_WORLD, 1, p_error)
 
     IF (p_error /= MPI_SUCCESS) THEN

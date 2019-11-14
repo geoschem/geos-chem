@@ -32,7 +32,7 @@ MODULE m_netcdf_io_define
      MODULE PROCEDURE NcDef_glob_attributes_r4_arr
      MODULE PROCEDURE NcDef_glob_attributes_r8_arr
   END INTERFACE NcDef_glob_attributes
-  
+
   PUBLIC :: NcDef_var_attributes
   INTERFACE NcDef_var_attributes
      MODULE PROCEDURE NcDef_var_attributes_c
@@ -61,11 +61,11 @@ MODULE m_netcdf_io_define
   PRIVATE :: NcDef_var_attributes_r4_arr
   PRIVATE :: NcDef_var_attributes_r8_arr
 !
-! !DESCRIPTION: Provides netCDF utility routines to define dimensions, 
+! !DESCRIPTION: Provides netCDF utility routines to define dimensions,
 !  variables and attributes.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -117,7 +117,7 @@ CONTAINS
 ! !DESCRIPTION: Defines dimension.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
@@ -132,7 +132,7 @@ CONTAINS
     CHARACTER (len=512) :: err_msg
     INTEGER :: ierr
 
-    ! If unlimited variable is present and true, 
+    ! If unlimited variable is present and true,
     ! then make this dimension unlimited
     len0 = len
     if (present(unlimited)) then
@@ -174,7 +174,7 @@ CONTAINS
 !
 !!  ncid   : netCDF file id
 !!  name   : name of the variable
-!!  type   : type of the variable 
+!!  type   : type of the variable
 !!           (NF_FLOAT, NF_CHAR, NF_INT, NF_DOUBLE, NF_BYTE, NF_SHORT)
 !!  ndims  : number of dimensions of the variable
 !!  dims   : netCDF dimension id of the variable
@@ -192,7 +192,7 @@ CONTAINS
 ! !DESCRIPTION: Defines a netCDF variable.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
@@ -211,7 +211,7 @@ CONTAINS
     integer ::  ierr
     logical ::  doStop
     ! Compression settings
-    ! choose deflate_level=1 for fast, minimal compression. 
+    ! choose deflate_level=1 for fast, minimal compression.
     ! Informal testing suggests minimal benefit from higher compression level
     integer, parameter :: shuffle=1, deflate=1, deflate_level=1
 !
@@ -224,8 +224,8 @@ CONTAINS
 
 #if defined( NC_HAS_COMPRESSION )
     !=====================================================================
-    ! If the optional "compress" variable is used and set to TRUE, 
-    ! then enable variable compression (cdh, 0/17/17) 
+    ! If the optional "compress" variable is used and set to TRUE,
+    ! then enable variable compression (cdh, 0/17/17)
     !
     ! NOTE: We need to block this out with an #ifdef because some
     ! netCDF installations might lack the nf_def_var_deflate function
@@ -234,13 +234,13 @@ CONTAINS
     if (present(Compress)) then
 
        if (Compress) then
-   
+
           ! Set compression
           ierr = nf_def_var_deflate( ncid, var_id,  shuffle,       &
                                            deflate, deflate_level )
 
-          ! Check for errors. 
-          ! No message will be generated if the error is simply that the 
+          ! Check for errors.
+          ! No message will be generated if the error is simply that the
           ! file is not netCDF-4
           ! (i.e. netCDF-3 don't support compression)
           IF ( (ierr.ne.NF_NOERR) .and. (ierr.ne.NF_ENOTNC4)) THEN
@@ -289,7 +289,7 @@ CONTAINS
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: CHARACTER.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
@@ -346,7 +346,7 @@ CONTAINS
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: INTEGER.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
@@ -387,7 +387,7 @@ CONTAINS
 ! !USES:
 !
     USE m_do_err_out
-   
+
     IMPLICIT NONE
     INCLUDE 'netcdf.inc'
 !
@@ -403,7 +403,7 @@ CONTAINS
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: REAL*4.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
@@ -459,7 +459,7 @@ CONTAINS
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: REAL*4.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
@@ -515,7 +515,7 @@ CONTAINS
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: INTEGER vector.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
@@ -572,7 +572,7 @@ CONTAINS
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: REAL*4 vector
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
@@ -628,7 +628,7 @@ CONTAINS
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: REAL*8 vector
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
@@ -685,7 +685,7 @@ CONTAINS
 ! !DESCRIPTION: Defines global attributes of type: CHARACTER
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
@@ -700,7 +700,7 @@ CONTAINS
 !
     mylen = len(att_val)
     ierr = Nf_Put_Att_Text (ncid, NF_GLOBAL, att_name, mylen, att_val)
-    
+
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_glob_attributes_c: can not define attribute : ' // &
             TRIM (att_name)
@@ -741,7 +741,7 @@ CONTAINS
 ! !DESCRIPTION: Defines global attributes of type: INTEGER
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
@@ -799,7 +799,7 @@ CONTAINS
 ! !DESCRIPTION: Defines global attributes of type: REAL*4
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
@@ -856,7 +856,7 @@ CONTAINS
 ! !DESCRIPTION: Defines global attributes of type: REAL*4
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
@@ -909,11 +909,11 @@ CONTAINS
     INTEGER,           INTENT(IN) :: att_val(:)
     CHARACTER (LEN=*), INTENT(IN) :: att_name
     INTEGER,           INTENT(IN) :: ncid
-! 
+!
 ! !DESCRIPTION: Defines global attributes of type: INTEGER vector
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
@@ -971,7 +971,7 @@ CONTAINS
 ! !DESCRIPTION: Defines global attributes of type: REAL*4 vector
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
@@ -1028,7 +1028,7 @@ CONTAINS
 ! !DESCRIPTION: Defines global attributes of type: REAL*8 vector
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
@@ -1080,7 +1080,7 @@ CONTAINS
 ! !DESCRIPTION: Sets fill method.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1130,7 +1130,7 @@ CONTAINS
 ! !DESCRIPTION: Ends definitions of variables and their attributes.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -1181,7 +1181,7 @@ CONTAINS
 !  and attributes can be defined.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:

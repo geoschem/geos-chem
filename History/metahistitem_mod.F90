@@ -7,12 +7,12 @@
 ! !MODULE: metahistitem_mod.F90
 !
 ! !DESCRIPTION: Contains types and methods to create a METAHISTORY ITEM
-!  object, which is a container for a HISTORY ITEM.  In other words, 
+!  object, which is a container for a HISTORY ITEM.  In other words,
 !  a METAHISTORY ITEM represents a single node of a linked list that is
 !  used to contain HISTORY ITEMS.
 !\\
 !\\
-!  In practice, we can think of a METAHISTORY ITEM as a list of HISTORY ITEMS 
+!  In practice, we can think of a METAHISTORY ITEM as a list of HISTORY ITEMS
 !  that will be archived to netCDF output at a specified frequency (e.g.
 !  instantaneous, daily, hourly, etc.)
 !\\
@@ -45,7 +45,7 @@ MODULE MetaHistItem_Mod
 !
   !=========================================================================
   ! This is the derived type for a METAHISTORY ITEM object, which represents
-  ! a SINGLE NODE OF A LINKED LIST consisting of HISTORY ITEMS.  
+  ! a SINGLE NODE OF A LINKED LIST consisting of HISTORY ITEMS.
   !
   ! As such, the METAHISTORY ITEM does not contain any data itself,
   ! but is a wrapper for a single HISTORY ITEM object, plus a pointer
@@ -57,7 +57,7 @@ MODULE MetaHistItem_Mod
      ! (i.e. the next node in the linked list)
      TYPE(MetaHistItem), POINTER :: Next => NULL()
 
-     ! The HISTORY ITEM object (which represents a diagnostic 
+     ! The HISTORY ITEM object (which represents a diagnostic
      ! quantity that will be archived to netCDF file format)
      TYPE(HistItem),     POINTER :: Item => NULL()
 
@@ -66,20 +66,20 @@ MODULE MetaHistItem_Mod
 ! !REMARKS:
 !  As described above, a METAHISTORY ITEM can be thought of as a SINGLE NODE
 !  OF A LINKED LIST INTENDED TO HOLD HISTORY ITEMS.  It looks like this:
-!   
+!
 !      +-------------------------+   +-------------------------+
-!      | METAHISTORY ITEM n      |   | METAHISTORY ITEM n+1    | 
-!      | (aka NODE n of list)    |   | (aka NODE n+1 of list)  |  
+!      | METAHISTORY ITEM n      |   | METAHISTORY ITEM n+1    |
+!      | (aka NODE n of list)    |   | (aka NODE n+1 of list)  |
 !      |                         |   |                         |
 !      | Contains:               |   | Contains:               |
 !      |                         |   |                         |
 !      |   HISTORY ITEM n        |   |   HISTORY ITEM n+1      |
 !      |                         |   |                         |
 ! =======> Pointer to next    =========> Pointer to next    ========> etc ...
-!      |    METAHISTORY ITEM     |   |    METAHISTORY ITEM     | 
+!      |    METAHISTORY ITEM     |   |    METAHISTORY ITEM     |
 !      +-------------------------+   +-------------------------+
 !
-!  Linked list routines taken from original code (linkedlist.f90) 
+!  Linked list routines taken from original code (linkedlist.f90)
 !  by Arjen Markus; http://flibs.sourceforge.net/linked_list.html
 
 ! !REVISION HISTORY:
@@ -96,7 +96,7 @@ CONTAINS
 !
 ! !IROUTINE: MetaHistItem_AddNew
 !
-! !DESCRIPTION: Wrapper for methods MetaHistItem\_Create and 
+! !DESCRIPTION: Wrapper for methods MetaHistItem\_Create and
 !  MetaHistItem\_Insert.  Will create a METAHISTORY ITEM (containing a
 !  HISTORY ITEM) and (1) set it as the head node of a new linked list, or
 !  (2) append it to an existing linked list.
@@ -111,12 +111,12 @@ CONTAINS
     USE ErrCode_Mod
     USE HistItem_Mod, ONLY : HistItem
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
     TYPE(HistItem),     POINTER     :: Item       ! HISTORY ITEM object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaHistItem), POINTER     :: Node       ! METAHISTORY ITEM object
 !
@@ -134,18 +134,18 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
- 
+
     !=======================================================================
     ! Initialize
     !=======================================================================
- 
+
     ! Assume success
     RC     = GC_SUCCESS
 
     ! For error output
     ErrMsg  = ''
     ThisLoc = ' -> at MetaHistItem_Add (in History/metahistitem_mod.F90)'
- 
+
     !=======================================================================
     ! Test if the METAHISTORY ITEM (aka "Node") has been allocated memory
     ! and is therefore part of an existing linked list
@@ -200,12 +200,12 @@ CONTAINS
     USE ErrCode_Mod
     USE HistItem_Mod, ONLY : HistItem
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
     TYPE(HistItem),     POINTER     :: Item       ! HISTORY ITEM object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaHistItem), POINTER     :: Node       ! METAHISTORY ITEM object
 !
@@ -238,7 +238,7 @@ CONTAINS
     ! For error output
     ErrMsg  = ''
     ThisLoc = ' -> at MetaHistItem_Create (in History/metahistitem_mod.F90)'
-    
+
     !=======================================================================
     ! Initialize the METAHISTORY ITEM itself
     !=======================================================================
@@ -260,7 +260,7 @@ CONTAINS
 
     ! Because this is the first METAHISTORY ITEM that is being created,
     ! we can consider this to be the head node of a linked list.
-    IF ( .not. ASSOCIATED( Node%Item ) ) THEN 
+    IF ( .not. ASSOCIATED( Node%Item ) ) THEN
        ALLOCATE( Node%Item, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not allocate "Node%Item"!'
@@ -269,7 +269,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Attach the given HISTORY ITEM to the METAHISTORY ITEM 
+    ! Attach the given HISTORY ITEM to the METAHISTORY ITEM
     ! (i.e. place it into the head node of a linked list)
     Node%Item = Item
 
@@ -296,12 +296,12 @@ CONTAINS
     USE ErrCode_Mod
     USE HistItem_Mod, ONLY : HistItem
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
     TYPE(HistItem),     POINTER     :: Item      ! HISTORY ITEM object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaHistItem), POINTER     :: Node      ! METAHISTORY ITEM object
 !
@@ -324,7 +324,7 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=255)          :: ErrMsg, ThisLoc
-    
+
     ! Objects
     TYPE(MetaHistItem), POINTER :: Head
 
@@ -338,9 +338,9 @@ CONTAINS
     ! For error output
     ErrMsg  = ''
     ThisLoc = ' -> at MetaHistItem_Insert (in History/metahistitem_mod.F90)'
-    
+
     !=======================================================================
-    ! Initialize a METAHISTORY ITEM named "Head", which will become the 
+    ! Initialize a METAHISTORY ITEM named "Head", which will become the
     ! head of the existing list.  "Head" will contain a new HISTORY ITEM.
     !=======================================================================
 
@@ -382,8 +382,8 @@ CONTAINS
 !
 ! !IROUTINE: MetaHistItem_Count
 !
-! !DESCRIPTION: Counts the number of METAHISTORY ITEMS stored in a linked 
-!  list.  By extension, this is also the number of HISTORY ITEMS stored in 
+! !DESCRIPTION: Counts the number of METAHISTORY ITEMS stored in a linked
+!  list.  By extension, this is also the number of HISTORY ITEMS stored in
 !  the list, because each METAHISTORY ITEM contains only one HISTORY ITEM.
 !\\
 !\\
@@ -392,7 +392,7 @@ CONTAINS
   FUNCTION MetaHistItem_Count( List ) RESULT( nNodes )
 
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     TYPE(MetaHistItem), POINTER :: List    ! Linked list of METAHISTORY ITEMS
 !
@@ -407,7 +407,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!  
+!
     ! Objects
     TYPE(MetaHistItem), POINTER  :: Current
 
@@ -470,15 +470,15 @@ CONTAINS
     USE ErrCode_Mod
     USE HistItem_Mod, ONLY : HistItem, HistItem_Print
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,            INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaHistItem), POINTER     :: List        ! List of history items
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,            INTENT(OUT) :: RC          ! Success or failure
 !
@@ -497,11 +497,11 @@ CONTAINS
 
     ! Objects
     TYPE(MetaHistitem), POINTER :: Current
- 
+
     !=======================================================================
     ! Initialize
     !=======================================================================
- 
+
     ! Assume success
     RC      =  GC_SUCCESS
 
@@ -513,7 +513,7 @@ CONTAINS
     ThisLoc =  ' -> at MetaHistItem_Print (in History/metahistitem_mod.F90)'
 
     !=======================================================================
-    ! Print information about each METAHISTORY ITEM (aka node) 
+    ! Print information about each METAHISTORY ITEM (aka node)
     ! of the linked list, only if we are on the root CPU
     !=======================================================================
     IF ( am_I_Root ) THEN
@@ -535,7 +535,7 @@ CONTAINS
           ! Point to the next node for the next iteration
           Current => Current%Next
        ENDDO
-       
+
        ! Free pointers
        Current => NULL()
     ENDIF
@@ -567,11 +567,11 @@ CONTAINS
 !
     LOGICAL,            INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaHistItem), POINTER     :: List       ! List of METAHISTORY ITEMS
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,            INTENT(OUT) :: RC         ! Success or failure?
 !
@@ -594,7 +594,7 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
- 
+
     ! Assume success
     RC      = GC_SUCCESS
 
@@ -618,7 +618,7 @@ CONTAINS
 
        ! Set the CURRENT pointer to the current METAHISTORY ITEM
        Current => Node
-       
+
        ! Destroy the HISTORY ITEM contained within this METAHISTORY ITEM
        CALL HistItem_Destroy( am_I_Root, Current%Item, RC )
        IF ( RC /= GC_SUCCESS ) THEN

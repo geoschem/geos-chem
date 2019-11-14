@@ -793,6 +793,11 @@ CONTAINS
     IF ( ( Phase == 0 .or. PHASE == 1 ) .and. notDryRun ) THEN
        CALL Get_Met_Fields( am_I_Root,  Input_Opt, State_Chm,               &
                             State_Grid, State_Met, Phase,     RC           )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Get_Met_Fields"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
@@ -801,6 +806,11 @@ CONTAINS
     IF ( Phase == 0 .and. notDryRun ) THEN
        CALL Get_GC_Restart( am_I_Root,  Input_Opt, State_Chm,               &
                             State_Grid, State_Met, RC                      )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Get_GC_Restart"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
@@ -808,8 +818,15 @@ CONTAINS
     !=======================================================================
     IF ( State_Grid%NestedGrid        .and.                                 &
          (Phase == 0 .or. PHASE == 1) .and. notDryRun ) THEN
-       CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm,      &
-                                     State_Grid, State_Met, RC             )
+       IF ( Input_Opt%LTRAN ) THEN
+          CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm,   &
+                                       State_Grid, State_Met, RC           )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Get_Boundary_Conditions"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
     ENDIF
 
 #endif

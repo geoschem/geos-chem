@@ -58,7 +58,7 @@ CONTAINS
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr 
+    USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
     USE HCO_Error_Mod
     USE HCO_INTERFACE_MOD, ONLY : HcoState
     USE Input_Opt_Mod,     ONLY : OptInput
@@ -210,7 +210,7 @@ CONTAINS
 !             dCH4 = dCH4 * State_Met%AIRDEN(I,J,L) &
 !                  * State_Met%BXHEIGHT(I,J,L) / DT
               dCH4 = dCH4 * State_Met%AD(I,J,L) / State_Met%AREA_M2(I,J) / DT
-             ! Accumulate statistics 
+             ! Accumulate statistics
              State_Diag%CH4pseudoFlux(I,J) = &
                 State_Diag%CH4pseudoFlux(I,J) + dCH4
           ENDIF
@@ -243,15 +243,15 @@ CONTAINS
 !
 ! !IROUTINE: cleanup_set_global_ch4
 !
-! !DESCRIPTION: Subroutine CLEANUP\_SET\_GLOBAL\_CH4 deallocates memory from 
+! !DESCRIPTION: Subroutine CLEANUP\_SET\_GLOBAL\_CH4 deallocates memory from
 !  previously allocated module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE Cleanup_Set_Global_CH4
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
 !EOP
 !------------------------------------------------------------------------------

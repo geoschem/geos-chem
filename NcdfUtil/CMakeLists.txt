@@ -12,7 +12,7 @@ add_library(NcdfUtil STATIC EXCLUDE_FROM_ALL
 	m_netcdf_io_write.F90
 	ncdf_mod.F90
 )
-target_link_libraries(NcdfUtil 
+target_link_libraries(NcdfUtil
 	PUBLIC JulDay
 )
 

@@ -5,16 +5,16 @@
 #
 # !MODULE: definitions_a3cld.rc
 #
-# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 A3cld filename, 
-#  variables, and attributes for use with the ncCode* scripts.  Also defines 
-#  the names of the files where Fortran code will be written to. 
+# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 A3cld filename,
+#  variables, and attributes for use with the ncCode* scripts.  Also defines
+#  the names of the files where Fortran code will be written to.
 #\\
 #\\
 # !REMARKS:
 #  This file has been customized to generate GEOS-Chem Fortran code that
-#  will read data from a GEOS-5.7.2 A3cld met field file. 
+#  will read data from a GEOS-5.7.2 A3cld met field file.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  01 Feb 2012 - R. Yantosca - Initial version
 #------------------------------------------------------------------------------
 
@@ -24,25 +24,25 @@ netCDF FileHandle       = fId
 netCDF FileName         = GEOS572.YYYYMMDD.A3cld.4x5.nc
 
 
-### !DIMENSIONS:         
+### !DIMENSIONS:
 lon                     = State_Grid%NZ
 lat                     = State_Grid%NY
 lev                     = State_Grid%NZ
 time                    = 1
 
-### !VARIABLES:	        
+### !VARIABLES:
 lon                     = REAL*4::lon
 lon:long_name           = longitude
 lon:units               = degrees_east
-#-		        
+#-
 lat                     = REAL*4::lat
 lat:long_name           = latitude
 lat:units               = degrees_north
-#-		        
+#-
 lev                     = REAL*4::lev
 lev:long_name           = levels
 lev:units               = unitless
-#-		        
+#-
 time                    = INTEGER::time
 time:units              = minutes since YYYY-MM-DD 00:00:00.0
 time:delta_t            = 0000-00-00 03:00:00

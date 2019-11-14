@@ -20,7 +20,7 @@ module m_netcdf_io_create
 ! !DESCRIPTION: Routines for creating and syncronizing netCDF files.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -62,12 +62,12 @@ CONTAINS
 ! !DESCRIPTION: Creates a netCDF file for writing and does some error checking.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REMARKS:
 !  If the netCDF4 library is used, then the NF_CLOBBER flag will write
-!  a classic (i.e. netCDF3) file.  Use OR(NF_NETCDF4,NF_CLASSIC_MODEL) to 
+!  a classic (i.e. netCDF3) file.  Use OR(NF_NETCDF4,NF_CLASSIC_MODEL) to
 !  create netCDF-4 file that supports compression and uses "classic" netcdf data model
 !  (no groups, no user-defined types)
 !
@@ -97,7 +97,7 @@ CONTAINS
     ENDIF
 
     IF ( TMP_NC4 ) THEN
-#if defined( NC_HAS_COMPRESSION ) 
+#if defined( NC_HAS_COMPRESSION )
        mode = IOR( NF_NETCDF4, NF_CLASSIC_MODEL )         ! netCDF4 file
        ierr = Nf_Create (filname, mode, ncid)             !  w/ compression
 #else
@@ -141,10 +141,10 @@ CONTAINS
 !!  ncid : netCDF file id
     integer, intent(in)   :: ncid
 !
-! !DESCRIPTION: Synchronizes a netCDF file. 
+! !DESCRIPTION: Synchronizes a netCDF file.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:

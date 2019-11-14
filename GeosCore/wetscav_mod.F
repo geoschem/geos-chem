@@ -54,15 +54,15 @@
 ! !REMARKS:
 !  References:
 !  ============================================================================
-!  (1 ) Liu,H., D.J. Jacob, I. Bey and R.M. Yantosca, "Constraints from 210Pb 
+!  (1 ) Liu,H., D.J. Jacob, I. Bey and R.M. Yantosca, "Constraints from 210Pb
 !        and 7Be on wet deposition and transport in a global three-dimensional
-!        chemical tracer model driven by assimilated meteorological fields", 
+!        chemical tracer model driven by assimilated meteorological fields",
 !        JGR, Vol 106, pp 12109-12128, 2001.
 !  (2 ) D.J. Jacob, H. Liu, C. Mari, and R. M. Yantosca, "Harvard wet
 !        deposition scheme for GMI", Harvard Atmospheric Chemistry Modeling 
 !        Group, March 2000.
-!  (3 ) Chin, M., D.J. Jacob, G.M. Gardner, M.S. Foreman-Fowler, and P.A. 
-!        Spiro, "A global three-dimensional model of tropospheric sulfate", 
+!  (3 ) Chin, M., D.J. Jacob, G.M. Gardner, M.S. Foreman-Fowler, and P.A.
+!        Spiro, "A global three-dimensional model of tropospheric sulfate",
 !        J. Geophys. Res., 101, 18667-18690, 1996.
 !  (4 ) Balkanski, Y  D.J. Jacob, G.M. Gardner, W.C. Graustein, and K.K.
 !        Turekian, "Transport and Residence Times of Tropospheric Aerosols
@@ -127,7 +127,7 @@
 !
 ! !IROUTINE: do_wetdep
 !
-! !DESCRIPTION: Subroutine DO\_WETDEP is a driver for the wet deposition code, 
+! !DESCRIPTION: Subroutine DO\_WETDEP is a driver for the wet deposition code,
 !  called from the MAIN program.
 !\\
 !\\
@@ -363,7 +363,7 @@
 !
 ! !IROUTINE: make_qq
 !
-! !DESCRIPTION: Subroutine MAKE\_QQ computes the large-scale or convective 
+! !DESCRIPTION: Subroutine MAKE\_QQ computes the large-scale or convective
 !  precipitation fields for use with WETDEP
 !\\
 !\\
@@ -553,8 +553,8 @@
 !
 ! !IROUTINE: compute_l2g
 !
-! !DESCRIPTION: Subroutine COMPUTE\_L2G computes the ratio L2G = Cliq / Cgas, 
-!  which is the mixing ratio of species in the liquid phase, divided by the 
+! !DESCRIPTION: Subroutine COMPUTE\_L2G computes the ratio L2G = Cliq / Cgas,
+!  which is the mixing ratio of species in the liquid phase, divided by the
 !  mixing ratio of species in the gas phase.
 !\\
 !\\
@@ -626,7 +626,7 @@
 !
 ! !IROUTINE: compute_f
 !
-! !DESCRIPTION: Subroutine COMPUTE\_F computes F, the fraction of soluble 
+! !DESCRIPTION: Subroutine COMPUTE\_F computes F, the fraction of soluble
 !  species lost by scavenging in convective cloud updrafts.
 !\\
 !\\
@@ -1056,7 +1056,7 @@
 ! !INPUT PARAMETERS:
 !
       REAL(fp),       INTENT(IN)  :: KC                   ! Cloud condensate to
-                                                          !  precipitation rate 
+                                                          !  precipitation rate
                                                           !  [1/s]
       REAL(fp),       INTENT(IN)  :: KcScale(3)           ! Scale factors for Kc
                                                           !  for 3 temperature
@@ -1068,7 +1068,7 @@
 ! !OUTPUT PARAMETERS:
 !
       REAL(fp),       INTENT(OUT) :: F(State_Grid%NX,     ! Fraction of aerosol
-     &                                 State_Grid%NY,     !  scavenged in 
+     &                                 State_Grid%NY,     !  scavenged in
      &                                 State_Grid%NZ)     !  convective updrafts
 !
 ! !REVISION HISTORY:
@@ -1135,7 +1135,7 @@
 !
 ! !IROUTINE: rainout
 !
-! !DESCRIPTION: Subroutine RAINOUT computes RAINFRAC, the fraction of soluble 
+! !DESCRIPTION: Subroutine RAINOUT computes RAINFRAC, the fraction of soluble
 !  species lost to rainout events in precipitation.
 !\\
 !\\
@@ -1173,7 +1173,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT) :: RAINFRAC   ! Fraction of species lost 
+      REAL(fp),       INTENT(OUT) :: RAINFRAC   ! Fraction of species lost
                                                 !  to rainout [unitless]
       INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
@@ -1320,7 +1320,7 @@
 !\\
 !\\
 !  This allows us to apply the impaction scavenging of certain aerosol species
-!  (BC, dust, HNO3) as implemented by Qiaoqiao Wang, while also suppressing 
+!  (BC, dust, HNO3) as implemented by Qiaoqiao Wang, while also suppressing
 !  rainout for other aerosol species.  The prior code achieved this by using
 !  a large and confusing IF statement, whose logic was hard to understand.
 !\\
@@ -1464,7 +1464,7 @@
                                                   !  of grid (I,J,L)
                                                   !  [cm3 H2O/cm2 air/s]
       REAL(fp),       INTENT(IN)    :: DT         ! Timestep [s]
-      REAL(fp),       INTENT(IN)    :: F          ! Fraction of grid box that 
+      REAL(fp),       INTENT(IN)    :: F          ! Fraction of grid box that
                                                   !  is precipitating [1]
 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options
@@ -1474,12 +1474,12 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
-      REAL(fp),       INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
-      REAL(fp),       INTENT(INOUT) :: SO2s       ! conc's after aqueous rxns 
-                                                  ! are applied.  These are 
-                                                  ! computed in the sulfate 
+      REAL(fp),       INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v]
+      REAL(fp),       INTENT(INOUT) :: SO2s       ! conc's after aqueous rxns
+                                                  ! are applied.  These are
+                                                  ! computed in the sulfate
                                                   ! chemistry module and
-                                                  ! passed here as arguments. 
+                                                  ! passed here as arguments.
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1489,7 +1489,7 @@
                                                   !    kinetic process
                                                   ! =F washout is an
                                                   !    equilibrium process
-      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?       
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  28 Feb 2000 - R. Yantosca - Initial version
@@ -1506,7 +1506,7 @@
 #endif
 #ifdef TOMAS
       LOGICAL                :: UNITCHANGE_KGKG ! flag for STT units kg/kg
-      LOGICAL                :: UNITCHANGE_KGM2 ! flag for STT units kg/m2 
+      LOGICAL                :: UNITCHANGE_KGM2 ! flag for STT units kg/m2
 #endif
       REAL(fp)               :: L2G, DZ, SO2LOSS
       REAL(f8)               :: K0,  CR, pKa
@@ -1960,7 +1960,7 @@
 !
 ! !IROUTINE: washfrac_coarse_aerosol
 !
-! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of 
+! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of
 !  soluble aerosol species lost to washout.
 !\\
 !\\
@@ -1977,7 +1977,7 @@
       REAL(fp), INTENT(IN) :: DT         ! Timestep of washout event [s]
       REAL(fp), INTENT(IN) :: F          ! Fraction of grid box that is
                                          !  precipitating [unitless]
-      REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
+      REAL(fp), INTENT(IN) :: PP         ! Precip rate thru bottom of grid
                                          !  box (I,J,L)  [cm3 H2O/cm2 air/s]
       REAL(fp), INTENT(IN) :: TK         ! Temperature in grid box [K]
 !
@@ -2033,7 +2033,7 @@
 !
 ! !IROUTINE: washfrac_size_aerosol
 !
-! !DESCRIPTION: Subroutine WASHFRAC\_SIZE\_AEROSOL retrieves fraction of 
+! !DESCRIPTION: Subroutine WASHFRAC\_SIZE\_AEROSOL retrieves fraction of
 !  soluble aerosol species lost to washout. Size resolved version for TOMAS.
 !\\
 !\\
@@ -2168,7 +2168,7 @@
       REAL(fp), INTENT(IN) :: DT        ! Timestep of washout event [s]
       REAL(fp), INTENT(IN) :: F         ! Fraction of grid box that is
                                         !  precipitating [unitless]
-      REAL(fp), INTENT(IN) :: PP        ! Precip rate thru bottom of grid 
+      REAL(fp), INTENT(IN) :: PP        ! Precip rate thru bottom of grid
                                         !  box (I,J,L)  [cm3 H2O/cm2 air/s]
       REAL(fp), INTENT(IN) :: TK        ! Temperature in grid box [K]
 !
@@ -2433,7 +2433,7 @@
 !
 ! !IROUTINE: washfrac_liq_gas
 !!
-! !DESCRIPTION: Subroutine WASHFRAC\_LIQ\_GAS returns the fraction of soluble 
+! !DESCRIPTION: Subroutine WASHFRAC\_LIQ\_GAS returns the fraction of soluble
 !  liquid/gas phase species lost to washout.
 !\\
 !\\
@@ -2614,7 +2614,7 @@
 !  Rainout:
 !  ========
 !  Rainout occurs when there is more precipitation in grid box (I,J,L) than
-!  in grid box (I,J,L+1).  In other words, rainout occurs when the amount of 
+!  in grid box (I,J,L+1).  In other words, rainout occurs when the amount of
 !  rain falling through the bottom of grid box (I,J,L) is more than the amount
 !  of rain coming in through the top of grid box (I,J,L).
 !                                                                             .
@@ -2649,7 +2649,7 @@
 !       Q = QQ = rate of precipitation formation
 !                [ cm3 H2O / cm3 air / s ]
 !                                                                             .
-!  For convective precipitation, K_RAIN = 5.0e-3 [s^-1], and the expression 
+!  For convective precipitation, K_RAIN = 5.0e-3 [s^-1], and the expression
 !  for F' (cf. Eq. 13, Jacob et al, 2000) becomes:
 !                                                                             .
 !                                       { DT        }
@@ -2676,7 +2676,7 @@
 !       L + W  = condensed water content in cloud
 !              = 2.0e-6 [cm3 H2O/cm3 air]
 !                                                                             .
-!  K_RAIN and F' are needed to compute the fraction of species in grid box 
+!  K_RAIN and F' are needed to compute the fraction of species in grid box
 !  (I,J,L=NZ) lost to rainout.  This is done in module routine RAINOUT.
 !                                                                             .
 !  Washout:
@@ -2764,7 +2764,7 @@
       !%%%% NOTE: FOR GEOS-FP AND MERRA-2, WE ALWAYS ASSUME THAT   %%%%%
       !%%%% WETDEP OPERATES ONLY ON LARGE-SCALE PRECIP.  THUS, LS  %%%%%
       !%%%% IS ALWAYS SET TO "TRUE" IN THE CALLING ROUTINE, AND    %%%%%
-      !%%%% IDX WILL ALWAYS BE 1 HERE AND IN SUBSEQUENT ROUTINES.  %%%%%  
+      !%%%% IDX WILL ALWAYS BE 1 HERE AND IN SUBSEQUENT ROUTINES.  %%%%%
       !%%%% (bmy, 11/13/17)                                        %%%%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( LS ) THEN
@@ -3410,7 +3410,7 @@
 !
 ! !IROUTINE: conv_f_prime
 !
-! !DESCRIPTION: Function CONV\_F\_PRIME computes F', the fraction of the 
+! !DESCRIPTION: Function CONV\_F\_PRIME computes F', the fraction of the
 !  grid box that is precipitating during convective precipitation.
 !\\
 !\\
@@ -3499,14 +3499,14 @@
       INTEGER,          INTENT(IN)    :: J             ! Latitude index
       INTEGER,          INTENT(IN)    :: L             ! Level index
       INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
-      REAL(fp),         INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
+      REAL(fp),         INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box
                                                        !  undergoing rainout
       REAL(fp),         INTENT(IN)    :: K_RAIN        ! Rainout constant
       REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
       TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
-      TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object      
+      TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3772,7 +3772,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN)    :: am_I_Root     ! Are we on root CPU?  
+      LOGICAL,          INTENT(IN)    :: am_I_Root     ! Are we on root CPU?
       LOGICAL,OPTIONAL, INTENT(IN)    :: REEVAP        ! Do re-evaporation?
       LOGICAL,          INTENT(IN)    :: LS            ! =T denotes LS precip
       INTEGER,          INTENT(IN)    :: I             ! Longitude index
@@ -3785,9 +3785,9 @@
       REAL(fp),         INTENT(IN)    :: Q             ! Precip forming or
                                                        ! evaporating
                                                        ! in box (I,J,L)
-      REAL(fp),         INTENT(IN)    :: F_WASHOUT     ! Fraction of grid box 
+      REAL(fp),         INTENT(IN)    :: F_WASHOUT     ! Fraction of grid box
                                                        !  undergoing washout
-      REAL(fp),         INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
+      REAL(fp),         INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box
                                                        !  undergoing rainout
       REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       REAL(fp),         INTENT(IN)    :: PDOWN(:,:,:)  ! Precip
@@ -3797,7 +3797,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array 
+      REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array
                                                        ! [kg/m2]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
       TYPE(DgnState),   INTENT(INOUT) :: State_Diag    ! Diags State object
@@ -3883,7 +3883,7 @@
       CHARACTER(LEN=255) :: ErrorMsg,  ThisLoc
 
       ! Pointers
-      ! We need to define local array to hold species concentraiton values 
+      ! We need to define local array to hold species concentraiton values
       ! from the Chemistry State (State_Chm) object [kg/m2] (ewl, 9/29/15)
       REAL(fp), POINTER  :: Spc(:,:,:,:)
 
@@ -3980,8 +3980,8 @@
          !  The condition requiring that the WASHFRAC>1D-3 or any number 
          !  greater than 0 for washout to occur, prevents the partial
          !  resuspension of the dissolved mass falling from above, and leads
-         !  to an overestimate in the wet deposited mass... I recommend that 
-         !  the condition on WASHFRAC should be removed.  If  this leads to 
+         !  to an overestimate in the wet deposited mass... I recommend that
+         !  the condition on WASHFRAC should be removed.  If  this leads to
          !  negative values of DSpc, we should add a few lines to restrict
          !  DSpc to a minimum of 0. (mps, 5/20/15)
          !
@@ -3999,7 +3999,7 @@
          !==============================================================      
          ! Washout of aerosol species --
          ! this is modeled as a kinetic process
-         !==============================================================      
+         !==============================================================
          IF ( KIN ) THEN
 
             ! Define ALPHA, the fraction of the raindrops that
@@ -4129,10 +4129,10 @@
                State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
             ENDIF
 
-         !==============================================================      
+         !==============================================================
          ! Washout of non-aerosol species
          ! This is modeled as an equilibrium process
-         !==============================================================      
+         !==============================================================
          ELSE
 
             ! MASS_NOWASH is the amount of non-aerosol species in
@@ -4539,7 +4539,7 @@
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
       REAL(fp),         INTENT(IN)    :: QDOWN         ! Precip leaving thru
                                                        !  bottom of box (I,J,L)
-      REAL(fp),         INTENT(IN)    :: F             ! Fraction of grid box 
+      REAL(fp),         INTENT(IN)    :: F             ! Fraction of grid box
                                                        !  undergoing precip
       REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
@@ -4548,7 +4548,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array 
+      REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array
                                                        ! [kg/m2]
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
       TYPE(DgnState),   INTENT(INOUT) :: State_Diag    ! Diags State object
@@ -4558,7 +4558,7 @@
       INTEGER,          INTENT(OUT)   :: RC            ! Success or failure?
 !
 ! !REMARKS:
-!  Assume all of the species precipitating down from grid box (I,J,L=2) to 
+!  Assume all of the species precipitating down from grid box (I,J,L=2) to
 !  grid box (I,J,L=1) gets washed out in grid box (I,J,L=1).
 !
 ! !REVISION HISTORY:
@@ -5038,8 +5038,8 @@
 !
 ! !IROUTINE: init_wetscav
 !
-! !DESCRIPTION: Subroutine INIT\_WETSCAV initializes updraft velocity, cloud 
-!  liquid water content, cloud ice content, and mixing ratio of water fields, 
+! !DESCRIPTION: Subroutine INIT\_WETSCAV initializes updraft velocity, cloud
+!  liquid water content, cloud ice content, and mixing ratio of water fields,
 !  which are used in the wet scavenging routines.
 !\\
 !\\
@@ -5250,8 +5250,8 @@
 !
 ! !IROUTINE: setup_wetscav
 !
-! !DESCRIPTION: Subroutine SETUP\_WETSCAV initializes updraft velocity, cloud 
-!  liquid water content, cloud ice content, and mixing ratio of water fields, 
+! !DESCRIPTION: Subroutine SETUP\_WETSCAV initializes updraft velocity, cloud
+!  liquid water content, cloud ice content, and mixing ratio of water fields,
 !  which are used in the wet scavenging routines.
 !\\
 !\\
@@ -5428,7 +5428,7 @@
       ! We need to initialize the H2O2s and SO2s arrays to the values
       ! of State_Chm%Species for H2O2 and SO2.  This only needs to be
       ! done the first time this routine is called (which happens after
-      ! the restart file is read from disk). If State_Chm%H2O2AftreChem
+      ! the restart file is read from disk). If State_Chm%H2O2AfterChem
       ! or State_Chm%SO2AfterChem are already populated from the restart
       ! restart file then do not overwrite. (ewl, 11/13/19)
       !====================================================================
@@ -5437,7 +5437,7 @@
          ! Set H2O2s to the initial H2O2 from the species array, so that we will
          ! have nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
          ! While State_Chm%Species are now in units of [kg/kg dry air] for
-         ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
+         ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air]
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( ( id_H2O2 > 0 ) .AND.
      &        ( SUM(State_Chm%H2O2AfterChem(:,:,:)) < 1e-31 ) ) THEN
@@ -5447,10 +5447,10 @@
 
          ! Set SO2s to the initial SO2 from the species array, so that we will
          ! have nonzero values for the first call to COMPUTE_F (bmy, 1/14/03)
-         ! While State_Chm%Species are now in units of [kg/kg dry air] for 
-         ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
+         ! While State_Chm%Species are now in units of [kg/kg dry air] for
+         ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
-         IF ( ( id_SO2 > 0 ) .AND. 
+         IF ( ( id_SO2 > 0 ) .AND.
      &        ( SUM(State_Chm%SO2AfterChem(:,:,:)) < 1e-31 ) ) THEN
             State_Chm%SO2AfterChem = State_Chm%Species(:,:,:,id_SO2)
      &           * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%emMW_g )

@@ -31,7 +31,7 @@
       USE CMN_SIZE_MOD                       ! Size parameters
       USE PhysConstants,  ONLY : AVO         ! Avogadro's #
       USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE FILE_MOD                           
+      USE FILE_MOD
       USE TIME_MOD
       USE BPCH2_MOD                          ! For binary punch I/O routines
       USE DIAG_MOD                           ! For diagnostic arrays
@@ -50,7 +50,7 @@
       USE APM_DRIV_MOD, ONLY : APM_RADFOUT
       USE APM_INIT_MOD, ONLY : IFRADF
 #endif
-      
+
 #ifdef TOMAS
       USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 #endif
@@ -87,7 +87,7 @@
 !  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                        %%%
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
@@ -105,25 +105,25 @@
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
 
       REAL(fp)           :: SCALE_TMP(State_Grid%NX,State_Grid%NY)
-      REAL(fp)           :: SCALE_A3  
+      REAL(fp)           :: SCALE_A3
       REAL(fp)           :: SCALED,     SCALEDYN
-      REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM  
-      REAL(fp)           :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
+      REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM
+      REAL(fp)           :: SCALEDIAG,  SCALE_ND66, SCALE_ND67
       REAL(fp)           :: SCALERAD
-      REAL(fp)           :: SCALEX,     SECONDS,    PMASS      
+      REAL(fp)           :: SCALEX,     SECONDS,    PMASS
       REAL(fp)           :: PRESSX,     FDTT,       AREA_M2
       REAL(fp)           :: SCALE_I3
       REAL(f8)           :: DIAGb,      DIAGe
-      
+
       ! For binary punch file, version 2.0
-      CHARACTER (LEN=40) :: CATEGORY 
+      CHARACTER (LEN=40) :: CATEGORY
       REAL(f4)           :: ARRAY(State_Grid%NX,State_Grid%NY,
      &                            State_Grid%NX+1)
       REAL(f4)           :: LONRES, LATRES
       INTEGER            :: IFIRST, JFIRST, LFIRST
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180 = 1
-      CHARACTER (LEN=20) :: MODELNAME 
+      CHARACTER (LEN=20) :: MODELNAME
       CHARACTER (LEN=40) :: UNIT
       CHARACTER (LEN=40) :: RESERVED = ''
 
@@ -137,7 +137,7 @@
 #endif
 
       ! Pointers
-      ! We need to define local arrays to hold corresponding values 
+      ! We need to define local arrays to hold corresponding values
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER        :: Spc(:,:,:,:)
       REAL(fp), POINTER        :: AD(:,:,:)
@@ -165,7 +165,7 @@
       CHARACTER(LEN=31)        :: Name
       TYPE(Species), POINTER   :: SpcInfo
 
-      ! Now define local tracer flags so that we can remove these from 
+      ! Now define local tracer flags so that we can remove these from
       ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
       LOGICAL, SAVE            :: FIRST = .TRUE.
       INTEGER, SAVE            :: id_Rn222
@@ -180,7 +180,7 @@
       INTEGER, SAVE            :: id_BCPI,  id_OCPI,  id_POA1,  id_MTPA
       INTEGER, SAVE            :: id_LIMO,  id_MTPO,  id_TSOA1
       INTEGER, SAVE            :: id_ASOA1, id_OPOA1, id_OPOG1
-      INTEGER, SAVE            :: id_SALA,  id_SALC,  id_MOPO    
+      INTEGER, SAVE            :: id_SALA,  id_SALC,  id_MOPO
       INTEGER, SAVE            :: id_MOPI,  id_DMS,   id_SO2,   id_SO4
       INTEGER, SAVE            :: id_NH3,   id_NO,    id_CO,    id_ALK4
       INTEGER, SAVE            :: id_ACET,  id_MEK,   id_ALD2,  id_PRPE
@@ -192,12 +192,12 @@
       INTEGER, SAVE            :: id_PAN,   id_HNO3,  id_EOH,   id_MGLY
       INTEGER, SAVE            :: id_BENZ,  id_TOLU,  id_XYLE
       INTEGER, SAVE            :: id_NAP,   id_POG1,  id_POG2
- 
+
 !
 !******************************************************************************
 !  DIAG3 begins here!
 !
-!  Define scale factors for division.  
+!  Define scale factors for division.
 !  Add a small number (e.g. 1d-32) to prevent division by zero errors.
 !******************************************************************************
 !
@@ -212,7 +212,7 @@
 
       ! Initialize
       SpcInfo    => NULL()
-      DiagnCnt   => NULL() 
+      DiagnCnt   => NULL()
 
       ! Now use counter variables from "time_mod.f" (bmy, 3/27/03)
       DIAGb      = GET_DIAGb()
@@ -261,7 +261,7 @@
          id_OPOG1     = Ind_('OPOG1'   )
          id_SALA      = Ind_('SALA'    )
          id_SALC      = Ind_('SALC'    )
-         id_MOPO      = Ind_('MOPO'    ) 
+         id_MOPO      = Ind_('MOPO'    )
          id_MOPI      = Ind_('MOPI'    )
          id_DMS       = Ind_('DMS'     )
          id_SO2       = Ind_('SO2'     )
@@ -315,7 +315,7 @@
 !******************************************************************************
 !  Setup for binary punch file:
 !
-!  IFIRST, JFIRST, LFIRST = I, J, L indices of the starting grid box 
+!  IFIRST, JFIRST, LFIRST = I, J, L indices of the starting grid box
 !  LONRES                 = State_Grid%DX, cast to REAL*4
 !  LATRES                 = State_Grid%DY, cast to REAL*4
 !******************************************************************************
@@ -332,7 +332,7 @@
 
       ! HEMCO interface: get pointer to HcoState object (of hcoi_gc_main_mod.F90)
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC )
       ENDIF
 !
 !******************************************************************************
@@ -353,9 +353,9 @@
 !  (1 ) : DRYD-FLX : drydep fluxes      : molec/cm2/s or kg/s : SCALECHEM
 !  (2 ) : DRYD-VEL : drydep velocities  : cm/s                : SCALECHEM
 !
-!  NOTES: 
+!  NOTES:
 !  (1 ) Remove diagnostics for wetdep HNO3, H2O2 from ND44.
-!  (2 ) For NSRCX == 1 (Rn-Pb-Be), save the actual tracer number 
+!  (2 ) For NSRCX == 1 (Rn-Pb-Be), save the actual tracer number
 !        instead of the dry deposition index.  Add TRCOFFSET to N.
 !  (3 ) For NSRCX == 6 (single tracer Ox), drydep fluxes are in kg/s.
 !  (4 ) ND44 now uses allocatable array AD44 instead of AIJ. (bmy, 3/16/00)
@@ -374,7 +374,7 @@
 !******************************************************************************
 !
       IF ( ND44 > 0 ) THEN
-         
+
          !==============================================================
          ! Drydep fluxes
          !==============================================================
@@ -383,7 +383,7 @@
          CATEGORY = 'DRYD-FLX'
 
          ! # of drydep flux tracers
-         IF ( Input_Opt%ITS_A_TAGO3_SIM .or. 
+         IF ( Input_Opt%ITS_A_TAGO3_SIM .or.
      &        Input_Opt%ITS_A_MERCURY_SIM ) THEN
             M = nAdvect
          ELSE
@@ -400,40 +400,40 @@
 
             IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
 
-               ! NOTE: ND44 is now archived in molec/cm2/s for all 
+               ! NOTE: ND44 is now archived in molec/cm2/s for all
                ! simulations, including Rn-Pb-Be. (bmy, 6/16/15)
                UNIT = 'molec/cm2/s'
                NN   = State_Chm%Map_DryDep(N)
- 
-            ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM .or. 
+
+            ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM .or.
      &                Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
                ! Tagged O3 or Tagged Hg
                UNIT = 'molec/cm2/s'
                NN   = N
-  
-            ELSE 
-     
+
+            ELSE
+
                ! Other simulations
                UNIT = 'molec/cm2/s'
 
                ! For extended drydep tracers, assign tracer ID of the TOMAS
                ! aerosol mass (win, 7/14/09)
-               IF ( N <= nDryDep ) THEN 
+               IF ( N <= nDryDep ) THEN
                   NN  = State_Chm%Map_DryDep(N)
                   NN1 = NN
                ELSE
-                  ! To calculate the id_xxx of the associated  
-                  ! tracer. (ccc, 3/11/10) 
+                  ! To calculate the id_xxx of the associated
+                  ! tracer. (ccc, 3/11/10)
                   NN  = MOD( N - nDryDep-1, IBINS ) + id_NK1
 
                   ! Tracer number for bpch file
                   NN1  = ( N - nDryDep ) + ( id_NK1 + IBINS - 1 )
                ENDIF
- 
+
             ENDIF
 
-            ! To output only the species asked in input.geos 
+            ! To output only the species asked in input.geos
             ! (ccc, 5/15/09)
             MM  = 1
             MMB = 0
@@ -447,9 +447,9 @@
 
             ! Write to file
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN1,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN1,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          ENDDO
@@ -458,7 +458,7 @@
          ! Drydep velocities
          !==============================================================
 
-         ! Category and Unit 
+         ! Category and Unit
          CATEGORY  = 'DRYD-VEL'
          UNIT      = 'cm/s'
 
@@ -475,7 +475,7 @@
          DO N = 1, M
 
             NN  = State_Chm%Map_DryDep(N)
-            ! To output only the species asked in input.geos 
+            ! To output only the species asked in input.geos
             ! (ccc, 5/15/09)
             MM  = 1
             MMB = 0
@@ -489,9 +489,9 @@
 
             ! Write to file
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          ENDDO
@@ -564,7 +564,7 @@
             ENDDO
          ENDIF
 
-      ENDIF     
+      ENDIF
 !
 !*****************************************************************************
 !  ND59: Size-resolved primary aerosol emission (win, 8/22/07)
@@ -574,7 +574,7 @@
 !  ---------------------------------------------------------------------------
 !  (1 )  NK-EMISS : Size-resolved number emission   : No       : 1
 !  (2 )  SF-EMISS : Size-resolved sulfate emission  : kg S     : 1
-!  (3 )  SS-EMISS : Size-resolved sea-salt emission : kg       : 1 
+!  (3 )  SS-EMISS : Size-resolved sea-salt emission : kg       : 1
 !  (4 )  ECIL-SRC : Size-resolved H-phillic EC emission   : kg : 1
 !  (5 )  ECOB-SRC : Size-resolved H-phobic EC emission    : kg : 1
 !  (6 )  OCIL-SRC : Size-resolved H-phillic OC emission   : kg : 1
@@ -587,7 +587,7 @@
       IF ( ND59 > 0 ) THEN
 
          !==============================================================
-         ! Size-resolved primary aerosol number emission 
+         ! Size-resolved primary aerosol number emission
          !==============================================================
          UNIT         = 'No.'
          CATEGORY     = 'NK-EMISS'
@@ -596,17 +596,17 @@
             DO L = 1, 2
                ARRAY(:,:,L) = AD59_NUMB(:,:,L,NBIN)
             ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
-     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
-     
+
          ENDDO
 
          !==============================================================
-         ! Size-resolved primary aerosol sulfate mass emission 
+         ! Size-resolved primary aerosol sulfate mass emission
          !==============================================================
          UNIT         = 'kg S'
          CATEGORY     = 'SF-EMISS'
@@ -615,17 +615,17 @@
             DO L = 1, 2
                ARRAY(:,:,L) = AD59_SULF(:,:,L,NBIN)
             ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
-     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
-     
+
          ENDDO
 
          !==============================================================
-         ! Size-resolved primary aerosol sea-salt mass emission 
+         ! Size-resolved primary aerosol sea-salt mass emission
          !==============================================================
          UNIT         = 'kg'
          CATEGORY     = 'SS-EMISS'
@@ -634,13 +634,13 @@
             DO L = 1, 2
                ARRAY(:,:,L) = AD59_SALT(:,:,L,NBIN)
             ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
-     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
-     
+
          ENDDO
 
          !==============================================================
@@ -653,13 +653,13 @@
             DO L = 1, 2
                ARRAY(:,:,L) = AD59_ECIL(:,:,L,NBIN)
             ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
-     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
-     
+
          ENDDO
 
          !==============================================================
@@ -672,13 +672,13 @@
             DO L = 1, 2
                ARRAY(:,:,L) = AD59_ECOB(:,:,L,NBIN)
             ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
-     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
-     
+
          ENDDO
 
          !==============================================================
@@ -691,13 +691,13 @@
             DO L = 1, 2
                ARRAY(:,:,L) = AD59_OCIL(:,:,L,NBIN)
             ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
-     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
-     
+
          ENDDO
 
          !==============================================================
@@ -710,13 +710,13 @@
             DO L = 1, 2
                ARRAY(:,:,L) = AD59_OCOB(:,:,L,NBIN)
             ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
-     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
-     
+
          ENDDO
 
          !==============================================================
@@ -729,16 +729,16 @@
             DO L = 1, 2
                ARRAY(:,:,L) = AD59_DUST(:,:,L,NBIN)
             ENDDO
-            
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
-     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
+     &                  UNIT,      DIAGb,     DIAGe,     RESERVED,
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
-     
+
          ENDDO
 
-      ENDIF  
+      ENDIF
 !
 !*****************************************************************************
 !  ND60: TOMAS Aerosol microphysical rate (win, 7/9/07)
@@ -759,7 +759,7 @@
 !*****************************************************************************
 !
       IF ( ND60 > 0 ) THEN
-         
+
          !==============================================================
          ! Condensation rate
          !==============================================================
@@ -768,10 +768,10 @@
          CATEGORY = 'TMS-COND'
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
-            
+
             SCALEX = 1.e+0_fp
 
-            IF ( ( NN .ge. id_NK1 ) .and. 
+            IF ( ( NN .ge. id_NK1 ) .and.
      &           ( NN .lt. id_NK1+IBINS )      ) THEN
                UNIT = 'no.'
             ELSE
@@ -797,10 +797,10 @@
          CATEGORY = 'TMS-COAG'
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
-            
+
             SCALEX = 1.e+0_fp
 
-            IF ( ( NN .ge. id_NK1 ) .and. 
+            IF ( ( NN .ge. id_NK1 ) .and.
      &           ( NN .lt. id_NK1+IBINS )      ) THEN
                UNIT = 'no.'
             ELSE
@@ -826,10 +826,10 @@
          CATEGORY = 'TMS-NUCL'
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
-            
+
             SCALEX = 1.e+0_fp
 
-            IF ( ( NN .ge. id_NK1 ) .and. 
+            IF ( ( NN .ge. id_NK1 ) .and.
      &           ( NN .lt. id_NK1+IBINS )      ) THEN
                UNIT = 'no.'
             ELSE
@@ -855,10 +855,10 @@
          CATEGORY = 'TMS-AQOX'
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
-            
+
             SCALEX = 1.e+0_fp
 
-            IF ( ( NN .ge. id_NK1 ) .and. 
+            IF ( ( NN .ge. id_NK1 ) .and.
      &           ( NN .lt. id_NK1+IBINS )      ) THEN
                UNIT = 'no.'
             ELSE
@@ -884,10 +884,10 @@
          CATEGORY = 'AERO-FIX'
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
-            
+
             SCALEX = 1.e+0_fp
 
-            IF ( ( NN .ge. id_NK1 ) .and. 
+            IF ( ( NN .ge. id_NK1 ) .and.
      &           ( NN .lt. id_NK1+IBINS )      ) THEN
                UNIT = 'no.'
             ELSE
@@ -913,10 +913,10 @@
          CATEGORY = 'TMS-SOA'
          DO M = 1,TMAX(60)
             NN = TINDEX(60,M)
-            
+
             SCALEX = 1.e+0_fp
 
-            IF ( ( NN .ge. id_NK1 ) .and. 
+            IF ( ( NN .ge. id_NK1 ) .and.
      &           ( NN .lt. id_NK1+IBINS )      ) THEN
                UNIT = 'no.'
             ELSE
@@ -941,13 +941,13 @@
 !
 !  Remark: for aerosol number, the unit 'kg' is used as a fake kg where
 !          1 fake kg = 1 aerosol number.
-!          Molecular weight of aerosol number is 1g/mol and   
+!          Molecular weight of aerosol number is 1g/mol and
 !
 !   # : Field   : Description                 : Units     : Scale Factor
 !  ---------------------------------------------------------------------------
 !  (1) TOMAS-3D : 3-D microphysics rate       : kg/s      : SCALECHEM
 !
-!  NOTES: 
+!  NOTES:
 !  (1 ) Create ND61 to output nucleation rate in 3-D array diagnostic (win, 6/21/08)
 !  (2 ) Change ND61 tracer and unit to be new list with unit of 'cm-3s-1'
 !       (win, 10/6/08)
@@ -955,7 +955,7 @@
 
       IF ( ND61 > 0 ) THEN
          CATEGORY = 'TOMAS-3D'
-         
+
          DO M = 1, TMAX(61)
             NN = TINDEX(61,M)
 
@@ -1012,7 +1012,7 @@
 
          DO M = 1, TMAX(72)
             N  = TINDEX(72,M)
-            
+
             IF ( N > PD72R ) CYCLE
              !only output clear-sky and all-sky if they are switched on
              !or if we're doing the optics
@@ -1034,7 +1034,7 @@
               !AOD, SSA, ASYM
               UNIT = 'UNITLESS'
              ENDIF
-               
+
              ! each case is for different output type, within each
              ! of those are the values for each species in the RAD input
              ! menu. Only output species that are switched on for each
@@ -1058,11 +1058,11 @@
                DO I=1,State_Grid%NX
                 DO J=1,State_Grid%NY
                  !store as difference in flux from baseline
-                 ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) - 
+                 ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) -
      &                           AD72(I,J,NN))/SCALEX
                 ENDDO
                ENDDO
-             
+
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                   HALFPOLAR, CENTER180, CATEGORY, NN,
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -1100,59 +1100,59 @@
 !
 ! !IROUTINE: diag2bpch
 !
-! !DESCRIPTION: Wrapper routine to get diagnostics from HEMCO and write 
-!  them to bpch.  This will look up diagnostics 'dName' and write the 
-!  corresponding diagnostics array to the bpch output file. 
+! !DESCRIPTION: Wrapper routine to get diagnostics from HEMCO and write
+!  them to bpch.  This will look up diagnostics 'dName' and write the
+!  corresponding diagnostics array to the bpch output file.
 !\\
 !\\
-!  NOTE: This is a "bridge" routine intended to provide backwards compatibility 
-!  with the existing GEOS-Chem diagnostics.  Eventually we will write all 
+!  NOTE: This is a "bridge" routine intended to provide backwards compatibility
+!  with the existing GEOS-Chem diagnostics.  Eventually we will write all
 !  GEOS-Chem diagnostics to netCDF format but we are not yet at that point.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG2BPCH( air,       HcoState, dname, 
+      SUBROUTINE DIAG2BPCH( air,       HcoState, dname,
      &                      bcat,      bUnit,    bN,
-     &                      dAF,       dZ,       dOPTIONAL,  
+     &                      dAF,       dZ,       dOPTIONAL,
      &                      dFACTOR,   ERR,      AreaScal  )
 !
 ! !USES:
 !
       USE HCO_STATE_MOD,  ONLY : HCO_State
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,          INTENT(IN)    :: air       ! Are we on the root CPU?
       TYPE(HCO_State),  POINTER       :: HcoState  ! HEMCO State object
       CHARACTER(LEN=*), INTENT(IN)    :: dname     ! Diagnostics name
       CHARACTER(LEN=*), INTENT(IN)    :: bCat      ! BPCH category
       CHARACTER(LEN=*), INTENT(IN)    :: bUnit     ! BPCH units
-      INTEGER,          INTENT(IN)    :: bN        ! BPCH ID 
+      INTEGER,          INTENT(IN)    :: bN        ! BPCH ID
       INTEGER,          INTENT(IN)    :: dAF       ! AutoFill of diagnostic
       INTEGER,          INTENT(IN)    :: dZ        ! # of vertical levels
       LOGICAL,          INTENT(IN)    :: dOPTIONAL ! Optional field?
       REAL(fp),         INTENT(IN)    :: dFACTOR   ! Scale factor
-      INTEGER,          OPTIONAL      :: AreaScal  ! Area scaling 
+      INTEGER,          OPTIONAL      :: AreaScal  ! Area scaling
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       INTEGER,          INTENT(INOUT) :: ERR       ! Return code
 !
 ! !REMARKS:
 !  (1) Data is multiplied by factor dFACTOR before writing to disk.
 !  (2) dAF determines the autofill flag used for the diagnostics lookup.
-!  (3) dZ are the number of vertical levels. Set to -1 for 2D arrays, 
+!  (3) dZ are the number of vertical levels. Set to -1 for 2D arrays,
 !       otherwise a 3D array with exactly that many levels is written.
-!  (4) dOptional determines whether or not this is an optional diagnostics. 
-!       For optional diagnostics, zeros are written out if no corresponding 
-!       HEMCO diagnostics could be found (because it is undefined or because 
-!       they have never been updated). For non-optional diagnostics, the 
+!  (4) dOptional determines whether or not this is an optional diagnostics.
+!       For optional diagnostics, zeros are written out if no corresponding
+!       HEMCO diagnostics could be found (because it is undefined or because
+!       they have never been updated). For non-optional diagnostics, the
 !       routine stops with an error if no HEMCO diagnostics is found.
-!  (5) AScal can be used to multiply (1) or divide (-1) the data by the grid 
+!  (5) AScal can be used to multiply (1) or divide (-1) the data by the grid
 !       area.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  06 Aug 2014 - C. Keller   - Initial version
 !  13 Aug 2014 - R. Yantosca - Added ProTeX headers; cosmetic changes
 !  13 Aug 2014 - R. Yantosca - Bug fix, # of vertical levels in call to BPCH2
@@ -1186,17 +1186,17 @@
       ! Set default for area scaling
       ASCL = 0
       IF ( PRESENT(AreaScal) ) ASCL = AreaScal
- 
+
       ! Get diagnostics
       DgnCont => NULL()
-      CALL Diagn_Get( air,   HcoState, .FALSE., DgnCont, 
-     &                FLG,   ERR,      cName=TRIM(dname), 
+      CALL Diagn_Get( air,   HcoState, .FALSE., DgnCont,
+     &                FLG,   ERR,      cName=TRIM(dname),
      &                AutoFill=dAF, COL=HcoState%Diagn%HcoDiagnIDManual)
 
       ! If diagnostic not found, write error message
       IF ( ERR /= HCO_SUCCESS ) THEN
          MG = 'Cannot find diagnostics ' // TRIM(dname)
-         CALL ERROR_STOP ( MG, LC ) 
+         CALL ERROR_STOP ( MG, LC )
       ENDIF
 
       ! Vertical levels
@@ -1205,9 +1205,9 @@
       ! Save into ARRAY. Apply scale factor if required
       IF ( FLG == HCO_SUCCESS ) THEN
          IF ( dz > 0 ) THEN
-            ARRAY(:,:,1:levs) = 
+            ARRAY(:,:,1:levs) =
      &           DgnCont%Arr3D%Val(:,:,1:levs) * dFACTOR
-         ELSE 
+         ELSE
             ARRAY(:,:,1) = DgnCont%Arr2D%Val(:,:) * dFACTOR
          ENDIF
       ELSE
@@ -1224,21 +1224,21 @@
       ! Eventually scale by area
       IF ( ASCL == 1 ) THEN
          DO II=1,levs
-            ARRAY(:,:,II) = 
+            ARRAY(:,:,II) =
      &           ARRAY(:,:,II) * HcoState%Grid%AREA_M2%Val(:,:)
          ENDDO
       ELSEIF ( ASCL == -1 ) THEN
          DO II=1,levs
-            ARRAY(:,:,II) = 
+            ARRAY(:,:,II) =
      &           ARRAY(:,:,II) / HcoState%Grid%AREA_M2%Val(:,:)
          ENDDO
       ENDIF
- 
+
       ! Write to bpch file
       CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &            HALFPOLAR, CENTER180, bCat,     bN,
-     &            bUnit,     DIAGb,     DIAGe,    RESERVED,   
-     &            State_Grid%NX, State_Grid%NY, LEVS,     IFIRST,     
+     &            bUnit,     DIAGb,     DIAGe,    RESERVED,
+     &            State_Grid%NX, State_Grid%NY, LEVS,     IFIRST,
      &            JFIRST,    LFIRST,    ARRAY(:,:,1:levs) )
 
       ! Return w/ success
@@ -1250,4 +1250,4 @@
       END SUBROUTINE DIAG2BPCH
 !EOC
 #endif
-      END SUBROUTINE DIAG3    
+      END SUBROUTINE DIAG3

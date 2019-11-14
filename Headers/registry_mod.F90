@@ -6,7 +6,7 @@
 ! !MODULE: registry_mod.F90
 !
 ! !DESCRIPTION: Contains derived types and methods to create a registry
-!  of each variable contained within a given module.  This will allow the 
+!  of each variable contained within a given module.  This will allow the
 !  user to obtain a pointer to each module variable by searching for its name.
 !\\
 !\\
@@ -130,17 +130,17 @@ CONTAINS
 !
 ! !IROUTINE: Registry_AddField
 !
-! !DESCRIPTION: Creates a REGISTRY ITEM, which contains information (i.e. 
+! !DESCRIPTION: Creates a REGISTRY ITEM, which contains information (i.e.
 !  metadata plus a pointer to the data) about a variable within a module.
-!  The REGISTRY ITEM will then be added to the METAREGISTRY ITEM, which is 
-!  the master list of all variables in the module.  This will allow the user 
+!  The REGISTRY ITEM will then be added to the METAREGISTRY ITEM, which is
+!  the master list of all variables in the module.  This will allow the user
 !  to obtain a pointer to any variable by searching for its name.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE Registry_AddField( am_I_Root, Registry,  State,                 &
-                                Variable,  RC,        Description,           &  
+                                Variable,  RC,        Description,           &
                                 Units,     DimNames,  OnLevelEdges,          &
                                 Data0d,    Data1d,    Data2d,                &
                                 Data3d,    Data0d_8,  Data1d_8,              &
@@ -170,19 +170,19 @@ CONTAINS
     REAL(fp),          OPTIONAL, TARGET :: Data0d          ! 0D flex-prec data
     REAL(fp),          OPTIONAL, TARGET :: Data1d  (:    ) ! 1D flex_prec data
     REAL(fp),          OPTIONAL, TARGET :: Data2d  (:,:  ) ! 2D flex-prec data
-    REAL(fp),          OPTIONAL, TARGET :: Data3d  (:,:,:) ! 3D flex-prec data 
+    REAL(fp),          OPTIONAL, TARGET :: Data3d  (:,:,:) ! 3D flex-prec data
 
     ! Floating-point data targets (8-byte precision)
     REAL(f8),          OPTIONAL, TARGET :: Data0d_8        ! 0D flex-prec data
     REAL(f8),          OPTIONAL, TARGET :: Data1d_8(:    ) ! 1D flex_prec data
     REAL(f8),          OPTIONAL, TARGET :: Data2d_8(:,:  ) ! 2D flex-prec data
-    REAL(f8),          OPTIONAL, TARGET :: Data3d_8(:,:,:) ! 3D flex-prec data 
+    REAL(f8),          OPTIONAL, TARGET :: Data3d_8(:,:,:) ! 3D flex-prec data
 
     ! Floating-point data targets (4-byte precision)
     REAL(f4),          OPTIONAL, TARGET :: Data0d_4        ! 0D 4-byte data
     REAL(f4),          OPTIONAL, TARGET :: Data1d_4(:    ) ! 1D 4-byte data
     REAL(f4),          OPTIONAL, TARGET :: Data2d_4(:,:  ) ! 2D 4-byte data
-    REAL(f4),          OPTIONAL, TARGET :: Data3d_4(:,:,:) ! 3D 4-byte data 
+    REAL(f4),          OPTIONAL, TARGET :: Data3d_4(:,:,:) ! 3D 4-byte data
 
     ! Integer data targets
     INTEGER,           OPTIONAL, TARGET :: Data0d_I        ! 1D int data
@@ -225,7 +225,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!   
+!
     ! Scalars
     LOGICAL                :: IsOnLevelEdges
     REAL(fp)               :: KbPerElement
@@ -243,7 +243,7 @@ CONTAINS
     RC             = GC_SUCCESS
     IsOnLevelEdges = .FALSE.
     KbPerElement   = DBLE( fp ) / 1024.0_fp
-    ErrMsg         = ''    
+    ErrMsg         = ''
     ThisLoc        = ' -> at Registry_AddField (in Headers/registry_mod.F90)'
     TmpState       = To_UpperCase( State    )
     TmpVariable    = To_UpperCase( Variable )
@@ -270,7 +270,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    
+
     ! Save identifying info
     Item%FullName      =  TmpFullName
     Item%State         =  TmpState
@@ -406,7 +406,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    
+
     !=======================================================================
     ! Define the "dimnames" field
     !=======================================================================
@@ -416,10 +416,10 @@ CONTAINS
        Item%DimNames = TRIM( DimNames )
 
     ELSE
-       
+
        ! Otherwise, set default DimNames based on the rank
        SELECT CASE( Item%Rank )
-          CASE( 3 ) 
+          CASE( 3 )
              Item%DimNames = 'xyz'
           CASE( 2 )
              Item%DimNames = 'xy '
@@ -430,7 +430,7 @@ CONTAINS
         END SELECT
 
      ENDIF
-       
+
     !=======================================================================
     ! Add the REGISTRY ITEM to the METAREGISTRY ITEM, which represents
     ! the list of all data fields contained in a module.
@@ -451,7 +451,7 @@ CONTAINS
 !
 ! !IROUTINE: Registry_Lookup
 !
-! !DESCRIPTION: Get a pointer to any variable in a module (aka "state") by 
+! !DESCRIPTION: Get a pointer to any variable in a module (aka "state") by
 !  searching for its name.  Also returns associated metadata.
 !\\
 !\\
@@ -475,13 +475,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN) :: am_I_Root         ! Root CPU?  
+    LOGICAL,           INTENT(IN) :: am_I_Root         ! Root CPU?
     TYPE(MetaRegItem),    POINTER :: Registry          ! Registry obj
     CHARACTER(LEN=*),  INTENT(IN) :: State             ! State name
     CHARACTER(LEN=*),  INTENT(IN) :: Variable          ! Variable name
-!                                                     
-! !OUTPUT PARAMETERS:                                 
-!                                                     
+!
+! !OUTPUT PARAMETERS:
+!
     ! Required outputs
     INTEGER,          INTENT(OUT) :: RC                ! Success or failure
 
@@ -582,7 +582,7 @@ CONTAINS
     Current         => NULL()
     ErrMsg          =  ''
     ThisLoc         =  ' -> at Registry_Lookup (in Headers/registry_mod.F90)'
-    TmpState        = TRIM( State ) // '_' 
+    TmpState        = TRIM( State ) // '_'
     VariableUC      =  To_UpperCase( Variable )
 
     ! Prefix the the state name (always uppercase) to the variable, unless:
@@ -602,7 +602,7 @@ CONTAINS
     ! Set a flag to denote that we've found the field
     Found           = .FALSE.
 
-    !=======================================================================   
+    !=======================================================================
     ! Test if the optional variables are present outside of the main loop.
     !=======================================================================
 
@@ -665,11 +665,11 @@ CONTAINS
 
     ! Point to head of linked list
     Current => Registry
-    
+
     ! As long as this entry of the linked list isn't NULL
     DO WHILE( ASSOCIATED( Current ) )
 
-       ! Construct a hash for the full name of this REGISTRY ITEM 
+       ! Construct a hash for the full name of this REGISTRY ITEM
        ItemName31 = Current%Item%FullName
        ItemHash   = Str2Hash31( ItemName31 )
 
@@ -685,12 +685,12 @@ CONTAINS
           If ( Is_OnLevelEdges ) OnLevelEdges = Current%Item%OnLevelEdges
 
           ! Then return a pointer to the field
-          SELECT CASE( Current%Item%Rank ) 
+          SELECT CASE( Current%Item%Rank )
 
              ! Return the appropriate 3D DATA POINTER (and dimensions)
-             CASE( 3 ) 
+             CASE( 3 )
                 IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
-                   IF ( Is_3d ) THEN 
+                   IF ( Is_3d ) THEN
                       Ptr3d => Current%Item%Ptr3d
                       Found =  .TRUE.
                       IF ( Is_Dimensions ) THEN
@@ -734,7 +734,7 @@ CONTAINS
                    ENDIF
                    EXIT
                 ENDIF
-                   
+
              ! Return the appropriate 2D DATA POINTER (and dimensions)
              CASE( 2 )
                 IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
@@ -756,7 +756,7 @@ CONTAINS
                          DO N = 1, Current%Item%Rank
                             Dimensions(N) = SIZE( Ptr2d_8, N )
                          ENDDO
-                      ENDIF                      
+                      ENDIF
                    ENDIF
                    EXIT
                 ELSE IF ( Current%Item%KindVal == KINDVAL_F4 ) THEN
@@ -767,7 +767,7 @@ CONTAINS
                          DO N = 1, Current%Item%Rank
                             Dimensions(N) = SIZE( Ptr2d_4, N )
                          ENDDO
-                      ENDIF                      
+                      ENDIF
                    ENDIF
                    EXIT
                 ELSE IF ( Current%Item%KindVal == KINDVAL_I4 ) THEN
@@ -793,7 +793,7 @@ CONTAINS
                          DO N = 1, Current%Item%Rank
                             Dimensions(N) = SIZE( Ptr1d, N )
                          ENDDO
-                      ENDIF                     
+                      ENDIF
                    ENDIF
                    EXIT
                 ELSE IF ( Current%Item%KindVal == KINDVAL_F8 ) THEN
@@ -830,7 +830,7 @@ CONTAINS
                    ENDIF
                    EXIT
                 ENDIF
-                
+
              ! Return the appropriate 0D DATA POINTER (and dimensions)
              CASE( 0 )
                 IF ( Current%Item%KindVal == KINDVAL_FP ) THEN
@@ -871,7 +871,7 @@ CONTAINS
 
           END SELECT
        ENDIF
-       
+
        ! Point to next node for next iteration
        Current => Current%Next
     ENDDO
@@ -926,7 +926,7 @@ CONTAINS
 !  23 Jun 2017 - R. Yantosca - Initial version
 !  26 Jun 2017 - R. Yantosca - Also print memory usage in Kb
 !  27 Jun 2017 - R. Yantosca - Now print numeric KIND value and description
-!  27 Jun 2017 - R. Yantosca - Also print Ptr1dI, Ptr2dI, Ptr3dI 
+!  27 Jun 2017 - R. Yantosca - Also print Ptr1dI, Ptr2dI, Ptr3dI
 !  29 Jun 2017 - R. Yantosca - Add SHORTFORMAT option to print less output
 !  23 Aug 2017 - R. Yantosca - Now print OnLevelEdges in full format
 !  24 Aug 2017 - R. Yantosca - Now use the DimNames field when printing
@@ -965,7 +965,7 @@ CONTAINS
     Current => NULL()
     Item    => NULL()
 
-    ! Save the value of ShortFormat (if passed) in a shadow variable 
+    ! Save the value of ShortFormat (if passed) in a shadow variable
     IF ( PRESENT( ShortFormat ) ) THEN
        Use_ShortFormat = ShortFormat
     ELSE
@@ -980,8 +980,8 @@ CONTAINS
     Current => Registry
 
     ! As long as the current node isn't NULL
-    DO WHILE( ASSOCIATED( Current ) ) 
-       
+    DO WHILE( ASSOCIATED( Current ) )
+
        ! Get the REGISTRY ITEM belonging to this node of the Registry
        Item => Current%Item
 
@@ -1081,7 +1081,7 @@ CONTAINS
                 PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d, 1   ),        &
                                            SIZE  ( Item%Ptr2d, 2   )
 
-             ! 8-byte 
+             ! 8-byte
              ELSE IF ( ASSOCIATED( Item%Ptr2d_8 ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_8    )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d_8    )
@@ -1089,7 +1089,7 @@ CONTAINS
                 PRINT*, 'Dimensions   : ', SIZE  ( Item%Ptr2d_8, 1 ),        &
                                            SIZE  ( Item%Ptr2d_8, 2 )
 
-             ! 4-byte 
+             ! 4-byte
              ELSE IF ( ASSOCIATED( Item%Ptr2d_4 ) ) THEN
                 PRINT*, 'Min value    : ', MINVAL( Item%Ptr2d_4    )
                 PRINT*, 'Max value    : ', MAXVAL( Item%Ptr2d_4    )
@@ -1155,7 +1155,7 @@ CONTAINS
              ! Integer
              ELSE IF ( ASSOCIATED( Item%Ptr0d_I ) ) THEN
                 PRINT*, 'Value        : ', Item%Ptr0d_I
-  
+
              ENDIF
           ENDIF
        ENDIF
@@ -1169,7 +1169,7 @@ CONTAINS
     !=======================================================================
     Current => NULL()
     Item    => NULL()
-       
+
   END SUBROUTINE Registry_Print
 !EOC
 !------------------------------------------------------------------------------
@@ -1239,7 +1239,7 @@ CONTAINS
 !
 ! !IROUTINE: MetaRegItem_AddNew
 !
-! !DESCRIPTION: Wrapper for methods MetaRegItem\_Create and 
+! !DESCRIPTION: Wrapper for methods MetaRegItem\_Create and
 !  MetaRegItem\_Insert.  Will create a METAREGISTRY ITEM (containing a
 !  REGISTRY ITEM) and (1) set it as the head node of a new linked list, or
 !  (2) append it to an existing linked list.
@@ -1253,12 +1253,12 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
     TYPE(RegItem),     POINTER     :: Item       ! REGISTRY ITEM object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaRegItem), POINTER     :: Node       ! METAREGISTRY ITEM object
 !
@@ -1276,14 +1276,14 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
- 
+
     !=======================================================================
     ! Initialize
     !=======================================================================
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at MetaRegItem_AddNew (in Headers/registry_mod.F90)'
- 
+
     !=======================================================================
     ! Test if the METAREGISTRY ITEM (aka "Node") has been allocated memory
     ! and is therefore part of an existing linked list
@@ -1337,12 +1337,12 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
     TYPE(RegItem),     POINTER     :: Item       ! REGISTRY ITEM object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaRegItem), POINTER     :: Node       ! METAREGISTRY ITEM object
 !
@@ -1371,7 +1371,7 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at MetaRegItem_Create (in Headers/registry_mod.F90)'
-    
+
     !=======================================================================
     ! Initialize the METAREGISTRY ITEM itself
     !=======================================================================
@@ -1393,7 +1393,7 @@ CONTAINS
 
     ! Because this is the first METAREGISTRY ITEM that is being created,
     ! we can consider this to be the head node of a linked list.
-    IF ( .not. ASSOCIATED( Node%Item ) ) THEN 
+    IF ( .not. ASSOCIATED( Node%Item ) ) THEN
        ALLOCATE( Node%Item, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not allocate "Node%Item"!'
@@ -1402,7 +1402,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Attach the given REGISTRY ITEM to the METAREGISTRY ITEM 
+    ! Attach the given REGISTRY ITEM to the METAREGISTRY ITEM
     ! (i.e. place it into the head node of a linked list)
     Node%Item = Item
 
@@ -1428,12 +1428,12 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
     TYPE(RegItem),     POINTER     :: Item      ! REGISTRY ITEM object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaRegItem), POINTER     :: Node      ! METAREGISTRY ITEM object
 !
@@ -1456,7 +1456,7 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=255)         :: ErrMsg, ThisLoc
-    
+
     ! Objects
     TYPE(MetaRegItem), POINTER :: Head
 
@@ -1466,9 +1466,9 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at MetaRegItem_Insert (in Headers/registry_mod.F90)'
-    
+
     !=======================================================================
-    ! Initialize a METAREGISTRY ITEM named "Next", which will be inserted 
+    ! Initialize a METAREGISTRY ITEM named "Next", which will be inserted
     ! into the existing list.  "Next" will contain a new REGISTRY ITEM.
     !=======================================================================
 
@@ -1527,11 +1527,11 @@ CONTAINS
 !
     LOGICAL,           INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetaRegItem), POINTER     :: List       ! List of METAREGISTRY ITEMS
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,           INTENT(OUT) :: RC         ! Success or failure?
 !
@@ -1597,7 +1597,7 @@ CONTAINS
        Current%Item%Ptr1d_I => NULL()
        Current%Item%Ptr2d_I => NULL()
        Current%Item%Ptr3d_I => NULL()
-       
+
        ! Destroy the REGISTRY ITEM itself
 #if defined( ESMF_ )
        IF ( ASSOCIATED( Current%Item ) ) NULLIFY( Current%Item )

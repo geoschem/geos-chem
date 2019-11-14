@@ -1,12 +1,12 @@
 function(configureGCClassic)
- # Find OpenMP if we're building a multithreaded executable
+    # Find OpenMP if we're building a multithreaded executable
     gc_pretty_print(SECTION "Threading")
     set(OMP "ON" CACHE STRING "Switch to enable/disable OpenMP threading in GEOS-Chem")
     gc_pretty_print(VARIABLE OMP IS_BOOLEAN)
     if("${OMP}")
-    find_package(OpenMP REQUIRED)
-    target_compile_options(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
-        target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
+       find_package(OpenMP REQUIRED)
+       target_compile_options(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
+       target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
     else()
         target_compile_definitions(BaseTarget INTERFACE "NO_OMP")
     endif()

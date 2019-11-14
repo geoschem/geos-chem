@@ -5,12 +5,12 @@
 !
 ! !MODULE: hco_scale_mod.F90
 !
-! !DESCRIPTION: Module hco\_scale\_mod contains a collection of 
+! !DESCRIPTION: Module hco\_scale\_mod contains a collection of
 ! routines to uniformly scale emissions by species-specific scale
-! scale factors. 
+! scale factors.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCO_Scale_Mod
 !
@@ -39,7 +39,7 @@ MODULE HCO_Scale_Mod
 !
 ! !PRIVATE VARIABLES:
 !
-  REAL(hp), ALLOCATABLE :: SpcScal(:) 
+  REAL(hp), ALLOCATABLE :: SpcScal(:)
 !
 ! !REVISION HISTORY:
 !  11 May 2017 - C. Keller   - Initial version
@@ -82,7 +82,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
 !
 ! !OUTPUT PARAMETERS:
@@ -92,7 +92,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -107,13 +107,13 @@ CONTAINS
     !--------------------------
     ! HCO_ScaleInit begins here
     !--------------------------
-    
+
     ! Allocate scale factors and initialize all scale factors to 1.0
     IF ( ALLOCATED(SpcScal) ) DEALLOCATE(SpcScal)
     ALLOCATE( SpcScal( HcoState%nSpc ) )
     SpcScal(:) = 1.0_hp
-    
-    ! Search for scale factors in HEMCO configuration file 
+
+    ! Search for scale factors in HEMCO configuration file
     DO N = 1, HcoState%nSpc
        iName = 'EmisScale_'//TRIM(HcoState%Spc(N)%SpcName)
        CALL GetExtOpt( HcoState%Config, -999, iName, OptValHp=ScalFactor, &
@@ -124,7 +124,7 @@ CONTAINS
        IF ( FOUND ) THEN
           SpcScal(N) = ScalFactor
 
-          ! Verbose mode 
+          ! Verbose mode
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
              WRITE (MSG,*) 'Will use universal emission scale factor for ', &
                 TRIM(HcoState%Spc(N)%SpcName),': ',SpcScal(N)
@@ -146,7 +146,7 @@ CONTAINS
 ! !IROUTINE: HCO_ScaleGet
 !
 ! !DESCRIPTION: Function HCO\_ScaleGet returns the scale factor for the given
-!  species ID. 
+!  species ID.
 !\\
 !\\
 ! !INTERFACE:
@@ -158,16 +158,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN   )  :: HcoID          ! HEMCO species ID 
+    INTEGER,         INTENT(IN   )  :: HcoID          ! HEMCO species ID
 !
 ! !RESULT:
 !
-    REAL(hp)                        :: ScalFact 
+    REAL(hp)                        :: ScalFact
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,7 +178,7 @@ CONTAINS
     ! HCO_ScaleGet begins here
     !--------------------------
     IF ( HcoID > SIZE(SpcScal,1) .OR. HcoID <= 0 ) THEN
-       ScalFact = 1.0_hp 
+       ScalFact = 1.0_hp
     ELSE
        ScalFact = SpcScal(HcoID)
     ENDIF
@@ -206,9 +206,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
-    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID 
+    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -220,7 +220,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -233,14 +233,14 @@ CONTAINS
     !--------------------------
     ! HCO_ScaleArr3D_sp begins here
     !--------------------------
-    ScalFact = HCO_ScaleGet( HcoID ) 
+    ScalFact = HCO_ScaleGet( HcoID )
     IF ( .NOT. HcoState%Options%ScaleEmis ) ScalFact = 1.0_hp
     IF ( ScalFact /= 1.0_hp ) THEN
-       Arr3D = Arr3D * ScalFact    
-       ! Verbose mode 
+       Arr3D = Arr3D * ScalFact
+       ! Verbose mode
        IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-          WRITE(MSG,*) '3D field scaled by factor of ',ScalFact      
-          CALL HCO_MSG ( HcoState%Config%Err, MSG ) 
+          WRITE(MSG,*) '3D field scaled by factor of ',ScalFact
+          CALL HCO_MSG ( HcoState%Config%Err, MSG )
        ENDIF
     ENDIF
 
@@ -270,9 +270,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
-    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID 
+    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -284,7 +284,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -297,14 +297,14 @@ CONTAINS
     !--------------------------
     ! HCO_ScaleArr3D_dp begins here
     !--------------------------
-    ScalFact = HCO_ScaleGet( HcoID ) 
+    ScalFact = HCO_ScaleGet( HcoID )
     IF ( .NOT. HcoState%Options%ScaleEmis ) ScalFact = 1.0_hp
     IF ( ScalFact /= 1.0_hp ) THEN
-       Arr3D = Arr3D * ScalFact    
-       ! Verbose mode 
+       Arr3D = Arr3D * ScalFact
+       ! Verbose mode
        IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-          WRITE(MSG,*) '3D field scaled by factor of ',ScalFact      
-          CALL HCO_MSG ( HcoState%Config%Err, MSG ) 
+          WRITE(MSG,*) '3D field scaled by factor of ',ScalFact
+          CALL HCO_MSG ( HcoState%Config%Err, MSG )
        ENDIF
     ENDIF
 
@@ -334,20 +334,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
-    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID 
+    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     REAL(sp),        INTENT(INOUT)  :: Arr2D( HcoState%NX, &
-                                              HcoState%NY ) 
+                                              HcoState%NY )
     INTEGER ,        INTENT(INOUT)  :: RC
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -360,14 +360,14 @@ CONTAINS
     !--------------------------
     ! HCO_ScaleArr2D begins here
     !--------------------------
-    ScalFact = HCO_ScaleGet( HcoID ) 
+    ScalFact = HCO_ScaleGet( HcoID )
     IF ( .NOT. HcoState%Options%ScaleEmis ) ScalFact = 1.0_hp
     IF ( ScalFact /= 1.0_hp ) THEN
-       Arr2D = Arr2D * ScalFact    
-       ! Verbose mode 
+       Arr2D = Arr2D * ScalFact
+       ! Verbose mode
        IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-          WRITE(MSG,*) '2D field scaled by factor of ',ScalFact      
-          CALL HCO_MSG ( HcoState%Config%Err, MSG ) 
+          WRITE(MSG,*) '2D field scaled by factor of ',ScalFact
+          CALL HCO_MSG ( HcoState%Config%Err, MSG )
        ENDIF
     ENDIF
 
@@ -397,20 +397,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
-    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID 
+    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     REAL(dp),        INTENT(INOUT)  :: Arr2D( HcoState%NX, &
-                                              HcoState%NY ) 
+                                              HcoState%NY )
     INTEGER ,        INTENT(INOUT)  :: RC
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,14 +423,14 @@ CONTAINS
     !--------------------------
     ! HCO_ScaleArr2D begins here
     !--------------------------
-    ScalFact = HCO_ScaleGet( HcoID ) 
+    ScalFact = HCO_ScaleGet( HcoID )
     IF ( .NOT. HcoState%Options%ScaleEmis ) ScalFact = 1.0_hp
     IF ( ScalFact /= 1.0_hp ) THEN
-       Arr2D = Arr2D * ScalFact    
-       ! Verbose mode 
+       Arr2D = Arr2D * ScalFact
+       ! Verbose mode
        IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-          WRITE(MSG,*) '2D field scaled by factor of ',ScalFact      
-          CALL HCO_MSG ( HcoState%Config%Err, MSG ) 
+          WRITE(MSG,*) '2D field scaled by factor of ',ScalFact
+          CALL HCO_MSG ( HcoState%Config%Err, MSG )
        ENDIF
     ENDIF
 
@@ -446,7 +446,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_ScaleArr1D_sp
 !
-! !DESCRIPTION: Function HCO\_ScaleArr1D scales a single value. 
+! !DESCRIPTION: Function HCO\_ScaleArr1D scales a single value.
 !\\
 !\\
 ! !INTERFACE:
@@ -460,9 +460,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
-    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID 
+    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -472,7 +472,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -485,14 +485,14 @@ CONTAINS
     !--------------------------
     ! HCO_ScaleArr2D begins here
     !--------------------------
-    ScalFact = HCO_ScaleGet( HcoID ) 
+    ScalFact = HCO_ScaleGet( HcoID )
     IF ( .NOT. HcoState%Options%ScaleEmis ) ScalFact = 1.0_hp
     IF ( ScalFact /= 1.0_hp ) THEN
-       Arr1D = Arr1D * ScalFact    
-       ! Verbose mode 
+       Arr1D = Arr1D * ScalFact
+       ! Verbose mode
        !IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-       !   WRITE(MSG,*) '1D field scaled by factor of ',ScalFact      
-       !   CALL HCO_MSG ( HcoState%Config%Err, MSG ) 
+       !   WRITE(MSG,*) '1D field scaled by factor of ',ScalFact
+       !   CALL HCO_MSG ( HcoState%Config%Err, MSG )
        !ENDIF
     ENDIF
 
@@ -508,7 +508,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_ScaleArr1D_dp
 !
-! !DESCRIPTION: Function HCO\_ScaleArr1D scales a single value. 
+! !DESCRIPTION: Function HCO\_ScaleArr1D scales a single value.
 !\\
 !\\
 ! !INTERFACE:
@@ -522,9 +522,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
-    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID 
+    INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -534,7 +534,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -547,14 +547,14 @@ CONTAINS
     !--------------------------
     ! HCO_ScaleArr2D begins here
     !--------------------------
-    ScalFact = HCO_ScaleGet( HcoID ) 
+    ScalFact = HCO_ScaleGet( HcoID )
     IF ( .NOT. HcoState%Options%ScaleEmis ) ScalFact = 1.0_hp
     IF ( ScalFact /= 1.0_hp ) THEN
-       Arr1D = Arr1D * ScalFact    
-       ! Verbose mode 
+       Arr1D = Arr1D * ScalFact
+       ! Verbose mode
        !IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-       !   WRITE(MSG,*) '1D field scaled by factor of ',ScalFact      
-       !   CALL HCO_MSG ( HcoState%Config%Err, MSG ) 
+       !   WRITE(MSG,*) '1D field scaled by factor of ',ScalFact
+       !   CALL HCO_MSG ( HcoState%Config%Err, MSG )
        !ENDIF
     ENDIF
 
@@ -586,7 +586,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller - Initial version 
+!  11 May 2017 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -596,10 +596,10 @@ CONTAINS
     !--------------------------
     ! HCO_ScaleFinal begins here
     !--------------------------
-    
+
     ! Allocate scale factors and initialize all scale factors to 1.0
     IF ( ALLOCATED(SpcScal) ) DEALLOCATE(SpcScal)
-    
+
   END SUBROUTINE HCO_ScaleFinal
 !EOC
 END MODULE HCO_Scale_Mod

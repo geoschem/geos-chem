@@ -5,7 +5,7 @@
 !
 ! !MODULE: uvalbedo_mod.F90
 !
-! !DESCRIPTION: Module UVALBEDO\_MOD contains variables and routines for 
+! !DESCRIPTION: Module UVALBEDO\_MOD contains variables and routines for
 !  reading the UV Albedo data.  This data is required by the FAST-JX photolysis
 !  module.  UV albedo data will now be obtained from the HEMCO data structure.
 !\\
@@ -28,7 +28,7 @@ MODULE UValbedo_Mod
 !  References:
 !  ============================================================================
 !  Herman, J.R and Celarier, E.A., "Earth surface reflectivity climatology
-!    at 340-380 nm from TOMS data", __J. Geophys. Res__, Vol. 102, D23, 
+!    at 340-380 nm from TOMS data", __J. Geophys. Res__, Vol. 102, D23,
 !    pp. 28003-28011, Dec 20, 1997.
 !
 ! !REVISION HISTORY:
@@ -72,7 +72,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
+    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
 !
@@ -98,7 +98,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!   
+!
     ! Scalars
     LOGICAL :: FND
 
@@ -134,11 +134,11 @@ CONTAINS
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
        ErrMsg = 'Could not find UV_ALBEDO in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN       
+       RETURN
     ENDIF
 
     ! Add to State_Met
-    State_Met%UVALBEDO = Ptr2D(:,:) 
+    State_Met%UVALBEDO = Ptr2D(:,:)
 
     ! Free the pointer
     Ptr2d => NULL()

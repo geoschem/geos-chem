@@ -743,8 +743,8 @@
 !
 ! !IROUTINE: emisssulfatetomas
 !
-! !DESCRIPTION: Subroutine EMISSSULFATETOMAS connects HEMCO bulk emissions to 
-! the TOMAS tracers. Only use this for TOMAS sims. This should be quite similar 
+! !DESCRIPTION: Subroutine EMISSSULFATETOMAS connects HEMCO bulk emissions to
+! the TOMAS tracers. Only use this for TOMAS sims. This should be quite similar
 ! to the TOMAS relevant parts of 'emisssulfate' in v9 (Jkodros 6/2/15)
 !\\
 !\\
@@ -1507,7 +1507,7 @@
       INTEGER                :: DryDep_ID
       REAL(fp)               :: DTCHEM
       REAL(fp)               :: DELZ,      DELZ1,  REFF
-      REAL(fp)               :: P,         DP,     PDP,      TEMP        
+      REAL(fp)               :: P,         DP,     PDP,      TEMP
       REAL(fp)               :: CONST,     SLIP,   VISC,     FAC1
       REAL(fp)               :: FAC2,      FLUX,   AREA_CM2, RHB
       REAL(fp)               :: RUM,       RWET,   RATIO_R
@@ -1638,9 +1638,9 @@
             RHO  = 1000.e+0_f8
             RHO1 = 0.e+0_f8 !initialize (bec, 6/21/10)
             DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
-                ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
+                ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet)
                 WTP    = 100.e+0_f8 * DEN/RHO * RATIO_R**3.e+0_f8
-                ! Then calculate density of wet aerosol using equation 5 
+                ! Then calculate density of wet aerosol using equation 5
                 ! in Tang et al., 1997 [kg/m3]
                 RHO1   = ( 0.9971e+0_f8 + (A1 * WTP)
      $          + (A2 * WTP**2.e+0_f8)
@@ -1689,7 +1689,7 @@
             ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 )
             !
             ! # Slip correction
-            ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+            ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp
             !     &     / (2. * lamda))) / Dp
             !
             ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
@@ -1867,28 +1867,28 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
+!  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)
 !  ============================================================================
 !                                                                             .
-!  R1:    DMS + OH  -> a*SO2 + b*MSA                OH addition channel    
-!         k1 = { 1.7e-42*exp(7810/T)*[O2] / (1+5.5e-31*exp(7460/T)*[O2] }  
-!         a = 0.75, b = 0.25                                               
+!  R1:    DMS + OH  -> a*SO2 + b*MSA                OH addition channel
+!         k1 = { 1.7e-42*exp(7810/T)*[O2] / (1+5.5e-31*exp(7460/T)*[O2] }
+!         a = 0.75, b = 0.25
 !                                                                             .
-!  R2:    DMS + OH  ->   SO2 + ...                  OH abstraction channel 
-!         k2 = 1.2e-11*exp(-260/T)                                         
+!  R2:    DMS + OH  ->   SO2 + ...                  OH abstraction channel
+!         k2 = 1.2e-11*exp(-260/T)
 !                                                                             .
-!         DMS_OH = DMS0 * exp(-(r1+r2)* NDT1)                                  
-!         where DMS0 is the DMS concentration at the beginning,            
-!         r1 = k1*[OH], r2 = k2*[OH].                                      
+!         DMS_OH = DMS0 * exp(-(r1+r2)* NDT1)
+!         where DMS0 is the DMS concentration at the beginning,
+!         r1 = k1*[OH], r2 = k2*[OH].
 !                                                                             .
-!  R3:    DMS + NO3 ->   SO2 + ...                                         
-!         k3 = 1.9e-13*exp(500/T)                                          
+!  R3:    DMS + NO3 ->   SO2 + ...
+!         k3 = 1.9e-13*exp(500/T)
 !                                                                             .
-!         DMS = DMS_OH * exp(-r3*NDT1)                                         
-!         where r3 = k3*[NO3].                                             
+!         DMS = DMS_OH * exp(-r3*NDT1)
+!         where r3 = k3*[NO3].
 !                                                                             .
-!  R4:    DMS + X   ->   SO2 + ...                                         
-!         assume to be at the rate of DMS+OH and DMS+NO3 combined.         
+!  R4:    DMS + X   ->   SO2 + ...
+!         assume to be at the rate of DMS+OH and DMS+NO3 combined.
 !                                                                             .
 !  The production of SO2 and MSA here, PSO2_DMS and PMSA_DMS, are saved    
 !  for use in CHEM_SO2 and CHEM_MSA subroutines as a source term.  They    
@@ -2326,10 +2326,10 @@
       INTEGER,        INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Reaction List (by Rokjin Park, rjp@io.harvard.edu)                      
+!  Reaction List (by Rokjin Park, rjp@io.harvard.edu)
 !  ============================================================================
-!  (1 ) SO2 production:                                                      
-!       DMS + OH, DMS + NO3 (saved in CHEM_DMS)                               
+!  (1 ) SO2 production:
+!       DMS + OH, DMS + NO3 (saved in CHEM_DMS)
 !                                                                             .
 !  (2 ) SO2 loss:                                                         
 !       (a) SO2 + OH  -> SO4                                               
@@ -2338,9 +2338,9 @@
 !                                                                             .
 !  (3 ) SO2 = SO2_0 * exp(-bt) +  PSO2_DMS/bt * [1-exp(-bt)]
 !                                                                             .
-!       where b is the sum of the reaction rate of SO2 + OH and the dry       
-!       deposition rate of SO2, PSO2_DMS is SO2 production from DMS in        
-!       MixingRatio/timestep.                                                 
+!       where b is the sum of the reaction rate of SO2 + OH and the dry
+!       deposition rate of SO2, PSO2_DMS is SO2 production from DMS in
+!       MixingRatio/timestep.
 !                                                                             .
 !  If there is cloud in the gridbox (fraction = fc), then the aqueous      
 !  phase chemistry also takes place in cloud. The amount of SO2 oxidized   
@@ -2391,12 +2391,12 @@
       !tdf
       REAL(fp)              :: H2SO4_cd,  H2SO4_gas
 
-      REAL(fp)              :: L5,L5S,SRo3,SRhobr            !(qjc, 04/10/16) 
-      REAL(fp)              :: L5_1,L5S_1,L3_1,L3S_1,KaqO3_1 !(qjc, 04/10/16) 
-      REAL(fp)              :: HSO3aq, SO3aq                 !(qjc, 06/10/16) 
-      REAL(fp)              :: SO4H1_vv, SO4H2_vv, LSTOT0    !(qjc, 06/20/16) 
-      REAL(fp)              :: SO2_ss0, rSIV, fupdateHOBr_0  !(qjc, 06/20/16) 
-      REAL(fp)              :: HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0  !(qjc, 01/31/17) 
+      REAL(fp)              :: L5,L5S,SRo3,SRhobr            !(qjc, 04/10/16)
+      REAL(fp)              :: L5_1,L5S_1,L3_1,L3S_1,KaqO3_1 !(qjc, 04/10/16)
+      REAL(fp)              :: HSO3aq, SO3aq                 !(qjc, 06/10/16)
+      REAL(fp)              :: SO4H1_vv, SO4H2_vv, LSTOT0    !(qjc, 06/20/16)
+      REAL(fp)              :: SO2_ss0, rSIV, fupdateHOBr_0  !(qjc, 06/20/16)
+      REAL(fp)              :: HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0  !(qjc, 01/31/17)
       REAL(fp)              :: TMP
 
       REAL(fp)              :: KaqO2, L4, L4S, MnII, FeIII
@@ -2622,7 +2622,7 @@
 
          ! Isolate H2SO4 for reaction with dust    tdf 3/6/2K9
          IF ( LDSTUP ) THEN
-            ! Compute gas phase SO4 production again, as in offline case 
+            ! Compute gas phase SO4 production again, as in offline case
             ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
             M    = State_Met%AIRDEN(I,J,L) * F
             KK   = K0 * M / Ki
@@ -2784,11 +2784,11 @@
 
          LWC  = MAX( 0.0e+0_fp, LWC )
 
-         ! LWC is a grid-box averaged quantity. To improve the representation 
-         ! of sulfate chemistry, we divide LWC by the cloud fraction and 
-         ! compute sulfate chemistry based on the LWC within the cloud.  We 
-         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
-         ! multiplying these quantities by FC AFTER computing the aqueous 
+         ! LWC is a grid-box averaged quantity. To improve the representation
+         ! of sulfate chemistry, we divide LWC by the cloud fraction and
+         ! compute sulfate chemistry based on the LWC within the cloud.  We
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by
+         ! multiplying these quantities by FC AFTER computing the aqueous
          ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
          LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
 
@@ -3054,7 +3054,7 @@
                ! However, in the case of a negative XX, L2S should be
                ! approximated as SO2_ss, instead of H2O20. In other words, 
                ! L2S = SO2_ss * H2O20 * ( L2 - 1.D0 ) / ( (SO2_ss*L2) - H2O20 )
-               ! reaches different limits when XX reaches positive infinity 
+               ! reaches different limits when XX reaches positive infinity
                ! and negative infinity.
                IF ( XX > 0.e+0_fp ) THEN
                   L2S = H2O20
@@ -3116,7 +3116,7 @@
                L3_1  = EXP( XX )
 
                ! Loss by O3
-               L3S_1 = SO2_ss * O3*(L3_1 - 1.e+0_fp)/((SO2_ss*L3_1)-O3)  
+               L3S_1 = SO2_ss * O3*(L3_1 - 1.e+0_fp)/((SO2_ss*L3_1)-O3)
 
             ELSE
 
@@ -3445,7 +3445,7 @@
 	    ENDIF
 
             ! We have used the in-cloud LWC to compute the sulfate
-            ! aqueous chemistry.  We get the appropriate grid-box averaged 
+            ! aqueous chemistry.  We get the appropriate grid-box averaged
             ! mass of SO2 and sulfate by multiplying the reaction rates
             ! L2S and L3s by the cloud fraction after the aqueous chemistry
             ! has been done.  (lzh, jaf, bmy, 5/27/11)
@@ -3724,12 +3724,12 @@
 !
 
       INTEGER,        INTENT(IN)   :: I, J, L    ! Grid box indices
-      REAL(fp),       INTENT(IN)   :: SO2_cd     ! SO2 mixing ratio [v/v] after 
-                                                 !  gas phase chemistry and 
+      REAL(fp),       INTENT(IN)   :: SO2_cd     ! SO2 mixing ratio [v/v] after
+                                                 !  gas phase chemistry and
                                                  !  dry deposition
-      REAL(fp),       INTENT(IN)   :: Kt1, Kt2   ! Rate constant [s-1] for 
+      REAL(fp),       INTENT(IN)   :: Kt1, Kt2   ! Rate constant [s-1] for
                                                  !  sulfate formation on sea
-                                                 !  salt aerosols from GET_ALK 
+                                                 !  salt aerosols from GET_ALK
                                                  !  (1=fine; 2=coarse)
       REAL(fp),       INTENT(IN)   :: Kt1N, Kt2N
       REAL(fp),       INTENT(IN)   :: ALK1, ALK2 ! Alkalinity [kg] from
@@ -3746,12 +3746,12 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT)   :: SO2_ss    ! SO2 mixing ratio [v/v] 
+      REAL(fp),       INTENT(OUT)   :: SO2_ss    ! SO2 mixing ratio [v/v]
                                                  !  after sea salt chemistry
-      REAL(fp),       INTENT(OUT)   :: PSO4E     ! SO4E (sulfate produced by 
-                                                 !  S(IV)+O3 on fine seasalt) 
+      REAL(fp),       INTENT(OUT)   :: PSO4E     ! SO4E (sulfate produced by
+                                                 !  S(IV)+O3 on fine seasalt)
                                                  !  mixing ratio [v/v]
-      REAL(fp),       INTENT(OUT)   :: PSO4F     ! SO4F (sulfate produced by 
+      REAL(fp),       INTENT(OUT)   :: PSO4F     ! SO4F (sulfate produced by
                                                  !  S(IV)+O3 on coarse seasalt)
       REAL(fp),       INTENT(OUT)   :: AlkA      ! Modified SSA alkalinity
       REAL(fp),       INTENT(OUT)   :: AlkC      ! Modified SSA alkalinity
@@ -4127,7 +4127,7 @@
 !
 
       INTEGER,        INTENT(IN)    :: I, J, L       ! Grid box indices
-      REAL(fp),       INTENT(IN)    :: SO2_cd        ! SO2 mixing ratio after 
+      REAL(fp),       INTENT(IN)    :: SO2_cd        ! SO2 mixing ratio after
                                                      !  gas phase chemistry and
                                                      !  dry deposition [v/v]
       REAL(fp),       INTENT(IN)    :: H2SO4_cd      ! H2SO4 mixing ratio after
@@ -5286,7 +5286,7 @@
 !
 ! !IROUTINE: cubic
 !
-! !DESCRIPTION: Subroutine CUBIC finds the roots of a cubic equation / 3rd 
+! !DESCRIPTION: Subroutine CUBIC finds the roots of a cubic equation / 3rd
 ! order polynomial
 !\\
 !\\
@@ -5575,7 +5575,7 @@
 
       ! Henry's constant [mol/l-atm] and Effective Henry's constant for H2O2
       ! [Seinfeld and Pandis, 1998]
-      ! HCH2O2  = 7.45D4 * EXP( 24.48e+0_fp * ( 298.15e+0_fp / T - 1.e+0_fp) ) 
+      ! HCH2O2  = 7.45D4 * EXP( 24.48e+0_fp * ( 298.15e+0_fp / T - 1.e+0_fp) )
 
       ! [Jacobson,1999]
       HCH2O2  = 7.45e+4_fp * EXP( 22.21e+0_fp *
@@ -5936,7 +5936,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!                                                                           
+!
 ! !REMARKS:
 !  The only production is from SO2 oxidation (save in CHEM_SO2).  Dry
 !  deposition is now handled in mixing_mod.F90, so we can must add the
@@ -6667,7 +6667,7 @@
 ! !IROUTINE: get_oh
 !
 ! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species (for
-!  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal 
+!  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 12/16/02, 7/20/04)
 !\\
 !\\
@@ -6831,7 +6831,7 @@
 
       ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-         !==============================================================  
+         !==============================================================
          ! Offline simulation: Read monthly mean GEOS-CHEM NO3 fields
          ! in [v/v].  Convert these to [molec/cm3] as follows:
          !
@@ -6969,7 +6969,7 @@
 ! !IROUTINE: ohno3time
 !
 ! !DESCRIPTION: Subroutine OHNO3TIME computes the sum of cosine of the solar
-!  zenith angle over a 24 hour day, as well as the total length of daylight. 
+!  zenith angle over a 24 hour day, as well as the total length of daylight.
 !  This is needed to scale the offline OH and NO3 concentrations.
 !  (rjp, bmy, 12/16/02, 3/30/04)
 !\\
@@ -7737,7 +7737,7 @@
 !
 ! !IROUTINE: dry_settlingbin
 !
-! !DESCRIPTION: Subroutine WET\_SETTLINGBIN computes the dry settling of 
+! !DESCRIPTION: Subroutine WET\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
 !\\
 !\\

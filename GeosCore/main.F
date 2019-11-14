@@ -16,7 +16,7 @@
 !
 ! !MODULE: main.F
 !
-! !DESCRIPTION: Program GEOS\_CHEM is the main level driver program for the 
+! !DESCRIPTION: Program GEOS\_CHEM is the main level driver program for the
 !  GEOS-Chem model of atmospheric chemistry and composition.
 !\\
 !\\
@@ -137,7 +137,6 @@
 #endif
 
 #ifdef APM
-      !-----------------------------------------------------------------
       ! For APM aerosol microphysics simulation,
       ! see apm_driv_mod.f for more information
       !-----------------------------------------------------------------
@@ -152,11 +151,11 @@
 !
 ! !REMARKS:
 !                                                                             .
-!     GGGGGG  EEEEEEE  OOOOO  SSSSSSS       CCCCCC H     H EEEEEEE M     M    
-!    G        E       O     O S            C       H     H E       M M M M    
-!    G   GGG  EEEEEE  O     O SSSSSSS      C       HHHHHHH EEEEEE  M  M  M    
-!    G     G  E       O     O       S      C       H     H E       M     M    
-!     GGGGGG  EEEEEEE  OOOOO  SSSSSSS       CCCCCC H     H EEEEEEE M     M    
+!     GGGGGG  EEEEEEE  OOOOO  SSSSSSS       CCCCCC H     H EEEEEEE M     M
+!    G        E       O     O S            C       H     H E       M M M M
+!    G   GGG  EEEEEE  O     O SSSSSSS      C       HHHHHHH EEEEEE  M  M  M
+!    G     G  E       O     O       S      C       H     H E       M     M
+!     GGGGGG  EEEEEEE  OOOOO  SSSSSSS       CCCCCC H     H EEEEEEE M     M
 !                                                                             .
 !                                                                             .
 !                 (formerly known as the Harvard-GEOS model)
@@ -286,7 +285,7 @@
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE.
 
       !=================================================================
-      ! GEOS-CHEM starts here!                                            
+      ! GEOS-CHEM starts here!
       !=================================================================
 
 #ifdef TOMAS
@@ -1151,7 +1150,7 @@
          !
          ! %%%%% NOTE: THIS MAY BE BROKEN %%%%
          !=============================================================
-         ! Make land restart file: for GTMM runs only, beginning of each 
+         ! Make land restart file: for GTMM runs only, beginning of each
          ! month but not start of the run.
          IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
             IF (.NOT.( ITS_TIME_FOR_BPCH( Input_Opt ) )) THEN
@@ -1287,7 +1286,6 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
          ENDIF
-
 
          !### Debug
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INTERP, etc' )
@@ -1756,7 +1754,7 @@
          ENDIF
 
          !==============================================================
-         !      ***** U P D A T E   O P T I C A L   D E P T H *****          
+         !      ***** U P D A T E   O P T I C A L   D E P T H *****
          !==============================================================
          IF ( ITS_TIME_FOR_CHEM() .and. notDryRun ) THEN
 
@@ -2081,7 +2079,7 @@
          !
          ! Moved before diagnostics to count the last timestep as done.
          ! Need to save timestamps for filenames. (ccc, 5/13/09)
-         !============================================================== 
+         !==============================================================
          CALL Timestamp_Diag()
          CALL Set_Elapsed_Sec()
          CALL Set_Current_Time()
@@ -2603,7 +2601,7 @@
 ! will not be lost.
 !\\
 !\\
-! FLUSH is an intrinsic FORTRAN subroutine and takes as input the unit number 
+! FLUSH is an intrinsic FORTRAN subroutine and takes as input the unit number
 ! of the file to be flushed to disk.
 !\\
 !\\
@@ -2633,7 +2631,7 @@
 !
 ! !IROUTINE: display_end_time
 !
-! !DESCRIPTION: Internal subroutine DISPLAY\_END\_TIME prints the ending 
+! !DESCRIPTION: Internal subroutine DISPLAY\_END\_TIME prints the ending
 !  time of the GEOS-Chem simulation.
 !\\
 !\\

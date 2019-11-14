@@ -14,15 +14,15 @@
 !\\
 !\\
 ! \begin{itemize}
-! \item Year: update every year (annual data) 
-! \item Month: update every month (monthly data) 
-! \item Day: update every day (daily data) 
-! \item Hour: update every hour (hourly data) 
+! \item Year: update every year (annual data)
+! \item Month: update every month (monthly data)
+! \item Day: update every day (daily data)
+! \item Hour: update every hour (hourly data)
 ! \item Once: update only once (time-invariant data)
 ! \item Always: update every time step
-! \end{itemize} 
+! \end{itemize}
 !
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCO_ReadList_Mod
 !
@@ -31,7 +31,7 @@ MODULE HCO_ReadList_Mod
   USE HCO_Types_Mod
   USE HCO_Error_MOD
   USE HCO_State_MOD,    ONLY : HCO_State
- 
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -69,8 +69,8 @@ CONTAINS
 ! !IROUTINE: ReadList_Set
 !
 ! !DESCRIPTION: Subroutine ReadList\_Set places the passed data container
-! Dct in one of the reading lists, according to the data update 
-! frequency specified in the HEMCO configuration file. Containers are 
+! Dct in one of the reading lists, according to the data update
+! frequency specified in the HEMCO configuration file. Containers are
 ! sorted with increasing container ID.
 !\\
 !\\
@@ -114,15 +114,15 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    verb = HCO_IsVerb( HcoState%Config%Err, 2 ) 
+    verb = HCO_IsVerb( HcoState%Config%Err, 2 )
 
     ! Add container to ReadList according to update freqency.
-    ! Fields in list 'Hour' will be updated (i.e. re-read) every hour, 
+    ! Fields in list 'Hour' will be updated (i.e. re-read) every hour,
     ! fields in list 'Day' every day, etc.
     ! If a time range instead of a single time stamp is given,
     ! categorize the field according to the most rapidly changing time
-    ! stamp. 
-    ! If no time attribute exist, put the field into the 'Once' list 
+    ! stamp.
+    ! If no time attribute exist, put the field into the 'Once' list
     ! which reads the file only at the beginning. Similarly, fields
     ! with an update flag of 'always' will be put into the 'Always'
     ! list. The always update flag is set in routine HCO_ExtractTime,
@@ -130,7 +130,7 @@ CONTAINS
     IF     ( Dct%Dta%UpdtFlag == HCO_UFLAG_ALWAYS ) THEN
        intv = 1
     ELSEIF ( Dct%Dta%ncHrs(1) /= Dct%Dta%ncHrs(2) ) THEN
-       intv = 2  
+       intv = 2
     ELSEIF ( Dct%Dta%ncDys(1) /= Dct%Dta%ncDys(2) ) THEN
        intv = 3
     ELSEIF ( Dct%Dta%ncMts(1) /= Dct%Dta%ncMts(2) ) THEN
@@ -138,11 +138,11 @@ CONTAINS
     ELSEIF ( Dct%Dta%ncYrs(1) /= Dct%Dta%ncYrs(2) ) THEN
        intv = 5
     ELSE
-       intv = 6 
+       intv = 6
     ENDIF
 
-    ! NOTE: In an ESMF environment, data I/O is organized through 
-    ! ESMF/MAPL. The hemco reading call (HCOIO_DATAREAD) sets a 
+    ! NOTE: In an ESMF environment, data I/O is organized through
+    ! ESMF/MAPL. The hemco reading call (HCOIO_DATAREAD) sets a
     ! pointer of the data container array to the data array provided
     ! by MAPL. These arrays are already interpolated / updated (over
     ! time) by MAPL, and a pointer needs to be established only once.
@@ -171,7 +171,7 @@ CONTAINS
           ELSEIF ( Dct%Dta%ncYrs(1) == -1 .OR. &
                Dct%Dta%ncYrs(1) /= Dct%Dta%ncYrs(2) ) THEN
              intv = 5
-          ! Read always 
+          ! Read always
           ELSE
              intv = 1
           ENDIF
@@ -179,18 +179,18 @@ CONTAINS
     ENDIF
 
     ! Add to ReadList according to interval flag
-    IF (     intv == 1 ) THEN 
-       CALL DtCont_Add( HcoState%ReadLists%Always, Dct ) 
-    ELSEIF ( intv == 2 ) THEN 
-       CALL DtCont_Add( HcoState%ReadLists%Hour,   Dct ) 
-    ELSEIF ( intv == 3 ) THEN 
-       CALL DtCont_Add( HcoState%ReadLists%Day,    Dct ) 
-    ELSEIF ( intv == 4 ) THEN 
-       CALL DtCont_Add( HcoState%ReadLists%Month,  Dct ) 
-    ELSEIF ( intv == 5 ) THEN 
-       CALL DtCont_Add( HcoState%ReadLists%Year,   Dct ) 
+    IF (     intv == 1 ) THEN
+       CALL DtCont_Add( HcoState%ReadLists%Always, Dct )
+    ELSEIF ( intv == 2 ) THEN
+       CALL DtCont_Add( HcoState%ReadLists%Hour,   Dct )
+    ELSEIF ( intv == 3 ) THEN
+       CALL DtCont_Add( HcoState%ReadLists%Day,    Dct )
+    ELSEIF ( intv == 4 ) THEN
+       CALL DtCont_Add( HcoState%ReadLists%Month,  Dct )
+    ELSEIF ( intv == 5 ) THEN
+       CALL DtCont_Add( HcoState%ReadLists%Year,   Dct )
     ELSE
-       CALL DtCont_Add( HcoState%ReadLists%Once,   Dct ) 
+       CALL DtCont_Add( HcoState%ReadLists%Once,   Dct )
     ENDIF
 
     ! Verbose
@@ -201,7 +201,7 @@ CONTAINS
     ENDIF
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE ReadList_Set
 !EOC
@@ -210,16 +210,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ReadList_Read 
+! !IROUTINE: ReadList_Read
 !
 ! !DESCRIPTION: Subroutine ReadList\_Read makes sure that all arrays in the
-! reading lists are up to date, i.e. it invokes the data reading calls for 
+! reading lists are up to date, i.e. it invokes the data reading calls for
 ! those lists that need to be refreshed.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Read( am_I_Root, HcoState, RC, ReadAll ) 
+  SUBROUTINE ReadList_Read( am_I_Root, HcoState, RC, ReadAll )
 !
 ! !USES:
 !
@@ -234,7 +234,7 @@ CONTAINS
     LOGICAL,           INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL, OPTIONAL, INTENT(IN   )  :: ReadAll    ! read all fields?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HCO_State),   POINTER        :: HcoState   ! HEMCO state object
     INTEGER,           INTENT(INOUT)  :: RC         ! Success or failure?
@@ -260,7 +260,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    verb = HCO_IsVerb( HcoState%Config%Err, 1 ) 
+    verb = HCO_IsVerb( HcoState%Config%Err, 1 )
 
     ! Read all fields?
     RdAll = .FALSE.
@@ -270,14 +270,14 @@ CONTAINS
     !IF ( HcoClock_First( HcoState%Clock, .FALSE. ) ) RdAll = .TRUE.
     IF ( HcoState%ReadLists%Counter == 0 ) RdAll = .TRUE.
 
-    ! Read content from one-time list on the first call 
+    ! Read content from one-time list on the first call
     IF ( RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading once list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Once, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! Read content from year-list if it's a new year
@@ -287,7 +287,7 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Year, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! Read content from month-list if it's a new month
@@ -297,27 +297,27 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Month, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from day-list if it's a new day 
+    ! Read content from day-list if it's a new day
     IF ( HcoClock_NewDay( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading day list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Day, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from hour-list if it's a new hour 
+    ! Read content from hour-list if it's a new hour
     IF ( HcoClock_NewHour( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading hour list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! Always add/update content from always-list
@@ -325,14 +325,14 @@ CONTAINS
        WRITE(MSG,*) 'Now reading always list!'
        CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
-    CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Always, RC ) 
-    IF ( RC /= HCO_SUCCESS ) RETURN 
+    CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Always, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Update counter
     HcoState%ReadLists%Counter = HcoState%ReadLists%Counter + 1
 
     ! Leave w/ success
-    CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE ReadList_Read
 !EOC
@@ -345,22 +345,22 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine ReadList\_Fill (re-)reads the data from all
 ! containers of the passed ReadList. In a non-ESMF environment, this
-! routine calls the HEMCO generic (netCDF) reading and remapping 
-! routines. In an ESMF environment, the arrays are obtained through 
+! routine calls the HEMCO generic (netCDF) reading and remapping
+! routines. In an ESMF environment, the arrays are obtained through
 ! the ESMF/MAPL software framework. ReadLIst\_Fill provides the
-! interface between HEMCO and the data reading interface. See module 
+! interface between HEMCO and the data reading interface. See module
 ! HCOI\_DATAREAD\_MOD.F90 for more details on data reading.
 !\\
 !\\
 ! The ReadList containers are added to EmisList immediately after data
-! filling. This has the advantage that data arrays are immediately 
+! filling. This has the advantage that data arrays are immediately
 ! available through routine HCO\_GetPtr. This is required for country
 ! mappings that depend on the country mask input field.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Fill( am_I_Root, HcoState, ReadList, RC ) 
+  SUBROUTINE ReadList_Fill( am_I_Root, HcoState, ReadList, RC )
 !
 ! !USES:
 !
@@ -371,7 +371,7 @@ CONTAINS
     USE HCO_FileData_Mod,   ONLY : FileData_ArrIsTouched
     USE HCO_EmisList_Mod,   ONLY : EmisList_Pass
     USE HCO_DataCont_Mod,   ONLY : DataCont_Cleanup
-    USE HCO_TIDX_MOD,       ONLY : tIDx_Assign 
+    USE HCO_TIDX_MOD,       ONLY : tIDx_Assign
 !
 ! !INPUT PARAMETERS:
 !
@@ -383,22 +383,22 @@ CONTAINS
     TYPE(ListCont),  POINTER        :: ReadList   ! Current reading list
     INTEGER,         INTENT(INOUT)  :: RC         ! Success or failure?
 !
-! !REMARKS: 
-!  Different HCOI_DATAREAD routines may be invoked depending on the 
-!  model environment. 
+! !REMARKS:
+!  Different HCOI_DATAREAD routines may be invoked depending on the
+!  model environment.
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
 !  23 Dec 2014 - C. Keller - Now pass container to EmisList immediately after
 !                            reading the data. Added second loop to remove
 !                            data arrays that are not used in EmisList.
-!  02 Feb 2015 - C. Keller - Now call tIDx_Assign here instead of in 
-!                            hco_emislist_mod. This way, hco_emislist_mod 
+!  02 Feb 2015 - C. Keller - Now call tIDx_Assign here instead of in
+!                            hco_emislist_mod. This way, hco_emislist_mod
 !                            can also be used by hco_clock_mod.
 !  24 Mar 2015 - C. Keller - Now avoid closing/reopening the same file all
-!                            the time. 
+!                            the time.
 !  24 Mar 2016 - C. Keller - Remove GetFileLUN and SaveFileLUN. This is now
-!                            handled in hcoio_read_std_mod.F90. 
+!                            handled in hcoio_read_std_mod.F90.
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !EOP
 !------------------------------------------------------------------------------
@@ -420,11 +420,11 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode?
-    verb = HCO_IsVerb ( HcoState%Config%Err, 2 ) 
+    verb = HCO_IsVerb ( HcoState%Config%Err, 2 )
 
     ! Loop over all containers
     Lct => ReadList
-    DO WHILE ( ASSOCIATED ( Lct ) ) 
+    DO WHILE ( ASSOCIATED ( Lct ) )
 
        ! Check if data has already been touched. Multiple data
        ! containers can have the same file data object, and we
@@ -433,7 +433,7 @@ CONTAINS
        ! performed on this container. The DtaHome flag is
        ! initialized to -999. Hence, the first time we read data
        ! for a given container, check if this data file object
-       ! has not yet been read, in which case we define this 
+       ! has not yet been read, in which case we define this
        ! container as the home container (flag=1). Otherwise, set
        ! flag to 0 (not home), but make sure that the DoShare flag
        ! of the corresponding data file object is enabled.
@@ -470,13 +470,13 @@ CONTAINS
        ! Pass container to EmisList (only if array is defined)
        IF ( FileData_ArrIsDefined(Lct%Dct%Dta) ) THEN
 
-          ! Set time index pointer tIDx of this data container. 
-          ! tIDx will be set according to the number of time slices 
-          ! (and the tim einterval between them) hold by this data 
-          ! container. For hourly data (24 time slices), for example, 
-          ! tIDx will point to the corresponding 'HOURLY' or 
-          ! 'HOURLY_GRID' time index collection type defined in 
-          ! hco_tidx_mod. 
+          ! Set time index pointer tIDx of this data container.
+          ! tIDx will be set according to the number of time slices
+          ! (and the tim einterval between them) hold by this data
+          ! container. For hourly data (24 time slices), for example,
+          ! tIDx will point to the corresponding 'HOURLY' or
+          ! 'HOURLY_GRID' time index collection type defined in
+          ! hco_tidx_mod.
           CALL tIDx_Assign ( HcoState, Lct%Dct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -507,8 +507,8 @@ CONTAINS
           IF ( verb ) THEN
              MSG = 'Remove data array of ' // TRIM(Lct%Dct%cName)
              CALL HCO_MSG( MSG )
-          ENDIF 
-       ENDIF 
+          ENDIF
+       ENDIF
 
        ! Advance in list
        Lct => Lct%NextCont
@@ -517,8 +517,8 @@ CONTAINS
     ! Cleanup
     Lct => NULL()
 
-    ! Leave with success 
-    CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
+    ! Leave with success
+    CALL HCO_LEAVE ( HcoState%Config%Err, RC )
 
   END SUBROUTINE ReadList_Fill
 !EOC
@@ -529,7 +529,7 @@ CONTAINS
 !
 ! !IROUTINE: DtCont_Add
 !
-! !DESCRIPTION: Subroutine DtCont\_Add adds a new container to the 
+! !DESCRIPTION: Subroutine DtCont\_Add adds a new container to the
 ! specified reading list.
 !\\
 !\\
@@ -539,7 +539,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(ListCont), POINTER :: ReadList 
+    TYPE(ListCont), POINTER :: ReadList
     TYPE(DataCont), POINTER :: Dct
 !
 ! !REVISION HISTORY:
@@ -564,40 +564,40 @@ CONTAINS
     TmpLct => NULL()
 
     ! Create new container (to be added to ReadList)
-    ALLOCATE ( Lct ) 
+    ALLOCATE ( Lct )
     Lct%NextCont => NULL()
-      
-    ! Make container point to passed data container
-    Lct%Dct => Dct 
 
-    ! If ReadList is not defined yet, set new container to head of 
+    ! Make container point to passed data container
+    Lct%Dct => Dct
+
+    ! If ReadList is not defined yet, set new container to head of
     ! list.
     IF ( .NOT. ASSOCIATED ( ReadList ) ) THEN
        ReadList => Lct
-     
+
     ! If list is already defined, place current container according
     ! to its container ID. Containers are sorted with increasing
-    ! cID. 
-    ELSE 
+    ! cID.
+    ELSE
 
        ! cID of current container
        cID = Lct%Dct%cID
- 
+
        ! TmpLct is the temporary pointer to the ReadList containers
        TmpLct => ReadList
 
-       ! Check if cID of first container is higher than current ID. 
-       ! In this case, we can place current container at beginning 
+       ! Check if cID of first container is higher than current ID.
+       ! In this case, we can place current container at beginning
        ! of list
        IF ( TmpLct%Dct%cID > cID ) THEN
           Lct%NextCont => TmpLct
           ReadList     => Lct
-       ELSE         
+       ELSE
 
           ! Loop over containers in list until we encounter first
-          ! container where the upcoming container has higher cID 
-          ! than currCont. 
-          DO WHILE ( ASSOCIATED ( TmpLct%NextCont ) ) 
+          ! container where the upcoming container has higher cID
+          ! than currCont.
+          DO WHILE ( ASSOCIATED ( TmpLct%NextCont ) )
              IF ( TmpLct%NextCont%Dct%cID > cID ) EXIT
              TmpLct => TmpLct%NextCont
           ENDDO
@@ -621,7 +621,7 @@ CONTAINS
 !
 ! !IROUTINE: ReadList_Init
 !
-! !DESCRIPTION: Subroutine ReadList\_Init initializes the ReadList. 
+! !DESCRIPTION: Subroutine ReadList\_Init initializes the ReadList.
 !\\
 !\\
 ! !INTERFACE:
@@ -634,12 +634,12 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(RdList),     POINTER        :: ReadLists 
+    TYPE(RdList),     POINTER        :: ReadLists
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
-!  07 Feb 2019 - C. Keller - Added counter 
+!  07 Feb 2019 - C. Keller - Added counter
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -647,9 +647,9 @@ CONTAINS
     ! ================================================================
     ! ReadList_Init begins here
     ! ================================================================
-      
+
     ! Allocate ReadList and all internal lists. Make sure all internal
-    ! lists are defined (nullified). 
+    ! lists are defined (nullified).
     ALLOCATE ( ReadLists )
 
     ALLOCATE ( ReadLists%Once )
@@ -701,7 +701,7 @@ CONTAINS
 ! !INPUT ARGUMENTS
 !
     TYPE(HCO_State), POINTER       :: HcoState
-    TYPE(RdList),    POINTER       :: ReadLists 
+    TYPE(RdList),    POINTER       :: ReadLists
     INTEGER,         INTENT(IN)    :: verb   ! verbose number
 !
 ! !REVISION HISTORY:
@@ -721,7 +721,7 @@ CONTAINS
     IF ( .NOT. HCO_IsVerb(HcoState%Config%Err,verb) ) RETURN
 
     ! Print content of all lists
-    IF ( ASSOCIATED(ReadLists) ) THEN 
+    IF ( ASSOCIATED(ReadLists) ) THEN
 
        WRITE(MSG,*) 'Content of one-time list:'
        CALL HCO_MSG(MSG,SEP1='=')
@@ -777,7 +777,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )   :: am_I_Root
     TYPE(HCO_State),  POINTER         :: HcoState
-    CHARACTER(LEN=*), INTENT(IN   )   :: cName 
+    CHARACTER(LEN=*), INTENT(IN   )   :: cName
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -798,12 +798,12 @@ CONTAINS
     TYPE(ListCont), POINTER   :: Next
     LOGICAL                   :: FOUND
     CHARACTER(LEN=255)        :: MSG
-    CHARACTER(LEN=255)        :: LOC = 'ReadList_Remove (HCO_ReadList_Mod.F90)' 
+    CHARACTER(LEN=255)        :: LOC = 'ReadList_Remove (HCO_ReadList_Mod.F90)'
 
     ! ================================================================
     ! ReadList_Remove begins here
     ! ================================================================
-     
+
     ! Assume success until otherwise
     RC = HCO_SUCCESS
     IF ( .NOT. ASSOCIATED(HcoState%ReadLists) ) RETURN
@@ -829,16 +829,16 @@ CONTAINS
        Prev => This
 
        ! Walk through list, looking for this container
-       DO WHILE ( ASSOCIATED(This) ) 
-       
+       DO WHILE ( ASSOCIATED(This) )
+
           ! Next container in list
           Next => This%NextCont
-       
+
           ! Is that the container of interest?
           IF ( TRIM(This%Dct%cName) == TRIM(cName) ) THEN
              FOUND = .TRUE.
              EXIT
-          ENDIF   
+          ENDIF
 
           ! Advance
           Prev => This
@@ -875,12 +875,12 @@ CONTAINS
        This%Dct      => NULL()
        This%NextCont => NULL()
 
-       ! Deallocate this container 
-       DEALLOCATE(This)   
+       ! Deallocate this container
+       DEALLOCATE(This)
 
        ! If we make it to here, we have successfully removed the container and
        ! don't need to cycle thorugh the loop any more
-       EXIT        
+       EXIT
 
     ENDDO !
 
@@ -889,7 +889,7 @@ CONTAINS
     Prev => NULL()
     Next => NULL()
 
-    ! Return w/ success 
+    ! Return w/ success
     RC = HCO_SUCCESS
 
   END SUBROUTINE ReadList_Remove
@@ -903,7 +903,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine ReadList\_Cleanup removes all content of ReadList.
 ! If RemoveDct is set to True, the content of the data containers will be
-! also removed, otherwise the corresponding pointer is just nullified. 
+! also removed, otherwise the corresponding pointer is just nullified.
 !\\
 !\\
 ! !INTERFACE:
@@ -916,12 +916,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    
+
     LOGICAL,          INTENT(IN   )   :: RemoveDct
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(RdList),     POINTER         :: ReadLists 
+    TYPE(RdList),     POINTER         :: ReadLists
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
@@ -932,8 +932,8 @@ CONTAINS
     ! ================================================================
     ! ReadList_Cleanup begins here
     ! ================================================================
-      
-    IF ( ASSOCIATED(ReadLists) ) THEN 
+
+    IF ( ASSOCIATED(ReadLists) ) THEN
 
        ! Remove all sublists in ReadList
        CALL ListCont_Cleanup ( ReadLists%Once,   RemoveDct )
@@ -943,7 +943,7 @@ CONTAINS
        CALL ListCont_Cleanup ( ReadLists%Hour,   RemoveDct )
        CALL ListCont_Cleanup ( ReadLists%Always, RemoveDct )
 
-       ! Remove ReadList 
+       ! Remove ReadList
        DEALLOCATE ( ReadLists )
     ENDIF
     ReadLists => NULL()
