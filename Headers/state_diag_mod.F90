@@ -6295,7 +6295,7 @@ CONTAINS
                                    State_Diag%Archive_AerMassSO4     .or.    &
                                    State_Diag%Archive_AerMassSOAGX   .or.    &
                                    State_Diag%Archive_AerMassSOAIE   .or.    &
-\                                   State_Diag%Archive_AerMassTSOA    .or.    &
+                                   State_Diag%Archive_AerMassTSOA    .or.    &
                                    State_Diag%Archive_BetaNO         .or.    &
                                    State_Diag%Archive_PM25           .or.    &
                                    State_Diag%Archive_TotalOA        .or.    &
