@@ -1230,14 +1230,19 @@
          SELECT CASE( TRIM( SpcInfo%Name ) )
 
             CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
-     &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3', 
-     &             'MCO3', 'MRO2', 'PO2',  'RIO2', 'VRO2', 
+     &             'ETO2', 'HPALD1OO', 'HPALD2OO', 'ICHOO', 
+     &             'GCO3', 'IAO2', 'KO2', 'MCO3',  'PO2', 
      &             'ACO3', 'EO2', 'ENCO3', 'ENO2', 'GLCO3', 
-     &             'IACO3', 'INO2', 'MACO3', 'NICO3', 'NIO2',
-     &             'VOHRO2', 'RIO1', 'C59O2', 'MAPO2', 
-     &             'BRO2', 'TRO2', 'XRO2', 'NRO2',
-     &             'MOBAOO', 'ISOPNBO2', 'ISOPNDO2', 'IEPOXOO', 
-     &             'PYPO2', 'MACRNO2', 'PMNO2', 'HC5OO', 'RCO3') 
+     &             'ICNOO', 'IDHNBOO', 'IDHNDOO1', 'IDNOO', 
+     &             'IDHNDOO2', 'IEPOXAOO', 'IEPOXBOO', 
+     &             'IHOO1', 'IHOO4', 'IHPNBOO', 'IHPNDOO', 
+     &             'IHPOO1', 'IHPOO2', 'IHPOO3', 'INO2B', 
+     &             'INO2D', 'ISOPNOO1', 'ISOPNOO2', 'LIMO2', 
+     &             'MACR1OO', 'MACRNO2', 'MCROHOO', 'PIO2', 
+     &             'MVKOHOO', 'R4O2', 'R4N1', 'R4N2', 
+     &             'C4HVP1', 'C4HVP2', 
+     &             'BRO2', 'TRO2', 'XRO2', 'NRO2', 
+     &             'NICO3', 'NIO2', 'PYPO2', 'RCO3') 
                NPRO2       = NPRO2 + 1
                PRO2(NPRO2) = M
 
@@ -1342,7 +1347,7 @@
          SELECT CASE( TRIM( SpcInfo%Name ) )
 
            CASE ( 'NO',  'NO2',   'NO3',  'HNO2', 'HNO4', 'HNO3',
-     &            'PAN', 'PYPAN', 'IPMN', 'NPMN', 'PPN')
+     &            'PAN', 'PYPAN', 'MPAN', 'PPN')
 
                NPNOY       = NPNOY + 1
                PNOY(NPNOY) = M
@@ -1457,9 +1462,10 @@
          ! the AN global array, and increment counter
          SELECT CASE( TRIM( SpcInfo%Name ) )
 
-           CASE ( 'ISOPNB', 'ISOPND', 'MVKN',  'MACRN', 'R4N2',
-     &            'ISN1',   'PROPNN', 'ETHLN', 'DHDN',  'HONIT',
-     &            'MONITU', 'MONITS', 'INPN' )
+           CASE ( 'IHN1', 'IHN2', 'MVKN', 'INPD', 'R4N2', 
+     &            'INPB', 'PROPNN', 'ETHLN', 'IDN', 'HONIT', 
+     &            'ITCN', 'ITHN', 'MCRHN', 'MCRHNB', 
+     &            'MONITU', 'MONITS', 'PRPN', 'IHN3', 'IHN4' )
 
                NPAN       = NPAN + 1
                P_AN(NPAN) = M
