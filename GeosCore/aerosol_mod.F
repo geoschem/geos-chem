@@ -51,8 +51,8 @@
       ! ISOA        : Isoprene SOA (VBS scheme)          [kg/m3]
       ! ASOA        : Aromatic + IVOC SOA                [kg/m3]
       ! OPOA        : Aerosol product of SVOC oxidation  [kg/m3]
-      ! SOAGX       : SOA product of GLYX                [kg/m3]
-      ! SOAMG       : SOA product of MYLY                [kg/m3]
+      ! SOAGX       : SOA product of GLYX & MGLY         [kg/m3]
+      ! SOAIE       : SOA product of IEPOX & HMML        [kg/m3]
       ! PM25        : Particulate matter < 2.5 um        [kg/m3]
       ! ISOAAQ      : Isoprene SOA (aqueous formation)   [kg/m3]
       ! SOAS        : Simple SOA                         [kg/m3]
@@ -962,7 +962,7 @@
          OCPISOA(I,J,L) = MAX( OCPISOA(I,J,L), 1e-35_fp )
 
          !===========================================================
-         ! SOAGX and SOAMG [kg/m3]
+         ! SOAGX [kg/m3]
          !===========================================================
          IF ( IS_SOAGX ) THEN
             SOAGX(I,J,L) = Spc(I,J,L,id_SOAGX) * OCFG / AIRVOL(I,J,L)
@@ -975,7 +975,7 @@
          !
          ! PM25 = 1.33 (NH4 + NIT  + SO4) + BCPI + BCPO +
          !        2.10 (OCPO + 1.16 OCPI) + 1.16 SOA    +
-         !        DST1 + 0.38 DST2 + 1.86 SALA + SOAGX + SOAMG
+         !        DST1 + 0.38 DST2 + 1.86 SALA + SOAGX
          !
          ! NOTES:
          ! - We apply growth factors at 35% RH (computed above): 
@@ -1022,7 +1022,7 @@
      &                  + TSOA(I,J,L)    * ORG_GROWTH
      &                  + ISOA(I,J,L)    * ORG_GROWTH
      &                  + ASOA(I,J,L)    * ORG_GROWTH
-     &                  + ISOAAQ(I,J,L)  * ORG_GROWTH    ! Includes SOAGX+SOAMG
+     &                  + ISOAAQ(I,J,L)  * ORG_GROWTH    ! Includes SOAGX
 
          ENDIF
 
