@@ -267,7 +267,7 @@
          id_HNO4 = Ind_('HNO4')
          id_NO   = Ind_('NO'  )
          id_PAN  = Ind_('PAN' )
-         id_NPMN = Ind_('MPAN')
+         id_MPAN = Ind_('MPAN')
          id_PPN  = Ind_('PPN' )
          id_O3   = Ind_('O3'  )
          id_R4N2 = Ind_('R4N2')
@@ -398,9 +398,9 @@
      &                 / State_Chm%SpcData(id_HNO3)%Info%emMW_g )       
      &                         * SPC(I,J,L,id_HNO3) )
             
-               ! NPMN
+               ! MPAN
                Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_NPMN)%Info%emMW_g )        
+     &                 / State_Chm%SpcData(id_MPAN)%Info%emMW_g )        
      &                         * SPC(I,J,L,id_MPAN) )
 
                ! PPN
