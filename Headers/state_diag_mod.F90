@@ -258,8 +258,6 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AerMassSO4      (:,:,:  ) ! Sulfate [ug/m3]
      REAL(f4),  POINTER :: AerMassSOAGX    (:,:,:  ) ! SOAGX [ug/m3]
      REAL(f4),  POINTER :: AerMassSOAIE    (:,:,:  ) ! SOAIE [ug/m3]
-     REAL(f4),  POINTER :: AerMassSOAME    (:,:,:  ) ! SOAME [ug/m3]
-     REAL(f4),  POINTER :: AerMassSOAMG    (:,:,:  ) ! SOAMG [ug/m3]
      REAL(f4),  POINTER :: AerMassTSOA     (:,:,:  ) ! Terpene SOA [ug/m3]
      REAL(f4),  POINTER :: BetaNO          (:,:,:  ) ! Beta NO [ug C/m3]
      REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
@@ -281,8 +279,6 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_AerMassSO4      
      LOGICAL :: Archive_AerMassSOAGX    
      LOGICAL :: Archive_AerMassSOAIE    
-     LOGICAL :: Archive_AerMassSOAME    
-     LOGICAL :: Archive_AerMassSOAMG    
      LOGICAL :: Archive_AerMassTSOA     
      LOGICAL :: Archive_BetaNO          
      LOGICAL :: Archive_PM25            
@@ -957,8 +953,6 @@ CONTAINS
     State_Diag%AerMassSO4                          => NULL()
     State_Diag%AerMassSOAGX                        => NULL()
     State_Diag%AerMassSOAIE                        => NULL()
-    State_Diag%AerMassSOAME                        => NULL()
-    State_Diag%AerMassSOAMG                        => NULL()
     State_Diag%AerMassTSOA                         => NULL()
     State_Diag%BetaNO                              => NULL()
     State_Diag%PM25                                => NULL()
@@ -980,8 +974,6 @@ CONTAINS
     State_Diag%Archive_AerMassSO4                  = .FALSE.
     State_Diag%Archive_AerMassSOAGX                = .FALSE.
     State_Diag%Archive_AerMassSOAIE                = .FALSE.
-    State_Diag%Archive_AerMassSOAME                = .FALSE.
-    State_Diag%Archive_AerMassSOAMG                = .FALSE.
     State_Diag%Archive_AerMassTSOA                 = .FALSE.
     State_Diag%Archive_BetaNO                      = .FALSE.
     State_Diag%Archive_PM25                        = .FALSE.
@@ -2827,44 +2819,6 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
-       ! Aerosol mass of SOAME [ug/m3]
-       !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassSOAME'
-       diagID  = 'AerMassSOAME'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassSOAME( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassSOAME = 0.0_f4
-          State_Diag%Archive_AerMassSOAME = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%AerMassSOAME,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Aerosol mass of SOAMG [ug/m3]
-       !-------------------------------------------------------------------
-       arrayID = 'State_Diag%AerMassSOAMG'
-       diagID  = 'AerMassSOAMG'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AerMassSOAMG( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AerMassSOAMG = 0.0_f4
-          State_Diag%Archive_AerMassSOAMG = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%AerMassSOAMG,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
        ! Aerosol mass of TSOA (Terpene SOA) [ug/m3]
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassTSOA'
@@ -2991,7 +2945,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 26
+       DO N = 1, 24
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -3038,14 +2992,10 @@ CONTAINS
              CASE( 21 )
                 diagID = 'AerMassSOAIE'
              CASE( 22 )
-                diagID = 'AerMassSOAME'
-             CASE( 23 )
-                diagID = 'AerMassSOAMG'
-             CASE( 24 )
                 diagID = 'AerMassTSOA'
-             CASE( 25 )
+             CASE( 23 )
                 diagID = 'BetaNO'
-             CASE( 26 )
+             CASE( 24 )
                 diagID = 'TotalBiogenicOA'
           END SELECT
 
@@ -6345,9 +6295,7 @@ CONTAINS
                                    State_Diag%Archive_AerMassSO4     .or.    &
                                    State_Diag%Archive_AerMassSOAGX   .or.    &
                                    State_Diag%Archive_AerMassSOAIE   .or.    &
-                                   State_Diag%Archive_AerMassSOAME   .or.    &
-                                   State_Diag%Archive_AerMassSOAMG   .or.    &
-                                   State_Diag%Archive_AerMassTSOA    .or.    &
+\                                   State_Diag%Archive_AerMassTSOA    .or.    &
                                    State_Diag%Archive_BetaNO         .or.    &
                                    State_Diag%Archive_PM25           .or.    &
                                    State_Diag%Archive_TotalOA        .or.    &
@@ -7363,20 +7311,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%AerMassSOAIE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AerMassSOAIE => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSOAME ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAME, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSOAME', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSOAME => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%AerMassSOAMG ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAMG, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%AerMassSOAMG', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%AerMassSOAMG => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassTSOA ) ) THEN
@@ -9005,16 +8939,6 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAIE' ) THEN
        IF ( isDesc    ) Desc  = 'Mass of aerosol-phase IEPOX (isoprene epoxide)'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAME' ) THEN
-       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase IMAE (C4 epoxide from oxidation of PMN )'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAMG' ) THEN
-       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase methylglyoxal'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
