@@ -148,11 +148,17 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
     ! HCOX_INIT begins here!
     !=======================================================================
+
+    ! Initialize
+    RC      = HCO_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+       ' -> at HCOX_INIT (in module HEMCO/Extensions/hcox_driver_mod.F90'
 
     ! Error handling
     CALL HCO_ENTER(HcoState%Config%Err,'HCOX_INIT (hcox_driver_mod.F90)', RC )
@@ -162,126 +168,218 @@ CONTAINS
     ! Initialize extensions
     !=======================================================================
     CALL ExtStateInit( ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "ExtState_Init"!'
+       CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Custom
-    !-----------------------------------------------------------------------
-    CALL HCOX_Custom_Init( amIRoot, HcoState, 'Custom', ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! SeaFlux
-    !-----------------------------------------------------------------------
-    CALL HCOX_SeaFlux_Init( amIRoot, HcoState, 'SeaFlux', ExtState, RC )
-    IF ( RC /= HCO_SUCCESS) RETURN
+    !=======================================================================
+    ! The LIGHTNOX, PARANOX, and VOLCANO extensions read data files
+    ! (lookup tables or text files) whose formats cannot be read by
+    ! the HCOIO_READ_* routines.  Therefore we need to always initialize
+    ! these extensions so that we can print out the required file paths
+    ! when performing a GEOS-Chem dry-run or HEMCO standalone dry-run.
+    !=======================================================================
 
     !-----------------------------------------------------------------------
     ! ParaNox
     !-----------------------------------------------------------------------
     CALL HCOX_PARANOX_INIT( amIRoot, HcoState, 'ParaNOx', ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HCOX_ParaNOx_Init"!'
+       CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! LightNox
     !-----------------------------------------------------------------------
     CALL HCOX_LightNox_Init( amIRoot,  HcoState, 'LightNOx', ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! SoilNox
-    !-----------------------------------------------------------------------
-    CALL HCOX_SoilNox_Init( amIRoot, HcoState, 'SoilNOx', ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! Dust emissions (DEAD model)
-    !-----------------------------------------------------------------------
-    CALL HCOX_DustDead_Init( amIRoot, HcoState, 'DustDead', ExtState,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-#if defined( TOMAS )
-    CALL HCOX_TOMAS_DustDead_Init( amIRoot, HcoState, 'TOMAS_DustDead', &
-                   ExtState,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-#endif
-    !-----------------------------------------------------------------------
-    ! Dust Ginoux emissions
-    !-----------------------------------------------------------------------
-    CALL HCOX_DustGinoux_Init( amIRoot,  HcoState, 'DustGinoux',  &
-                                         ExtState,  RC           )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! SeaSalt aerosol extension
-    !-----------------------------------------------------------------------
-    CALL HCOX_SeaSalt_Init( amIRoot, HcoState, 'SeaSalt', ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! MEGAN extension
-    !-----------------------------------------------------------------------
-    CALL HCOX_Megan_Init( amIRoot, HcoState, 'MEGAN', ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! GFED extension
-    !-----------------------------------------------------------------------
-    CALL HCOX_GFED_Init( amIRoot, HcoState, 'GFED', ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! FINN biomass burning emissions
-    !-----------------------------------------------------------------------
-    CALL HcoX_FINN_Init( amIRoot, HcoState, 'FINN', ExtState, RC )
-    IF( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! Extension for GEOS-Chem Rn-Pb-Be specialty simulation
-    !-----------------------------------------------------------------------
-    CALL HCOX_GC_RnPbBe_Init( amIRoot, HcoState, 'GC_Rn-Pb-Be', &
-                                       ExtState,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! Extension for GEOS-Chem POPs specialty simulation
-    !-----------------------------------------------------------------------
-    CALL HCOX_GC_POPs_Init( amIRoot, HcoState, 'GC_POPs', &
-                                     ExtState,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! CH4 wetland emissions
-    !-----------------------------------------------------------------------
-    CALL HCOX_CH4Wetland_Init( amIRoot,  HcoState, 'CH4_WETLANDS', &
-                                         ExtState,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HCOX_LightNox_Init"!'
+       CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Volcano emissions
     !-----------------------------------------------------------------------
     CALL HCOX_Volcano_Init( amIRoot,  HcoState, 'Volcano', &
                             ExtState,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HCOX_Volcano_Init"!'
+       CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Ocean inorganic iodine emissions
-    !-----------------------------------------------------------------------
-    CALL HCOX_Iodine_Init( amIRoot,  HcoState, 'Inorg_Iodine', &
-                           ExtState,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    !=======================================================================
+    ! We can skip initializing all of the other extensions when
+    ! performing a GEOS-Chem dry-run or HEMCO standalone dry-run.
+    !=======================================================================
+    IF ( .not. HcoState%Options%isDryRun ) THEN
 
+       !--------------------------------------------------------------------
+       ! Custom
+       !--------------------------------------------------------------------
+       CALL HCOX_Custom_Init( amIRoot, HcoState, 'Custom', ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_Custom_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! SeaFlux
+       !--------------------------------------------------------------------
+       CALL HCOX_SeaFlux_Init( amIRoot, HcoState, 'SeaFlux', ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_SeaFlux_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! SoilNox
+       !--------------------------------------------------------------------
+       CALL HCOX_SoilNox_Init( amIRoot, HcoState, 'SoilNOx', ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_SoilNox_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Dust emissions (DEAD model)
+       !--------------------------------------------------------------------
+       CALL HCOX_DustDead_Init( amIRoot, HcoState, 'DustDead', ExtState,  RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_DustDead_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 #if defined( TOMAS )
-    !-----------------------------------------------------------------------
-    ! TOMAS sectional sea salt aerosol emissions
-    !-----------------------------------------------------------------------
-    CALL HCOX_TOMAS_Jeagle_Init( amIRoot, HcoState, 'TOMAS_Jeagle',  &
-                                          ExtState,  RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL HCOX_TOMAS_DustDead_Init( amIRoot,  HcoState, 'TOMAS_DustDead', &
+                                      ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_TOMAS_DustDead_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 #endif
 
-    !-----------------------------------------------------------------------
-    ! Add extensions here ...
-    !-----------------------------------------------------------------------
+       !--------------------------------------------------------------------
+       ! Dust Ginoux emissions
+       !--------------------------------------------------------------------
+       CALL HCOX_DustGinoux_Init( amIRoot,  HcoState, 'DustGinoux',  &
+                                  ExtState,  RC           )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_DustGinoux_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! SeaSalt aerosol extension
+       !--------------------------------------------------------------------
+       CALL HCOX_SeaSalt_Init( amIRoot, HcoState, 'SeaSalt', ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_SeaSalt_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! MEGAN extension
+       !--------------------------------------------------------------------
+       CALL HCOX_Megan_Init( amIRoot, HcoState, 'MEGAN', ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_Megan_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! GFED extension
+       !--------------------------------------------------------------------
+       CALL HCOX_GFED_Init( amIRoot, HcoState, 'GFED', ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_GFED_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! FINN biomass burning emissions
+       !--------------------------------------------------------------------
+       CALL HCOX_FINN_Init( amIRoot, HcoState, 'FINN', ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_FINN_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Extension for GEOS-Chem Rn-Pb-Be specialty simulation
+       !--------------------------------------------------------------------
+       CALL HCOX_GC_RnPbBe_Init( amIRoot, HcoState, 'GC_Rn-Pb-Be', &
+                                          ExtState,  RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_GC_RnPbBe_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Extension for GEOS-Chem POPs specialty simulation
+       !--------------------------------------------------------------------
+       CALL HCOX_GC_POPs_Init( amIRoot, HcoState, 'GC_POPs', &
+                                        ExtState,  RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_GC_POPs_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CH4 wetland emissions
+       !--------------------------------------------------------------------
+       CALL HCOX_CH4Wetland_Init( amIRoot,  HcoState, 'CH4_WETLANDS', &
+                                            ExtState,  RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_CH4Wetland_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Ocean inorganic iodine emissions
+       !--------------------------------------------------------------------
+       CALL HCOX_Iodine_Init( amIRoot,  HcoState, 'Inorg_Iodine', &
+                                        ExtState,  RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_Iodine_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+#if defined( TOMAS )
+       !--------------------------------------------------------------------
+       ! TOMAS sectional sea salt aerosol emissions
+       !--------------------------------------------------------------------
+       CALL HCOX_TOMAS_Jeagle_Init( amIRoot, HcoState, 'TOMAS_Jeagle',  &
+                                             ExtState,  RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_TOMAS_Jeagle_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+#endif
+
+       !--------------------------------------------------------------------
+       ! Add extensions here ...
+       !--------------------------------------------------------------------
+    ENDIF
 
     !=======================================================================
     ! Sanity checks
@@ -289,16 +387,22 @@ CONTAINS
 
     ! Cannot have both DustDead and DustGinoux turned on!
     IF ( ExtState%DustDead > 0 .AND. ExtState%DustGinoux > 0 ) THEN
-       MSG = 'Ginoux and DEAD dust emissions switched on!'
-       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
+       ErrMsg = 'Ginoux and DEAD dust emissions switched on!'
+       CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     !=======================================================================
-    ! Define diagnostics
+    ! Define diagnostics (can skip for dry-run)
     !=======================================================================
-    CALL HCOX_DiagnDefine( amIRoot, HcoState, ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .not. HcoState%Options%isDryRun ) THEN
+       CALL HCOX_DiagnDefine( amIRoot, HcoState, ExtState, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "ExtState_Init"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     !=======================================================================
     ! Leave w/ success
@@ -376,15 +480,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     LOGICAL            :: IsEmisTime
 
     !=======================================================================
     ! HCOX_RUN begins here!
     !=======================================================================
 
+    ! Initialize
+    RC      = HCO_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at HCOX_RUN (in module HEMCO/Extensions/hcox_driver_mod.F90'
+
     ! For error handling
-    CALL HCO_ENTER(HcoState%Config%Err,'HCOX_RUN (hcox_driver_mod.F90)', RC )
+    CALL HCO_ENTER( HcoState%Config%Err,'HCOX_RUN (hcox_driver_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Is it time for emissions?
@@ -397,169 +506,265 @@ CONTAINS
        RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Customized emissions
-    !-----------------------------------------------------------------------
-    IF ( ExtState%Custom > 0 ) THEN
-       CALL HCOX_Custom_Run( amIRoot, ExtState, HcoState, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! SeaFlx (Air-sea exchange)
-    !-----------------------------------------------------------------------
-    IF ( ExtState%SeaFlux > 0 ) THEN
-       CALL HCOX_SeaFlux_Run( amIRoot, ExtState, HcoState, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! ParaNox (Ship NO emissions)
-    !-----------------------------------------------------------------------
-    IF (ExtState%ParaNOx > 0 ) THEN
-       CALL HCOX_ParaNox_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Lightning NOx
-    !-----------------------------------------------------------------------
-    IF ( ExtState%LightNOx > 0 ) THEN
-       CALL HCOX_LightNox_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! SoilNOx
-    !-----------------------------------------------------------------------
-    IF ( ExtState%SoilNOx > 0 ) THEN
-       CALL HCOX_SoilNox_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Dust emissions (DEAD model)
-    !-----------------------------------------------------------------------
-    IF ( ExtState%DustDead > 0 ) THEN
-       CALL HCOX_DustDead_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-#if defined( TOMAS )
-    IF ( ExtState%TOMAS_DustDead > 0 ) THEN
-       !print*, 'JACK TOMAS_DustDead is on'
-       CALL HCOX_TOMAS_DustDead_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-#endif
-
-    !-----------------------------------------------------------------------
-    ! Dust emissions (Ginoux)
-    !-----------------------------------------------------------------------
-    IF ( ExtState%DustGinoux > 0 ) THEN
-       CALL HCOX_DustGinoux_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Sea salt aerosols
-    !-----------------------------------------------------------------------
-    IF ( ExtState%SeaSalt > 0 ) THEN
-       CALL HCOX_SeaSalt_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! MEGAN biogenic emissions
-    !-----------------------------------------------------------------------
-    IF ( ExtState%Megan > 0 ) THEN
-       CALL HCOX_Megan_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! GFED biomass burning emissions
-    !-----------------------------------------------------------------------
-    IF ( ExtState%GFED > 0 ) THEN
-       CALL HCOX_GFED_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! FINN biomass burning emissions
-    ! ----------------------------------------------------------------------
-    IF ( ExtState%FINN > 0 ) THEN
-       CALL HcoX_FINN_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Emissions for GEOS-Chem Rn-Pb-Be specialty simulation
-    !-----------------------------------------------------------------------
-    IF ( ExtState%GC_RnPbBe > 0 ) THEN
-       CALL HCOX_GC_RnPbBe_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Emissions for GEOS-Chem POPs specialty simulation
-    !-----------------------------------------------------------------------
-    IF ( ExtState%GC_POPs > 0 ) THEN
-       CALL HCOX_GC_POPs_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! CH4 wetland emissions
-    !-----------------------------------------------------------------------
-    IF ( ExtState%Wetland_CH4 > 0 ) THEN
-       CALL HCOX_CH4Wetland_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! TOMAS sectional sea salt emissions
-    !-----------------------------------------------------------------------
-#if defined( TOMAS )
-    IF ( ExtState%TOMAS_Jeagle > 0 ) THEN
-       CALL HCOX_TOMAS_Jeagle_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-#endif
+    !=======================================================================
+    ! The VOLCANO extension is the only extension that reads data files
+    ! from text files in the Run phase.  Therefore, we always need to
+    ! run the VOLCANO extension, so that we can print out the path names
+    ! of files being read in to the dry-run log file.
+    !=======================================================================
 
     !-----------------------------------------------------------------------
     ! AeroCom volcano emissions
     !-----------------------------------------------------------------------
     IF ( ExtState%Volcano > 0 ) THEN
        CALL HCOX_Volcano_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_Volcano_Run"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
-    !-----------------------------------------------------------------------
-    ! Ocean inorganic iodine emissions
-    !-----------------------------------------------------------------------
-    IF ( ExtState%Inorg_Iodine > 0 ) THEN
-       CALL HCOX_Iodine_Run( amIRoot, ExtState, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+    !=======================================================================
+    ! We can skip running all of the other extensions when
+    ! performing a GEOS-Chem dry-run or HEMCO standalone dry-run.
+    !
+    ! NOTE: LIGHTNING and PARANOX read data in the Init phase, and
+    ! not the Run phase.  So we can skip running these as well.
+    !=======================================================================
+    IF ( .not. HcoState%Options%isDryRun ) THEN
+
+       !--------------------------------------------------------------------
+       ! Customized emissions
+       !--------------------------------------------------------------------
+       IF ( ExtState%Custom > 0 ) THEN
+          CALL HCOX_Custom_Run( amIRoot, ExtState, HcoState, RC)
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_Custom_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! SeaFlux (Air-sea exchange)
+       !--------------------------------------------------------------------
+       IF ( ExtState%SeaFlux > 0 ) THEN
+          CALL HCOX_SeaFlux_Run( amIRoot, ExtState, HcoState, RC)
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_SeaFlux_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! ParaNox (Ship NO emissions)
+       !--------------------------------------------------------------------
+       IF ( ExtState%ParaNOx > 0 ) THEN
+          CALL HCOX_ParaNox_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_ParaNOx_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Lightning NOx
+       !--------------------------------------------------------------------
+       IF ( ExtState%LightNOx > 0 ) THEN
+          CALL HCOX_LightNox_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_LightNox_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! SoilNOx
+       !--------------------------------------------------------------------
+       IF ( ExtState%SoilNOx > 0 ) THEN
+          CALL HCOX_SoilNox_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_SoilNOx_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Dust emissions (DEAD model)
+       !--------------------------------------------------------------------
+       IF ( ExtState%DustDead > 0 ) THEN
+          CALL HCOX_DustDead_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_DustDead_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+#ifdef TOMAS
+       IF ( ExtState%TOMAS_DustDead > 0 ) THEN
+          !print*, 'JACK TOMAS_DustDead is on'
+          CALL HCOX_TOMAS_DustDead_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_TOMAS_DustDead_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+#endif
+
+       !--------------------------------------------------------------------
+       ! Dust emissions (Ginoux)
+       !--------------------------------------------------------------------
+       IF ( ExtState%DustGinoux > 0 ) THEN
+          CALL HCOX_DustGinoux_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_DustGinoux_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Sea salt aerosols
+       !--------------------------------------------------------------------
+       IF ( ExtState%SeaSalt > 0 ) THEN
+          CALL HCOX_SeaSalt_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_SeaSalt_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! MEGAN biogenic emissions
+       !--------------------------------------------------------------------
+       IF ( ExtState%Megan > 0 ) THEN
+          CALL HCOX_Megan_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX__Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! GFED biomass burning emissions
+       !--------------------------------------------------------------------
+       IF ( ExtState%GFED > 0 ) THEN
+          CALL HCOX_GFED_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_GFED_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! FINN biomass burning emissions
+       ! -------------------------------------------------------------------
+       IF ( ExtState%FINN > 0 ) THEN
+          CALL HcoX_FINN_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_FINN_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Emissions for GEOS-Chem Rn-Pb-Be specialty simulation
+       !--------------------------------------------------------------------
+       IF ( ExtState%GC_RnPbBe > 0 ) THEN
+          CALL HCOX_GC_RnPbBe_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_GC_RnPbBe_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Emissions for GEOS-Chem POPs specialty simulation
+       !--------------------------------------------------------------------
+       IF ( ExtState%GC_POPs > 0 ) THEN
+          CALL HCOX_GC_POPs_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_GC_POPs_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CH4 wetland emissions
+       !--------------------------------------------------------------------
+       IF ( ExtState%Wetland_CH4 > 0 ) THEN
+          CALL HCOX_CH4Wetland_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_CH4Wetland_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+#ifdef TOMAS
+       !--------------------------------------------------------------------
+       ! TOMAS sectional sea salt emissions
+       !--------------------------------------------------------------------
+       IF ( ExtState%TOMAS_Jeagle > 0 ) THEN
+          CALL HCOX_TOMAS_Jeagle_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_TOMAS_Jeagle_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+#endif
+
+       !--------------------------------------------------------------------
+       ! Ocean inorganic iodine emissions
+       !--------------------------------------------------------------------
+       IF ( ExtState%Inorg_Iodine > 0 ) THEN
+          CALL HCOX_Iodine_Run( amIRoot, ExtState, HcoState, RC )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_Iodine_Run"!'
+             CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Add extensions here ...
+       !--------------------------------------------------------------------
+
+       !====================================================================
+       ! Fill diagnostics
+       !
+       ! This updates the diagnostics defined in HCOX_DiagnDefine.
+       ! Subroutine HCOIO_DIAGN_WRITEOUT can be used to write out
+       ! diagnostics to disk.  This subroutine is called in higher-level
+       ! routines.
+       !
+       ! Skip for GEOS-Chem dry-run or HEMCO standalone dry-run
+       !====================================================================
+       CALL HCOX_DiagnFill( amIRoot, HcoState, ExtState, RC )
+       ErrMsg = 'Error encountered in "HCOX_DiagnFill_Run"!'
+       CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+       RETURN
+
     ENDIF
-
-    !-----------------------------------------------------------------
-    ! Add extensions here ...
-    !-----------------------------------------------------------------
-
-    !=======================================================================
-    ! Fill diagnostics
-    ! This updates the diagnostics defined in HCOX_DiagnDefine. Subroutine
-    ! HCOIO_DIAGN_WRITEOUT can be used to write out diagnostics to disk.
-    ! This subroutine is called in higher-level routines.
-    !=======================================================================
-    CALL HCOX_DiagnFill( amIRoot, HcoState, ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=======================================================================
     ! Return w/ success
     !=======================================================================
-    CALL HCO_LEAVE( HcoState%Config%Err,RC )
+    CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
   END SUBROUTINE HCOX_Run
 !EOC
@@ -635,80 +840,90 @@ CONTAINS
        ! Nullify all ExtState object pointers
        CALL ExtStateFinal( ExtState )
 
-       ! Call individual cleanup routines
-       IF ( ExtState%Custom  > 0 ) THEN
-          CALL HCOX_Custom_Final ( ExtState )
-       ENDIF
+       !--------------------------------------------------------------------
+       ! NOTE: For the GEOS-Chem dry-run or the HEMCO-standalone dry-run,
+       ! we don't actually allocate any memory to the extensions.  We only
+       ! print out the file paths of data files that are read independently
+       ! of the HCOIO_READ_* routines.  Therefore, we can skip finalizing
+       ! these extensions when performing a dry-run.
+       !--------------------------------------------------------------------
+       IF ( .not. HcoState%Options%IsDryRun ) THEN
 
-       IF ( ExtState%SeaFlux > 0 ) THEN
-          CALL HCOX_SeaFlux_Final( ExtState )
-       ENDIF
+          ! Call individual cleanup routines
+          IF ( ExtState%Custom  > 0 ) THEN
+             CALL HCOX_Custom_Final ( ExtState )
+          ENDIF
 
-       IF ( ExtState%ParaNOx > 0   ) THEN
-          CALL HCOX_PARANOX_Final( am_I_Root, HcoState, ExtState, RC )
-       ENDIF
+          IF ( ExtState%SeaFlux > 0 ) THEN
+             CALL HCOX_SeaFlux_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%LightNOx > 0  ) THEN
-          CALL HCOX_LIGHTNOX_Final( ExtState )
-       ENDIF
+          IF ( ExtState%ParaNOx > 0   ) THEN
+             CALL HCOX_PARANOX_Final( am_I_Root, HcoState, ExtState, RC )
+          ENDIF
 
-       IF ( ExtState%DustDead > 0 ) THEN
-          CALL HCOX_DustDead_Final( ExtState )
-       ENDIF
+          IF ( ExtState%LightNOx > 0  ) THEN
+             CALL HCOX_LIGHTNOX_Final( ExtState )
+          ENDIF
 
-#if defined( TOMAS)
-       IF ( ExtState%TOMAS_DustDead > 0 ) THEN
-          CALL HCOX_TOMAS_DustDead_Final( ExtState )
-       ENDIF
+          IF ( ExtState%DustDead > 0 ) THEN
+             CALL HCOX_DustDead_Final( ExtState )
+          ENDIF
+
+#ifdef TOMAS
+          IF ( ExtState%TOMAS_DustDead > 0 ) THEN
+             CALL HCOX_TOMAS_DustDead_Final( ExtState )
+          ENDIF
+
+          IF ( ExtState%TOMAS_Jeagle > 0  ) THEN
+             CALL HCOX_TOMAS_Jeagle_Final( ExtState )
+          ENDIF
 #endif
-       IF ( ExtState%DustGinoux > 0 ) THEN
-          CALL HCOX_DustGinoux_Final( ExtState )
-       ENDIF
+          IF ( ExtState%DustGinoux > 0 ) THEN
+             CALL HCOX_DustGinoux_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%SeaSalt > 0  ) THEN
-          CALL HCOX_SeaSalt_Final( ExtState )
-       ENDIF
+          IF ( ExtState%SeaSalt > 0  ) THEN
+             CALL HCOX_SeaSalt_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%Megan > 0 ) THEN
-          CALL HCOX_Megan_Final( am_I_Root, HcoState, ExtState, RC)
-       ENDIF
+          IF ( ExtState%Megan > 0 ) THEN
+             CALL HCOX_Megan_Final( am_I_Root, HcoState, ExtState, RC)
+          ENDIF
 
-       IF ( ExtState%GFED > 0 ) THEN
-          CALL HCOX_GFED_Final( ExtState )
-       ENDIF
+          IF ( ExtState%GFED > 0 ) THEN
+             CALL HCOX_GFED_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%SoilNOx > 0 ) THEN
-          CALL HCOX_SoilNox_Final( am_I_Root, HcoState, ExtState, RC )
-       ENDIF
+          IF ( ExtState%SoilNOx > 0 ) THEN
+             CALL HCOX_SoilNox_Final( am_I_Root, HcoState, ExtState, RC )
+          ENDIF
 
-       IF ( ExtState%FINN > 0      ) THEN
-          CALL HcoX_FINN_Final( ExtState )
-       ENDIF
+          IF ( ExtState%FINN > 0      ) THEN
+             CALL HcoX_FINN_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%GC_RnPbBe > 0 ) THEN
-          CALL HCOX_GC_RnPbBe_Final( ExtState )
-       ENDIF
+          IF ( ExtState%GC_RnPbBe > 0 ) THEN
+             CALL HCOX_GC_RnPbBe_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%GC_POPs > 0  ) THEN
-          CALL HCOX_GC_POPs_Final( ExtState )
-       ENDIF
+          IF ( ExtState%GC_POPs > 0  ) THEN
+             CALL HCOX_GC_POPs_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%Wetland_CH4 > 0 ) THEN
-          CALL HCOX_CH4Wetland_Final( ExtState )
-       ENDIF
+          IF ( ExtState%Wetland_CH4 > 0 ) THEN
+             CALL HCOX_CH4Wetland_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%Volcano > 0 ) THEN
-          CALL HCOX_Volcano_Final( ExtState )
-       ENDIF
+          IF ( ExtState%Volcano > 0 ) THEN
+             CALL HCOX_Volcano_Final( ExtState )
+          ENDIF
 
-       IF ( ExtState%Inorg_Iodine > 0 ) THEN
-          CALL HCOX_Iodine_Final( ExtState )
+          IF ( ExtState%Inorg_Iodine > 0 ) THEN
+             CALL HCOX_Iodine_Final( ExtState )
+          ENDIF
+
        ENDIF
-#if defined( TOMAS )
-       IF ( ExtState%TOMAS_Jeagle > 0  ) THEN
-          CALL HCOX_TOMAS_Jeagle_Final( ExtState )
-       eNDIF
-#endif
 
        ! Deallocate ExtState object
        DEALLOCATE( ExtState )

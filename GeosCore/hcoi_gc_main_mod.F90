@@ -430,7 +430,7 @@ CONTAINS
     ! so these values will remain at their defaults (.FALSE. and -1,
     ! respectively) when we use HEMCO in external ESMs (bmy, 11/13/19)
     !----------------------------------------------------------------------
-    HcoState%Options%isDryRun  = Input_Opt%DryRun
+    HcoState%Options%IsDryRun  = Input_Opt%DryRun
     HcoState%Options%DryRunLUN = Input_Opt%DryRunLUN
 
     !=======================================================================
@@ -486,6 +486,11 @@ CONTAINS
        CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
+
+    !=======================================================================
+    ! Exit if this is a GEOS-Chem dry-run or HEMCO-standalone dry-run
+    !=======================================================================
+    IF ( HcoState%Options%IsDryRun ) RETURN
 
     !-----------------------------------------------------------------------
     ! Update and check logical switches in Input_Opt
@@ -845,7 +850,7 @@ CONTAINS
     !=======================================================================
     ! Do the following only if it's time to calculate emissions
     !=======================================================================
-    IF ( Phase == 2 .AND. IsEmisTime .and. notDryRun ) THEN
+    IF ( Phase == 2 .AND. IsEmisTime ) THEN
 
        !--------------------------------------------------------------------
        ! Set / update ExtState fields.
@@ -855,29 +860,31 @@ CONTAINS
        ! Here, we need to make sure that these pointers are properly
        ! connected.
        !--------------------------------------------------------------------
-       CALL ExtState_SetFields( am_I_Root, State_Chm, State_Met,             &
-                                HcoState,  ExtState,  HMRC                  )
+       IF ( notDryRun ) THEN
+          CALL ExtState_SetFields( am_I_Root, State_Chm, State_Met,          &
+                                   HcoState,  ExtState,  HMRC               )
 
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "ExtState_SetFields"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          CALL Flush( HcoState%Config%Err%Lun )
-          RETURN
-       ENDIF
+          ! Trap potential errors
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "ExtState_SetFields"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             CALL Flush( HcoState%Config%Err%Lun )
+             RETURN
+          ENDIF
 
-       CALL ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,         &
-                                   State_Grid, State_Met, HcoState,          &
-                                   ExtState,   HMRC                         )
+          CALL ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,      &
+                                      State_Grid, State_Met, HcoState,       &
+                                      ExtState,   HMRC                      )
 
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "ExtState_UpdateFields"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          CALL Flush( HcoState%Config%Err%Lun )
-          RETURN
+          ! Trap potential errors
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "ExtState_UpdateFields"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             CALL Flush( HcoState%Config%Err%Lun )
+             RETURN
+          ENDIF
        ENDIF
 
        !====================================================================

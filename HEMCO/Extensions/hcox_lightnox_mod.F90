@@ -973,6 +973,73 @@ CONTAINS
        RETURN
     ENDIF
 
+    !=======================================================================
+    ! Obtain lightning CDF's from Ott et al [JGR, 2010].
+    !
+    ! PART 1 --- Move the file name check to the front of this routine to
+    ! facilitate the GEOS-Chem dry-run and HEMCO-standalone dry-run.
+    !=======================================================================
+
+    ! Get filename from configuration file
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'CDF table',                     &
+                    OptValChar=FILENAME, RC=RC                              )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
+    ! There shouldn't be any date token in there ($YYYY, etc.), so just
+    ! provide some dummy variables here
+    CALL HCO_CharParse( HcoState%Config, FILENAME, -999, -1, -1, -1, -1, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    !-----------------------------------------------------------------------
+    ! In dry-run mode, print file path to dryrun log and exit.
+    ! Otherwise, print file path to the HEMCO log file and continue.
+    !-----------------------------------------------------------------------
+
+    ! Test if the file exists
+    INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+
+    ! Create a display string based on whether or not the file is found
+    IF ( FileExists ) THEN
+       FileMsg = 'HEMCO (LIGHTNOX): Opening'
+    ELSE
+       FileMsg = 'HEMCO (LIGHTNOX): REQUIRED FILE NOT FOUND'
+    ENDIF
+
+    ! Print file path for either dry-run or regular simulations
+    ! (For regular simulations, also exit if we can't find the file.)
+    IF ( HcoState%Options%IsDryRun ) THEN
+       IF ( am_I_Root ) THEN
+          WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
+                                                   TRIM( FileName )
+ 100      FORMAT( a, ' ', a )
+       ENDIF
+       RETURN
+    ELSE
+       IF ( am_I_Root ) THEN
+          WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+       ENDIF
+       IF ( .not. FileExists ) THEN
+          WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+          CALL HCO_ERROR(HcoState%Config%Err, MSG, RC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !=======================================================================
+    ! Exit if this is a GEOS-Chem or HEMCO-standalone dry-run
+    !=======================================================================
+    IF ( HcoState%Options%IsDryRun ) THEN
+       Inst => NULL()
+       CALL HCO_LEAVE( HcoState%Config%Err,RC )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Continue for regular simulations ...
+    !=======================================================================
+
     ! Check for usage of convective fractions. This becomes only active
     ! if both the convective fraction and the buoyancy field are available.
     CALL GetExtOpt( HcoState%Config, ExtNr, 'Use CNV_FRC', &
@@ -1068,59 +1135,10 @@ CONTAINS
     Inst%CONV_DEPTH = 0.0_sp
 
     !=======================================================================
-    ! Obtain lightning CDF's from Ott et al [JGR, 2010]. (ltm, 1/25/11)
+    ! Obtain lightning CDF's from Ott et al [JGR, 2010].
+    !
+    ! PART 2 --- Read the data!
     !=======================================================================
-
-    ! Get filename from configuration file
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'CDF table', &
-                     OptValChar=FILENAME, RC=RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
-    ! There shouldn't be any date token in there ($YYYY, etc.), so just
-    ! provide some dummy variables here
-    CALL HCO_CharParse( HcoState%Config, FILENAME, -999, -1, -1, -1, -1, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    !-----------------------------------------------------------------------
-    ! In dry-run mode, print file path to dryrun log and exit.
-    ! Otherwise, print file path to the HEMCO log file and continue.
-    !-----------------------------------------------------------------------
-
-    ! Test if the file exists
-    INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
-
-    ! Create a display string based on whether or not the file is found
-    IF ( FileExists ) THEN
-       FileMsg = 'HEMCO (LIGHTNOX): Opening'
-    ELSE
-       FileMsg = 'HEMCO (LIGHTNOX): REQUIRED FILE NOT FOUND'
-    ENDIF
-
-    ! Print file path for either dry-run or regular simulations
-    ! (For regular simulations, also exit if we can't find the file.)
-    IF ( HcoState%Options%IsDryRun ) THEN
-       IF ( am_I_Root ) THEN
-          WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
-                                                   TRIM( FileName )
- 100      FORMAT( a, ' ', a )
-       ENDIF
-       RETURN
-    ELSE
-       IF ( am_I_Root ) THEN
-          WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
-       ENDIF
-       IF ( .not. FileExists ) THEN
-          WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
-          CALL HCO_ERROR(HcoState%Config%Err, MSG, RC )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Read data from file
-    !-----------------------------------------------------------------------
 
     ! Find a free file LUN
     IU_FILE = findFreeLUN()

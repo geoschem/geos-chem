@@ -200,7 +200,24 @@ CONTAINS
     ! (will be done only if this is a new day)
     !----------------------------------------------
     CALL ReadVolcTable( am_I_Root, HcoState, ExtState, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Error encountered in "ReadVolcTable"!'
+       CALL HCO_Error( HcoState%Config%Err, MSG, RC )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Exit if this is a GEOS-Chem dry-run or HEMCO-standalone dry-run
+    !=======================================================================
+    IF ( HcoState%Options%IsDryRun ) THEN
+       Inst => NULL()
+       CALL HCO_LEAVE( HcoState%Config%Err, RC )
+       RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Compute volcano emissions for non dry-run simulations
+    !=======================================================================
 
     ! Emit volcanos into SO2degas and SO2erupt arrays [kg S/m2/s]
     CALL EmitVolc( am_I_Root, HcoState, ExtState,                            &
@@ -311,7 +328,11 @@ CONTAINS
 
     ! Extension Nr.
     ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
-    IF ( ExtNr <= 0 ) RETURN
+    IF ( ExtNr <= 0 ) THEN
+       MSG = 'The Volcano extension is turned off.'
+       CALL HCO_MSG( HcoState%Config%Err,  MSG )
+       RETURN
+    ENDIF
 
     ! Enter
     CALL HCO_Enter( HcoState%Config%Err,                                     &
@@ -549,7 +570,7 @@ CONTAINS
           IF ( am_I_Root ) THEN
              WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),      &
                                                       TRIM( ThisFile )
-100          FORMAT( a, ' ', a )
+ 100         FORMAT( a, ' ', a )
           ENDIF
           RETURN
        ELSE
