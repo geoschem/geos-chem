@@ -5,12 +5,7 @@
 #
 # !REVISION HISTORY:
 #  16Aug2006  da Silva   First Version
-#  30Jun2012  Nielsen    For Ganymed
-#  10Oct2012  Yantosca   Updated for GEOS-Chem v9-01-03, which has new
-#                        Bromine compounds as advected tracers & species
-#  25Sep2013  Keller     Updated for GEOS-Chem v9-02l (NOx and Ox not lumped anymore, Isoprene                         update) 
-# See git history for rest of revision history
-#
+#  See the gitk browser for revision history
 # -----------------------------------------------------------------
 
   COMP_NAME: GIGCchem
@@ -103,6 +98,7 @@
   TMPU2              |     1	   | xyz | C |    |   |   |	|      | 
   FLASH_DENS         |     1       | xy  |   |    |   |   |     |      | lightning_flash_density
   CONV_DEPTH         |     1       | xy  |   |    |   |   |     |      | convective_cloud_depth
+  XLAIMULTI          | cm2_cm-2      | xyz | E |    |   |   |	|      | LAI_by_type 
 # -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
 </ImportSpec>
 

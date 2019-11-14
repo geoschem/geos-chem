@@ -66,7 +66,6 @@ MODULE Chem_GridCompMod
   USE State_Grid_Mod                                 ! Grid State obj
   USE State_Met_Mod                                  ! Meteorology State obj
   USE Species_Mod,   ONLY : Species
-  USE Time_Mod,      ONLY : ITS_A_NEW_DAY, ITS_A_NEW_MONTH
 
 #if defined( MODEL_GEOS )
   USE MAPL_ConstantsMod                   ! Doesn't seem to be used. Needed?
@@ -1680,23 +1679,6 @@ CONTAINS
                                                             __RC__ )
     ENDDO
 
-    ! LAI
-    CALL MAPL_AddImportSpec(GC,                                  &
-       SHORT_NAME         = 'XLAIMULTI',                         &
-       LONG_NAME          = 'LAI_by_type',                       &
-       UNITS              = 'cm2 cm-2',                          &
-       DIMS               = MAPL_DimsHorzVert,                   &
-       VLOCATION          = MAPL_VLocationEdge,                  &
-                                                            __RC__ )
-
-    ! CHLR (chlorophyll-a, used in marine POA simulation only)
-    !CALL MAPL_AddImportSpec(GC,                                  &
-    !   SHORT_NAME         = 'XCHLRMULTI',                        &
-    !   LONG_NAME          = 'CHLR_by_type',                      &
-    !   UNITS              = 'mg m-3',                            &
-    !   DIMS               = MAPL_DimsHorzVert,                   &
-    !   VLOCATION          = MAPL_VLocationEdge,                  &
-    !                                                        __RC__ )
 #endif
 
     ! Set HEMCO services
@@ -3934,104 +3916,6 @@ CONTAINS
           CALL Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Grid, &
                                       State_Met, RC )
           _ASSERT(RC==GC_SUCCESS,'informative message here')
-       ENDIF
-
-       !=======================================================================
-       ! Read MODIS leaf area index (LAI) from imports of post-processed MODIS 
-       ! files. Monthly files are interpolated once per day. Read Chlorophyll-a
-       ! data is using the marine POA simulation.
-       !
-       ! DESCRIPTION OF LAI DATA READ BY EXTDATA:
-       ! Each monthly file contains 73 variables of format XLAIxx where xx is
-       ! land type (e.g. XLAI00 to XLAI72). Grid cells with land type xx have
-       ! native LAI values; all other grid cells have zero values. ExtData 
-       ! regrids the native resolution files to yield average values per GC 
-       ! grid cell (not area-weighted). These are used with the similarly
-       ! regridded Olson fractional land types to construct area-weighted LAI 
-       ! per land type per grid cell, recreating the GEOS-Chem classic
-       ! online regridding in modis_lai_mod. (ewl, 11/29/16)
-       !=======================================================================
-#if defined( MODEL_GEOS )
-       IF ( FIRST .OR. FIRSTREWIND .OR. ITS_A_NEW_DAY() ) THEN
-#else
-       IF ( FIRST .OR. ITS_A_NEW_DAY() ) THEN
-#endif
-          If (am_I_Root) Write(6,'(a)') 'Initializing leaf area index ' // &
-                           'variable from imports'
-
-#if defined( MODEL_GEOS )
-          Ptr2d => NULL()
-          DO TT = 1, NSURFTYPE
-       
-             ! Create two-char string for land type
-             landTypeInt = TT-1
-             WRITE ( landTypeStr, '(I2.2)' ) landTypeInt
-       
-             ! Get pointer and populate State_Met variable for XLAI_NATIVE
-             importName = 'XLAI' // TRIM(landTypeStr)
-       
-             CALL MAPL_GetPointer ( IMPORT, Ptr2D, TRIM(importName), __RC__ )
-             State_Met%XLAI_NATIVE(:,:,TT) = Ptr2D(:,:)
-             Ptr2D => NULL()
-       
-          END DO
-#else
-          ! Try getting the MULTI import first
-          Ptr3D => NULL()
-          importName = 'XLAIMULTI'
-          Call MAPL_GetPointer ( IMPORT, Ptr3D, Trim(importName), &
-             notFoundOK = .TRUE., __RC__ )
-          If ( Associated(Ptr3D) ) Then
-             If (am_I_Root) Write(6,'(a)') ' ### Reading XLAI from multi-import'
-             State_Met%XLAI_NATIVE(:,:,:) = Ptr3D(:,:,:)
-          Else
-             Ptr2d => NULL()
-             DO TT = 1, NSURFTYPE
-             
-                ! Create two-char string for land type
-                landTypeInt = TT-1
-                WRITE ( landTypeStr, '(I2.2)' ) landTypeInt
-             
-                ! Get pointer and populate State_Met variable for XLAI_NATIVE
-                importName = 'XLAI' // TRIM(landTypeStr)
-             
-                CALL MAPL_GetPointer ( IMPORT, Ptr2D, TRIM(importName),  &
-                                       notFoundOK=.TRUE., __RC__ )
-                If ( Associated(Ptr2D) ) Then
-                   If (am_I_Root) Write(6,*)                                &
-                        ' ### Reading ' // TRIM(importName) // ' from imports'
-                   State_Met%XLAI_NATIVE(:,:,TT) = Ptr2D(:,:)
-                ELSE
-                   WRITE(6,*) TRIM(importName) // ' pointer is not associated'
-                ENDIF
-                Ptr2D => NULL()
-             ENDDO
-          ENDIF
-          Ptr3D => NULL()
-#endif
-       ENDIF
-
-       !=======================================================================
-       ! Get UV albedo for photolysis if first timestep or its a new month
-       !=======================================================================
-#if defined( MODEL_GEOS )    
-       IF ( FIRST .OR. FIRSTREWIND .OR. ITS_A_NEW_MONTH() ) THEN
-#else
-       IF ( FIRST .OR. ITS_A_NEW_MONTH() ) THEN
-#endif
-          Ptr2d => NULL()
-          CALL MAPL_GetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO',  &
-                                 notFoundOK=.TRUE., __RC__ )
-          If ( ASSOCIATED(Ptr2D) ) Then
-             If (am_I_Root) Write(6,*)                                &
-                  ' ### Reading UV_ALBEDO from imports'
-             State_Met%UVALBEDO(:,:) = Ptr2D(:,:)
-          ELSE
-             IF (am_I_Root) THEN 
-                WRITE(6,*) 'UV_ALBEDO pointer is not associated'
-             ENDIF
-          ENDIF
-          Ptr2D => NULL()
        ENDIF
 
 #if defined( MODEL_GEOS )
