@@ -981,7 +981,7 @@ CONTAINS
              MW_g          = 174.0_fp
              Is_Gas        = T
              Is_Drydep     = F
-             Is_Wetdep     = T
+             Is_Wetdep     = F
              Is_Photolysis = T
              Henry_K0      = 1.22e+0_f8
              Henry_CR      = 5000.0_f8
@@ -1012,7 +1012,7 @@ CONTAINS
              MW_g          = 95.0_fp
              Is_Gas        = T
              Is_Drydep     = F
-             Is_Wetdep     = T
+             Is_Wetdep     = F
              Is_Photolysis = T
              Henry_K0      = 1.32e-1_f8
              Henry_CR      = 2800.0_f8
@@ -1111,7 +1111,7 @@ CONTAINS
              MW_g          = 253.0_fp
              Is_Gas        = T
              Is_Drydep     = F
-             Is_Wetdep     = T
+             Is_Wetdep     = F
              Is_Photolysis = T
              Henry_K0      = 1.72e+0_f8
              Henry_CR      = 5200.0_f8
@@ -1528,8 +1528,8 @@ CONTAINS
              Henry_CR      = 7400.0_f8
 #endif
              WD_RetFactor  = 5e-2_fp
-                              WD_LiqAndGas  = T
-                              WD_ConvFacI2G = 4.36564e-1_fp
+             WD_LiqAndGas  = T
+             WD_ConvFacI2G = 4.36564e-1_fp
 
           CASE( 'HAC' )
              FullName      = 'Hydroxyacetone'
@@ -1717,9 +1717,9 @@ CONTAINS
              Henry_K0      = 8.3e+4_f8
              Henry_CR      = 7400.0_f8
 #endif
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'HNO4' )
              FullName      = 'Peroxynitric acid'
@@ -2423,6 +2423,7 @@ CONTAINS
               Henry_K0      = 1.82e+1_f8
               Henry_CR      = 5700.0_f8
 #endif
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MGLY' )
              FullName      = 'Methylglyoxal'
@@ -2596,6 +2597,7 @@ CONTAINS
              Is_Photolysis = T
              Henry_K0      = 2.94e+2_f8
              Henry_CR      = 5200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MSA' )
 
@@ -2670,6 +2672,7 @@ CONTAINS
              Henry_K0      = 2.63e+1_f8
              Henry_CR      = 4800.0_f8
 #endif
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MVKDH' )
              FullName      = 'dihydroxy-MVK'
@@ -3167,6 +3170,7 @@ CONTAINS
              Henry_K0      = 2.94e+00_f8
              Henry_CR      = 5700.0_f8
 #endif
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'PFE' )
 
@@ -3295,6 +3299,7 @@ CONTAINS
              Henry_K0      = 2.94e+0_f8
              Henry_CR      = 0.0_f8
 #endif
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'PRPE' )
              FullName      = 'Lumped >= C3 alkenes'
@@ -3312,6 +3317,7 @@ CONTAINS
              Henry_K0      = 7.4e-3_f8
              Henry_CR      = 3400.0_f8
 #endif
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'PRPN' )
              FullName      = 'Peroxide from PRN1'
@@ -3379,6 +3385,7 @@ CONTAINS
              Henry_CR      = 5800.0_f8
              DD_Hstar_old  = 1.70e+4_fp
 #endif
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'R4P' )
              FullName      = 'Peroxide from R4O2'
