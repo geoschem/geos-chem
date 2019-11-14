@@ -1101,7 +1101,6 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE File_Mod,      ONLY : File_Exists
       USE Input_Opt_Mod, ONLY : OptInput
       USE InquireMod,    ONLY : findFreeLun
 !
@@ -1136,6 +1135,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: IU_FILE, K,     J
       INTEGER            :: M,       NTBLS, IOS
       REAL(fp)           :: TMAX,    TMIN
@@ -1177,14 +1177,18 @@
       ! Otherwise, print file path to stdout and continue.
       !=================================================================
 
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+
       ! Test if the file exists and define an output string
-      IF ( File_Exists( FileName ) ) THEN
-         FileMsg = 'LINOZ_READ: Reading'
+      IF ( FileExists ) THEN
+         FileMsg = 'LINOZ_READ: Opening'
       ELSE
          FileMsg = 'LINOZ_READ: REQUIRED FILE NOT FOUND'
       ENDIF
 
       ! Print a message for either dry-run or normal run
+      ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
@@ -1194,6 +1198,11 @@
       ELSE
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+         ENDIF
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( FileName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
  300  FORMAT( a, ' ', a )
@@ -1212,7 +1221,7 @@
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD',
      &               FORM='FORMATTED',      IOSTAT=IOS )
 
-      ! Return if we can't find the file
+      ! Return if there was an error opening the file
       IF ( IOS /= 0 ) THEN
          WRITE( FileMsg, 300 ) TRIM( FileMsg ), TRIM( FileName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )

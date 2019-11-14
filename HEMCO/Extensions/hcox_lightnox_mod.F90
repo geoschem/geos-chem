@@ -1092,12 +1092,13 @@ CONTAINS
 
     ! Create a display string based on whether or not the file is found
     IF ( FileExists ) THEN
-       FileMsg = 'HEMCO-X (INIT_LIGHTNOX): Opening'
+       FileMsg = 'HEMCO (LIGHTNOX): Opening'
     ELSE
-       FileMsg = 'HEMCO-X (INIT_LIGHTNOX): REQUIRED FILE NOT FOUND'
+       FileMsg = 'HEMCO (LIGHTNOX): REQUIRED FILE NOT FOUND'
     ENDIF
 
     ! Print file path for either dry-run or regular simulations
+    ! (For regular simulations, also exit if we can't find the file.)
     IF ( HcoState%Options%IsDryRun ) THEN
        IF ( am_I_Root ) THEN
           WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
@@ -1107,8 +1108,13 @@ CONTAINS
        RETURN
     ELSE
        IF ( am_I_Root ) THEN
-          WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FILENAME )
+          WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
           CALL HCO_MSG(HcoState%Config%Err,MSG)
+       ENDIF
+       IF ( .not. FileExists ) THEN
+          WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+          CALL HCO_ERROR(HcoState%Config%Err, MSG, RC )
+          RETURN
        ENDIF
     ENDIF
 

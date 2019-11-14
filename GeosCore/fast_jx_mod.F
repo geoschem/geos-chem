@@ -1966,7 +1966,6 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! !USES:
 !
       USE ErrCode_Mod
-      USE File_Mod,      ONLY : File_Exists
       USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -2017,6 +2016,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: I, J, JJ, K, IW, NQRD, NWWW, LQ
       REAL(fp)           :: TQQ2
 
@@ -2024,7 +2024,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       REAL(fp)           :: QQ2(199)
 
       ! Strings
-      CHARACTER(LEN=255) :: FileMsg
+      CHARACTER(LEN=255) :: FileMsg, ErrMsg, ThisLoc
       CHARACTER(LEN=78)  :: TITLE0
       CHARACTER(LEN=6 )  :: TITLEJ2, TITLEJ3
       CHARACTER(LEN=1 )  :: TSTRAT
@@ -2034,14 +2034,23 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Otherwise, print file path to stdout and continue.
       !=================================================================
 
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = '-> at RD_XXX (in module GeosCore/fast_jx_mod.F)'
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( NamFil ), EXIST=FileExists )
+
       ! Test if the file exists and define an output string
-      IF ( File_Exists( NamFil ) ) THEN
-         FileMsg = 'FAST-JX (RD_XXX): Reading'
+      IF ( FileExists ) THEN
+         FileMsg = 'FAST-JX (RD_XXX): Opening'
       ELSE
          FileMsg = 'FAST-JX (RD_XXX): REQUIRED FILE NOT FOUND'
       ENDIF
 
       ! Print a message for either dry-run or normal run
+      ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg ),
@@ -2052,15 +2061,17 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
          ENDIF
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
  300  FORMAT( a, ' ', a )
 
       !=================================================================
       ! RD_XXX begins here!
       !=================================================================
-
-      ! Assume success
-      RC = GC_SUCCESS
 
       ! Initialization
       TQQ(:,:) = 0.e+0_fp
@@ -2287,7 +2298,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !USES:
 !
       USE ErrCode_Mod
-      USE File_Mod,      ONLY : File_Exists
       USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -2323,25 +2333,34 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       ! Scalars
       INTEGER            :: I, J, K, NK
-      LOGICAL            :: LBRC
+      LOGICAL            :: LBRC, FileExists
 
       ! Strings
       CHARACTER(LEN=78 ) :: TITLE0
-      CHARACTER(LEN=255) :: FileMsg
+      CHARACTER(LEN=255) :: FileMsg, ErrMsg, ThisLoc
 
       !=================================================================
       ! In dry-run mode, print file path to dryrun log and exit.
       ! Otherwise, print file path to stdout and continue.
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+      ErrMsg = ''
+      ThisLoc = ' -> at RD_MIE (in module GeosCore/fast_jx_mod.F)'
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( NamFil ), EXIST=FileExists )
+
       ! Test if the file exists and define an output string
-      IF ( File_Exists( NamFil ) ) THEN
-         FileMsg = 'FAST-JX (RD_MIE): Reading'
+      IF ( FileExists ) THEN
+         FileMsg = 'FAST-JX (RD_MIE): Opening'
       ELSE
          FileMsg = 'FAST-JX (RD_MIE): REQUIRED FILE NOT FOUND'
       ENDIF
 
       ! Print a message for either dry-run or normal run
+      ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg ),
@@ -2352,15 +2371,17 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
          ENDIF
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
  300  FORMAT( a, ' ', a )
 
       !=================================================================
       ! RD_MIE begins here -- read data from file
       !=================================================================
-
-      ! Assume success
-      RC = GC_SUCCESS
 
       ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
@@ -2437,7 +2458,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !USES:
 !
       USE ErrCode_Mod
-      USE File_Mod,      ONLY : File_Exists
       USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -2479,7 +2499,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Scalars
       INTEGER            :: I, J, K, N
       INTEGER            :: IOS
-      LOGICAL            :: LBRC
+      LOGICAL            :: LBRC, FileExists
 
       ! Strings
       CHARACTER(LEN=78 ) :: TITLE0
@@ -2500,7 +2520,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Initialize
       RC       = GC_SUCCESS
       ErrMsg   = ''
-      ThisLoc  = ' -> at RD_AOD (in GeosCore/fast_jx_mod.F)'
+      ThisLoc  = ' -> at RD_AOD (in module GeosCore/fast_jx_mod.F)'
       LBRC     = Input_Opt%LBRC
       DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
 
@@ -2539,14 +2559,18 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          ! Otherwise, print file path to stdout and continue.
          !--------------------------------------------------------------
 
+         ! Test if the file exists
+         INQUIRE( FILE=TRIM( ThisFile ), EXIST=FileExists )
+
          ! Test if the file exists and define an output string
-         IF ( File_Exists( ThisFile ) ) THEN
-            FileMsg = 'FAST-JX (RD_AOD): Reading'
+         IF ( FileExists ) THEN
+            FileMsg = 'FAST-JX (RD_AOD): Opening'
          ELSE
             FileMsg = 'FAST-JX (RD_AOD): REQUIRED FILE NOT FOUND'
          ENDIF
 
          ! Print a message for either dry-run or normal run
+         ! (For regular simulations, also exit if we can't find the file.)
          IF ( Input_Opt%DryRun ) THEN
             IF ( Input_Opt%AmIRoot ) THEN
                WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
@@ -2556,6 +2580,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          ELSE
             IF ( Input_Opt%AmIRoot ) THEN
                WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+            ENDIF
+            IF ( .not. FileExists ) THEN
+               WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
  300     FORMAT( a, ' ', a )
@@ -2887,7 +2916,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       USE Charpak_Mod,   ONLY : CStrip
       USE ErrCode_Mod
-      USE File_Mod,      ONLY : File_Exists
       USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -2916,6 +2944,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: J, JJ, K
       REAL(fp)           :: F_FJX
 
@@ -2936,21 +2965,25 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Initialize
       RC       = GC_SUCCESS
       ErrMsg   = ''
-      ThisLoc  = ' -> at Rd_Js_Jx  (in module GeosCore/fast_jx_mod.F)'
+      ThisLoc  = ' -> at Rd_Js_Jx (in module GeosCore/fast_jx_mod.F)'
 
       !=================================================================
       ! In dry-run mode, print file path to dryrun log and exit.
       ! Otherwise, print file path to stdout and continue.
       !=================================================================
 
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( NamFil ), EXIST=FileExists )
+
       ! Test if the file exists and define an output string
-      IF ( File_Exists( NamFil ) ) THEN
-         FileMsg = 'FAST-JX (RD_JS_JX): Reading'
+      IF ( FileExists ) THEN
+         FileMsg = 'FAST-JX (RD_JS_JX): Opening'
       ELSE
          FileMsg = 'FAST-JX (RD_JS_JX): REQUIRED FILE NOT FOUND'
       ENDIF
 
       ! Print a message for either dry-run or normal run
+      ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg ),
@@ -2960,6 +2993,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ELSE
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+         ENDIF
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
  300  FORMAT( a, ' ', a )
@@ -4945,7 +4983,6 @@ C---Always does PL(2) = P[1]
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
       USE ErrCode_Mod
-      USE File_Mod,      ONLY : File_Exists
       USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -4971,10 +5008,11 @@ C---Always does PL(2) = P[1]
 !
 ! !LOCAL VARIABLES:
 !
-      ! netCDF file handle
+      ! Scalars
+      LOGICAL            :: FileExists          ! Does input file exist?
       INTEGER            :: fId                 ! netCDF file ID
 
-      ! Character strings
+      ! Strings
       CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
       CHARACTER(LEN=255) :: nc_file             ! netCDF file name
       CHARACTER(LEN=255) :: nc_path             ! netCDF path name
@@ -4982,16 +5020,21 @@ C---Always does PL(2) = P[1]
       CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
       CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
       CHARACTER(LEN=255) :: FileMsg
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
-      ! Arrays for netCDF start and count values
+      ! Arrays
       INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays
 
       !=================================================================
       ! RD_PROF_NC begins here!
       !=================================================================
 
+      ! Initialize
       ! Assume success
-      RC = GC_SUCCESS
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/fast_jx_mod.F)'
 
       ! Directory and file names
       nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
@@ -5003,14 +5046,18 @@ C---Always does PL(2) = P[1]
       ! Otherwise, print file path to stdout and continue.
       !=================================================================
 
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( nc_path ), EXIST=FileExists )
+
       ! Test if the file exists and define an output string
-      IF ( File_Exists( nc_path ) ) THEN
-         FileMsg = 'FAST-JX (RD_PROF_NC): Reading'
+      IF ( FileExists ) THEN
+         FileMsg = 'FAST-JX (RD_PROF_NC): Opening'
       ELSE
          FileMsg = 'FAST-JX (RD_PROF_NC): REQUIRED FILE NOT FOUND'
       ENDIF
 
       ! Print a message for either dry-run or normal run
+      ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg ),
@@ -5020,6 +5067,11 @@ C---Always does PL(2) = P[1]
       ELSE
          IF ( Input_Opt%AmIRoot ) THEN
             WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+         ENDIF
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
  300  FORMAT( a, ' ', a )

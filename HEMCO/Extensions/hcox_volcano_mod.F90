@@ -538,12 +538,13 @@ CONTAINS
 
        ! Create a display string based on whether or not the file is found
        IF ( FileExists ) THEN
-          FileMsg = 'HEMCO-X (ReadVolcTable): Opening'
+          FileMsg = 'HEMCO (VOLCANO): Opening'
        ELSE
-          FileMsg = 'HEMCO-X (ReadVolcTable): REQUIRED FILE NOT FOUND'
+          FileMsg = 'HEMCO (VOLCANO): REQUIRED FILE NOT FOUND'
        ENDIF
 
        ! Print file path for either dry-run or regular simulations
+       ! (For regular simulations, also exit if we can't find the file.)
        IF ( HcoState%Options%IsDryRun ) THEN
           IF ( am_I_Root ) THEN
              WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),      &
@@ -556,18 +557,16 @@ CONTAINS
              WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( ThisFile )
              CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
+          IF ( .not. FileExists ) THEN
+             WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( ThisFile )
+             CALL HCO_ERROR(HcoState%Config%Err, MSG, RC )
+             RETURN
+          ENDIF
        ENDIF
 
        !--------------------------------------------------------------------
        ! Read data from files
        !--------------------------------------------------------------------
-
-       ! Check if file exists
-       IF ( .NOT. FileExists ) THEN
-          MSG = 'Cannot find ' // TRIM(ThisFile)
-          CALL HCO_ERROR( HcoState%Config%Err,  MSG, RC, THISLOC=LOC )
-          RETURN
-       ENDIF
 
        ! Open file
        LUN = findFreeLun()

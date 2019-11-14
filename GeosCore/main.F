@@ -2773,7 +2773,7 @@
          SELECT CASE( TRIM( ArgVal ) )
 
             ! Test for the dry-run switch
-            CASE( '--dry-run', '--dryrun', '-D' )
+            CASE( '--dry-run', '--dryrun', '-d' )
                 Input_Opt%DryRun    = .TRUE.
                 Input_Opt%DryRunLUN = FindFreeLUN()
 

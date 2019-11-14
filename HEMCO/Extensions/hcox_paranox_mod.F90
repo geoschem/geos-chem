@@ -1481,30 +1481,34 @@ CONTAINS
 
    ! Read 2m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 2
-   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ),              &
         Inst%FRACNOX_LUT02, Inst%DNOx_LUT02, Inst%OPE_LUT02, Inst%MOE_LUT02, &
         Inst%Tlev, Inst%JNO2lev, Inst%O3lev, Inst%SEA0lev, Inst%SEA5lev,     &
-        Inst%JRATIOlev, Inst%NOXlev )
+        Inst%JRATIOlev, Inst%NOXlev, RC=RC)
 
    ! Read 6 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 6
-   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
-        Inst%FRACNOX_LUT06, Inst%DNOx_LUT06, Inst%OPE_LUT06, Inst%MOE_LUT06 )
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ),              &
+        Inst%FRACNOX_LUT06, Inst%DNOx_LUT06, Inst%OPE_LUT06,                 &
+        Inst%MOE_LUT06, RC=RC )
 
    ! Read 10 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 10
-   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
-        Inst%FRACNOX_LUT10, Inst%DNOx_LUT10, Inst%OPE_LUT10, Inst%MOE_LUT10 )
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ),              &
+        Inst%FRACNOX_LUT10, Inst%DNOx_LUT10, Inst%OPE_LUT10,                 &
+        Inst%MOE_LUT10, RC=RC )
 
    ! Read 14 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 14
-   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
-        Inst%FRACNOX_LUT14, Inst%DNOx_LUT14, Inst%OPE_LUT14, Inst%MOE_LUT14 )
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ),              &
+        Inst%FRACNOX_LUT14, Inst%DNOx_LUT14, Inst%OPE_LUT14,                 &
+        Inst%MOE_LUT14, RC=RC )
 
    ! Read 18 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 18
-   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
-        Inst%FRACNOX_LUT18, Inst%DNOx_LUT18, Inst%OPE_LUT18, Inst%MOE_LUT18 )
+   CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ),              &
+        Inst%FRACNOX_LUT18, Inst%DNOx_LUT18, Inst%OPE_LUT18,                 &
+        Inst%MOE_LUT18, RC=RC )
 
 !   ! To write into txt-file, uncomment the following lines
 !   FILENAME = TRIM(LutDir)//'/ship_plume_lut_02ms.txt'
@@ -1557,8 +1561,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE READ_LUT_NCFILE( am_I_Root, HcoState, FILENAME, FNOX, DNOx, OPE, MOE, &
-                             T, JNO2, O3, SEA0, SEA5, JRATIO, NOX )
+ SUBROUTINE READ_LUT_NCFILE( am_I_Root, HcoState, FILENAME, FNOX,            &
+                             DNOx,      OPE,      MOE,      T,               &
+                             JNO2,      O3,       SEA0,     SEA5,            &
+                             JRATIO,    NOX,      RC                        )
 !
 ! !USES:
 !
@@ -1579,10 +1585,11 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-   REAL*4, INTENT(OUT), DIMENSION(:,:,:,:,:,:,:) :: FNOX,OPE,MOE,DNOx
-   REAL*4, INTENT(OUT), OPTIONAL :: T(:),      JNO2(:), O3(:)
-   REAL*4, INTENT(OUT), OPTIONAL :: SEA0(:),   SEA5(:)
-   REAL*4, INTENT(OUT), OPTIONAL :: JRATIO(:), NOX(:)
+   REAL*4,  INTENT(OUT), DIMENSION(:,:,:,:,:,:,:) :: FNOX,OPE,MOE,DNOx
+   REAL*4,  INTENT(OUT), OPTIONAL :: T(:),      JNO2(:), O3(:)
+   REAL*4,  INTENT(OUT), OPTIONAL :: SEA0(:),   SEA5(:)
+   REAL*4,  INTENT(OUT), OPTIONAL :: JRATIO(:), NOX(:)
+   INTEGER, INTENT(OUT), OPTIONAL :: RC
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version modified from code provided by
@@ -1600,7 +1607,7 @@ CONTAINS
    ! Scalars
    LOGICAL             :: FileExists
    INTEGER             :: AS, IOS
-   INTEGER             :: fID
+   INTEGER             :: fID, HMRC
 
    ! arrays
    INTEGER             :: st1d(1), ct1d(1)
@@ -1618,12 +1625,13 @@ CONTAINS
 
    ! Create a display string based on whether or not the file is found
    IF ( FileExists ) THEN
-      FileMsg = 'HEMCO-X (READ_LUT_NCFILE): Opening'
+      FileMsg = 'HEMCO (PARANOX): Opening'
    ELSE
-      FileMsg = 'HEMCO-X (READ_LUT_NCFILE): REQUIRED FILE NOT FOUND'
+      FileMsg = 'HEMCO (PARANOX): REQUIRED FILE NOT FOUND'
    ENDIF
 
    ! Print file path for either dry-run or regular simulations
+   ! (For regular simulations, also exit if we can't find the file.)
    IF ( HcoState%Options%IsDryRun ) THEN
       IF ( am_I_Root ) THEN
          WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
@@ -1633,14 +1641,28 @@ CONTAINS
       RETURN
    ELSE
       IF ( am_I_Root ) THEN
-         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FILENAME )
+         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
          CALL HCO_MSG(HcoState%Config%Err,MSG)
+      ENDIF
+      IF ( .not. FileExists ) THEN
+         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+         CALL HCO_ERROR(HcoState%Config%Err, MSG, HMRC )
+         IF ( PRESENT( RC ) ) RC = HMRC
+         RETURN
       ENDIF
    ENDIF
 
    !=================================================================
    ! READ_LUT_NCFILE begins here!
    !=================================================================
+
+    ! If the file does not exist, exit right away
+    IF ( .not. FileExists ) THEN
+       MSG = 'Could not find file : ' // TRIM( FILENAME )
+       CALL HCO_ERROR( HcoState%Config%Err, MSG, HMRC )
+       IF ( PRESENT( RC ) ) RC = HMRC
+       RETURN
+    ENDIF
 
    ! Open file for reading
    CALL Ncop_Rd( fId, TRIM(FILENAME) )
@@ -1909,12 +1931,13 @@ CONTAINS
 
    ! Create a display string based on whether or not the file is found
    IF ( FileExists ) THEN
-      FileMsg = 'HEMCO-X (READ_LUT_TXTFILE): Opening'
+      FileMsg = 'HEMCO (PARANOX): Opening'
    ELSE
-      FileMsg = 'HEMCO-X (READ_LUT_TXTFILE): REQUIRED FILE NOT FOUND'
+      FileMsg = 'HEMCO (PARANOX): REQUIRED FILE NOT FOUND'
    ENDIF
 
    ! Print file path for either dry-run or regular simulations
+   ! (For regular simulations, also exit if we can't find the file.)
    IF ( HcoState%Options%IsDryRun ) THEN
       IF ( am_I_Root ) THEN
          WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
@@ -1924,8 +1947,13 @@ CONTAINS
       RETURN
    ELSE
       IF ( am_I_Root ) THEN
-         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FILENAME )
+         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
          CALL HCO_MSG(HcoState%Config%Err,MSG)
+      ENDIF
+      IF ( .not. FileExists ) THEN
+         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+         CALL HCO_ERROR(HcoState%Config%Err, MSG, RC )
+         RETURN
       ENDIF
    ENDIF
 
