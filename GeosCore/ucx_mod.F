@@ -5074,6 +5074,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: I, N, NX, IOS, AS
       INTEGER            :: IU_FILE
       REAL(fp)           :: SCALEFAC, TMPYR, TMPMR
@@ -5107,8 +5108,11 @@
          ! Otherwise, print file path to stdout and continue.
          !--------------------------------------------------------------
 
+         ! Test if the file exists
+         INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+
          ! Test if the file exists and define an output string
-         IF ( File_Exists( FileName ) ) THEN
+         IF ( FileExists ) THEN
             FileMsg = 'UCX (SFCMR_READ): Opening'
          ELSE
             FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
@@ -5358,7 +5362,7 @@
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : File_Exists, IoError
+      USE FILE_MOD,           ONLY : IoError
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
 !
@@ -5380,7 +5384,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LPRT
+      LOGICAL            :: LPRT, FileExists
       INTEGER            :: I, AS, IOS
       INTEGER            :: IMON, ITRAC, ILEV
       INTEGER            :: IU_FILE
@@ -5428,9 +5432,12 @@
      &              TRIM(NOON_FILE_ROOT),
      &              TRIM(TARG_TRAC), '_', IMON, '.dat'
 
+               ! Test if the file exists
+               INQUIRE( FILE=TRIM( NOx_File ), EXIST=FileExists )
+
                ! Test if the file exists and define an output string
-               IF ( File_Exists( NOx_File ) ) THEN
-                  FileMsg = 'UCX (NOXCOEFF_INIT): Reading'
+               IF ( FileExists ) THEN
+                  FileMsg = 'UCX (NOXCOEFF_INIT): Opening'
                ELSE
                   FileMsg =
      &               'UCX (NOXCOEFF_INIT):  REQUIRED FILE NOT FOUND'

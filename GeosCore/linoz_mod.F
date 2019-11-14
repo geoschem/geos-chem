@@ -1182,9 +1182,9 @@
 
       ! Test if the file exists and define an output string
       IF ( FileExists ) THEN
-         FileMsg = 'LINOZ_READ: Opening'
+         FileMsg = 'LINOZ (LINOZ_READ): Opening'
       ELSE
-         FileMsg = 'LINOZ_READ: REQUIRED FILE NOT FOUND'
+         FileMsg = 'LINOZ (LINOZ_READ): REQUIRED FILE NOT FOUND'
       ENDIF
 
       ! Print a message for either dry-run or normal run
