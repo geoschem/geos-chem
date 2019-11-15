@@ -108,8 +108,8 @@
       ! PDATE       : Array of dates     at each flight point
       ! PTIME       : Array of times     at each flight point
       ! PTAU        : Array of TAU's     at each flight point
-      ! PLAT        : Array of latitude  at each flight point
-      ! PLON        : Array of longitude at each flight point
+      ! XPLT        : Array of latitude  at each flight point
+      ! XPLN        : Array of longitude at each flight point
       ! PPRESS      : Array of pressure  at each flight point
       ! PTYPE       : Array of ID'#S     at each flight point
       ! NPVAR       : # of var's to be saved at each flight point
@@ -146,9 +146,9 @@
       REAL(fp),            ALLOCATABLE :: PTAU(:)
 
       ! For specifying lat/lon/alt and ID type
-      REAL*4,            ALLOCATABLE :: PLAT(:)
-      REAL*4,            ALLOCATABLE :: PLON(:)
-      REAL*4,            ALLOCATABLE :: PPRESS(:)
+      REAL*4,            ALLOCATABLE :: XPLT(:)               
+      REAL*4,            ALLOCATABLE :: XPLN(:)               
+      REAL*4,            ALLOCATABLE :: PPRESS(:)             
       REAL*4,            ALLOCATABLE :: POBS(:)
       REAL*4,            ALLOCATABLE :: PTAMB(:)
       REAL*4,            ALLOCATABLE :: PH2OMR(:)
@@ -1123,11 +1123,11 @@
             PRES = State_Met%PMID(IJ(1),IJ(2),L_ALT)
          ENDIF
 
-         ! Assign LAT value into global PLAT array
-         PLAT(N)   = LAT
+         ! Assign LAT value into global XPLT array
+         XPLT(N)   = LAT
 
-         ! Assign LON value into global PLON array
-         PLON(N)   = LON
+         ! Assign LON value into global XPLN array
+         XPLN(N)   = LON
 
          ! Assign PRES value into global PPRESS array
          PPRESS(N) = PRES
@@ -2383,17 +2383,17 @@
       ! We have not found a valid point
       FOUND = .FALSE.
 
-      ! Get I corresponding to PLON(IND)
-      I = INT( ( PLON(IND) + 180e+0_fp -
+      ! Get I corresponding to XPLN(IND)
+      I = INT( ( XPLN(IND) + 180e+0_fp -
      &    ( State_Grid%XMinOffset * State_Grid%DX ) ) / State_Grid%DX
      &     + 1.5e+0_fp )
 
       ! Handle date line correctly (bmy, 4/23/04)
       IF ( I > State_Grid%nx ) I = I - State_Grid%NX
 
-      ! Get J corresponding to PLAT(IND)
-      J = INT( ( PLAT(IND) +  90e+0_fp -
-     &    ( State_Grid%YMinOffset * State_Grid%DY ) ) / State_Grid%DY
+      ! Get J corresponding to XPLT(IND)
+      J = INT( ( XPLT(IND) +  90e+0_fp -
+     &    ( State_Grid%YMinOffset * State_Grid%DY ) ) / State_Grid%DY 
      &     + 1.5e+0_fp )
 
       ! Get L corresponding to PRESS(IND)
@@ -2466,8 +2466,8 @@
       ! WRITE_VARS_TO_FILE begins here!
       !=================================================================
 
-      LON_TMP = REAL(PLON(IND),4)
-      LAT_TMP = REAL(PLAT(IND),4)
+      LON_TMP = REAL(XPLN(IND),4)
+      LAT_TMP = REAL(XPLT(IND),4)
 
       ! Skip observations outside the domain
       IF ( LAT_TMP < State_Grid%YMin .OR.
@@ -2494,7 +2494,7 @@
       ! Write data to file
       WRITE( IU_PLANE, 110, IOSTAT=IOS )
      &     IND, PTYPE(IND), INT( PDATE(IND) ), INT( PTIME(IND) ),
-     &     PLAT(IND), PLON(IND), PPRESS(IND), POBS(IND),
+     &     XPLT(IND), XPLN(IND), PPRESS(IND), POBS(IND),
      &     INT( GET_ELAPSED_SEC() / GET_TS_DYN() ),
      &     LL, II, JJ,
      &     ( VARI(I), I=1,NPVAR )
@@ -3001,11 +3001,11 @@
          ALLOCATE( PTAU( MAXPOINTS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
 
-         ALLOCATE( PLAT( MAXPOINTS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLAT' )
+         ALLOCATE( XPLT( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'XPLT' )
 
-         ALLOCATE( PLON( MAXPOINTS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLON' )
+         ALLOCATE( XPLN( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'XPLN' )
 
          ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
@@ -3030,8 +3030,8 @@
       PDATE  = 0e0
       PTIME  = 0e0
       PTAU   = 0e0
-      PLAT   = 0e0
-      PLON   = 0e0
+      XPLT   = 0e0
+      XPLN   = 0e0
       PPRESS = 0e0
       POBS   = 0e0
 
@@ -3068,8 +3068,8 @@
       IF ( ALLOCATED( PDATE  ) ) DEALLOCATE( PDATE  )
       IF ( ALLOCATED( PTIME  ) ) DEALLOCATE( PTIME  )
       IF ( ALLOCATED( PTAU   ) ) DEALLOCATE( PTAU   )
-      IF ( ALLOCATED( PLAT   ) ) DEALLOCATE( PLAT   )
-      IF ( ALLOCATED( PLON   ) ) DEALLOCATE( PLON   )
+      IF ( ALLOCATED( XPLT   ) ) DEALLOCATE( XPLT   )
+      IF ( ALLOCATED( XPLN   ) ) DEALLOCATE( XPLN   )
       IF ( ALLOCATED( PPRESS ) ) DEALLOCATE( PPRESS )
       IF ( ALLOCATED( POBS   ) ) DEALLOCATE( POBS   )
 
