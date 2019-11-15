@@ -4631,7 +4631,7 @@
       ! Read drydep inputs from the netCDF file
       ! Save Olson indices in INDOLSON array, in order to avoid
       ! confusion w/ previously-assigned variable name IOLSON
-!==========!#if defined( GC_CESM )
+!==========!#if defined( MODEL_CESM )
 !==========!      if ( am_I_Root ) then
 !==========!#endif
       CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
@@ -4641,7 +4641,7 @@
      &                         IRAC,      IRGSS,    IRGSO,
      &                         IRCLS,     IRCLO,    IVSMAX,
      &                         RC )
-!==========!#if defined( GC_CESM )
+!==========!#if defined( MODEL_CESM )
 !==========!      end if
 !==========! 
 !==========!#if defined( SPMD )
