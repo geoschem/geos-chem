@@ -34,7 +34,7 @@ MODULE GC_Environment_Mod
   PUBLIC  :: GC_Allocate_All
   PUBLIC  :: GC_Init_StateObj
   PUBLIC  :: GC_Init_Grid
-#if !defined(GC_CESM)
+#if !defined( MODEL_CESM )
   PUBLIC  :: GC_Init_Extra
   PUBLIC  :: GC_Init_Regridding
 #endif
@@ -494,7 +494,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#if !defined(GC_CESM)
+#if !defined( MODEL_CESM )
   SUBROUTINE GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt, &
                             State_Chm, State_Diag, State_Grid, RC )
 !
@@ -975,7 +975,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#if !defined(GC_CESM)
+#if !defined( MODEL_CESM )
   SUBROUTINE GC_Init_Regridding( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
