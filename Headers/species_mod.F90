@@ -239,6 +239,9 @@ CONTAINS
     ! SpcData_Init begins here!
     !=====================================================================
 
+    ! Assume success
+    RC = 0
+
     ! Check if already allocated
     IF ( ASSOCIATED( SpecDB ) ) THEN
        CALL SpcData_Cleanup( SpecDB )
@@ -255,6 +258,22 @@ CONTAINS
     DO N = 1, nSpecies
        NULLIFY( SpecDB(N)%Info )
     ENDDO
+
+    ! Reset counters
+    AdvectCount  = 0
+    AeroCount    = 0
+    DryAltCount  = 0
+    DryDepCount  = 0
+    GasSpcCount  = 0
+    HygGrthCount = 0
+    KppVarCount  = 0
+    KppFixCount  = 0
+    KppSpcCount  = 0
+    PhotolCount  = 0
+    WetDepCount  = 0
+    Hg0Count     = 0
+    Hg2Count     = 0
+    HgPCount     = 0
 
   END SUBROUTINE SpcData_Init
 !EOC

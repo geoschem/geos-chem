@@ -255,6 +255,10 @@ CONTAINS
     ! KPP VAR and FIX arrays.  For simulations that do not use KPP, the
     ! unique species list is the list of advected species from input.geos.
     CALL Unique_Species_Names( am_I_Root, Input_Opt, nSpecies, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+        PRINT*, '### Could not determine species names!'
+        CALL EXIT( -999 )
+    ENDIF
 
     ! Initialize the species vector
     CALL SpcData_Init( am_I_Root, nSpecies, SpcData, RC )
