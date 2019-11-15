@@ -1204,6 +1204,10 @@
       ! Assume success
       RC = GC_SUCCESS
 
+#if defined( MODEL_CESM )
+      RETURN
+#endif
+
       ! Debugging prints local variable
       LPRT = Input_Opt%LPRT .AND. am_I_Root
 
@@ -4985,6 +4989,11 @@
       ! SFCMR_INIT begins here!
       !=================================================================
 
+#if defined( MODEL_CESM )
+      ! Don't use this
+      RETURN
+#else
+
       ! Initialize the SFCMR derived type
       ALLOCATE(SFCMR(MAXSFCMR), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SFCMR' )
@@ -5027,6 +5036,7 @@
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
          END SELECT
       ENDDO
+#endif
 
       END SUBROUTINE SFCMR_INIT
 !EOC
@@ -5400,6 +5410,12 @@
       ALLOCATE(NOXCOEFF(JJNOXCOEFF,UCX_NLEVS,6,12), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXCOEFF' )
       NOXCOEFF = 0.0e+0_fp
+
+#if defined( MODEL_CESM )
+      ! Will fix this... eventually
+      WRITE(6,'(a)') ' --GC UCX CESM--> Skipping NOx data read in'
+      RETURN
+#endif
 
       ! Fill array
       DO IMON  = 1,12
