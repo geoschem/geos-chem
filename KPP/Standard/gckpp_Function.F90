@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Function.f90
-! Time                 : Fri Nov  8 16:46:10 2019
+! Time                 : Fri Nov 15 12:02:37 2019
 ! Working directory    : /n/home08/elundgren/GC/Code.12.7.0_gcc/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -45,12 +45,7 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#if defined( MODEL_GEOS )
 SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
-#else
-SUBROUTINE Fun ( V, F, RCT, Vdot )
-#endif
-
 
 ! V - Concentrations of variable species (local)
   REAL(kind=dp) :: V(NVAR)
@@ -62,9 +57,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   REAL(kind=dp) :: Vdot(NVAR)
 
 
-#if defined( MODEL_GEOS )
   REAL(dp), optional :: Aout(NREACT)
-#endif
 
 ! Computation of equation rates
   A(1) = RCT(1)*V(229)*V(239)
@@ -818,10 +811,8 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   A(749) = RCT(749)*V(86)
   A(750) = RCT(750)*V(89)
 
-#if defined( MODEL_GEOS )
 ! Aout
   if(present(Aout)) Aout(:) = A(:)
-#endif
 
 ! Aggregate function
   Vdot(1) = -A(718)
