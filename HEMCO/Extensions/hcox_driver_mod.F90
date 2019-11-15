@@ -755,9 +755,11 @@ CONTAINS
        ! Skip for GEOS-Chem dry-run or HEMCO standalone dry-run
        !====================================================================
        CALL HCOX_DiagnFill( amIRoot, HcoState, ExtState, RC )
-       ErrMsg = 'Error encountered in "HCOX_DiagnFill_Run"!'
-       CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
-       RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "HCOX_DiagnFill_Run"!'
+          CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
     ENDIF
 

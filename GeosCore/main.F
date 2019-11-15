@@ -2915,14 +2915,13 @@
       WRITE( LUN, 100 ) 'GEOS-CHEM IS IN A DRY RUN MODE!'
       WRITE( LUN, 100 ) 'You will NOT get output for this run!'
       WRITE( LUN, 100 ) '--dry-run is used for checking existence' //
-     &                  ' input files and config correctness.'
+     &                  ' of input files and config correctness.'
       WRITE( LUN, 100 ) 'REMOVE --dry-run FROM COMMAND ONCE CHECK' //
      &                  ' IS PASSED TO RUN GEOS-CHEM PROPER!'
       WRITE( LUN, 100 ) REPEAT( '!', 79 )
-      WRITE( LUN, 110 ) 'Dry run log file       : ',
-     &                  TRIM( Input_Opt%DryRunLog )
-      WRITE( LUN, 120 ) 'Dry run logical unit # : ',
-     &                  Input_Opt%DryRunLUN
+      WRITE( LUN, 110 ) 'Meteorology      : ', TRIM(Input_Opt%MetField )
+      WRITE( LUN, 110 ) 'Grid Resolution  : ', TRIM(State_Grid%GridRes )
+      WRITE( LUN, 110 ) 'Dry run log file : ', TRIM(Input_Opt%DryRunLog)
       WRITE( LUN, 100 ) REPEAT( '!', 79 )
       WRITE( LUN, 100 )
 

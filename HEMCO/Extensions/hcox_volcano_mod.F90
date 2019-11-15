@@ -164,7 +164,7 @@ CONTAINS
     LOGICAL               :: ERR
 
     ! Strings
-    CHARACTER(LEN=255)    :: MSG
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
 
     ! Arrays
     REAL(sp)              :: SO2degas(HcoState%NX,HcoState%NY,HcoState%NZ)
@@ -178,6 +178,9 @@ CONTAINS
     ! HCOX_VOLCANO_RUN begins here!
     !=================================================================
 
+    ! Assume success
+    RC = HCO_SUCCESS
+
     ! Sanity check: return if extension not turned on
     IF ( ExtState%Volcano <= 0 ) RETURN
 
@@ -186,12 +189,17 @@ CONTAINS
                     'HCOX_Volcano_Run (hcox_volcano_mod.F90)', RC           )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Define strings for error messgaes
+    ErrMsg = ''
+    ThisLoc =  &
+    ' -> in HCOX_Volcano_Run (in module HEMCO/Extensions/hcox_volcano_mod.F90)'
+
     ! Get instance
     Inst => NULL()
     CALL InstGet( ExtState%Volcano, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       WRITE(MSG,*) 'Cannot find Volcano instance Nr. ', ExtState%Volcano
-       CALL HCO_Error( HcoState%Config%Err, MSG, RC )
+       WRITE( ErrMsg, * ) 'Cannot find Volcano instance Nr. ', ExtState%Volcano
+       CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -201,69 +209,87 @@ CONTAINS
     !----------------------------------------------
     CALL ReadVolcTable( am_I_Root, HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       MSG = 'Error encountered in "ReadVolcTable"!'
-       CALL HCO_Error( HcoState%Config%Err, MSG, RC )
-       RETURN
-    ENDIF
-
-    !=======================================================================
-    ! Exit if this is a GEOS-Chem dry-run or HEMCO-standalone dry-run
-    !=======================================================================
-    IF ( HcoState%Options%IsDryRun ) THEN
-       Inst => NULL()
-       CALL HCO_LEAVE( HcoState%Config%Err, RC )
+       ErrMsg = 'Error encountered in "ReadVolcTable"!'
+       CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     !=======================================================================
     ! Compute volcano emissions for non dry-run simulations
+    ! (Skip for GEOS-Chem dry-run or HEMCO-standalone dry-run)
     !=======================================================================
+    IF ( .not. HcoState%Options%IsDryRun ) THEN
 
-    ! Emit volcanos into SO2degas and SO2erupt arrays [kg S/m2/s]
-    CALL EmitVolc( am_I_Root, HcoState, ExtState,                            &
-                   Inst,      SO2degas, SO2erupt, RC                        )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+       ! Emit volcanos into SO2degas and SO2erupt arrays [kg S/m2/s]
+       CALL EmitVolc( am_I_Root, HcoState, ExtState,                         &
+                      Inst,      SO2degas, SO2erupt, RC                     )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmitVolc"!'
+          CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-    ! Add eruptive and degassing emissions to emission arrays & diagnostics
-    DO N = 1, Inst%nSpc
+       ! Add eruptive and degassing emissions to emission arrays & diagnostics
+       DO N = 1, Inst%nSpc
 
-       !-------------------------------------------
-       ! Add degassing emissions
-       !-------------------------------------------
+          !-------------------------------------------
+          ! Add degassing emissions
+          !-------------------------------------------
 
-       ! Convert from [kg S/m2/s] to [kg species/m2/s]
-       iFlx = SO2degas * Inst%SpcScl(N)
+          ! Convert from [kg S/m2/s] to [kg species/m2/s]
+          iFlx = SO2degas * Inst%SpcScl(N)
 
-       ! Apply user-defined scaling (if any) for this species
-       CALL HCOX_Scale( am_I_Root, HcoState,                                 &
-                        iFlx,      TRIM(Inst%SpcScalFldNme(N)), RC          )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Apply user-defined scaling (if any) for this species
+          CALL HCOX_Scale( am_I_Root, HcoState,                              &
+                           iFlx,      TRIM(Inst%SpcScalFldNme(N)), RC       )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_Scale (degassing)"!'
+             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
-       ! Add degassing emissions into the HEMCO state
-       CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,                 &
-                         Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,     &
-                         Cat=Inst%CatDegas                                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Add degassing emissions into the HEMCO state
+          CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,              &
+                            Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,  &
+                            Cat=Inst%CatDegas                               )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCO_EmisAdd" (degassing)!'
+             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
-       !-------------------------------------------
-       ! Add eruptive emissions
-       !-------------------------------------------
+          !-------------------------------------------
+          ! Add eruptive emissions
+          !-------------------------------------------
 
-       ! Convert from [kg S/m2/s] to [kg species/m2/s]
-       iFlx = SO2erupt * Inst%SpcScl(N)
+          ! Convert from [kg S/m2/s] to [kg species/m2/s]
+          iFlx = SO2erupt * Inst%SpcScl(N)
 
-       ! Apply user-defined scaling (if any) for this species
-       CALL HCOX_Scale( am_I_Root, HcoState,                                 &
-                        iFlx, TRIM(Inst%SpcScalFldNme(N)), RC               )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Apply user-defined scaling (if any) for this species
+          CALL HCOX_Scale( am_I_Root, HcoState,                              &
+                           iFlx, TRIM(Inst%SpcScalFldNme(N)), RC            )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_Scale" (eruptive"!'
+             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
-       ! Add eruptive emissions to the HEMCO state
-       CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,                 &
-                         Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,     &
-                         Cat=Inst%CatErupt                                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Add eruptive emissions to the HEMCO state
+          CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,              &
+                            Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,  &
+                            Cat=Inst%CatErupt                               )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCO_EmisAdd" (eruptive)!'
+             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
-    ENDDO !N
+       ENDDO !N
+    ENDIF
+
+    !=======================================================================
+    ! Exit
+    !=======================================================================
 
     ! Cleanup
     Inst => NULL()
