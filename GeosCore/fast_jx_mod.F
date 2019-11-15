@@ -2216,6 +2216,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 #if defined( MODEL_CESM )
       ENDIF
 #if defined( SPMD )
+      CALL MPIBCAST( NJX,       1,             MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NW1,       1,             MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NW2,       1,             MPIR8,   0, MPICOM )
       CALL MPIBCAST( WBIN,      Size(WBIN),    MPIR8,   0, MPICOM )
       CALL MPIBCAST( WL,        Size(WL),      MPIR8,   0, MPICOM )
       CALL MPIBCAST( FL,        Size(FL),      MPIR8,   0, MPICOM )
@@ -2363,6 +2366,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       CALL MPIBCAST( RAA,       Size(RAA),     MPIR8,   0, MPICOM )
       CALL MPIBCAST( SAA,       Size(SAA),     MPIR8,   0, MPICOM )
       CALL MPIBCAST( NAA,       1,             MPIINT,  0, MPICOM )
+      CALL MPIBCAST( TITLEAA,   80*A_,         MPICHAR, 0, MPICOM )
 #endif
 #endif
       IF ( am_I_Root ) THEN
