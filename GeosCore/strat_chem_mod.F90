@@ -380,6 +380,7 @@ CONTAINS
     ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
 
+#if !defined( MODEL_CESM )
     !======================-================================================
     ! On first call, establish pointers to data fields read by HEMCO. These
     ! are the stratospheric Bry fields as well as the production/loss rates.
@@ -420,6 +421,7 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
+#endif
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
@@ -446,6 +448,7 @@ CONTAINS
        ! Make note of inital state for determining tendency later
        BEFORE = Spc(:,:,:,id_O3)
 
+#if !defined( MODEL_CESM )
        !--------------------------------------------------------------------
        ! Do chemical production and loss for non-ozone species for
        ! which we have explicit prod/loss rates from UCX/GMI
@@ -612,6 +615,7 @@ CONTAINS
           ENDDO       ! I
        ENDDO          ! J
        !$OMP END PARALLEL DO
+#endif
 
        !--------------------------------------------------------------------
        ! Ozone
@@ -645,6 +649,7 @@ CONTAINS
                                     ( Spc(:,:,:,id_O3) - BEFORE )
        ENDIF
 
+#if !defined( MODEL_CESM )
        !--------------------------------------------------------------------
        ! Reactions with OH
        ! Currently:
@@ -803,6 +808,7 @@ CONTAINS
 
        ENDDO ! NN
        !$OMP END PARALLEL DO
+#endif
 
        ! Free pointers
        Spc => NULL()
