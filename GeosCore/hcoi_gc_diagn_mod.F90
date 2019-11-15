@@ -4639,6 +4639,7 @@ CONTAINS
 #endif
 
     ! Define diagnostics
+#if !defined( EXTERNAL_FORCING )
     IF ( ExtState%GC_POPs > 0 ) THEN
 
        ! HEMCO extension # for POPs
@@ -4816,6 +4817,7 @@ CONTAINS
        ENDDO
 
     ENDIF
+#endif
 
   END SUBROUTINE Diagn_POPs
 !EOC
