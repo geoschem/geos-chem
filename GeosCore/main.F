@@ -2919,6 +2919,8 @@
       WRITE( LUN, 100 ) 'REMOVE --dry-run FROM COMMAND ONCE CHECK' //
      &                  ' IS PASSED TO RUN GEOS-CHEM PROPER!'
       WRITE( LUN, 100 ) REPEAT( '!', 79 )
+      WRITE( LUN, 110 ) 'Simulation       : ',
+     &                   TRIM(Input_Opt%SimulationName)
       WRITE( LUN, 110 ) 'Meteorology      : ', TRIM(Input_Opt%MetField )
       WRITE( LUN, 110 ) 'Grid Resolution  : ', TRIM(State_Grid%GridRes )
       WRITE( LUN, 110 ) 'Dry run log file : ', TRIM(Input_Opt%DryRunLog)
