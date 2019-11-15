@@ -102,7 +102,9 @@ MODULE HCOIO_MESSY_MOD
 !
   USE HCO_FILEDATA_MOD,     ONLY : FileData_ArrCheck
   USE HCO_UNIT_MOD,         ONLY : HCO_IsIndexData
+#if !defined(EXTERNAL_FORCING)
   USE HCO_INTERP_MOD,       ONLY : ModelLev_Interpolate
+#endif
   USE MESSY_NCREGRID_BASE,  ONLY : RG_INT, RG_IDX
   USE MESSY_NCREGRID_BASE,  ONLY : NREGRID
   USE MESSY_NCREGRID_BASE,  ONLY : INIT_NARRAY
@@ -460,7 +462,9 @@ MODULE HCOIO_MESSY_MOD
     ! If these are model levels, do vertical interpolation now
     !-----------------------------------------------------------------
     IF ( ASSOCIATED(ArrOut) ) THEN
+#if !defined(EXTERNAL_FORCING)
        CALL ModelLev_Interpolate( am_I_Root, HcoState, ArrOut, Lct, RC )
+#endif
        IF ( RC /= HCO_SUCCESS ) RETURN
        DEALLOCATE(ArrOut)
     ENDIF

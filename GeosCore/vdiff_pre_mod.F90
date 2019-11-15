@@ -28,7 +28,8 @@ MODULE VDIFF_PRE_MOD
 !
   LOGICAL, PUBLIC      :: LPRT               ! Passes LPRT to vdiff_mod
   LOGICAL, PUBLIC      :: LTURB              ! Passes LTURB to vdiff_mod
-  INTEGER, PUBLIC      :: PCNST              ! Passes N_TRACERS to vdiff_mod
+  INTEGER, PUBLIC      :: PCNST_             ! Passes N_TRACERS to vdiff_mod
+  ! For CESM -- had to renamed PCNST to PCNST_ for CAM namespace conflict
 !
 ! !REVISION HISTORY:
 !  01 Jun 2009 - C. Carouge & J. Lin - Initial version
@@ -180,7 +181,7 @@ CONTAINS
     !=====================================================================
 
     ! Number of advected species
-    PCNST = State_Chm%nAdvect
+    PCNST_ = State_Chm%nAdvect
 
     ! Debug print?
     LPRT  = ( Input_Opt%LPRT .and. am_I_Root )

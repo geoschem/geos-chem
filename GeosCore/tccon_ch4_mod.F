@@ -14,10 +14,12 @@
 !
 ! !USES:
 !
+#if !defined(EXTERNAL_FORCING)
       USE m_netcdf_io_open       ! netCDF open
       USE m_netcdf_io_get_dimlen ! netCDF dimension queries
       USE m_netcdf_io_read       ! netCDF data reads
       USE m_netcdf_io_close      ! netCDF close
+#endif
       USE PRECISION_MOD          ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -94,6 +96,7 @@
 !\\
 ! !INTERFACE:
 !
+#if !defined(EXTERNAL_FORCING)
       SUBROUTINE READ_TCC_CH4_OBS( YYYYMMDD, NTCC )
 !
 ! ! USES:
@@ -455,6 +458,7 @@
       CALL NcCl( fId )
 
       END SUBROUTINE READ_TCC_CH4_OBS
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -669,7 +673,11 @@
 
          ! Read the TCC CH4 file for this month
          YYYYMMDD = 1d4*GET_YEAR() + 1d2*GET_MONTH() + GET_DAY()
-         CALL READ_TCC_CH4_OBS( YYYYMMDD, NTCC )
+         !CALL READ_TCC_CH4_OBS( YYYYMMDD, NTCC )
+         ! CESM
+         ! TODO - TMMF
+         print*, "DIE HERE IN TCOON_CH4_MOD! DEAL WITH READ_TCC_CH4_OBS"
+         CALL EXIT(1)
 
          IF ( FIRST ) FIRST = .FALSE.
 

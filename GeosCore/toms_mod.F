@@ -25,7 +25,9 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: INIT_TOMS
+#if !defined(EXTERNAL_FORCING)
       PUBLIC :: READ_TOMS
+#endif
       PUBLIC :: COMPUTE_OVERHEAD_O3
       PUBLIC :: GET_OVERHEAD_O3
       PUBLIC :: CLEANUP_TOMS
@@ -115,6 +117,7 @@
 !\\
 ! !INTERFACE:
 !
+#if !defined(EXTERNAL_FORCING)
       SUBROUTINE READ_TOMS( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
@@ -279,6 +282,7 @@
       ENDIF
 
       END SUBROUTINE READ_TOMS
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

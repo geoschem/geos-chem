@@ -44,7 +44,9 @@
       PRIVATE :: X_INTERP
       PRIVATE :: SPHERE2
       PRIVATE :: EXTRAL
+#if !defined(EXTERNAL_FORCING)
       PRIVATE :: RD_PROF_NC
+#endif
       PRIVATE :: RD_XXX
       PRIVATE :: RD_AOD
       PRIVATE :: RD_MIE
@@ -1803,7 +1805,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in T & O3 climatology used to fill e.g. upper layers
       ! or if O3 not calc.
       !=====================================================================
-      call RD_PROF_NC( am_I_Root, Input_Opt, RC )
+      !call RD_PROF_NC( am_I_Root, Input_Opt, RC )
+      print*, "DIE HERE. DEAL WITH RD_PROF_NC in FASTJX!!!" ! CESM
+      CALL EXIT(RC)
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -4983,6 +4987,7 @@ C---Always does PL(2) = P[1]
 !\\
 ! !INTERFACE:
 !
+#if !defined(EXTERNAL_FORCING)
       SUBROUTINE RD_PROF_NC( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
@@ -5131,6 +5136,7 @@ C---Always does PL(2) = P[1]
  140  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE RD_PROF_NC
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

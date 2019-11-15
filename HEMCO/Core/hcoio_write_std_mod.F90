@@ -22,7 +22,7 @@ MODULE HCOIO_WRITE_STD_MOD
 
   IMPLICIT NONE
   PRIVATE
-#if !defined(ESMF_)
+#if !defined(ESMF_) && !defined(EXTERNAL_FORCING)
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !

@@ -21,7 +21,8 @@ MODULE VDIFF_MOD
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE PhysConstants                                ! Physical constants
   USE PRECISION_MOD                                ! For GEOS-Chem Precision(fp)
-  USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
+  USE VDIFF_PRE_MOD, ONLY : PCNST_                 ! N_TRACERS
+  ! For CESM - had to rename PCNST to PCNST_ for CAM namespace conflict
   USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
 

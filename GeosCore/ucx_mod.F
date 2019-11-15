@@ -23,18 +23,18 @@
       USE PhysConstants       ! Physical constants
       USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
-!#if !defined(ESMF_)
+#if !defined(ESMF_) && !defined(EXTERNAL_FORCING)
       ! NcdfUtil modules for netCDF I/O
       USE m_netcdf_io_open                    ! netCDF open
       USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
       USE m_netcdf_io_read                    ! netCDF data reads
       USE m_netcdf_io_close                   ! netCDF close
-!#endif
+#endif
 
       IMPLICIT NONE
-!#if !defined(ESMF_)
+#if !defined(ESMF_) && !defined(EXTERNAL_FORCING)
 #     include "netcdf.inc"
-!#endif
+#endif
 
       PRIVATE
 
@@ -136,7 +136,7 @@
       INTEGER,  PARAMETER           :: I_SPA=2
       INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
 
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if ( defined( ESMF_ ) && defined(EXTERNAL_FORCING) ) || defined( MODEL_WRF )
       ! Never use NETCDF in ESMF environment (ckeller, 12/05/14).
       ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not
       ! preprocessed for external grid (hplin, 8/15/18).
@@ -1604,7 +1604,7 @@
       ! GET_MONTREAL_NCDF begins here!
       !=================================================================
 
-#if !defined(ESMF_)
+#if !defined(ESMF_) || !defined(EXTERNAL_FORCING)
       ! Read direct from master file
       FILENAME = TRIM(MONTREAL_FILE_ROOT)
 
