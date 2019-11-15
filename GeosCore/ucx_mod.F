@@ -528,7 +528,10 @@
       LPRT      = Input_Opt%LPRT
 
 #if defined( MODEL_CESM )
-      WRITE(6,'(a)') 'UCX_NOX NOT YET IMPLEMENTED FOR CESM'
+      IF (Input_Opt%rootCPU.and.(LASTMONTH==0)) THEN
+          WRITE(6,'(a)') 'UCX_NOX NOT YET IMPLEMENTED FOR CESM'
+      ENDIF
+      LASTMONTH=1
       RETURN
 #endif
 
