@@ -897,7 +897,7 @@
 
       ENDIF
 
-#if ( !defined( ESMF_ ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS )
+#if ( !defined( ESMF_ ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS ) || defined( MODEL_CESM )
       ! Echo info to std output (skip if interfacing with external models)
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
