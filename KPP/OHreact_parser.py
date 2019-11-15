@@ -7,8 +7,8 @@
 # The generated code snipped can then be inserted into one of the Fortran
 # modules, e.g. gckpp_Util.F90.
 #
-# Usage: 
-# python OHreact_parser.py 
+# Usage:
+# python OHreact_parser.py
 #
 # Revision History:
 # 2018-06-18 - christoph.a.keller@nasa.gov - initial version
@@ -70,7 +70,7 @@ ntot = 0
 # get all lines with a reaction
 rxt = [i for i in lines if '-->' in i]
 
-# walk through all reactions 
+# walk through all reactions
 irct = 0
 for irxt in rxt:
     irct += 1
