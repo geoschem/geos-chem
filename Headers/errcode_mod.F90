@@ -63,6 +63,9 @@ CONTAINS
 !
 ! !USES:
 !
+#if defined( MODEL_CESM )
+    USE ERROR_MOD,   ONLY : ERROR_STOP
+#endif
     USE Charpak_Mod, ONLY : WordWrapPrint
 !
 ! !INPUT PARAMETERS:
@@ -117,6 +120,10 @@ CONTAINS
 
     ! Force the message to be flushed to the log file
     CALL Flush( 6 )
+
+#if defined( MODEL_CESM )
+    CALL ERROR_STOP( TRIM(Message), 'UNKNOWN' )
+#endif
 
     ! Return with failure, but preserve existing error code
     IF ( RC == GC_SUCCESS ) THEN
