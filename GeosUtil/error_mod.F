@@ -612,6 +612,8 @@
       !-----------------------------------------------------------------
       USE MAPL_Mod
 #     include "MAPL_Generic.h"
+#elif defined( MODEL_CESM )
+      USE CAM_ABORTUTILS,     ONLY : ENDRUN
 #endif
 !
 ! !REVISION HISTORY:
@@ -650,6 +652,8 @@
       CALL GEOS_Timer_PrintAll( am_I_Root, RC )
 #endif
 
+#elif defined( MODEL_CESM )
+      CALL ENDRUN('GEOS-Chem failure!')
 
 #else
       ! Only write to stdout if we are on the root CPU
