@@ -1660,18 +1660,23 @@ CONTAINS
    ! (For regular simulations, also exit if we can't find the file.)
    IF ( HcoState%Options%IsDryRun ) THEN
       IF ( am_I_Root ) THEN
-         WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
-                                                  TRIM( FileName )
- 100     FORMAT( a, ' ', a )
+         IF ( FileExists ) THEN
+            WRITE( HcoState%Options%DryRunLUN, 300 ) TRIM( FileName )
+ 300        FORMAT( a )
+         ELSE
+            WRITE( HcoState%Options%DryRunLUN, 300 ) TRIM( FileName )
+ 310        FORMAT( 'NOT FOUND: ', a )
+         ENDIF
       ENDIF
       RETURN
    ELSE
       IF ( am_I_Root ) THEN
-         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+         WRITE( MSG, 320 ) TRIM( FileMsg ), TRIM( FileName )
+ 320     FORMAT( a, ' ', a )
          CALL HCO_MSG(HcoState%Config%Err,MSG)
       ENDIF
       IF ( .not. FileExists ) THEN
-         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+         WRITE( MSG, 320 ) TRIM( FileMsg ), TRIM( FileName )
          CALL HCO_ERROR(HcoState%Config%Err, MSG, HMRC )
          IF ( PRESENT( RC ) ) RC = HMRC
          RETURN
@@ -1966,18 +1971,23 @@ CONTAINS
    ! (For regular simulations, also exit if we can't find the file.)
    IF ( HcoState%Options%IsDryRun ) THEN
       IF ( am_I_Root ) THEN
-         WRITE( HcoState%Options%DryRunLUN, 100 ) TRIM( FileMsg  ),         &
-                                                  TRIM( FileName )
- 100     FORMAT( a, ' ', a )
+         IF ( FileExists ) THEN
+            WRITE( HcoState%Options%DryRunLUN, 300 ) TRIM( FileName )
+ 300        FORMAT( a )
+         ELSE
+            WRITE( HcoState%Options%DryRunLUN, 310 ) TRIM( FileName )
+ 310        FORMAT( 'NOT FOUND: ', a )
+         ENDIF
       ENDIF
       RETURN
    ELSE
       IF ( am_I_Root ) THEN
-         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+         WRITE( MSG, 320 ) TRIM( FileMsg ), TRIM( FileName )
+ 320     FORMAT( a, ' ', a )
          CALL HCO_MSG(HcoState%Config%Err,MSG)
       ENDIF
       IF ( .not. FileExists ) THEN
-         WRITE( MSG, 100 ) TRIM( FileMsg ), TRIM( FileName )
+         WRITE( MSG, 320 ) TRIM( FileMsg ), TRIM( FileName )
          CALL HCO_ERROR(HcoState%Config%Err, MSG, RC )
          RETURN
       ENDIF

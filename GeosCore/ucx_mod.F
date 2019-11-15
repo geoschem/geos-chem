@@ -5121,16 +5121,20 @@
          ! Print a message for either dry-run or normal run
          IF ( Input_Opt%DryRun ) THEN
             IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
-     &                                           TRIM( FileName )
+               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileName )
+ 300           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
+ 310           FORMAT( 'NOT FOUND: ', a )
             ENDIF
+
             RETURN
          ELSE
             IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+               WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( FileName )
+ 320           FORMAT( a, ' ', a )
             ENDIF
          ENDIF
- 300     FORMAT( a, ' ', a )
 
          !--------------------------------------------------------------
          ! Read data from the file
@@ -5435,19 +5439,15 @@
                ! Test if the file exists
                INQUIRE( FILE=TRIM( NOx_File ), EXIST=FileExists )
 
-               ! Test if the file exists and define an output string
-               IF ( FileExists ) THEN
-                  FileMsg = 'UCX (NOXCOEFF_INIT): Opening'
-               ELSE
-                  FileMsg =
-     &               'UCX (NOXCOEFF_INIT):  REQUIRED FILE NOT FOUND'
-               ENDIF
-
-               ! Print a message for either dry-run or normal run
+               ! Print a message for either dry-run
                IF ( Input_Opt%AmIRoot ) THEN
-                  WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
-     &                                              TRIM( NOx_File )
- 300              FORMAT( a, ' ', a )
+                  IF ( FileExists ) THEN
+                     WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( NOx_File )
+ 300                 FORMAT( a )
+                  ELSE
+                     WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NOx_File )
+ 310                 FORMAT( 'NOT FOUND: ', a )
+                  ENDIF
                ENDIF
             ENDDO
          ENDDO
@@ -5514,8 +5514,8 @@
 
          ! Print the name of the file being read to stdout (bmy, 10/23/19)
          IF ( am_I_Root ) THEN
-            WRITE( 6, 310 ) TRIM( NOx_File )
- 310        FORMAT( 'UCX (NOXCOEFF_INIT): Reading ', a )
+            WRITE( 6, 320 ) TRIM( NOx_File )
+ 320        FORMAT( 'UCX (NOXCOEFF_INIT): Reading ', a )
          ENDIF
 
          OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS)
@@ -5860,18 +5860,15 @@
                FileName = Montreal_File_Root
             ENDIF
 
-            ! Test if the file exists and define an output string
-            IF ( File_Exists( FileName ) ) THEN
-               FileMsg = 'UCX (INIT_UCX): Reading'
-            ELSE
-               FileMsg = 'UCX (Init_UCX): REQUIRED FILE NOT FOUND'
-            ENDIF
-
-            ! Print a message for either dry-run or normal run
+            ! Print a message for either dry-run
             IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 )
-     &              TRIM( FileMsg ), TRIM( FileName )
- 300           FORMAT( a, ' ', a )
+               IF ( File_Exists( FileName ) ) THEN
+                  WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileName )
+ 300              FORMAT( a )
+               ELSE
+                  WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
+ 310              FORMAT( 'NOT FOUND: ', a )
+               ENDIF
             ENDIF
          ENDDO
 
@@ -5883,9 +5880,9 @@
       ! For regular simulations, read data from files
       !=================================================================
       IF ( am_I_Root ) THEN
-         WRITE( 6, 310 ) TRIM( NOON_FILE_ROOT     )
-         WRITE( 6, 310 ) TRIM( MONTREAL_FILE_ROOT )
- 310     FORMAT( 'UCX (INIT_UCX): Reading ', a )
+         WRITE( 6, 320 ) TRIM( NOON_FILE_ROOT     )
+         WRITE( 6, 320 ) TRIM( MONTREAL_FILE_ROOT )
+ 320     FORMAT( 'UCX (INIT_UCX): Reading ', a )
       ENDIF
 
       IF ( LPRT ) THEN

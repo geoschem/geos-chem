@@ -2024,7 +2024,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       REAL(fp)           :: QQ2(199)
 
       ! Strings
-      CHARACTER(LEN=255) :: FileMsg, ErrMsg, ThisLoc
+      CHARACTER(LEN=255) :: FileMsg, FileStatus
+      CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
       CHARACTER(LEN=78)  :: TITLE0
       CHARACTER(LEN=6 )  :: TITLEJ2, TITLEJ3
       CHARACTER(LEN=1 )  :: TSTRAT
@@ -2044,30 +2045,35 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       ! Test if the file exists and define an output string
       IF ( FileExists ) THEN
-         FileMsg = 'FAST-JX (RD_XXX): Opening'
+         FileMsg    = 'FAST-JX (RD_XXX): Opening'
       ELSE
-         FileMsg = 'FAST-JX (RD_XXX): REQUIRED FILE NOT FOUND'
+         FileMsg    = 'FAST-JX (RD_XXX): REQUIRED FILE NOT FOUND'
       ENDIF
 
       ! Print a message for either dry-run or normal run
       ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg ),
-     &                                        TRIM( NamFil )
+            IF ( FileExists ) THEN
+               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( NamFil )
+ 300           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
+ 310           FORMAT( 'NOT FOUND: ', a )
+            ENDIF
          ENDIF
          RETURN
       ELSE
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( NamFil )
+ 320        FORMAT( a, ' ', a )
          ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( NamFil )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
       ENDIF
- 300  FORMAT( a, ' ', a )
 
       !=================================================================
       ! RD_XXX begins here!
@@ -2363,21 +2369,26 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg ),
-     &                                        TRIM( NamFil  )
+            IF ( FileExists ) THEN
+               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( NamFil )
+ 300           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
+ 310           FORMAT( 'NOT FOUND: ', a )
+            ENDIF
          ENDIF
          RETURN
       ELSE
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( NamFil )
+ 320        FORMAT( a, ' ', a )
          ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( NamFil )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
       ENDIF
- 300  FORMAT( a, ' ', a )
 
       !=================================================================
       ! RD_MIE begins here -- read data from file
@@ -2573,21 +2584,26 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          ! (For regular simulations, also exit if we can't find the file.)
          IF ( Input_Opt%DryRun ) THEN
             IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
-     &                                           TRIM( ThisFile )
+               IF ( FileExists ) THEN
+                  WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( ThisFile )
+ 300              FORMAT( a )
+               ELSE
+                  WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( ThisFile )
+ 310              FORMAT( 'NOT FOUND: ', a )
+               ENDIF
             ENDIF
             CYCLE
          ELSE
             IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+               WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( ThisFile )
+ 320           FORMAT( a, ' ', a )
             ENDIF
             IF ( .not. FileExists ) THEN
-               WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+               WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( ThisFile )
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
          ENDIF
- 300     FORMAT( a, ' ', a )
 
          !--------------------------------------------------------------
          ! If not a dry-run, read data from each species file
@@ -2986,21 +3002,26 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg ),
-     &                                        TRIM( NamFil  )
+            IF ( FileExists ) THEN
+               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( NamFil )
+ 300           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
+ 310           FORMAT( 'NOT FOUND: ', a )
+            ENDIF
          ENDIF
          RETURN
       ELSE
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( NamFil )
+ 320        FORMAT( a, ' ', a )
          ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( NamFil )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
       ENDIF
- 300  FORMAT( a, ' ', a )
 
       !=================================================================
       ! Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
@@ -5060,21 +5081,26 @@ C---Always does PL(2) = P[1]
       ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg ),
-     &                                        TRIM( nc_path )
+            IF ( FileExists ) THEN
+               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( nc_path )
+ 300           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( nc_path )
+ 310           FORMAT( 'NOT FOUND: ', a )
+            ENDIF
          ENDIF
          RETURN
       ELSE
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( nc_path )
+ 320        FORMAT( a, ' ', a )
          ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( nc_path )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
       ENDIF
- 300  FORMAT( a, ' ', a )
 
       !=========================================================================
       ! Open and read data from the netCDF file

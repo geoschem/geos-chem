@@ -354,9 +354,9 @@ CONTAINS
                      'and time (incl. time range flag) in the config. file'
                 CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
 
-                ! Write "Required file not found"
+                ! Write to dry-run log (NOT FOUND)
                 WRITE( dryRunLUN, 102 ) TRIM( srcFile )
- 102            FORMAT( 'HEMCO: REQUIRED FILE NOT FOUND ', a )
+ 102            FORMAT( 'NOT FOUND: ', a )
 
              ! If MustFind flag is not enabled, ignore this field and return
              ! with a warning.
@@ -367,10 +367,8 @@ CONTAINS
                      TRIM(Lct%Dct%cName)
                 CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
 
-                ! Write "Optional file not found"
-                WRITE( dryRunLUN, 104 ) TRIM( srcFile )
- 104            FORMAT( 'HEMCO: OPTIONAL FILE NOT FOUND ', a )
-
+                ! Write to dry-run log (NOT FOUND)
+                WRITE( dryRunLUN, 102 ) TRIM( srcFile )
              ENDIF
 
           ! Not range or exact
@@ -381,12 +379,12 @@ CONTAINS
                   'and time (incl. time range flag) in the config. file'
              CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
 
-             ! Write "Required file not found"
+             ! Write to dry-run log (NOT FOUND)
              WRITE( dryRunLUN, 102 ) TRIM( srcFile )
           ENDIF
        ELSE
-          ! Write "Opening..."
-          WRITE( dryRunLUN, 100 ) TRIM( srcFile )
+          ! Write to dry-run log
+          WRITE( dryRunLUN, '(a)' ) TRIM( srcFile )
        ENDIF
 
        ! It is safe to leave now, we do not need to handle opening the file.

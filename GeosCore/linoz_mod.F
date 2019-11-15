@@ -1191,21 +1191,26 @@
       ! (For regular simulations, also exit if we can't find the file.)
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileMsg  ),
-     &                                        TRIM( FileName )
+            IF ( FileExists ) THEN
+               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileName )
+ 300           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
+ 310           FORMAT( 'NOT FOUND: ', a )
+            ENDIF
          ENDIF
          RETURN
       ELSE
          IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( FileName )
+ 320        FORMAT( a, ' ', a )
          ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( FileName )
+            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( FileName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
       ENDIF
- 300  FORMAT( a, ' ', a )
 
       !=================================================================
       ! Read climatological data from the LINOZ lookup tables
