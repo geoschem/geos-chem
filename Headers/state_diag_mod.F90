@@ -147,6 +147,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
      REAL(f4),  POINTER :: JNoonFrac       (:,:    ) ! Frac of when it was noon
      REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
+     REAL(f4),  POINTER :: OHreactivity    (:,:,:  ) ! OH reactivity
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:,:) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:,:) ! Direct UV flux per bin
      REAL(f4),  POINTER :: UVFluxNet       (:,:,:,:) ! Net UV flux per bin
@@ -160,6 +161,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_JNoon
      LOGICAL :: Archive_JNoonFrac
      LOGICAL :: Archive_RxnRates
+     LOGICAL :: Archive_OHreactivity
      LOGICAL :: Archive_UVFluxDiffuse
      LOGICAL :: Archive_UVFluxDirect
      LOGICAL :: Archive_UVFluxNet
@@ -177,14 +179,12 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: O3concAfterChem (:,:,:  ) ! O3
      REAL(f4),  POINTER :: RO2concAfterChem(:,:,:  ) ! RO2
      REAL(f4),  POINTER :: CH4pseudoFlux   (:,:    ) ! CH4 pseudo-flux
-     REAL(f4),  POINTER :: OHreactivity    (:,:,:  ) ! OH reactivity
      REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
      LOGICAL :: Archive_JValIndiv
      LOGICAL :: Archive_RxnRconst
      LOGICAL :: Archive_O3concAfterChem
      LOGICAL :: Archive_RO2concAfterChem
      LOGICAL :: Archive_CH4pseudoFlux
-     LOGICAL :: Archive_OHreactivity
      LOGICAL :: Archive_KppError
 #endif
 
@@ -849,6 +849,7 @@ CONTAINS
     State_Diag%JNoon                               => NULL()
     State_Diag%JNoonFrac                           => NULL()
     State_Diag%RxnRates                            => NULL()
+    State_Diag%OHreactivity                        => NULL()
     State_Diag%UVFluxDiffuse                       => NULL()
     State_Diag%UVFluxDirect                        => NULL()
     State_Diag%UVFluxNet                           => NULL()
@@ -862,6 +863,7 @@ CONTAINS
     State_Diag%Archive_JNoon                       = .FALSE.
     State_Diag%Archive_JNoonFrac                   = .FALSE.
     State_Diag%Archive_RxnRates                    = .FALSE.
+    State_Diag%Archive_OHreactivity                = .FALSE.
     State_Diag%Archive_UVFluxDiffuse               = .FALSE.
     State_Diag%Archive_UVFluxDirect                = .FALSE.
     State_Diag%Archive_UVFluxNet                   = .FALSE.
@@ -878,14 +880,12 @@ CONTAINS
     State_Diag%O3concAfterChem                     => NULL()
     State_Diag%RO2concAfterChem                    => NULL()
     State_Diag%CH4pseudoflux                       => NULL()
-    State_Diag%OHreactivity                        => NULL()
     State_Diag%KppError                            => NULL()
     State_Diag%Archive_JValIndiv                   = .FALSE.
     State_Diag%Archive_RxnRconst                   = .FALSE.
     State_Diag%Archive_O3concAfterChem             = .FALSE.
     State_Diag%Archive_RO2concAfterChem            = .FALSE.
     State_Diag%Archive_CH4pseudoflux               = .FALSE.
-    State_Diag%Archive_OHreactivity                = .FALSE.
     State_Diag%Archive_KppError                    = .FALSE.
 #endif
 
@@ -2485,6 +2485,25 @@ CONTAINS
 #endif
 
        !--------------------------------------------------------------------
+       ! OH reactivity
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%OHreactivity'
+       diagID  = 'OHreactivity'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%OHreactivity( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%OHreactivity = 0.0_f4
+          State_Diag%Archive_OHreactivity = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%OHreactivity,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
        !
        ! NOTE: Dimension array nPhotol+2 to archive special photolysis
@@ -2963,25 +2982,6 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! OH reactivity
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%OH_reactivity'
-       diagID  = 'OH_reactivity'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%OHreactivity( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%OHreactivity = 0.0_f4
-          State_Diag%Archive_OHreactivity = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%OHreactivity,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
        ! KPP error flag
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%KppError'
@@ -3066,6 +3066,8 @@ CONTAINS
                 diagID = 'BetaNO'
              CASE( 25 )
                 diagID = 'TotalBiogenicOA'
+             CASE( 26 )
+                diagID = 'OHreactivity'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -6842,6 +6844,13 @@ CONTAINS
        State_Diag%RxnRates => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%OHreactivity ) ) THEN
+       DEALLOCATE( State_Diag%OHreactivity, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%OHreactivity', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%OHreactivity => NULL()
+    ENDIF
+
 #if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%RxnRconst ) ) THEN
        DEALLOCATE( State_Diag%RxnRconst, STAT=RC )
@@ -7392,13 +7401,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%CH4pseudoFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%CH4pseudoflux => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%OHreactivity ) ) THEN
-       DEALLOCATE( State_Diag%OHreactivity, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%OH_reactivity', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%OHreactivity => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
@@ -8529,6 +8531,11 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OHREACTIVITY' ) THEN
+       IF ( isDesc    ) Desc  = 'OH reactivity'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'UVFLUXDIFFUSE' ) THEN
        IF ( isDesc    ) Desc  = 'Diffuse UV flux in bin'
        IF ( isUnits   ) Units = 'W m-2'
@@ -8754,11 +8761,6 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'OH_REACTIVITY' ) THEN
-       IF ( isDesc    ) Desc  = 'OH_reactivity'
-       IF ( isUnits   ) Units = 's-1'
-       IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
        IF ( isDesc    ) Desc  = 'KppError'

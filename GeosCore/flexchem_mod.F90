@@ -106,9 +106,7 @@ CONTAINS
     USE GCKPP_Global
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
-#ifdef MODEL_GEOS
     USE GcKPP_Util,           ONLY : Get_OHreactivity
-#endif
     USE GEOS_Timers_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
@@ -205,10 +203,9 @@ CONTAINS
     LOGICAL                :: DO_HETCHEM
     LOGICAL                :: DO_PHOTCHEM
 
-#ifdef MODEL_GEOS
     ! OH reactivity
-    LOGICAL                :: DoOHreact
     REAL(fp)               :: OHreact
+#ifdef MODEL_GEOS
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
 #endif
 
@@ -260,6 +257,7 @@ CONTAINS
     IF ( State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF ( State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
     IF ( State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
+    IF ( State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
 
     ! Keep track of the boxes where it is local noon in the JNoonFrac
     ! diagnostic. When time-averaged, this will be the fraction of time
@@ -278,13 +276,6 @@ CONTAINS
 
     ! testing only
     IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRates(:,:,:,:) = 0.0
-
-    ! OH reactivity
-    DoOHreact = .FALSE.
-    IF ( State_Diag%Archive_OHreactivity ) THEN
-       DoOHreact = .TRUE.
-       State_Diag%OHreactivity(:,:,:) = 0.0
-    ENDIF
 #endif
 
     !=======================================================================
@@ -589,8 +580,9 @@ CONTAINS
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE  ( Vloc,     Aout,     OHreact                            )&
+    !$OMP PRIVATE  ( Vloc,     Aout                                         )&
 #endif
+    !$OMP PRIVATE  ( OHreact                                                )&
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
@@ -1059,18 +1051,16 @@ CONTAINS
 
        ENDIF
 
-#ifdef MODEL_GEOS
        !==============================================================
        ! Write out OH reactivity
        ! The OH reactivity is defined here as the inverse of its life-
        ! time. In a crude ad-hoc approach, manually add all OH reactants
        ! (ckeller, 9/20/2017)
        !==============================================================
-       IF ( DoOHreact ) THEN
+       IF ( State_Diag%Archive_OHreactivity ) THEN
           CALL Get_OHreactivity ( C, RCONST, OHreact )
           State_Diag%OHreactivity(I,J,L) = OHreact
        ENDIF
-#endif
 
     ENDDO
     ENDDO
