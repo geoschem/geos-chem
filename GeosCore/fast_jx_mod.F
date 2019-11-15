@@ -18,6 +18,10 @@
 !
       USE CMN_FJX_MOD
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+#if defined( MODEL_CESM ) && defined( SPMD )
+      USE MPISHORTHAND
+      USE SPMD_UTILS
+#endif
 
       IMPLICIT NONE
 
@@ -1683,6 +1687,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE inquireMod,     ONLY : findFreeLUN
+#if defined( MODEL_CESM )
+      USE UNITS,          ONLY : freeUnit
+#endif
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
@@ -1762,11 +1769,26 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          endif
       ENDIF
 
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
       ! Get a free LUN
       JXUNIT = findFreeLUN()
+#if defined( MODEL_CESM )
+      ELSE
+      JXUNIT = 0
+      ENDIF
+#endif
 
+
+#if !defined( MODEL_CESM )
       ! Define data directory for FAST-JX input
       DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
+#else
+      ! Hardwired for now (tmmf, 11/15/19)
+      DATA_DIR = '/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/' //
+     &  'data/ExtData/CHEM_INPUTS/FAST_JX/v2019-06/'
+#endif
 
       !=====================================================================
       ! Read in fast-J X-sections (spectral data)
@@ -1805,9 +1827,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in T & O3 climatology used to fill e.g. upper layers
       ! or if O3 not calc.
       !=====================================================================
-      !call RD_PROF_NC( am_I_Root, Input_Opt, RC )
-      print*, "DIE HERE. DEAL WITH RD_PROF_NC in FASTJX!!!" ! CESM
-      CALL EXIT(RC)
+      call RD_PROF_NC( am_I_Root, Input_Opt, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1902,6 +1922,10 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
             ENDIF
          ENDIF
       ENDDO
+
+#if defined( MODEL_CESM )
+      CALL freeUnit(JXUnit)
+#endif
 
 #ifdef MODEL_GEOS
       ! Diagnostics arrays
@@ -2002,6 +2026,9 @@ c >>>> W_ = 12 <<<< means trop-only, discard WL #1-4 and #9-10, some X-sects
  300     FORMAT( 'FAST-JX (RD_XXX): Reading ', a )
       ENDIF
 
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
       ! Open file
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
       read (NUN,100) TITLE0
@@ -2188,6 +2215,23 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       endif
 
       close(NUN)
+#if defined( MODEL_CESM )
+      ENDIF
+#if defined( SPMD )
+      CALL MPIBCAST( WBIN,      Size(WBIN),    MPIR8,   0, MPICOM )
+      CALL MPIBCAST( WL,        Size(WL),      MPIR8,   0, MPICOM )
+      CALL MPIBCAST( FL,        Size(FL),      MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QO2,       Size(QO2),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QO3,       Size(QO3),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( Q1D,       Size(Q1D),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QQQ,       Size(QQQ),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QRAYL,     Size(QRAYL),   MPIR8,   0, MPICOM )
+      CALL MPIBCAST( TQQ,       Size(TQQ),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( LQQ,       Size(LQQ),     MPIINT,  0, MPICOM )
+      CALL MPIBCAST( TITLEJX,   X_*6,          MPICHAR, 0, MPICOM )
+      CALL MPIBCAST( SQQ,       X_*1,          MPICHAR, 0, MPICOM )
+#endif
+#endif
 
   100 format(a)
   101 format(10x,5i5)
@@ -2270,6 +2314,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
  300     FORMAT( 'FAST-JX (RD_MIE): Reading ', a )
       ENDIF
 
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
       ! Open file
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
@@ -2309,7 +2356,17 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ENDIF
 
       close(NUN)
-
+#if defined( MODEL_CESM )
+      ENDIF
+#if defined( SPMD )
+      CALL MPIBCAST( QAA,       Size(QAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( WAA,       Size(WAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( PAA,       Size(PAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( RAA,       Size(RAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( SAA,       Size(SAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NAA,       1,             MPIINT,  0, MPICOM )
+#endif
+#endif
       IF ( am_I_Root ) THEN
          write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):'
      &             ,(WAA(K,1),K=1,5)
@@ -2418,8 +2475,14 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
 
+#if !defined( MODEL_CESM )
       ! Define data directory for FAST-JX input
       DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
+#else
+      ! Hardwired for now (tmmf, 11/15/19)
+      DATA_DIR = '/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/' //
+     &  'data/ExtData/CHEM_INPUTS/FAST_JX/v2019-06/'
+#endif
 
       ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
       DATA SPECFIL /"so4.dat","soot.dat","org.dat",
@@ -2457,6 +2520,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
  300      FORMAT( 'FAST-JX (RD_AOD): Reading ', a )
        ENDIF
 
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
        ! Open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
 
@@ -2497,7 +2563,27 @@ c---TROP-QUICK  (must scale solar flux for W=5)
        ENDIF
        ! Close file
        CLOSE( NJ1 )
+#if defined( MODEL_CESM )
+       ENDIF
+#endif
       ENDDO
+
+#if defined( MODEL_CESM ) && defined( SPMD )
+      CALL MPIBCAST( WVAA,      Size(WVAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( RHAA,      Size(RHAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NRLAA,     Size(NRLAA),    MPIR8,   0, MPICOM )
+      CALL MPIBCAST( NCMAA,     Size(NCMAA),    MPIR8,   0, MPICOM )
+      CALL MPIBCAST( RDAA,      Size(RDAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( RWAA,      Size(RWAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( SGAA,      Size(SGAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( QQAA,      Size(QQAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( ALPHAA,    Size(ALPHAA),   MPIR8,   0, MPICOM )
+      CALL MPIBCAST( REAA,      Size(REAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( SSAA,      Size(SSAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( ASYMAA,    Size(ASYMAA),   MPIR8,   0, MPICOM )
+      CALL MPIBCAST( PHAA,      Size(PHAA),     MPIR8,   0, MPICOM )
+      CALL MPIBCAST( IWV1000,   1,              MPIINT,  0, MPICOM )
+#endif
 
       IF ( am_I_Root ) THEN
          WRITE( 6, * ) 'Optics read for all wavelengths successfully'
@@ -2852,6 +2938,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
  300     FORMAT( 'FAST-JX (RD_JS_JX): Reading ', a )
       ENDIF
 
+#if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
+#endif
       ! Open file
       open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
@@ -2881,6 +2970,17 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       enddo
 
  20   close(NUNIT)
+#if defined( MODEL_CESM )
+      ENDIF
+#if defined( SPMD )
+      CALL MPIBCAST( JLABEL,    JVN_*50,       MPICHAR, 0, MPICOM )
+      CALL MPIBCAST( JFACTA,    JVN_,          MPIR8,   0, MPICOM )
+      CALL MPIBCAST( JMAP,      JVN_*6,        MPICHAR, 0, MPICOM )
+      CALL MPIBCAST( NRATJ,     1,             MPIINT,  0, MPICOM )
+      CALL MPIBCAST( RNAMES,    JVN_*10,       MPICHAR, 0, MPICOM )
+      CALL MPIBCAST( BRANCH,    JVN_,          MPIINT,  0, MPICOM )
+#endif
+#endif
 
 c---Zero / Set index arrays that map Jvalue(j) onto rates
       do K = 1,NRATJ
@@ -4987,16 +5087,28 @@ C---Always does PL(2) = P[1]
 !\\
 ! !INTERFACE:
 !
-#if !defined(EXTERNAL_FORCING)
       SUBROUTINE RD_PROF_NC( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
+#if defined( MODEL_CESM )
+      USE CAM_PIO_UTILS,     ONLY : CAM_PIO_OPENFILE
+      USE IOFILEMOD,         ONLY : GETFIL
+      USE PIO,               ONLY : PIO_CLOSEFILE
+      USE PIO,               ONLY : PIO_INQ_DIMID
+      USE PIO,               ONLY : PIO_INQ_DIMLEN
+      USE PIO,               ONLY : PIO_INQ_VARID
+      USE PIO,               ONLY : PIO_GET_VAR
+      USE PIO,               ONLY : PIO_NOERR
+      USE PIO,               ONLY : PIO_NOWRITE
+      USE PIO,               ONLY : FILE_DESC_T
+#else
       ! Modules for netCDF read
       USE m_netcdf_io_open
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -5029,6 +5141,10 @@ C---Always does PL(2) = P[1]
 !
       ! netCDF file handle
       INTEGER            :: fId                 ! netCDF file ID
+#if defined( MODEL_CESM )
+      type(FILE_DESC_T)  :: ncid
+      INTEGER            :: vId, iret
+#endif
 
       ! Character strings
       CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
@@ -5064,7 +5180,11 @@ C---Always does PL(2) = P[1]
       ENDIF
 
       ! Open netCDF file
+#if defined( MODEL_CESM )
+      CALL CAM_PIO_OPENFILE( ncid, TRIM(nc_path), PIO_NOWRITE )
+#else
       CALL Ncop_Rd( fId, TRIM(nc_path) )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
@@ -5083,6 +5203,10 @@ C---Always does PL(2) = P[1]
       ! Read T from file
       st3d   = (/  1,  1,  1 /)
       ct3d   = (/ 51, 18, 12 /)
+#if defined( MODEL_CESM )
+      iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+      iret = PIO_GET_VAR(   ncid, vid, TREF          )
+#else
       CALL NcRd( TREF, fId, TRIM(v_name), st3d, ct3d )
 
       ! Read the T:units attribute
@@ -5093,6 +5217,7 @@ C---Always does PL(2) = P[1]
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
+#endif
 
       !----------------------------------------
       ! VARIABLE: O3
@@ -5104,6 +5229,10 @@ C---Always does PL(2) = P[1]
       ! Read O3 from file
       st3d   = (/  1,  1,  1 /)
       ct3d   = (/ 51, 18, 12 /)
+#if defined( MODEL_CESM )
+      iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+      iret = PIO_GET_VAR(   ncid, vid, OREF          )
+#else
       CALL NcRd( OREF, fId, TRIM(v_name), st3d, ct3d )
 
       ! Read the O3:units attribute
@@ -5114,13 +5243,18 @@ C---Always does PL(2) = P[1]
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
+#endif
 
       !=================================================================
       ! Cleanup and quit
       !=================================================================
 
       ! Close netCDF file
+#if defined( MODEL_CESM )
+      CALL PIO_CLOSEFILE( ncid )
+#else
       CALL NcCl( fId )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
@@ -5136,7 +5270,6 @@ C---Always does PL(2) = P[1]
  140  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE RD_PROF_NC
-#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
