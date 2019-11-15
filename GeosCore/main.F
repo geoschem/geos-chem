@@ -2912,18 +2912,25 @@
       !=================================================================
       WRITE( LUN, 100 )
       WRITE( LUN, 100 ) REPEAT( '!', 79 )
-      WRITE( LUN, 100 ) 'GEOS-CHEM IS IN A DRY RUN MODE!'
-      WRITE( LUN, 100 ) 'You will NOT get output for this run!'
-      WRITE( LUN, 100 ) '--dry-run is used for checking existence' //
-     &                  ' of input files and config correctness.'
-      WRITE( LUN, 100 ) 'REMOVE --dry-run FROM COMMAND ONCE CHECK' //
-     &                  ' IS PASSED TO RUN GEOS-CHEM PROPER!'
+      WRITE( LUN, 100 ) '!!! GEOS-CHEM IS IN A DRY RUN MODE!'
+      WRITE( LUN, 100 ) '!!!'
+      WRITE( LUN, 100 ) '!!! You will NOT get output for this run!'
+      WRITE( LUN, 100 ) '!!! ./geos --dry-run is used to validate '  //
+     &                  'a GEOS-Chem run confguration.'
+      WRITE( LUN, 100 ) '!!!'
+      WRITE( LUN, 100 ) '!!! REMOVE THE --dry-run ARGUMENT FROM '    //
+     &                  'THE COMMAND LINE'
+      WRITE( LUN, 100 ) '!!! BEFORE RUNNING A GEOS-Chem PRODUCTION ' //
+     &                  'SIMULATION!'
       WRITE( LUN, 100 ) REPEAT( '!', 79 )
-      WRITE( LUN, 110 ) 'Simulation       : ',
+      WRITE( LUN, 110 ) '!!! Simulation       : ',
      &                   TRIM(Input_Opt%SimulationName)
-      WRITE( LUN, 110 ) 'Meteorology      : ', TRIM(Input_Opt%MetField )
-      WRITE( LUN, 110 ) 'Grid Resolution  : ', TRIM(State_Grid%GridRes )
-      WRITE( LUN, 110 ) 'Dry run log file : ', TRIM(Input_Opt%DryRunLog)
+      WRITE( LUN, 110 ) '!!! Meteorology      : ',
+     &                   TRIM(Input_Opt%MetField )
+      WRITE( LUN, 110 ) '!!! Grid Resolution  : ',
+     &                  TRIM(State_Grid%GridRes )
+      WRITE( LUN, 110 ) '!!! Dry run log file : ',
+     &                  TRIM(Input_Opt%DryRunLog)
       WRITE( LUN, 100 ) REPEAT( '!', 79 )
       WRITE( LUN, 100 )
 
