@@ -547,12 +547,17 @@
       ! TS_EMIS is the emission timestep (in seconds). This is a module
       ! variable, hence define only on first call.
       IF ( FIRSTCHEM ) THEN
+#if defined( MODEL_CESM )
+         ! Not yet using HEMCO state
+         TS_EMIS = 60.0e+0_fp*real(Input_Opt%TS_EMIS,fp)
+#else
          IF ( .NOT. ASSOCIATED(HcoState) ) THEN
             ErrMsg = 'Cannot get HEMCO state variable "HCOState"!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             IF ( RC /= GC_SUCCESS ) RETURN
          ENDIF
          TS_EMIS = HcoState%TS_EMIS
+#endif
       ENDIF
 
 #if defined( APM )
@@ -2857,6 +2862,7 @@
       IF ( FIRST ) THEN
 
          ! Sea salt density, fine mode
+#if !defined( MODEL_CESM )
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE',
      &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
 
@@ -2877,6 +2883,7 @@
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
+#endif
 
          ! Adjust first flag
          FIRST = .FALSE.
@@ -7971,6 +7978,11 @@
 
          ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in
          ! kg/m2/s.
+#if defined( MODEL_CESM )
+         ! Temporary!
+         ALK1 = 0.0e+00_fp
+         ALK2 = 0.0e+00_fp
+#else
          CALL GetHcoVal( id_SALA, I, J, 1, FOUND, Emis=ALK1 )
          CALL GetHcoVal( id_SALC, I, J, 1, FOUND, Emis=ALK2 )
 
@@ -7979,6 +7991,7 @@
      &        * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS
          ALK2 = MAX(ALK2,0.0e+0_fp)
      &        * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS
+#endif
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
 !         IF ( ASSOCIATED(NDENS_SALA) ) THEN
