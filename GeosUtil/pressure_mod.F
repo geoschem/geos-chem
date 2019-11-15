@@ -39,7 +39,7 @@
       PUBLIC  :: Accept_External_Pedge
 #endif
 
-#if defined( MODEL_WRF )
+#if defined( MODEL_WRF ) || defined( MODEL_CESM )
       PUBLIC  :: Accept_External_ApBp
 #endif
 !
@@ -997,7 +997,7 @@
       END SUBROUTINE Accept_External_Pedge
 !EOC
 #endif
-#if defined ( MODEL_WRF )
+#if defined ( MODEL_WRF ) || defined ( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
