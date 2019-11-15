@@ -23,7 +23,7 @@
       USE PhysConstants       ! Physical constants
       USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
-#if !defined(ESMF_) && !defined(EXTERNAL_FORCING)
+#if !defined( EXTERNAL_GRID )
       ! NcdfUtil modules for netCDF I/O
       USE m_netcdf_io_open                    ! netCDF open
       USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
@@ -32,7 +32,7 @@
 #endif
 
       IMPLICIT NONE
-#if !defined(ESMF_) && !defined(EXTERNAL_FORCING)
+#if !defined( EXTERNAL_GRID )
 #     include "netcdf.inc"
 #endif
 
@@ -136,10 +136,13 @@
       INTEGER,  PARAMETER           :: I_SPA=2
       INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
 
-#if ( defined( ESMF_ ) && defined(EXTERNAL_FORCING) ) || defined( MODEL_WRF )
+#if defined( EXTERNAL_GRID )
       ! Never use NETCDF in ESMF environment (ckeller, 12/05/14).
       ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not
       ! preprocessed for external grid (hplin, 8/15/18).
+      ! Turn off UCXNETCDF when coupling GEOS-Chem with CESM.
+      ! More generally, never use NETCDF files when running with
+      ! an external grid (tfritz, 11/15/19).
       LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 #else
       LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
@@ -878,6 +881,11 @@
       NOX_J = 0e+0_fp
 
       IF (UCXNETCDF) THEN
+#if defined ( EXTERNAL_GRID )
+          CALL ERROR_STOP('Cannot use GET_NOXCOEFF when using an' //
+     &     ' external grid - try setting the module variable'     //
+     &     ' UCXNETCDF=.FALSE.', 'GET_NOXCOEFF(UCX_mod.F)')
+#else
          ! Allocate and zero 2D data array
          ALLOCATE( NOXDATA2D( State_Grid%NY, 51, 6 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
@@ -953,6 +961,7 @@
 
          DEALLOCATE( NOXD2D_IN )
          CALL NcCl( fId )
+#endif
       ELSE
 
           ! All the coefficients are now stored in NOXCOEFF.
@@ -1604,7 +1613,7 @@
       ! GET_MONTREAL_NCDF begins here!
       !=================================================================
 
-#if !defined(ESMF_) || !defined(EXTERNAL_FORCING)
+#if defined( EXTERNAL_GRID )
       ! Read direct from master file
       FILENAME = TRIM(MONTREAL_FILE_ROOT)
 
