@@ -59,6 +59,9 @@ MODULE inquireMod
 !
 ! !USES:
 !
+#if defined( MODEL_CESM )
+    USE UNITS,      ONLY : GETUNIT
+#endif
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -95,6 +98,9 @@ MODULE inquireMod
 !
     INTEGER, PARAMETER         :: iTop = 199     ! Maximum LUN limit
 
+#if defined( MODEL_CESM )
+    lun = GETUNIT()
+#else
     !======================================================================
     ! Initialization
     !======================================================================
@@ -124,6 +130,7 @@ MODULE inquireMod
 
 #if defined( ESMF_ )
     VERIFY_(status)
+#endif
 #endif
 
   END FUNCTION findFreeLUN

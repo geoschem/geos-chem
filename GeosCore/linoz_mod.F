@@ -1103,11 +1103,9 @@
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( MODEL_CESM )
-      USE UNITS,              ONLY : findFreeLUN=>GETUNIT
-      USE UNITS,              ONLY : FREEUNIT
-#else
       USE InquireMod,         ONLY : findFreeLun
+#if defined( MODEL_CESM )
+      USE UNITS,              ONLY : freeUnit
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1251,7 +1249,7 @@
       CLOSE( IU_FILE )
 
 #if defined( MODEL_CESM )
-      CALL FREEUNIT( IU_FILE )
+      CALL freeUnit( IU_FILE )
 #endif
 
       END SUBROUTINE LINOZ_READ
