@@ -291,6 +291,8 @@ LBRO2H     = IGNORE; {Dummy spc to track oxidation of BRO2 by HO2}
 LBRO2N     = IGNORE; {Dummy spc to track oxidation of BRO2 by NO}
 LIMO       = IGNORE; {C10H16; Limonene}
 LIMO2      = IGNORE; {RO2 from LIMO}
+LISOPOH    = IGNORE; {Dummy spc to track oxidation of ISOP by OH}
+LISOPNO3   = IGNORE; {Dummy spc to track oxidation of ISOP by NO3}
 LTRO2H     = IGNORE; {Dummy spc to track oxidation of TRO2 by HO2}
 LTRO2N     = IGNORE; {Dummy spc to track oxidation of TRO2 by NO}
 LVOC       = IGNORE; {C5H14O5; Gas-phase low-volatility non-IEPOX product of ISOPOOH (RIP) oxidation}
@@ -870,14 +872,14 @@ HONIT + OH = NO3 + HAC :                     GC_OHHNO3(2.41E-14, 0.0E+00, 460.0,
 ISOP + O3 = 0.416MACR + 0.177MVK + 0.28OH +
  0.407CO2 + 0.407CO + 0.407MO2 + 0.16HO2 +
  0.58CH2OO + 0.827CH2O + 0.013H2O2 :         GCARR(1.3E-17, 0.0E+00, 0.0);        {2019/11/06; Bates2019; KHB}
-ISOP + OH = IHOO1 :                          ISO1(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
-ISOP + OH = IHOO4 :                          ISO1(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
+ISOP + OH = LISOPOH + IHOO1 :                ISO1(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
+ISOP + OH = LISOPOH + IHOO4 :                ISO1(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
 ISOP + OH = 0.3MCO3 + 0.3MGLY + 0.3CH2O +
  0.15HPALD3 + 0.25HPALD1 + 0.4HO2 + 0.6CO +
- 1.5OH + 0.3HPETHNL :                        ISO2(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
+ 1.5OH + 0.3HPETHNL + LISOPOH :              ISO2(1.7E-11,390.0,9.33E-2,5.05E15,-12200.0,1.79E14,-8830.0); {2019/11/06; Bates2019; KHB}
 ISOP + OH = 0.3CH2O + 0.15HPALD4 +
  0.25HPALD2 + 1.5OH + 0.9CO +
- 0.7HO2 + 0.3MGLY + 0.3ATOOH :               ISO2(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
+ 0.7HO2 + 0.3MGLY + 0.3ATOOH + LISOPOH :     ISO2(1.0E-11,390.0,2.26E-1,2.22E9,-7160.0,1.75E14,-9054.0); {2019/11/06; Bates2019; KHB}
 IHOO1 + HO2 = 0.063MVK + 0.063OH +
  0.063HO2 + 0.063CH2O + 0.937RIPA :          ARRPLUS(2.12E-13,-1300.0,0.0,1.1644,-7.0485E-4); {2019/11/06; Bates2019; KHB}
 IHOO1 + HO2 = RIPC :                         ARRPLUS(2.12E-13,-1300.0,0.0,-0.1644,7.0485E-4); {2019/11/06; Bates2019; KHB}
@@ -1056,7 +1058,8 @@ IDHNBOO + NO = 0.355MCRHNB + 0.546PROPNN +
  0.546GLYC + 0.028MVKN + 0.071ETHLN +
  0.071HAC + HO2 + NO2 + 0.383CH2O :          ALK(2.7E-12,350.0,1.851,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
 IDHNBOO + NO = IDN :                         NIT(2.7E-12,350.0,1.851,11.0,1.0,0.0); {2019/11/06; Bates2019; KHB}
-ISOP + NO3 = 0.465INO2B + 0.535INO2D :       GCARR(2.95E-12, 0.0E+00, 450.0);     {2019/11/06; Bates2019; KHB}
+ISOP + NO3 = 0.465INO2B + 0.535INO2D +
+ LISOPNO3 :                                  GCARR(2.95E-12, 0.0E+00, 450.0);     {2019/11/06; Bates2019; KHB}
 INO2B + HO2 = 0.473INPB + 0.048MACR +
  0.479MVK + 0.527OH + 0.527CH2O + 0.527NO2 : GCARR(2.47E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
 INO2D + HO2 = INPD :                         GCARR(2.47E-13, 0.0E+00, 1300.0);    {2019/11/06; Bates2019; KHB}
