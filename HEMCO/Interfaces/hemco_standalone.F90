@@ -18,7 +18,8 @@ PROGRAM HEMCO_StandAlone
 !
 ! !USES:
 !
-  USE HCOI_STANDALONE_MOD, ONLY : HCOI_Standalone_Run
+  USE HCO_Error_Mod
+  USE HCOI_StandAlone_Mod, ONLY : HCOI_StandAlone_Run
 
   IMPLICIT NONE
   INTRINSIC :: TRIM
@@ -32,36 +33,120 @@ PROGRAM HEMCO_StandAlone
 !
 ! !LOCAL VARIABLES:
 !
+  ! Scalars
+  LOGICAL            :: IsDryRun
+  INTEGER            :: ArgLen
+  INTEGER            :: DryRunLUN
+  INTEGER            :: nArg
+  INTEGER            :: RC
+
+  ! Strings
   CHARACTER(LEN=63)  :: ProgramName
+  CHARACTER(LEN=255) :: ArgVal
   CHARACTER(LEN=255) :: ConfigFile
-  INTEGER            :: NARG
+  CHARACTER(LEN=255) :: DryRunLog
 
-  !------------------------------------------------
-  ! HEMCO_StandAlone begins here!
-  !------------------------------------------------
+  !=========================================================================
+  ! Initialize
+  !=========================================================================
+  RC         = HCO_SUCCESS
+  nArg       = 0
+  ArgLen     = 0
+  ArgVal     = ''
+  ConfigFile = ''
+  IsDryRun   = .FALSE.
+  DryRunLog  = 'HEMCO_sa.DryRun.log'
 
-  ! Get configuration file (passed as argument).
-  NARG = COMMAND_ARGUMENT_COUNT()
-  CALL GET_COMMAND_ARGUMENT(0,ProgramName)
+  !=========================================================================
+  ! The first argument is always the name of the program, so skip ahead
+  !=========================================================================
+  nArg = nArg + 1
+  CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
 
-  IF ( NARG > 1) THEN
-     WRITE(*,*) 'HEMCO_StandAlone takes only 1 argument!'
+  !=========================================================================
+  ! Parse remaining arguments to determine if this is a dry-run
+  !=========================================================================
+  DO
+
+     ! Initialize for next argument
+     ArgLen  = 0
+     ArgVal  = ''
+
+     ! Get the next argument
+     CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
+     IF ( ArgLen == 0 ) EXIT
+
+     ! Parse the arguments
+     SELECT CASE( TRIM( ArgVal ) )
+
+        ! Test for the configuration file
+        CASE( '--config-file', '--config', '-c' )
+
+           ! Look for the config file following the the delimiter.
+           ! Otherwise use the default dry run logfile name.
+           ! Error check for bad input.
+           nArg = nArg + 1
+           CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
+           SELECT CASE( TRIM( ArgVal ) )
+              CASE( '--dry-run', '--dryrun', '-d' )
+                 WRITE( 6, 100 )
+                 STOP
+              CASE DEFAULT
+                 IF ( ArgLen > 0 ) THEN
+                    ConfigFile = TRIM( ArgVal )
+                 ENDIF
+           END SELECT
+
+        ! Test for the dry-run switch
+        CASE( '--dry-run', '--dryrun', '-d' )
+           IsDryRun  = .TRUE.
+
+           ! Look for the log file following the dry-run argument
+           ! Otherwise use the default dry run logfile name.
+           ! Error check for bad input.
+           nArg = nArg + 1
+           CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
+           SELECT CASE( TRIM( ArgVal ) )
+               CASE( '--config-file', '--config', '-c' )
+                  CYCLE
+               CASE DEFAULT
+                  IF ( ArgLen > 0 ) THEN
+                     DryRunLog = TRIM( ArgVal )
+                  ENDIF
+            END SELECT
+
+        CASE DEFAULT
+           ! Pass
+
+     END SELECT
+
+     ! Increment the argument counter
+     nArg = nArg + 1
+  ENDDO
+
+  ! Make sure we have a proper configuration file specified
+  IF ( LEN_TRIM( ConfigFile ) == 0 ) THEN
+     WRITE( 6, 100 )
+ 100 FORMAT( 'Please provide a HEMCO configuration file as input!' )
      STOP
   ENDIF
 
-  IF ( NARG == 0) THEN
-     WRITE(*,*) 'Please provide HEMCO configuration file!'
-     STOP
-  ENDIF
-
-  CALL GET_COMMAND_ARGUMENT(1,ConfigFile)
-
+  !=========================================================================
   ! Run HEMCO in standalone configuration for the given parameters
   ! as specified in the various user-defined input files
-  CALL HCOI_StandAlone_Run( TRIM(ConfigFile) )
+  !=========================================================================
+  CALL HCOI_StandAlone_Run( ConfigFile = TRIM( ConfigFile ),                 &
+                            IsDryRun   = IsDryRun,                           &
+                            DryRunLog  = TRIM( DryRunLog  ),                 &
+                            RC         = RC                                 )
+
+  ! Trap potential errors
+  IF ( RC /= HCO_SUCCESS ) THEN
+     WRITE( 6, '(a)' ) 'HEMCO_STANDALONE EXITED WITH ERROR!'
+     STOP
+  ENDIF
 
   ! End of simulation
-  WRITE(*,*) 'HEMCO_STANDALONE FINISHED!'
-
+  WRITE( 6, '(a)' ) 'HEMCO_STANDALONE FINISHED!'
 !EOC
 END PROGRAM HEMCO_StandAlone
