@@ -21,14 +21,15 @@ MODULE State_Diag_Mod
 !
 ! USES:
 
-  USE CMN_Size_Mod,    ONLY : NDUST
+  USE CMN_Size_Mod,     ONLY : NDUST
   USE DiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
   USE Registry_Mod
-  USE Species_Mod,     ONLY : Species
-  USE State_Chm_Mod,   ONLY : ChmState
-  USE CMN_FJX_MOD,     ONLY : W_
+  USE Species_Mod,      ONLY : Species
+  USE State_Chm_Mod,    ONLY : ChmState
+  USE CMN_FJX_MOD,      ONLY : W_
+  USE gckpp_Parameters, ONLY : NREACT
 
   IMPLICIT NONE
   PRIVATE
@@ -2471,17 +2472,22 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, NREACT ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RxnRates = 0.0_f4
+          State_Diag%Archive_RxnRates = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRates,   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 #else
-       ALLOCATE( State_Diag%RxnRates( IM, JM, LM, Input_Opt%NN_RxnRates ),   &
-                 STAT=RC )
+       IF ( INPUT_Opt%NN_RxnRates > 0 ) THEN
+          State_Diag%Archive_RxnRates = .TRUE.
+          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, Input_Opt%NN_RxnRates ), &
+                    STAT=RC )
+          State_Diag%RxnRates = 0.0_f4
+       ENDIF
 #endif
 
        !--------------------------------------------------------------------
@@ -8526,10 +8532,10 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATES' ) THEN
-       IF ( isDesc    ) Desc  = 'placeholder'
-       IF ( isUnits   ) Units = 'placeholder'
+       IF ( isDesc    ) Desc  = 'KPP reaction rates'
+       IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
-       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isTagged  ) TagId = 'RXN'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'OHREACTIVITY' ) THEN
        IF ( isDesc    ) Desc  = 'OH reactivity'
@@ -9761,6 +9767,8 @@ CONTAINS
           numTags = State_Chm%nProd
        CASE( 'RRTMG'   )
           numTags = nRadFlux
+       CASE( 'RXN'     )
+          numTags = NREACT
        CASE( 'VAR'     )
           numTags = State_Chm%nKppVar
        CASE( 'WET'     )
@@ -9795,7 +9803,7 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX' )
+       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)

@@ -203,11 +203,9 @@ CONTAINS
     LOGICAL                :: DO_HETCHEM
     LOGICAL                :: DO_PHOTCHEM
 
-    ! OH reactivity
+    ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
-#ifdef MODEL_GEOS
     REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
-#endif
 
     !=======================================================================
     ! Do_FlexChem begins here!
@@ -258,6 +256,7 @@ CONTAINS
     IF ( State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
     IF ( State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
     IF ( State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
+    IF ( State_Diag%Archive_RxnRates       ) State_Diag%RxnRates       = 0.0_f4
 
     ! Keep track of the boxes where it is local noon in the JNoonFrac
     ! diagnostic. When time-averaged, this will be the fraction of time
@@ -579,9 +578,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
-#ifdef MODEL_GEOS
     !$OMP PRIVATE  ( Vloc,     Aout                                         )&
-#endif
     !$OMP PRIVATE  ( OHreact                                                )&
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 )&
     !$OMP REDUCTION( +:ITIM                                                 )&
@@ -819,15 +816,20 @@ CONTAINS
        ! Update the array of rate constants
        CALL Update_RCONST( )
 
-#ifdef MODEL_GEOS
-       ! Archive
+       ! Archive KPP reaction rates. NOTE: this is currently archiving
+       ! all reaction rates. It would be better to only archive (and store)
+       ! what is configured in HISTORY.rc. (ewl, 1/15/19)
        CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
-       IF ( Input_Opt%NN_RxnRates > 0 ) THEN
+       IF ( State_Diag%Archive_RxnRates ) THEN
+#if !defined( MODEL_GEOS )
+          DO N = 1, NREACT
+             State_Diag%RxnRates(I,J,L,N) = Aout(N)
+#else
           DO N = 1, Input_Opt%NN_RxnRates
              State_Diag%RxnRates(I,J,L,N) = Aout(Input_Opt%RxnRates_IDs(N))
+#endif
           ENDDO
        ENDIF
-#endif
 
 !#if defined( DEVEL )
 !       ! Get time when rate computation finished
@@ -1480,9 +1482,8 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE Gckpp_Global,     ONLY : nReact
     USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
-    USE Gckpp_Parameters, ONLY : nFam
+    USE Gckpp_Parameters, ONLY : nFam, nReact
     USE Input_Opt_Mod,    ONLY : OptInput
     USE State_Chm_Mod,    ONLY : ChmState
     USE State_Chm_Mod,    ONLY : Ind_
