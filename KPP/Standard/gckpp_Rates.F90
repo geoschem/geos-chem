@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Thu Nov  7 17:33:10 2019
-! Working directory    : /n/home08/kbates/GC/Code.12.8.0beta/KPP/Standard
+! Time                 : Fri Nov 15 13:57:31 2019
+! Working directory    : /n/home08/kbates/GC/Code.12.8.0/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
