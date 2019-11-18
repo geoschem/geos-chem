@@ -129,7 +129,7 @@
       PUBLIC  :: SET_HISTYR
       PUBLIC  :: GET_HISTYR
 !eml]
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( ESMF_ ) || defined( MODEL_ ) || defined( MODEL_CESM )
       PUBLIC  :: Accept_External_Date_Time
 #endif
 !
