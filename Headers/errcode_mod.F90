@@ -64,7 +64,7 @@ CONTAINS
 ! !USES:
 !
 #if defined( MODEL_CESM )
-    USE ERROR_MOD,   ONLY : ERROR_STOP
+    USE CAM_ABORTUTILS, ONLY : ENDRUN
 #endif
     USE Charpak_Mod, ONLY : WordWrapPrint
 !
@@ -122,7 +122,7 @@ CONTAINS
     CALL Flush( 6 )
 
 #if defined( MODEL_CESM )
-    CALL ERROR_STOP( TRIM(Message), 'UNKNOWN' )
+    CALL ENDRUN('GEOS-Chem failure!')
 #endif
 
     ! Return with failure, but preserve existing error code
