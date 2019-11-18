@@ -354,9 +354,13 @@ CONTAINS
                      'and time (incl. time range flag) in the config. file'
                 CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
 
+                ! Write a msg to stdout (NOT FOUND)
+                WRITE( 6, 300 ) TRIM( srcFile )
+ 300            FORMAT( 'HEMCO: REQUIRED FILE NOT FOUND ', a )
+
                 ! Write to dry-run log (NOT FOUND)
-                WRITE( dryRunLUN, 102 ) TRIM( srcFile )
- 102            FORMAT( 'NOT FOUND: ', a )
+                WRITE( dryRunLUN, 310 ) TRIM( srcFile )
+ 310            FORMAT( 'NOT FOUND: ', a )
 
              ! If MustFind flag is not enabled, ignore this field and return
              ! with a warning.
@@ -367,8 +371,12 @@ CONTAINS
                      TRIM(Lct%Dct%cName)
                 CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
 
+                ! Write a msg to stdout (OPTIONAL)
+                WRITE( 6, 320 ) TRIM( srcFile )
+ 320            FORMAT( 'HEMCO: OPTIONAL FILE NOT FOUND ', a )
+
                 ! Write to dry-run log (NOT FOUND)
-                WRITE( dryRunLUN, 102 ) TRIM( srcFile )
+                WRITE( dryRunLUN, 310 ) TRIM( srcFile )
              ENDIF
 
           ! Not range or exact
@@ -379,10 +387,17 @@ CONTAINS
                   'and time (incl. time range flag) in the config. file'
              CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
 
+             ! Write a msg to stdout (NOT FOUND)
+             WRITE( 6, 300 ) TRIM(srcFile)
+
              ! Write to dry-run log (NOT FOUND)
-             WRITE( dryRunLUN, 102 ) TRIM( srcFile )
+             WRITE( dryRunLUN, 310 ) TRIM( srcFile )
           ENDIF
        ELSE
+
+          ! Write a mesage to stdout (HEMCO: Opening...)
+          WRITE( 6, 100 ) TRIM( srcFile )
+
           ! Write to dry-run log
           WRITE( dryRunLUN, '(a)' ) TRIM( srcFile )
        ENDIF

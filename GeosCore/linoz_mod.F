@@ -1187,26 +1187,28 @@
          FileMsg = 'LINOZ (LINOZ_READ): REQUIRED FILE NOT FOUND'
       ENDIF
 
-      ! Print a message for either dry-run or normal run
-      ! (For regular simulations, also exit if we can't find the file.)
+      ! Write message to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! Print a message for dry-run simulations, and then exit.
+      ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileName )
- 300           FORMAT( a )
-            ELSE
                WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
- 310           FORMAT( 'NOT FOUND: ', a )
+ 310           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( FileName )
+ 320           FORMAT( 'NOT FOUND: ', a )
             ENDIF
          ENDIF
          RETURN
       ELSE
-         IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( FileName )
- 320        FORMAT( a, ' ', a )
-         ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( FileName )
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( FileName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF

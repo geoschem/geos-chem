@@ -5118,22 +5118,22 @@
             FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
          ENDIF
 
-         ! Print a message for either dry-run or normal run
+         ! Write to stdout for both regular and dry-run simulations
+         IF ( Input_Opt%AmIRoot ) THEN
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+ 300        FORMAT( a, ' ', a )
+         ENDIF
+
+         ! Print a message for dry-run simulations, and then exit.
          IF ( Input_Opt%DryRun ) THEN
             IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileName )
- 300           FORMAT( a )
-            ELSE
                WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
- 310           FORMAT( 'NOT FOUND: ', a )
+ 310           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( FileName )
+ 320           FORMAT( 'NOT FOUND: ', a )
             ENDIF
-
             RETURN
-         ELSE
-            IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( FileName )
- 320           FORMAT( a, ' ', a )
-            ENDIF
          ENDIF
 
          !--------------------------------------------------------------
@@ -5439,14 +5439,27 @@
                ! Test if the file exists
                INQUIRE( FILE=TRIM( NOx_File ), EXIST=FileExists )
 
-               ! Print a message for either dry-run
+               ! Test if the file exists and define an output string
+               IF ( FileExists ) THEN
+                  FileMsg = 'UCX (SFCMR_READ): Opening'
+               ELSE
+                  FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+               ENDIF
+
+               ! Write to stdout for both regular and dry-run simulations
+                IF ( Input_Opt%AmIRoot ) THEN
+                  WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NOx_File )
+ 300              FORMAT( a, ' ', a )
+               ENDIF
+
+               ! Print a message for dry-run simulations, and then exit.
                IF ( Input_Opt%AmIRoot ) THEN
                   IF ( FileExists ) THEN
-                     WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( NOx_File )
- 300                 FORMAT( a )
-                  ELSE
                      WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NOx_File )
- 310                 FORMAT( 'NOT FOUND: ', a )
+ 310                 FORMAT( a )
+                  ELSE
+                     WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( NOx_File )
+ 320                 FORMAT( 'NOT FOUND: ', a )
                   ENDIF
                ENDIF
             ENDDO
@@ -5512,10 +5525,19 @@
 
          IOS = 1
 
+         ! Test if the file exists
+         INQUIRE( FILE=TRIM( NOx_File ), EXIST=FileExists )
+
+         ! Define an output string
+         IF ( FileExists ) THEN
+            FileMsg = 'UCX (SFCMR_READ): Opening'
+         ELSE
+            FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+         ENDIF
+
          ! Print the name of the file being read to stdout (bmy, 10/23/19)
          IF ( am_I_Root ) THEN
-            WRITE( 6, 320 ) TRIM( NOx_File )
- 320        FORMAT( 'UCX (NOXCOEFF_INIT): Reading ', a )
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NOx_File )
          ENDIF
 
          OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS)
@@ -5650,7 +5672,6 @@
       USE ERROR_MOD,      ONLY : ALLOC_ERR
       USE ERROR_MOD,      ONLY : IS_SAFE_DIV
       USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE File_Mod,       ONLY : File_Exists
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PhysConstants,  ONLY : PI_180
       USE State_Chm_Mod,  ONLY : ChmState
@@ -5683,6 +5704,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: N, AS
       INTEGER            :: JIN, JOUT
       REAL(fp)           :: JMIN_IN, JMAX_IN, JDIF_IN
@@ -5860,14 +5882,28 @@
                FileName = Montreal_File_Root
             ENDIF
 
-            ! Print a message for either dry-run
+            ! Test if the file exists and define an output string
+            INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+            IF ( FileExists ) THEN
+               FileMsg = 'UCX (SFCMR_READ): Opening'
+            ELSE
+               FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+            ENDIF
+
+            ! Write to stdout for the dry-run simulation
             IF ( Input_Opt%AmIRoot ) THEN
-               IF ( File_Exists( FileName ) ) THEN
-                  WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( FileName )
- 300              FORMAT( a )
-               ELSE
+               WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+ 300           FORMAT( a, ' ', a )
+            ENDIF
+
+            ! Print a message o the dry-run log, and then exit
+            IF ( Input_Opt%AmIRoot ) THEN
+               IF ( FileExists ) THEN
                   WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
- 310              FORMAT( 'NOT FOUND: ', a )
+ 310              FORMAT( a )
+               ELSE
+                  WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( FileName )
+ 320              FORMAT( 'NOT FOUND: ', a )
                ENDIF
             ENDIF
          ENDDO
@@ -5879,10 +5915,27 @@
       !=================================================================
       ! For regular simulations, read data from files
       !=================================================================
+
+      ! Write the status of Noon_File_Root to stdout
+      INQUIRE( FILE=TRIM( Noon_File_Root ), EXIST=FileExists )
+      IF ( FileExists ) THEN
+         FileMsg = 'UCX (SFCMR_READ): Opening'
+      ELSE
+         FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+      ENDIF
       IF ( am_I_Root ) THEN
-         WRITE( 6, 320 ) TRIM( NOON_FILE_ROOT     )
-         WRITE( 6, 320 ) TRIM( MONTREAL_FILE_ROOT )
- 320     FORMAT( 'UCX (INIT_UCX): Reading ', a )
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( Noon_File_Root )
+      ENDIF
+
+      ! Write the status of Montreal_File_Root to stdout
+      INQUIRE( FILE=TRIM( Montreal_File_Root ), EXIST=FileExists )
+      IF ( FileExists ) THEN
+         FileMsg = 'UCX (SFCMR_READ): Opening'
+      ELSE
+         FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+      ENDIF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( Montreal_File_Root )
       ENDIF
 
       IF ( LPRT ) THEN

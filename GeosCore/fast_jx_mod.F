@@ -2050,26 +2050,28 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          FileMsg    = 'FAST-JX (RD_XXX): REQUIRED FILE NOT FOUND'
       ENDIF
 
-      ! Print a message for either dry-run or normal run
-      ! (For regular simulations, also exit if we can't find the file.)
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! Print a message for dry-run simulations, and then exit.
+      ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( NamFil )
- 300           FORMAT( a )
-            ELSE
                WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
- 310           FORMAT( 'NOT FOUND: ', a )
+ 310           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( NamFil )
+ 320           FORMAT( 'NOT FOUND: ', a )
             ENDIF
          ENDIF
          RETURN
       ELSE
-         IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( NamFil )
- 320        FORMAT( a, ' ', a )
-         ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
@@ -2365,26 +2367,28 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          FileMsg = 'FAST-JX (RD_MIE): REQUIRED FILE NOT FOUND'
       ENDIF
 
-      ! Print a message for either dry-run or normal run
-      ! (For regular simulations, also exit if we can't find the file.)
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! Print a message for dry-run simulations, and then exit.
+      ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( NamFil )
- 300           FORMAT( a )
-            ELSE
                WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
- 310           FORMAT( 'NOT FOUND: ', a )
+ 310           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( NamFil )
+ 320           FORMAT( 'NOT FOUND: ', a )
             ENDIF
          ENDIF
          RETURN
       ELSE
-         IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( NamFil )
- 320        FORMAT( a, ' ', a )
-         ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
@@ -2580,26 +2584,28 @@ c---TROP-QUICK  (must scale solar flux for W=5)
             FileMsg = 'FAST-JX (RD_AOD): REQUIRED FILE NOT FOUND'
          ENDIF
 
-         ! Print a message for either dry-run or normal run
-         ! (For regular simulations, also exit if we can't find the file.)
+         ! Write to stdout for both regular and dry-run simulations
+         IF ( Input_Opt%AmIRoot ) THEN
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+ 300        FORMAT( a, ' ', a )
+         ENDIF
+
+         ! Print a message for dry-run simulations, and then exit.
+         ! For regular simulations, throw an error if we can't find the file.
          IF ( Input_Opt%DryRun ) THEN
             IF ( Input_Opt%AmIRoot ) THEN
                IF ( FileExists ) THEN
-                  WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( ThisFile )
- 300              FORMAT( a )
-               ELSE
                   WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( ThisFile )
- 310              FORMAT( 'NOT FOUND: ', a )
+ 310              FORMAT( a )
+               ELSE
+                  WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( ThisFile )
+ 320              FORMAT( 'NOT FOUND: ', a )
                ENDIF
             ENDIF
             CYCLE
          ELSE
-            IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( ThisFile )
- 320           FORMAT( a, ' ', a )
-            ENDIF
             IF ( .not. FileExists ) THEN
-               WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( ThisFile )
+               WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
@@ -2998,26 +3004,28 @@ c---TROP-QUICK  (must scale solar flux for W=5)
          FileMsg = 'FAST-JX (RD_JS_JX): REQUIRED FILE NOT FOUND'
       ENDIF
 
-      ! Print a message for either dry-run or normal run
-      ! (For regular simulations, also exit if we can't find the file.)
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! Print a message for dry-run simulations, and then exit.
+      ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( NamFil )
- 300           FORMAT( a )
-            ELSE
                WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
- 310           FORMAT( 'NOT FOUND: ', a )
+ 310           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( NamFil )
+ 320           FORMAT( 'NOT FOUND: ', a )
             ENDIF
          ENDIF
          RETURN
       ELSE
-         IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( NamFil )
- 320        FORMAT( a, ' ', a )
-         ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( NamFil )
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
@@ -5077,26 +5085,28 @@ C---Always does PL(2) = P[1]
          FileMsg = 'FAST-JX (RD_PROF_NC): REQUIRED FILE NOT FOUND'
       ENDIF
 
-      ! Print a message for either dry-run or normal run
-      ! (For regular simulations, also exit if we can't find the file.)
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! Print a message for dry-run simulations, and then exit.
+      ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
          IF ( Input_Opt%AmIRoot ) THEN
             IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 300 ) TRIM( nc_path )
- 300           FORMAT( a )
-            ELSE
                WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( nc_path )
- 310           FORMAT( 'NOT FOUND: ', a )
+ 310           FORMAT( a )
+            ELSE
+               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( nc_path )
+ 320           FORMAT( 'NOT FOUND: ', a )
             ENDIF
          ENDIF
          RETURN
       ELSE
-         IF ( Input_Opt%AmIRoot ) THEN
-            WRITE( 6, 320 ) TRIM( FileMsg ), TRIM( nc_path )
- 320        FORMAT( a, ' ', a )
-         ENDIF
          IF ( .not. FileExists ) THEN
-            WRITE( ErrMsg, 320 ) TRIM( FileMsg ), TRIM( nc_path )
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF

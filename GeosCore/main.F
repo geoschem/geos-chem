@@ -2923,6 +2923,10 @@
       WRITE( LUN, 100 ) '!!! BEFORE RUNNING A GEOS-Chem PRODUCTION ' //
      &                  'SIMULATION!'
       WRITE( LUN, 100 ) REPEAT( '!', 79 )
+      WRITE( LUN, 120 ) '!!! Start Date       : ',
+     &                  Input_Opt%NYMDb, Input_Opt%NHMSb
+      WRITE( LUN, 120 ) '!!! End Date         : ',
+     &                  Input_Opt%NYMDe, Input_Opt%NHMSe
       WRITE( LUN, 110 ) '!!! Simulation       : ',
      &                   TRIM(Input_Opt%SimulationName)
       WRITE( LUN, 110 ) '!!! Meteorology      : ',
@@ -2935,9 +2939,9 @@
       WRITE( LUN, 100 )
 
       ! Format statements
- 100  FORMAT( a     )
- 110  FORMAT( a, a  )
- 120  FORMAT( a, i4 )
+ 100  FORMAT( a                 )
+ 110  FORMAT( a, a              )
+ 120  FORMAT( a, i8.8, 1x, i6.6 )
 
       END SUBROUTINE Print_Dry_Run_Warning
 !EOC

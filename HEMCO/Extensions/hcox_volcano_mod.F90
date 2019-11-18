@@ -590,28 +590,31 @@ CONTAINS
           FileMsg = 'HEMCO (VOLCANO): REQUIRED FILE NOT FOUND'
        ENDIF
 
-       ! Print file path for either dry-run or regular simulations
-       ! (For regular simulations, also exit if we can't find the file.)
+       ! Write file status to stdout and the HEMCO log
+       IF ( am_I_Root ) THEN
+          WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+          WRITE( 6,   300 ) TRIM( FileMsg ), TRIM( ThisFile )
+          CALL HCO_MSG( HcoState%Config%Err, MSG )
+ 300      FORMAT( a, ' ', a )
+       ENDIF
+
+       ! Print file path for dry-run simulations, and then exit
+       ! For regular simulations, exit if we can't find the file.
        IF ( HcoState%Options%IsDryRun ) THEN
           IF ( am_I_Root ) THEN
              IF ( FileExists ) THEN
-                WRITE( HcoState%Options%DryRunLUN, 300 ) TRIM( ThisFile )
- 300            FORMAT( a )
-             ELSE
                 WRITE( HcoState%Options%DryRunLUN, 310 ) TRIM( ThisFile )
- 310            FORMAT( 'NOT FOUND: ', a )
+ 310            FORMAT( a )
+             ELSE
+                WRITE( HcoState%Options%DryRunLUN, 320 ) TRIM( ThisFile )
+ 320            FORMAT( 'NOT FOUND: ', a )
              ENDIF
           ENDIF
           RETURN
        ELSE
-          IF ( am_I_Root ) THEN
-             WRITE( MSG, 320 ) TRIM( FileMsg ), TRIM( ThisFile )
- 320         FORMAT( a, ' ', a )
-             CALL HCO_MSG(HcoState%Config%Err,MSG)
-          ENDIF
           IF ( .not. FileExists ) THEN
-             WRITE( MSG, 320 ) TRIM( FileMsg ), TRIM( ThisFile )
-             CALL HCO_ERROR(HcoState%Config%Err, MSG, RC )
+             WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
              RETURN
           ENDIF
        ENDIF
