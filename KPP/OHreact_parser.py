@@ -79,6 +79,10 @@ for irxt in rxt:
     spl = irxt.split('-->')
     # get reaction number and reactant if OH is on left-hand side of reaction
     if ' OH ' in spl[0]:
+        # Go to next line after writing 5 reaction terms
+        if nn == 5:
+            fo.write(' &\n')
+            nn = 0
         # reaction number
         if 'index ' in spl[1]:
             rn = int(spl[1].split('index ')[1])
@@ -124,14 +128,10 @@ for irxt in rxt:
             istr = ' + '+istr
             if nn == 0 :
                 istr = '         '+istr
-        # write to file (5 reactions per line
+        # write to file
         nn   += 1
         ntot += 1
-        if nn == 5:
-            fo.write(istr+' &\n')
-            nn = 0
-        else:
-            fo.write(istr)
+        fo.write(istr)
 
 # write footer
 fo.write('\n')
