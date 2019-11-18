@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Fri Nov 15 12:03:06 2019
+! Time                 : Mon Nov 18 17:54:30 2019
 ! Working directory    : /n/home08/elundgren/GC/Code.12.7.0_gcc/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
