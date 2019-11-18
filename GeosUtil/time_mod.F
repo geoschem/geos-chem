@@ -4647,7 +4647,7 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( ESMF_ ) || defined( MODEL_ ) || defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
