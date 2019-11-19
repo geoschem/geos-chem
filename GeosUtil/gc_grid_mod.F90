@@ -34,7 +34,7 @@ MODULE GC_Grid_Mod
 #endif
   PUBLIC  :: Get_Bounding_Box
   PUBLIC  :: SetGridFromCtr
-#if defined ( MODEL_WRF )
+#if defined ( MODEL_WRF ) || defined( MODEL_CESM )
   PUBLIC  :: SetGridFromCtrEdges
 #endif
   PUBLIC  :: GET_IJ
@@ -603,7 +603,7 @@ CONTAINS
 
   END SUBROUTINE SetGridFromCtr
 !EOC
-#if defined ( MODEL_WRF )
+#if defined ( MODEL_WRF ) || defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -613,7 +613,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine SetGridFromCtrEdges sets the grid based upon the passed
 ! mid-points and edge-points given an external grid. This interface is primarily
-! used for GEOS-Chem to interface with the WRF model.
+! used for GEOS-Chem to interface with the WRF and CESM models.
 !\\
 !\\
 ! This routine does not update the grid box areas (AREA\_M2) of grid\_mod.F90.
@@ -681,7 +681,7 @@ CONTAINS
 
        ! Special treatment at uppermost edge
        IF ( I == State_Grid%NX ) THEN
-          XEDGE(I+1,J) = RoundOff( lonEdge(I+1,J) / PI_180, 4 )
+          State_Grid%XEdge(I+1,J) = RoundOff( lonEdge(I+1,J) / PI_180, 4 )
        ENDIF
        IF ( J == State_Grid%NY ) THEN
           State_Grid%YEdge(I,J+1)   = RoundOff( latEdge(I,J+1) / PI_180, 4 )
@@ -691,8 +691,8 @@ CONTAINS
 
        ! Special quantities directly derived from YEDGE
        State_Grid%YEdge_R(I,J)   = State_Grid%YEdge(I,J) * PI_180
-       State_Grid%YEdge_VAL      = State_Grid%YEdge_R(I,J) ! Lat edge [radians]
-       State_Grid%YSIN_VAL       = SIN( YEDGE_VAL)         ! SIN( lat edge )
+       YEdge_VAL                 = State_Grid%YEdge_R(I,J) ! Lat edge [radians]
+       YSIN_VAL                  = SIN( YEDGE_VAL)         ! SIN( lat edge )
        State_Grid%YSIN(I,J)      = YSIN_VAL                ! Store in YSIN array
 
     ENDDO
