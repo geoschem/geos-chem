@@ -46,8 +46,6 @@ MODULE Input_Opt_Mod
      ! Dry run info (print out file names)
      !----------------------------------------
      LOGICAL                     :: DryRun     ! Is this a dry run?
-     CHARACTER(LEN=255)          :: DryRunLog  ! Dry run log filename
-     INTEGER                     :: DryRunLUN  ! Logical unit for dryrun log
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -518,8 +516,6 @@ CONTAINS
     ! Dry run info (print out file names)
     !----------------------------------------
     Input_Opt%DryRun                 = .FALSE.
-    Input_Opt%DryRunLog              = 'GEOSChem.DryRun.log'
-    Input_Opt%DryRunLUN              = -1
 
     !----------------------------------------
     ! SIZE PARAMETER fields

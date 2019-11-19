@@ -36,7 +36,6 @@ PROGRAM HEMCO_StandAlone
   ! Scalars
   LOGICAL            :: IsDryRun
   INTEGER            :: ArgLen
-  INTEGER            :: DryRunLUN
   INTEGER            :: nArg
   INTEGER            :: RC
 
@@ -44,7 +43,6 @@ PROGRAM HEMCO_StandAlone
   CHARACTER(LEN=63)  :: ProgramName
   CHARACTER(LEN=255) :: ArgVal
   CHARACTER(LEN=255) :: ConfigFile
-  CHARACTER(LEN=255) :: DryRunLog
 
   !=========================================================================
   ! Initialize
@@ -55,7 +53,6 @@ PROGRAM HEMCO_StandAlone
   ArgVal     = ''
   ConfigFile = ''
   IsDryRun   = .FALSE.
-  DryRunLog  = 'HEMCO_sa.DryRun.log'
 
   !=========================================================================
   ! The first argument is always the name of the program, so skip ahead
@@ -101,20 +98,6 @@ PROGRAM HEMCO_StandAlone
         CASE( '--dry-run', '--dryrun', '-d' )
            IsDryRun  = .TRUE.
 
-           ! Look for the log file following the dry-run argument
-           ! Otherwise use the default dry run logfile name.
-           ! Error check for bad input.
-           nArg = nArg + 1
-           CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
-           SELECT CASE( TRIM( ArgVal ) )
-               CASE( '--config-file', '--config', '-c' )
-                  CYCLE
-               CASE DEFAULT
-                  IF ( ArgLen > 0 ) THEN
-                     DryRunLog = TRIM( ArgVal )
-                  ENDIF
-            END SELECT
-
         CASE DEFAULT
            ! Pass
 
@@ -137,7 +120,6 @@ PROGRAM HEMCO_StandAlone
   !=========================================================================
   CALL HCOI_StandAlone_Run( ConfigFile = TRIM( ConfigFile ),                 &
                             IsDryRun   = IsDryRun,                           &
-                            DryRunLog  = TRIM( DryRunLog  ),                 &
                             RC         = RC                                 )
 
   ! Trap potential errors

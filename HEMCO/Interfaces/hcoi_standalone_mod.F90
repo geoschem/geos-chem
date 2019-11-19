@@ -105,7 +105,6 @@ MODULE HCOI_StandAlone_Mod
   CHARACTER(LEN=255)             :: GridFile  = 'HEMCO_sa_Grid'
   CHARACTER(LEN=255)             :: SpecFile  = 'HEMCO_sa_Spec'
   CHARACTER(LEN=255)             :: TimeFile  = 'HEMCO_sa_Time'
-  CHARACTER(LEN=255)             :: DryRunLog = 'HEMCO_DryRun.log'
 
   ! HEMCO state
   TYPE(HCO_State),       POINTER :: HcoState  => NULL()
@@ -162,13 +161,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_StandAlone_Run( ConfigFile, IsDryRun, DryRunLog, RC )
+  SUBROUTINE HCOI_StandAlone_Run( ConfigFile, IsDryRun, RC )
 !
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)  :: ConfigFile   ! HEMCO configuration file
     LOGICAL,          INTENT(IN)  :: IsDryRun     ! Is it a dry-run?
-    CHARACTER(LEN=*), INTENT(IN)  :: DryRunLog    ! Dry-run log file
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -201,7 +199,7 @@ CONTAINS
                 '(in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
 
     ! Initialize the HEMCO standalone
-    CALL HCOI_Sa_Init( am_I_Root, ConfigFile, IsDryRun, DryRunLog, RC       )
+    CALL HCOI_Sa_Init( am_I_Root, ConfigFile, IsDryRun, RC                  )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HCO_Sa_Init"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc                   )
@@ -234,7 +232,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_SA_Init( am_I_Root, ConfigFile, IsDryRun, DryRunLog, RC )
+  SUBROUTINE HCOI_SA_Init( am_I_Root, ConfigFile, IsDryRun, RC )
 !
 ! !USES:
 !
@@ -249,7 +247,6 @@ CONTAINS
     LOGICAL,          INTENT(IN)    :: am_I_Root   ! Are we on the root core?
     CHARACTER(LEN=*), INTENT(IN)    :: ConfigFile  ! Configuration file
     LOGICAL,          INTENT(IN)    :: IsDryRun    ! Is it a dry-run?
-    CHARACTER(LEN=*), INTENT(IN)    :: DryRunLog   ! Dry-run log file
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -398,7 +395,7 @@ CONTAINS
     ! NOTE: The dry-run option is not invoked when we use HEMCO
     ! in external ESMs. (bmy, 11/13/19)
     !=======================================================================
-    CALL Init_Dry_Run( am_I_Root, IsDryRun, DryRunLog, RC                   )
+    CALL Init_Dry_Run( am_I_Root, IsDryRun, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Init_Dry_Run"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -720,6 +717,9 @@ CONTAINS
     ThisLoc = &
     'HCOI_SA_FINAL (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
 
+    ! Cleanup the dry-run
+    CALL Cleanup_Dry_Run( am_I_Root, RC )
+
     ! Cleanup HCO core
     CALL HCO_FINAL( am_I_Root, HcoState, .FALSE., RC )
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -741,9 +741,6 @@ CONTAINS
     IF ( .not. HcoState%Options%IsDryRun ) THEN
        CALL DiagnBundle_Cleanup( HcoState%Diagn )
     ENDIF
-
-    ! Cleanup the dry-run
-    CALL Cleanup_Dry_Run( am_I_Root, RC )
 
     ! Deallocate module arrays/pointers
     IF ( ALLOCATED( XMID    ) ) DEALLOCATE ( XMID    )
@@ -3012,7 +3009,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Dry_Run( am_I_Root, IsDryRun, Dry_Run_Log, RC )
+  SUBROUTINE Init_Dry_Run( am_I_Root, IsDryRun, RC )
 !
 ! !USES:
 !
@@ -3022,7 +3019,6 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN)    :: am_I_Root     ! Are we on the root core?
     LOGICAL,          INTENT(IN)    :: IsDryRun      ! Is it a dry-run?
-    CHARACTER(LEN=*), INTENT(IN)    :: Dry_Run_Log   ! Dry-run log file
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3066,58 +3062,31 @@ CONTAINS
     !=======================================================================
     ! Initialize dry-run fields of the HEMCO state object
     !=======================================================================
-
-    ! Do not let the HEMCO log and the dry-run log write to the same unit
-    !IF ( HcoState%Options%DryRunLUN == HcoState%Config%Err%LUN ) THEN
-    !   HcoState%Options%DryRunLUN = HcoState%Options%DryRunLUN + 1
-    !ENDIF
-
-    ! Test if this is a dry-run simulation
     IF ( IsDryRun ) THEN
 
-       !====================================================================
+       !--------------------------------------------------------------------
        ! If HEMCO is running in dry-run mode:
        !
        ! (1) Define dry-run parameters in HEMCO state
-       ! (1) Open the dry-run log file (where file names are printed)
-       ! (2) Print a warning to both to stdout and the dryrun log file
-       !====================================================================
+       ! (2) Print a warning to both to stdout and the HEMCO log file
+       !--------------------------------------------------------------------
 
        ! Set parameters
-       HcoState%Options%IsDryRun  = IsDryRun
-       HcoState%Options%DryRunLUN = FindFreeLUN()
-       DryRunLog                  = Dry_Run_Log
-
-       ! Open log file
-       OPEN( UNIT  = HcoState%Options%DryRunLUN,                             &
-            FILE   = TRIM( DryRunLog ),                                      &
-            FORM   = 'FORMATTED',                                            &
-            STATUS = 'UNKNOWN',                                              &
-            IOSTAT = RC                                                     )
-
-       ! Trap potential errors
-       IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Could not open dry-run log file: ' // TRIM( DryRunLog )
-          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
-          CALL HCO_Leave( HcoState%Config%Err, RC )
-          RETURN
-       ENDIF
+       HcoState%Options%IsDryRun = IsDryRun
 
        ! Print dry-run header to stdout
        CALL Print_Dry_Run_Warning( 6 )
 
-       ! Print dry-run header to the dry-run log file
-       CALL Print_Dry_Run_Warning( HcoState%Options%DryRunLUN )
+       ! Print dry-run header to the HEMCO log file
+       CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
 
     ELSE
 
-       !====================================================================
+       !--------------------------------------------------------------------
        ! If this is a regular HEMCO standalone simuation,
        ! then set HEMCO dry-run parameters to default (off) values
-       !====================================================================
-       HcoState%Options%IsDryRun  = .FALSE.
-       HcoState%Options%DryRunLUN = -1
-       DryRunLog                  = ''
+       !--------------------------------------------------------------------
+       HcoState%Options%IsDryRun = .FALSE.
 
     ENDIF
 
@@ -3182,11 +3151,9 @@ CONTAINS
        ! Print dry-run header to stdout
        CALL Print_Dry_Run_Warning( 6 )
 
-       ! Print dry-run header to the dry-run log file
-       CALL Print_Dry_Run_Warning( HcoState%Options%DryRunLUN )
+       ! Print dry-run header to the HEMCO log file
+       CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
 
-       ! Close the dry-run log file
-       CLOSE( HcoState%Options%DryRunLUN )
     ENDIF
 
     ! Leave
@@ -3228,15 +3195,18 @@ CONTAINS
     WRITE( U, 100 ) '!!! HEMCO_STANDALONE IS IN A DRY RUN MODE!'
     WRITE( U, 100 ) '!!!'
     WRITE( U, 100 ) '!!! You will NOT get output for this run!'
-    WRITE( U, 100 ) '!!! ./hemco_standalone.x -c CONFIG_FILE '            // &
-                    '-dry-run DRY-RUN-LOG'
-    WRITE( U, 100 ) '!!! is used to validate a HEMCO_STANDALONE '         // &
-                    'run configuration.'
+    WRITE( U, 100 ) '!!! Use one of these commands to validate a '        // &
+                     'HEMCO run configuration:'
+    WRITE( U, 100 ) '!!!    ./hemco_standalone.x -c CONFIG_FILE '         // &
+                    '--dry-run > log'
+    WRITE( U, 100 ) '!!!    ./hemco_standalone.x -c CONFIG_FILE '         // &
+                    '--dryrun > log'
+    WRITE( U, 100 ) '!!!    ./hemco_standalone.x -c CONFIG_FILE -d > log'
     WRITE( U, 100 ) '!!!'
-    WRITE( U, 100 ) '!!! REMOVE THE --dry-run ARGUMENT FROM '             // &
-                       'THE COMMAND LINE'
-    WRITE( U, 100 ) '!!! BEFORE RUNNING A HEMCO STANDALONE '              // &
-                       'PRODUCTION SIMULATION!'
+    WRITE( U, 100 ) '!!! REMOVE THE --dry-run (or --dryrun or '           // &
+                      '-d) ARGUMENT FROM THE'
+    WRITE( U, 100 ) '!!! COMMAND LINE BEFORE RUNNING A '                  // &
+                    'HEMCO PRODUCTION SIMULATION!'
     WRITE( U, 100 ) REPEAT( '!', 79 )
     WRITE( U, 120 ) '!!! Start Date       : ', YRS(1), MTS(1), DYS(1),       &
                                                HRS(1), MNS(1), SCS(1)
@@ -3244,7 +3214,6 @@ CONTAINS
                                                HRS(2), MNS(2), SCS(2)
     WRITE( U, 110 ) '!!! Meteorology      : ', TRIM(HcoState%Config%MetField)
     WRITE( U, 110 ) '!!! Grid Resolution  : ', TRIM(HcoState%Config%GridRes )
-    WRITE( U, 110 ) '!!! Dry run log file : ', TRIM(DryRunLog               )
     WRITE( U, 100 ) REPEAT( '!', 79 )
     WRITE( U, 100 )
 

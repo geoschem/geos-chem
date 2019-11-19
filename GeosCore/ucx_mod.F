@@ -5124,17 +5124,8 @@
  300        FORMAT( a, ' ', a )
          ENDIF
 
-         ! Print a message for dry-run simulations, and then exit.
-         IF ( Input_Opt%DryRun ) THEN
-            IF ( Input_Opt%AmIRoot ) THEN
-               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
- 310           FORMAT( a )
-            ELSE
-               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( FileName )
- 320           FORMAT( 'NOT FOUND: ', a )
-            ENDIF
-            RETURN
-         ENDIF
+         ! For dry-run simulations, return to calling program
+         IF ( Input_Opt%DryRun ) RETURN
 
          !--------------------------------------------------------------
          ! Read data from the file
@@ -5418,7 +5409,7 @@
                ! Pick tracer name
                SELECT CASE (ITRAC)
                   CASE ( 1 )
-                     TARG_TRAC = 'O'
+                  TARG_TRAC = 'O'
                   CASE ( 2 )
                      TARG_TRAC = 'O1D'
                   CASE ( 3 )
@@ -5446,24 +5437,16 @@
                   FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
                ENDIF
 
-               ! Write to stdout for both regular and dry-run simulations
+                ! Write to stdout for both regular and dry-run simulations
                 IF ( Input_Opt%AmIRoot ) THEN
-                  WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NOx_File )
- 300              FORMAT( a, ' ', a )
-               ENDIF
-
-               ! Print a message for dry-run simulations, and then exit.
-               IF ( Input_Opt%AmIRoot ) THEN
-                  IF ( FileExists ) THEN
-                     WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NOx_File )
- 310                 FORMAT( a )
-                  ELSE
-                     WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( NOx_File )
- 320                 FORMAT( 'NOT FOUND: ', a )
-                  ENDIF
+                   WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NOx_File )
+ 300               FORMAT( a, ' ', a )
                ENDIF
             ENDDO
          ENDDO
+
+         ! exit without doing any computation (dry-run only)
+         RETURN
       ENDIF
 
       !=================================================================
@@ -5895,20 +5878,9 @@
                WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
  300           FORMAT( a, ' ', a )
             ENDIF
-
-            ! Print a message o the dry-run log, and then exit
-            IF ( Input_Opt%AmIRoot ) THEN
-               IF ( FileExists ) THEN
-                  WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
- 310              FORMAT( a )
-               ELSE
-                  WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( FileName )
- 320              FORMAT( 'NOT FOUND: ', a )
-               ENDIF
-            ENDIF
          ENDDO
 
-         ! Exit without doing any computation
+         ! Exit without doing any computation (dry-run only)
          RETURN
       ENDIF
 

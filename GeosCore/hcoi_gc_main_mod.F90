@@ -423,15 +423,14 @@ CONTAINS
     ! set up, which is why most of the runs fail to complete successfully.
     ! (hplin, 11/2/19)
     !
-    ! Dry-run simulations now send output to a log file that is separate
-    ! from the GEOS-Chem and HEMCO log files. (bmy, 11/11/19)
+    ! Dry run simulations will send output to the stdout (which usually
+    ! gets piped to the GEOS-Chem log file).
     !
     ! NOTE: The dry-run option is only invoked in GEOS-Chem "Classic",
     ! so these values will remain at their defaults (.FALSE. and -1,
     ! respectively) when we use HEMCO in external ESMs (bmy, 11/13/19)
     !----------------------------------------------------------------------
-    HcoState%Options%IsDryRun  = Input_Opt%DryRun
-    HcoState%Options%DryRunLUN = Input_Opt%DryRunLUN
+    HcoState%Options%IsDryRun = Input_Opt%DryRun
 
     !=======================================================================
     ! Initialize HEMCO internal lists and variables. All data

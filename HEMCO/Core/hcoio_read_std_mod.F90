@@ -193,7 +193,7 @@ CONTAINS
     CHARACTER(LEN=1023)           :: srcFile, srcFile2
     INTEGER                       :: NX, NY
     INTEGER                       :: NCRC, Flag, AS
-    INTEGER                       :: ncLun, ncLun2, dryRunLUN
+    INTEGER                       :: ncLun, ncLun2
     INTEGER                       :: ierr,   v_id
     INTEGER                       :: nlon,   nlat,  nlev, nTime
     INTEGER                       :: lev1,   lev2,  dir
@@ -314,9 +314,6 @@ CONTAINS
        ! to ensure GEOS-Chem plays along
        !====================================================================
 
-       ! Get the logical unit number of the dry-run log file
-       dryRunLUN = HcoState%Options%DryRunLUN
-
        ! 2D array init
        IF ( Lct%Dct%Dta%SpaceDim <= 2 ) THEN
           CALL FileData_ArrInit( Lct%Dct%Dta, 1,                             &
@@ -358,10 +355,6 @@ CONTAINS
                 WRITE( 6, 300 ) TRIM( srcFile )
  300            FORMAT( 'HEMCO: REQUIRED FILE NOT FOUND ', a )
 
-                ! Write to dry-run log (NOT FOUND)
-                WRITE( dryRunLUN, 310 ) TRIM( srcFile )
- 310            FORMAT( 'NOT FOUND: ', a )
-
              ! If MustFind flag is not enabled, ignore this field and return
              ! with a warning.
              ELSE
@@ -372,11 +365,9 @@ CONTAINS
                 CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
 
                 ! Write a msg to stdout (OPTIONAL)
-                WRITE( 6, 320 ) TRIM( srcFile )
- 320            FORMAT( 'HEMCO: OPTIONAL FILE NOT FOUND ', a )
+                WRITE( 6, 310 ) TRIM( srcFile )
+ 310            FORMAT( 'HEMCO: OPTIONAL FILE NOT FOUND ', a )
 
-                ! Write to dry-run log (NOT FOUND)
-                WRITE( dryRunLUN, 310 ) TRIM( srcFile )
              ENDIF
 
           ! Not range or exact
@@ -390,16 +381,12 @@ CONTAINS
              ! Write a msg to stdout (NOT FOUND)
              WRITE( 6, 300 ) TRIM(srcFile)
 
-             ! Write to dry-run log (NOT FOUND)
-             WRITE( dryRunLUN, 310 ) TRIM( srcFile )
           ENDIF
        ELSE
 
           ! Write a mesage to stdout (HEMCO: Opening...)
           WRITE( 6, 100 ) TRIM( srcFile )
 
-          ! Write to dry-run log
-          WRITE( dryRunLUN, '(a)' ) TRIM( srcFile )
        ENDIF
 
        ! It is safe to leave now, we do not need to handle opening the file.

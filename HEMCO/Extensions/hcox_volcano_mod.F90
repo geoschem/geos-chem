@@ -592,24 +592,15 @@ CONTAINS
 
        ! Write file status to stdout and the HEMCO log
        IF ( am_I_Root ) THEN
-          WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
           WRITE( 6,   300 ) TRIM( FileMsg ), TRIM( ThisFile )
+          WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
           CALL HCO_MSG( HcoState%Config%Err, MSG )
  300      FORMAT( a, ' ', a )
        ENDIF
 
-       ! Print file path for dry-run simulations, and then exit
-       ! For regular simulations, exit if we can't find the file.
+       ! For dry-run simulations, return to calling program.
+       ! For regular simulations, throw an error if we can't find the file.
        IF ( HcoState%Options%IsDryRun ) THEN
-          IF ( am_I_Root ) THEN
-             IF ( FileExists ) THEN
-                WRITE( HcoState%Options%DryRunLUN, 310 ) TRIM( ThisFile )
- 310            FORMAT( a )
-             ELSE
-                WRITE( HcoState%Options%DryRunLUN, 320 ) TRIM( ThisFile )
- 320            FORMAT( 'NOT FOUND: ', a )
-             ENDIF
-          ENDIF
           RETURN
        ELSE
           IF ( .not. FileExists ) THEN

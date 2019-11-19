@@ -2056,18 +2056,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
  300     FORMAT( a, ' ', a )
       ENDIF
 
-      ! Print a message for dry-run simulations, and then exit.
+      ! For dry-run simulations, return to calling program.
       ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
-         IF ( Input_Opt%AmIRoot ) THEN
-            IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
- 310           FORMAT( a )
-            ELSE
-               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( NamFil )
- 320           FORMAT( 'NOT FOUND: ', a )
-            ENDIF
-         ENDIF
          RETURN
       ELSE
          IF ( .not. FileExists ) THEN
@@ -2373,18 +2364,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
  300     FORMAT( a, ' ', a )
       ENDIF
 
-      ! Print a message for dry-run simulations, and then exit.
+      ! For dry-run simulations, return to calling program
       ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
-         IF ( Input_Opt%AmIRoot ) THEN
-            IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
- 310           FORMAT( a )
-            ELSE
-               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( NamFil )
- 320           FORMAT( 'NOT FOUND: ', a )
-            ENDIF
-         ENDIF
          RETURN
       ELSE
          IF ( .not. FileExists ) THEN
@@ -2590,18 +2572,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
  300        FORMAT( a, ' ', a )
          ENDIF
 
-         ! Print a message for dry-run simulations, and then exit.
+         ! For dry-run simulations, cycle to next file.
          ! For regular simulations, throw an error if we can't find the file.
          IF ( Input_Opt%DryRun ) THEN
-            IF ( Input_Opt%AmIRoot ) THEN
-               IF ( FileExists ) THEN
-                  WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( ThisFile )
- 310              FORMAT( a )
-               ELSE
-                  WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( ThisFile )
- 320              FORMAT( 'NOT FOUND: ', a )
-               ENDIF
-            ENDIF
             CYCLE
          ELSE
             IF ( .not. FileExists ) THEN
@@ -3010,18 +2983,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
  300     FORMAT( a, ' ', a )
       ENDIF
 
-      ! Print a message for dry-run simulations, and then exit.
+      ! For dry-run simulations, return to calling program.
       ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
-         IF ( Input_Opt%AmIRoot ) THEN
-            IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( NamFil )
- 310           FORMAT( a )
-            ELSE
-               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( NamFil )
- 320           FORMAT( 'NOT FOUND: ', a )
-            ENDIF
-         ENDIF
          RETURN
       ELSE
          IF ( .not. FileExists ) THEN
@@ -5091,18 +5055,9 @@ C---Always does PL(2) = P[1]
  300     FORMAT( a, ' ', a )
       ENDIF
 
-      ! Print a message for dry-run simulations, and then exit.
+      ! For dry-run simulations, return to calling program.
       ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
-         IF ( Input_Opt%AmIRoot ) THEN
-            IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( nc_path )
- 310           FORMAT( a )
-            ELSE
-               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( nc_path )
- 320           FORMAT( 'NOT FOUND: ', a )
-            ENDIF
-         ENDIF
          RETURN
       ELSE
          IF ( .not. FileExists ) THEN

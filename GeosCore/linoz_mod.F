@@ -1193,18 +1193,9 @@
  300     FORMAT( a, ' ', a )
       ENDIF
 
-      ! Print a message for dry-run simulations, and then exit.
+      ! For dry-run simulations, return to calling program.
       ! For regular simulations, throw an error if we can't find the file.
       IF ( Input_Opt%DryRun ) THEN
-         IF ( Input_Opt%AmIRoot ) THEN
-            IF ( FileExists ) THEN
-               WRITE( Input_Opt%DryRunLUN, 310 ) TRIM( FileName )
- 310           FORMAT( a )
-            ELSE
-               WRITE( Input_Opt%DryRunLUN, 320 ) TRIM( FileName )
- 320           FORMAT( 'NOT FOUND: ', a )
-            ENDIF
-         ENDIF
          RETURN
       ELSE
          IF ( .not. FileExists ) THEN

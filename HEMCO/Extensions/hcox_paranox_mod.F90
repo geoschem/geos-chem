@@ -1658,25 +1658,15 @@ CONTAINS
 
    ! Print file status to stdout and the HEMCO log
    IF ( am_I_Root ) THEN
-      WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( FileName )
       WRITE( 6,   300 ) TRIM( FileMsg ), TRIM( FileName )
-      CALL HCO_MSG(HcoState%Config%Err,MSG)
+      WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( FileName )
+      CALL HCO_MSG( HcoState%Config%Err, MSG )
  300  FORMAT( a, ' ', a )
    ENDIF
 
-
-   ! Print file path for either dry-run or regular simulations
-   ! (For regular simulations, also exit if we can't find the file.)
+   ! For dry-run simulations, return to calling program.
+   ! For regular simulations, throw an error if we can't find the file.
    IF ( HcoState%Options%IsDryRun ) THEN
-      IF ( am_I_Root ) THEN
-         IF ( FileExists ) THEN
-            WRITE( HcoState%Options%DryRunLUN, 310 ) TRIM( FileName )
- 310        FORMAT( a )
-         ELSE
-            WRITE( HcoState%Options%DryRunLUN, 320 ) TRIM( FileName )
- 320        FORMAT( 'NOT FOUND: ', a )
-         ENDIF
-      ENDIF
       RETURN
    ELSE
       IF ( .not. FileExists ) THEN
@@ -1690,14 +1680,6 @@ CONTAINS
    !=================================================================
    ! READ_LUT_NCFILE begins here!
    !=================================================================
-
-    ! If the file does not exist, exit right away
-    IF ( .not. FileExists ) THEN
-       MSG = 'Could not find file : ' // TRIM( FILENAME )
-       CALL HCO_ERROR( HcoState%Config%Err, MSG, HMRC )
-       IF ( PRESENT( RC ) ) RC = HMRC
-       RETURN
-    ENDIF
 
    ! Open file for reading
    CALL Ncop_Rd( fId, TRIM(FILENAME) )
@@ -1971,27 +1953,21 @@ CONTAINS
       FileMsg = 'HEMCO (PARANOX): REQUIRED FILE NOT FOUND'
    ENDIF
 
-   ! Print file path for either dry-run or regular simulations
-   ! (For regular simulations, also exit if we can't find the file.)
+   ! Print file status to stdout and the HEMCO log file
+   IF ( am_I_Root ) THEN
+      WRITE( 6,   300 ) TRIM( FileMsg ), TRIM( FileName )
+      WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( FileName )
+      CALL HCO_MSG(HcoState%Config%Err,MSG)
+ 300  FORMAT( a, ' ', a )
+   ENDIF
+
+   ! For dry-run simulations, return to calling program.
+   ! For regular simulations, throw an error if we can't find the file.
    IF ( HcoState%Options%IsDryRun ) THEN
-      IF ( am_I_Root ) THEN
-         IF ( FileExists ) THEN
-            WRITE( HcoState%Options%DryRunLUN, 300 ) TRIM( FileName )
- 300        FORMAT( a )
-         ELSE
-            WRITE( HcoState%Options%DryRunLUN, 310 ) TRIM( FileName )
- 310        FORMAT( 'NOT FOUND: ', a )
-         ENDIF
-      ENDIF
       RETURN
    ELSE
-      IF ( am_I_Root ) THEN
-         WRITE( MSG, 320 ) TRIM( FileMsg ), TRIM( FileName )
- 320     FORMAT( a, ' ', a )
-         CALL HCO_MSG(HcoState%Config%Err,MSG)
-      ENDIF
       IF ( .not. FileExists ) THEN
-         WRITE( MSG, 320 ) TRIM( FileMsg ), TRIM( FileName )
+         WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( FileName )
          CALL HCO_ERROR(HcoState%Config%Err, MSG, RC )
          RETURN
       ENDIF

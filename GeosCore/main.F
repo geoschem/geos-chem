@@ -2714,8 +2714,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE InquireMod,    ONLY : FindFreeLUN
+      USE Input_Opt_Mod,     ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2774,16 +2773,7 @@
 
             ! Test for the dry-run switch
             CASE( '--dry-run', '--dryrun', '-d' )
-                Input_Opt%DryRun    = .TRUE.
-                Input_Opt%DryRunLUN = FindFreeLUN()
-
-                ! Look for the log file following the dry-run argument
-                ! Otherwise use the default dry run logfile name.
-                nArg = nArg + 1
-                CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
-                IF ( ArgLen > 0 ) THEN
-                   Input_Opt%DryRunLog = TRIM( ArgVal )
-                ENDIF
+                Input_Opt%DryRun  = .TRUE.
 
             ! Otherwise pass through
             CASE DEFAULT
@@ -2796,25 +2786,11 @@
       ENDDO
 
       !=================================================================
-      ! If GEOS-Chem is running in dry-run mode:
-      !
-      ! (1) Open the dry-run log file (where file names are printed)
-      ! (2) Print a warning to both to stdout and the dryrun log file
+      ! If GEOS-Chem is running in dry-run mode
+      ! then print a warning to both to stdout and the HEMCO log
       !=================================================================
       IF ( Input_Opt%DryRun ) THEN
-
-         ! Open log file
-         OPEN( UNIT   = Input_Opt%DryRunLUN,
-     &         FILE   = TRIM( Input_Opt%DryRunLog ),
-     &         FORM   = 'FORMATTED',
-     &         STATUS = 'UNKNOWN'                    )
-
-         ! Echo info to stdout (i.e. the GC log file)
-         CALL Print_Dry_Run_Warning( LUN = 6 )
-
-         ! Echo info to the GEOS-Chem dryrun log file
-         CALL Print_Dry_Run_Warning( LUN = Input_Opt%DryRunLUN )
-
+         CALL Print_Dry_Run_Warning( 6                       )
       ENDIF
 
       END SUBROUTINE Init_Dry_Run
@@ -2838,7 +2814,8 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
+      USE HCO_Interface_Mod, ONLY : HcoState
+      USE Input_Opt_Mod,     ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2867,17 +2844,11 @@
       ! Initialize
       RC = GC_SUCCESS
 
-      ! Only do the following for the dry-run simulation
+      ! For dry-run simulations, Write the dry-run header to
+      ! stdout (aka GEOS-Chem log file) and the HEMCO log file.
       IF ( Input_Opt%DryRun ) THEN
-
-         ! Echo info to stdout (i.e. the GC log file)
-         CALL Print_Dry_Run_Warning( LUN = 6 )
-
-         ! Echo info to the GEOS-Chem dryrun log file
-         CALL Print_Dry_Run_Warning( LUN = Input_Opt%DryRunLUN )
-
-         ! Close the dry-run log file
-         CLOSE( Input_Opt%DryRunLUN )
+         CALL Print_Dry_Run_Warning( 6                       )
+         CALL Print_Dry_Run_Warning( HcoState%Config%Err%LUN )
       ENDIF
 
       END SUBROUTINE Cleanup_Dry_Run
@@ -2895,11 +2866,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Print_Dry_Run_Warning( LUN )
+      SUBROUTINE Print_Dry_Run_Warning( U )
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: LUN   ! Logical unit number
+      INTEGER, INTENT(IN) :: U   ! Logical unit number
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -2910,33 +2881,34 @@
       !=================================================================
       ! Print warning info to the desired file
       !=================================================================
-      WRITE( LUN, 100 )
-      WRITE( LUN, 100 ) REPEAT( '!', 79 )
-      WRITE( LUN, 100 ) '!!! GEOS-CHEM IS IN A DRY RUN MODE!'
-      WRITE( LUN, 100 ) '!!!'
-      WRITE( LUN, 100 ) '!!! You will NOT get output for this run!'
-      WRITE( LUN, 100 ) '!!! ./geos --dry-run is used to validate '  //
-     &                  'a GEOS-Chem run confguration.'
-      WRITE( LUN, 100 ) '!!!'
-      WRITE( LUN, 100 ) '!!! REMOVE THE --dry-run ARGUMENT FROM '    //
-     &                  'THE COMMAND LINE'
-      WRITE( LUN, 100 ) '!!! BEFORE RUNNING A GEOS-Chem PRODUCTION ' //
-     &                  'SIMULATION!'
-      WRITE( LUN, 100 ) REPEAT( '!', 79 )
-      WRITE( LUN, 120 ) '!!! Start Date       : ',
-     &                  Input_Opt%NYMDb, Input_Opt%NHMSb
-      WRITE( LUN, 120 ) '!!! End Date         : ',
-     &                  Input_Opt%NYMDe, Input_Opt%NHMSe
-      WRITE( LUN, 110 ) '!!! Simulation       : ',
-     &                   TRIM(Input_Opt%SimulationName)
-      WRITE( LUN, 110 ) '!!! Meteorology      : ',
-     &                   TRIM(Input_Opt%MetField )
-      WRITE( LUN, 110 ) '!!! Grid Resolution  : ',
-     &                  TRIM(State_Grid%GridRes )
-      WRITE( LUN, 110 ) '!!! Dry run log file : ',
-     &                  TRIM(Input_Opt%DryRunLog)
-      WRITE( LUN, 100 ) REPEAT( '!', 79 )
-      WRITE( LUN, 100 )
+      WRITE( U, 100 )
+      WRITE( U, 100 ) REPEAT( '!', 79 )
+      WRITE( U, 100 ) '!!! GEOS-CHEM IS IN A DRY RUN MODE!'
+      WRITE( U, 100 ) '!!!'
+      WRITE( U, 100 ) '!!! You will NOT get output for this run!'
+      WRITE( U, 100 ) '!!! Use one of these commands to validate a ' //
+     &                'GEOS-Chem run configuration:'
+      WRITE( U, 100 ) '!!!   ./geos --dry-run > log'
+      WRITE( U, 100 ) '!!!   ./geos --dryrun > log'
+      WRITE( U, 100 ) '!!!   ./geos -d > log'
+      WRITE( U, 100 ) '!!!'
+      WRITE( U, 100 ) '!!! REMOVE THE --dry-run (or --dryrun or '    //
+     &                 '-d) ARGUMENT FROM THE'
+      WRITE( U, 100 ) '!!! COMMAND LINE BEFORE RUNNING A '           //
+     ^                'GEOS-Chem PRODUCTION SIMULATION!'
+      WRITE( U, 100 ) REPEAT( '!', 79 )
+      WRITE( U, 120 ) '!!! Start Date       : ',
+     &                Input_Opt%NYMDb, Input_Opt%NHMSb
+      WRITE( U, 120 ) '!!! End Date         : ',
+     &                Input_Opt%NYMDe, Input_Opt%NHMSe
+      WRITE( U, 110 ) '!!! Simulation       : ',
+     &                 TRIM(Input_Opt%SimulationName)
+      WRITE( U, 110 ) '!!! Meteorology      : ',
+     &                 TRIM(Input_Opt%MetField )
+      WRITE( U, 110 ) '!!! Grid Resolution  : ',
+     &                TRIM(State_Grid%GridRes )
+      WRITE( U, 100 ) REPEAT( '!', 79 )
+      WRITE( U, 100 )
 
       ! Format statements
  100  FORMAT( a                 )
