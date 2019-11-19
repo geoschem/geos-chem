@@ -2560,7 +2560,7 @@
       ! (NOTE: IWATER is an index array, dimension name = variable name)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_DIMID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_DIMLEN(ncid, vid, NWATER       )
+      iret = PIO_INQ_DIMLEN(ncid, vid, NWATER       )
 #else
       CALL NcGet_DimLen( fId, TRIM(v_name), NWATER )
 #endif
