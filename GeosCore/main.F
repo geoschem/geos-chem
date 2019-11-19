@@ -38,6 +38,7 @@
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
       USE DiagList_Mod          ! Derived type for diagnostics list
+      USE TaggedDiagList_Mod    ! Derived type for tagged diagnostics list
       USE Diagnostics_Mod       ! Set select netcdf diagnostics
       USE ErrCode_Mod           ! Error codes for success or failure
       USE ERROR_MOD             ! For error checking
@@ -266,6 +267,7 @@
       TYPE(GrdState)           :: State_Grid  ! Grid State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
       TYPE(DgnList )           :: Diag_List   ! Diagnostics list object
+      TYPE(TaggedDgnList )     :: TaggedDiag_List  ! Tagged diagnostics list object
 !
 ! !DEFINED PARAMETERS:
 !
@@ -496,9 +498,18 @@
             ErrMsg = 'Error encountered in "Init_DiagList"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
+         CALL Init_TaggedDiagList( am_I_Root, Diag_List,
+     &                             TaggedDiag_List, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_TaggedDiagList"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
 
-         !###  Print diagnostic list if needed for debugging
+
+         !###  Print diagnostic lists if needed for debugging
          IF ( prtDebug ) CALL Print_DiagList( am_I_Root, Diag_List, RC )
+         IF ( prtDebug ) CALL Print_TaggedDiagList( am_I_Root,
+     &                                            TaggedDiag_List, RC )
 
 #ifdef USE_TIMERS
          CALL GEOS_Timer_End( "All diagnostics",           RC )
@@ -2389,8 +2400,13 @@
             ErrMsg = 'Error encountered in "Cleanup_DiagList"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
+         CALL Cleanup_TaggedDiagList( am_I_Root, TaggedDiag_List, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Cleanup_TaggedDiagList"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
          IF ( prtDebug ) THEN
-            CALL Debug_Msg( '### MAIN: a cleanup Diag_List' )
+            CALL Debug_Msg( '### MAIN: a cleanup diag lists' )
          ENDIF
       ENDIF
 

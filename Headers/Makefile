@@ -227,6 +227,10 @@ state_met_mod.o        : state_met_mod.F90        \
                          registry_mod.o           \
                          state_grid_mod.o
 
+taggeddiaglist_mod.o   : taggeddiaglist_mod.F90   \
+                         charpak_mod.o            \
+                         diaglist_mod.o           \
+
 physconstants.o        : physconstants.F          \
                          precision_mod.o
 
