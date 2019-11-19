@@ -435,6 +435,9 @@ CONTAINS
     ! Save # of defined dust species in HcoState
     HcoState%nDust                     =  NDSTBIN
 
+    ! Use marine organic aerosols?
+    HcoState%MarinePOA                 =  Input_Opt%LMPOA
+
 #ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
@@ -501,16 +504,6 @@ CONTAINS
     IF ( ExtState%DustAlk > 0 ) THEN
        IF ( .not. Input_Opt%LDSTUP ) THEN
           ErrMsg = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          CALL Flush( HcoState%Config%Err%Lun )
-          RETURN
-       ENDIF
-    ENDIF
-
-    ! Marine organic aerosols
-    IF ( ExtState%MarinePOA > 0 ) THEN
-       IF ( .not. Input_Opt%LMPOA ) THEN
-          ErrMsg = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
@@ -1791,19 +1784,6 @@ CONTAINS
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
        ErrMsg = 'Error encountered in "ExtDat_Set( LAI_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    ! CHLR
-    CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%CHLR,           &
-                    'CHLR',               HMRC,     FIRST,                   &
-                     State_Met%MODISCHLR                                    )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( CHLR )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
