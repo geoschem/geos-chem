@@ -147,7 +147,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
      REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
      REAL(f4),  POINTER :: JNoonFrac       (:,:    ) ! Frac of when it was noon
-     REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
+     REAL(f4),  POINTER :: RxnRate         (:,:,:,:) ! KPP eqn eaction rates
      REAL(f4),  POINTER :: OHreactivity    (:,:,:  ) ! OH reactivity
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:,:) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:,:) ! Direct UV flux per bin
@@ -161,7 +161,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_JVal
      LOGICAL :: Archive_JNoon
      LOGICAL :: Archive_JNoonFrac
-     LOGICAL :: Archive_RxnRates
+     LOGICAL :: Archive_RxnRate
      LOGICAL :: Archive_OHreactivity
      LOGICAL :: Archive_UVFluxDiffuse
      LOGICAL :: Archive_UVFluxDirect
@@ -849,7 +849,7 @@ CONTAINS
     State_Diag%JVal                                => NULL()
     State_Diag%JNoon                               => NULL()
     State_Diag%JNoonFrac                           => NULL()
-    State_Diag%RxnRates                            => NULL()
+    State_Diag%RxnRate                             => NULL()
     State_Diag%OHreactivity                        => NULL()
     State_Diag%UVFluxDiffuse                       => NULL()
     State_Diag%UVFluxDirect                        => NULL()
@@ -863,7 +863,7 @@ CONTAINS
     State_Diag%Archive_JVal                        = .FALSE.
     State_Diag%Archive_JNoon                       = .FALSE.
     State_Diag%Archive_JNoonFrac                   = .FALSE.
-    State_Diag%Archive_RxnRates                    = .FALSE.
+    State_Diag%Archive_RxnRate                     = .FALSE.
     State_Diag%Archive_OHreactivity                = .FALSE.
     State_Diag%Archive_UVFluxDiffuse               = .FALSE.
     State_Diag%Archive_UVFluxDirect                = .FALSE.
@@ -2467,26 +2467,26 @@ CONTAINS
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%RxnRates'
-       diagID  = 'RxnRates'
+       arrayID = 'State_Diag%RxnRate'
+       diagID  = 'RxnRate'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, NREACT ), STAT=RC )
+          ALLOCATE( State_Diag%RxnRate( IM, JM, LM, NREACT ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%RxnRates = 0.0_f4
-          State_Diag%Archive_RxnRates = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRates,   &
+          State_Diag%RxnRate = 0.0_f4
+          State_Diag%Archive_RxnRate = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRate,   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 #else
-       IF ( INPUT_Opt%NN_RxnRates > 0 ) THEN
-          State_Diag%Archive_RxnRates = .TRUE.
-          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, Input_Opt%NN_RxnRates ), &
+       IF ( INPUT_Opt%NN_RxnRate > 0 ) THEN
+          State_Diag%Archive_RxnRate = .TRUE.
+          ALLOCATE( State_Diag%RxnRate( IM, JM, LM, Input_Opt%NN_RxnRate ), &
                     STAT=RC )
-          State_Diag%RxnRates = 0.0_f4
+          State_Diag%RxnRate = 0.0_f4
        ENDIF
 #endif
 
@@ -3023,7 +3023,7 @@ CONTAINS
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
-                diagID = 'RxnRates'
+                diagID = 'RxnRate'
              CASE( 2  )
                 diagID = 'JVal'
              CASE( 3  )
@@ -6843,11 +6843,11 @@ CONTAINS
        State_Diag%JNoonFrac => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%RxnRates ) ) THEN
-       DEALLOCATE( State_Diag%RxnRates, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%RxnRates', 2, RC )
+    IF ( ASSOCIATED( State_Diag%RxnRate ) ) THEN
+       DEALLOCATE( State_Diag%RxnRate, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RxnRate', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%RxnRates => NULL()
+       State_Diag%RxnRate=> NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%OHreactivity ) ) THEN
@@ -8531,8 +8531,8 @@ CONTAINS
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 2
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATES' ) THEN
-       IF ( isDesc    ) Desc  = 'KPP reaction rates'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATE' ) THEN
+       IF ( isDesc    ) Desc  = 'KPP equation reaction rates'
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
@@ -9904,6 +9904,11 @@ CONTAINS
        ! RRTMG requested output fluxes
        CASE( 'RRTMG' )
           tagName = RadFlux(D)
+
+       ! KPP equation reaction rates
+       CASE( 'RXN' )
+          WRITE ( Nstr, "(I3.3)" ) D
+          tagName = 'EQ' // TRIM(Nstr)
 
        ! UVFlux requested output fluxes
        ! These are at the FAST-JX wavelength bins

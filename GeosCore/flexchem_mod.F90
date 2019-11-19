@@ -256,7 +256,7 @@ CONTAINS
     IF ( State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
     IF ( State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
     IF ( State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
-    IF ( State_Diag%Archive_RxnRates       ) State_Diag%RxnRates       = 0.0_f4
+    IF ( State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
 
     ! Keep track of the boxes where it is local noon in the JNoonFrac
     ! diagnostic. When time-averaged, this will be the fraction of time
@@ -274,7 +274,7 @@ CONTAINS
     GLOB_JVAL   = 0.0_f4
 
     ! testing only
-    IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRates(:,:,:,:) = 0.0
+    IF ( Input_Opt%NN_RxnRate > 0 ) State_Diag%RxnRate(:,:,:,:) = 0.0
 #endif
 
     !=======================================================================
@@ -820,13 +820,13 @@ CONTAINS
        ! all reaction rates. It would be better to only archive (and store)
        ! what is configured in HISTORY.rc. (ewl, 1/15/19)
        CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
-       IF ( State_Diag%Archive_RxnRates ) THEN
+       IF ( State_Diag%Archive_RxnRate ) THEN
 #if !defined( MODEL_GEOS )
           DO N = 1, NREACT
-             State_Diag%RxnRates(I,J,L,N) = Aout(N)
+             State_Diag%RxnRate(I,J,L,N) = Aout(N)
 #else
-          DO N = 1, Input_Opt%NN_RxnRates
-             State_Diag%RxnRates(I,J,L,N) = Aout(Input_Opt%RxnRates_IDs(N))
+          DO N = 1, Input_Opt%NN_RxnRate
+             State_Diag%RxnRate(I,J,L,N) = Aout(Input_Opt%RxnRate_IDs(N))
 #endif
           ENDDO
        ENDIF
