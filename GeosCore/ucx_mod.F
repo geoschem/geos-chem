@@ -1625,7 +1625,7 @@
       ! GET_MONTREAL_NCDF begins here!
       !=================================================================
 
-#if defined( EXTERNAL_GRID )
+#if !defined( EXTERNAL_GRID )
       ! Read direct from master file
       FILENAME = TRIM(MONTREAL_FILE_ROOT)
 
