@@ -748,6 +748,14 @@
                ARRAY(:,:,L) = AD05(:,:,L,N) / SCALEX
             ENDDO
 
+            IF (N == 19) THEN
+               UNIT = ' '
+               ! Divide by # of chemistry timesteps
+               DO L = 1, LD05
+                  ARRAY(:,:,L) = AD05(:,:,L,N) / SCALECHEM
+               ENDDO
+            ENDIF
+
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
@@ -6128,8 +6136,13 @@
             NN = N
 
             DO L = 1, LD73
-               ARRAY(:,:,L) = AD73(:,:,L,N) / SCALECHEM
+               IF ( NN == 4 ) THEN
+                  ARRAY(:,:,L) = AD73(:,:,L,N)
+               ELSE 
+                  ARRAY(:,:,L) = AD73(:,:,L,N) / SCALECHEM
+               ENDIF
             ENDDO
+
 
             ! Get correct units:
             IF ( NN == 2 ) THEN
@@ -6138,6 +6151,10 @@
             IF ( NN == 3 ) THEN
                UNIT = 'ug/m3'
             ENDIF
+            IF ( NN == 4 ) THEN
+               UNIT = 'kgCl'
+            ENDIF
+
 
             ! Save to disk
             CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,

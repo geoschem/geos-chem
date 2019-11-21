@@ -37,6 +37,7 @@
       PRIVATE :: INIT_ISORROPIAII
       PRIVATE :: SAFELOG10
       PRIVATE :: SET_HNO3
+      PRIVATE :: GET_QK
 !
 ! !REMARKS:
 !  Original Author:
@@ -78,8 +79,9 @@
 !  23 Sep 2014 - M. Sulprizio - Get global HNO3 for offline aerosol simulation
 !                               from HEMCO 
 !  14 Nov 2014 - M. Yannetti  - Added PRECISION_MOD
-!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
+!  23 Jun 2016 - R. Yantosca  - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
+!  14 Feb 2018 - X. Wang      - Added function GET_QK
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -105,7 +107,7 @@
 !%%% 
 !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
 !%%%
-!#define SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE 1
+#define SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE 1
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       CONTAINS
@@ -131,6 +133,7 @@
 !
       USE CMN_SIZE_MOD 
       USE ErrCode_Mod
+
       USE ERROR_MOD,            ONLY : DEBUG_MSG
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE ERROR_MOD,            ONLY : SAFE_DIV
@@ -149,6 +152,7 @@
       USE CMN_DIAG_MOD,         ONLY : LD73,   ND73
       USE DIAG_MOD,             ONLY : AD73
 #endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -194,6 +198,7 @@
 !                               in the proper range to yield a valid solution.
 !                               (Activate this with the #ifdef block above.)
 !  10 Mar 2017 - C. Keller    - Add print out statement after initialization. 
+!  20 Nov 2017 - X. Wang      - Added full fine/coarse SSA thermodynamics
 !  02 Nov 2017 - R. Yantosca  - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
@@ -218,10 +223,13 @@
       LOGICAL, SAVE            :: FIRST = .TRUE.
       INTEGER, SAVE            :: id_HNO3, id_NH3,  id_NH4
       INTEGER, SAVE            :: id_NIT,  id_SALA, id_SO4
+      INTEGER, SAVE            :: id_SALACL, id_HCL, id_SALCCL
+      INTEGER, SAVE            :: id_SO4s, id_NITs, id_SALC
+      INTEGER, SAVE            :: id_SALAAL, id_SALCAL
 
       ! Scalars
-      INTEGER                  :: I,    J,    L,    N
-      REAL(fp)                 :: ANO3, GNO3
+      INTEGER                  :: I,    J,    L,    N,  NM
+      REAL(fp)                 :: ANO3, GNO3, ACL, GCL
       REAL(f8)                 :: RHI,  TEMPI, P_Pa
       REAL(fp)                 :: TCA,  TMG,  TK,   HNO3_DEN
       REAL(fp)                 :: TNA,  TCL,  TNH3, TNH4
@@ -234,7 +242,17 @@
       REAL(f8)                 :: WT(NCOMPA)
       REAL(f8)                 :: CNTRL(NCTRLA)
 
+
+      REAL(f8)                 :: AlkR !Alkalinity % depleted
+      REAL(f8)                 :: Qk, PHCl, F_HCl, F_HNO3
+      REAL(f8)                 :: Hplus !H+ in SALC,mol/m3
+      REAL(f8)                 :: Dcs !SALC diameter, m
+      REAL(f8)                 :: n_air !air density, molec/cm3
+      REAL(f8)                 :: n_ssc !SALC number concentration, molec/m3
+
       ! Strings
+
+      CHARACTER(LEN=255)       :: X 
       CHARACTER(LEN=15)        :: SCASI  
       CHARACTER(LEN=255)       :: ErrMsg
       CHARACTER(LEN=255)       :: ThisLoc
@@ -250,7 +268,9 @@
       REAL(fp)                 :: BISULTEMP
       ! Temporary variable for NO3-
       REAL(fp)                 :: NITRTEMP
-
+      ! Temporary variable for Cl-
+      REAL(fp)                 :: CLTEMP
+      
 
       ! debug variables
       INTEGER                  :: Itemp, Jtemp, Ltemp
@@ -297,6 +317,15 @@
          id_NIT  = Ind_('NIT' )
          id_SALA = Ind_('SALA')
          id_SO4  = Ind_('SO4' )
+         id_SALACL = Ind_('SALACL')
+         id_HCL = Ind_('HCl')
+         id_SALC = Ind_('SALC')
+         id_SALCCL = Ind_('SALCCL')
+         !id_NH4s  = Ind_('NH4s' )
+         id_NITs  = Ind_('NITs' )
+         id_SO4s  = Ind_('SO4s' )
+         id_SALAAL = Ind_('SALAAL')
+         id_SALCAL = Ind_('SALCAL')
 
          ! Make sure certain tracers are defined
          IF ( id_SO4 <= 0 ) THEN
@@ -323,6 +352,33 @@
             ErrMsg = 'SALA is an undefined species!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
+         ENDIF
+         IF ( id_SALACL <= 0 ) THEN
+            CALL ERROR_STOP( 'SALACL is an undefined species!', X )
+         ENDIF
+         IF ( id_HCL <= 0 ) THEN
+            CALL ERROR_STOP( 'HCL is an undefined species!', X )
+         ENDIF
+         IF ( id_SALC <= 0 ) THEN
+            CALL ERROR_STOP( 'SALC is an undefined species!', X )
+         ENDIF
+         IF ( id_SALCCL <= 0 ) THEN
+            CALL ERROR_STOP( 'SALCCL is an undefined species!', X )
+         ENDIF
+         !IF ( id_NH4s <= 0 ) THEN
+         !   CALL ERROR_STOP( 'NH4s is an undefined species!',  X )
+         !ENDIF
+         IF ( id_NITs <= 0 ) THEN
+            CALL ERROR_STOP( 'NITs is an undefined species!',  X )
+         ENDIF
+         IF ( id_SO4s <= 0 ) THEN
+            CALL ERROR_STOP( 'SO4s is an undefined species!',  X )
+         ENDIF
+         IF ( id_SALAAL <= 0 ) THEN
+            CALL ERROR_STOP( 'SALAAL is an undefined species!', X )
+         ENDIF
+         IF ( id_SALCAL <= 0 ) THEN
+            CALL ERROR_STOP( 'SALCAL is an undefined species!', X )
          ENDIF
 
          ! Initialize arrays
@@ -392,10 +448,12 @@
 !$OMP+PRIVATE( WT,      GAS,      TEMPI,      RHI,       VOL     )    
 !$OMP+PRIVATE( TSO4,    TNH3,     TNA,        TCL,       ANO3    )
 !$OMP+PRIVATE( GNO3,    TCA,      TMG,        TK,        CNTRL   )
+!$OMP+PRIVATE( GCL,     ACL,      AlkR,       NM,        PHCl    )
 !$OMP+PRIVATE( SCASI,   P_PA,     TNO3,       AERLIQ,    AERSLD  )
 !$OMP+PRIVATE( OTHER,   TNH4,     TNIT,       HPLUSTEMP, NUM_SAV )
-!$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds                    )
-!$OMP+PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP                     )
+!$OMP+PRIVATE( Qk,      n_air,    n_ssc,      Hplus,     Dcs     )         
+!$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds, F_HCl, F_HNO3     )
+!$OMP+PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP, CLTEMP             )
 !$OMP+SCHEDULE( DYNAMIC, 1 )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
@@ -431,16 +489,81 @@
          ! Volume of grid box [m3] 
          VOL      = State_Met%AIRVOL(I,J,L)
 
-         !---------------------------------
-         ! Compute quantities for ISORROPIA
-         !---------------------------------
+         !-----------------------------------------------------------
+         ! Now include full themodynamics for SSA, xnw 11/20/17
+         ! Assume coarse SSA is externally mixed with fine aerosols,
+         ! fine mode aerosols first reach equilibrium then coarse SSA
+         !-----------------------------------------------------------
 
-         ! Total SO4 [mole/m3]
-         TSO4 = Spc(I,J,L,id_SO4) * 1.e+3_fp / ( 96.e+0_fp * VOL )
+         ! This is for saving PHCl
+         PHCl = Spc(I,J,L,id_HCL) !initial HCl, kg
 
-         ! Total NH3 [mole/m3] 
-         TNH3 = Spc(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL ) +
-     &          Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
+         ! Only do coarse mode cacluation when SALC exists
+         ! SET NM = 1 to skip coarse SSA thermodynamic
+         IF (Spc(I,J,L,id_SALC) .GT. 1.e-20) THEN
+            NM = 2
+            ! Calculate parameters for mass transfer
+            Dcs = State_Chm%AeroRadi(I,J,L,12) * 2.e-2_fp !(cm->m)
+            n_air = State_Met%AIRNUMDEN(I,J,L) !(molec/cm3)
+            n_ssc = Spc(I,J,L,id_SALC) / 2.2e+3_fp /
+     &              ((1.e+0_fp/6.e+0_fp) * Pi * Dcs**3 ) / VOL !(kg->#/m3)
+         ELSE
+            NM = 1
+         ENDIF
+
+         DO N = 1, NM
+         !1 for fine, 2 for coarse
+         !The coarse SSA thermodynamic does not work for offline simulation
+
+            !-----------------------------------------------
+            ! Compute Alkalinity % consumed in the grid box
+            !-----------------------------------------------
+
+            IF (N == 1) THEN
+               IF (Spc(I,J,L,id_SALAAL) .GT. CONMIN) THEN
+                  AlkR = Spc(I,J,L,id_SALAAL) / Spc(I,J,L,id_SALA)
+                  AlkR = MAX( (1.e+0_fp-AlkR), CONMIN)
+               ELSE
+                  AlkR = 1.e+0_fp
+               ENDIF
+            ELSE
+               IF (Spc(I,J,L,id_SALCAL) .GT. CONMIN) THEN
+                  AlkR = Spc(I,J,L,id_SALCAL) / Spc(I,J,L,id_SALC)
+                  AlkR = MAX( (1.e+0_fp-AlkR), CONMIN)
+               ELSE
+                  AlkR = 1.e+0_fp
+               ENDIF
+            ENDIF
+
+            !--------------------------------
+            ! Compute quantities for ISORROPIA
+            !---------------------------------
+
+            IF ( N == 1) THEN
+
+               ! Total SO4 [mole/m3], also consider SO4s in SALA
+               TSO4 = (Spc(I,J,L,id_SO4)+Spc(I,J,L,id_SALA)*0.08*AlkR)
+     &                * 1.e+3_fp / ( 96.e+0_fp * VOL)
+
+               ! Total NH3 [mole/m3] 
+               TNH3 = Spc(I,J,L,id_NH4)*1.e+3_fp/(18.e+0_fp*VOL) +
+     &                Spc(I,J,L,id_NH3)* 1.e+3_fp / (17.e+0_fp * VOL)
+
+            ELSE 
+
+               ! Total SO4 [mole/m3], also consider SO4s in SALC
+
+               TSO4 = Spc(I,J,L,id_SO4s) 
+     &                * 1.e+3_fp * AlkR / (31.4e+0_fp * VOL) +
+     &                Spc(I,J,L,id_SALC)*0.08_fp                       
+     &                * 1.e+3_fp * AlkR / (96.e+0_fp * VOL)
+
+               ! Total NH3 [mole/m3] 
+               !TNH3 = Spc(I,J,L,id_NH4s)*1.e+3_fp*AlkR/(31.4e+0_fp*VOL)+
+!     &                Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL)
+               TNH3  = 0e+0_fp
+
+            ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: The error-trap statement above will halt execution if id_SALA is
@@ -449,13 +572,38 @@
 !%%%
 !%%%         IF ( id_SALA > 0 ) THEN
             
+            IF (N == 1) THEN
+
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-            TNA = Spc(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp /
-     &        ( 22.99e+0_fp  * VOL  )
+            !TNA = Spc(I,J,L,id_SALA) * 0.3061e+0_fp * 1.e+3_fp /
+!     &        ( 22.99e+0_fp  * VOL  )
+
+            ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
+            ! increase to account for all cations, xnw 11/26/17
+               TNA = Spc(I,J,L,id_SALA) * 0.397e+0_fp * 1.e+3_fp 
+     &               * AlkR / ( 23.e+0_fp  * VOL  )
 
             ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
-            TCL = Spc(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp /
-     &           ( 35.45e+0_fp  * VOL  )
+            !TCL = Spc(I,J,L,id_SALA) * 0.5504e+0_fp * 1.e+3_fp /
+!     &           ( 35.45e+0_fp  * VOL  )
+
+            ! track chloride in sea salt correctly, xnw 10/12/17
+            ! Aerosol phase Cl-, [mole/m3]
+               ACL = Spc(I,J,L,id_SALACL) * 1.e+3_fp * AlkR / 
+     &                  ( 35.45e+0_fp  * VOL  )
+            ELSE
+
+               TNA = Spc(I,J,L,id_SALC) * 0.378e+0_fp * 1.e+3_fp 
+     &               * AlkR / ( 23.e+0_fp  * VOL  ) 
+               ACL = Spc(I,J,L,id_SALCCL) * 1.e+3_fp * AlkR / 
+     &                  ( 35.45e+0_fp  * VOL  )
+
+            ENDIF
+
+            ! Gas phase Cl-, [mole/m3]
+            GCL = Spc(I,J,L,id_HCL) * 1.e+3_fp /(36.45e+0_fp * VOL)
+            ! Total Cl- [mole/m3]
+            TCL = ACL + GCL
 
 !==============================================================================
 !=== NOTE: As of 11/2007, ISORROPIAII does not conserve mass when Ca,K,Mg are 
@@ -491,40 +639,45 @@
 !%%%         ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Compute gas-phase NO3
-         IF ( id_HNO3 > 0 ) THEN
+            ! Compute gas-phase NO3
+            IF ( id_HNO3 > 0 ) THEN
             
-            !---------------------
-            ! COUPLED SIMULATION
-            !---------------------
+               !---------------------
+               ! COUPLED SIMULATION
+               !---------------------
 
-            ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
-            GNO3 = Spc(I,J,L,id_HNO3)
-            GNO3 = MAX( GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN )
+               ! Compute gas-phase HNO3 [mole/m3] from HNO3 tracer
+               GNO3 = Spc(I,J,L,id_HNO3)
+               GNO3 = MAX(GNO3 * 1.e+3_fp / ( 63.e+0_fp * VOL ), CONMIN)
 
-            ! Aerosol-phase NO3 [mole/m3]
-            ANO3 = Spc(I,J,L,id_NIT) * 1.e+3_fp /
-     &           (62.e+0_fp * VOL )
+               ! Aerosol-phase NO3 [mole/m3]
+               IF (N == 1) THEN
+                  ANO3 = Spc(I,J,L,id_NIT) * 1.e+3_fp
+     &                      / (62.e+0_fp * VOL)
+               ELSE
+                  ANO3 = Spc(I,J,L,id_NITs) * 1.e+3_fp * AlkR
+     &                      / (31.4e+0_fp * VOL)
+               ENDIF
 
-            ! Total NO3 [mole/m3]
-            TNO3    = GNO3 + ANO3
+               ! Total NO3 [mole/m3]
+               TNO3    = GNO3 + ANO3
 
-         ELSE
+            ELSE
 
-            !---------------------
-            ! OFFLINE SIMULATION
-            !---------------------
+               !---------------------
+               ! OFFLINE SIMULATION
+               !---------------------
 
-            ! Convert total inorganic NO3 from [ug/m3] to [mole/m3].
-            ! GET_HNO3, lets HNO3 conc's evolve, but relaxes to 
-            ! monthly mean values every 3h.
-            TNO3  = GET_HNO3( I, J, L, State_Met ) * 1.e-6_fp / 
-     &              63.e+0_fp
+               ! Convert total inorganic NO3 from [ug/m3] to [mole/m3].
+               ! GET_HNO3, lets HNO3 conc's evolve, but relaxes to 
+               ! monthly mean values every 3h.
+               TNO3  = GET_HNO3( I, J, L, State_Met ) * 1.e-6_fp / 
+     &                 63.e+0_fp
+               ANO3 = 0.0e+0_fp
+               GNO3 = TNO3
 
-            ANO3 = 0.0e+0_fp
-            GNO3 = TNO3
+            ENDIF
 
-         ENDIF
 
          !---------------------------------
          ! Call ISORROPIA
@@ -551,185 +704,253 @@
 
 #if defined( SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE )
 
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%% If the C-preprocessor switch is activated then check if
-         !%%% pressure and temperature are in the range that will result
-         !%%% in a stable solution.  If not, then we will skip calling
-         !%%% ISORROPIA to avoid random noise in the output.
-         !%%%
-         !%%% NOTE: Turning this feature on will result in differences
-         !%%% with respect to prior GEOS-Chem versions.  So we'll give
-         !%%% the user the option to activate it or not.  At some point
-         !%%% in the future this will become the default setting.
-         !%%%
-         !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%% If the C-preprocessor switch is activated then check if
+            !%%% pressure and temperature are in the range that will result
+            !%%% in a stable solution.  If not, then we will skip calling
+            !%%% ISORROPIA to avoid random noise in the output.
+            !%%%
+            !%%% NOTE: Turning this feature on will result in differences
+            !%%% with respect to prior GEOS-Chem versions.  So we'll give
+            !%%% the user the option to activate it or not.  At some point
+            !%%% in the future this will become the default setting.
+            !%%%
+            !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! SDE 2017-01-18: Recommendation from Shannon Capps
-         ! Skip equilibrium if T < 250 K or P < 200 hPa
-         OutOfBounds = ((P_Pa.lt.200.0e+2_f8).or.(TEMPI.lt.250.0e+0_f8))
+            ! SDE 2017-01-18: Recommendation from Shannon Capps
+            ! Skip equilibrium if T < 250 K or P < 200 hPa
+            OutOfBounds = ((P_Pa.lt.200.0e+2_f8).or. 
+     &                        (TEMPI.lt.250.0e+0_f8))
 
 #else
 
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%% Always call ISORROPIA, regardless of the values of pressure
-         !%%% and temperature.  This will match the prior behavior of
-         !%%% when comparing to v11-01 and earlier versions.
-         !%%%
-         !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            !%%% Always call ISORROPIA, regardless of the values of pressure
+            !%%% and temperature.  This will match the prior behavior of
+            !%%% when comparing to v11-01 and earlier versions.
+            !%%%
+            !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+            !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Never skip calling ISORROPIA
-         OutOfBounds = .FALSE.
+            ! Never skip calling ISORROPIA
+            OutOfBounds = .FALSE.
 
 #endif
 
-         IF ( OutOfBounds ) THEN
+            IF ( OutOfBounds ) THEN
 
-            ! %%% Skip equilibrium %%%
-            ! Just keep things the way they are 
-            ! and spoof the other outputs
-            WT(:)     = WI(:)
-            AERLIQ(:) = 0.0e+0_f8
-            AERSLD(:) = 0.0e+0_f8
-            GAS(:)    = 0.0e+0_f8
-            OTHER(:)  = 0.0e+0_f8
+               ! %%% Skip equilibrium %%%
+               ! Just keep things the way they are 
+               ! and spoof the other outputs
+               WT(:)     = WI(:)
+               AERLIQ(:) = 0.0e+0_f8
+               AERSLD(:) = 0.0e+0_f8
+               GAS(:)    = 0.0e+0_f8
+               OTHER(:)  = 0.0e+0_f8
 
-            ! Separate NH3 and NH4
-            TNH3 = Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
-            TNH4 = Spc(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL )
+               ! Separate NH3 and NH4
+               IF (N == 1) THEN
+                  TNH3 = Spc(I,J,L,id_NH3) * 1.e+3_fp /(17.e+0_fp * VOL)
+                  TNH4 = Spc(I,J,L,id_NH4)*1.e+3_fp
+     &                      / (18.e+0_fp * VOL)
+               ENDIF
 
-         ELSE
+            ELSE
 
-            ! %%% Perform aerosol thermodynamic equilibrium %%%
-            ! ISORROPIA can be found in ISORROPIAIICODE.F
-            ! inputs are WI, RHI, TEMPI, CNTRL
-            CALL ISORROPIA( WI,    RHI,  TEMPI,  CNTRL, 
-     &                     WT,    GAS,  AERLIQ, AERSLD,
-     &                     SCASI, OTHER                 )
 
-            ! Retrieve concentrations in mol/m3
-            TSO4 = WT(2)
-            TNH3 = GAS(1)
-            TNH4 = WT(3) - GAS(1)
-            GNO3 = GAS(2)
-            TNO3 = WT(4)
-            ANO3 = TNO3 - GNO3
+               ! %%% Perform aerosol thermodynamic equilibrium %%%
+               ! ISORROPIA can be found in ISORROPIAIICODE.F
+               ! inputs are WI, RHI, TEMPI, CNTRL
 
-         ENDIF
+               CALL ISORROPIA( WI,    RHI,  TEMPI,  CNTRL, 
+     &                        WT,    GAS,  AERLIQ, AERSLD,
+     &                        SCASI, OTHER                 )
+
+               ! Consider mass transfer and acid limitation for coarse
+               ! mode calculation
+               IF (N == 2) THEN
+                  !Hplus = AERLIQ(1) !H+ in aerosol, mol/m3
+                  Hplus = 1.e-5_fp*18.e-3_fp*AERLIQ(8)
+                  CALL GET_QK(GNO3, GCL, GAS(2), GAS(3), Hplus, Dcs, 
+     &                   TEMPI, n_air, n_ssc, Qk, F_HNO3, F_HCl)
+                  GAS(2) = GAS(2) * Qk
+                  GAS(3) = GAS(3) * Qk
+                  GAS(2) = GNO3 - (GNO3 - GAS(2)) *
+     &                     ( 1.e0_fp - exp(-F_HNO3))
+                  GAS(3) = GCL - (GCL - GAS(3)) *
+     &                     ( 1.e0_fp - exp(-F_HCl))
+               ENDIF
+
+               ! Retrieve concentrations in mol/m3
+               TSO4 = WT(2)
+               TNH3 = GAS(1)
+               TNH4 = WT(3) - GAS(1)
+               GNO3 = GAS(2)
+               TNO3 = WT(4)
+               ANO3 = TNO3 - GNO3
+               GCL  = GAS(3)
+               TCL  = WT(5)
+               ACL  = TCL - GCL
+
+
+            ENDIF
         
-         !---------------------------------
-         ! Save back into tracer array
-         !---------------------------------
-         ! Convert ISORROPIA output from [mole/m3] to [kg]
-         TSO4 = MAX( 96.e-3_fp * VOL * TSO4, CONMIN )
-         TNH3 = MAX( 17.e-3_fp * VOL * TNH3, CONMIN )
-         TNH4 = MAX( 18.e-3_fp * VOL * TNH4, CONMIN )
-         TNIT = MAX( 62.e-3_fp * VOL * ANO3, CONMIN )
 
-         ! Save tracers back into Spc array [kg]
-         ! no longer save TSO4 back into Spc. SO4 is all aerosol phase
-         ! (hotp 11/7/07)
-         ! Spc(I,J,L,id_SO4) = TSO4
-         Spc(I,J,L,id_NH3) = TNH3
-         Spc(I,J,L,id_NH4) = TNH4
-         Spc(I,J,L,id_NIT) = TNIT
+            !---------------------------------
+            ! Save back into tracer array
+            !---------------------------------
+            ! Convert ISORROPIA output from [mole/m3] to [kg]
+            IF (N == 1) THEN
+               TSO4 = MAX( 96.e-3_fp * VOL * TSO4, CONMIN )
+               TNH4 = MAX( 18.e-3_fp * VOL * TNH4, CONMIN )
+               TNIT = MAX( 62.e-3_fp * VOL * ANO3, CONMIN )
+               ACL  = MAX( 35.45e-3_fp * VOL * ACL, CONMIN ) 
+               TNH3 = MAX( 17.e-3_fp * VOL * TNH3, CONMIN )
+            ELSE
+               TSO4 = MAX( 31.4e-3_fp * VOL * TSO4, CONMIN )
+               !TNH4 = MAX( 31.4e-3_fp * VOL * TNH4, CONMIN )
+               TNIT = MAX( 31.4e-3_fp * VOL * ANO3, CONMIN )
+               ACL  = MAX( 35.45e-3_fp * VOL * ACL, CONMIN )
+            ENDIF
+            !TNH3 = MAX( 17.e-3_fp * VOL * TNH3, CONMIN )
+            GCL  = MAX( 36.45e-3_fp * VOL * GCL, CONMIN )
 
-         ! Special handling for HNO3 [kg]
-         IF ( id_HNO3 > 0 ) THEN
+            ! Save tracers back into Spc array [kg]
+            ! no longer save TSO4 back into Spc. SO4 is all aerosol phase
+            ! (hotp 11/7/07)
+            ! Spc(I,J,L,id_SO4) = TSO4
+            !Spc(I,J,L,id_NH3) = TNH3
+            Spc(I,J,L,id_HCL) = GCL
+
             
-            !---------------------
-            ! COUPLED SIMULATION
-            !---------------------
+            IF (N == 1) THEN
+               Spc(I,J,L,id_NH3) = TNH3
+               Spc(I,J,L,id_NH4) = TNH4
+               Spc(I,J,L,id_NIT) = TNIT
+               Spc(I,J,L,id_SALACL) = Spc(I,J,L,id_SALACL)*(1-AlkR)+ ACL
+            ELSE
+               !Spc(I,J,L,id_NH4s) = Spc(I,J,L,id_NH4s) * (1-AlkR) + TNH4
+               Spc(I,J,L,id_NITs) = Spc(I,J,L,id_NITs) * (1-AlkR) + TNIT
+               Spc(I,J,L,id_SALCCL) = Spc(I,J,L,id_SALCCL)*(1-AlkR)+ ACL
+            ENDIF
 
-            ! HNO3 [mole/m3] is in GAS(2); convert & store in Spc [kg]
-            Spc(I,J,L,id_HNO3)
-     &           = MAX( 63.e-3_fp * VOL * GNO3, CONMIN )
+            ! Special handling for HNO3 [kg]
+            IF ( id_HNO3 > 0 ) THEN
+            
+               !---------------------
+               ! COUPLED SIMULATION
+               !---------------------
 
-            ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-            HNO3_DEN           = Spc(I,J,L,id_HNO3)
+               ! HNO3 [mole/m3] is in GAS(2); convert & store in Spc [kg]
+               Spc(I,J,L,id_HNO3)
+     &              = MAX( 63.e-3_fp * VOL * GNO3, CONMIN )
 
-         ELSE
+               ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
+               HNO3_DEN           = Spc(I,J,L,id_HNO3)
 
-            !---------------------
-            ! OFFLINE SIMULATION:
-            !---------------------
+            ELSE
 
-            ! Convert total inorganic nitrate from [mole/m3] to [ug/m3] 
-            ! and save for next time
-            ! WT(4) is in [mole/m3] -- unit conv is necessary!
-            CALL SET_HNO3( I, J, L, 63.e+6_f8 * TNO3 )
+               !---------------------
+               ! OFFLINE SIMULATION:
+               !---------------------
 
-            ! Save for use in sulfate_mod (SEASALT_CHEM) for offline
-            ! aerosol simulations (bec, 4/15/05)
-            GAS_HNO3(I,J,L) = GNO3
+               ! Convert total inorganic nitrate from [mole/m3] to [ug/m3] 
+               ! and save for next time
+               ! WT(4) is in [mole/m3] -- unit conv is necessary!
+               CALL SET_HNO3( I, J, L, 63.e+6_f8 * TNO3 )
 
-            ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-            HNO3_DEN        = GNO3 * VOL * 63e-3_fp
+               ! Save for use in sulfate_mod (SEASALT_CHEM) for offline
+               ! aerosol simulations (bec, 4/15/05)
+               GAS_HNO3(I,J,L) = GNO3
 
-         ENDIF
+               ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
+               HNO3_DEN        = GNO3 * VOL * 63e-3_fp
 
-         !-------------------------
-         ! ND42 diagnostic arrays
-         !-------------------------
+            ENDIF
 
-         ! AEROPH: get pH related info to SAV arrays (hotp 8/11/09)
-         ! HPLUSTEMP is H+ in mol/L water, AERLIQ1 is H, AERLIQ8 is H2O
-         ! in mol/m3 air --> convert to mol/L water
-         IF ( AERLIQ(8) < 1e-18_fp ) THEN
-            ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
-            ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
-            ! (hotp, ccc, 12/18/09)
-            HPLUSTEMP       = 1e+20_fp
-            SULFTEMP        = 1e-30_fp
-            BISULTEMP       = 1e-30_fp
-            NITRTEMP        = 1e-30_fp
-            State_Chm%pHSav(I,J,L) = -999e+0_fp
-         ELSE
-            HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
-            SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp
-            BISULTEMP       = AERLIQ(6) / AERLIQ(8) * 1e+3_fp/18e+0_fp
-            NITRTEMP        = AERLIQ(7) / AERLIQ(8) * 1e+3_fp/18e+0_fp
+            !-------------------------
+            ! ND42 diagnostic arrays, only for fine mode
+            !-------------------------
 
-            ! Use SAFELOG10 to prevent NAN
-            State_Chm%pHSav(I,J,L) = -1e+0_fp * SAFELOG10( HPLUSTEMP )
-         ENDIF
+            !IF ( N == 1 ) THEN
 
-         ! Additional Info
-         State_Chm%HplusSav(I,J,L)  = HPLUSTEMP
-         State_Chm%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
-         State_Chm%SulratSav(I,J,L) = SULFTEMP
-         State_Chm%NaRatSav(I,J,L)  = NITRTEMP
-         State_Chm%BisulSav(I,J,L)  = BISULTEMP
+               ! AEROPH: get pH related info to SAV arrays (hotp 8/11/09)
+               ! HPLUSTEMP is H+ in mol/L water, AERLIQ1 is H, AERLIQ8 is H2O
+               ! in mol/m3 air --> convert to mol/L water
+               IF ( AERLIQ(8) < 1e-18_fp ) THEN
+                  ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
+                  ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
+                  ! (hotp, ccc, 12/18/09)
+                  !HPLUSTEMP       = 1e+20_fp
+                  HPLUSTEMP       = 1e-30_fp
+                  SULFTEMP        = 1e-30_fp
+                  BISULTEMP       = 1e-30_fp
+                  NITRTEMP        = 1e-30_fp
+                  CLTEMP          = 1e-30_fp
+                  !State_Chm%pHSav(I,J,L,N) = -999e+0_fp
+                  State_Chm%pHSav(I,J,L,N) = 20e+0_fp
+               ELSE
+                  HPLUSTEMP    = AERLIQ(1) / AERLIQ(8) *1e+3_fp/18e+0_fp
+                  SULFTEMP     = AERLIQ(5) / AERLIQ(8) *1e+3_fp/18e+0_fp
+                  BISULTEMP    = AERLIQ(6) / AERLIQ(8) *1e+3_fp/18e+0_fp
+                  NITRTEMP     = AERLIQ(7) / AERLIQ(8) *1e+3_fp/18e+0_fp
+                  CLTEMP       = AERLIQ(4) / AERLIQ(8) *1e+3_fp/18e+0_fp
 
-         NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
-     &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
-     &                  Spc(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
+                  ! Use SAFELOG10 to prevent NAN
+                  State_Chm%pHSav(I,J,L,N)=-1e+0_fp*SAFELOG10(HPLUSTEMP)
+               ENDIF
 
-         DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp  * 2e+0_fp  +
-     &                  Spc(I,J,L,id_NIT)  / 62e+0_fp             + 
-     &                  HNO3_DEN           / 63e+0_fp             +
-     &                  Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
+               ! Additional Info
+               State_Chm%HplusSav(I,J,L,N)  = MAX(HPLUSTEMP, 1e-30_fp)
+               State_Chm%WaterSav(I,J,L,N)  = MAX((AERLIQ(8)*18e+6_fp), 
+     &                                             1e-30_fp) ! mol/m3 -> ug/m3
+               State_Chm%NaRatSav(I,J,L,N)  = MAX(NITRTEMP, 1e-30_fp)
+               State_Chm%ClRatSav(I,J,L,N)  = MAX(CLTEMP, 1e-30_fp)
+               IF (N==1) THEN
+                 State_Chm%SulratSav(I,J,L) = MAX(SULFTEMP, 1e-30_fp)
+                 State_Chm%BisulSav(I,J,L)  = MAX(BISULTEMP, 1e-30_fp)
 
-         ! Value if DEN_SAV and NUM_SAV too small.
-         State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
-     &                                          0e+0_fp, 999e+0_fp)
+                 NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
+     &                     Spc(I,J,L,id_NH4) /18e+0_fp         +   
+     &                     Spc(I,J,L,id_SALA)*0.3061e+0_fp/23.0e+0_fp )
 
-         !==============================================================
-         ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
-         !==============================================================
+                 DEN_SAV    = ( Spc(I,J,L,id_SO4)  / 96e+0_fp*2e+0_fp +
+     &                     Spc(I,J,L,id_NIT)  / 62e+0_fp             + 
+     &                     HNO3_DEN           / 63e+0_fp             +
+     &                     Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
+
+                 ! Value if DEN_SAV and NUM_SAV too small.
+                 State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV,DEN_SAV,
+     &                                             0e+0_fp, 999e+0_fp)
+               ENDIF
+
+            !ENDIF
+
+         ENDDO
+
+         PHCl = (Spc(I,J,L,id_HCL) - PHCl)*35.45/36.45
+
+               !==============================================================
+               ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
+               !==============================================================
 
 #if defined( BPCH_DIAG )
-         !--------------------------------------------------------------
-         ! ND73: bpch diagnostic (eam, 04/2015)
-         !--------------------------------------------------------------
-         IF ( ND73 > 0 ) THEN
-            IF ( L <= LD73 ) THEN
-               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Chm%pHSav(   I,J,L)
-               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Chm%HplusSav(I,J,L)
-               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Chm%WaterSav(I,J,L)
-            ENDIF
-         ENDIF
+               !--------------------------------------------------------------
+               ! ND73: bpch diagnostic (eam, 04/2015)
+               !--------------------------------------------------------------
+               IF ( ND73 > 0) THEN
+                  IF ( L <= LD73 ) THEN
+                     AD73(I,J,L,1) =AD73(I,J,L,1) + 
+     &                              State_Chm%pHSav(   I,J,L,1)
+                     AD73(I,J,L,2) =AD73(I,J,L,2) + 
+     &                              State_Chm%HplusSav(I,J,L,1)
+                     AD73(I,J,L,3) =AD73(I,J,L,3) + 
+     &                              State_Chm%WaterSav(I,J,L,1)
+                     AD73(I,J,L,4) =AD73(I,J,L,4) +
+     &                              PHCl
+               ENDIF
+           
 #endif
 
       ENDDO
@@ -945,7 +1166,125 @@
       END SUBROUTINE GET_GNO3
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+!                  GEOS-Chem Global Chemical Transport Model
+!                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Function GET\_Qk returns the mass transfer correction 
+!  factor Qk for the thermodynamic equilibrium of coarse SSA. A dynamic
+!  method of Pillinis et al. (2000) is used here.
+!\\
+!\\
+! !INTERFACE:
+!
+      Subroutine GET_QK(GNO3, GCL, GNO3eq, GCLeq, Hplus, d, temp, 
+     & denair, n_x, Qk, F_HNO3, F_HCl )
+
+      USE PhysConstants,      ONLY : pi
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS: 
+!
+      ! Gas concentration (mole m-3) before equilibrium
+      REAL(fp),  INTENT(IN) :: GNO3, GCL  
+      ! Gas concentration (mole m-3) after ISORROPIA equilibrium
+      REAL(fp),  INTENT(IN) :: GNO3eq, GCLeq
+      ! Aerosol H+ concentration (mole m-3)
+      REAL(fp),  INTENT(IN) :: Hplus
+      ! Aerosol (coarse seas salt) diameter (m)
+      REAL(fp),  INTENT(IN) :: d
+      ! Temprature (K)
+      REAL(fp),  INTENT(IN) :: temp
+      ! Air density (molec cm-3)
+      REAL(fp),  INTENT(IN) :: denair
+      ! Aerosol (coarse sea salt) number density (m-3)
+      REAL(fp),  INTENT(IN) :: n_x
+!
+! !Return value: 
+!
+      REAL(fp),  INTENT(OUT)  :: Qk, F_HNO3, F_HCl
+!
+! !REVISION HISTORY: 
+!  14 Feb 2018 - X. Wang - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+!  !LOCAL VARIABLES:
+      REAL(fp) :: aa1, aa2, bb1, bb2, bb3 
+      REAL(fp) :: D_g, f, Kn, H_flux_NO3, H_flux_Cl
+      REAL(fp) :: alpha, Hlim, ab
+      
+
+      ! Initialize
+      aa1        = 0.0_fp
+      aa2        = 0.0_fp
+      bb1        = 0.0_fp
+      bb2        = 0.0_fp
+      bb3        = 0.0_fp
+      D_g        = 0.0_fp
+      f          = 0.0_fp
+      Kn         = 0.0_fp
+      H_flux_NO3 = 0.0_fp
+      H_flux_Cl  = 0.0_fp
+      Hlim       = 0.0_fp
+      alpha      = 0.0_fp
+      ab         = 0.0_fp
+
+      ! Based on (Pilinis et al.AST,2000), for  HNO3+HCl case, 
+      ! Qx = -bb / aa, first calculate bb:
+      ! bb = -D_g*f*C(HNO3) - D_g*f*C(HCl) + alpha/(2*pi*d*N) 
+      ! aa = D_g*f*Ceq(HNO3) + D_g*f*Ceq(HCl)
+
+      ! In the 1st term for HNO3, D_g is the gas diffusion coefficient (m2 s-1)
+      D_g = 9.45E+17_fp/denair * SQRT(temp) * 1.e-4_fp *     
+     &     SQRT(3.472E-2_fp + 1.E+0_fp/63.e+0_fp)
+      ! f is the the correction for noncontinuum effects and imperfect 
+      ! accommodation, based on Kn number and accommodation coefficient
+      Kn = 0.068e-6_fp / (d / 2.)
+      ! Use S&P eq12.42 (Dahneke 1983) to calculate f
+      ab = 7.5e-5 * exp(2.1e3 / temp)
+      f = (1+Kn) / (1 + 2.*Kn*(1+Kn)/ab)
+      ! C is the gas concentration before equilibrium (mol m-3)
+      bb1 = -D_g * f * GNO3 !(mole m-1 s-1)
+      ! Also calulate availabe H+ flux for later calculation (mol m-3 s-1)
+      H_flux_NO3 = 2*pi*D_g*d*n_x*f*(GNO3-GNO3eq)
+      F_HNO3 = 2*pi*D_g*d*n_x*f * GET_TS_CHEM() * 60e+0_fp !save for flux calc
+      aa1 = D_g*f*GNO3eq !(mole m-1 s-1)
+
+      ! Do similar for the 2nd term, for HCl
+      D_g = 9.45E+17_fp/denair * SQRT(temp) * 1.e-4_fp *
+     &     SQRT(3.472E-2_fp + 1.E+0_fp/36.45e+0_fp)
+      ab = 4.4e-6 * exp(2.898e3 / temp)
+      f = (1+Kn) / (1 + 2.*Kn*(1+Kn)/ab) 
+      bb2 = -D_g * f * GCL !(mole m-1 s-1)
+      H_flux_Cl = 2*pi*D_g*d*n_x*f*(GCL-GCLeq)
+      F_HCl = 2*pi*D_g*d*n_x*f * GET_TS_CHEM() * 60e+0_fp !save for flux calc
+      aa2 = D_g*f*GCLeq !(mole m-1 s-1)
+
+      ! In the third term, alpha is the limited changes in the acidity
+      ! of the particle. The limitation is set to 0.1s-1 following Pilinis, 2000
+      alpha = H_flux_Cl+H_flux_NO3 !(mole m-3 s-1)
+      Hlim = 1.e-1_fp * Hplus !(mole m-3 s-1)
+      IF (abs(alpha) .GT. Hlim) THEN
+         alpha = sign(Hlim, alpha) !(mole m-3 s-1)      
+         bb3 = alpha/(2*pi*d*n_x) !(mole m-1 s-1)
+         IF ((aa1+aa2) .LE. 0) THEN
+            Qk = 1e+0_fp
+         ELSEIF ((bb1 + bb2 + bb3) .GE. 0 ) THEN
+            Qk = 1e+0_fp
+         ELSE
+            Qk = - (bb1 + bb2 + bb3) / (aa1 + aa2)
+         ENDIF
+      ELSE
+         Qk = 1e+0_fp
+      ENDIF
+      
+      END SUBROUTINE GET_Qk
+!EOC
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -988,8 +1327,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3_sav' )
       HNO3_sav = 0e+0_fp
 
+
       ALLOCATE( GAS_HNO3( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
      &          STAT=AS )
+
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
       GAS_HNO3 = 0e+0_fp
 

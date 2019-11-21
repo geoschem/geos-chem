@@ -5,7 +5,7 @@
 !
 ! !MODULE: cleanup.F
 !
-! !DESCRIPTION: Subroutine CLEANUP deallocates the memory assigned to 
+! !DESCRIPTION: Subroutine CLEANUP deallocates the memory assigned to
 !  dynamically allocatable arrays just before exiting a GEOS-Chem simulation.
 !\\
 !\\
@@ -18,10 +18,10 @@
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
-      USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
@@ -37,6 +37,7 @@
       USE DUST_MOD,                ONLY : CLEANUP_DUST
       USE ErrCode_Mod
       USE ERROR_MOD,               ONLY : DEBUG_MSG
+      USE sfcvmr_mod,              ONLY : CLEANUP_SfcVMR
       USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
       USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
@@ -76,6 +77,7 @@
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 
+
       ! HEMCO 
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 
@@ -86,7 +88,7 @@
 
       IMPLICIT NONE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
@@ -96,20 +98,20 @@
 !
       INTEGER,        INTENT(OUT) :: RC           ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  29 Nov 1999 - R. Yantosca - Initial version
 !  (1 ) CLEANUP is written in Fixed-Format F90.
-!  (2 ) Now calls CLEANUP_WETSCAV, which deallocates arrays from 
+!  (2 ) Now calls CLEANUP_WETSCAV, which deallocates arrays from
 !        "wetscav_mod.f". (bmy, 3/9/00)
 !  (3 ) Add call to CLEANUP_SULFATE, which deallocates arrays from
 !        "sulfate_mod.f".  Also now deallocate ND32 arrays. (bmy, 6/6/00)
-!  (4 ) Add call to CLEANUP_DAO, which deallocates arrays from "dao_mod.f".  
+!  (4 ) Add call to CLEANUP_DAO, which deallocates arrays from "dao_mod.f".
 !        (bmy, 6/26/00)
-!  (5 ) Add call to CLEANUP_TAGGED_CO and CLEANUP_COMODE, which deallocates 
+!  (5 ) Add call to CLEANUP_TAGGED_CO and CLEANUP_COMODE, which deallocates
 !        arrays from and "comode_mod.f". (bmy, 7/19/00)
-!  (6 ) Add call to CLEANUP_GLOBAL_OH and CLEANUP_COMODE, which deallocates 
+!  (6 ) Add call to CLEANUP_GLOBAL_OH and CLEANUP_COMODE, which deallocates
 !        arrays from "global_oh_mod.f". (bmy, 7/28/00)
-!  (7 ) Add calls to CLEANUP_BIOMASS and CLEANUP_BIOFUEL, which deallocates 
+!  (7 ) Add calls to CLEANUP_BIOMASS and CLEANUP_BIOFUEL, which deallocates
 !        arrays from "biomass_mod.f" and "biofuel_mod.f".  Also deallocate
 !        the AD32_bf array for the biofuel NOx diagnostic. (bmy, 9/12/00)
 !  (8 ) Add call to CLEANUP_DIAG51, to deallocate module arrays from
@@ -120,29 +122,29 @@
 !  (11) Now deallocate the AD34 array.  Also updated comments and
 !        made some cosmetic changes. (bmy, 3/15/01)
 !  (12) Now deallocate the AD12 array (bdf, bmy, 6/15/01)
-!  (13) Add call to CLEANUP_ACETONE, to deallocate module arrays from 
-!        "acetone_mod.f"  Also deallocate AD11 array.  Also deallocate 
-!        variables from dao_mod.f last, to try to avoid bus error on 
-!        SGI (bmy, 8/3/01) 
+!  (13) Add call to CLEANUP_ACETONE, to deallocate module arrays from
+!        "acetone_mod.f"  Also deallocate AD11 array.  Also deallocate
+!        variables from dao_mod.f last, to try to avoid bus error on
+!        SGI (bmy, 8/3/01)
 !  (14) Added call to CLEANUP_UVALBEDO from "uvalbedo_mod.f".  Also removed
-!        obsolete code from 9/01.  Also only include references to CLEANUP_* 
+!        obsolete code from 9/01.  Also only include references to CLEANUP_*
 !        subroutines in other modules for clarity. (bmy, 1/15/02)
 !  (15) Added call to CLEANUP_C2H6 from "c2h6_mod.f" (bmy, 1/25/02)
-!  (16) Added call to CLEANUP_AIRCRAFT_NOX from "aircraft_nox_mod.f" 
+!  (16) Added call to CLEANUP_AIRCRAFT_NOX from "aircraft_nox_mod.f"
 !        (bmy, 2/14/02)
 !  (17) Now deallocate CTNO2, CTHO2, LTNO2, LTHO2 arrays (rvm, bmy, 2/27/02)
 !  (18) Now reference CLEANUP_PLANEFLIGHT from "planeflight_mod.f".
 !        Now also deallocate AD01 and AD02 arrays. (mje, bmy, 8/7/02)
-!  (19) Now reference cleanup routines from "global_nox_mod.f", 
+!  (19) Now reference cleanup routines from "global_nox_mod.f",
 !        "global_hno3_mod.f", "global_no3_mod.f", "drydep_mod.f", and
 !        "rpmares_mod.f". (bmy, 12/16/02)
 !  (20) Now reference cleanup routine from "transport_mod.f" (bmy, 2/10/03)
-!  (21) Now reference cleanup routine from "pjc_pfix_mod.f" and 
+!  (21) Now reference cleanup routine from "pjc_pfix_mod.f" and
 !        "tpcore_fvdas_mod.f90". (bmy, 5/9/03)
 !  (22) Now reference cleanup routine from "toms_mod.f" (bmy, 7/14/03)
 !  (23) Now reference cleanup routine from "carbon_mod.f", "dust_mod.f", and
 !        "dust_dead_mod.f". (bmy, 7/14/03)
-!  (23) Now references cleanup routine from "lightning__nox_mod.f" 
+!  (23) Now references cleanup routine from "lightning__nox_mod.f"
 !        (bmy, 4/14/04)
 !  (24) Now references cleanup routine from "seasalt_mod.f" (bmy, 4/26/04)
 !  (25) Now references cleanup routines from new modules (bmy, 7/20/04)
@@ -153,8 +155,8 @@
 !  (29) Now call CLEANUP_PBL_MIX from "pbl_mix_mod.f".  Now call CLEANUP_DIAG41
 !        from "diag41_mod.f". (bmy, 2/17/05)
 !  (30) Now calls CLEANUP_HCN_CH3CN from "hcn_ch3cn_mod.f (bmy, 6/23/05)
-!  (31) Now calls CLEANUP_DIAG04, CLEANUP_CO2, and CLEANUP_TROPOPAUSE 
-!         (bmy, 8/15/05) 
+!  (31) Now calls CLEANUP_DIAG04, CLEANUP_CO2, and CLEANUP_TROPOPAUSE
+!         (bmy, 8/15/05)
 !  (32) Now calls CLEANUP_LAI from "lai_mod.f", CLEANUP_MEGAN from
 !        "megan_mod.f" and CLEANUP_REGRID_1x1 from "regrid_1x1_mod.f"
 !        (tmf, bdf, bmy, 10/24/05)
@@ -166,7 +168,7 @@
 !  (36) Now references CLEANUP_BRAVO from "bravo_mod.f" and CLEANUP_EDGAR
 !        from "edgar_mod.f" (bmy, 7/6/06)
 !  (37) Now calls CLEANUP_H2_HD from "h2_hd_mod.f" and CLEANUP_GLOBAL_O1D
-!        from "global_o1d_mod.f".  Remove call to CLEANUP_LIGHTNING_NOx_NL 
+!        from "global_o1d_mod.f".  Remove call to CLEANUP_LIGHTNING_NOx_NL
 !        from "lightning_nox_nl_mod.f (hup, phs, bmy, 10/2/07)
 !  (38) Now calls GEOS5_EXIT_TPCORE_WINDOW to finalize the TPCORE for
 !        GEOS-5 nested window simulations (yxw, dan, bmy, 11/6/08)
@@ -181,9 +183,9 @@
 !  (45) Added call to CLEANUP_GLOBAL_OC, which deallocates arrays from
 !       "global_oc_mod.f"  (clf, 2/28/2011)
 !  (46) Added call to CLEANUP_GLOBAL_BC, which deallocates arrays from
-!       "global_bc_mod.f"  (clf, 2/28/2011) 
+!       "global_bc_mod.f"  (clf, 2/28/2011)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  28 Feb 2011 - C. Friedman - Added call to CLEANUP_GLOBAL_OC, which 
+!  28 Feb 2011 - C. Friedman - Added call to CLEANUP_GLOBAL_OC, which
 !                              deallocates arrays from "global_oc_mod.f"
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
@@ -294,7 +296,7 @@
       CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
 
-      ! UCX needs to be cleaned up before emissions, because the UCX 
+      ! UCX needs to be cleaned up before emissions, because the UCX
       ! restart variables needs to be passed to the HEMCO diagnostics
       ! first.
       CALL CLEANUP_UCX( am_I_Root )
@@ -320,6 +322,7 @@
       CALL CLEANUP_DIAG_OH()
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
+      CALL CLEANUP_SfcVMR()
 
       CALL Cleanup_FlexChem( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -396,6 +399,7 @@
          RETURN
       ENDIF
 #endif
+
 
       IF ( State_Grid%NestedGrid ) THEN
          CALL EXIT_TPCORE_WINDOW() 

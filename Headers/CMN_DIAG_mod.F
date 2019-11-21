@@ -25,6 +25,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
+
       !######################################################
       !##### NOTE: We need to keep these variables!     #####
       !######################################################
@@ -88,6 +89,7 @@
       INTEGER, PARAMETER :: PD72=187 ! Radiation (Ridley 10/2012)
 
       ! (eam, 2015): ISORROPIA pH, H+, & aerosol water
+
       INTEGER, PARAMETER :: PD73=3 
 #endif
 

@@ -5,9 +5,9 @@
 #
 # !MODULE: Makefile (in the GeosCore subdirectory)
 #
-# !DESCRIPTION: This is the main GEOS-Chem makefile.  It compiles the 
-# GEOS-Chem core source code files and bundles all of the object files (*.o) 
-# into the libGeosCore.a library (located in the LIB directory).  Module files 
+# !DESCRIPTION: This is the main GEOS-Chem makefile.  It compiles the
+# GEOS-Chem core source code files and bundles all of the object files (*.o)
+# into the libGeosCore.a library (located in the LIB directory).  Module files
 # (*.mod) are copied to the MOD directory.
 #\\
 #\\
@@ -70,21 +70,21 @@
 # (7) ISORROPIA/           : ISORROPIA aerosol thermodyn equilibrium module
 # (8) GeosCore/            : "Core" GEOS-Chem modules
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  18 Sep 2009 - P. Le Sager - Removed -lKppInt
 #  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
 #                              display the help screen options
 #  19 Nov 2009 - R. Yantosca - Now compile the various GEOS-Chem utility
 #                              modules in the GeosUtil subdirectory
-#  19 Nov 2009 - R. Yantosca - Now compile the GEOS-Chem bpch module 
+#  19 Nov 2009 - R. Yantosca - Now compile the GEOS-Chem bpch module
 #                              separately in the GeosBpch subdirectory
 #  19 Nov 2009 - R. Yantosca - Now list all object dependencies explicitly,
 #                              to be able to use "make -j" (parallel make)
 #  23 Nov 2009 - R. Yantosca - Remove "main.o" explicitly form the "exe"
 #                              makefile target.  This will be now compiled in
 #                              the proper sequence given the dependency
-#                              ordering.  This allows "make -j" to work. 
+#                              ordering.  This allows "make -j" to work.
 #  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
 #                              automatically written to the mod directory
 #  23 Nov 2009 - R. Yantosca - Removed libbpch; bundled that into libutil
@@ -98,7 +98,7 @@
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #  21 Dec 2009 - R. Yantosca - Now get LINK from Makefile_header.mk
 #  25 Jan 2010 - R. Yantosca - Whem making "realclean", also call "clean" in
-#                              the $(GEOSTOM)/Makefile.  Also make sure to 
+#                              the $(GEOSTOM)/Makefile.  Also make sure to
 #                              remove executables in the $(BIN) directory.
 #  28 Jan 2010 - C. Carouge  - Modifications for ISORROPIA II
 #  08 Feb 2010 - C. Carouge  - Modifications for F. Paulot's isoprene scheme
@@ -121,7 +121,7 @@
 #  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
 #  27 Nov 2012 - R. Yantosca - Remove reference to getifsun.F
 #  27 Mar 2013 - S.D. Eastham- Rolled photolysis functions together
-#  30 May 2013 - R. Yantosca - Remove reference to GEOS-3 TPCORE routines 
+#  30 May 2013 - R. Yantosca - Remove reference to GEOS-3 TPCORE routines
 #  13 Aug 2013 - M. Sulprizio- Remove reference to soaprod_mod.F (no longer
 #                              needed) (SOAupdate, hotp 7/25/10)
 #  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
@@ -264,8 +264,8 @@ endif
 lib:                                               # Build all G-C libraries
 	@$(MAKE) libnc
 	@$(MAKE) kppfirstpass
-	@$(MAKE) libheaders         		  
-	@$(MAKE) libutil 
+	@$(MAKE) libheaders
+	@$(MAKE) libutil
 	@$(MAKE) libkpp
 	@$(MAKE) libhistory
 	@$(MAKE) libobspack
@@ -288,8 +288,8 @@ ifeq ($(wildcard $(FVDIR)/fvdycore.install),)
 endif
 	@$(MAKE) -C $(GCHP) lib
 
-libheaders:                                        # Build code in Headers/ 
-	@$(MAKE) -C $(HDR)			  
+libheaders:                                        # Build code in Headers/
+	@$(MAKE) -C $(HDR)
 
 libhemco:                                          # Build code in HEMCO/*
 	@$(MAKE) -C $(HEMCO) lib
@@ -297,23 +297,24 @@ libhemco:                                          # Build code in HEMCO/*
 libhemcosa:                                        # Build HEMCO standalone
 	@$(MAKE) libnc
 	@$(MAKE) kppfirstpass
-	@$(MAKE) libheaders         		  
-	@$(MAKE) libutil 
+	@$(MAKE) libheaders
+	@$(MAKE) libutil
 	@$(MAKE) libhemco
 
 libhistory:                                        # Build code in History/
 	@$(MAKE) -C $(HIST) lib
+
 
 libiso:                                            # Build code in ISORROPIA/
 	@$(MAKE) -C $(ISO)			  
 
 librad:                                            # Build code in GeosRad/
 ifeq ($(RRTMG_NEEDED),1)
-	@$(MAKE) -C $(RAD)			  
+	@$(MAKE) -C $(RAD)
 endif
 
 libkpp:                                            # Build code in KPP/
-	@$(MAKE) -C $(KPP)			  
+	@$(MAKE) -C $(KPP)
 
 kppfirstpass:                                      # Compile some KPP code 1st
 	@$(MAKE) -C $(KPP) firstpass
@@ -325,7 +326,7 @@ libobspack:                                        # Build code in ObsPack/
 	@$(MAKE) -C $(OBSP) lib
 
 libutil:                                           # Build code in GeosUtil/
-	@$(MAKE) -C $(UTIL)			  
+	@$(MAKE) -C $(UTIL)
 
 baselibs:
 	@$(MAKE) -C $(GCHP) baselibs
@@ -424,7 +425,7 @@ allhg:                                             # Build Hg/GTMM executable
 	@$(MAKE) GTMM_Hg=yes exehg
 
 libhg:                                             # Compile HG/GTMM code
-	@$(MAKE) GTMM_Hg=yes libgtmm           		     
+	@$(MAKE) GTMM_Hg=yes libgtmm
 	@$(MAKE) GTMM_Hg=yes lib
 
 libgtmm:                                           # Compile GTMM model code
@@ -445,7 +446,7 @@ exehg:                                             # Create Hg/GTMM exec file
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###
@@ -456,7 +457,7 @@ aerosol_mod.o               : aerosol_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               tomas_mod.o             ucx_mod.o
 
-benchmark_mod.o             : benchmark_mod.F                              
+benchmark_mod.o             : benchmark_mod.F
 
 bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
                               pbl_mix_mod.o
@@ -498,6 +499,7 @@ cleanup.o                   : cleanup.F                                      \
                               isorropiaII_mod.o       land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
                               strat_chem_mod.o        mercury_mod.o          \
+                              sfcvmr_mod.o                                   \
                               modis_lai_mod.o         ocean_mercury_mod.o    \
                               pbl_mix_mod.o           pjc_pfix_mod.o         \
                               planeflight_mod.o       sulfate_mod.o          \
@@ -524,7 +526,7 @@ dao_mod.o                   : dao_mod.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \
-                              diag03_mod.o                     
+                              diag03_mod.o
 
 diag03_mod.o                : diag03_mod.F
 
@@ -542,16 +544,17 @@ diag3.o                     : diag3.F                                        \
                               drydep_mod.o            hco_interface_mod.o    \
                               tomas_mod.o             wetscav_mod.o
 
+
 diag20_mod.o                : diag20_mod.F
 
 diag41_mod.o                : diag41_mod.F                                   \
                               pbl_mix_mod.o
 
 diag42_mod.o                : diag42_mod.F                                   \
-                              aerosol_mod.o           carbon_mod.o            
+                              aerosol_mod.o           carbon_mod.o
 
 diag48_mod.o                : diag48_mod.F                                   \
-                              pbl_mix_mod.o           
+                              pbl_mix_mod.o
 
 diag49_mod.o                : diag49_mod.F                                   \
                               modis_lai_mod.o         pbl_mix_mod.o
@@ -560,6 +563,7 @@ diag50_mod.o                : diag50_mod.F                                   \
                               pbl_mix_mod.o           aerosol_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
+
                               pbl_mix_mod.o           
 
 diag51b_mod.o               : diag51b_mod.F                                  \
@@ -590,7 +594,7 @@ drydep_mod.o                : drydep_mod.F                                   \
 
 dust_mod.o                  : dust_mod.F                                     \
                               diag_mod.o              drydep_mod.o           \
-                              hco_interface_mod.o     tomas_mod.o             
+                              hco_interface_mod.o     tomas_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
                               bromocarb_mod.o         carbon_mod.o           \
@@ -601,6 +605,7 @@ emissions_mod.o             : emissions_mod.F90                              \
                               diagnostics_mod.o       pops_mod.o
 
 exchange_mod.o              : exchange_mod.F                                 \
+
 	                      dao_mod.o
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
@@ -653,7 +658,7 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
 get_met_mod.o               : get_met_mod.F90                                \
                               hco_interface_mod.o
 
-get_ndep_mod.o              : get_ndep_mod.F                              
+get_ndep_mod.o              : get_ndep_mod.F
 
 global_br_mod.o             : global_br_mod.F                                \
                               ocean_mercury_mod.o     hco_interface_mod.o
@@ -670,6 +675,7 @@ hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
                               hco_interface_mod.o                            \
                               diag_mod.o              diag53_mod.o           \
+
                               diag56_mod.o 
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
@@ -697,6 +703,7 @@ isorropiaII_mod.o           : isorropiaII_mod.F                              \
 land_mercury_mod.o          : land_mercury_mod.F      modis_lai_mod.o        \
                               dao_mod.o               depo_mercury_mod.o     \
                               hco_interface_mod.o
+
 
 linoz_mod.o                 : linoz_mod.F
 
@@ -758,6 +765,7 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag03_mod.o            toms_mod.o             \
                               hco_interface_mod.o
+
 ##############################################################################
 # NOTE: For some reason gfortran 8.x.x throws an internal compiler error
 # in this routine.  The error does not happen when optimization is turned
@@ -773,6 +781,7 @@ olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               hco_interface_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
+
                               tendencies_mod.o        diagnostics_mod.o      \
                               diag_mod.o              
 
@@ -781,6 +790,7 @@ pjc_pfix_window_mod.o       : pjc_pfix_window_mod.F
 pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
+
                               diag_mod.o              ocean_mercury_mod.o     
 
 pops_mod.o           	    : pops_mod.F    	                             \
@@ -803,12 +813,12 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               pbl_mix_mod.o           tomas_mod.o            \
                               hco_interface_mod.o     vdiff_pre_mod.o
 
+
 set_global_ch4_mod.o        : set_global_ch4_mod.F90                         \
                               pbl_mix_mod.o
 
 set_prof_o3.o               : set_prof_o3.F                                   
 
-sfcvmr_mod.o                : sfcvmr_mod.F90          pbl_mix_mod.o           
 
 strat_chem_mod.o            : strat_chem_mod.F90                             \
                               linoz_mod.o             hco_interface_mod.o    \
@@ -859,6 +869,7 @@ ucx_mod.o                   : ucx_mod.F                                      \
                               fast_jx_mod.o           global_ch4_mod.o       \
                               hco_interface_mod.o
 
+
 uvalbedo_mod.o              : uvalbedo_mod.F90                               \
                               hco_interface_mod.o
 
@@ -892,7 +903,7 @@ tomas_mod.o                 : tomas_mod.F                                    \
                               dao_mod.o                                      
 
 tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
-                              tomas_mod.o             
+                              tomas_mod.o
 
 
 aero_drydep.o               : aero_drydep.F                                  \

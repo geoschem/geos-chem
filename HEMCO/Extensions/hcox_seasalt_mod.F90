@@ -50,6 +50,7 @@ MODULE HCOX_SeaSalt_Mod
 !
 ! !PRIVATE TYPES:
 !
+
   TYPE :: MyInst
    ! Tracer IDs 
    INTEGER                :: Instance
@@ -197,6 +198,10 @@ CONTAINS
     REAL(hp), TARGET       :: FLUXBrSalC(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXMOPO  (HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXMOPI  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALACL(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALCCL(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALAAL(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALCAL(HcoState%NX,HcoState%NY)
 
     ! New variables (jaegle 5/11/11)
     REAL*8                 :: SST, SCALE
@@ -240,6 +245,10 @@ CONTAINS
     FLUXBrSalC = 0.0_hp
     FLUXMOPO   = 0.0_hp
     FLUXMOPI   = 0.0_hp
+    FLUXSALACL = 0.0_hp
+    FLUXSALCCL = 0.0_hp
+    FLUXSALAAL = 0.0_hp
+    FLUXSALCAL = 0.0_hp
 
     !=================================================================
     ! Emission is integrated over a given size range for each bin
@@ -440,6 +449,7 @@ CONTAINS
     !=================================================================
 
     ! SALA 
+
     IF ( Inst%IDTSALA > 0 ) THEN
 
        ! Add flux to emission array
@@ -452,8 +462,8 @@ CONTAINS
     ENDIF
 
     ! SALC 
-    IF ( Inst%IDTSALC > 0 ) THEN
 
+    IF ( Inst%IDTSALC > 0 ) THEN
        ! Add flux to emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALC, Inst%IDTSALC, & 
                          RC,        ExtNr=Inst%ExtNrSS )
@@ -462,6 +472,54 @@ CONTAINS
           RETURN 
        ENDIF
 
+    ENDIF
+
+    ! SALA Chloride, xnw 10/13/17
+    IF ( IDTSALACL > 0 ) THEN
+       FLUXSALACL = FLUXSALA * 0.5504d0
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALACL, IDTSALACL, &
+                         RC,        ExtNr=ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALACL', RC)
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! SALC Chloride, xnw 11/17/17
+    IF ( IDTSALCCL > 0 ) THEN
+        FLUXSALCCL = FLUXSALC * 0.5504d0
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALCCL, IDTSALCCL, &
+                         RC,        ExtNr=ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALCCL', RC)
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! SALA Alkalinity, xnw 11/30/17
+    IF ( IDTSALAAL > 0 ) THEN
+       FLUXSALAAL = FLUXSALA 
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALAAL, IDTSALAAL, &
+                         RC,        ExtNr=ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALAAL', RC)
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! SALC Alkalinity, xnw 11/30/17
+    IF ( IDTSALCAL > 0 ) THEN
+        FLUXSALCAL = FLUXSALC 
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALCAL, IDTSALCAL, &
+                         RC,        ExtNr=ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALCAL', RC)
+          RETURN
+       ENDIF
     ENDIF
 
     ! BR2 
@@ -634,6 +692,7 @@ CONTAINS
                      OptValBool=Inst%CalcBr2, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+
     IF ( Inst%CalcBr2 ) THEN
        minLen = 3
        CALL GetExtOpt( HcoState%Config, Inst%ExtNrSS, 'Br2 scaling', &
@@ -667,11 +726,17 @@ CONTAINS
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC ) 
        RETURN
     ENDIF
+
     Inst%IDTSALA = HcoIDsSS(1) 
     Inst%IDTSALC = HcoIDsSS(2)
-    IF ( Inst%CalcBr2 ) Inst%IDTBR2 = HcoIDsSS(3)
+    IDTSALACL = HcoIDsSS(3)
+    IDTSALCCL = HcoIDsSS(4)
+    IDTSALAAL = HcoIDsSS(5)
+    IDTSALCAL = HcoIDsSS(6)
+    IF ( Inst%CalcBr2 ) Inst%IDTBR2 = HcoIDsSS(7)
     IF ( Inst%CalcBrSalt ) Inst%IDTBrSALA = HcoIDsSS(nSpcSS-1)
     IF ( Inst%CalcBrSalt ) Inst%IDTBrSALC = HcoIDsSS(nSpcSS)
+
     
     ! Get the marine organic aerosol species defined for MarinePOA option
     IF ( Inst%ExtNrMPOA > 0 ) THEN
@@ -739,9 +804,24 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - wind scale factor: ', Inst%WindScale 
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-   
+
+
+       WRITE(MSG,*) 'Accumulation Chloride: ', TRIM(SpcNamesSS(3)),  &
+                    ':', IDTSALACL
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) 'Coarse Chloride: ', TRIM(SpcNamesSS(4)),  &
+                    ':', IDTSALCCL
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) 'Accumulation Alkalinity: ', TRIM(SpcNamesSS(5)),  &
+                    ':', IDTSALAAL
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) 'Coarse Alkalinity: ', TRIM(SpcNamesSS(6)),  &
+                    ':', IDTSALCAL
+       CALL HCO_MSG(HcoState%Config%Err,MSG)   
+ 
        IF ( Inst%CalcBr2 ) THEN
-          WRITE(MSG,*) 'Br2: ', TRIM(SpcNamesSS(3)), Inst%IDTBr2
+          WRITE(MSG,*) 'Br2: ', TRIM(SpcNamesSS(7)), Inst%IDTBr2
+
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br2 scale factor: ', Inst%Br2Scale
           CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -879,7 +959,7 @@ CONTAINS
        ELSEIF ( N==2 ) THEN 
           R0 = SALC_REDGE_um(1) 
           R1 = SALC_REDGE_um(2)
-       
+
        ! Marine phobic (mj, bg, 7/9/15)
        ELSEIF ( N==3 ) THEN 
           R0 = SALA_REDGE_um(1) 

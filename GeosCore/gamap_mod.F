@@ -4605,6 +4605,7 @@
       IF ( ND05 > 0 ) THEN
 
          ! Number of tracers
+
          NTRAC(05) = 20
 
          ! Loop over tracers
@@ -4712,6 +4713,11 @@
                   FNAME(T,05) = 'Cloud pH'
                   UNIT (T,05) = 'unitless'
                   MWT  (T,05) = 0e0
+               CASE( 20  )
+                  NAME (T,05) = 'LHCl'       !xnw (02/26/18)
+                  FNAME(T,05) = 'L(HCl) by alkalinity'
+                  UNIT (T,05) = 'kg Cl'
+                  MWT  (T,05) = 35.45
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -7778,6 +7784,10 @@
                   NAME (T,73) = 'ISORH2O'
                   FNAME(T,73) = 'ISORROPIA aerosol H2O'
                   UNIT( T,73) = 'ug/m3'
+               CASE( 4  )
+                  NAME (T,73) = 'ISORH2O'
+                  FNAME(T,73) = 'ISORROPIA HCl production'
+                  UNIT( T,73) = 'kgCl/s'
                CASE DEFAULT
                   ! Nothing
             END SELECT

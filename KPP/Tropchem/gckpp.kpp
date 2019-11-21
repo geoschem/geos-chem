@@ -10,11 +10,81 @@
 #FAMILIES
 POx : O3 + NO2 + 2NO3 + PAN + NPMN + IPMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN + ETHLN + ISN1 + ISOPNB + ISOPND + MACRN + MVKN + PROPNN + R4N2 + INPN + ISNP + INO2 + ISNOOA + ISNOOB + ISNOHOO + MAN2 + PRN1 + PRPN + R4N1 + PMNN + MACRNO2 + ClO + HOCl + ClNO2 + 2ClNO3 + 2Cl2O2 + 2OClO + IO + HOI + IONO + 2IONO2 + 2OIO + 2I2O2 + 3I2O3 + 4I2O4;
 LOx : O3 + NO2 + 2NO3 + PAN + NPMN + IPMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN + ETHLN + ISN1 + ISOPNB + ISOPND + MACRN + MVKN + PROPNN + R4N2 + INPN + ISNP + INO2 + ISNOOA + ISNOOB + ISNOHOO + MAN2 + PRN1 + PRPN + R4N1 + PMNN + MACRNO2 + ClO + HOCl + ClNO2 + 2ClNO3 + 2Cl2O2 + 2OClO + IO + HOI + IONO + 2IONO2 + 2OIO + 2I2O2 + 3I2O3 + 4I2O4;
+
 PCO : CO;
 LCO : CO;
 PSO4 : SO4;
 LCH4 : CH4;
 PH2O2 : H2O2;
+
+Pyg01 : yg01;
+Pyg02 : yg02;
+Pyg03 : yg03;
+Pyg04 : yg04;
+Pyg05 : yg05;
+Pyg06 : yg06;
+Pyg07 : yg07;
+Pyg08 : yg08;
+Pyg09 : yg09;
+Pyg10 : yg10;
+Pyg11 : yg11;
+Pyg12 : yg12;
+Pyg13 : yg13;
+Pyg14 : yg14;
+Pyg15 : yg15;
+Pyg16 : yg16;
+Pyg17 : yg17;
+Pyg18 : yg18;
+Pyg19 : yg19;
+Pyg20 : yg20;
+Pyg21 : yg21;
+Pyg22 : yg22;
+Pyg23 : yg23;
+Pyg24 : yg24;
+Pyg25 : yg25;
+Pyg26 : yg26;
+Pyg27 : yg27;
+Pyg28 : yg28;
+Pyh01 : yh01;
+Pyh02 : yh02;
+Pyh03 : yh03;
+Pyh04 : yh04;
+Pyh05 : yh05;
+Pyh06 : yh06;
+Pyh07 : yh07;
+Pyh08 : yh08;
+Pyh09 : yh09;
+Pyh10 : yh10;
+Pyh11 : yh11;
+Pyh12 : yh12;
+Pyh13 : yh13;
+Pyh14 : yh14;
+Pyh15 : yh15;
+Pyh16 : yh16;
+Pyh17 : yh17;
+Pyh18 : yh18;
+Pyh19 : yh19;
+Pyh20 : yh20;
+Pyh21 : yh21;
+Pyh22 : yh22;
+Pyh23 : yh23;
+Pyh24 : yh24;
+Pyh25 : yh25;
+Pyh26 : yh26;
+Pyh27 : yh27;
+Pyh28 : yh28;
+Pyp01 : yp01;
+Pyp02 : yp02;
+Pyp03 : yp03;
+Pyp04 : yp04;
+Pyp05 : yp05;
+Pyp06 : yp06;
+Pyp07 : yp07;
+Pyp08 : yp08;
+Pyp09 : yp09;
+Pyp10 : yp10;
+Pyp11 : yp11;
+Pyp12 : yp12;
 
 #INLINE F90_RATES
   REAL(kind=dp) FUNCTION OH_O1D (J, H2O, TEMP, NUMDEN)
@@ -312,7 +382,7 @@ PH2O2 : H2O2;
 #ENDINLINE
 
 #INLINE F90_GLOBAL
-      REAL(kind=dp) :: HET(NSPEC,7), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,8), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !-----------------------------------------------------------------------

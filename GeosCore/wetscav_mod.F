@@ -1019,7 +1019,7 @@
       ! fraction of HNO3 scavenged out of the column further down
       ! in the last ELSE block.
       !--------------------------------------------------------------
-      ELSE IF ( SpcInfo%Is_Gas .and. ( .not. SpcInfo%WD_Is_HNO3 ) ) THEN
+      ELSE IF ( SpcInfo%Is_Gas .and. ( .not. SpcInfo%WD_Is_HNO3 )) THEN
 
          ! No scavenging at the surface
          F(:,:,1) = 0.0_fp
@@ -1550,7 +1550,7 @@
       ! (except for HNO3 and H2SO4 which scavenge like aerosols)
       !=================================================================
       ELSE IF ( SpcInfo%Is_Gas                 .and. 
-     &          ( .not. SpcInfo%WD_Is_HNO3 )   .and. 
+     &          ( .not. SpcInfo%WD_Is_HNO3 )   .and.
      &          ( .not. SpcInfo%WD_Is_H2SO4 ) ) THEN  
 
          ! Compute Ki, the loss rate of a gas-phase species from

@@ -31,13 +31,13 @@ MODULE Emissions_Mod
   PRIVATE :: MMR_Compute_Flux
 !
 ! !REVISION HISTORY:
-!  27 Aug 2014 - C. Keller   - Initial version. 
+!  27 Aug 2014 - C. Keller   - Initial version.
 !  20 Jun 2016 - R. Yantosca - Declare species ID flags as module variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !PRIVATE TYPES: 
+! !PRIVATE TYPES:
 !
   ! Species ID flags
   INTEGER :: id_BrO, id_CH4, id_CH3Br
@@ -53,11 +53,12 @@ CONTAINS
 ! !IROUTINE: emissions_init
 !
 ! !DESCRIPTION: Subroutine EMISSIONS\_INIT calls the HEMCO - GEOS-Chem
-! interface initialization routines. 
+! interface initialization routines.
 !\\
 !\\
 ! !INTERFACE:
 !
+
   SUBROUTINE Emissions_Init( am_I_Root,  Input_Opt, State_Chm,                &
                              State_Grid, State_Met, RC,                       &
                              HcoConfig                                       ) 
@@ -75,6 +76,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+
     LOGICAL,         INTENT(IN   )          :: am_I_Root  ! root CPU?
     TYPE(ChmState),  INTENT(IN   )          :: State_Chm  ! Chemistry state 
     TYPE(GrdState),  INTENT(IN   )          :: State_Grid ! Grid state 
@@ -86,8 +88,8 @@ CONTAINS
     INTEGER,         INTENT(INOUT)          :: RC         ! Failure or success
     TYPE(ConfigObj), POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
 !
-! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller   - Initial version 
+! !REVISION HISTORY:
+!  27 Aug 2014 - C. Keller   - Initial version
 !  16 Jun 2016 - J. Sheng    - Added tracer index retriever
 !  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
 !  22 Jan 2018 - R. Yantosca - Return error code to calling routine
@@ -111,6 +113,7 @@ CONTAINS
     id_BrO   = Ind_('BrO'  )
     id_CH4   = Ind_('CH4'  )
     id_CH3Br = Ind_('CH3Br')
+
 
     ! Are we including a species for which the global mixing ratio should 
     ! remain constant?
@@ -145,6 +148,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+
   SUBROUTINE Emissions_Run( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
                             State_Grid, State_Met, EmisTime,  Phase, RC   ) 
 !
@@ -182,6 +186,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+
     LOGICAL,        INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,        INTENT(IN   )  :: EmisTime   ! Emissions in this time step
     INTEGER,        INTENT(IN   )  :: Phase      ! Run phase
@@ -195,8 +200,8 @@ CONTAINS
     TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
     INTEGER,        INTENT(INOUT)  :: RC         ! Failure or success
 !
-! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller   - Initial version 
+! !REVISION HISTORY:
+!  27 Aug 2014 - C. Keller   - Initial version
 !  13 Nov 2014 - C. Keller   - Added EMISSCARBON (for SESQ and POA)
 !  21 Nov 2014 - C. Keller   - Added EMISSVOC to prevent VOC build-up
 !                              above tropopause
@@ -226,8 +231,9 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at Emissions_Run (in module GeosCore/emissions_mod.F90)'
 
-    ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
+    ! Run HEMCO. Phase 1 will only update the HEMCO clock and the
     ! HEMCO data list, phase 2 will perform the emission calculations.
+
     CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid, & 
                       State_Met, EmisTime,  Phase,     RC          ) 
 
@@ -258,6 +264,7 @@ CONTAINS
     ENDIF
 
 #if defined ( TOMAS )
+
     ! Call TOMAS emission routines (JKodros 6/2/15)
     CALL EmissCarbonTomas( am_I_Root,  Input_Opt, State_Chm, &
                            State_Grid, State_Met, RC )
@@ -445,6 +452,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
+
     LOGICAL, INTENT(IN)  :: am_I_Root  ! root CPU?
     LOGICAL, INTENT(IN)  :: Error      ! Cleanup arrays after crash? 
 !
@@ -452,8 +460,8 @@ CONTAINS
 !
     INTEGER, INTENT(OUT) :: RC         ! Success or failure?
 !
-! !REVISION HISTORY: 
-!  27 Aug 2014 - C. Keller    - Initial version 
+! !REVISION HISTORY:
+!  27 Aug 2014 - C. Keller    - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -591,11 +591,12 @@
 
 ! NOTE: We can restore this once we figure out what the proper unit
 ! conversion is (bmy, 11/20/17)
-!         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
 !
 !            !--------------------------------------
 !            ! OH CONCENTRATION [molec/cm3]
 !            !--------------------------------------
+
 !            CATEGORY = 'TIME-SER'
 !            UNIT     = 'molec/cm3'
 !            GMNL     = ND49_NL
@@ -1633,6 +1634,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
+
                I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Chm%phSav(I,J,L)
             ENDDO
@@ -1659,8 +1661,10 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
+
                I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Chm%WaterSav(I,J,L)
+
             ENDDO
             ENDDO
             ENDDO

@@ -943,6 +943,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+
 ! !IROUTINE: HCOX_LightNOx_Init
 !
 ! !DESCRIPTION: Subroutine HCOX\_LIGHTNOX\_INIT allocates all module arrays.  
