@@ -698,30 +698,33 @@
       !-----------------------------------------------------------------
       !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
       !-----------------------------------------------------------------
-      IF ( notDryRun ) THEN
 #ifdef USE_TIMERS
+      IF ( notDryRun ) THEN
          CALL GEOS_Timer_Start( "All diagnostics",           RC )
          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
+      ENDIF
 #endif
 
-         ! For now, just hardwire the input file for the History component
-         Input_Opt%HistoryInputFile = './HISTORY.rc'
+      ! For now, just hardwire the input file for the History component
+      Input_Opt%HistoryInputFile = './HISTORY.rc'
 
-         ! Initialize the GEOS-Chem history component
-         CALL History_Init( am_I_root, Input_Opt,  State_Met,
-     &                      State_Chm, State_Diag, RC         )
+      ! Initialize the GEOS-Chem history component
+      ! (for dry-run, enter routine to print out HISTORY.rc status)
+      CALL History_Init( am_I_root, Input_Opt,  State_Met,
+     &                   State_Chm, State_Diag, RC         )
 
-         ! Trap error
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "History_Init"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
+      ! Trap error
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "History_Init"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
 #ifdef USE_TIMERS
+      IF ( notDryRun ) THEN
          CALL GEOS_Timer_End( "All diagnostics",           RC )
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
       ENDIF
+#endif
 
       !-----------------------------------------------------------------
       !        ***** I N I T I A L I Z A T I O N  continued *****
@@ -2788,7 +2791,7 @@
          SELECT CASE( TRIM( ArgVal ) )
 
             ! Test for the dry-run switch
-            CASE( '--dry-run', '--dryrun', '-d' )
+            CASE( '--dryrun' )
                 Input_Opt%DryRun  = .TRUE.
 
             ! Otherwise pass through
@@ -2899,19 +2902,17 @@
       !=================================================================
       WRITE( U, 100 )
       WRITE( U, 100 ) REPEAT( '!', 79 )
-      WRITE( U, 100 ) '!!! GEOS-CHEM IS IN A DRY RUN MODE!'
+      WRITE( U, 100 ) '!!! GEOS-CHEM IS IN DRY-RUN MODE!'
       WRITE( U, 100 ) '!!!'
       WRITE( U, 100 ) '!!! You will NOT get output for this run!'
-      WRITE( U, 100 ) '!!! Use one of these commands to validate a ' //
+      WRITE( U, 100 ) '!!! Use this command to validate a '         //
      &                'GEOS-Chem run configuration:'
-      WRITE( U, 100 ) '!!!   ./geos --dry-run > log'
       WRITE( U, 100 ) '!!!   ./geos --dryrun > log'
-      WRITE( U, 100 ) '!!!   ./geos -d > log'
       WRITE( U, 100 ) '!!!'
-      WRITE( U, 100 ) '!!! REMOVE THE --dry-run (or --dryrun or '    //
-     &                 '-d) ARGUMENT FROM THE'
-      WRITE( U, 100 ) '!!! COMMAND LINE BEFORE RUNNING A '           //
-     ^                'GEOS-Chem PRODUCTION SIMULATION!'
+      WRITE( U, 100 ) '!!! REMOVE THE --dryrun ARGUMENT FROM THE '   //
+     &                'COMMAND LINE'
+      WRITE( U, 100 ) '!!! BEFORE RUNNING A GEOS-Chem PRODUCTION '   //
+     &                 'SIMULATION!'
       WRITE( U, 100 ) REPEAT( '!', 79 )
       WRITE( U, 120 ) '!!! Start Date       : ',
      &                Input_Opt%NYMDb, Input_Opt%NHMSb

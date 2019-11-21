@@ -263,11 +263,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: nnMatch
-    LOGICAL            :: Dum,    Found
+    INTEGER            :: nnMatch, LUN
+    LOGICAL            :: Dum,     Found
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
     !=======================================================================
     ! HCOI_SA_INIT begins here!
@@ -284,7 +284,8 @@ CONTAINS
     ! sets the HEMCO error properties (verbose mode? log file name,
     ! etc.) based upon the specifications in the configuration file.
     !=======================================================================
-    CALL Config_ReadFile( am_I_Root, HcoConfig, ConfigFile, 0, RC )
+    CALL Config_ReadFile( am_I_Root, HcoConfig, ConfigFile,                 &
+                          0,         RC,        IsDryRun=IsDryRun          )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Config_Readfile!"'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -431,9 +432,23 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Define diagnostics (skip for dry-run)
+    ! Define diagnostics
     !=======================================================================
-    IF ( .not. HcoState%Options%IsDryRun ) THEN
+    IF ( HcoState%Options%IsDryRun ) THEN
+
+       !--------------------------------------------------------------------
+       ! For dry-run simulations, print the status of the HEMCO
+       ! diagnostic configurations file (but do not read from it)
+       !--------------------------------------------------------------------
+       CALL DiagnFileOpen( am_I_Root, HcoConfig,      LUN,                  &
+                           RC,        IsDryRun=.TRUE.                      )
+
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! For regular simulations, read diagnostics configuration file
+       ! and define diagnostic variables for output
+       !--------------------------------------------------------------------
        CALL Define_Diagnostics( am_I_Root, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "Define_Diagnostics"!'
@@ -557,12 +572,14 @@ CONTAINS
        ! Leave loop if this is the end of the simulation
        IF ( IsEndOfSimulation(YR,MT,DY,HR,MN,SC) ) EXIT
 
-       ! Write to logfile and standard output
-       WRITE( Msg, 100 ) YR, MT, DY, HR, MN, SC
-100    FORMAT( 'Calculate emissions at ', i4,'-',i2.2,'-',i2.2,' ', &
-                 i2.2,':',i2.2,':',i2.2 )
-       CALL HCO_MSG(HcoState%Config%Err,Msg)
-       WRITE(*,*) TRIM( MSG )
+       ! Write to logfile and standard output (skip for dry-run)
+       IF ( notDryRun ) THEN
+          WRITE( Msg, 100 ) YR, MT, DY, HR, MN, SC
+100       FORMAT( 'Calculate emissions at ', i4,  '-', i2.2 ,'-', i2.2,' ',  &
+                                             i2.2,':', i2.2, ':', i2.2      )
+          CALL HCO_MSG(HcoState%Config%Err,Msg)
+          WRITE(*,*) TRIM( MSG )
+       ENDIF
 
        ! ================================================================
        ! Reset all emission and deposition values
@@ -3192,21 +3209,18 @@ CONTAINS
     !=================================================================
     WRITE( U, 100 )
     WRITE( U, 100 ) REPEAT( '!', 79 )
-    WRITE( U, 100 ) '!!! HEMCO_STANDALONE IS IN A DRY RUN MODE!'
+    WRITE( U, 100 ) '!!! HEMCO-STANDALONE IS IN DRY-RUN MODE!'
     WRITE( U, 100 ) '!!!'
     WRITE( U, 100 ) '!!! You will NOT get output for this run!'
-    WRITE( U, 100 ) '!!! Use one of these commands to validate a '        // &
-                     'HEMCO run configuration:'
-    WRITE( U, 100 ) '!!!    ./hemco_standalone.x -c CONFIG_FILE '         // &
-                    '--dry-run > log'
+    WRITE( U, 100 ) '!!! Use this command to validate a '                 // &
+                     'HEMCO-STANDALONE run configuration:'
     WRITE( U, 100 ) '!!!    ./hemco_standalone.x -c CONFIG_FILE '         // &
                     '--dryrun > log'
-    WRITE( U, 100 ) '!!!    ./hemco_standalone.x -c CONFIG_FILE -d > log'
     WRITE( U, 100 ) '!!!'
-    WRITE( U, 100 ) '!!! REMOVE THE --dry-run (or --dryrun or '           // &
-                      '-d) ARGUMENT FROM THE'
-    WRITE( U, 100 ) '!!! COMMAND LINE BEFORE RUNNING A '                  // &
-                    'HEMCO PRODUCTION SIMULATION!'
+    WRITE( U, 100 ) '!!! REMOVE THE --dryrun ARGUMENT FROM THE COMMAND '  // &
+                    'LINE'
+    WRITE( U, 100 ) '!!! BEFORE RUNNING A HEMCO-STANDALONE PRODUCTION '   // &
+                    'SIMULATION!'
     WRITE( U, 100 ) REPEAT( '!', 79 )
     WRITE( U, 120 ) '!!! Start Date       : ', YRS(1), MTS(1), DYS(1),       &
                                                HRS(1), MNS(1), SCS(1)

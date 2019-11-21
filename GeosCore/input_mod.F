@@ -112,7 +112,7 @@
          WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'G E O S - C H E M   U S E R   I N P U T'
          WRITE( 6, 100   ) TRIM( FILENAME )
- 100     FORMAT( 'READ_INPUT_FILE: Reading ', a )
+ 100     FORMAT( 'READ_INPUT_FILE: Opening ', a )
       ENDIF
 
       ! Find a free file LUN
@@ -718,7 +718,7 @@
             Input_Opt%MetField = 'GEOSFP'
          CASE( 'MERRA-2', 'MERRA2' )
             Input_Opt%MetField = 'MERRA2'
-         CASE DEFAULT 
+         CASE DEFAULT
             ErrMsg = Trim( Input_Opt%MetField) // ' is not a valid '  //
      &              ' met field. Supported met fields are GEOS-FP '   //
      &              ' and MERRA-2. Please check your "input.geos" file.'

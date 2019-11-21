@@ -4359,7 +4359,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnFileOpen( am_I_Root, HcoConfig, LUN, RC )
+  SUBROUTINE DiagnFileOpen( am_I_Root, HcoConfig, LUN, RC, IsDryRun )
 !
 ! !USES:
 !
@@ -4369,6 +4369,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )           :: am_I_Root   ! root CPU?
+    LOGICAL,          INTENT(IN   ), OPTIONAL :: IsDryRun    ! Is it a dry run?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4387,34 +4388,77 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER             :: IOS
-    LOGICAL             :: EXISTS, FOUND
-    CHARACTER(LEN=255)  :: MSG, DiagnFile
+    LOGICAL             :: EXISTS, FOUND, DoDryRun
+
+    ! Strings
+    CHARACTER(LEN=255)  :: MSG, DiagnFile, FileMsg
     CHARACTER(LEN=255)  :: LOC = 'DiagnFileOpen (hco_diagn_mod.F90)'
 
-    !=================================================================
+    !=======================================================================
     ! DiagnFileOpen begins here!
-    !=================================================================
+    !=======================================================================
 
-    ! Init
+    ! Initialize
+    RC  = HCO_SUCCESS
     LUN = -1
 
-    ! Try to get name of diagnostics file
-    CALL GetExtOpt ( HcoConfig, CoreNr, 'DiagnFile', &
-                     OptValChar=DiagnFile, FOUND=FOUND, RC=RC )
+    ! Determine if we need to do a dry-run simulation
+    IF ( PRESENT( IsDryRun ) ) THEN
+       DoDryRun = IsDryRun
+    ELSE
+       DoDryRun = .FALSE.
+    ENDIF
 
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    ! Try to get name of HEMCO diagnostics file
+    CALL GetExtOpt( HcoConfig,            CoreNr,     'DiagnFile',           &
+                    OptValChar=DiagnFile, FOUND=FOUND, RC=RC                )
 
-    ! Read file and define diagnostics for each entry
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       MSG = 'Could not find "DiagnFile" in configuration file!'
+       CALL HCO_Error( HcoConfig%Err, MSG, RC, LOC )
+       RETURN
+    ENDIF
+
+    ! If a "DiagnFile" entry is found in the configuration file ...
     IF ( FOUND ) THEN
+
+       ! Test if the diagnostics file exists
+       INQUIRE( FILE=TRIM(DiagnFile), EXIST=EXISTS )
+
+       !====================================================================
+       ! For dry-runs, print file status and then return
+       !====================================================================
+       IF ( DoDryRun ) THEN
+
+          ! Test if the file exists and define an output string
+          IF ( Exists ) THEN
+             FileMsg = 'HEMCO (INIT): Opening'
+          ELSE
+             FileMsg = 'HEMCO (INIT): REQUIRED FILE NOT FOUND'
+          ENDIF
+
+          ! Write message to stdout and then return
+          IF ( am_I_Root ) THEN
+             WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( DiagnFile )
+ 300         FORMAT( a, ' ', a )
+          ENDIF
+          RETURN
+       ENDIF
+
+       !====================================================================
+       ! For regular simulations, continue to open the diagnostic file.
+       !====================================================================
 
        ! Find free LUN
        LUN = findFreeLUN()
 
-       INQUIRE( FILE=TRIM(DiagnFile), EXIST=EXISTS )
+       ! If the diagnostics file doesn't exist, then exit
        IF ( .NOT. EXISTS ) THEN
           MSG = 'Cannot read file - it does not exist: ' // TRIM(DiagnFile)
-          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 
@@ -4422,7 +4466,7 @@ CONTAINS
        OPEN ( LUN, FILE=TRIM( DiagnFile ), STATUS='OLD', IOSTAT=IOS )
        IF ( IOS /= 0 ) THEN
           MSG = 'Error opening ' // TRIM(DiagnFile)
-          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
+          CALL HCO_ERROR( HcoConfig%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
 

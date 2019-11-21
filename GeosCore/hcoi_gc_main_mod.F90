@@ -154,6 +154,7 @@ CONTAINS
     USE HCO_Types_Mod,      ONLY : ConfigObj
     USE HCO_Config_Mod,     ONLY : Config_ReadFile, ConfigInit
     USE HCO_State_Mod,      ONLY : HcoState_Init
+    USE HCO_Diagn_Mod,      ONLY : DiagnFileOpen
     USE HCO_Driver_Mod,     ONLY : HCO_Init
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
@@ -265,7 +266,8 @@ CONTAINS
     ! Phase 1: read settings and switches
     !---------------------------------------
     CALL Config_ReadFile( am_I_Root,               iHcoConfig,               &
-                          Input_Opt%HcoConfigFile, 1,          HMRC         )
+                          Input_Opt%HcoConfigFile, 1,          HMRC,         &
+                          IsDryRun=Input_Opt%DryRun                         )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -290,7 +292,8 @@ CONTAINS
     ! Phase 2: read fields
     !---------------------------------------
     CALL Config_ReadFile( am_I_Root,               iHcoConfig,               &
-                          Input_Opt%HcoConfigFile, 2,            HMRC       )
+                          Input_Opt%HcoConfigFile, 2,            HMRC,       &
+                          IsDryRun=Input_Opt%DryRun                         )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -301,7 +304,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Open logfile
+    ! Open HEMCO log file
     !=======================================================================
     IF ( am_I_Root ) THEN
        CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC )
@@ -487,9 +490,15 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Exit if this is a GEOS-Chem dry-run or HEMCO-standalone dry-run
+    ! For dry-runs only: Print the status of the HEMCO diagnostic
+    ! configuration file (e.g. HEMCO_Diagn.rc), and then exit
     !=======================================================================
-    IF ( HcoState%Options%IsDryRun ) RETURN
+    IF ( Input_Opt%DryRun ) THEN
+       CALL DiagnFileOpen( am_I_Root, HcoState%Config, N,                   &
+                           RC,        IsDryRun=.TRUE.                      )
+
+       RETURN
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Update and check logical switches in Input_Opt

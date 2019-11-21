@@ -85,7 +85,7 @@ PROGRAM HEMCO_StandAlone
            nArg = nArg + 1
            CALL Get_Command_Argument( nArg, ArgVal, ArgLen )
            SELECT CASE( TRIM( ArgVal ) )
-              CASE( '--dry-run', '--dryrun', '-d' )
+              CASE( '--dryrun' )
                  WRITE( 6, 100 )
                  STOP
               CASE DEFAULT
@@ -95,7 +95,7 @@ PROGRAM HEMCO_StandAlone
            END SELECT
 
         ! Test for the dry-run switch
-        CASE( '--dry-run', '--dryrun', '-d' )
+        CASE( '--dryrun' )
            IsDryRun  = .TRUE.
 
         CASE DEFAULT

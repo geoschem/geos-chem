@@ -125,7 +125,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadFile( am_I_Root, HcoConfig, ConfigFile, Phase, RC, IsNest )
+  SUBROUTINE Config_ReadFile( am_I_Root, HcoConfig, ConfigFile, Phase, RC,   &
+                              IsNest,    IsDryRun                           )
 !
 ! !USES:
 !
@@ -141,7 +142,8 @@ CONTAINS
     INTEGER,            INTENT(IN)              :: Phase      ! 0: all
                                                               ! 1: Settings and switches only
                                                               ! 2: fields only
-    LOGICAL,            INTENT(IN   ), OPTIONAL :: IsNest     ! Nested call?
+    LOGICAL,            INTENT(IN),    OPTIONAL :: IsNest     ! Nested call?
+    LOGICAL,            INTENT(IN),    OPTIONAL :: IsDryRun   ! Dry-run?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -163,11 +165,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    LOGICAL              :: AIR,    EOF
+    LOGICAL              :: EXISTS, NEST, DoDryRUn
     INTEGER              :: NN
     INTEGER              :: IU_HCO, IOS
-    LOGICAL              :: AIR,    EOF
-    LOGICAL              :: EXISTS, NEST
-    CHARACTER(LEN=255)   :: MSG,    LOC
+
+    ! Strings
+    CHARACTER(LEN=255)   :: MSG,    LOC,  FileMsg
     CHARACTER(LEN=2047)  :: CFDIR
     CHARACTER(LEN=2047)  :: LINE
 
@@ -194,21 +199,60 @@ CONTAINS
     AIR = am_I_Root
 
     ! Nested call?
-    IF ( PRESENT(IsNest) ) THEN
+    IF ( PRESENT( IsNest ) ) THEN
        NEST = IsNest
     ELSE
        NEST = .FALSE.
     ENDIF
 
-    ! Prompt to standard output
+    ! Is this a dry-run simulation?
+    IF ( PRESENT( IsDryRun) ) THEN
+       DoDryRun= IsDryRun
+    ELSE
+       DoDryRun = .FALSE.
+    ENDIF
+
+    ! Prompt to standard output (only on the root core
     IF ( am_I_Root ) THEN
-       WRITE(6,*) ' '
-       IF ( Phase == 1 ) THEN
-          WRITE(6,*) 'Reading part 1 of HEMCO configuration file: ', TRIM(ConfigFile)
-       ELSEIF ( Phase == 2 ) THEN
-          WRITE(6,*) 'Reading part 2 of HEMCO configuration file: ', TRIM(ConfigFile)
+
+       IF ( DoDryRun ) THEN
+
+          !-----------------------------------------------------------------
+          ! For dry-run simulations: state if the configuration file
+          ! is found on disk, or not.  Only write this message once.
+          !-----------------------------------------------------------------
+
+          ! Test if the file exists
+          INQUIRE( FILE=TRIM( ConfigFile ), EXIST=Exists )
+
+          ! Test if the file exists and define an output string
+          IF ( Exists ) THEN
+             FileMsg = 'HEMCO (INIT): Opening'
+          ELSE
+             FileMsg = 'HEMCO (INIT): REQUIRED FILE NOT FOUND'
+          ENDIF
+
+          ! Write message to stdout
+          WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ConfigFile )
+300       FORMAT( a, ' ', a )
+
        ELSE
-          WRITE(6,*) 'Reading part 1+2 of HEMCO configuration file: ', TRIM(ConfigFile)
+
+          !-----------------------------------------------------------------
+          ! For regular simulations, write a message containing
+          ! the configuration file as well as the Phase value.
+          !-----------------------------------------------------------------
+          WRITE(6,*) ' '
+          IF ( Phase == 1 ) THEN
+             WRITE(6,'(a)') 'Reading part 1 of HEMCO configuration file: ',  &
+                            TRIM(ConfigFile)
+          ELSEIF ( Phase == 2 ) THEN
+             WRITE(6,'(a)') 'Reading part 2 of HEMCO configuration file: ',  &
+                            TRIM(ConfigFile)
+          ELSE
+             WRITE(6,'(a)') 'Reading part 1+2 of HEMCO configuration file: ',&
+                             TRIM(ConfigFile)
+          ENDIF
        ENDIF
     ENDIF
 
@@ -307,9 +351,12 @@ CONTAINS
        ELSEIF ( INDEX ( LINE, 'BEGIN SECTION BASE EMISSIONS' ) > 0 ) THEN
 
           ! Read data and write into container
+          ! For dry-run simulations, print name of any
+          ! nested configuration files (e.g. for standalone)
           IF ( PHASE == 0 .OR. PHASE == 2 ) THEN
-             CALL Config_ReadCont( AIR, HcoConfig, IU_HCO, CFDIR, &
-                                   HCO_DCTTYPE_BASE, EOF, RC )
+             CALL Config_ReadCont( AIR, HcoConfig,   IU_HCO, CFDIR,          &
+                                   HCO_DCTTYPE_BASE, EOF,    RC,             &
+                                   IsDryRun=IsDryRun                        )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -487,8 +534,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Config_ReadCont( am_I_Root, HcoConfig, IU_HCO,   &
-                              CFDIR,     DctType,   EOF,    RC )
+  SUBROUTINE Config_ReadCont( am_I_Root, HcoConfig, IU_HCO,  CFDIR,          &
+                              DctType,   EOF,       RC,      IsDryRun       )
 
 !
 ! !USES:
@@ -506,6 +553,7 @@ CONTAINS
     INTEGER,          INTENT(IN   ) :: IU_HCO    ! Logfile LUN
     CHARACTER(LEN=*), INTENT(IN   ) :: CFDIR     ! Configuration file directory
     INTEGER,          INTENT(IN   ) :: DctType   ! 1=base; 2=scale; 3=mask
+    LOGICAL,          OPTIONAL      :: IsDryRun  ! Is this a HEMCO dry-run?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -708,7 +756,8 @@ CONTAINS
           CALL HCO_CharParse ( HcoConfig, LINE, 0, 0, 0, 0, 0, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
-          CALL Config_ReadFile( am_I_Root, HcoConfig, LINE, 0, RC, IsNest=.TRUE. )
+          CALL Config_ReadFile( am_I_Root, HcoConfig, LINE, 0, RC,          &
+                               IsNest=.TRUE., IsDryRun=IsDryRun            )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! All done with this line

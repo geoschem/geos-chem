@@ -156,18 +156,21 @@ CONTAINS
     ! First initialize the list of collections
     ! ("collection" = a netCDF file with a specific update frequency)
     !=======================================================================
-    CALL History_ReadCollectionNames( am_I_root,  Input_Opt, State_Chm,      &
-                                      State_Diag, State_Met, RC             )
+    IF ( .not. Input_Opt%DryRun ) THEN
+       CALL History_ReadCollectionNames( am_I_root,  Input_Opt, State_Chm,   &
+                                         State_Diag, State_Met, RC          )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
     ! Then determine the fields that will be saved to each collection
+    ! NOTE: For dry-run, enter to print out file name & status
     !=======================================================================
     CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,       &
                                      State_Diag, State_Met, RC              )
@@ -516,6 +519,7 @@ CONTAINS
 !
      ! Scalars
     LOGICAL                      :: EOF,            Found
+    LOGICAL                      :: FileExists
     INTEGER                      :: yyyymmdd,       hhmmss
     INTEGER                      :: yyyymmdd_end,   hhmmss_end
     INTEGER                      :: DeltaYMD,       DeltaHMS
@@ -557,7 +561,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: TmpMode,        Contact
     CHARACTER(LEN=255)           :: Pattern,        ItemPrefix
     CHARACTER(LEN=255)           :: tagId,          tagName
-    CHARACTER(LEN=512)           :: ErrMsg
+    CHARACTER(LEN=512)           :: ErrMsg,         FileMsg
 
     ! Arrays
     REAL(f8)                     :: Subset(2)
@@ -586,136 +590,170 @@ CONTAINS
     ! Assume success
     RC             =  GC_SUCCESS
 
-    ! Initialize variables
-    EOF            =  .FALSE.
-    IOS            =  0
-    UpdateYmd      =  0
-    UpdateHms      =  0
-    FileCloseYmd   =  0
-    FileCloseHms   =  0
-    FileWriteYmd   =  0
-    FileWriteHms   =  0
-    LineNum        =  0
-    SpaceDim       =  0
-    HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN )
-    yyyymmdd       =  Input_Opt%NymdB
-    hhmmss         =  Input_Opt%NhmsB
-    yyyymmdd_end   =  Input_Opt%NymdE
-    hhmmss_end     =  Input_Opt%NhmsE
-    Subset         =  UNDEFINED_DBL
-    Levels         =  UNDEFINED_INT
+    ! Skip for GEOS-Chem dry-run simulations
+    IF ( .not. Input_Opt%DryRun ) THEN
 
-    ! Compute the YMD and HMS intervals for collections specified with "End",
-    ! such as for restart files.  NOTE: This algorithm should work with most
-    ! common model simulation intervals, but there might be some edge cases
-    ! that will cause it to fail.  It is still an improvement. (bmy, 2/26/19)
-    CALL Compute_DeltaYmdHms_For_End( yyyymmdd,     hhmmss,                  &
-                                      yyyymmdd_end, hhmmss_end,              &
-                                      deltaYMD,     deltaHMS                )
+       ! Initialize variables
+       EOF            =  .FALSE.
+       IOS            =  0
+       UpdateYmd      =  0
+       UpdateHms      =  0
+       FileCloseYmd   =  0
+       FileCloseHms   =  0
+       FileWriteYmd   =  0
+       FileWriteHms   =  0
+       LineNum        =  0
+       SpaceDim       =  0
+       HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN )
+       yyyymmdd       =  Input_Opt%NymdB
+       hhmmss         =  Input_Opt%NhmsB
+       yyyymmdd_end   =  Input_Opt%NymdE
+       hhmmss_end     =  Input_Opt%NhmsE
+       Subset         =  UNDEFINED_DBL
+       Levels         =  UNDEFINED_INT
 
-    ! Convert the HeartBeatDtSec into hours:minutes:seconds
-    ! for defining the Update interval for time-averaged collections
-    HbMin          = HeartBeatDtSec / 60
-    HbHrs          = HbMin / 60
-    HbSec          = HeartBeatDtSec - ( HbMin * 60 ) - ( HbHrs * 3600 )
-    HeartBeatHms   = ( HbHrs * 10000 ) + ( HbMin * 100 ) + HbSec
+       ! Compute the YMD and HMS intervals for collections specified with "End",
+       ! such as for restart files.  NOTE: This algorithm should work with most
+       ! common model simulation intervals, but there might be some edge cases
+       ! that will cause it to fail.  It is still an improvement. (bmy, 2/26/19)
+       CALL Compute_DeltaYmdHms_For_End( yyyymmdd,     hhmmss,               &
+                                         yyyymmdd_end, hhmmss_end,           &
+                                         deltaYMD,     deltaHMS             )
 
-    ! Initialize objects and pointers
-    Container      => NULL()
-    Item           => NULL()
-    Ptr3d          => NULL()
-    Ptr3d_4        => NULL()
-    ThisSpc        => NULL()
-    Grid_Lat       => NULL()
-    Grid_LatE      => NULL()
-    Grid_Lon       => NULL()
-    Grid_LonE      => NULL()
+       ! Convert the HeartBeatDtSec into hours:minutes:seconds
+       ! for defining the Update interval for time-averaged collections
+       HbMin          = HeartBeatDtSec / 60
+       HbHrs          = HbMin / 60
+       HbSec          = HeartBeatDtSec - ( HbMin * 60 ) - ( HbHrs * 3600 )
+       HeartBeatHms   = ( HbHrs * 10000 ) + ( HbMin * 100 ) + HbSec
 
-    ! Initialize Strings
-    Description    =  ''
-    ErrMsg         =  ''
-    Contact        =  &
-     'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
-    Reference      =  'www.geos-chem.org; wiki.geos-chem.org'
-    ThisLoc        =  &
-     ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
-    Units          =  ''
-    FileExpId      =  ''
+       ! Initialize objects and pointers
+       Container      => NULL()
+       Item           => NULL()
+       Ptr3d          => NULL()
+       Ptr3d_4        => NULL()
+       ThisSpc        => NULL()
+       Grid_Lat       => NULL()
+       Grid_LatE      => NULL()
+       Grid_Lon       => NULL()
+       Grid_LonE      => NULL()
 
-    ! Create the timestamp at the start of the simulation
-    WRITE( DStr,          '(i8.8)' ) yyyymmdd
-    WRITE( TStr,          '(i6.6)' ) hhmmss
-    WRITE( StartTimeStamp, 300     ) DStr(1:4), DStr(5:6), DStr(7:8),          &
-                                     TStr(1:2), TStr(3:4), TStr(5:6)
+       ! Initialize Strings
+       Description    =  ''
+       ErrMsg         =  ''
+       Contact        =  &
+         'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
+       Reference      =  'www.geos-chem.org; wiki.geos-chem.org'
+       ThisLoc        =  &
+         ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
+       Units          =  ''
+       FileExpId      =  ''
 
-    ! Create the timestamp at the end of the simulation
-    WRITE( DStr,        '(i8.8)' ) yyyymmdd_end
-    WRITE( TStr,        '(i6.6)' ) hhmmss_end
-    WRITE( EndTimeStamp, 300     ) DStr(1:4), DStr(5:6), DStr(7:8),            &
-                                   TStr(1:2), TStr(3:4), TStr(5:6)
-    ! Format string
-300 FORMAT( a4, '-', a2, '-', a2, ' ', a2, ':', a2, ':', a2, 'z' )
+       ! Create the timestamp at the start of the simulation
+       WRITE( DStr,          '(i8.8)' ) yyyymmdd
+       WRITE( TStr,          '(i6.6)' ) hhmmss
+       WRITE( StartTimeStamp, 300     ) DStr(1:4), DStr(5:6), DStr(7:8),       &
+                                        TStr(1:2), TStr(3:4), TStr(5:6)
 
-    ! Compute the Astronomical Julian Date corresponding to the yyyymmdd
-    ! and hhmmss values at the start and end of the simulation, which are
-    ! needed below.  This can be done outside of the DO loop below.
-    CALL Compute_Julian_Date( yyyymmdd,     hhmmss,     JulianDate    )
-    CALL Compute_Julian_Date( yyyymmdd_end, hhmmss_end, JulianDateEnd )
+       ! Create the timestamp at the end of the simulation
+       WRITE( DStr,        '(i8.8)' ) yyyymmdd_end
+       WRITE( TStr,        '(i6.6)' ) hhmmss_end
+       WRITE( EndTimeStamp, 300     ) DStr(1:4), DStr(5:6), DStr(7:8),         &
+                                      TStr(1:2), TStr(3:4), TStr(5:6)
 
-    ! Compute the length of the simulation, in elapsed seconds
-    SimLengthSec   = NINT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
+       ! Format string
+ 300   FORMAT( a4, '-', a2, '-', a2, ' ', a2, ':', a2, ':', a2, 'z' )
 
-    !=======================================================================
-    ! Get pointers to the grid longitudes and latitudes
-    !=======================================================================
+       ! Compute the Astronomical Julian Date corresponding to the yyyymmdd
+       ! and hhmmss values at the start and end of the simulation, which are
+       ! needed below.  This can be done outside of the DO loop below.
+       CALL Compute_Julian_Date( yyyymmdd,     hhmmss,     JulianDate    )
+       CALL Compute_Julian_Date( yyyymmdd_end, hhmmss_end, JulianDateEnd )
 
-    ! Lookup latitude centers
-    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LAT',        &
-                      Ptr1d_8   = Grid_Lat,   RC        = RC                )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not get pointer to latitudes (aka GRID_LAT)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+       ! Compute the length of the simulation, in elapsed seconds
+       SimLengthSec   = NINT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
 
-    ! Lookup latitude edges
-    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LATE',       &
-                      Ptr1d_8   = Grid_LatE,  RC        = RC                )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not get pointer to latitude edges (aka GRID_LATE)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+       !====================================================================
+       ! Get pointers to the grid longitudes and latitudes
+       !====================================================================
 
-    ! Lookup longitude centers
-    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LON',        &
-                      Ptr1d_8   = Grid_Lon,   RC        = RC                )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not get pointer to longitudes (aka GRID_LON)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc)
-       RETURN
-    ENDIF
+       ! Lookup latitude centers
+       CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LAT',     &
+                         Ptr1d_8   = Grid_Lat,   RC        = RC             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not get pointer to latitudes (aka GRID_LAT)!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-    ! Lookup longitude edges
-    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LONE',       &
-                      Ptr1d_8   = Grid_LonE,  RC        = RC                )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not get pointer to longitude edges (aka GRID_LONE)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc)
-       RETURN
+       ! Lookup latitude edges
+       CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LATE',    &
+                         Ptr1d_8   = Grid_LatE,  RC        = RC             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not get pointer to latitude edges (aka GRID_LATE)!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Lookup longitude centers
+       CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LON',     &
+                         Ptr1d_8   = Grid_Lon,   RC        = RC             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not get pointer to longitudes (aka GRID_LON)!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc)
+          RETURN
+       ENDIF
+
+       ! Lookup longitude edges
+       CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LONE',    &
+                         Ptr1d_8   = Grid_LonE,  RC        = RC             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not get pointer to longitude edges (aka GRID_LONE)!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc)
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
     ! Open the file containing the list of requested diagnostics
     !=======================================================================
 
+    ! Test if the file exists
+    INQUIRE( FILE=TRIM( Input_Opt%HistoryInputFile ), EXIST=FileExists )
+
+    ! Test if the file exists and define an output string
+    IF ( FileExists ) THEN
+       FileMsg = 'HISTORY (INIT): Opening'
+    ELSE
+       FileMsg = 'HISTORY (INIT): REQUIRED FILE NOT FOUND'
+    ENDIF
+
+    ! Write message to stdout for both regular and dry-run simulations
+    IF ( Input_Opt%AmIRoot ) THEN
+       WRITE( 6, 350 ) TRIM( FileMsg ), TRIM( Input_Opt%HistoryInputFile )
+ 350   FORMAT( a, ' ', a )
+    ENDIF
+
+    ! For dry-run simulations, return to calling program.
+    ! For regular simulations, throw an error if we can't find the file.
+    IF ( Input_Opt%DryRun ) THEN
+       RETURN
+    ELSE
+       IF ( .not. FileExists ) THEN
+          WRITE( ErrMsg, 350 ) TRIM( FileMsg                    ),           &
+                               TRIM( Input_Opt%HistoryInputFile )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! Find a free file unit
     fId     = FindFreeLun()
 
-    ! Open the filei
+    ! Open the file
     OPEN( fId, FILE=TRIM(Input_Opt%HistoryInputFile), STATUS='OLD', IOSTAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not open "' //TRIM(Input_Opt%HistoryInputFile) // '"!'
+       ErrMsg = 'Error opening "' //TRIM(Input_Opt%HistoryInputFile) // '"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
