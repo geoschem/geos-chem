@@ -101,6 +101,7 @@ CONTAINS
     INTEGER                        :: SHFT, IDX
     CHARACTER(LEN=255)             :: MSG
     CHARACTER(LEN=255)             :: iShift
+    CHARACTER(LEN=255)             :: tShift
     CHARACTER(LEN=255), PARAMETER  :: LOC = 'TimeShift_Set (hco_tShift_mod.F90)'
 
     !======================================================================
@@ -122,6 +123,7 @@ CONTAINS
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
        Dta%tShift(1) = Dta%tShift(1) + SHFT
+       WRITE(tShift,*) Dta%tShift(1), ' years'
     ENDIF
 
     IDX = INDEX( TRIM(iShift), 'month' )
@@ -129,6 +131,7 @@ CONTAINS
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
        Dta%tShift(2) = Dta%tShift(2) + SHFT
+       WRITE(tShift,*) Dta%tShift(2), ' months'
     ENDIF
 
     IDX = INDEX( TRIM(iShift), 'day' )
@@ -136,6 +139,7 @@ CONTAINS
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
        Dta%tShift(3) = Dta%tShift(3) + SHFT
+       WRITE(tShift,*) Dta%tShift(3), ' days'
     ENDIF
 
     IDX = INDEX( TRIM(iShift), 'hour' )
@@ -143,6 +147,7 @@ CONTAINS
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
        Dta%tShift(4) = Dta%tShift(4) + SHFT
+       WRITE(tShift,*) Dta%tShift(4), ' hours'
     ENDIF
 
     IDX = INDEX( TRIM(iShift), 'min' )
@@ -150,12 +155,14 @@ CONTAINS
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
        Dta%tShift(5) = Dta%tShift(5) + SHFT
+       WRITE(tShift,*) Dta%tShift(5), ' minutes'
     ENDIF
 
     IDX = INDEX( TRIM(iShift), 'sec' )
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
        Dta%tShift(6) = Dta%tShift(6) + SHFT
+       WRITE(tShift,*) Dta%tShift(6), ' seconds'
     ENDIF
 
     ! Error: cannot shift data if we use weekday data
@@ -173,9 +180,8 @@ CONTAINS
 
     ! verbose mode
     IF ( HCO_IsVerb(HcoConfig%Err,2) ) THEN
-       WRITE(MSG,*) 'Will shift time stamp of field ', TRIM(Dta%ncFile), ': '
-       CALL HCO_MSG(HcoConfig%Err,MSG)
-       WRITE(MSG,*) 'Time shift (years, months, days, hours, minutes, seconds): ', Dta%tShift
+       WRITE(MSG,*) 'Will shift time stamp of field ', TRIM(Dta%ncPara), &
+                    ': ', TRIM(tShift)
        CALL HCO_MSG(HcoConfig%Err,MSG)
     ENDIF
 
@@ -274,7 +280,7 @@ CONTAINS
     IF ( nMn > 59 ) THEN
        DO WHILE ( nMn > 59 )
           nMn = nMn - 60
-          nHr = Hr + 1
+          nHr = nHr + 1
        ENDDO
     ELSEIF( nMn < 0 ) THEN
        DO WHILE ( nMn < 1 )
@@ -392,11 +398,11 @@ CONTAINS
 
     ! verbose mode
     IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-       WRITE(MSG,*) 'Adjusted time stamp of field ', TRIM(Lct%Dct%cName), ': '
+       WRITE(MSG,*) 'Adjusted time stamp of field ', TRIM(Lct%Dct%cName)
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-       WRITE(MSG,*) 'Time shift (years, months, days, hours, minutes, seconds): ', Lct%Dct%Dta%tShift
+       WRITE(MSG,*) 'Time shift (YMDhms): ', Lct%Dct%Dta%tShift
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-       WRITE(MSG,'(a27,i4.4,a1,i2.2,a1,i2.2,a1,i2.2,a1,i2.2)') 'Original Yr/Mt/Dy-Hr:Mn = ',Yr,'/',Mt,'/',Dy,'-',Hr,':',Mn
+       WRITE(MSG,'(a27,i4.4,a1,i2.2,a1,i2.2,a1,i2.2,a1,i2.2)') 'Original Yr/Mt/Dy-Hr:Mn = ',oYr,'/',oMt,'/',oDy,'-',oHr,':',oMn
        CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 

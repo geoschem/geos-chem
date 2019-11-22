@@ -436,7 +436,7 @@ CONTAINS
        WRITE(MSG,'(A33,L2)') 'Do drydep over entire PBL      : ', HcoState%Options%PBL_DRYDEP
        CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,F6.2)') 'Upper limit for deposition x ts: ', HcoState%Options%MaxDepExp
-       CALL HCO_MSG(HcoConfig%Err,MSG,SEP2='-')
+       CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,L2)') 'Scale emissions                : ', HcoState%Options%ScaleEmis
        CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,L2)') 'Cap time shift                 : ', HcoState%Options%TimeShiftCap
