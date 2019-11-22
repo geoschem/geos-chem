@@ -816,11 +816,9 @@ CONTAINS
        ! Update the array of rate constants
        CALL Update_RCONST( )
 
-       ! Archive KPP reaction rates. NOTE: this is currently archiving
-       ! all reaction rates. It would be better to only archive (and store)
-       ! what is configured in HISTORY.rc. (ewl, 1/15/19)
-       CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
+       ! Archive KPP reaction rates
        IF ( State_Diag%Archive_RxnRate ) THEN
+          CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
 #if !defined( MODEL_GEOS )
           DO N = 1, NREACT
              State_Diag%RxnRate(I,J,L,N) = Aout(N)
