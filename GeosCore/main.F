@@ -381,6 +381,13 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
+      ! Read GEOS-Chem input file at very beginning of simulation
+      CALL Read_Input_File( am_I_Root, Input_Opt, State_Grid, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Read_Input_File"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
       !-----------------------------------------------------------------
       ! Prepare the GEOS-Chem "dry run" option
       ! If in a "dry-run" mode, GEOS-Chem will simply check whether files
@@ -414,14 +421,15 @@
       prtDebug = ( prtDebug .and. notDryRun )
 
       !-----------------------------------------------------------------
-      ! Read GEOS-Chem input file and continue initialization
+      ! Continue initializzation
       !-----------------------------------------------------------------
 
-      ! Read GEOS-Chem input file at very beginning of simulation
-      CALL Read_Input_File( am_I_Root, Input_Opt, State_Grid, RC )
+      ! Make sure all directories are valid
+      CALL Validate_Directories( am_I_Root, Input_Opt, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Read_Input_File"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
+         ErrMsg = 'Error encountered in  "Validate_Directories"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Initialize GEOS-Chem horizontal grid structure

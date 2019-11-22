@@ -27,6 +27,7 @@
 !
       PUBLIC  :: Read_Input_File
       PUBLIC  :: Do_Error_Checks
+      PUBLIC  :: Validate_Directories
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -385,32 +386,6 @@
       !=================================================================
       ! Further error-checking and initialization
       !=================================================================
-
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! Do not initialize diagnostics when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (bmy, 11/2/12)
-      !-----------------------------------------------------------------
-#else
-
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! We only need to initialize GEOS-5 diagnostics if we are not
-      ! using ESMF.  The GEOS-5 GCM has its own History component
-      ! for diagnostic output (bmy, 3/4/13)
-      !-----------------------------------------------------------------
-
-      ! Make sure all directories are valid
-      CALL VALIDATE_DIRECTORIES( am_I_Root, Input_Opt, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error in "Validate_Directories"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-#endif
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, State_Grid, RC )
