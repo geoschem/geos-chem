@@ -5804,6 +5804,9 @@
       ThisLoc =
      &   ' -> at Validate_Directories (in module GeosCore/input_mod.F)'
 
+      ! Skip for dry-runs
+      IF ( Input_Opt%DryRun ) RETURN
+
       ! Check directories
       CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR, RC )
       IF ( RC /= GC_SUCCESS ) THEN

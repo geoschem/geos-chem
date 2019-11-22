@@ -381,6 +381,42 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
+      !-----------------------------------------------------------------
+      ! Prepare the GEOS-Chem "dry run" option
+      ! If in a "dry-run" mode, GEOS-Chem will simply check whether files
+      ! are present (and possibly in the correct format) and go through
+      ! time-steps to check met fields and other IO issues.
+      ! No actual "compute" is performed.
+      !
+      ! The "dry-run" option is initialized using the command line extra
+      ! argument ./geos --dry-run
+      !
+      ! A log file can be specified with --log FILENAME.
+      ! If no log file is specified, the default logfile will be
+      ! "GEOSChem.DryRun.log".
+      !
+      ! This option is currently only supported in GEOS-Chem Classic.
+      !
+      ! Additionally, this flag must be set after reading input file, or
+      ! its value will be overwritten by READ_INPUT_FILE.
+      ! (hplin, 11/1/19)
+      !-----------------------------------------------------------------
+      CALL Init_Dry_Run( Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Dry_Run"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
+      ! Define a local convenience variable for negating Input_Opt%DryRun
+      notDryRun = ( .not. Input_Opt%DryRun )
+
+      ! Turn off debug output for the dry-runs simulation
+      prtDebug = ( prtDebug .and. notDryRun )
+
+      !-----------------------------------------------------------------
+      ! Read GEOS-Chem input file and continue initialization
+      !-----------------------------------------------------------------
+
       ! Read GEOS-Chem input file at very beginning of simulation
       CALL Read_Input_File( am_I_Root, Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -440,38 +476,6 @@
 
       ! Debug output
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_INPUT_FILE' )
-
-      !-----------------------------------------------------------------
-      ! Prepare the GEOS-Chem "dry run" option
-      ! If in a "dry-run" mode, GEOS-Chem will simply check whether files
-      ! are present (and possibly in the correct format) and go through
-      ! time-steps to check met fields and other IO issues.
-      ! No actual "compute" is performed.
-      !
-      ! The "dry-run" option is initialized using the command line extra
-      ! argument ./geos --dry-run
-      !
-      ! A log file can be specified with --log FILENAME.
-      ! If no log file is specified, the default logfile will be
-      ! "GEOSChem.DryRun.log".
-      !
-      ! This option is currently only supported in GEOS-Chem Classic.
-      !
-      ! Additionally, this flag must be set after reading input file, or
-      ! its value will be overwritten by READ_INPUT_FILE.
-      ! (hplin, 11/1/19)
-      !-----------------------------------------------------------------
-      CALL Init_Dry_Run( Input_Opt, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_Dry_Run"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-
-      ! Define a local convenience variable for negating Input_Opt%DryRun
-      notDryRun = ( .not. Input_Opt%DryRun )
-
-      ! Turn off debug output for the dry-runs simulation
-      prtDebug = ( prtDebug .and. notDryRun )
 
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
@@ -2765,7 +2769,7 @@
       CHARACTER(LEN=255) :: ArgVal, ErrMsg, ThisLoc
 
       !=================================================================
-      ! Test_For_Dry_Run begins here!
+      ! Init_Dry_Run begins here!
       !=================================================================
 
       ! Initialize
