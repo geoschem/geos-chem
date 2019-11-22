@@ -227,14 +227,14 @@ CONTAINS
 
           ! Test if the file exists and define an output string
           IF ( Exists ) THEN
-             FileMsg = 'HEMCO (INIT): Opening'
+             FileMsg = 'HEMCO (INIT): Opening '
           ELSE
-             FileMsg = 'HEMCO (INIT): REQUIRED FILE NOT FOUND'
+             FileMsg = 'HEMCO (INIT): REQUIRED FILE NOT FOUND '
           ENDIF
 
           ! Write message to stdout
           WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ConfigFile )
-300       FORMAT( a, ' ', a )
+ 300      FORMAT( a, ' ./', a )
 
        ELSE
 
@@ -244,14 +244,16 @@ CONTAINS
           !-----------------------------------------------------------------
           WRITE(6,*) ' '
           IF ( Phase == 1 ) THEN
-             WRITE(6,'(a)') 'Reading part 1 of HEMCO configuration file: ',  &
-                            TRIM(ConfigFile)
+             WRITE( 6, 310 ) TRIM(ConfigFile)
+ 310         FORMAT( 'Reading part 1 of HEMCO configuration file: ', a )
+
           ELSEIF ( Phase == 2 ) THEN
-             WRITE(6,'(a)') 'Reading part 2 of HEMCO configuration file: ',  &
-                            TRIM(ConfigFile)
+             WRITE( 6, 320 ) TRIM(ConfigFile)
+ 320         FORMAT( 'Reading part 2 of HEMCO configuration file: ', a )
+
           ELSE
-             WRITE(6,'(a)') 'Reading part 1+2 of HEMCO configuration file: ',&
-                             TRIM(ConfigFile)
+             WRITE( 6, 330 ) TRIM(ConfigFile)
+ 330         FORMAT( 'Reading part 1+2 of HEMCO configuration file: ', a )
           ENDIF
        ENDIF
     ENDIF

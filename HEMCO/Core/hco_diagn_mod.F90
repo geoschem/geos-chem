@@ -4443,7 +4443,7 @@ CONTAINS
           ! Write message to stdout and then return
           IF ( am_I_Root ) THEN
              WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( DiagnFile )
- 300         FORMAT( a, ' ', a )
+ 300         FORMAT( a, ' ./', a )
           ENDIF
           RETURN
        ENDIF

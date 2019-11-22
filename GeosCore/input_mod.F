@@ -113,7 +113,7 @@
          WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'G E O S - C H E M   U S E R   I N P U T'
          WRITE( 6, 100   ) TRIM( FILENAME )
- 100     FORMAT( 'READ_INPUT_FILE: Opening ', a )
+ 100     FORMAT( 'READ_INPUT_FILE: Opening ./', a )
       ENDIF
 
       ! Find a free file LUN
