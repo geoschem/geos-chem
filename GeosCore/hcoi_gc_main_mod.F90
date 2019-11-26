@@ -214,6 +214,16 @@ CONTAINS
     id_O3    = Ind_('O3'  )
     id_POPG  = Ind_('POPG')
 
+    ! Create a splash page
+    IF ( am_I_Root ) THEN
+       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+       WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
+       WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
+       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
+ 101   FORMAT( '%%%%%', 15x, a, a12, 14x  '%%%%%' )
+    ENDIF
+
     !=======================================================================
     ! Read HEMCO configuration file and save into buffer. This also
     ! sets the HEMCO error properties (verbose mode? log file name,
@@ -287,6 +297,21 @@ CONTAINS
     ENDIF
 
     !---------------------------------------
+    ! Open logfile
+    !---------------------------------------
+    IF ( am_I_Root ) THEN
+       CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC )
+
+       ! Trap potential errors
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "HCO_LogFile_Open"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !---------------------------------------
     ! Phase 2: read fields
     !---------------------------------------
     CALL Config_ReadFile( am_I_Root,               iHcoConfig,               &
@@ -298,21 +323,6 @@ CONTAINS
        ErrMsg = 'Error encountered in "Config_Readfile" (Phase 2)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
-    ENDIF
-
-    !=======================================================================
-    ! Open logfile
-    !=======================================================================
-    IF ( am_I_Root ) THEN
-       CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC )
-
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "HCO_LogFile_Open"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
     ENDIF
 
     !=======================================================================
@@ -596,6 +606,7 @@ CONTAINS
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
+    USE Time_Mod,        ONLY : Get_Tau
 
     ! HEMCO routines
     USE HCO_Clock_Mod,   ONLY : HcoClock_Get
@@ -634,12 +645,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: FIRST = .TRUE.
+    ! SAVEd variables
+    REAL(f8), SAVE     :: PrevTAU
 
     ! Scalars
     INTEGER            :: HMRC
     LOGICAL            :: IsEmisTime
+    LOGICAL            :: IsEndStep
 
     ! Strings
     CHARACTER(LEN=255) :: ThisLoc, Instr
@@ -657,17 +669,6 @@ CONTAINS
        ' -> at HCOI_GC_Run (in module GeosCore/hcoi_gc_main_mod.F90)'
     Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
                'HEMCO log file for additional error messages!'
-
-    ! Create a splash page
-    IF ( am_I_Root .and. FIRST ) THEN
-       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
-       WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
-       WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
-       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
- 100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
- 101   FORMAT( '%%%%%', 15x, a, a12, 14x  '%%%%%' )
-       FIRST = .FALSE.
-    ENDIF
 
     !=======================================================================
     ! Make sure HEMCO time is in sync with simulation time
@@ -700,6 +701,16 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        CALL Flush( HcoState%Config%Err%Lun )
        RETURN
+    ENDIF
+
+    ! Check if this is the last GEOS-Chem timestep
+    IF ((( HcoState%Clock%ThisYear * 10000 + HcoState%Clock%ThisMonth * 100 + &
+           HcoState%Clock%ThisDay ) == Input_Opt%NYMDe ) .AND. &
+        (( HcoState%Clock%ThisHour * 10000 + HcoState%Clock%ThisMin   * 100 + &
+           HcoState%Clock%ThisSec ) == Input_Opt%NHMSe )) THEN
+       IsEndStep = .TRUE.
+    ELSE
+       IsEndStep = .FALSE.
     ENDIF
 
     !=======================================================================
@@ -736,6 +747,12 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Check if HEMCO has already been called for this timestep
+    IF ( ( Phase == 1 ) .and. ( GET_TAU() == PrevTAU ) ) THEN
+       Print*, 'HEMCO already called for this timestep. Returning.'
+       RETURN
+    ENDIF
+
     !=======================================================================
     ! Set HCO options
     !=======================================================================
@@ -758,7 +775,7 @@ CONTAINS
     ! phase 2 will calculate the emissions. Emissions will be written into
     ! the corresponding flux arrays in HcoState.
     !=======================================================================
-    CALL HCO_Run( am_I_Root, HcoState, Phase, HMRC                          )
+    CALL HCO_Run( am_I_Root, HcoState, Phase, HMRC, IsEndStep )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -892,6 +909,9 @@ CONTAINS
        ENDIF
 
     ENDIF
+
+    ! Save TAU
+    PrevTAU = GET_TAU()
 
     ! We are now back in GEOS-Chem environment, hence set
     ! return flag accordingly!
@@ -2508,7 +2528,7 @@ CONTAINS
           ! Verbose
           IF ( am_I_Root ) THEN
              Msg = 'Registering HEMCO species:'
-             CALL HCO_MSG( HcoState%Config%Err, Msg )
+             CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
 
           ! Sanity check: number of input species should agree with nSpc
