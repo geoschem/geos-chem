@@ -541,6 +541,9 @@ CONTAINS
           RETURN
        ENDIF
 
+       ! Exit for dry-run simulations
+       IF ( Input_Opt%DryRun ) RETURN
+
        ! Print extra info message for Hg simulation
        IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT ) THEN
           WRITE ( 6, 120 )

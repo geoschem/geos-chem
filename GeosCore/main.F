@@ -571,18 +571,27 @@
          !
          State_Met%Area_M2 = State_Grid%Area_M2
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ENDIF
 
-         ! Also allocate arrays in GEOS-Chem modules that have not yet
-         ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD,
-         ! SULFATE_MOD).  This removes the init calls from the run stage,
-         ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
-         ! (bmy, 3/4/13)
-         CALL GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt,
-     &                       State_Chm, State_Diag, State_Grid, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "GC_Init_Extra"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
+      !-----------------------------------------------------------------
+      ! For dry-run simulations, call GC_Init_Extra, which will print
+      ! out the Olson_drydep_inputs file name and exit.
+      !
+      ! For regular simulations, initialize various module arrays etc.
+      ! This removes the init calls from the run-stage, which cannot
+      ! happen when connecting GEOS-Chem to external ESMs.
+      !-----------------------------------------------------------------     
+      CALL GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt,
+     &                    State_Chm, State_Diag, State_Grid, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "GC_Init_Extra"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Skip these operations when in dry-run mode
+      !-----------------------------------------------------------------
+      IF ( notDryRun ) THEN
 
          ! Initialize the regridding module by storing shadow copies
          CALL GC_Init_Regridding( am_I_Root, Input_Opt, State_Grid, RC )

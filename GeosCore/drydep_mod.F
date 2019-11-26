@@ -2418,13 +2418,19 @@
       !=================================================================
 
       ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: fId                 ! netCDF file ID
+
+      ! Strings
       CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
       CHARACTER(LEN=255) :: nc_file             ! netCDF file name
       CHARACTER(LEN=255) :: nc_path             ! netCDF path name
       CHARACTER(LEN=255) :: v_name              ! netCDF variable name
       CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
       CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
+      CHARACTER(LEN=255) :: FileMsg
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
       ! Arrays for netCDF start and count values
       INTEGER            :: st1d(1), ct1d(1)    ! For 1D arrays
@@ -2433,11 +2439,15 @@
       REAL(f8)           :: DRYCOEFF_R8(NPOLY)
 
       !=================================================================
-      ! Open and read data from the netCDF file
+      ! In dry-run mode, print file path to dryrun log and exit.
+      ! Otherwise, print file path to stdout and continue.
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc =
+     &   ' -> at READ_DRYDEP_INPUTS (in module GeosCore/drydep_mod.F)'
 
       ! Input file for Olson 2001
       nc_file = 'Olson_2001_Drydep_Inputs.nc'
@@ -2446,14 +2456,39 @@
       nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
      &          'Olson_Land_Map_201203/'
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-      CALL Ncop_Rd( fId, TRIM(nc_path) )
 
-      ! Echo info to stdout
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(a)' ) REPEAT( '%', 79 )
- 100     FORMAT( '%% READ_DRYDEP_INPUTS: Reading ', a  )
-         WRITE( 6, 100 ) TRIM( nc_path )
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( nc_path ), EXIST=FileExists )
+
+      ! Test if the file exists and define an output string
+      IF ( FileExists ) THEN
+         FileMsg = 'READ_DRYDEP_INPUTS: Opening'
+      ELSE
+         FileMsg = 'READ_DRYDEP_INPUTS: REQUIRED FILE NOT FOUND'
       ENDIF
+
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! For dry-run simulations, return to calling program.
+      ! For regular simulations, throw an error if we can't find the file.
+      IF ( Input_Opt%DryRun ) THEN
+         RETURN
+      ELSE
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Open and read data from the netCDF file
+      !=================================================================       
+      CALL Ncop_Rd( fId, TRIM(nc_path) )
 
       !----------------------------------------
       ! VARIABLE: DRYCOEFF
@@ -4238,6 +4273,44 @@
 
       ! Initialize
       RC        = GC_SUCCESS
+
+      ErrMsg    = ''
+      ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: Because READ_DRYDEP_INPUTS reads info from a netCDF %%%
+      !%%% file, we may have to broadcast these.  However, the file  %%%
+      !%%% dimensions are not very great (10 or 20 indices each)     %%%
+      !%%% (bmy, 12/11/12)                                           %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Read drydep inputs from the netCDF file
+      ! Save Olson indices in INDOLSON array, in order to avoid
+      ! confusion w/ previously-assinged variable name IOLSON
+      !
+      ! NOTE: For dry-run simulations, print filename and exit.
+      CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt,
+     &                         DRYCOEFF,  INDOLSON, IDEP,
+     &                         IWATER,    NWATER,   IZO,
+     &                         IDRYDEP,   IRI,      IRLU,
+     &                         IRAC,      IRGSS,    IRGSO,
+     &                         IRCLS,     IRCLO,    IVSMAX,
+     &                         RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Read_Drydep_Inputs"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Exit if this is a dry-run simulation
+      IF ( Input_Opt%DryRun ) RETURN
+
+      !=================================================================
+      ! For regular simulations, continue to initialize drydep
+      !=================================================================
+
       IS_Hg     = Input_Opt%ITS_A_MERCURY_SIM
       LDRYD     = Input_Opt%LDRYD
       NUMDEP    = 0
@@ -4248,8 +4321,6 @@
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
       id_ISOPND = IND_('ISOPND')
-      ErrMsg    = ''
-      ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
 
       ! If the dry deposition module has already been initialized,
       ! the arrays do not need to be allocated again, as they are only
@@ -4530,35 +4601,6 @@
 
          ENDDO
  100     FORMAT( i3, 3x, a8, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
-      ENDIF
-
-      !=================================================================
-      ! Get input information
-      !=================================================================
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: Because READ_DRYDEP_INPUTS reads info from a netCDF %%%
-      !%%% file, we may have to broadcast these.  However, the file  %%%
-      !%%% dimensions are not very great (10 or 20 indices each)     %%%
-      !%%% (bmy, 12/11/12)                                           %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      ! Read drydep inputs from the netCDF file
-      ! Save Olson indices in INDOLSON array, in order to avoid
-      ! confusion w/ previously-assinged variable name IOLSON
-      CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt,
-     &                         DRYCOEFF,  INDOLSON, IDEP,
-     &                         IWATER,    NWATER,   IZO,
-     &                         IDRYDEP,   IRI,      IRLU,
-     &                         IRAC,      IRGSS,    IRGSO,
-     &                         IRCLS,     IRCLO,    IVSMAX,
-     &                         RC )
-
-       ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Read_Drydep_Inputs"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
       ENDIF
 
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of
