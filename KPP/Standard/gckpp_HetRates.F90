@@ -4389,6 +4389,7 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
 !  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  19 Jun 2019 - C. Keller     - Added toggle 'TurnOffHetRates'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4421,12 +4422,15 @@ MODULE GCKPP_HETRATES
             ! For UCX-based mechanisms only consider PSC reactions in strat
             IF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(5)
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off ClNO3 + HBr on sulfates as in GMI
             ELSEIF (N.eq.14) THEN
                IF (NATSURFACE) THEN
                   XSTKCF = 0.3e+0_fp ! NAT
                ELSE
                   XSTKCF = 0.3e+0_fp ! Ice
                ENDIF
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off ClNO3 + HBr on ALL PSCs as in GMI
             ENDIF
 
          ENDIF
@@ -5756,12 +5760,13 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETBrNO3_HCl( A, B ) RESULT( kISum )
+    FUNCTION HETBrNO3_HCl( A, B, Input_Opt ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS:
 !
       ! Rate coefficients
       REAL(fp), INTENT(IN) :: A, B
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !RETURN VALUE:
 !
@@ -5777,6 +5782,7 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !  24 Dec 2016 - S. D. Eastham - Extended into the troposphere
+!  19 Jun 2019 - C. Keller     - Added toggle 'TurnOffHetRates'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5804,6 +5810,8 @@ MODULE GCKPP_HETRATES
                XSTKCF = 0.9e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(7)
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off BrNO3 + HCl on sulfates as in GMI
             ELSEIF (N.eq.14) THEN
                IF (NATSURFACE) THEN
                   XSTKCF = 0.3e+0_fp ! NAT
@@ -5959,6 +5967,7 @@ MODULE GCKPP_HETRATES
 !  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
 !  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  19 Jun 2019 - C. Keller     - Added toggle 'TurnOffHetRates'
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5985,12 +5994,16 @@ MODULE GCKPP_HETRATES
  	       XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(9)
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off HOCl + HBr on sulfates as in GMI
             ELSEIF (N.eq.14) THEN
                IF (NATSURFACE) THEN
                   XSTKCF = 0.3e+0_fp ! NAT
                ELSE
                   XSTKCF = 0.3e+0_fp ! Ice
                ENDIF
+               ! Turn off het rates in stratosphere
+               IF ( Input_Opt%TurnOffHetRates ) XSTKCF = 0.0e+0_fp       ! EF turn off HOCl + HBr on ALL PSCs as in GMI
             ENDIF
          ENDIF
 
