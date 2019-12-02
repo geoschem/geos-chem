@@ -80,9 +80,12 @@
 
   ! Get UV albedo for photolysis
   Ptr2d => NULL()
-  CALL MAPL_GetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO', __RC__ )
-  State_Met%UVALBEDO(:,:) = Ptr2D(:,:)
-  Ptr2D => NULL()
+  CALL MAPL_GetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO', &
+                         notFoundOK=.TRUE., __RC__ )
+  If ( ASSOCIATED(Ptr2D) ) Then
+     State_Met%UVALBEDO(:,:) = Ptr2D(:,:)
+     Ptr2D => NULL()
+  ENDIF
 
   !=========================================================================
   ! Three-dimensional fields on level edges
