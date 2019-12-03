@@ -41,7 +41,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
 MODULE GEOSCHEMchem_GridCompMod
 #else
 MODULE Chem_GridCompMod
@@ -2609,7 +2609,6 @@ CONTAINS
                                   Default = 0, __RC__ ) 
     Input_Opt%LSYNOZ = .FALSE.
     IF ( DoIt == 1 ) THEN
-    IF ( DoIt == 1 ) THEN
        Input_Opt%LGMIOZ = .TRUE.
        Input_Opt%LLINOZ = .FALSE.
     ELSE
@@ -3494,9 +3493,9 @@ CONTAINS
           IF ( NDIAG > 0 ) THEN
              ALLOCATE(Input_Opt%RxnRates_IDs(NDIAG))
              Input_Opt%RxnRates_IDs(1:NDIAG) = RRids(1:NDIAG)
-             ALLOCATE(State_Diag%RxnRates(State_Grid%NX,State_Grid%NY,&
+             ALLOCATE(State_Diag%RxnRate(State_Grid%NX,State_Grid%NY,&
                                           State_Grid%NZ,NDIAG))
-             State_Diag%RxnRates = 0.0
+             State_Diag%RxnRate = 0.0
           ENDIF
        ENDIF
        
@@ -6996,7 +6995,7 @@ CONTAINS
     call ESMF_TimeSet(time, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s)
 
     ! Read file
-    VarBundle = MAPL_SimpleBundleRead ( TRIM(iFile), grid, time, __RC__ )
+    VarBundle = MAPL_SimpleBundleRead ( TRIM(iFile), 'GCCinit', grid, time, __RC__ )
           
     ! Scal is the array with scale factors 
     ALLOCATE(Scal(IM,JM),Temp(IM,JM),wgt1(IM,JM),wgt2(IM,JM))
@@ -7112,7 +7111,7 @@ CONTAINS
              call ESMF_TimeSet(Gmitime, yy=yy, mm=7, dd=6, h=h, m=m, s=s)
   
              ! Read data 
-             GmiVarBundle = MAPL_SimpleBundleRead ( TRIM(GmiiFile), grid, Gmitime, __RC__ )
+             GmiVarBundle = MAPL_SimpleBundleRead ( TRIM(GmiiFile), 'GCCinitGMI', grid, Gmitime, __RC__ )
       
              ! Check if variable is in file
              VarID = MAPL_SimpleBundleGetIndex ( GmiVarBundle, 'species', 3, RC=STATUS, QUIET=.TRUE. )
@@ -7302,7 +7301,7 @@ CONTAINS
              call ESMF_TimeSet(fileTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s)
    
              ! Read file
-             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), grid, fileTime, __RC__ )
+             VarBundle =  MAPL_SimpleBundleRead ( TRIM(ifile), 'GCCAnaO3', grid, fileTime, __RC__ )
              VarName   =  'O3'
              VarID     =  MAPL_SimpleBundleGetIndex ( VarBundle, trim(VarName), 3, RC=STATUS, QUIET=.TRUE. )
              ANAO3     => VarBundle%r3(VarID)%q
@@ -7910,7 +7909,9 @@ CONTAINS
     !=======================================================================
 
     ! Traceback info
-    CALL ESMF_GridCompGet( GC, name=compName, vm=VM, __RC__ )
+    !CALL ESMF_GridCompGet( GC, name=compName, vm=VM, __RC__ )
+    CALL ESMF_GridCompGet( GC, name=compName, __RC__ )
+    CALL ESMF_VMGetCurrent(VM, __RC__ )
     Iam = TRIM(compName)//'::GlobalSum'
 
     !=======================================================================
@@ -8409,7 +8410,7 @@ CONTAINS
 !EOC
 #endif
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
  END MODULE GEOSCHEMchem_GridCompMod
 #else
  END MODULE Chem_GridCompMod

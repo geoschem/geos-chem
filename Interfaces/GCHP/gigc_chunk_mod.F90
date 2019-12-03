@@ -187,12 +187,14 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
+#if !defined( MODEL_GEOS )
     ! Get memory debug level
     call ESMF_GridCompGet ( GC, config=CF, RC=STATUS )
     _VERIFY(STATUS)
     call ESMF_ConfigGetAttribute(CF, MemDebugLevel, &
                                  Label="MEMORY_DEBUG_LEVEL:" , RC=STATUS)
     _VERIFY(STATUS)
+#endif
 
     ! Read input.geos at very beginning of simulation on every thread
     CALL Read_Input_File( Input_Opt%AmIRoot, Input_Opt, State_Grid, RC )
@@ -313,8 +315,8 @@ CONTAINS
     ! allocated accordingly when initializing State_Diag. Here, we thus 
     ! only need to initialize the tendencies, which have not been initialized
     ! yet (ckeller, 11/29/17). 
-    CALL Tend_Init ( Input_Opt%AmIRoot, Input_Opt, State_Met, State_Chm, &
-                     State_Grid, RC ) 
+    CALL Tend_Init ( Input_Opt%AmIRoot, Input_Opt, State_Chm, State_Grid, &
+                     State_Met, RC ) 
     _ASSERT(RC==GC_SUCCESS, 'informative message here')
 #endif
 

@@ -274,7 +274,7 @@ CONTAINS
     GLOB_JVAL   = 0.0_f4
 
     ! testing only
-    IF ( Input_Opt%NN_RxnRate > 0 ) State_Diag%RxnRate(:,:,:,:) = 0.0
+    IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRate(:,:,:,:) = 0.0
 #endif
 
     !=======================================================================
@@ -823,8 +823,8 @@ CONTAINS
           DO N = 1, NREACT
              State_Diag%RxnRate(I,J,L,N) = Aout(N)
 #else
-          DO N = 1, Input_Opt%NN_RxnRate
-             State_Diag%RxnRate(I,J,L,N) = Aout(Input_Opt%RxnRate_IDs(N))
+          DO N = 1, Input_Opt%NN_RxnRates
+             State_Diag%RxnRate(I,J,L,N) = Aout(Input_Opt%RxnRates_IDs(N))
 #endif
           ENDDO
        ENDIF
