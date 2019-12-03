@@ -306,7 +306,7 @@
          ENDIF
       ENDIF
 #endif
-#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
+#if defined( BPCH_DIAG )
       !=================================================================
       ! ND21: Optical depths and cloud fractions [unitless]
       !       --> uses AD21 array (allocatable)

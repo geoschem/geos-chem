@@ -2482,9 +2482,9 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 #else
-       IF ( INPUT_Opt%NN_RxnRate > 0 ) THEN
+       IF ( INPUT_Opt%NN_RxnRates > 0 ) THEN
           State_Diag%Archive_RxnRate = .TRUE.
-          ALLOCATE( State_Diag%RxnRate( IM, JM, LM, Input_Opt%NN_RxnRate ), &
+          ALLOCATE( State_Diag%RxnRate( IM, JM, LM, Input_Opt%NN_RxnRates ), &
                     STAT=RC )
           State_Diag%RxnRate = 0.0_f4
        ENDIF
