@@ -726,7 +726,7 @@ MODULE GCKPP_HETRATES
       ! kIIR1Ltd: Assume that the first reactant is limiting. Assume that the
       ! second reactant is "abundant" and calculate the overall rate based on
       ! the uptake rate of the first reactant only.
-      HetTemp(1:2) = HETN2O5(1.08E2_fp, 1E-1_fp)
+      HetTemp(1:2) = HETN2O5(1.08E2_fp, 1E-1_fp, Input_Opt)
       HET(ind_N2O5,  1) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('H2O'), &
                                         HetTemp(1))
       State_Chm%GammaN2O5(I,J,L,1) = HetTemp(2)
