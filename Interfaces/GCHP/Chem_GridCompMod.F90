@@ -1951,10 +1951,12 @@ CONTAINS
     ! MSL - shift from 0 - 360 to -180 - 180 degree grid
     where (lonCtr .gt. MAPL_PI ) lonCtr = lonCtr - 2*MAPL_PI
 
+#if !defined( MODEL_GEOS )
     ! Get the memory debug level
     call ESMF_ConfigGetAttribute(GeosCF, MemDebugLevel, &
                                  Label="MEMORY_DEBUG_LEVEL:" , RC=STATUS)
     _VERIFY(STATUS)
+#endif
 
     !=======================================================================
     ! Save values from the resource file (GCHP.rc for GCHP)
@@ -3198,12 +3200,14 @@ CONTAINS
     ! Identify this routine to MAPL
     Iam = TRIM(compName)//'::Run_'
 
+#if !defined( MODEL_GEOS )
     ! Get the VM for optional memory prints (level >= 2)
     !-----------------------------------
     if ( MemDebugLevel > 0 ) THEN
        call ESMF_VmGetCurrent(VM, RC=STATUS)
        _VERIFY(STATUS)
     endif
+#endif
 
     ! Get my MAPL_Generic state
     ! -------------------------
@@ -3976,6 +3980,7 @@ CONTAINS
           IF ( Input_Opt%haveImpRst ) THEN
 #endif
 
+#if !defined( MDOEL_GEOS )
              ! Optional memory prints (level >= 2)
              if ( MemDebugLevel > 0 ) THEN
                 call ESMF_VMBarrier(vm, RC=STATUS)
@@ -3984,6 +3989,7 @@ CONTAINS
                   'Chem_GridCompMod, before chunk_run', RC=STATUS )
                 _VERIFY(STATUS)
              endif
+#endif
        
              CALL MAPL_TimerOn(STATE, "DO_CHEM")
        
@@ -4019,6 +4025,7 @@ CONTAINS
        
              CALL MAPL_TimerOff(STATE, "DO_CHEM")
        
+#if !defined( MODEL_GEOS )
              ! Optional memory prints (level >= 2)
              if ( MemDebugLevel > 0 ) THEN
                 call ESMF_VMBarrier(vm, RC=STATUS)
@@ -4027,6 +4034,7 @@ CONTAINS
                   'Chem_GridCompMod, after  chunk_run', RC=STATUS )
                 _VERIFY(STATUS)
              endif
+#endif
 
 #if !defined( MODEL_GEOS )
              where( State_Met%HFLUX .eq. 0.) State_Met%HFLUX = 1e-5
