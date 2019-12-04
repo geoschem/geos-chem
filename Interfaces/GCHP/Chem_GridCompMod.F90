@@ -3881,39 +3881,16 @@ CONTAINS
              WRITE ( landTypeStr, '(I2.2)' ) landTypeInt
              importName = 'OLSON' // TRIM(landTypeStr)
           
-             ! Get pointer and set populate State_Met variable
-#if defined( MODEL_GEOS )
-             CALL MAPL_GetPointer ( IMPORT, Ptr2D, TRIM(importName), __RC__ )
-             State_Met%LandTypeFrac(:,:,TT) = Ptr2D(:,:)
-#else
+             ! Get pointer and populate State_Met variable
              CALL MAPL_GetPointer ( IMPORT, Ptr2D, TRIM(importName),  &
                                     notFoundOK=.TRUE., __RC__ )
              If ( Associated(Ptr2D) ) Then
-                If (am_I_Root) Write(6,*)                             &
-                     ' ### Reading ' // TRIM(importName) // ' from imports'
                 State_Met%LandTypeFrac(:,:,TT) = Ptr2D(:,:)
              ELSE
                 WRITE(6,*) TRIM(importName) // ' pointer is not associated'
              ENDIF
-       
-             ! Nullify pointer
-#endif
              Ptr2D => NULL()
           ENDDO
-
-          ! Add an error check to stop the run if the Olson land
-          ! map data comes back as all zeroes.  This issue is known
-          ! to happen in gfortran but not with ifort. (bmy, 1/10/19)
-          IF ( MINVAL( State_Met%LandTypeFrac ) < 1e-32  .and.               &
-               MAXVAL( State_Met%LandTypeFrac ) < 1e-32 ) THEN
-             WRITE( 6, '(a)' )                                               &
-                'ERROR: State_Met%LandTypeFrac contains all zeroes! '     // & 
-                'This error is a known issue in MAPL with gfortran. '     // &
-                'You should not get this error if you compiled with '     // &
-                'ifort.'
-             RC = GC_FAILURE
-             _ASSERT(RC==GC_SUCCESS,'informative message here')
-          ENDIF
 
           ! Compute State_Met variables IREG, ILAND, IUSE, and FRCLND
           CALL Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Grid, &
