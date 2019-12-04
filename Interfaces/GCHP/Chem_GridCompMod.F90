@@ -1902,7 +1902,7 @@ CONTAINS
 
     ! Initialize GEOS-Chem Input_Opt fields to zeros or equivalent
     CALL Set_Input_Opt( MAPL_am_I_Root(), Input_Opt, RC )
-    _ASSERT(RC==GC_SUCCESS, 'informative message here')
+    _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Input_Opt')
 
     ! Get various parameters from the ESMF/MAPL framework
 #if defined( MODEL_GEOS )
@@ -1967,7 +1967,7 @@ CONTAINS
                                   Default = 2,                      &
                                   Label   = "RUN_PHASES:",          &
                                   __RC__                           )
-    _ASSERT(NPHASE==1.OR.NPHASE==2,'informative message here') 
+    _ASSERT(NPHASE==1.OR.NPHASE==2,'Error calling ESMF_ConfigGetAttribute on RUN_PHASES') 
 
 #if defined( MODEL_GEOS )
     ! Top stratospheric level
@@ -2044,7 +2044,7 @@ CONTAINS
 
     ! Initialize fields of the Grid State object
     CALL Init_State_Grid( Input_Opt%AmIRoot, State_Grid, RC )
-    _ASSERT(RC==GC_SUCCESS,'informative message here')
+    _ASSERT(RC==GC_SUCCESS,'Error calling Init_State_Grid')
   
     ! Pass grid information obtained from Extract_ to State_Grid
     State_Grid%NX          = IM            ! # lons   on this PET
@@ -2137,7 +2137,7 @@ CONTAINS
              IF ( RC /= ESMF_SUCCESS ) THEN
                 WRITE(*,*) 'Cannot fill AERO bundle - field not found in ' // &
                            'internal state: ' // TRIM(GCName)
-                _ASSERT(.FALSE.,'informative message here')
+                _ASSERT(.FALSE.,'Error filling AERO bundle')
              ENDIF
   
              ! Set number of fields to be created. This is only different from
@@ -2382,7 +2382,7 @@ CONTAINS
     nFlds = State_Chm%nAdvect
 #endif
     ALLOCATE( Int2Spc(nFlds), STAT=STATUS )
-    _ASSERT(STATUS==0,'informative message here')
+    _ASSERT(STATUS==0,'Int2Spc could not be allocated')
 
     ! Do for every tracer in State_Chm
     DO I = 1, nFlds
@@ -2450,7 +2450,7 @@ CONTAINS
 #else
                         //TRIM(Int2Spc(I)%TrcName),I
           ENDIF
-          _ASSERT(.FALSE.,'informative message here')
+          _ASSERT(.FALSE.,'Error finding internal state variable')
 #endif
        ENDIF
 
@@ -2473,7 +2473,7 @@ CONTAINS
                            TRIM(Int2Spc(I)%Name)
                 WRITE(*,*) ' '
              ENDIF
-             _ASSERT(.FALSE.,'informative message here')
+             _ASSERT(.FALSE.,'Error in Friendly settings')
           ENDIF
        ENDIF
 
@@ -2492,7 +2492,7 @@ CONTAINS
                     TRIM(Int2Spc(I)%Name)
                 WRITE(*,*) ' '
              ENDIF
-             _ASSERT(.FALSE.,'informative message here')
+             _ASSERT(.FALSE.,'Error in Friendly settings')
           ENDIF
        ENDIF
 
@@ -2559,7 +2559,7 @@ CONTAINS
        WRITE(*,*) 'GEOS-Chem chemistry time step                 : ', ChemTS
        WRITE(*,*) 'GEOS-Chem emission  time step                 : ', EmisTS
        WRITE(*,*) 'CHEMISTRY_TIMESTEP in GCHP.rc                 : ', tsChem
-       _ASSERT(.FALSE.,'informative message here')
+       _ASSERT(.FALSE.,'Error in timesteps')
     ENDIF
 
     ! Also check for convection and dynamics time step.
@@ -2571,7 +2571,7 @@ CONTAINS
        WRITE(*,*) 'GEOS-Chem convection time step                : ', ChemTS
        WRITE(*,*) 'GEOS-Chem dynamics   time step                : ', EmisTS
        WRITE(*,*) 'RUN_DT in CAP.rc                              : ', tsDyn
-       _ASSERT(.FALSE.,'informative message here')
+       _ASSERT(.FALSE.,'Error in timesteps')
     ENDIF
 
 #if !defined( MODEL_GEOS )
@@ -3298,7 +3298,7 @@ CONTAINS
 
        ! Pass IMPORT/EXPORT object to HEMCO state object
        !CALL GetHcoState( HcoState )
-       _ASSERT(ASSOCIATED(HcoState),'informative message here')
+       _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
        HcoState%GRIDCOMP => GC
        HcoState%IMPORT   => IMPORT
        HcoState%EXPORT   => EXPORT
@@ -3918,7 +3918,7 @@ CONTAINS
           ! Compute State_Met variables IREG, ILAND, IUSE, and FRCLND
           CALL Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Grid, &
                                       State_Met, RC )
-          _ASSERT(RC==GC_SUCCESS,'informative message here')
+          _ASSERT(RC==GC_SUCCESS,'Error calling Compute_Olson_Landmap')
        ENDIF
 
 #if defined( MODEL_GEOS )
@@ -4280,7 +4280,7 @@ CONTAINS
 
        CALL CalcNO2Column_( am_I_Root, Input_Opt, PTR_NO2, PLE, &
                             PPBL, GCCTROPP, TNO2, SNO2, FNO2, RC )
-       _ASSERT(RC==ESMF_SUCCESS,'informative message here')
+       _ASSERT(RC==ESMF_SUCCESS,'Error calling CalcNO2Column_')
        PTR_NO2 => NULL()
        TNO2    => NULL()
        SNO2    => NULL()
@@ -4408,9 +4408,9 @@ CONTAINS
        CALL MAPL_GetPointer( EXPORT, Ptr2D, 'LightningPotential', &
                              NotFoundOk=.TRUE., __RC__ )
        IF ( ASSOCIATED(Ptr2D) ) THEN
-          _ASSERT(ASSOCIATED(LWI),'informative message here')      ! Land-Water-Ice flag
-          _ASSERT(ASSOCIATED(LFR),'informative message here')      ! GEOS lightning flash rate
-          _ASSERT(ASSOCIATED(CNV_FRC),'informative message here')  ! Convective fraction
+          _ASSERT(ASSOCIATED(LWI),'LWI is not associated') ! Land-Water-Ice flag
+          _ASSERT(ASSOCIATED(LFR),'LFR is not associated') ! GEOS lightning flash rate
+          _ASSERT(ASSOCIATED(CNV_FRC),'CNV_FRC is not associated') ! Convective fraction
           CALL MAPL_GetPointer( EXPORT, PtrEmis, 'EMIS_NO_LGHT',  &
                                 NotFoundOk=.TRUE., __RC__ )
           Ptr2D = 0.0
@@ -4771,7 +4771,7 @@ CONTAINS
 
 #if defined( MODEL_GEOS )
     ! Link HEMCO state to gridcomp objects
-    _ASSERT(ASSOCIATED(HcoState),'informative message here')
+    _ASSERT(ASSOCIATED(HcoState),'HcoState is not associated')
     HcoState%GRIDCOMP => GC
     HcoState%IMPORT   => IMPORT
     HcoState%EXPORT   => EXPORT
@@ -5417,7 +5417,7 @@ CONTAINS
     ENDIF
 
     ! Make sure O3 is defined
-    _ASSERT(ASSOCIATED(O3),'informative message here')
+    _ASSERT(ASSOCIATED(O3),'O3 is not associated')
 
     ! Grid size
     IM = SIZE(O3,1)
@@ -5551,7 +5551,7 @@ CONTAINS
     ENDIF
 
     ! Make sure O3 is defined
-    _ASSERT(ASSOCIATED(NO2),'informative message here')
+    _ASSERT(ASSOCIATED(NO2),'NO2 is not associated')
 
     ! Grid size
     IM = SIZE(NO2,1)
@@ -5573,7 +5573,7 @@ CONTAINS
     ALLOCATE(wgt(IM,JM), STAT=STATUS)
     _VERIFY(STATUS)
     IF ( ASSOCIATED(FNO2) ) THEN
-       _ASSERT(ASSOCIATED(PPBL),'informative message here')
+       _ASSERT(ASSOCIATED(PPBL),'PPBL is not associated')
        ALLOCATE(PBLTNO2(IM,JM), STAT=STATUS)
        _VERIFY(STATUS)
        PBLTNO2(:,:) = 0.0
@@ -5848,7 +5848,7 @@ CONTAINS
 
           ! Get O3 tracer ID
           IND = Ind_('O3')
-          _ASSERT(IND>0,'informative message here')
+          _ASSERT(IND>0,'O3 tracer ID is negative')
 
           ! Get tracer tendency in kg/kg dry air/s 
           CALL Tend_Get( am_I_Root, Input_Opt, 'CHEM', IND, Stage, &
@@ -5909,7 +5909,7 @@ CONTAINS
           IF ( ASSOCIATED(Ptr2D) ) THEN
              ! Tracer index 
              IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-             _ASSERT(IND>0,'informative message here')
+             _ASSERT(IND>0,'Tracer ID is negative')
              ! Get tracer tendency in kg/kg dry air/s 
              CALL Tend_Get( am_I_Root, Input_Opt, 'FLUX', IND, Stage, &
                             Tend, __RC__ )
@@ -5936,7 +5936,7 @@ CONTAINS
           IF ( ASSOCIATED(Ptr2D) ) THEN
              ! Tracer index 
              IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-             _ASSERT(IND>0,'informative message here')
+             _ASSERT(IND>0,'Tracer ID is negative')
              ! Get tracer tendency in kg/kg dry air/s 
              CALL Tend_Get( am_I_Root, Input_Opt, 'WETD', IND, Stage, &
                             Tend, __RC__ )
@@ -5963,7 +5963,7 @@ CONTAINS
           IF ( ASSOCIATED(Ptr2D) ) THEN
              ! Tracer index 
              IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-             _ASSERT(IND>0,'informative message here')
+             _ASSERT(IND>0,'Tracer ID is negative')
              ! Get tracer tendency in kg/kg dry air/s 
              CALL Tend_Get( am_I_Root, Input_Opt, 'CONV', IND, Stage, &
                             Tend, __RC__ )
@@ -6076,10 +6076,10 @@ CONTAINS
              idk3 = I
           ENDIF 
        ENDDO
-       _ASSERT( idJNO2 > 0,'informative message here' )
-       _ASSERT( idk1   > 0,'informative message here' )
-       _ASSERT( ASSOCIATED(State_Diag%O3concAfterChem),'informative message here'  )
-       _ASSERT( ASSOCIATED(State_Diag%RO2concAfterChem),'informative message here' )
+       _ASSERT( idJNO2 > 0,'idJNO2 is negative' )
+       _ASSERT( idk1   > 0,'idk1 is negative' )
+       _ASSERT( ASSOCIATED(State_Diag%O3concAfterChem),'O3concAfterChem is not associated'  )
+       _ASSERT( ASSOCIATED(State_Diag%RO2concAfterChem),'RO2concAfterChem is not associated' )
        ! Allocate local arrays
        IM = SIZE(State_Diag%O3concAfterChem,1)
        JM = SIZE(State_Diag%O3concAfterChem,2)
@@ -6112,8 +6112,8 @@ CONTAINS
        ENDIF
        ! Compute NOx chemical lifetime
        IF ( ASSOCIATED(NOxtau) ) THEN
-          _ASSERT( idk3 > 0,'informative message here' )
-          _ASSERT( ASSOCIATED(State_Diag%OHconcAfterChem),'informative message here' )
+          _ASSERT( idk3 > 0,'idk3 is negative' )
+          _ASSERT( ASSOCIATED(State_Diag%OHconcAfterChem),'OHconcAfterChem is negative' )
           k3OH      = State_Diag%RxnRconst(:,:,LM:1:-1,idk3) &
                     * State_Diag%OHconcAfterChem(:,:,LM:1:-1)
           tmp3d = 0.0
@@ -7569,7 +7569,7 @@ CONTAINS
                              COL=Input_Opt%DIAG_COLLECTION ) 
 
              ! Error check 
-             _ASSERT( ERR == HCO_SUCCESS,'informative message here' )
+             _ASSERT( ERR == HCO_SUCCESS,'Error calling Diagn_Get' )
 
              ! Add to array if diagnostics is defined
              ! GEOS-Chem diagnostics is in kg m-2 s-1.
@@ -7604,7 +7604,7 @@ CONTAINS
                                 COL=Input_Opt%DIAG_COLLECTION ) 
 
                 ! Error check 
-                _ASSERT( ERR == HCO_SUCCESS,'informative message here' )
+                _ASSERT( ERR == HCO_SUCCESS,'Error calling Diagn_Get' )
 
                 ! Add to array if diagnostics is defined. GEOS-Chem 
                 ! diagnostics is already in kg m-2 s-1.
@@ -8249,7 +8249,7 @@ CONTAINS
 
       na = size(aerosol)
 
-      _ASSERT (na == size(q,4),'informative message here')
+      _ASSERT (na == size(q,4),'Error in number of aerosols')
 
       ext_ = 0.0d0
       ssa_ = 0.0d0
