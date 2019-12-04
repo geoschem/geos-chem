@@ -822,6 +822,7 @@ CONTAINS
     ! data lists are all properly set up. 
     !=======================================================================
     IF ( DoEmis ) THEN
+#if !defined( MODEL_GEOS )
        ! Optional memory prints (level >= 3)
        if ( MemDebugLevel > 0 ) THEN
           call ESMF_VMBarrier(VM, RC=STATUS)
@@ -830,6 +831,7 @@ CONTAINS
                   'gigc_chunk_run, before Emissions_Run', RC=STATUS )
           _VERIFY(STATUS)
        endif
+#endif
 
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do emissions now'
        CALL MAPL_TimerOn( STATE, 'GC_EMIS' )
