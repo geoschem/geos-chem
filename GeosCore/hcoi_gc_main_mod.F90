@@ -3436,7 +3436,7 @@ CONTAINS
       !-------------
 
       ! Define variable name
-      v_name = 'TMPU'
+      v_name = 'TMPU1'
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
@@ -3462,7 +3462,7 @@ CONTAINS
       !-------------
 
       ! Define variable name
-      v_name = 'SPHU'
+      v_name = 'SPHU1'
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
@@ -3488,7 +3488,7 @@ CONTAINS
       !-------------
 
       ! Define variable name
-      v_name = 'PSWET'
+      v_name = 'PS1WET'
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
@@ -3514,7 +3514,7 @@ CONTAINS
       !-------------
 
       ! Define variable name
-      v_name = 'PSDRY'
+      v_name = 'PS1DRY'
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
@@ -3580,6 +3580,18 @@ CONTAINS
       ! from restart file yet (ewl, 10/28/15)
       CALL AirQnt( am_I_Root, Input_Opt, State_Chm, State_Grid, State_Met, &
                    RC,        update_mixing_ratio=.FALSE. )
+
+      ! Also read in I3 fields at t+3hours for this timestep
+      D = GET_I3_TIME()
+      CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
+
+      ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+      ! and compute avg dry pressure near polar caps
+      CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
+      CALL AvgPole( State_Grid, State_Met%PS2_DRY )
+
+      ! Compute avg moist pressure near polar caps
+      CALL AvgPole( State_Grid, State_Met%PS2_WET )
 
    ELSE
 

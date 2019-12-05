@@ -1654,6 +1654,16 @@ CONTAINS
              CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
+       IF ( Lct%Dct%Dta%ncHrs(1) == -1 .AND. nTime == 24 ) THEN
+          tidx1 = 1
+          tidx2 = nTime
+
+          ! verbose mode
+          IF ( verb ) THEN
+             WRITE(MSG,*) 'Data is hourly. Entire day will be read.'
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+          ENDIF
+       ENDIF
 
        ! -------------------------------------------------------------
        ! If we are dealing with weekday data, pick the slice to be
