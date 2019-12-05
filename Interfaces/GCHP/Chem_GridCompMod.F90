@@ -1878,6 +1878,9 @@ CONTAINS
     ! Initialization
     !=======================================================================
 
+    ! Are we on the root PET?
+    am_I_Root = MAPL_Am_I_Root()
+
     ! Get my name and set-up traceback handle
     CALL ESMF_GridCompGet( GC, name=compName, __RC__ )
 
@@ -1901,7 +1904,7 @@ CONTAINS
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ ) 
 
     ! Initialize GEOS-Chem Input_Opt fields to zeros or equivalent
-    CALL Set_Input_Opt( MAPL_am_I_Root(), Input_Opt, RC )
+    CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Input_Opt')
 
     ! Get various parameters from the ESMF/MAPL framework
@@ -1942,7 +1945,7 @@ CONTAINS
     Input_Opt%MPIComm = mpiComm
     Input_Opt%numCPUs = NPES
     Input_Opt%isMPI   = .true.
-    if ( MAPL_am_I_Root() ) Input_Opt%amIRoot = .true.
+    if ( am_I_Root ) Input_Opt%amIRoot = .true.
 
 #if defined( MODEL_GEOS )
     Input_Opt%haveImpRst = haveImpRst
@@ -3638,14 +3641,14 @@ CONTAINS
                                    TRIM(ThisSpc%Name), notFoundOK=.TRUE.,     &
                                    __RC__ )
              IF ( .NOT. ASSOCIATED(Ptr3D_R8) ) THEN
-                IF ( MAPL_am_I_Root()) WRITE(*,*)                             &
+                IF ( am_I_Root ) WRITE(*,*)                             &
                    'Could not find species in INTERNAL state - will be ' //   &
                    'initialized to zero: ', TRIM(SPFX), TRIM(ThisSpc%Name)
                 State_Chm%Species(:,:,:,IND) = 1d-26
                 CYCLE
              ENDIF
              State_Chm%Species(:,:,:,IND) = Ptr3D_R8(:,:,State_Grid%NZ:1:-1)
-             if ( MAPL_am_I_Root()) WRITE(*,*)                                &
+             if ( am_I_Root ) WRITE(*,*)                                &
              'Initialized species from INTERNAL state: ', TRIM(ThisSpc%Name)
 
              ! Determine if species in restart file
@@ -3694,7 +3697,7 @@ CONTAINS
                 ENDDO
                 ENDDO
                 Ptr3D_R8(:,:,:) = State_Chm%Species(:,:,State_Grid%NZ:1:-1,IND)
-                IF ( MAPL_am_I_Root()) THEN
+                IF (am_I_Root) THEN
                    WRITE(*,*)  &
                    '   WARNING: using background values from species database'
                 ENDIF
@@ -4672,7 +4675,7 @@ CONTAINS
        Ptr3D_R8 => NULL()
 
        ! Verbose 
-       if ( MAPL_am_I_Root()) write(*,*)                &
+       if ( am_I_Root ) write(*,*)                &
                 'Species written to INTERNAL state: ',  &
                 TRIM(ThisSpc%Name)
     ENDDO
@@ -5022,6 +5025,7 @@ CONTAINS
     TYPE(MAPL_SunOrbit)           :: sunOrbit
 
     ! Scalars
+    LOGICAL                       :: am_I_Root      ! On root PET
     CHARACTER(len=ESMF_MAXSTR)    :: compName       ! Gridded component name
     CHARACTER(len=ESMF_MAXSTR)    :: importRstFN    ! Import restart file name
     INTEGER(ESMF_KIND_I8)         :: count          ! # of clock advances
@@ -5040,6 +5044,9 @@ CONTAINS
     !=======================================================================
     ! Initialization
     !=======================================================================
+
+    ! Are we on the root PET
+    am_I_Root = MAPL_Am_I_Root()
 
     ! Get my name and set-up traceback handle
     CALL ESMF_GridCompGet( GC, name=compName, vm=VM, __RC__ )
@@ -5108,7 +5115,7 @@ CONTAINS
         tsChem = real(dt_r8)
 
         IF(tsChem < tsDyn) THEN
-           IF( MAPL_AM_I_ROOT() ) THEN
+           IF( am_I_root ) THEN
 #if defined( MODEL_GEOS )
               WRITE(6,*) 'GEOSCHEMCHEM_DT cannot be less than RUN_DT'
 #else
@@ -5145,7 +5152,7 @@ CONTAINS
           importRstFN = importRstFN(2:LEN(TRIM(importRstFN)))
        ENDIF
        INQUIRE( FILE=TRIM( importRstFN ), EXIST=haveImpRst )
-       IF( MAPL_AM_I_ROOT() ) THEN
+       IF( am_I_root ) THEN
           PRINT *," ",TRIM( importRstFN )," exists: ", haveImpRst
           PRINT *," "
        END IF
@@ -7699,6 +7706,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES
 !
+    LOGICAL                      :: am_I_Root
     TYPE(MAPL_MetaComp), POINTER :: STATE          ! MAPL MetaComp object
     INTEGER                      :: LMAX
     INTEGER                      :: I,J
@@ -7724,6 +7732,9 @@ CONTAINS
                                                     !   molec air]
  
     __Iam__('Print_Mean_OH')
+
+    ! Are we on the root PET?
+    am_I_Root = MAPL_Am_I_Root()
 
     ! Traceback info
     CALL ESMF_GridCompGet( GC, name=compName, __RC__ )
@@ -7801,7 +7812,7 @@ CONTAINS
     ENDIF   
 
     ! Avoid divide-by-zero errors 
-    IF ( MAPL_am_I_Root() ) THEN
+    IF ( am_I_Root ) THEN
        IF ( SUM_MASS > 0d0 ) THEN 
                
           ! Divide OH by [molec air] and report as [1e5 molec/cm3]
