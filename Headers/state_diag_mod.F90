@@ -392,6 +392,25 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_SpeciesConcALT1
      LOGICAL :: Archive_ConcAboveSfc
 
+     ! KPP solver diagnostics
+     REAL(f4), POINTER :: KppIntCounts(:,:,:)
+     REAL(f4), POINTER :: KppJacCounts(:,:,:)
+     REAL(f4), POINTER :: KppTotSteps (:,:,:)
+     REAL(f4), POINTER :: KppAccSteps (:,:,:)
+     REAL(f4), POINTER :: KppRejSteps (:,:,:)
+     REAL(f4), POINTER :: KppLuDecomps(:,:,:)
+     REAL(f4), POINTER :: KppSubsts   (:,:,:)
+     REAL(f4), POINTER :: KppSmDecomps(:,:,:)
+     LOGICAL :: Archive_KppIntCounts
+     LOGICAL :: Archive_KppJacCounts
+     LOGICAL :: Archive_KppTotSteps
+     LOGICAL :: Archive_KppAccSteps
+     LOGICAL :: Archive_KppRejSteps
+     LOGICAL :: Archive_KppLuDecomps
+     LOGICAL :: Archive_KppSubsts
+     LOGICAL :: Archive_KppSmDecomps
+     LOGICAL :: Archive_KppDiags
+
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
@@ -1087,6 +1106,25 @@ CONTAINS
     State_Diag%Archive_DryDepRaALT1                = .FALSE.
     State_Diag%Archive_DryDepVelForALT1            = .FALSE.
     State_Diag%Archive_SpeciesConcALT1             = .FALSE.
+
+    ! KPP solver diagnostics
+    State_Diag%KppIntCounts                        => NULL()
+    State_Diag%KppJacCounts                        => NULL()
+    State_Diag%KppTotSteps                         => NULL()
+    State_Diag%KppAccSteps                         => NULL()
+    State_Diag%KppRejSteps                         => NULL()
+    State_Diag%KppLuDecomps                        => NULL()
+    State_Diag%KppSubsts                           => NULL()
+    State_Diag%KppSmDecomps                        => NULL()
+    State_Diag%Archive_KppIntCounts                = .FALSE.
+    State_Diag%Archive_KppJacCounts                = .FALSE.
+    State_Diag%Archive_KppTotSteps                 = .FALSE.
+    State_Diag%Archive_KppAccSteps                 = .FALSE.
+    State_Diag%Archive_KppRejSteps                 = .FALSE.
+    State_Diag%Archive_KppLuDecomps                = .FALSE.
+    State_Diag%Archive_KppSubsts                   = .FALSE.
+    State_Diag%Archive_KppSmDecomps                = .FALSE.
+    State_Diag%Archive_KppDiags                    = .FALSE.
 
     ! Time in troposphere diagnostic
     State_Diag%FracOfTimeInTrop                    => NULL()
@@ -2967,6 +3005,158 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! Number of KPP Integrations per grid box
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%KppIntCounts'
+       diagID  = 'KppIntCounts'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppIntCounts( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppIntCounts = 0.0_f4
+          State_Diag%Archive_KppIntCounts = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppIntCounts,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of times KPP updated the Jacobian per grid box
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%KppJacCounts'
+       diagID  = 'KppJacCounts'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppJacCounts( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppJacCounts = 0.0_f4
+          State_Diag%Archive_KppJacCounts = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppJacCounts,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP total internal integration time steps
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%KppTotSteps'
+       diagID  = 'KppTotSteps'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppTotSteps( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppTotSteps = 0.0_f4
+          State_Diag%Archive_KppTotSteps = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppTotSteps,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP accepted internal integration time steps
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%KppAccSteps'
+       diagID  = 'KppAccSteps'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppAccSteps( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppAccSteps = 0.0_f4
+          State_Diag%Archive_KppAccSteps = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppAccSteps,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP rejected internal integration time steps
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%KppRejSteps'
+       diagID  = 'KppRejSteps'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppRejSteps( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppRejSteps = 0.0_f4
+          State_Diag%Archive_KppRejSteps = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppRejSteps,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP LU Decompositions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%KppLuDecomps'
+       diagID  = 'KppLuDecomps'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppLuDecomps( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppLuDecomps = 0.0_f4
+          State_Diag%Archive_KppLuDecomps = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppLuDecomps,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP substitutions (forward and backward)
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%KppSubsts'
+       diagID  = 'KppSubsts'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppSubsts( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppSubsts = 0.0_f4
+          State_Diag%Archive_KppSubsts = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppSubsts,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP singular matrix decompositions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%KppSmDecomps'
+       diagID  = 'KppSmDecomps'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppSmDecomps( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppSmDecomps = 0.0_f4
+          State_Diag%Archive_KppSmDecomps = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppSmDecomps,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
 #if defined( MODEL_GEOS )
        !--------------------------------------------------------------------
        ! CH4 pseudo-flux
@@ -3018,7 +3208,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 25
+       DO N = 1, 34
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -3074,6 +3264,22 @@ CONTAINS
                 diagID = 'TotalBiogenicOA'
              CASE( 26 )
                 diagID = 'OHreactivity'
+             CASE( 27 )
+                diagID = 'KppIntCounts'
+             CASE( 28 )
+                diagID = 'KppJacCounts'
+             CASE( 29 )
+                diagID = 'KppTotSteps'
+             CASE( 30 )
+                diagID = 'KppAccSteps'
+             CASE( 31 )
+                diagID = 'KppRejSteps'
+             CASE( 32 )
+                diagID = 'KppLuDecomps'
+             CASE( 33 )
+                diagID = 'KppSubsts'
+             CASE( 34 )
+                diagID = 'KppSmDecomps'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -6518,6 +6724,16 @@ CONTAINS
                                    State_Diag%Archive_DryDepRaALT1     .and. &
                                    State_Diag%Archive_DryDepVelForALT1      )
 
+    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts    .or.  &
+                                    State_Diag%Archive_KppJacCounts    .or.  &
+                                    State_Diag%Archive_KppTotSteps     .or.  &
+                                    State_Diag%Archive_KppAccSteps     .or.  &
+                                    State_Diag%Archive_KppRejSteps     .or.  &
+                                    State_Diag%Archive_KppLuDecomps    .or.  &
+                                    State_Diag%Archive_KppSubsts       .or.  &
+                                    State_Diag%Archive_KppSmDecomps    .or.  &
+                                    State_Diag%Archive_KppDiags             )
+
     !=======================================================================
     ! Set arrays used to calculate budget diagnostics, if needed
     !=======================================================================
@@ -8169,6 +8385,64 @@ CONTAINS
        State_Diag%SpeciesConcALT1 => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%KppIntCounts ) ) THEN
+       DEALLOCATE( State_Diag%KppIntCounts, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppIntCounts', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppIntCounts => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%KppJacCounts ) ) THEN
+       DEALLOCATE( State_Diag%KppJacCounts, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppJacobians', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppJacCounts => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%KppTotSteps ) ) THEN
+       DEALLOCATE( State_Diag%KppTotSteps, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppTotSteps', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppTotSteps => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%KppAccSteps ) ) THEN
+       DEALLOCATE( State_Diag%KppAccSteps, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppAccSteps', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppAccSteps => NULL()
+    ENDIF
+
+   IF ( ASSOCIATED( State_Diag%KppRejSteps ) ) THEN
+       DEALLOCATE( State_Diag%KppRejSteps, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppRejSteps', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppRejSteps => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%KppLuDecomps ) ) THEN
+       DEALLOCATE( State_Diag%KppLuDecomps, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppLuDecomps', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppLuDecomps => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%KppSubsts ) ) THEN
+       DEALLOCATE( State_Diag%KppSubsts, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppSubsts', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppSubsts => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%KppSmDecomps ) ) THEN
+       DEALLOCATE( State_Diag%KppSmDecomps, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppSmDecomps', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppSmDecomps => NULL()
+    ENDIF
+
+
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -9209,6 +9483,46 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'TOTALOC' ) THEN
        IF ( isDesc    ) Desc  = 'Sum of all organic carbon (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPINTCOUNTS' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of calls to KPP integrator'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPJACCOUNTS' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of times KPP updated the Jacobian'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPTOTSTEPS' ) THEN
+       IF ( isDesc    ) Desc  = 'Total number of KPP internal timesteps'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPACCSTEPS' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of accepted KPP internal timesteps'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPREJSTEPS' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of rejected KPP internal timesteps'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPLUDECOMPS' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of KPP LU-decompositions'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSUBSTS' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of KPP forward and backward matrix substitutions'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSMDECOMPS' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of KPP singular matrix decompositions'
+       IF ( isUnits   ) Units = 'count'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'EMISPOPPOCPO' ) THEN
