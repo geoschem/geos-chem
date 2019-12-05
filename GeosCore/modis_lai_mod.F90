@@ -5,9 +5,9 @@
 !
 ! !MODULE: modis_lai_mod.F90
 !
-! !DESCRIPTION: Module MODIS\_LAI\_MOD reads the MODIS LAI and CHLR data at
+! !DESCRIPTION: Module MODIS\_LAI\_MOD reads the MODIS LAI data at
 !  native resolution and then regrids them to the GEOS-Chem resolution on the
-!  fly. CHLR data is only read if marine organic aerosol tracers are enabled.
+!  fly.
 !
 ! !INTERFACE:
 !
@@ -29,7 +29,6 @@ MODULE Modis_Lai_Mod
 !  (1) MODIS LAI data resolution is the same as the Olson land map. The Olson
 !      2001 landmap is the default, therefore, you will use MODIS LAI data at
 !      0.25 x 0.25 resolution.
-!      Note that MODIS CHLR data is only available at 0.25 x 0.25 resolution.
 !  (2) In HEMCO, MEGAN uses 'offline' MODIS LAI (State_Met%MODISLAI) which
 !      is computed in this module.
 !      in an ESMF environment, in which case State_Met%LAI is used instead.
@@ -40,25 +39,7 @@ MODULE Modis_Lai_Mod
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
-!  05 Apr 2012 - R. Yantosca - Added descriptive comments
-!  09 Apr 2012 - R. Yantosca - Fixed error in ROUNDOFF function that caused
-!                              numbers to be rounded up incorrectly.
-!  09 Apr 2012 - R. Yantosca - Changed variables to REAL(fp)
-!  09 Apr 2012 - R. Yantosca - Now set MODIS_START and MODIS_END depending
-!                              on which version of MODIS LAI we are using
-!  13 Dec 2012 - R. Yantosca - Remove reference to obsolete CMN_DEP_mod.F;
-!                              XLAI, XLAI2 now are carried in State_Met
-!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
-!  09 Oct 2014 - C. Keller   - Removed GC_LAI_PM, GC_LAI_CM, GC_LAI_NM and
-!                              MODIS_LAI_PM.
-!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  07 Jul 2015 - E. Lundgren - Now also read and compute MODIS chlorophyll-a
-!                              (B. Gantt, M. Johnson). Use separate end years.
-!  18 Oct 2016 - E. Lundgren - Move module vars GC_LAI and GC_CHLR to State_Met;
-!                              rename as MODISLAI and MODISCHLR; make
-!                              State_Met vars XLAI2 and XCHLR2 module vars
-!  22 Jan 2019 - H.P. Lin    - Move XLAI2 and XCHLR2 to State_Met for
-!                              compatibility with multi-domain WRF-GC
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,7 +149,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_XLAI computes MODIS-based leaf
 !  area indices (LAI) per land type and grid cell. This computation uses
-!  offline 0.25x0.25 MODIS LAI/CHLR and Olson landmap data regridded to
+!  offline 0.25x0.25 MODIS LAI and Olson landmap data regridded to
 !  the cubed sphere. Variables set include State\_Met%XLAI.
 !\\
 !\\

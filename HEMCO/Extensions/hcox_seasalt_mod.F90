@@ -57,7 +57,6 @@ MODULE HCOX_SeaSalt_Mod
 
    ! Tracer IDs
    INTEGER             :: ExtNrSS           ! Extension number for seasalt
-   INTEGER             :: ExtNrMPOA         ! Extension number for marine POA
    INTEGER             :: IDTSALA           ! Fine aerosol model species ID
    INTEGER             :: IDTSALC           ! Coarse aerosol model species ID
    INTEGER             :: IDTMOPO           ! marine organic aerosol - phobic
@@ -87,6 +86,9 @@ MODULE HCOX_SeaSalt_Mod
    REAL(sp), POINTER   :: NDENS_SALC(:,:) => NULL()
    REAL(sp), POINTER   :: NDENS_MOPO(:,:) => NULL()
    REAL(sp), POINTER   :: NDENS_MOPI(:,:) => NULL()
+
+   ! MODIS Chlorophyll-A
+   REAL(hp), POINTER   :: CHLR(:,:)       => NULL()
 
    TYPE(MyInst), POINTER  :: NextInst => NULL()
   END TYPE MyInst
@@ -121,6 +123,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE HCO_Calc_Mod,         ONLY : HCO_EvalFld
     USE HCO_FluxArr_Mod,      ONLY : HCO_EmisAdd
     USE HCO_GeoTools_Mod,     ONLY : HCO_LANDTYPE
 !
@@ -241,6 +244,16 @@ CONTAINS
     FLUXMOPO   = 0.0_hp
     FLUXMOPI   = 0.0_hp
 
+    ! If the marine POA option is on, get the HEMCO pointer to MODIS CHLR
+    IF ( HcoState%MarinePOA ) THEN
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'MODIS_CHLR', Inst%CHLR, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          WRITE(MSG,*) 'Cannot find MODIS CHLR data for marine POA'
+          CALL HCO_ERROR(HcoState%Config%Err, MSG, RC)
+          RETURN
+       ENDIF
+    ENDIF
+
     !=================================================================
     ! Emission is integrated over a given size range for each bin
     !=================================================================
@@ -339,7 +352,7 @@ CONTAINS
              IF ( N .EQ. 3 ) THEN
 
                 ! Get MODIS Chlorophyll-a
-                CHLR = ExtState%CHLR%Arr%Val(I,J)
+                CHLR = Inst%CHLR(I,J)
 
                 ! Calculate organic mass fraction of SSA
                 OMSS1 = 1.0 / ( 1.0 + EXP( -2.63 * 3.0 * CHLR         &
@@ -488,7 +501,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBrSalA, Inst%IDTBrSalA, &
                          RC,        ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXBrSalA', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXBrSalA', RC )
           RETURN
        ENDIF
 
@@ -496,7 +509,7 @@ CONTAINS
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBrSalC, Inst%IDTBrSalC, &
                          RC,        ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXBrSalC', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXBrSalC', RC )
           RETURN
        ENDIF
 
@@ -507,7 +520,7 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPO, Inst%IDTMOPO, &
-                         RC,        ExtNr=Inst%ExtNrMPOA )
+                         RC,        ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXMOPO', RC )
           RETURN
@@ -520,7 +533,7 @@ CONTAINS
 
        ! Add flux to emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPI, Inst%IDTMOPI, &
-                         RC,        ExtNr=Inst%ExtNrMPOA )
+                         RC,        ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXMOPI', RC )
           RETURN
@@ -588,14 +601,12 @@ CONTAINS
     REAL*8                         :: A, B, R0, R1
     REAL*8                         :: CONST_N
     CHARACTER(LEN=255)             :: MSG
-    INTEGER                        :: nSpcSS, nSpcMPOA, minLen
+    INTEGER                        :: nSpcSS, minLen
     REAL*8                         :: SALA_REDGE_um(2), SALC_REDGE_um(2)
     REAL(dp)                       :: tmpScale
     LOGICAL                        :: FOUND
     INTEGER, ALLOCATABLE           :: HcoIDsSS(:)
-    INTEGER, ALLOCATABLE           :: HcoIDsMPOA(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesSS(:)
-    CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesMPOA(:)
     TYPE(MyInst), POINTER          :: Inst
 
     !=================================================================
@@ -619,9 +630,6 @@ CONTAINS
     ENDIF
     ! Also fill ExtNrSS - this is the same as the parent ExtNr
     Inst%ExtNrSS = ExtNrSS
-
-    ! Check for marine organic aerosols option
-    Inst%ExtNrMPOA = GetExtNr( HcoState%Config%ExtList, 'MarinePOA' )
 
     ! ----------------------------------------------------------------------
     ! Get species IDs and settings
@@ -670,16 +678,11 @@ CONTAINS
     Inst%IDTSALA = HcoIDsSS(1)
     Inst%IDTSALC = HcoIDsSS(2)
     IF ( Inst%CalcBr2 ) Inst%IDTBR2 = HcoIDsSS(3)
-    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALA = HcoIDsSS(nSpcSS-1)
-    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALC = HcoIDsSS(nSpcSS)
-
-    ! Get the marine organic aerosol species defined for MarinePOA option
-    IF ( Inst%ExtNrMPOA > 0 ) THEN
-       CALL HCO_GetExtHcoID( HcoState,     Inst%ExtNrMPOA, HcoIDsMPOA,  &
-                             SpcNamesMPOA, nSpcMPOA,  RC          )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       Inst%IDTMOPO = HcoIDsMPOA(1)
-       Inst%IDTMOPI = HcoIDsMPOA(2)
+    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALA = HcoIDsSS(4)
+    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALC = HcoIDsSS(5)
+    IF ( HcoState%MarinePOA ) THEN
+       Inst%IDTMOPO = HcoIDsSS(6)
+       Inst%IDTMOPI = HcoIDsSS(7)
     ENDIF
 
     ! Get aerosol radius'
@@ -722,7 +725,7 @@ CONTAINS
        MSG = 'Use sea salt aerosol emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
 
-       IF ( Inst%ExtNrMPOA > 0 ) THEN
+       IF ( HcoState%MarinePOA ) THEN
           MSG = 'Use marine organic aerosols option'
           CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        ENDIF
@@ -748,21 +751,21 @@ CONTAINS
        ENDIF
 
        IF ( Inst%CalcBrSalt ) THEN
-          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(nSpcSS-1)), Inst%IDTBrSALA
+          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(4)), Inst%IDTBrSALA
           CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(nSpcSS)), Inst%IDTBrSALC
+          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(5)), Inst%IDTBrSALC
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br- mass content: ', Inst%BrContent
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
-       IF ( Inst%ExtNrMPOA > 0 ) THEN
+       IF ( HcoState%MarinePOA ) THEN
           WRITE(MSG,*) 'Hydrophobic marine organic aerosol: ',        &
-                       TRIM(SpcNamesMPOA(1)), ':', Inst%IDTMOPO
+                       TRIM(SpcNamesSS(6)), ':', Inst%IDTMOPO
           CALL HCO_MSG(HcoState%Config%Err,MSG)
 
           WRITE(MSG,*) 'Hydrophilic marine organic aerosol: ',        &
-                       TRIM(SpcNamesMPOA(2)), ':', Inst%IDTMOPI
+                       TRIM(SpcNamesSS(7)), ':', Inst%IDTMOPI
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ENDIF
@@ -772,7 +775,7 @@ CONTAINS
     ! ----------------------------------------------------------------------
 
     ! Number of tracers dependent on MarinePOA (ewl, 7/9/15)
-    IF ( Inst%ExtNrMPOA > 0 ) THEN
+    IF ( HcoState%MarinePOA ) THEN
        Inst%NSALT = 4
     ELSE
        Inst%NSALT = 2
@@ -831,7 +834,7 @@ CONTAINS
     ENDIF
     Inst%NDENS_SALC = 0.0_sp
 
-    IF ( Inst%ExtNrMPOA > 0 ) THEN
+    IF ( HcoState%MarinePOA ) THEN
 
        ! Allocate density of phobic marine organic aerosols
        ALLOCATE ( Inst%NDENS_MOPO( HcoState%NX, HcoState%NY), STAT=AS )
@@ -848,6 +851,13 @@ CONTAINS
           RETURN
        ENDIF
        Inst%NDENS_MOPI = 0.0_sp
+
+       ALLOCATE ( Inst%CHLR( HcoState%NX, HcoState%NY), STAT=AS )
+       IF ( AS/=0 ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate CHLR', RC )
+          RETURN
+       ENDIF
+       Inst%CHLR = 0.0_hp
 
     ENDIF
 
@@ -999,12 +1009,12 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create marine density diagnostics only if marine POA enabled
-    IF ( Inst%ExtNrMPOA > 0 ) THEN
+    IF ( HcoState%MarinePOA ) THEN
 
        CALL Diagn_Create ( am_I_Root,                          &
                            HcoState   = HcoState,              &
                            cName      = 'SEASALT_DENS_PHOBIC', &
-                           ExtNr      = Inst%ExtNrMPOA,        &
+                           ExtNr      = Inst%ExtNrSS,         &
                            Cat        = -1,                    &
                            Hier       = -1,                    &
                            HcoID      = Inst%IDTMOPO,          &
@@ -1019,7 +1029,7 @@ CONTAINS
        CALL Diagn_Create ( am_I_Root,                          &
                            HcoState   = HcoState,              &
                            cName      = 'SEASALT_DENS_PHILIC', &
-                           ExtNr      = Inst%ExtNrMPOA,        &
+                           ExtNr      = Inst%ExtNrSS,          &
                            Cat        = -1,                    &
                            Hier       = -1,                    &
                            HcoID      = Inst%IDTMOPI,          &
@@ -1043,18 +1053,10 @@ CONTAINS
     ExtState%TSKIN%DoUse = .TRUE.
     ExtState%U10M%DoUse  = .TRUE.
     ExtState%V10M%DoUse  = .TRUE.
-    IF ( Inst%ExtNrMPOA > 0 ) THEN
-       ExtState%CHLR%DoUse  = .TRUE.
-    ENDIF
-
-    ! Enable module
-    !ExtState%SeaSalt = .TRUE.
 
     ! Return w/ success
     IF ( ALLOCATED(HcoIDsSS    ) ) DEALLOCATE(HcoIDsSS    )
-    IF ( ALLOCATED(HcoIDsMPOA  ) ) DEALLOCATE(HcoIDsMPOA  )
     IF ( ALLOCATED(SpcNamesSS  ) ) DEALLOCATE(SpcNamesSS  )
-    IF ( ALLOCATED(SpcNamesMPOA) ) DEALLOCATE(SpcNamesMPOA)
 
     CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
@@ -1088,19 +1090,6 @@ CONTAINS
     !=================================================================
     ! HCOX_SeaSalt_Final begins here!
     !=================================================================
-
-!    ! Cleanup module arrays
-!    IF ( ALLOCATED ( NR         ) ) DEALLOCATE( NR         )
-!    IF ( ALLOCATED ( SS_DEN     ) ) DEALLOCATE( SS_DEN     )
-!    IF ( ALLOCATED ( SRRC       ) ) DEALLOCATE( SRRC       )
-!    IF ( ALLOCATED ( SRRC_N     ) ) DEALLOCATE( SRRC_N     )
-!    IF ( ALLOCATED ( RREDGE     ) ) DEALLOCATE( RREDGE     )
-!    IF ( ALLOCATED ( RRMID      ) ) DEALLOCATE( RRMID      )
-!
-!    IF ( ASSOCIATED( NDENS_SALA ) ) DEALLOCATE( NDENS_SALA )
-!    IF ( ASSOCIATED( NDENS_SALC ) ) DEALLOCATE( NDENS_SALC )
-!    IF ( ASSOCIATED( NDENS_MOPO ) ) DEALLOCATE( NDENS_MOPO )
-!    IF ( ASSOCIATED( NDENS_MOPI ) ) DEALLOCATE( NDENS_MOPI )
     CALL InstRemove ( ExtState%SeaSalt )
 
   END SUBROUTINE HCOX_SeaSalt_Final
@@ -1394,7 +1383,6 @@ CONTAINS
 
     ! Init values
     Inst%ExtNrSS       = -1
-    Inst%ExtNrMPOA     = -1
     Inst%IDTSALA       = -1
     Inst%IDTSALC       = -1
     Inst%IDTMOPI       = -1
@@ -1476,11 +1464,11 @@ CONTAINS
           IF ( ASSOCIATED( Inst%SRRC_N     ) ) DEALLOCATE( Inst%SRRC_N     )
           IF ( ASSOCIATED( Inst%RREDGE     ) ) DEALLOCATE( Inst%RREDGE     )
           IF ( ASSOCIATED( Inst%RRMID      ) ) DEALLOCATE( Inst%RRMID      )
-
           IF ( ASSOCIATED( Inst%NDENS_SALA ) ) DEALLOCATE( Inst%NDENS_SALA )
           IF ( ASSOCIATED( Inst%NDENS_SALC ) ) DEALLOCATE( Inst%NDENS_SALC )
           IF ( ASSOCIATED( Inst%NDENS_MOPO ) ) DEALLOCATE( Inst%NDENS_MOPO )
           IF ( ASSOCIATED( Inst%NDENS_MOPI ) ) DEALLOCATE( Inst%NDENS_MOPI )
+          IF ( ASSOCIATED( Inst%CHLR       ) ) DEALLOCATE( Inst%CHLR       )
 
           PrevInst%NextInst => Inst%NextInst
        ELSE

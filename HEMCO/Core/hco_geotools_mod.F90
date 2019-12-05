@@ -1079,7 +1079,7 @@ CONTAINS
     ! Verbose
     IF ( Verb ) THEN
        MSG = '2. Grid calculations: '
-       CALL HCO_MSG(MSG,SEP1=' ')
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1=' ')
     ENDIF
 
     ! Set PSFC

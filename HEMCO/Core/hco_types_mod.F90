@@ -347,7 +347,7 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: ncMts(2)  ! month range
      INTEGER                     :: ncDys(2)  ! day range
      INTEGER                     :: ncHrs(2)  ! hour range
-     INTEGER                     :: tShift(2) ! time stamp shift in months & seconds
+     INTEGER                     :: tShift(6) ! time stamp shift (YMDhms)
      INTEGER                     :: CycleFlag ! cycle flag
      LOGICAL                     :: MustFind  ! file must be found
      LOGICAL                     :: UseSimYear! use simulation year

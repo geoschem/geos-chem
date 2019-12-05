@@ -229,19 +229,11 @@ MODULE State_Met_Mod
                                                 !  type
      REAL(fp), POINTER :: MODISLAI      (:,:  ) ! Daily LAI computed from
                                                 !  monthly offline MODIS [m2/m2]
-     REAL(fp), POINTER :: MODISCHLR     (:,:  ) ! Daily chlorophyll-a computed
-                                                !  from offline monthly MODIS
      REAL(fp), POINTER :: XLAI          (:,:,:) ! MODIS LAI per land type,
-                                                !  for this month
-     REAL(fp), POINTER :: XCHLR         (:,:,:) ! MODIS CHLR per land type,
                                                 !  for this month
      REAL(fp), POINTER :: LandTypeFrac  (:,:,:) ! Olson frac per type (I,J,type)
      REAL(fp), POINTER :: XLAI_NATIVE   (:,:,:) ! avg LAI per type (I,J,type)
-     REAL(fp), POINTER :: XCHLR_NATIVE  (:,:,:) ! avg CHLR per type (I,J,type)
-
      REAL(fp), POINTER :: XLAI2         (:,:,:) ! MODIS LAI per land type,
-                                                !  for next month
-     REAL(fp), POINTER :: XCHLR2        (:,:,:) ! MODIS CHLR per land type,
                                                 !  for next month
 
      !----------------------------------------------------------------------
@@ -432,7 +424,6 @@ CONTAINS
     State_Met%IUSE           => NULL()
     State_Met%LANDTYPEFRAC   => NULL()
     State_Met%MODISLAI       => NULL()
-    State_Met%MODISCHLR      => NULL()
     State_Met%AD             => NULL()
     State_Met%AIRDEN         => NULL()
     State_Met%MAIRDEN        => NULL()
@@ -474,9 +465,7 @@ CONTAINS
     State_Met%UPDVVEL        => NULL()
     State_Met%V              => NULL()
     State_Met%XLAI           => NULL()
-    State_Met%XCHLR          => NULL()
     State_Met%XLAI_NATIVE    => NULL()
-    State_Met%XCHLR_NATIVE   => NULL()
     State_Met%InChemGrid     => NULL()
     State_Met%InPbl          => NULL()
     State_Met%InStratMeso    => NULL()
@@ -1818,17 +1807,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
-    ! XCHLR [mg m-3]
-    !-------------------------
-    ALLOCATE( State_Met%XCHLR( IM, JM, NSURFTYPE ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%XCHLR', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%XCHLR = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'XCHLR', State_Met%XCHLR, &
-                            State_Met, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
     ! XLAI2 [1]
     !-------------------------
     ALLOCATE( State_Met%XLAI2( IM, JM, NSURFTYPE ), STAT=RC )
@@ -1836,28 +1814,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%XLAI2 = 0.0_fp
     CALL Register_MetField( am_I_Root, 'XLAI2', State_Met%XLAI2, &
-                            State_Met, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
-    ! XCHLR2 [mg m-3]
-    !-------------------------
-    ALLOCATE( State_Met%XCHLR2( IM, JM, NSURFTYPE ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%XCHLR2', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%XCHLR2 = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'XCHLR2', State_Met%XCHLR2, &
-                            State_Met, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
-    ! MODISCHLR [mg m-3]
-    !-------------------------
-    ALLOCATE( State_Met%MODISCHLR( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%MODISCHLR', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%MODISCHLR = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'MODISCHLR', State_Met%MODISCHLR, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1882,18 +1838,6 @@ CONTAINS
     CALL Register_MetField( am_I_Root, 'XLAINATIVE', State_Met%XLAI_NATIVE, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
-    ! XCHLR_NATIVE [1]
-    !-------------------------
-    ALLOCATE( State_Met%XCHLR_NATIVE( IM, JM, NSURFTYPE ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%XCHLR_NATIVE', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Met%XCHLR_NATIVE = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'XCHLRNATIVE', State_Met%XCHLR_NATIVE, &
-                            State_Met, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
 
     !=======================================================================
     ! Allocate fields for querying which vertical regime a grid box is in
@@ -2569,17 +2513,6 @@ CONTAINS
 #endif
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%MODISCHLR ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-       State_Met%MODISCHLR => NULL()
-#else
-       DEALLOCATE( State_Met%MODISCHLR, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%MODISCHLR', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%MODISCHLR => NULL()
-#endif
-    ENDIF
-
     !---------------------------
     ! 3-D fields
     !---------------------------
@@ -3056,17 +2989,6 @@ CONTAINS
 #endif
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%XCHLR ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-       State_Met%XCHLR => NULL()
-#else
-       DEALLOCATE( State_Met%XCHLR, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%XCHLR', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%XCHLR => NULL()
-#endif
-    ENDIF
-
     IF ( ASSOCIATED( State_Met%XLAI2 ) ) THEN
 #if defined( ESMF_ ) || defined( MODEL_WRF )
        State_Met%XLAI2 => NULL()
@@ -3078,17 +3000,6 @@ CONTAINS
 #endif
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%XCHLR2 ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-       State_Met%XCHLR2 => NULL()
-#else
-       DEALLOCATE( State_Met%XCHLR2, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%XCHLR2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%XCHLR2 => NULL()
-#endif
-    ENDIF
-
     IF ( ASSOCIATED( State_Met%XLAI_NATIVE ) ) THEN
 #if defined( ESMF_ ) || defined( MODEL_WRF )
        State_Met%XLAI_NATIVE => NULL()
@@ -3097,17 +3008,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%XLAI_NATIVE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%XLAI_NATIVE => NULL()
-#endif
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%XCHLR_NATIVE ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-       State_Met%XCHLR_NATIVE => NULL()
-#else
-       DEALLOCATE( State_Met%XCHLR_NATIVE, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%XCHLR_NATIVE', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%XCHLR_NATIVE => NULL()
 #endif
     ENDIF
 
@@ -3958,24 +3858,6 @@ CONTAINS
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'XCHLR' )
-          IF ( isDesc  ) Desc  = 'MODIS chlorophyll-a per land type, ' // &
-                                 'current month'
-          IF ( isUnits ) Units = 'mg m-3'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'XCHLR2' )
-          IF ( isDesc  ) Desc  = 'MODIS chlorophyll-a per land type, ' // &
-                                 'next month'
-          IF ( isUnits ) Units = 'mg m-3'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'MODISCHLR' )
-          IF ( isDesc  ) Desc  = 'Daily chlorophyll-a computed ' // &
-                                 'from offline MODIS monthly values'
-          IF ( isUnits ) Units = 'mg m-3'
-          IF ( isRank  ) Rank  = 2
-
        CASE ( 'LANDTYPEFRAC' )
           IF ( isDesc  ) Desc  = 'Olson fraction per land type'
           IF ( isUnits ) Units = '1'
@@ -3984,11 +3866,6 @@ CONTAINS
        CASE ( 'XLAINATIVE' )
           IF ( isDesc  ) Desc  = 'Average LAI per Olson land type'
           IF ( isUnits ) Units = 'm2 m-2'
-          IF ( isRank  ) Rank  = 3
-
-       CASE ( 'XCHLRNATIVE' )
-          IF ( isDesc  ) Desc  = 'Average CHLR per Olson type'
-          IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
 
        !--------------------------------------------------------------------

@@ -6,7 +6,7 @@ PrimaryExports%%
 # Export |       |      |            |___ Refresh ___|____ Factors ___|___ External File ___|
 # Name   | Units | Clim |Conservative| Time Template | Offset | Scale | Variable | Template |
 #--------|-------|------|------------|---------------|--------|-------|----------|----------|
-# 
+#
 # Notes:
 # Units should be in single quotes if they contain whitespace
 # Climatology should be Y if the file contains monthly climatology; otherwise it should be N
@@ -19,7 +19,7 @@ PrimaryExports%%
 #    5. %y4-%m2-%d2T%h2:00:00, with any tokens replaced by appropriate constant time value, if multiple time
 #       values are in the same file. Note that including an F prefix indicates the data should be treated
 #       as constant until the next refresh time. Omission of the F prefix will time-interpolate between
-#       the values.  
+#       the values.
 
 ###############################################################################
 ###
@@ -285,9 +285,16 @@ OLSON72 1 N F;72 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_200
 # Use file with land type stored as 3rd dimension to speed up file read
 XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./MainDataDir/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
 
+#==============================================================================
+# MODIS Chlorophyll-a
+# (uncomment if using the marine POA simulation)
+#==============================================================================
+# Use file with land type stored as 3rd dimension to speed up file read
+#XCHLRMULTI mg_m-3 N Y %y4-%m2-%d2T00:00:00 none none XCHLRMULTI ./ChemDataDir/MODIS_LAI_201204/For_Olson_2001/XCHLR_for_GCHP/%y4/Condensed_MODIS_CHLR.025x025.%y4%m2.nc
+
 ###############################################################################
 ###
-### HEMCO Base Emissions (Update if HEMCO_Config.rc changes) 
+### HEMCO Base Emissions (Update if HEMCO_Config.rc changes)
 ###
 ###############################################################################
 
@@ -524,9 +531,9 @@ MIX_PRPE_TRA kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_TRANSPORT   ./MainD
 #==============================================================================
 # --- DICE-Africa emission inventory (DICE_Africa) ---
 #==============================================================================
-# Scale factors convert from g/m2/yr to kg/m2/s for non-VOCs and g/m2/yr to kgC/m2/s for VOCs 
+# Scale factors convert from g/m2/yr to kg/m2/s for non-VOCs and g/m2/yr to kgC/m2/s for VOCs
 
-# --- Cars --- 
+# --- Cars ---
 DICE_CARS_CO   g/m2/yr N Y - none 3.171e-11 CO   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 DICE_CARS_NO   g/m2/yr N Y - none 3.171e-11 NO   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 DICE_CARS_ALK4 g/m2/yr N Y - none 2.815e-11 ALK4 ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
@@ -544,7 +551,7 @@ DICE_CARS_XYLE g/m2/yr N Y - none 2.868e-11 XYLE ./MainDataDir/DICE_Africa/v2016
 DICE_CARS_BCPI g/m2/yr N Y - none 3.171e-11 BC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 DICE_CARS_OCPI g/m2/yr N Y - none 3.171e-11 OC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 
-# --- Motorcycles --- 
+# --- Motorcycles ---
 DICE_MOTORCYCLES_CO    g/m2/yr N Y - none 3.171e-11 CO      ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-motorcycles-2013-v01-4Oct2016.nc
 DICE_MOTORCYCLES_NO    g/m2/yr N Y - none 3.171e-11 NO      ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-motorcycles-2013-v01-4Oct2016.nc
 DICE_MOTORCYCLES_SO2   g/m2/yr N Y - none 3.171e-11 SO2     ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-motorcycles-2013-v01-4Oct2016.nc
@@ -558,7 +565,7 @@ DICE_MOTORCYCLES_TOLU  g/m2/yr N Y - none 2.891e-11 TOLU    ./MainDataDir/DICE_A
 DICE_MOTORCYCLES_BCPI  g/m2/yr N Y - none 3.171e-11 BC      ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-motorcycles-2013-v01-4Oct2016.nc
 DICE_MOTORCYCLES_OCPI  g/m2/yr N Y - none 3.171e-11 OC      ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-motorcycles-2013-v01-4Oct2016.nc
 
-# --- Backup generators --- 
+# --- Backup generators ---
 DICE_BACKUPGEN_CO   g/m2/yr  N Y - none 3.171e-11 CO   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 DICE_BACKUPGEN_NO   g/m2/yr  N Y - none 3.171e-11 NO   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 DICE_BACKUPGEN_NO2  g/m2/yr  N Y - none 3.171e-11 NO2  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
@@ -576,7 +583,7 @@ DICE_BACKUPGEN_XYLE g/m2/yr  N Y - none 2.868e-11 XYLE ./MainDataDir/DICE_Africa
 DICE_BACKUPGEN_BCPI g/m2/yr  N Y - none 3.171e-11 BC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 DICE_BACKUPGEN_OCPI g/m2/yr  N Y - none 3.171e-11 OC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 
-# --- Charcoal production --- 
+# --- Charcoal production ---
 DICE_CHARCOALPROD_CO    g/m2/yr  N Y - none 3.171e-11 CO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_NO    g/m2/yr  N Y - none 3.171e-11 NO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_NH3   g/m2/yr  N Y - none 3.171e-11 NH3   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
@@ -589,7 +596,7 @@ DICE_CHARCOALPROD_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_A
 DICE_CHARCOALPROD_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_OCPI  g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 
-# --- Flaring of natural gas --- 
+# --- Flaring of natural gas ---
 DICE_GASFLARE_CO    g/m2/yr  N Y - none 3.171e-11 CO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-gas-flares-2013-v01-4Oct2016.nc
 DICE_GASFLARE_NO    g/m2/yr  N Y - none 3.171e-11 NO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-gas-flares-2013-v01-4Oct2016.nc
 DICE_GASFLARE_ALK4  g/m2/yr  N Y - none 2.815e-11 ALK4  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-gas-flares-2013-v01-4Oct2016.nc
@@ -602,7 +609,7 @@ DICE_GASFLARE_XYLE  g/m2/yr  N Y - none 2.868e-11 XYLE  ./MainDataDir/DICE_Afric
 DICE_GASFLARE_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-gas-flares-2013-v01-4Oct2016.nc
 DICE_GASFLARE_OCPI  g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-gas-flares-2013-v01-4Oct2016.nc
 
-# --- Ag waste burning for energy --- 
+# --- Ag waste burning for energy ---
 DICE_AGBURNING_CO    g/m2/yr  N Y - none 3.171e-11 CO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_NO    g/m2/yr  N Y - none 3.171e-11 NO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_NO2   g/m2/yr  N Y - none 3.171e-11 NO2   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
@@ -628,7 +635,7 @@ DICE_AGBURNING_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_Afri
 DICE_AGBURNING_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_OCPI  g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 
-# --- Charcoal use --- 
+# --- Charcoal use ---
 DICE_CHARCOALUSE_CO    g/m2/yr  N Y - none 3.171e-11 CO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_NO    g/m2/yr  N Y - none 3.171e-11 NO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_ALK4  g/m2/yr  N Y - none 2.815e-11 ALK4  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
@@ -640,12 +647,12 @@ DICE_CHARCOALUSE_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_Af
 DICE_CHARCOALUSE_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_OCPI  g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 
-# --- Kerosene use --- 
+# --- Kerosene use ---
 DICE_KEROSENE_CO   g/m2/yr  N Y - none 3.171e-11 CO  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-kerosene-use-2013-v01-4Oct2016.nc
 DICE_KEROSENE_BCPI g/m2/yr  N Y - none 3.171e-11 BC  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-kerosene-use-2013-v01-4Oct2016.nc
 DICE_KEROSENE_OCPI g/m2/yr  N Y - none 3.171e-11 OC  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-kerosene-use-2013-v01-4Oct2016.nc
 
-# --- Artisanal oil refining --- 
+# --- Artisanal oil refining ---
 DICE_OILREFINING_CO   g/m2/yr  N Y - none 3.171e-11 CO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-adhoc-oil-refining-2006-v01-4Oct2016.nc
 DICE_OILREFINING_NO   g/m2/yr  N Y - none 3.171e-11 NO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-adhoc-oil-refining-2006-v01-4Oct2016.nc
 DICE_OILREFINING_SO2  g/m2/yr  N Y - none 3.171e-11 SO2   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-adhoc-oil-refining-2006-v01-4Oct2016.nc
@@ -663,7 +670,7 @@ DICE_OILREFINING_XYLE g/m2/yr  N Y - none 2.868e-11 XYLE  ./MainDataDir/DICE_Afr
 DICE_OILREFINING_BCPI g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-adhoc-oil-refining-2006-v01-4Oct2016.nc
 DICE_OILREFINING_OCPI g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-adhoc-oil-refining-2006-v01-4Oct2016.nc
 
-# --- Household fuelwood use --- 
+# --- Household fuelwood use ---
 DICE_HOUSEFUELWOOD_CO    g/m2/yr  N Y - none 3.171e-11 CO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_NO    g/m2/yr  N Y - none 3.171e-11 NO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_NO2   g/m2/yr  N Y - none 3.171e-11 NO2   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
@@ -686,7 +693,7 @@ DICE_HOUSEFUELWOOD_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_
 DICE_HOUSEFUELWOOD_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_OCPI  g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 
-# --- Commercial (other) fuelwood use --- 
+# --- Commercial (other) fuelwood use ---
 DICE_OTHERFUELWOOD_CO    g/m2/yr  N Y - none 3.171e-11 CO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_NO    g/m2/yr  N Y - none 3.171e-11 NO    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_NO2   g/m2/yr  N Y - none 3.171e-11 NO2   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
@@ -709,7 +716,7 @@ DICE_OTHERFUELWOOD_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_
 DICE_OTHERFUELWOOD_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_OCPI  g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 
-#  --- Efficient Combusions Emissions from EDGARv43    --- 
+#  --- Efficient Combusions Emissions from EDGARv43    ---
 #  --- This covers sectors not included in DICE-Africa ---
 AF_EDGAR_BCPI_POW kg/m2/s  N Y F%y4-01-01T00:00:00 none none emi_bc   ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.BC.POW.0.1x0.1.nc
 AF_EDGAR_BCPO_POW kg/m2/s  N Y F%y4-01-01T00:00:00 none none emi_bc   ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.BC.POW.0.1x0.1.nc
@@ -927,7 +934,7 @@ CEDS_HCOOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_slv          ./
 CEDS_HCOOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_wst          ./MainDataDir/CEDS/v2018-08/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
 
 #==============================================================================
-# --- EDGAR v4.3 (EDGARv4.3) ---
+# --- EDGAR v4.3 (EDGARv43) ---
 # EDGARv4.3 is off by default in HEMCO_Config.rc
 #==============================================================================
 EDGAR_BCPI_POW kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_bc  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.BC.POW.0.1x0.1.nc
@@ -994,7 +1001,7 @@ EDGAR_SO2_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./MainDataDir/E
 EDGAR_SO2_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.SO2.FFF.0.1x0.1.nc
 
 #==============================================================================
-# --- NAP Anthropogenic (EDGAR_NAP) --- 
+# --- NAP Anthropogenic (EDGAR_NAP) ---
 # EDGAR_NAP is off by default in HEMCO_Config.rc
 #==============================================================================
 EDGAR_NAP kgC/m2/s N Y - none none BENZ ./MainDataDir/EDGARv42/v2015-02/VOCv2/EDGAR2_1985_FF_IND.1x1geos.nc
@@ -1043,24 +1050,28 @@ HTAP_NH3_TRA   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_nh3 ./MainDataDir/H
 HTAP_NH3_AGR   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_nh3 ./MainDataDir/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_AGRICULTURE.generic.01x01.nc
 
 #==============================================================================
-# --- GEIA (GEIA) ---
+# --- GEIA (GEIA_NH3) ---
 #==============================================================================
 GEIA_NH3_NATU kg/m2/s Y Y F1990-%m2-01T00:00:00 none none NH3_NATU     ./MainDataDir/NH3/v2019-08/NH3_geos.2x25.nc
+
+#==============================================================================
+# --- Arctic seabirds (SEABIRD_NH3) ---
+#==============================================================================
 SEABIRD_NH3   kg/m2/s Y Y F1990-%m2-01T00:00:00 none none NH3_SEABIRDS ./MainDataDir/NH3/v2018-04/NH3_Arctic_seabirds.nc
 
 #==============================================================================
-# --- POET EOH (POET) ---
+# --- POET EOH (POET_EOH) ---
 #==============================================================================
 POET_EOH kgC/m2/s Y Y - none none EOH ./MainDataDir/POET/v2017-03/POET_EOH.geos.2x25.nc
 
 #==============================================================================
-# --- 2010 Global C2H6 fossil fuel and biofuel (C2H6_2010) ---
+# --- 2010 Global C2H6 fossil fuel and biofuel (TZOMPASOSA_C2H6) ---
 #==============================================================================
 C2H6_2010_oilgas  kgC/m2/s Y Y F2010-%m2-01T00:00:00 none none ANTHR_C2H6   ./MainDataDir/C2H6_2010/v2019-06/C2H6_global_anth_biof.2010%m2.2x25.nc
 C2H6_2010_biofuel kgC/m2/s Y Y F2010-%m2-01T00:00:00 none none BIOFUEL_C2H6 ./MainDataDir/C2H6_2010/v2019-06/C2H6_global_anth_biof.2010%m2.2x25.nc
 
 #==============================================================================
-# --- Xiao et al., JGR, 2008 (XIAO) ---
+# --- Xiao et al., JGR, 2008 (XIAO_C3H8) ---
 #==============================================================================
 XIAO_C3H8    kgC/m2/s N Y - none none C3H8         ./MainDataDir/XIAO/v2014-09/C3H8_C2H6_ngas.geos.1x1.nc
 BIOFUEL_C3H8 kgC/m2/s N Y - none none BIOFUEL_C3H8 ./MainDataDir/BIOFUEL/v2019-08/biofuel.geos.2x25.nc
@@ -1158,7 +1169,7 @@ RCP3PD_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP
 RCP3PD_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_3PD/RCPs_anthro_total_acids_2005-2100_23474.nc
 
 #==============================================================================
-# --- RCP 45 future emissions scenarios (RCP_3PD) ---
+# --- RCP 45 future emissions scenarios (RCP_45) ---
 # RCP_45 is off by default in HEMCO_Config.rc
 #==============================================================================
 RCP45_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_CH4_2005-2100_27424.nc
@@ -1185,7 +1196,7 @@ RCP45_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/
 RCP45_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_45/RCPs_anthro_total_acids_2005-2100_27424.nc
 
 #==============================================================================
-# --- RCP 60 future emissions scenarios (RCP_3PD) ---
+# --- RCP 60 future emissions scenarios (RCP_60) ---
 # RCP_60 is off by default in HEMCO_Config.rc
 #==============================================================================
 RCP60_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_CH4_2005-2100_43190.nc
@@ -1212,7 +1223,7 @@ RCP60_PRPE    kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/
 RCP60_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_60/RCPs_anthro_total_acids_2005-2100_43190.nc
 
 #==============================================================================
-# --- RCP 85 future emissions scenarios (RCP_3PD) ---
+# --- RCP 85 future emissions scenarios (RCP_85) ---
 # RCP_85 is off by default in HEMCO_Config.rc
 #==============================================================================
 RCP85_CH4     kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/v2015-02/RCP_85/RCPs_anthro_CH4_2005-2100_43533.nc
@@ -1249,14 +1260,14 @@ RCP85_HCOOH   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./MainDataDir/RCP/
 #==============================================================================
 
 #==============================================================================
-# --- Anthropogenic dust emissions (Philip et al., 2017, ERL)---
+# --- Anthropogenic dust emissions (AFCID)---
 #==============================================================================
 PM25FINE_1 kg/m2/s  Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./MainDataDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
 PM25FINE_2 kg/m2/s  Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./MainDataDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
 PM25FINE_3 kg/m2/s  Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./MainDataDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
 
 #==============================================================================
-# --- Offline dust emissions ---
+# --- Offline dust emissions (OFFLINE_DUST)---
 #==============================================================================
 EMIS_DST1 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST1 ./MainDataDir/OFFLINE_DUST/v2019-01/{NATIVE_RES}/%y4/%m2/dust_emissions_{LATRES}.%y4%m2%d2.nc
 EMIS_DST2 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST2 ./MainDataDir/OFFLINE_DUST/v2019-01/{NATIVE_RES}/%y4/%m2/dust_emissions_{LATRES}.%y4%m2%d2.nc
@@ -1264,24 +1275,24 @@ EMIS_DST3 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST3 ./MainDataDir/OF
 EMIS_DST4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST4 ./MainDataDir/OFFLINE_DUST/v2019-01/{NATIVE_RES}/%y4/%m2/dust_emissions_{LATRES}.%y4%m2%d2.nc
 
 #==============================================================================
-# --- Offline biogenic VOC emissions ---
+# --- Offline biogenic VOC emissions (OFFLINE_BIOGENICVOC) ---
 #==============================================================================
-BIOGENIC_ACET kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ACET_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_ALD2 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ALD2_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_C2H4 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none C2H4_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_EOH  kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EOH_MEGAN     ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_ISOP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ISOP_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_PRPE kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none PRPE_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_SOAP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAP_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_SOAS kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAS_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_MTPA kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPA_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_MTPO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPO_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_LIMO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none LIMO_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_SESQ kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SESQ_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
-BIOGENIC_CO   kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BIOGENIC_CO   ./MainDataDir/OFFLINE_BIOVOC/v2019-08/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}x{LONRES}.%y4%m2%d2.nc
+BIOGENIC_ACET kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ACET_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_ALD2 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ALD2_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_C2H4 kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none C2H4_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_EOH  kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EOH_MEGAN     ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_ISOP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none ISOP_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_PRPE kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none PRPE_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_SOAP kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAP_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_SOAS kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOAS_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_MTPA kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPA_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_MTPO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none MTPO_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_LIMO kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none LIMO_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_SESQ kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SESQ_MEGAN    ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
+BIOGENIC_CO   kgC/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BIOGENIC_CO   ./MainDataDir/OFFLINE_BIOVOC/v2019-10/{NATIVE_RES}/%y4/%m2/biovoc_{LATRES}.%y4%m2%d2.nc
 
 #==============================================================================
-# --- Offline sea salt emissions ---
+# --- Offline sea salt emissions (OFFLINE_SEASALT) ---
 #==============================================================================
 SEASALT_SALA    kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SALA_TOTAL   ./MainDataDir/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/%y4/%m2/seasalt_{LATRES}.%y4%m2%d2.nc
 SEASALT_SALC    kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SALC_TOTAL   ./MainDataDir/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/%y4/%m2/seasalt_{LATRES}.%y4%m2%d2.nc
@@ -1290,7 +1301,7 @@ SEASALT_SALC    kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SALC_TOTAL   ./MainD
 #SEASALT_BrSALC kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none BrSALC_TOTAL ./MainDataDir/OFFLINE_SEASALT/v2019-01/{NATIVE_RES}/%y4/%m2/seasalt_{LATRES}.%y4%m2%d2.nc
 
 #==============================================================================
-# --- Offline soil NOx emissions ---
+# --- Offline soil NOx emissions (OFFLINE_SOILNOX) ---
 #==============================================================================
 SOILNOX_NO  kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOIL_NOx ./MainDataDir/OFFLINE_SOILNOX/v2019-01/{NATIVE_RES}/%y4/%m2/soilnox_{LATRES}.%y4%m2%d2.nc
 
@@ -1338,7 +1349,7 @@ DEAD_VAI        1        Y Y 1985-%m2-01T00:00:00 none none VAI      ./MainDataD
 # --- Sea salt emissions (Extension 107)
 # Off by default. Use offline sea salt emissions above.
 #==============================================================================
-# --- No external data ---
+MODIS_CHLR  1 N Y F%y4-%m2-01T00:00:00 none none MODIS ./MainDataDir/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.%y4.nc
 
 #==============================================================================
 # --- MEGAN biogenic emissions (Extension 108 and 109)
@@ -1363,30 +1374,9 @@ GFED_FRAC_DAY   1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY  ./MainDataDir
 GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR  ./MainDataDir/GFED4/v2015-10/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
 
 #==============================================================================
-# --- FINN v1.5 biomass burning emissions (Extension 114) 
+# --- FINN v1.5 biomass burning emissions (Extension 114)
 # FINN is off by default in HEMCO_Config.rc; fill in this section if turning on
 #==============================================================================
-
-#==============================================================================
-# --- Inorganic iodine emissions (Extension 115) 
-# DustAlk is off by default in HEMCO_Config.rc
-#==============================================================================
-# --- No external data --- 
-
-#==============================================================================
-# --- Marine Primary Organic Aerosols (Extension 116) 
-# MarinePOA is off by default in HEMCO_Config.rc and is only used for the marinePOA simulation
-#==============================================================================
-
-#==============================================================================
-# --- Volcano (Extension 117) 
-#==============================================================================
-# --- No external data --- 
-
-#==============================================================================
-# --- Inorganic Iodine (Extension 120) 
-#==============================================================================
-# --- No external data --- 
 
 ###############################################################################
 ###
@@ -1400,27 +1390,13 @@ GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR  ./MainDataDir
 TIMEZONES count N V - none none UTC_OFFSET ./MainDataDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
 
 #==============================================================================
-# --- UV albedo (UValbedo) ---
+# --- UV albedo (UVALBEDO) ---
 #==============================================================================
 UV_ALBEDO 1 Y Y 1985-%m2-01T00:00:00 none none UVALBD ./MainDataDir/UVALBEDO/v2019-06/uvalbedo.geos.2x25.nc
 
 #==============================================================================
-# --- TOMS/SBUV overhead ozone colums, for photolysis ---
+# --- Stratospheric Bry data from the CCM model (CCM_STRAT_Bry) ---
 #==============================================================================
-TOMS_O3_COL   dobsons N N %y4-%m2-01T00:00:00   none none TOMS   ./MainDataDir/TOMS_SBUV/v2019-06/TOMS_O3col_%y4.a.geos.1x1.nc 1980-01-01T00:00:00P0001-00-00T00:00:00
-DTOMS1_O3_COL 1       N N %y4-%m2-01T00:00:00   none none DTOMS1 ./MainDataDir/TOMS_SBUV/v2019-06/TOMS_O3col_%y4.a.geos.1x1.nc 1980-01-01T00:00:00P0001-00-00T00:00:00
-DTOMS2_O3_COL 1       N N %y4-%m2-01T00:00:00   none none DTOMS2 ./MainDataDir/TOMS_SBUV/v2019-06/TOMS_O3col_%y4.a.geos.1x1.nc 1980-01-01T00:00:00P0001-00-00T00:00:00
-
-#==============================================================================
-# --- PSC state, only needed for UCX ---
-#==============================================================================
-# STATE_PSC is stored in the Internal State and are input/output via the checkpoint file
-
-#==============================================================================
-# --- Linear stratospheric chemistry fields (LinStratChem) ---
-#==============================================================================
-
-# --- Stratospheric Bry data from the CCM model  ---
 GEOSCCM_Br_DAY      pptv  Y Y F2007-%m2-01T00:00:00 none none BR     ./MainDataDir/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007%m2.day.nc
 GEOSCCM_Br2_DAY     pptv  Y Y F2007-%m2-01T00:00:00 none none BRCL   ./MainDataDir/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007%m2.day.nc
 GEOSCCM_BrO_DAY     pptv  Y Y F2007-%m2-01T00:00:00 none none BRO    ./MainDataDir/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007%m2.day.nc
@@ -1434,7 +1410,14 @@ GEOSCCM_BrNO3_NIGHT pptv  Y Y F2007-%m2-01T00:00:00 none none BRONO2 ./MainDataD
 GEOSCCM_HBr_NIGHT   pptv  Y Y F2007-%m2-01T00:00:00 none none HBR    ./MainDataDir/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007%m2.night.nc
 GEOSCCM_HOBr_NIGHT  pptv  Y Y F2007-%m2-01T00:00:00 none none HOBR   ./MainDataDir/STRAT/v2015-01/Bry/GEOSCCM_Bry.2007%m2.night.nc
 
-#--- GMI chemistry: prod/loss rates for linearized mesospheric chemistry ---
+#==============================================================================
+#--- Archived GMI OH concentrations (GMI_STRAT_OH) ---
+#==============================================================================
+STRAT_OH           v/v    Y N  2005-%m2-01T00:00:00 none none species ./MainDataDir/GMI/v2015-02/gmi.clim.OH.geos5.2x25.nc
+
+#==============================================================================
+#--- GMI chemistry: prod/loss rates (GMI_PROD_LOSS) ---
+#==============================================================================
 GMI_LOSS_A3O2      s-1    Y Y F2000-%m2-01T00:00:00 none none loss ./MainDataDir/GMI/v2015-02/gmi.clim.A3O2.geos5.2x25.nc
 GMI_PROD_A3O2      v/v/s  Y Y F2000-%m2-01T00:00:00 none none prod ./MainDataDir/GMI/v2015-02/gmi.clim.A3O2.geos5.2x25.nc
 GMI_LOSS_ACET      s-1    Y Y F2000-%m2-01T00:00:00 none none loss ./MainDataDir/GMI/v2015-02/gmi.clim.ACET.geos5.2x25.nc
@@ -1680,11 +1663,8 @@ GMI_PROD_VRO2      v/v/s  Y Y F2000-%m2-01T00:00:00 none none prod ./MainDataDir
 GMI_LOSS_VRP       s-1    Y Y F2000-%m2-01T00:00:00 none none loss ./MainDataDir/GMI/v2015-02/gmi.clim.VRP.geos5.2x25.nc
 GMI_PROD_VRP       v/v/s  Y Y F2000-%m2-01T00:00:00 none none prod ./MainDataDir/GMI/v2015-02/gmi.clim.VRP.geos5.2x25.nc
 
-# --- Stratospheric data ---
-STRAT_OH           v/v    Y N  2005-%m2-01T00:00:00 none none species ./MainDataDir/GMI/v2015-02/gmi.clim.OH.geos5.2x25.nc
-
 #==============================================================================
-# --- Spatially varying OM/OC ---
+# --- Spatially varying OM/OC (OMOC_RATIO) ---
 #==============================================================================
 OMOC_DJF  1 N Y - none none OMOC ./MainDataDir/OMOC/v2018-01/OMOC.DJF.01x01.nc
 OMOC_MAM  1 N Y - none none OMOC ./MainDataDir/OMOC/v2018-01/OMOC.MAM.01x01.nc
@@ -1692,7 +1672,7 @@ OMOC_JJA  1 N Y - none none OMOC ./MainDataDir/OMOC/v2018-01/OMOC.JJA.01x01.nc
 OMOC_SON  1 N Y - none none OMOC ./MainDataDir/OMOC/v2018-01/OMOC.SON.01x01.nc
 
 #==============================================================================
-# --- NOAA GMD monthly mean surface CH4 ---
+# --- NOAA GMD monthly mean surface CH4 (GMD_CH4) ---
 #==============================================================================
 NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./MainDataDir/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc
 
@@ -1707,40 +1687,25 @@ NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./MainDataDir/NOAA_
 #==============================================================================
 # Need DC0360xPC0181_CFnnnnx6C.bin
 TOTFUEL_THISYR     1 N Y F%y4-01-01T00:00:00   none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_1985       1 N Y F1985-01-01T00:00:00  none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_1999       1 N Y F1999-01-01T00:00:00  none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_2006       1 N Y F2006-01-01T00:00:00  none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 TOTFUEL_2002       1 N Y F2002-01-01T00:00:00  none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_2005       1 N Y F2005-01-01T00:00:00  none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 TOTFUEL_2008_2010  1 N Y F%y4-01-01T00:00:00   none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_1985_2008  1 N Y F%y4-01-01T00:00:00   none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_THISYR     1 N Y F%y4-01-01T00:00:00   none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_1985       1 N Y F1985-01-01T00:00:00  none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_1999       1 N Y F1999-01-01T00:00:00  none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_2006       1 N Y F2006-01-01T00:00:00  none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_2002       1 N Y F2002-01-01T00:00:00  none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_2005       1 N Y F2005-01-01T00:00:00  none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_2008_2010  1 N Y F%y4-01-01T00:00:00   none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_1985_2008  1 N Y F%y4-01-01T00:00:00   none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 SOLFUEL_THISYR     1 N Y F%y4-01-01T00:00:00   none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_1985       1 N Y F1985-01-01T00:00:00  none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_1999       1 N Y F1999-01-01T00:00:00  none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_2006       1 N Y F2006-01-01T00:00:00  none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 SOLFUEL_2002       1 N Y F2002-01-01T00:00:00  none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_2005       1 N Y F2005-01-01T00:00:00  none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 SOLFUEL_2008       1 N Y F2008-01-01T00:00:00  none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 SOLFUEL_2008_2010  1 N Y F%y4-01-01T00:00:00   none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_1985_2008  1 N Y F%y4-01-01T00:00:00   none none SO2scalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_2008       1 N Y F2008-01-01T00:00:00  none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_2008       1 N Y F2008-01-01T00:00:00  none none NOxscalar ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 
 #==============================================================================
-# --- diurnal scale factors --- 
+# --- Diurnal scale factors ---
 #==============================================================================
 EDGAR_TODNOX       1 N Y F2000-01-01T%h2:00:00 none none NOXscale  ./MainDataDir/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc
 
 #==============================================================================
-# --- seasonal scale factors ---
+# --- Seasonal scale factors ---
 #==============================================================================
 # --- From GEIA ---
 GEIA_SEASON_NOX    1 Y Y F1985-%m2-01T00:00:00 none none NOXrat    ./MainDataDir/GEIA/v2014-07/GEIA_monthscal.generic.1x1.nc
@@ -1764,86 +1729,21 @@ SWD 1 Y Y F2010-%m2-01T00:00:00 none none SWD ./MainDataDir/EDGARv43/v2016-11/ED
 FFF 1 Y Y F2010-%m2-01T00:00:00 none none FFF ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
 
 #==============================================================================
-# --- VOC speciations ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- RCP acids to HCOOH conversion ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- SOx to SO2 conversion (Chin et al., 2000) ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- Carbon aerosols: speciation of hydrophilic and hydrophobic fractions ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- QFED2 diurnal scale factors ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- GFAS scale factors ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- NAP scale factors ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- BIOGENIC EMISSIONS FROM DRY LEAF MATTER ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- Biofuel conversion factors ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- AEIC aircraft emissions ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
 # --- NEI 2005 scale factors ---
 #==============================================================================
-NEI99_DOW_NOX     1 D N F1999-%m2-01T00:00:00 none none NOX     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_CO      1 D N F1999-%m2-01T00:00:00 none none CO      ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_ALK4    1 D N F1999-%m2-01T00:00:00 none none ALK4    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_ACET    1 D N F1999-%m2-01T00:00:00 none none ACET    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_MEK     1 D N F1999-%m2-01T00:00:00 none none MEK     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_PRPE    1 D N F1999-%m2-01T00:00:00 none none PRPE    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_C3H8    1 D N F1999-%m2-01T00:00:00 none none C3H8    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_C2H6    1 D N F1999-%m2-01T00:00:00 none none C2H6    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_SO2     1 D N F1999-%m2-01T00:00:00 none none SO2     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_SO4     1 D N F1999-%m2-01T00:00:00 none none SO4     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_MSA     1 D N F1999-%m2-01T00:00:00 none none MSA     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_BCPI    1 D N F1999-%m2-01T00:00:00 none none BCPI    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-NEI99_DOW_OCPI    1 D N F1999-%m2-01T00:00:00 none none OCPI    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc 
-
-#==============================================================================
-# --- NEI 20011 scale factors ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- Aromatics scale factors ---
-#==============================================================================
-# --- No external data ---
-
-#==============================================================================
-# --- SOA-Precursor scale factors ---
-#==============================================================================
-# --- No external data ---
+NEI99_DOW_NOX     1 D N F1999-%m2-01T00:00:00 none none NOX     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_CO      1 D N F1999-%m2-01T00:00:00 none none CO      ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_ALK4    1 D N F1999-%m2-01T00:00:00 none none ALK4    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_ACET    1 D N F1999-%m2-01T00:00:00 none none ACET    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_MEK     1 D N F1999-%m2-01T00:00:00 none none MEK     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_PRPE    1 D N F1999-%m2-01T00:00:00 none none PRPE    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_C3H8    1 D N F1999-%m2-01T00:00:00 none none C3H8    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_C2H6    1 D N F1999-%m2-01T00:00:00 none none C2H6    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_SO2     1 D N F1999-%m2-01T00:00:00 none none SO2     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_SO4     1 D N F1999-%m2-01T00:00:00 none none SO4     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_MSA     1 D N F1999-%m2-01T00:00:00 none none MSA     ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_BCPI    1 D N F1999-%m2-01T00:00:00 none none BCPI    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_OCPI    1 D N F1999-%m2-01T00:00:00 none none OCPI    ./MainDataDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
 
 ###############################################################################
 ###
@@ -1854,7 +1754,6 @@ NEI99_DOW_OCPI    1 D N F1999-%m2-01T00:00:00 none none OCPI    ./MainDataDir/NE
 #==============================================================================
 # Country/region masks
 #==============================================================================
-EMEP_MASK    1 N Y - none none MASK     ./MainDataDir/MASKS/v2018-09/EMEP_mask.geos.1x1.20151222.nc
 CANADA_MASK  1 N Y - none none MASK     ./MainDataDir/MASKS/v2018-09/Canada_mask.geos.1x1.nc
 ASIA_MASK    1 N Y - none none MASK     ./MainDataDir/MASKS/v2018-09/MIX_Asia_mask.generic.025x025.nc
 CONUS_MASK   1 N Y - none none MASK     ./MainDataDir/MASKS/v2018-09/CONUS_Mask.01x01.nc
@@ -1867,7 +1766,7 @@ INDIA_MASK   1 N Y - none none MASK     ./MainDataDir/MASKS/v2019-05/India_mask.
 DerivedExports%%
 # ---------|---------|--------------------------------------------|
 #  Export  | Primary |_________________ Mask _____________________|
-#  Name    |  Name   |    Name    |           Expression          |    
+#  Name    |  Name   |    Name    |           Expression          |
 # ---------|---------|------------|-------------------------------|
 # ---------|---------|------------|-------------------------------|
 %%

@@ -108,7 +108,6 @@ MODULE HCOX_STATE_MOD
      INTEGER                   :: Megan          ! MEGAN biogenic emissions
      INTEGER                   :: SeaFlux        ! air-sea exchange
      INTEGER                   :: SeaSalt        ! Seasalt emissions
-     INTEGER                   :: MarinePOA      ! Marine organic aerosols
      INTEGER                   :: GFED           ! GFED biomass burning
      INTEGER                   :: FINN           ! FINN biomass burning
      INTEGER                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
@@ -316,7 +315,6 @@ CONTAINS
     ExtState%Megan          = -1
     ExtState%SeaFlux        = -1
     ExtState%SeaSalt        = -1
-    ExtState%MarinePOA      = -1
     ExtState%GFED           = -1
     ExtState%FINN           = -1
     ExtState%GC_RnPbBe      = -1

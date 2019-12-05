@@ -1616,14 +1616,6 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LSVPOA
 
-      ! Use spatially and seasonally varying OM/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LOMOC', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LOMOC
-
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDUST', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1827,7 +1819,6 @@
          Input_Opt%LSSALT       = .FALSE.
          Input_Opt%LMPOA        = .FALSE.
          Input_Opt%LSVPOA       = .FALSE.
-         Input_Opt%LOMOC        = .FALSE.
          Input_Opt%LBCAE        = .FALSE.
          Input_Opt%hvAerNIT     = .FALSE.
       ENDIF
@@ -1853,8 +1844,6 @@
      &                        Input_Opt%LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ',
      &                        Input_Opt%LSVPOA
-         WRITE( 6, 100     ) 'Spatial & seasonal OM/OC?   : ',
-     &                        Input_Opt%LOMOC
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ',
      &                        Input_Opt%LDUST
          WRITE( 6, 100     ) 'Acid uptake on dust?        : ',

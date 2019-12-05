@@ -598,11 +598,11 @@ CONTAINS
           WRITE(MSG,110) Clock%ThisYear, Clock%ThisMonth, &
                          Clock%ThisDay,  Clock%ThisHour,  &
                          Clock%ThisMin,  Clock%ThisSec
-          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1=' ')
+          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
           WRITE(MSG,120) Clock%ThisWD
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,130) EmisTime
-          CALL HCO_MSG(MSG,SEP2=' ')
+          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2=' ')
        ELSEIF ( EmisTime ) THEN
           WRITE(MSG,140) Clock%ThisYear, Clock%ThisMonth, &
                          Clock%ThisDay,  Clock%ThisHour,  &

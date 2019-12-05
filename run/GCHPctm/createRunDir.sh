@@ -67,7 +67,7 @@ fi
 if [[ -z "${GFTL}" ]]; then
     printf "\nIf you have not downloaded gFTL then enter q to exit."
     printf "\nFollow these instructions at the command prompt to install:\n"
-    printf "\n      1. Navigate to directory where you want to download gFTL" 
+    printf "\n      1. Navigate to directory where you want to download gFTL"
     printf "\n      2. Type the following at the command prompt:"
     printf "\n         $ git clone https://github.com/Goddard-Fortran-Ecosystem/gFTL"
     printf "\n         $ cd gFTL"
@@ -76,7 +76,7 @@ if [[ -z "${GFTL}" ]]; then
     printf "\n         $ cd build"
     printf "\n         $ cmake .. -DCMAKE_INSTALL_PREFIX=../install"
     printf "\n         $ make install"
-    printf "\n      3. Verify success by checking that gFTL/install/include/templates and gFTL/install/include/types exist\n" 
+    printf "\n      3. Verify success by checking that gFTL/install/include/templates and gFTL/install/include/types exist\n"
     printf "\nEnter path for gFTL/install:\n"
     valid_path=0
     while [ "$valid_path" -eq 0 ]
@@ -147,6 +147,7 @@ do
 	pressure_unit='hPa'
 	pressure_scale='1.0 '
 	valid_met=1
+	dust_sf='6.42e-5'
     elif [[ ${met_num} = "2" ]]; then
 	met_name='MERRA2'
 	met_resolution='05x0625'
@@ -158,6 +159,7 @@ do
 	pressure_unit='Pa '
 	pressure_scale='0.01'
 	valid_met=1
+	dust_sf='3.86e-4'
     else
 	printf "Invalid meteorology option. Try again.\n"
     fi
@@ -180,7 +182,7 @@ do
 	valid_path=1
     fi
 done
- 
+
 #-----------------------------------------------------------------
 # Ask user to define run directoy name if not passed as argument
 #-----------------------------------------------------------------
@@ -225,13 +227,13 @@ mkdir -p ${rundir}
 #-----------------------------------------------------------------
 # Copy run directory files and subdirectories
 #-----------------------------------------------------------------
-cp -r ./environmentFileSamples ${rundir} 
-cp -r ./OutputDir              ${rundir} 
+cp -r ./environmentFileSamples ${rundir}
+cp -r ./OutputDir              ${rundir}
 cp -r ./runScriptSamples       ${rundir}
-cp ./archiveRun.sh             ${rundir} 
-cp ./build.sh                  ${rundir} 
-cp ./fvcore_layout.rc          ${rundir} 
-cp ./input.nml                 ${rundir} 
+cp ./archiveRun.sh             ${rundir}
+cp ./build.sh                  ${rundir}
+cp ./fvcore_layout.rc          ${rundir}
+cp ./input.nml                 ${rundir}
 cp ./README                    ${rundir}
 cp ./setCodeDir                ${rundir}
 cp ./setEnvironment            ${rundir}
@@ -282,6 +284,7 @@ sed -i -e "s|{DATA_ROOT}|${GC_DATA_ROOT}|"   ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{NATIVE_RES}|${met_native}|"    ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LATRES}|${met_latres}|"        ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{LONRES}|${met_lonres}|"        ${rundir}/HEMCO_Config.rc
+sed -i -e "s|{DUST_SF}|${dust_sf}|"          ${rundir}/HEMCO_Config.rc
 sed -i -e "s|{MET_SOURCE}|${met_name}|"      ${rundir}/ExtData.rc # 1st in line
 sed -i -e "s|{MET_SOURCE}|${met_name}|"      ${rundir}/ExtData.rc # 2nd in line
 sed -i -e "s|{MET_RES}|${met_resolution}|"   ${rundir}/ExtData.rc
@@ -321,7 +324,7 @@ if [ "${sim_name}" == "benchmark" ]; then
     grid_res=48
     diag_freq="7440000"
     start_time="000000"
-    end_time="000000"    
+    end_time="000000"
     dYYYYMMDD="00000100"
     dHHmmSS="000000"
 else
@@ -331,7 +334,7 @@ else
     grid_res=24
     diag_freq="010000"
     start_time="000000"
-    end_time="010000"    
+    end_time="010000"
     dYYYYMMDD="00000000"
     dHHmmSS="010000"
 fi
@@ -372,12 +375,12 @@ echo "This run directory was created with GEOS-Chem/run/GCHPctm/createRunDir.sh.
 echo " " >> ${version_log}
 echo "GEOS-Chem repository version information:" >> ${version_log}
 cd ${gcdir}
-remote_url=$(git config --get remote.origin.url)   
-code_branch=$(git rev-parse --abbrev-ref HEAD)   
-last_commit=$(git log -n 1 --pretty=format:"%s") 
+remote_url=$(git config --get remote.origin.url)
+code_branch=$(git rev-parse --abbrev-ref HEAD)
+last_commit=$(git log -n 1 --pretty=format:"%s")
 commit_date=$(git log -n 1 --pretty=format:"%cd")
 commit_user=$(git log -n 1 --pretty=format:"%cn")
-commit_hash=$(git log -n 1 --pretty=format:"%h") 
+commit_hash=$(git log -n 1 --pretty=format:"%h")
 cd ${curdir}
 printf "\n  Remote URL: ${remote_url}" >> ${version_log}
 printf "\n  Branch: ${code_branch}"    >> ${version_log}

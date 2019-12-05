@@ -245,15 +245,15 @@ CONTAINS
           WRITE(6,*) ' '
           IF ( Phase == 1 ) THEN
              WRITE( 6, 310 ) TRIM(ConfigFile)
- 310         FORMAT( 'Reading part 1 of HEMCO configuration file: ', a )
+ 310         FORMAT( 'Reading settings & switches of HEMCO configuration file: ', a )
 
           ELSEIF ( Phase == 2 ) THEN
              WRITE( 6, 320 ) TRIM(ConfigFile)
- 320         FORMAT( 'Reading part 2 of HEMCO configuration file: ', a )
+ 320         FORMAT( 'Reading fields of HEMCO configuration file: ', a )
 
           ELSE
              WRITE( 6, 330 ) TRIM(ConfigFile)
- 330         FORMAT( 'Reading part 1+2 of HEMCO configuration file: ', a )
+ 330         FORMAT( 'Reading entire HEMCO configuration file: ', a )
           ENDIF
        ENDIF
     ENDIF
@@ -439,7 +439,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_DATACONT_Mod,    ONLY : cIDList_Create
-    USE HCO_READLIST_Mod,    ONLY : ReadList_Init
+    USE HCO_READLIST_Mod,    ONLY : ReadList_Init, ReadList_Print
 !
 ! !INPUT PARAMETERS:
 !
@@ -517,6 +517,11 @@ CONTAINS
     ! SetReadList has now been called
     HcoState%SetReadListCalled = .TRUE.
 
+    ! Debug
+    IF ( HCO_IsVerb( HcoState%Config%Err, 1 ) ) THEN
+       CALL ReadList_Print( am_I_Root, HcoState, HcoState%ReadLists, 1 )
+    ENDIF
+
     ! Leave w/ success
     CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
@@ -538,7 +543,6 @@ CONTAINS
 !
   SUBROUTINE Config_ReadCont( am_I_Root, HcoConfig, IU_HCO,  CFDIR,          &
                               DctType,   EOF,       RC,      IsDryRun       )
-
 !
 ! !USES:
 !
@@ -617,7 +621,7 @@ CONTAINS
     CHARACTER(LEN=255)        :: srcFile
     CHARACTER(LEN= 50)        :: srcVar
     CHARACTER(LEN= 31)        :: srcTime
-    CHARACTER(LEN=  3)        :: TmCycle
+    CHARACTER(LEN= 31)        :: TmCycle
     CHARACTER(LEN=  1)        :: WildCard
     CHARACTER(LEN=  1)        :: Separator
     CHARACTER(LEN= 31)        :: srcDim
@@ -1271,9 +1275,9 @@ CONTAINS
                 Dta%CycleFlag = HCO_CFLAG_RANGE
                 Dta%MustFind  = .TRUE.
              ELSEIF ( TRIM(TmCycle) == "RFY" ) THEN
-                   Dta%CycleFlag = HCO_CFLAG_RANGE
-                   Dta%MustFind  = .TRUE.
-                   Dta%UseSimYear= .TRUE.
+                Dta%CycleFlag = HCO_CFLAG_RANGE
+                Dta%MustFind  = .TRUE.
+                Dta%UseSimYear= .TRUE.
              ELSEIF ( TRIM(TmCycle) == "RY" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_RANGE
                 Dta%UseSimYear= .TRUE.
@@ -1614,9 +1618,9 @@ CONTAINS
        ! Verbose mode
        IF ( verb ) THEN
           MSG = 'Opened shortcut bracket: '//TRIM(TmpBracket)
-          CALL HCO_MSG(HcoConfig%Err,MSG)
+          CALL HCO_MSG( HcoConfig%Err, MSG )
           WRITE(MSG,*) ' - Skip content of this bracket: ', SKIP
-          CALL HCO_MSG(HcoConfig%Err,MSG)
+          CALL HCO_MSG( HcoConfig%Err, MSG )
        ENDIF
     ENDIF
 
@@ -1643,9 +1647,9 @@ CONTAINS
        ! Verbose mode
        IF ( verb ) THEN
           MSG = 'Closed shortcut bracket: '//TRIM(TmpBracket)
-          CALL HCO_MSG(HcoConfig%Err,MSG)
+          CALL HCO_MSG( HcoConfig%Err, MSG )
           WRITE(MSG,*) ' - Skip following lines: ', SKIP
-          CALL HCO_MSG(HcoConfig%Err,MSG)
+          CALL HCO_MSG( HcoConfig%Err, MSG )
        ENDIF
     ENDIF
 
@@ -2551,7 +2555,7 @@ CONTAINS
              WRITE(MSG,*) &
                   'Register_Base: Ignore (and remove) base field ', &
                   TRIM(Lct%Dct%cName)
-             CALL HCO_MSG(HcoState%Config%Err,MSG)
+             CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-')
           ENDIF
 
           ! Remove data container from list.
@@ -2564,7 +2568,7 @@ CONTAINS
        ! Verbose mode
        IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
           WRITE(MSG,*) 'Register_Base: Checking ', TRIM(Lct%Dct%cName)
-          CALL HCO_MSG(HcoState%Config%Err,MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-')
        ENDIF
 
        ! -------------------------------------------------------------

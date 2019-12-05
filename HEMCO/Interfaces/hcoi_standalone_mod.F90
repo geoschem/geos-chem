@@ -2550,20 +2550,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !%%%% Chlorophyll concentration %%%%%
-    IF ( ExtState%CHLR%DoUse ) THEN
-       Name = 'CHLR'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%CHLR,               &
-                        TRIM( Name ), RC,       FIRST=FIRST                 )
-       IF ( RC == HCO_SUCCESS ) THEN
-          ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
-                   '" for the HEMCO standalone simulation!'
-          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
-          CALL HCO_Leave( HcoState%Config%Err, RC )
-          RETURN
-       ENDIF
-    ENDIF
-
     !%%%%% Photolysis values %%%%%
     IF ( ExtState%JNO2%DoUse ) THEN
        Name = 'JNO2'

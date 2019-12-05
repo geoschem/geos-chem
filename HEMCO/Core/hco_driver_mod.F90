@@ -63,7 +63,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Run( am_I_Root, HcoState, Phase, RC )
+  SUBROUTINE HCO_Run( am_I_Root, HcoState, Phase, RC, IsEndStep )
 !
 ! !USES:
 !
@@ -78,6 +78,7 @@ CONTAINS
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root   ! root CPU?
     INTEGER,         INTENT(IN   ) :: Phase       ! Run phase (1 or 2)
+    LOGICAL,         INTENT(IN   ), OPTIONAL :: IsEndStep ! Last timestep of simulation?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -100,8 +101,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL :: IsEmisTime
-    LOGICAL :: notDryRun
+    CHARACTER(LEN=255) :: MSG
+    LOGICAL            :: IsEmisTime
+    LOGICAL            :: notDryRun
 
     !=================================================================
     ! HCO_RUN begins here!
@@ -130,6 +132,10 @@ CONTAINS
        CALL HcoDiagn_Write( am_I_Root, HcoState, .FALSE., RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
+
+    ! Check if this is the last timestep of simulation. If so, return
+    ! and not read in update data.
+    IF ( IsEndStep ) RETURN
 
     !--------------------------------------------------------------
     ! 3. Read/update data

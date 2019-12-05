@@ -196,7 +196,7 @@ CONTAINS
     ! Verbose
     IF ( Verb ) THEN
        WRITE(MSG,*) 'New container set to ReadList:'
-       CALL HCO_MSG(HcoState%Config%Err, MSG,SEP1='-')
+       CALL HCO_MSG(HcoState%Config%Err, MSG)
        CALL HCO_PrintDataCont( HcoState, Dct, 3 )
     ENDIF
 
@@ -506,7 +506,7 @@ CONTAINS
           ! Verbose mode
           IF ( verb ) THEN
              MSG = 'Remove data array of ' // TRIM(Lct%Dct%cName)
-             CALL HCO_MSG( MSG )
+             CALL HCO_MSG( HcoState%Config%Err, MSG )
           ENDIF
        ENDIF
 
@@ -692,7 +692,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Print( HcoState, ReadLists, verb )
+  SUBROUTINE ReadList_Print( am_I_Root, HcoState, ReadLists, verb )
 !
 ! !USES:
 !
@@ -700,6 +700,7 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS
 !
+    LOGICAL,         INTENT(IN)    :: am_I_Root
     TYPE(HCO_State), POINTER       :: HcoState
     TYPE(RdList),    POINTER       :: ReadLists
     INTEGER,         INTENT(IN)    :: verb   ! verbose number
@@ -721,35 +722,35 @@ CONTAINS
     IF ( .NOT. HCO_IsVerb(HcoState%Config%Err,verb) ) RETURN
 
     ! Print content of all lists
-    IF ( ASSOCIATED(ReadLists) ) THEN
+    IF ( ASSOCIATED(ReadLists) .and. am_I_Root ) THEN
 
-       WRITE(MSG,*) 'Content of one-time list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of one-time list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Once, verb )
 
-       WRITE(MSG,*) 'Content of year-list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of year list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Year, verb )
 
-       WRITE(MSG,*) 'Content of month-list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of month list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Month, verb )
 
-       WRITE(MSG,*) 'Content of day-list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of day list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Day, verb )
 
-       WRITE(MSG,*) 'Content of hour-list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of hour list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Hour, verb )
 
-       WRITE(MSG,*) 'Content of always-to-read list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of always-to-read list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Always, verb )
 
     ELSE
        WRITE(MSG,*) 'ReadList not defined yet!!'
-       CALL HCO_MSG(MSG,SEP1='=')
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
     ENDIF
 
   END SUBROUTINE ReadList_Print

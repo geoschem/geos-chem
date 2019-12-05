@@ -79,6 +79,7 @@ MODULE HCO_State_Mod
 
      !%%%%% Aerosol quantities %%%%%
      INTEGER                     :: nDust      ! # of dust species
+     LOGICAL                     :: MarinePOA  ! MUse marine organic aerosols?
      TYPE(HcoMicroPhys), POINTER :: MicroPhys  ! Microphysics settings
 
      !%%%%%  Run time options %%%%%
@@ -325,6 +326,9 @@ CONTAINS
     ! Dust bins (set default to 4)
     HcoState%nDust = 4
 
+    ! Turn off marine POA by default
+    HcoState%MarinePOA = .FALSE.
+
     ! Aerosol options
     ALLOCATE ( HcoState%MicroPhys, STAT = AS )
     IF ( AS /= 0 ) THEN
@@ -436,7 +440,7 @@ CONTAINS
        WRITE(MSG,'(A33,L2)') 'Do drydep over entire PBL      : ', HcoState%Options%PBL_DRYDEP
        CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,F6.2)') 'Upper limit for deposition x ts: ', HcoState%Options%MaxDepExp
-       CALL HCO_MSG(HcoConfig%Err,MSG,SEP2='-')
+       CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,L2)') 'Scale emissions                : ', HcoState%Options%ScaleEmis
        CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,L2)') 'Cap time shift                 : ', HcoState%Options%TimeShiftCap
