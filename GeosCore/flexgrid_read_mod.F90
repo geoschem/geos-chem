@@ -1386,10 +1386,10 @@ CONTAINS
     !-------------------------------------------------
 
     ! Read PS
-    IF ( HHMMSS < 190000 ) THEN
-       v_name = "PS"
-    ELSE
+    IF ( HHMMSS == 000000 ) THEN
        v_name = "PS_NEXTDAY"
+    ELSE
+       v_name = "PS"
     ENDIF
     CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name), t_index=t_index )
     State_Met%PS2_WET = Q2
@@ -1402,10 +1402,10 @@ CONTAINS
     ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
-    !IF ( HHMMSS < 190000 ) THEN
-    !   v_name = "PV"
-    !ELSE
+    !IF ( HHMMSS == 000000 ) THEN
     !   v_name = "PV_NEXTDAY"
+    !ELSE
+    !   v_name = "PV"
     !ENDIF
     !CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
@@ -1413,19 +1413,19 @@ CONTAINS
     !----------------------------------------------------------------
 
     ! Read QV
-    IF ( HHMMSS < 190000 ) THEN
-       v_name = "SPHU"
-    ELSE
+    IF ( HHMMSS == 000000 ) THEN
        v_name = "SPHU_NEXTDAY"
+    ELSE
+       v_name = "SPHU"
     ENDIF
     CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
     State_Met%SPHU2 = Q3
 
     ! Read T
-    IF ( HHMMSS < 190000 ) THEN
-       v_name = "TMPU"
-    ELSE
+    IF ( HHMMSS == 000000 ) THEN
        v_name = "TMPU_NEXTDAY"
+    ELSE
+       v_name = "TMPU"
     ENDIF
     CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name), t_index=t_index )
     State_Met%TMPU2 = Q3
