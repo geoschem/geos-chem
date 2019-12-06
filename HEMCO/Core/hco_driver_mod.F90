@@ -101,9 +101,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: MSG
+    ! Scalars
     LOGICAL            :: IsEmisTime
     LOGICAL            :: notDryRun
+    LOGICAL            :: ItIsEndStep
+
+    ! Strings
+    CHARACTER(LEN=255) :: MSG
 
     !=================================================================
     ! HCO_RUN begins here!
@@ -115,6 +119,13 @@ CONTAINS
 
     ! Define a local convenience variable to negate HcoState%Options%isDryRun
     notDryRun = ( .not. HcoState%Options%isDryRun )
+
+    ! Define a shadow variable for optional argument IsEndStep
+    IF ( PRESENT( IsEndStep ) ) THEN
+       ItIsEndStep = IsEndStep
+    ELSE
+       ItIsEndStep = .FALSE.
+    ENDIF
 
     !--------------------------------------------------------------
     ! 1. Check if it's time for emissions
@@ -135,7 +146,7 @@ CONTAINS
 
     ! Check if this is the last timestep of simulation. If so, return
     ! and not read in update data.
-    IF ( IsEndStep ) RETURN
+    IF ( ItIsEndStep .and. notDryRun ) RETURN
 
     !--------------------------------------------------------------
     ! 3. Read/update data

@@ -1086,7 +1086,7 @@ CONTAINS
     CHARACTER(LEN=255)    :: LOC
     CHARACTER(LEN=  1)    :: COL
     CHARACTER(LEN=255)    :: MyGridFile, ThisLoc
-    CHARACTER(LEN=2047)   :: DUM,        ErrMsg,  Msg
+    CHARACTER(LEN=4095)   :: DUM,        ErrMsg,  Msg
 
     !=================================================================
     ! SET_GRID begins here
