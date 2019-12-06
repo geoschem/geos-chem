@@ -35,34 +35,7 @@
 #
 # !REVISION HISTORY:
 #  23 Aug 2011 - M. Long     - Initial version
-#  19 Mar 2012 - M. Payer    - Added EF_MGN20_mod for SOA + semivolatile POA
-#                              simulation (H. Pye)
-#  09 Apr 2012 - R. Yantosca - Removed CMN_VEL_mod.F; it's obsolete
-#  19 Oct 2012 - R. Yantosca - Add modules for Grid-Independent GEOS-Chem
-#  01 Nov 2012 - R. Yantosca - Added gigc_input_opt_mod.F90
-#  16 Nov 2012 - R. Yantosca - Added more GIGC updates, removed obsolete
-#  15 Jan 2013 - R. Yantosca - Removed CMN_DEP_mod.F, it's obsolete
-#  15 Jan 2013 - R. Yantosca - Added dependency for gigc_input_opt_mod.o
-#                              to comode_loop_mod.F, to make it compile
-#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
-#  25 Jun 2014 - R. Yantosca - Now compiles commsoil_mod.F90 (was .F before)
-#  23 Jul 2014 - R. Yantosca - Move smv_dimension_mod.F to obsolete/ dir
-#  23 Jul 2014 - R. Yantosca - Move smv_physconst_mod.F to obsolete/ dir
-#  23 Jul 2014 - R. Yantosca - Move CMN_mod.F to obsolete/ dir
-#  23 Jul 2014 - R. Yantosca - Move CMN_NOX_mod.F to obsolete/ dir
-#  23 Jul 2014 - R. Yantosca - Move gigc_state_phy_mod.F90 to obsolete/ dir
-#  04 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
-#  04 Jun 2015 - R. Yantosca - Add debug target, remove help
-#  28 Aug 2015 - R. Yantosca - Add species_mod.F90
-#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
-#  08 Jan 2016 - E. Lundgren - Move CMN_GCTM_mod.F to obsolete/ dir and replace
-#                              with physconstants.F
-#  30 Jun 2016 - M. Sulprizio- Remove comode_loop_mod.F
-#  05 Jul 2017 - R. Yantosca - Add state_diag_mod.F90
-#  13 Jul 2017 - E. Lundgren - Remove passive_species_mod.F90
-#  14 Jul 2017 - R. Yantosca - Add registry_params_mod.F90
-#  13 Sep 2017 - R. Yantosca - Add registry_mod.o to state_chm_mod dependency
-#  31 Oct 2017 - R. Yantosca - Compile charpak_mod.F90 and not charpak_mod.F
+#  See the Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -180,6 +153,8 @@ diaglist_mod.o         : diaglist_mod.F90         \
                          inquireMod.o             \
                          registry_mod.o
 
+dictionary_m.o         : dictionary_m.F90
+
 errcode_mod.o          : errcode_mod.F90          \
                          charpak_mod.o
 
@@ -193,6 +168,7 @@ state_chm_mod.o        : state_chm_mod.F90        \
                          CMN_SIZE_mod.o           \
                          CMN_FJX_MOD.o            \
                          charpak_mod.o            \
+                         dictionary_m.o           \
                          physconstants.o          \
                          errcode_mod.o            \
                          input_opt_mod.o          \

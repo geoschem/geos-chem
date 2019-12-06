@@ -21,6 +21,7 @@ MODULE State_Chm_Mod
 !
 ! USES:
 !
+  USE Dictionary_M, ONLY : dictionary_t  ! Fortran hash table type
   USE ErrCode_Mod                        ! Error handling
   USE PhysConstants                      ! Physical constants
   USE Precision_Mod                      ! GEOS-Chem precision types
@@ -46,6 +47,11 @@ MODULE State_Chm_Mod
   TYPE(SpcPtr), PRIVATE, POINTER :: SpcDataLocal(:)  ! Local pointer to
                                                      ! StateChm%SpcData for
                                                      ! availability to IND_
+
+  TYPE(dictionary_t), PRIVATE    :: SpcDictLocal     ! Private copy of the
+                                                     ! Fortran Hash table for
+                                                     ! availability to IND_
+
 
   INTEGER, PRIVATE               :: nChmState = 0    ! # chemistry states,
                                                      ! this CPU
@@ -105,6 +111,7 @@ MODULE State_Chm_Mod
      ! Physical properties & indices for each species
      !----------------------------------------------------------------------
      TYPE(SpcPtr),      POINTER :: SpcData    (:      ) ! GC Species database
+     TYPE(dictionary_t)         :: SpcDict              ! Species dictionary
 
      !----------------------------------------------------------------------
      ! Chemical species
@@ -262,6 +269,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CharPak_Mod,          ONLY : To_UpperCase
     USE CMN_Size_Mod,         ONLY : NDUST, NAER
     USE GCKPP_Parameters,     ONLY : NSPEC
     USE Input_Opt_Mod,        ONLY : OptInput
@@ -299,13 +307,14 @@ CONTAINS
     ! Scalars
     INTEGER                :: N, C, IM, JM, LM
     INTEGER                :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
-    INTEGER                :: nKHLSA, nAerosol
+    INTEGER                :: nKHLSA, nAerosol, nMatches
 
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, ChmID
 
     ! Pointers
     TYPE(Species), POINTER :: ThisSpc
+    INTEGER,       POINTER :: CheckIds(:)
     REAL(fp),      POINTER :: Ptr2data(:,:,:)
 
     ! Error handling
@@ -542,6 +551,46 @@ CONTAINS
     !CLOSE( 700 )
     !STOP
     !########################################################################
+
+    !=======================================================================
+    ! Populate the species lookup table, for quick index lookup via Ind_
+    !=======================================================================
+
+    ! Initialize the species lookup table
+    CALL State_Chm%SpcDict%Init( State_Chm%nSpecies )
+
+    ! Populate the species lookup table
+    DO N = 1, State_Chm%nSpecies
+       ThisSpc => SpcDataLocal(N)%Info
+       CALL State_Chm%SpcDict%Set( To_UpperCase( TRIM( ThisSpc%Name ) ),     &
+                                   ThisSpc%ModelId                          )
+       ThisSpc => NULL()
+    ENDDO
+
+    ! Error check: make sure we have no hash collisions that would
+    ! assign more than one species to the same ModelId value
+    ALLOCATE( CheckIds( State_Chm%nSpecies ), STAT=RC ) 
+    DO N = 1, State_Chm%nSpecies
+       CheckIds(N) = SpcDataLocal(N)%Info%ModelId
+    ENDDO
+    DO N = 1, State_Chm%nSpecies
+       nMatches = COUNT( CheckIds(N) == CheckIds )
+       IF ( nMatches > 1 ) THEN
+          ErrMsg = 'Species: ' // TRIM( SpcDataLocal(N)%Info%Name )       // &
+                   'maps to more than one ModelID value!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CheckIds => NULL()
+          RETURN
+       ENDIF
+    ENDDO
+    IF ( ASSOCIATED( CheckIds ) ) DEALLOCATE( CheckIds )
+
+    ! If there are no hash collisions, then species lookup table
+    ! to a local shadow variable for use with the Ind_ function.
+    SpcDictLocal = State_Chm%SpcDict
+
+    !### Debug: Show the values in the lookup table
+    !###CALL State_Chm%SpcDict%Show()
 
     !=======================================================================
     ! Exit if this is a dry-run simulation
@@ -3632,7 +3681,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CharPak_Mod, ONLY : Str2Hash14, To_UpperCase
+    USE CharPak_Mod, ONLY : To_UpperCase
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -3643,7 +3693,18 @@ CONTAINS
 !
     INTEGER                                :: Indx  ! Index of this species
 !
-! !REMARKS
+! !REMARKS:
+!   Values of FLAG (case-insensitive):
+!   'A' : Returns advected species index
+!   'D' : Returns dry-deposition species index
+!   'F' : Returns KPP fixed species index
+!   'G' : Returns gas-phase species index
+!   'H' : Returns hygroscopic-growth species index
+!   'K' : Returns KPP master species index 
+!   'P' : Returns photolysis species index
+!   'S' : Returns master species index (aka "ModelId")
+!   'V' : Returns KPP variable species index
+!   'W' : Returns wet-deposition species index
 !
 ! !REVISION HISTORY:
 !  07 Oct 2016 - M. Long     - Initial version
@@ -3654,108 +3715,79 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER           :: N, Hash
-    CHARACTER(LEN=14) :: Name14
+    INTEGER :: N
 
     !=====================================================================
     ! Ind_ begins here!
     !=====================================================================
 
-    ! Initialize the output value
-    Indx   = -1
+    ! Get the ModelId value from the lookup table
+    ! NOTE: -1 is used to denote missing species.
+    N    = SpcDictLocal%Get( To_UpperCase( TRIM( Name ) ) )
+    Indx = N
 
-    ! Make species name (14 chars only)  uppercase for hash algorithm
-    Name14 = To_UpperCase( Name )
+    ! If N is negative then return -1 to denote the species was not found.
+    ! If FLAG is not passed, RETURN the ModelId (regardless of whether the
+    ! species was found or missing).
+    IF ( ( N < 0 ).or. ( .not. PRESENT( Flag ) ) ) RETURN
 
-    ! Compute the hash corresponding to the given species name
-    Hash   = Str2Hash14( Name14 )
+    ! For species that were found, return the index specified by FLAG
+    SELECT CASE( Flag(1:1) )
 
-    ! Loop over all entries in the Species Database object
-    DO N = 1, SIZE( SpcDataLocal )
+       ! Advected species flag
+       CASE( 'A', 'a' )
+          Indx = SpcDataLocal(N)%Info%AdvectID
+          RETURN
 
-       ! Compare the hash we just created against the list of
-       ! species name hashes stored in the species database
-       IF( Hash == SpcDataLocal(N)%Info%NameHash  ) THEN
+       ! Dry-deposited species ID
+       CASE( 'D', 'd' )
+          Indx = SpcDataLocal(N)%Info%DryDepId
+          RETURN
 
-          IF (.not. PRESENT(Flag)) THEN
+       ! KPP fixed species ID
+       CASE( 'F', 'f' )
+          Indx = SpcDataLocal(N)%Info%KppFixId
+          RETURN
 
-             ! Default to Species/ModelID
-             Indx = SpcDataLocal(N)%Info%ModelID
-             RETURN
+       ! Gas-phase species ID
+       CASE( 'G', 'g' )
+          Indx = SpcDataLocal(N)%Info%GasSpcId
+          RETURN
 
-          ELSE
+       ! Hygroscopic growth species ID
+       CASE( 'H', 'h' )
+          Indx = SpcDataLocal(N)%Info%HygGrthId
+          RETURN
 
-             ! Only need first character of the flag for this.
-             IF (flag(1:1) .eq. 'A' .or. flag(1:1) .eq. 'a') THEN
+       ! KPP chemical species ID
+       CASE( 'K', 'k' )
+          Indx = SpcDataLocal(N)%Info%KppSpcId
+          RETURN
 
-                ! Advected species flag
-                Indx = SpcDataLocal(N)%Info%AdvectID
-                RETURN
+       ! Photolysis species ID
+       CASE( 'P', 'p' )
+          Indx = SpcDataLocal(N)%Info%PhotolId
+          RETURN
 
-             ELSEIF (flag(1:1) .eq. 'D' .or. flag(1:1) .eq. 'd') THEN
+       ! Species/ModelID
+       CASE ( 'S', 's' )
+          Indx = SpcDataLocal(N)%Info%ModelID
+          RETURN
 
-                ! Dry-deposited species ID
-                Indx = SpcDataLocal(N)%Info%DryDepId
-                RETURN
+       ! KPP variable species ID
+       CASE( 'V', 'v' )
+          Indx = SpcDataLocal(N)%Info%KppVarId
+          RETURN
 
-             ELSEIF (flag(1:1) .eq. 'F' .or. flag(1:1) .eq. 'f') THEN
+       ! WetDep ID
+       CASE( 'W', 'w' )
+          Indx = SpcDataLocal(N)%Info%WetDepId
+          RETURN
+          
+       CASE DEFAULT
+          ! Pass
 
-                ! KPP fixed species ID
-                Indx = SpcDataLocal(N)%Info%KppFixId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'G' .or. flag(1:1) .eq. 'g') THEN
-
-                ! Gas-phase species ID
-                Indx = SpcDataLocal(N)%Info%GasSpcId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'H' .or. flag(1:1) .eq. 'h') THEN
-
-                ! Hygroscopic growth species ID
-                Indx = SpcDataLocal(N)%Info%HygGrthId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'K' .or. flag(1:1) .eq. 'k') THEN
-
-                ! KPP chemical species ID
-                Indx = SpcDataLocal(N)%Info%KppSpcId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'P' .or. flag(1:1) .eq. 'p') THEN
-
-                ! Photolysis species ID
-                Indx = SpcDataLocal(N)%Info%PhotolId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'S' .or. flag(1:1) .eq. 's') THEN
-
-                ! Species/ModelID
-                Indx = SpcDataLocal(N)%Info%ModelID
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'V' .or. flag(1:1) .eq. 'v') THEN
-
-                ! KPP variable species ID
-                Indx = SpcDataLocal(N)%Info%KppVarId
-                RETURN
-
-             ELSEIF (flag(1:1) .eq. 'W' .or. flag(1:1) .eq. 'w') THEN
-
-                ! WetDep ID
-                Indx = SpcDataLocal(N)%Info%WetDepId
-                RETURN
-
-             ENDIF
-
-          ENDIF
-          EXIT
-
-       ENDIF
-
-    ENDDO
-
-    RETURN
+     END SELECT
 
   END FUNCTION Ind_
 !EOC

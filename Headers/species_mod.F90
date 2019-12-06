@@ -25,7 +25,6 @@ MODULE Species_Mod
   PUBLIC :: SpcData_Init
   PUBLIC :: SpcData_Cleanup
   PUBLIC :: Spc_Create
-  PUBLIC :: Spc_GetIndx
   PUBLIC :: Spc_GetNumSpecies
   PUBLIC :: Spc_Print
 !
@@ -81,7 +80,6 @@ MODULE Species_Mod
      CHARACTER(LEN=31)  :: Name             ! Short name
      CHARACTER(LEN=80)  :: FullName         ! Long name
      CHARACTER(LEN=80)  :: Formula          ! Chemical formula
-     INTEGER            :: NameHash         ! Integer hash for short name
 
      ! Logical switches
      LOGICAL            :: Is_Advected      ! Is it advected?
@@ -263,79 +261,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Spc_GetIndx
-!
-! !DESCRIPTION: Function Spc\_GetIndx returns the index of a given
-!  species in the species data base object.  You can search by the short
-!  name or the full name of the species.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Spc_GetIndx( Name, SpecDB ) RESULT( Indx )
-!
-! !USES:
-!
-    USE CharPak_Mod, ONLY : Str2Hash14, To_UpperCase
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*), INTENT(IN) :: Name       ! Species name
-    TYPE(SpcPtr),     POINTER    :: SpecDB(:)  ! Species Database object
-!
-! !RETURN VALUE:
-!
-    INTEGER                      :: Indx       ! Index of this species
-!
-! !REMARKS:
-!  The input name field has will get copied to an internal string that is
-!  14 characters long, for input into the Str2Hash function.  14 characters
-!  is about the longest species name for GEOS-Chem.  We can modify this
-!  if need be.
-!
-! !REVISION HISTORY:
-!  09 Oct 2012 - M. Long - Initial version, based on gc_esmf_utils_mod.F90!
-!  See the subsequent Git history with the gitk browser!
-!EOP!
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER           :: N, Hash
-    CHARACTER(LEN=14) :: Name14
-
-    !=====================================================================
-    ! Spc_GetIndex begins here!
-    !=====================================================================
-
-    ! Initialize the output value
-    Indx   = -1
-
-    ! Make species name uppercase for hash algorithm
-    Name14 = To_UpperCase( Name )
-
-    ! Compute the hash corresponding to the given species name
-    Hash   = Str2Hash14( Name14 )
-
-    ! Loop over all entries in the Species Database object
-    DO N = 1, SIZE( SpecDB )
-
-       ! Compare the hash we just created against the list of
-       ! species name hashes stored in the species database
-       IF( Hash == SpecDB(N)%Info%NameHash  ) THEN
-          Indx = SpecDB(N)%Info%ModelID
-          EXIT
-       ENDIF
-    ENDDO
-
-  END FUNCTION Spc_GetIndx
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: SpcData_Cleanup
 !
 ! !DESCRIPTION: Routine SpcData\_Cleanup cleans up the passed species
@@ -421,7 +346,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CharPak_Mod,        ONLY : Str2Hash14, To_UpperCase
+    USE CharPak_Mod,        ONLY : To_UpperCase
     USE PhysConstants,      ONLY : AIRMW,      AVO
 !
 ! !INPUT PARAMETERS:
@@ -542,13 +467,8 @@ CONTAINS
     !---------------------------------------------------------------------
     IF ( PRESENT( Name ) ) THEN
        ThisSpc%Name     = Name
-
-       ! Make species name uppercase for hash algorithm
-       Name14           = To_UpperCase( Name )
-       ThisSpc%NameHash = Str2Hash14( Name14 )
     ELSE
        ThisSpc%Name     = ''
-       ThisSpc%NameHash = MISSING_INT
     ENDIF
 
     !---------------------------------------------------------------------
