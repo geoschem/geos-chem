@@ -2123,8 +2123,8 @@ MODULE GCKPP_HETRATES
       ! Total H2O (organic + inorganic), cm3(H2O)/cm3(air)
       H2Ototal = H2Oinorg + H2Oorg
 
-      ! Ratio of organic to total (organic+inorganic) volumes when dry, unitless
-      volRatioDry = safe_div((volOrg - H2Oorg), (volTotal - H2Ototal), 0e+0_fp)
+      ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitless
+      volRatioDry = safe_div((volInorg - H2Oinorg), (volTotal - H2Ototal), 0e+0_fp)
 
       ! Particle radius, cm
       ! Derived from spherical geometry
