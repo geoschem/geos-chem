@@ -428,8 +428,7 @@
       CALL Validate_Directories( am_I_Root, Input_Opt, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in  "Validate_Directories"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
+         CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
       ! Initialize GEOS-Chem horizontal grid structure
