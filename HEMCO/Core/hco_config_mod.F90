@@ -949,6 +949,7 @@ CONTAINS
                 ! - "RA" : range, average outside
                 ! - "RF" : range, forced (error if not in range)
                 ! - "RFY": range, forced, always use simulation year
+                ! - "RFY3: range, forced, always use simulation year, 3-hourly
                 ! - "RY" : range, always use simulation year
                 ! - "E"  : exact (read file once)
                 ! - "EF" : exact, forced (error if not exist, read/query once)
@@ -986,6 +987,11 @@ CONTAINS
                    Dta%CycleFlag = HCO_CFLAG_RANGE
                    Dta%MustFind  = .TRUE.
                    Dta%UseSimYear= .TRUE.
+                ELSEIF ( TRIM(TmCycle) == "RFY3" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_RANGE
+                   Dta%MustFind  = .TRUE.
+                   Dta%UseSimYear= .TRUE.
+                   Dta%UpdtFlag  = HCO_UFLAG_3HR
                 ELSEIF ( TRIM(TmCycle) == "RY" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_RANGE
                    Dta%UseSimYear= .TRUE.
@@ -1243,6 +1249,7 @@ CONTAINS
              ! - "RA" : range, average outside
              ! - "RF" : range, forced (error if not in range)
              ! - "RFY": range, forced, always use simulation year
+             ! - "RFY3: range, forced, always use simulation year, 3-hourly
              ! - "RY" : range, always use simulation year
              ! - "E"  : exact (read file once)
              ! - "EF" : exact, forced (error if not exist, read/query once)
@@ -1278,6 +1285,11 @@ CONTAINS
                 Dta%CycleFlag = HCO_CFLAG_RANGE
                 Dta%MustFind  = .TRUE.
                 Dta%UseSimYear= .TRUE.
+             ELSEIF ( TRIM(TmCycle) == "RFY3" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_RANGE
+                Dta%MustFind  = .TRUE.
+                Dta%UseSimYear= .TRUE.
+                Dta%UpdtFlag  = HCO_UFLAG_3HR
              ELSEIF ( TRIM(TmCycle) == "RY" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_RANGE
                 Dta%UseSimYear= .TRUE.
