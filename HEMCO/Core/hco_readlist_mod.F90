@@ -129,6 +129,8 @@ CONTAINS
     ! which is called from Config_ReadCont (hco_config_mod.F90).
     IF     ( Dct%Dta%UpdtFlag == HCO_UFLAG_ALWAYS ) THEN
        intv = 1
+    ELSEIF ( Dct%Dta%UpdtFlag == HCO_UFLAG_3HR ) THEN
+       intv = 7
     ELSEIF ( Dct%Dta%ncHrs(1) /= Dct%Dta%ncHrs(2) ) THEN
        intv = 2
     ELSEIF ( Dct%Dta%ncDys(1) /= Dct%Dta%ncDys(2) ) THEN
@@ -189,6 +191,8 @@ CONTAINS
        CALL DtCont_Add( HcoState%ReadLists%Month,  Dct )
     ELSEIF ( intv == 5 ) THEN
        CALL DtCont_Add( HcoState%ReadLists%Year,   Dct )
+    ELSEIF (intv == 7 ) THEN
+       CALL DtCont_Add( HcoState%ReadLists%Hour3,  Dct )
     ELSE
        CALL DtCont_Add( HcoState%ReadLists%Once,   Dct )
     ENDIF
@@ -227,6 +231,7 @@ CONTAINS
     USE HCO_CLOCK_MOD, ONLY : HcoClock_NewMonth
     USE HCO_CLOCK_MOD, ONLY : HcoClock_NewDay
     USE HCO_CLOCK_MOD, ONLY : HcoClock_NewHour
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_New3Hour
     USE HCO_CLOCK_MOD, ONLY : HcoClock_First
 !
 ! !INPUT PARAMETERS:
@@ -280,7 +285,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from year-list if it's a new year
+    ! Read content from year list if it's a new year
     IF ( HcoClock_NewYear( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading year list!'
@@ -290,7 +295,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from month-list if it's a new month
+    ! Read content from month list if it's a new month
     IF ( HcoClock_NewMonth( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading month list!'
@@ -300,7 +305,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from day-list if it's a new day
+    ! Read content from day list if it's a new day
     IF ( HcoClock_NewDay( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading day list!'
@@ -310,13 +315,23 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from hour-list if it's a new hour
+    ! Read content from hour list if it's a new hour
     IF ( HcoClock_NewHour( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading hour list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Read content from 3-hour list if it's a new hour
+    IF ( HcoClock_New3Hour( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
+       IF ( Verb ) THEN
+          WRITE(MSG,*) 'Now reading 3-hour list!'
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+       ENDIF
+       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour3, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
