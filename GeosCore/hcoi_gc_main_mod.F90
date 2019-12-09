@@ -678,7 +678,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd variables
-    REAL(f8), SAVE     :: PrevTAU
+    REAL(f8), SAVE     :: PrevTAU = -999999.0_f8
 
     ! Scalars
     LOGICAL            :: notDryRun
