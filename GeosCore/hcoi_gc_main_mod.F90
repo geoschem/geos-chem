@@ -3,10 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcoi_gc_main_mod.F90 
+! !MODULE: hcoi_gc_main_mod.F90
 !
 ! !DESCRIPTION: Module hcoi\_gc\_main\_mod.F90 is the HEMCO-to-GEOS-Chem
-! interface module, providing the link between GEOS-Chem and HEMCO. It 
+! interface module, providing the link between GEOS-Chem and HEMCO. It
 ! contains wrapper routines to initialize, execute and finalize HEMCO from
 ! within GEOS-Chem. These routines are called from emissions\_mod.F90.
 !\\
@@ -14,10 +14,10 @@
 ! Notes:
 ! \begin{itemize}
 ! \item HEMCO is used to calculate all emission fields. The emission tendencies
-!  are passed to GEOS-Chem in module mixing\_mod.F90. 
+!  are passed to GEOS-Chem in module mixing\_mod.F90.
 ! \item Most meteorological fields needed by the HEMCO extensions are provided
-!  through the GEOS-Chem meteorological state object Met\_State. Few fields 
-!  such as the pressure edges or J-values are defined and updated explicitly 
+!  through the GEOS-Chem meteorological state object Met\_State. Few fields
+!  such as the pressure edges or J-values are defined and updated explicitly
 !  within this module.
 ! \End{itemize}
 ! !INTERFACE:
@@ -29,7 +29,7 @@ MODULE HCOI_GC_Main_Mod
   USE Precision_Mod
   USE HCO_Error_Mod
   USE HCO_Interface_Mod
-  USE HCOX_State_Mod, ONLY : Ext_State 
+  USE HCOX_State_Mod, ONLY : Ext_State
   USE HCO_State_Mod,  ONLY : HCO_State
 
   IMPLICIT NONE
@@ -52,7 +52,7 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: GridEdge_Set
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoGrid
-  PRIVATE :: SetHcoSpecies 
+  PRIVATE :: SetHcoSpecies
 #if !defined(ESMF_) && !defined( MODEL_WRF )
   !=========================================================================
   ! These are only needed for GEOS-Chem "Classic"
@@ -119,13 +119,13 @@ CONTAINS
 ! !IROUTINE: HCOI_GC_Init
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_INIT initializes the HEMCO derived
-! types and arrays. The HEMCO configuration is read from the HEMCO 
-! configuration file (as listed in Input\_Opt%HcoConfigFile) and stored in 
+! types and arrays. The HEMCO configuration is read from the HEMCO
+! configuration file (as listed in Input\_Opt%HcoConfigFile) and stored in
 ! the HEMCO configuration object. The entire HEMCO setup is based upon the
-! entries in the HEMCO configuration object. It is possible to explicitly 
-! provide a (previously read) HEMCO configuration object via input argument 
+! entries in the HEMCO configuration object. It is possible to explicitly
+! provide a (previously read) HEMCO configuration object via input argument
 ! `HcoConfig`. In this case the HEMCO configuration file will not be read
-! any more. 
+! any more.
 !\\
 !\\
 ! !INTERFACE:
@@ -150,10 +150,11 @@ CONTAINS
     USE TOMAS_MOD,          ONLY : Xk
 #endif
 
-    ! HEMCO routines 
+    ! HEMCO routines
     USE HCO_Types_Mod,      ONLY : ConfigObj
     USE HCO_Config_Mod,     ONLY : Config_ReadFile, ConfigInit
     USE HCO_State_Mod,      ONLY : HcoState_Init
+    USE HCO_Diagn_Mod,      ONLY : DiagnFileOpen
     USE HCO_Driver_Mod,     ONLY : HCO_Init
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
     USE HCOX_Driver_Mod,    ONLY : HCOX_Init
@@ -162,8 +163,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
-    TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state 
-    TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid state 
+    TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state
+    TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )          :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -172,7 +173,7 @@ CONTAINS
     TYPE(ConfigObj),  POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
     INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  12 Sep 2013 - C. Keller   - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -193,7 +194,7 @@ CONTAINS
     ! Pointers
     TYPE(ConfigObj), POINTER  :: iHcoConfig => NULL()
     TYPE(Species),   POINTER  :: SpcInfo
-    
+
     !=======================================================================
     ! HCOI_GC_INIT begins here!
     !=======================================================================
@@ -214,17 +215,27 @@ CONTAINS
     id_O3    = Ind_('O3'  )
     id_POPG  = Ind_('POPG')
 
+    ! Create a splash page
+    IF ( am_I_Root ) THEN
+       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+       WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
+       WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
+       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
+ 100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
+ 101   FORMAT( '%%%%%', 15x, a, a12, 14x  '%%%%%' )
+    ENDIF
+
     !=======================================================================
     ! Read HEMCO configuration file and save into buffer. This also
-    ! sets the HEMCO error properties (verbose mode? log file name, 
+    ! sets the HEMCO error properties (verbose mode? log file name,
     ! etc.) based upon the specifications in the configuration file.
     ! The log file is now read in two phases: phase 1 reads only the
-    ! settings and extensions; phase 2 reads all data fields. This 
-    ! way, settings and extension options can be updated before 
+    ! settings and extensions; phase 2 reads all data fields. This
+    ! way, settings and extension options can be updated before
     ! reading all the associated fields. For instance, if the LEMIS
     ! toggle is set to false (=no emissions), all extensions can be
     ! deactivated. Similarly, certain brackets can be set explicitly
-    ! to make sure that these data is only read by HEMCO if the 
+    ! to make sure that these data is only read by HEMCO if the
     ! corresponding GEOS-Chem switches are turned on.
     ! (ckeller, 2/13/15).
     !=======================================================================
@@ -243,7 +254,7 @@ CONTAINS
        ErrMsg = 'Error encountered in "ConfigInit"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
     ENDIF
-    
+
     ! Met and grid parameters
     iHcoConfig%MetField = Input_Opt%MetField
     iHcoConfig%GridRes  = State_Grid%GridRes
@@ -256,7 +267,7 @@ CONTAINS
        ! Get info for this species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info
 
-       ! Model ID and species name 
+       ! Model ID and species name
        iHcoConfig%ModelSpc(N)%ModID      = SpcInfo%ModelID
        iHcoConfig%ModelSpc(N)%SpcName    = TRIM( SpcInfo%Name )
     ENDDO
@@ -265,7 +276,8 @@ CONTAINS
     ! Phase 1: read settings and switches
     !---------------------------------------
     CALL Config_ReadFile( am_I_Root,               iHcoConfig,               &
-                          Input_Opt%HcoConfigFile, 1,          HMRC         )
+                          Input_Opt%HcoConfigFile, 1,          HMRC,         &
+                          IsDryRun=Input_Opt%DryRun                         )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -287,24 +299,10 @@ CONTAINS
     ENDIF
 
     !---------------------------------------
-    ! Phase 2: read fields
-    !---------------------------------------
-    CALL Config_ReadFile( am_I_Root,               iHcoConfig,               &
-                          Input_Opt%HcoConfigFile, 2,            HMRC       )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "Config_Readfile" (Phase 2)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    !=======================================================================
     ! Open logfile
-    !=======================================================================
+    !---------------------------------------
     IF ( am_I_Root ) THEN
-       CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC ) 
+       CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -315,21 +313,36 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !---------------------------------------
+    ! Phase 2: read fields
+    !---------------------------------------
+    CALL Config_ReadFile( am_I_Root,               iHcoConfig,               &
+                          Input_Opt%HcoConfigFile, 2,            HMRC,       &
+                          IsDryRun=Input_Opt%DryRun                         )
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "Config_Readfile" (Phase 2)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
     !=======================================================================
-    ! Initialize HEMCO state object and populate it 
+    ! Initialize HEMCO state object and populate it
     !=======================================================================
 
     !-----------------------------------------------------------------------
     ! Extract species to use in HEMCO. nHcoSpc denotes the number of
     ! species that shall be used in HEMCO. The species properties are
     ! defined in the Register_Species call below.
-    ! Typically, nHcoSpc is just the number of species defined in both 
+    ! Typically, nHcoSpc is just the number of species defined in both
     ! the HEMCO configuration file and GEOS-Chem. However, additional
     ! species can be defined, e.g. those not transported in GEOS-Chem
     ! (e.g. SESQ) or tagged species (e.g. specialty simulations).
     !-----------------------------------------------------------------------
     CALL SetHcoSpecies ( am_I_Root, Input_Opt, State_Chm,                    &
-                         HcoState,  nHcoSpc,   1,         HMRC              ) 
+                         HcoState,  nHcoSpc,   1,         HMRC              )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -343,7 +356,7 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Now that number of HEMCO species are known, initialize HEMCO
-    ! state object.  Links the HEMCO configuration file object 
+    ! state object.  Links the HEMCO configuration file object
     ! iHcoConfig to HcoState%Config.
     !-----------------------------------------------------------------------
     CALL HcoState_Init( am_I_Root, HcoState, iHcoConfig, nHcoSpc, HMRC      )
@@ -404,9 +417,9 @@ CONTAINS
     ! is set to the container name since this is the identifying name
     ! used by ExtData.
 #ifdef ESMF_
-    HcoState%isESMF = .TRUE.
-#else 
-    HcoState%isESMF = .FALSE.
+    HcoState%Options%isESMF = .TRUE.
+#else
+    HcoState%Options%isESMF = .FALSE.
 #endif
 
     ! Set deposition length scale. This determines if dry deposition
@@ -414,9 +427,27 @@ CONTAINS
     ! model layer only.
     HcoState%Options%PBL_DRYDEP = Input_Opt%PBL_DRYDEP
 
+    !----------------------------------------------------------------------
+    ! Are we running HEMCO in a dry-run mode?
+    ! This is dictated by the GEOS-Chem environment. If GEOS-Chem is in a
+    ! dry-run mode, no compute is performed and files are only "checked".
+    ! Simulations will NOT stop on missing files. This is intended to be a
+    ! quick sanity check to make sure that GEOS-Chem IO are all correctly
+    ! set up, which is why most of the runs fail to complete successfully.
+    ! (hplin, 11/2/19)
+    !
+    ! Dry run simulations will send output to the stdout (which usually
+    ! gets piped to the GEOS-Chem log file).
+    !
+    ! NOTE: The dry-run option is only invoked in GEOS-Chem "Classic",
+    ! so these values will remain at their defaults (.FALSE. and -1,
+    ! respectively) when we use HEMCO in external ESMs (bmy, 11/13/19)
+    !----------------------------------------------------------------------
+    HcoState%Options%IsDryRun = Input_Opt%DryRun
+
     !=======================================================================
     ! Initialize HEMCO internal lists and variables. All data
-    ! information is written into internal lists (ReadList) and 
+    ! information is written into internal lists (ReadList) and
     ! the HEMCO configuration file is removed from buffer in this
     ! step. This also initializes the HEMCO clock as well as the
     ! HEMCO emissions diagnostics collection.
@@ -435,6 +466,9 @@ CONTAINS
     ! Save # of defined dust species in HcoState
     HcoState%nDust                     =  NDSTBIN
 
+    ! Use marine organic aerosols?
+    HcoState%MarinePOA                 =  Input_Opt%LMPOA
+
 #ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
@@ -448,13 +482,13 @@ CONTAINS
     HcoState%MicroPhys%nActiveModeBins =  10
 #elif defined( TOMAS15 )
     HcoState%MicroPhys%nActiveModeBins =  3
-#else 
+#else
     HcoState%MicroPhys%nActiveModeBins =  0
 #endif
 #endif
 
     !=======================================================================
-    ! Initialize all HEMCO extensions. This also selects the required 
+    ! Initialize all HEMCO extensions. This also selects the required
     ! met fields used by each extension.
     !=======================================================================
     CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
@@ -468,8 +502,19 @@ CONTAINS
        RETURN
     ENDIF
 
+    !=======================================================================
+    ! For dry-runs only: Print the status of the HEMCO diagnostic
+    ! configuration file (e.g. HEMCO_Diagn.rc), and then exit
+    !=======================================================================
+    IF ( Input_Opt%DryRun ) THEN
+       CALL DiagnFileOpen( am_I_Root, HcoState%Config, N,                   &
+                           RC,        IsDryRun=.TRUE.                      )
+
+       RETURN
+    ENDIF
+
     !-----------------------------------------------------------------------
-    ! Update and check logical switches in Input_Opt 
+    ! Update and check logical switches in Input_Opt
     !-----------------------------------------------------------------------
 
     ! Soil NOx
@@ -507,16 +552,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Marine organic aerosols
-    IF ( ExtState%MarinePOA > 0 ) THEN
-       IF ( .not. Input_Opt%LMPOA ) THEN
-          ErrMsg = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          CALL Flush( HcoState%Config%Err%Lun )
-          RETURN
-       ENDIF
-    ENDIF
-
     !-----------------------------------------------------------------------
     ! Set constants for POPs simulation
     !-----------------------------------------------------------------------
@@ -530,11 +565,11 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Initialize ExtState target arrays. 
-    ! Extensions typically depend on environmental dependent met. 
-    ! variables such as wind speed, surface temp., etc. Pointers 
-    ! to these (2D or 3D) fields are defined in the extension object. 
-    ! Here, we need to make sure that these pointers are properly 
+    ! Initialize ExtState target arrays.
+    ! Extensions typically depend on environmental dependent met.
+    ! variables such as wind speed, surface temp., etc. Pointers
+    ! to these (2D or 3D) fields are defined in the extension object.
+    ! Here, we need to make sure that these pointers are properly
     ! connected.
     !-----------------------------------------------------------------------
     CALL ExtState_InitTargets( am_I_Root, HcoState, ExtState, State_Grid,    &
@@ -552,7 +587,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Define diagnostics
     !-----------------------------------------------------------------------
-    IF ( DoDiagn ) THEN 
+    IF ( DoDiagn ) THEN
 
        ! Set up traditional GEOS-Chem NDxx diagnostics for emissions
        CALL HCOI_GC_Diagn_Init( am_I_Root, Input_Opt,                        &
@@ -578,7 +613,7 @@ CONTAINS
     ! Leave w/ success
     RC = GC_SUCCESS
 
-    END SUBROUTINE HCOI_GC_INIT 
+    END SUBROUTINE HCOI_GC_INIT
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -587,7 +622,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOI_GC_Run
 !
-! !DESCRIPTION: Subroutine HCOI\_GC\_Run runs HEMCO from GEOS-Chem. 
+! !DESCRIPTION: Subroutine HCOI\_GC\_Run runs HEMCO from GEOS-Chem.
 !\\
 !\\
 ! !INTERFACE:
@@ -603,26 +638,27 @@ CONTAINS
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
+    USE Time_Mod,        ONLY : Get_Tau
 
-    ! HEMCO routines 
+    ! HEMCO routines
     USE HCO_Clock_Mod,   ONLY : HcoClock_Get
     USE HCO_Clock_Mod,   ONLY : HcoClock_EmissionsDone
     USE HCO_Diagn_Mod,   ONLY : HcoDiagn_AutoUpdate
-    USE HCO_FluxArr_Mod, ONLY : HCO_FluxarrReset 
+    USE HCO_FluxArr_Mod, ONLY : HCO_FluxarrReset
     USE HCO_Driver_Mod,  ONLY : HCO_Run
     USE HCOX_Driver_Mod, ONLY : HCOX_Run
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Is this an emission time step? 
+    LOGICAL,          INTENT(IN   )  :: EmisTime   ! Is this an emission time step?
     INTEGER,          INTENT(IN   )  :: Phase      ! Run phase (see remarks)
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input options
-    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Meteo state 
+    TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Meteo state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
@@ -632,7 +668,7 @@ CONTAINS
 !  Phase  1 : Update HEMCO clock and HEMCO data list and get met fields
 !  Phase  2 : Perform emissions calculation
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  12 Sep 2013 - C. Keller   - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -641,12 +677,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: FIRST = .TRUE.
+    ! SAVEd variables
+    REAL(f8), SAVE     :: PrevTAU = -999999.0_f8
 
     ! Scalars
-    INTEGER            :: HMRC 
+    LOGICAL            :: notDryRun
+    INTEGER            :: HMRC
     LOGICAL            :: IsEmisTime
+    LOGICAL            :: IsEndStep
 
     ! Strings
     CHARACTER(LEN=255) :: ThisLoc, Instr
@@ -657,28 +695,18 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    RC       = GC_SUCCESS
-    HMRC     = HCO_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = &
+    RC        = GC_SUCCESS
+    HMRC      = HCO_SUCCESS
+    ErrMsg    = ''
+    ThisLoc   = &
        ' -> at HCOI_GC_Run (in module GeosCore/hcoi_gc_main_mod.F90)'
-    Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
-               'HEMCO log file for additional error messages!'
-
-    ! Create a splash page
-    IF ( am_I_Root .and. FIRST ) THEN 
-       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
-       WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
-       WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
-       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
- 100   FORMAT( '%%%%%', 15x, a,      15x, '%%%%%' )
- 101   FORMAT( '%%%%%', 15x, a, a12, 14x  '%%%%%' )
-       FIRST = .FALSE.
-    ENDIF
+    Instr     = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '      // &
+                'HEMCO log file for additional error messages!'
+    notDryRun = ( .not. Input_Opt%DryRun )
 
     !=======================================================================
     ! Make sure HEMCO time is in sync with simulation time
-    ! This is now done in main.F 
+    ! This is now done in main.F
     !=======================================================================
     CALL SetHcoTime( am_I_Root, EmisTime, HMRC                             )
 
@@ -709,11 +737,21 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Check if this is the last GEOS-Chem timestep
+    IF ((( HcoState%Clock%ThisYear * 10000 + HcoState%Clock%ThisMonth * 100 + &
+           HcoState%Clock%ThisDay ) == Input_Opt%NYMDe ) .AND. &
+        (( HcoState%Clock%ThisHour * 10000 + HcoState%Clock%ThisMin   * 100 + &
+           HcoState%Clock%ThisSec ) == Input_Opt%NHMSe )) THEN
+       IsEndStep = .TRUE.
+    ELSE
+       IsEndStep = .FALSE.
+    ENDIF
+
     !=======================================================================
     ! Reset all emission and deposition values. Do this only if it is time
     ! for emissions, i.e. if those values will be refilled.
     !=======================================================================
-    IF ( IsEmisTime .AND. Phase == 2 ) THEN
+    IF ( IsEmisTime .AND. Phase == 2 .and. notDryRun ) THEN
        CALL HCO_FluxArrReset( HcoState, HMRC                                )
 
        ! Trap potential errors
@@ -730,7 +768,7 @@ CONTAINS
     ! Define pressure edges [Pa] on HEMCO grid.
     ! At Phase 0, the pressure field is not known yet.
     !=======================================================================
-    IF ( Phase /= 0 ) THEN
+    IF ( Phase /= 0 .and. notDryRun ) THEN
        CALL GridEdge_Set( am_I_Root, State_Grid, State_Met, HcoState, HMRC  )
 
        ! Trap potential errors
@@ -742,30 +780,36 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
- 
+
+    ! Check if HEMCO has already been called for this timestep
+    IF ( ( Phase == 1 ) .and. ( GET_TAU() == PrevTAU ) ) THEN
+       Print*, 'HEMCO already called for this timestep. Returning.'
+       RETURN
+    ENDIF
+
     !=======================================================================
-    ! Set HCO options 
+    ! Set HCO options
     !=======================================================================
 
     ! Range of species and emission categories.
     ! Set Extension number ExtNr to 0, indicating that the core
-    ! module shall be executed. 
-    HcoState%Options%SpcMin = 1 
+    ! module shall be executed.
+    HcoState%Options%SpcMin = 1
     HcoState%Options%SpcMax = -1
-    HcoState%Options%CatMin = 1 
-    HcoState%Options%CatMax = -1 
+    HcoState%Options%CatMin = 1
+    HcoState%Options%CatMax = -1
     HcoState%Options%ExtNr  = 0
 
     ! Use temporary array?
-    HcoState%Options%FillBuffer = .FALSE. 
+    HcoState%Options%FillBuffer = .FALSE.
 
     !=======================================================================
     ! Run HCO core module
     ! Pass phase as argument. Phase 1 will update the emissions list,
-    ! phase 2 will calculate the emissions. Emissions will be written into 
-    ! the corresponding flux arrays in HcoState. 
+    ! phase 2 will calculate the emissions. Emissions will be written into
+    ! the corresponding flux arrays in HcoState.
     !=======================================================================
-    CALL HCO_Run( am_I_Root, HcoState, Phase, HMRC                          )
+    CALL HCO_Run( am_I_Root, HcoState, Phase, HMRC, IsEndStep )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -780,67 +824,87 @@ CONTAINS
     !=======================================================================
     ! Get met fields from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
-    IF ( Phase == 0 .or. PHASE == 1 ) THEN
-       CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, Phase, RC )
+    IF ( ( Phase == 0 .or. PHASE == 1 ) .and. notDryRun ) THEN
+       CALL Get_Met_Fields( am_I_Root,  Input_Opt, State_Chm,               &
+                            State_Grid, State_Met, Phase,     RC           )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Get_Met_Fields"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
     ! Get fields from GEOS-Chem restart file (GEOS-Chem "Classic" only)
     !=======================================================================
-    IF ( Phase == 0 ) THEN
-       CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, RC )
+    IF ( Phase == 0 .and. notDryRun ) THEN
+       CALL Get_GC_Restart( am_I_Root,  Input_Opt, State_Chm,               &
+                            State_Grid, State_Met, RC                      )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Get_GC_Restart"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
     ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
-    IF ( State_Grid%NestedGrid .and. (Phase == 0 .or. PHASE == 1) ) THEN
-       CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
-                                     State_Grid, State_Met, RC )
+    IF ( State_Grid%NestedGrid        .and.                                 &
+         (Phase == 0 .or. PHASE == 1) .and. notDryRun ) THEN
+       IF ( Input_Opt%LTRAN ) THEN
+          CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm,   &
+                                       State_Grid, State_Met, RC           )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Get_Boundary_Conditions"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
     ENDIF
-    
+
 #endif
 
     !=======================================================================
-    ! Do the following only if it's time to calculate emissions 
+    ! Do the following only if it's time to calculate emissions
     !=======================================================================
-    IF ( Phase == 2 .AND. IsEmisTime ) THEN 
+    IF ( Phase == 2 .AND. IsEmisTime ) THEN
 
        !--------------------------------------------------------------------
        ! Set / update ExtState fields.
-       ! Extensions typically depend on environmental dependent met. 
-       ! variables such as wind speed, surface temp., etc. Pointers 
-       ! to these (2D or 3D) fields are defined in the extension object. 
-       ! Here, we need to make sure that these pointers are properly 
+       ! Extensions typically depend on environmental dependent met.
+       ! variables such as wind speed, surface temp., etc. Pointers
+       ! to these (2D or 3D) fields are defined in the extension object.
+       ! Here, we need to make sure that these pointers are properly
        ! connected.
        !--------------------------------------------------------------------
-       CALL ExtState_SetFields( am_I_Root, State_Chm, State_Met,             &
-                                HcoState,  ExtState,  HMRC                  )
+       IF ( notDryRun ) THEN
+          CALL ExtState_SetFields( am_I_Root, State_Chm, State_Met,          &
+                                   HcoState,  ExtState,  HMRC               )
 
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "ExtState_SetFields"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          CALL Flush( HcoState%Config%Err%Lun )
-          RETURN
-       ENDIF
-   
-       CALL ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,         &
-                                   State_Grid, State_Met, HcoState,          &
-                                   ExtState,   HMRC                         )
+          ! Trap potential errors
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "ExtState_SetFields"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             CALL Flush( HcoState%Config%Err%Lun )
+             RETURN
+          ENDIF
 
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "ExtState_UpdateFields"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          CALL Flush( HcoState%Config%Err%Lun )
-          RETURN
+          CALL ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,      &
+                                      State_Grid, State_Met, HcoState,       &
+                                      ExtState,   HMRC                      )
+
+          ! Trap potential errors
+          IF ( HMRC /= HCO_SUCCESS ) THEN
+             RC     = HMRC
+             ErrMsg = 'Error encountered in "ExtState_UpdateFields"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+             CALL Flush( HcoState%Config%Err%Lun )
+             RETURN
+          ENDIF
        ENDIF
-   
+
        !====================================================================
        ! Run HCO extensions. Emissions will be added to corresponding
        ! flux arrays in HcoState.
@@ -855,14 +919,14 @@ CONTAINS
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
-   
+
        !====================================================================
-       ! Update all 'AutoFill' diagnostics. This makes sure that all 
+       ! Update all 'AutoFill' diagnostics. This makes sure that all
        ! diagnostics fields with the 'AutoFill' flag are up-to-date. The
        ! AutoFill flag is specified when creating a diagnostics container
        ! (Diagn_Create).
        !====================================================================
-       IF ( DoDiagn ) THEN
+       IF ( DoDiagn .and. notDryRun ) THEN
           CALL HcoDiagn_AutoUpdate( am_I_Root, HcoState, HMRC               )
 
           ! Trap potential errors
@@ -874,13 +938,13 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-   
+
        !====================================================================
-       ! Reset the accumulated nitrogen dry and wet deposition to zero. 
+       ! Reset the accumulated nitrogen dry and wet deposition to zero.
        ! Will be re-filled in drydep and wetdep.
        !====================================================================
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
-            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+       IF ( ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.                           &
+              Input_Opt%ITS_AN_AEROSOL_SIM ) .and. notDryRun ) THEN
           CALL RESET_DEP_N( State_Chm )
        ENDIF
 
@@ -897,11 +961,14 @@ CONTAINS
           CALL Flush( HcoState%Config%Err%Lun )
           RETURN
        ENDIF
-       
-    ENDIF  
- 
-    ! We are now back in GEOS-Chem environment, hence set 
-    ! return flag accordingly! 
+
+    ENDIF
+
+    ! Save TAU
+    PrevTAU = GET_TAU()
+
+    ! We are now back in GEOS-Chem environment, hence set
+    ! return flag accordingly!
     RC = GC_SUCCESS
 
   END SUBROUTINE HCOI_GC_Run
@@ -914,7 +981,7 @@ CONTAINS
 ! !IROUTINE: HCOI_GC_Final
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_Final cleans up HEMCO. This routine
-! should be called before the finalize routines of State\_Chm in order to 
+! should be called before the finalize routines of State\_Chm in order to
 ! make sure that the emissions flux pointers are properly removed!
 !\\
 !\\
@@ -939,7 +1006,7 @@ CONTAINS
 !
     INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  12 Sep 2013 - C. Keller   - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -968,7 +1035,7 @@ CONTAINS
                'HEMCO log file for additional error messages!'
 
     !-----------------------------------------------------------------------
-    ! Cleanup HEMCO core 
+    ! Cleanup HEMCO core
     !-----------------------------------------------------------------------
     CALL HCO_Final( am_I_Root, HcoState, Error, HMRC )
 
@@ -983,9 +1050,9 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Cleanup extensions and ExtState object
-    ! This will also nullify all pointer to the met fields. 
+    ! This will also nullify all pointer to the met fields.
     !-----------------------------------------------------------------------
-    CALL HCOX_Final( am_I_Root, HcoState, ExtState, HMRC ) 
+    CALL HCOX_Final( am_I_Root, HcoState, ExtState, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1002,9 +1069,9 @@ CONTAINS
     CALL DiagnBundle_Cleanup( HcoState%Diagn )
 
     !-----------------------------------------------------------------------
-    ! Cleanup HcoState object 
+    ! Cleanup HcoState object
     !-----------------------------------------------------------------------
-    CALL HcoState_Final( HcoState ) 
+    CALL HcoState_Final( HcoState )
 
     !-----------------------------------------------------------------------
     ! Deallocate module variables
@@ -1044,7 +1111,7 @@ CONTAINS
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:SUMCOSZA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
- 
+
   END SUBROUTINE HCOI_GC_Final
 !EOC
 !------------------------------------------------------------------------------
@@ -1055,7 +1122,7 @@ CONTAINS
 ! !IROUTINE: HCOI_GC_WriteDiagn
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_WriteDiagn is the wrapper routine to
-! write the HEMCO diagnostics. This will only write the diagnostics of 
+! write the HEMCO diagnostics. This will only write the diagnostics of
 ! diagnostics collection 1.
 !\\
 !\\
@@ -1066,7 +1133,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCOIO_Diagn_Mod, ONLY : HcoDiagn_Write 
+    USE HCOIO_Diagn_Mod, ONLY : HcoDiagn_Write
     USE Input_Opt_Mod,   ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1079,7 +1146,7 @@ CONTAINS
 !
     INTEGER,        INTENT(INOUT) :: RC           ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Apr 2015 - C. Keller   - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -1109,7 +1176,7 @@ CONTAINS
                'HEMCO log file for additional error messages!'
 
     !-----------------------------------------------------------------------
-    ! Make sure HEMCO time is in sync 
+    ! Make sure HEMCO time is in sync
     !-----------------------------------------------------------------------
     CALL SetHcoTime ( am_I_Root, .FALSE., HMRC )
 
@@ -1148,15 +1215,15 @@ CONTAINS
 ! !DESCRIPTION: SUBROUTINE ExtState\_InitTargets allocates some local arrays
 ! that act as targets for the ExtState object.
 !\\
-! Note that for now, this explicitly assumes that the HEMCO emissions grid is 
-! the same as the GEOS-Chem simulation grid. To support other grids, the met 
+! Note that for now, this explicitly assumes that the HEMCO emissions grid is
+! the same as the GEOS-Chem simulation grid. To support other grids, the met
 ! data has to be regridded explicitly at every time step!
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE ExtState_InitTargets( am_I_Root,  HcoState, ExtState, &
-                                   State_Grid, RC ) 
+                                   State_Grid, RC )
 !
 ! !USES:
 !
@@ -1205,13 +1272,13 @@ CONTAINS
                'HEMCO log file for additional error messages!'
 
     !-----------------------------------------------------------------------
-    ! HCO_SZAFACT is not defined in Met_State.  Hence need to 
+    ! HCO_SZAFACT is not defined in Met_State.  Hence need to
     ! define here so that we can point to them.
     !
     ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
     ! simulation (mps, 8/20/14)
     ! ----------------------------------------------------------------------
-    IF ( ExtState%SZAFACT%DoUse ) THEN 
+    IF ( ExtState%SZAFACT%DoUse ) THEN
 
        ALLOCATE( SUMCOSZA( State_Grid%NX, State_Grid%NY ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:SUMCOSZA', 0, RC )
@@ -1225,7 +1292,7 @@ CONTAINS
 
     ENDIF
 
-    IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN 
+    IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
        ALLOCATE( HCO_FRAC_OF_PBL( State_Grid%NX, State_Grid%NY, &
                                   State_Grid%NZ ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:HCO_FRAC_OF_PBL', 0, RC )
@@ -1238,16 +1305,16 @@ CONTAINS
 
     ! ----------------------------------------------------------------------
     ! The J-Values for NO2 and O3 are not defined in Met_State. We
-    ! need to compute them separately. 
+    ! need to compute them separately.
     ! ----------------------------------------------------------------------
-    IF ( ExtState%JNO2%DoUse ) THEN 
+    IF ( ExtState%JNO2%DoUse ) THEN
        ALLOCATE( JNO2( State_Grid%NX, State_Grid%NY ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JNO2', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        JNO2 = 0.0e0_hp
     ENDIF
 
-    IF ( ExtState%JOH%DoUse ) THEN 
+    IF ( ExtState%JOH%DoUse ) THEN
        ALLOCATE( JOH( State_Grid%NX, State_Grid%NY ), STAT=RC )
        CALL GC_CheckVar( 'hcoi_gc_main_mod.F90:JOH', 0, RC )
        JOH = 0.0e0_hp
@@ -1308,10 +1375,10 @@ CONTAINS
     IF ( ExtState%CONV_DEPTH%DoUse ) THEN
        CALL HCO_ArrAssert( ExtState%CONV_DEPTH%Arr, State_Grid%NX, &
                            State_Grid%NY, HMRC )
-    
+
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC 
+          RC     = HMRC
           ErrMsg = 'Error encountered in "HCO_ArrAssert( CONV_DEPTH )"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           CALL Flush( HcoState%Config%Err%Lun )
@@ -1320,7 +1387,7 @@ CONTAINS
     ENDIF
 
     ! SUNCOS: HEMCO now calculates SUNCOS values based on its own
-    ! subroutine 
+    ! subroutine
     IF ( ExtState%SUNCOS%DoUse ) THEN
        CALL HCO_ArrAssert( ExtState%SUNCOS%Arr, State_Grid%NX, State_Grid%NY, &
                            HMRC )
@@ -1347,36 +1414,36 @@ CONTAINS
 !
 ! !IROUTINE: ExtState_SetFields
 !
-! !DESCRIPTION: SUBROUTINE ExtState\_SetFields connects the ExtState fields 
+! !DESCRIPTION: SUBROUTINE ExtState\_SetFields connects the ExtState fields
 ! of the HEMCO ExtState object to its target data. This can be a field in
 ! State\_Met, State\_Chm, or any other 2D/3D field defined within GEOS-Chem or
-! even explicitly calculated in this module. All these fields are expected 
-! to be of the same type as the corresponding ExtState object, and a pointer 
+! even explicitly calculated in this module. All these fields are expected
+! to be of the same type as the corresponding ExtState object, and a pointer
 ! link is established between the two fields on the first call.
 !\\
 !\\
 ! The ExtState object fields can also be linked to data fields read through
 ! the HEMCO configuration file. In this case, the data fields will be copied
 ! from the HEMCO data list into the ExtState object every time this routine
-! is called. The field name of the HEMCO field must match the field name 
-! passed to ExtState\_Set. 
+! is called. The field name of the HEMCO field must match the field name
+! passed to ExtState\_Set.
 !\\
 !\\
 ! Fields from the HEMCO data list are given priority over the target fields from
-! State\_Met, State\_Chm, etc. For example, if the HEMCO data list contains 
+! State\_Met, State\_Chm, etc. For example, if the HEMCO data list contains
 ! a field named 'U10M', this field will be used in ExtState%U10M in lieu of
-! State\_Met%U10M. 
-!\\  
+! State\_Met%U10M.
 !\\
-! Note that for now, this explicitly assumes that the HEMCO emissions grid is 
-! the same as the GEOS-Chem simulation grid. To support other grids, the met 
+!\\
+! Note that for now, this explicitly assumes that the HEMCO emissions grid is
+! the same as the GEOS-Chem simulation grid. To support other grids, the met
 ! data has to be regridded explicitly at every time step!
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE ExtState_SetFields( am_I_Root, State_Chm, State_Met,            &
-                                 HcoState,  ExtState,  RC                   ) 
+                                 HcoState,  ExtState,  RC                   )
 !
 ! !USES:
 !
@@ -1396,7 +1463,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state 
+    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
     TYPE(EXT_STATE),  POINTER        :: ExtState   ! HEMCO ext. state
     INTEGER,          INTENT(INOUT)  :: RC         ! Return code
@@ -1437,11 +1504,11 @@ CONTAINS
                'HEMCO log file for additional error messages!'
 
     !-----------------------------------------------------------------------
-    ! Pointers to local module arrays 
+    ! Pointers to local module arrays
     !-----------------------------------------------------------------------
 
     ! SZAFACT
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%SZAFACT,         & 
+    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%SZAFACT,         &
                     'SZAFACT_FOR_EMIS', HMRC,     FIRST,                    &
                      HCO_SZAFACT                                           )
 
@@ -1469,7 +1536,7 @@ CONTAINS
     ! JOH
     CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%JOH,              &
                     'JOH_FOR_EMIS',     HMRC,     FIRST,                     &
-                     JOH                                                    )  
+                     JOH                                                    )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1483,7 +1550,7 @@ CONTAINS
     CALL ExtDat_Set( am_I_Root,             HcoState,                        &
                      ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS',           &
                      HMRC,                  FIRST,                           &
-                     HCO_FRAC_OF_PBL                                        )  
+                     HCO_FRAC_OF_PBL                                        )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1494,7 +1561,7 @@ CONTAINS
     ENDIF
 
     ! ----------------------------------------------------------------------
-    ! 2D fields 
+    ! 2D fields
     ! ----------------------------------------------------------------------
 
     ! U10M
@@ -1512,7 +1579,7 @@ CONTAINS
 
     ! V10M
     CALL ExtDat_Set( am_I_Root,      HcoState, ExtState%V10M,                &
-                    'V10M_FOR_EMIS', HMRC,     FIRST,                        & 
+                    'V10M_FOR_EMIS', HMRC,     FIRST,                        &
                      State_Met%V10M                                         )
 
     ! Trap potential errors
@@ -1719,7 +1786,7 @@ CONTAINS
 
     ! SNOWDP is in m
     CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%SNODP,             &
-                    'SNODP_FOR_EMIS',  HMRC,    FIRST,                       & 
+                    'SNODP_FOR_EMIS',  HMRC,    FIRST,                       &
                      State_Met%SNODP                                        )
 
     ! Trap potential errors
@@ -1795,19 +1862,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! CHLR
-    CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%CHLR,           &
-                    'CHLR',               HMRC,     FIRST,                   &
-                     State_Met%MODISCHLR                                    )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( CHLR )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
     ! Convective fractions
     CALL ExtDat_Set( am_I_Root,         HcoState,        ExtState%CNV_FRC,   &
                     'CNV_FRC_FOR_EMIS', HMRC,            FIRST,              &
@@ -1822,7 +1876,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! 3D fields 
+    ! 3D fields
     !-----------------------------------------------------------------------
 
     ! CNV_MFC
@@ -1901,7 +1955,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
-    
+
     ! ----------------------------------------------------------------
     ! Species concentrations
     ! ----------------------------------------------------------------
@@ -1924,7 +1978,7 @@ CONTAINS
     IF ( id_NO2 > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_NO2)
        CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%NO2,         &
-                       'HEMCO_NO2_FOR_EMIS', HMRC,     FIRST,        Trgt3D ) 
+                       'HEMCO_NO2_FOR_EMIS', HMRC,     FIRST,        Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1940,7 +1994,7 @@ CONTAINS
     IF ( id_NO > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_NO)
        CALL ExtDat_Set( am_I_Root,          HcoState, ExtState%NO,           &
-                       'HEMCO_NO_FOR_EMIS', HMRC,     FIRST,         Trgt3D ) 
+                       'HEMCO_NO_FOR_EMIS', HMRC,     FIRST,         Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1956,7 +2010,7 @@ CONTAINS
     IF ( id_HNO3 > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_HNO3)
        CALL ExtDat_Set( am_I_Root,            HcoState, ExtState%HNO3,       &
-                       'HEMCO_HNO3_FOR_EMIS', HMRC,     FIRST,       Trgt3D ) 
+                       'HEMCO_HNO3_FOR_EMIS', HMRC,     FIRST,       Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1972,7 +2026,7 @@ CONTAINS
     IF ( id_POPG > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_POPG)
        CALL ExtDat_Set( am_I_Root,            HcoState, ExtState%POPG,       &
-                       'HEMCO_POPG_FOR_EMIS', HMRC,     FIRST,       Trgt3D ) 
+                       'HEMCO_POPG_FOR_EMIS', HMRC,     FIRST,       Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1988,11 +2042,11 @@ CONTAINS
     ! ----------------------------------------------------------------------
     ! Deposition parameter
     ! ----------------------------------------------------------------------
-    
+
     ! DRY_TOTN
     CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%DRY_TOTN,       &
                     'DRY_TOTN_FOR_EMIS',  HMRC,     FIRST,                   &
-                     State_Chm%DryDepNitrogen                               ) 
+                     State_Chm%DryDepNitrogen                               )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2005,7 +2059,7 @@ CONTAINS
     ! WET_TOTN
     CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%WET_TOTN,       &
                     'WET_TOTN_FOR_EMIS',  HMRC,     FIRST,                   &
-                     State_Chm%WetDepNitrogen                               ) 
+                     State_Chm%WetDepNitrogen                               )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2030,7 +2084,7 @@ CONTAINS
     ! ESMF environment: add some additional variables to ExtState.
     ! These values must be defined here and not in the initialization
     ! because it seems like the IMPORT state is not yet properly
-    ! defined during initialization. 
+    ! defined during initialization.
     ! ckeller, 06/02/17: now call this on every time step. Routine
     ! HCO_SetExtState_ESMF copies the fields to ExtState.
     ! ----------------------------------------------------------------
@@ -2063,7 +2117,7 @@ CONTAINS
 !
 ! !IROUTINE: ExtState_UpdateFields
 !
-! !DESCRIPTION: SUBROUTINE ExtState\_UpdateFields updates the extension 
+! !DESCRIPTION: SUBROUTINE ExtState\_UpdateFields updates the extension
 ! object data pointers. Updates are only required for the shadow arrays
 ! defined in this module, such as J-values, SZAFACT, etc.
 !\\
@@ -2072,7 +2126,7 @@ CONTAINS
 !
   SUBROUTINE ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,  &
                                     State_Grid, State_Met, HcoState,   &
-                                    ExtState,   RC ) 
+                                    ExtState,   RC )
 !
 ! !USES:
 !
@@ -2141,7 +2195,7 @@ CONTAINS
        ExtState%TROPP%Arr%Val = State_Met%TROPP * 100.0_hp
     ENDIF
 
-    ! SPHU: convert from g/kg to kg/kg. Only need surface value. 
+    ! SPHU: convert from g/kg to kg/kg. Only need surface value.
     IF ( ExtState%SPHU%DoUse ) THEN
        ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
     ENDIF
@@ -2154,12 +2208,12 @@ CONTAINS
     ! CONV_DEPTH: convective cloud depth [m]
     IF ( ExtState%CONV_DEPTH%DoUse ) THEN
        ExtState%CONV_DEPTH%Arr%Val = State_Met%CONV_DEPTH
-    ENDIF    
+    ENDIF
 
     ! SUNCOS
     IF ( ExtState%SUNCOS%DoUse ) THEN
        CALL HCO_GetSUNCOS( am_I_Root,               HcoState,                &
-                           ExtState%SUNCOS%Arr%Val, 0,        HMRC          ) 
+                           ExtState%SUNCOS%Arr%Val, 0,        HMRC          )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2241,7 +2295,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GridEdge_Set 
+! !IROUTINE: GridEdge_Set
 !
 ! !DESCRIPTION: SUBROUTINE GridEdge\_Set sets the grid edge pressure values
 ! on the HEMCO grid.
@@ -2262,7 +2316,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root 
+    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
@@ -2293,7 +2347,7 @@ CONTAINS
     CHARACTER(LEN=512) :: ErrMsg
 
     ! Pointers
-    REAL(hp), POINTER  :: PBLM    (:,:  )    ! PBL height           [m ] 
+    REAL(hp), POINTER  :: PBLM    (:,:  )    ! PBL height           [m ]
     REAL(hp), POINTER  :: BXHEIGHT(:,:,:)    ! Grid box height      [m ]
     REAL(hp), POINTER  :: PEDGE   (:,:,:)    ! Pressure @ lvl edges [Pa]
     REAL(hp), POINTER  :: PSFC    (:,:  )    ! Surface pressure     [Pa]
@@ -2327,9 +2381,9 @@ CONTAINS
     PSFC     => PEDGE(:,:,1)
 
     ! Point to other fields of State_Met
-    ZSFC     => State_Met%PHIS               
-    BXHEIGHT => State_Met%BXHEIGHT           
-    TK       => State_Met%T                  
+    ZSFC     => State_Met%PHIS
+    BXHEIGHT => State_Met%BXHEIGHT
+    TK       => State_Met%T
 
     !-----------------------------------------------------------------------
     ! Calculate vertical grid properties
@@ -2407,12 +2461,12 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SetHcoSpecies 
+! !IROUTINE: SetHcoSpecies
 !
-! !DESCRIPTION: Subroutine SetHcoSpecies defines the HEMCO species. These 
-! are typically just the GEOS-Chem species. Some additional species may be 
+! !DESCRIPTION: Subroutine SetHcoSpecies defines the HEMCO species. These
+! are typically just the GEOS-Chem species. Some additional species may be
 ! manually added, e.g. SESQ (which is not a species) or individual CO2 species
-! per emission source (for CO2 specialty sim). 
+! per emission source (for CO2 specialty sim).
 !\\
 !\\
 ! This routine has two phases: phase 1 simply returns the number of species
@@ -2437,7 +2491,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )   :: am_I_Root  ! Are we on the root CPU
-    INTEGER,          INTENT(IN   )   :: Phase      ! 1=Init, 2=Run 
+    INTEGER,          INTENT(IN   )   :: Phase      ! 1=Init, 2=Run
     TYPE(ChmState),   INTENT(IN   )   :: State_Chm  ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2449,7 +2503,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  (1) We now get physical parameters for species from the species database,
-!       which is part of the State_Chm object.  
+!       which is part of the State_Chm object.
 !  (2) In the future, it will be easier to specify non-advected species
 !       like SESQ and the CO2 regional species from the species database.
 !       The species database flags if a species is advected or not.
@@ -2505,7 +2559,7 @@ CONTAINS
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
-  
+
        !%%%%% FOR SOA SIMULATIONS %%%%%
        ! Check for SESQ: SESQ is not transported due to its short lifetime,
        ! but emissions are still calculated (in MEGAN). SESQ is only used
@@ -2517,7 +2571,7 @@ CONTAINS
        ENDIF
 
        !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
-       ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO 
+       ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO
        IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
           nSpc = nSpc + 5
        ENDIF
@@ -2528,12 +2582,12 @@ CONTAINS
           ! Verbose
           IF ( am_I_Root ) THEN
              Msg = 'Registering HEMCO species:'
-             CALL HCO_MSG( HcoState%Config%Err, Msg )
+             CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
 
           ! Sanity check: number of input species should agree with nSpc
           IF ( nSpec /= nSpc ) THEN
-             WRITE(ErrMsg,*) 'Input species /= expected species: ', nSpec, nSpc 
+             WRITE(ErrMsg,*) 'Input species /= expected species: ', nSpec, nSpc
              CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -2543,27 +2597,27 @@ CONTAINS
              ! Get info for this species from the species database
              SpcInfo => State_Chm%SpcData(N)%Info
 
-             ! Model ID and species name 
+             ! Model ID and species name
              HcoState%Spc(N)%ModID      = SpcInfo%ModelID
              HcoState%Spc(N)%SpcName    = TRIM( SpcInfo%Name )
-             
+
              ! Actual molecular weight of species [g/mol]
              HcoState%Spc(N)%MW_g       = SpcInfo%MW_g
-             
-             ! Emitted molecular weight of species [g/mol].  
-             ! Some hydrocarbon species (like ISOP) are emitted and 
+
+             ! Emitted molecular weight of species [g/mol].
+             ! Some hydrocarbon species (like ISOP) are emitted and
              ! transported as a number of equivalent carbon atoms.
-             ! For these species, the emitted molecular weight will 
+             ! For these species, the emitted molecular weight will
              ! be 12.0 (the weight of 1 carbon atom).
              HcoState%Spc(N)%EmMW_g     = SpcInfo%EmMw_g
 
-             ! Emitted molecules per molecules of species [1].  
-             ! For most species, this will be 1.0.  For hydrocarbon 
+             ! Emitted molecules per molecules of species [1].
+             ! For most species, this will be 1.0.  For hydrocarbon
              ! species (like ISOP) that are emitted and transported
              ! as equivalent carbon atoms, this will be be the number
              ! of moles carbon per mole species.
              HcoState%Spc(N)%MolecRatio = SpcInfo%MolecRatio
-   
+
              ! Set Henry's law coefficients
              HcoState%Spc(N)%HenryK0    = SpcInfo%Henry_K0   ! [M/atm]
              HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR   ! [K    ]
@@ -2574,7 +2628,7 @@ CONTAINS
 
              ! Free pointer memory
              SpcInfo => NULL()
-          ENDDO      
+          ENDDO
 
           !------------------------------------------------------------------
           ! %%%%% FOR SOA SIMULATIONS %%%%%
@@ -2603,16 +2657,16 @@ CONTAINS
           ! in the last 5 species slots (bmy, ckeller, 6/1/16)
           !------------------------------------------------------------------
           IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-       
+
              ! Add 5 additional species
              DO L = 1, 5
-                
+
                 ! ISOP, ACET, MONX follow the regular tagged CO species
                 M = State_Chm%nAdvect + L
 
                 ! Get the species name
                 SELECT CASE( L )
-                   CASE( 1 ) 
+                   CASE( 1 )
                       ThisName = 'ISOP'
                    CASE( 2 )
                       ThisName = 'ACET'
@@ -2641,13 +2695,13 @@ CONTAINS
 
           ! Add line to log-file
           IF ( am_I_Root ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
-       ENDIF ! Phase = 2   
+       ENDIF ! Phase = 2
 
     !-----------------------------------------------------------------
-    ! DEFAULT (RETURN W/ ERROR) 
+    ! DEFAULT (RETURN W/ ERROR)
     !-----------------------------------------------------------------
     ELSE
-       ErrMsg = 'Invalid simulation type - cannot define model species' 
+       ErrMsg = 'Invalid simulation type - cannot define model species'
        CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -2658,7 +2712,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-    END SUBROUTINE SetHcoSpecies 
+    END SUBROUTINE SetHcoSpecies
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2673,7 +2727,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SetHcoGrid( am_I_Root, State_Grid, State_Met, HcoState, RC ) 
+  SUBROUTINE SetHcoGrid( am_I_Root, State_Grid, State_Met, HcoState, RC )
 !
 ! !USES:
 !
@@ -2729,12 +2783,12 @@ CONTAINS
                'HEMCO log file for additional error messages!'
 
     !=======================================================================
-    ! NOTE: for now, just copy GEOS-Chem grid, i.e. HEMCO calculations 
-    ! are performed on the GEOS-Chem simulation grid. 
-    ! It is possible to define a different emissions grid below. 
-    ! In this case, all arrays have to be regridded when passing 
-    ! them between HEMCO and GEOS-Chem (this is also true for the 
-    ! met-fields used by the extensions)! 
+    ! NOTE: for now, just copy GEOS-Chem grid, i.e. HEMCO calculations
+    ! are performed on the GEOS-Chem simulation grid.
+    ! It is possible to define a different emissions grid below.
+    ! In this case, all arrays have to be regridded when passing
+    ! them between HEMCO and GEOS-Chem (this is also true for the
+    ! met-fields used by the extensions)!
     !=======================================================================
 
     ! Grid dimensions
@@ -2754,7 +2808,7 @@ CONTAINS
 
     ! Get Ap and Bp values from GEOS-Chem
     DO L = 1, State_Grid%NZ+1
-       Ap(L) = GET_AP(L) * 100_hp ! hPa to Pa 
+       Ap(L) = GET_AP(L) * 100_hp ! hPa to Pa
        Bp(L) = GET_BP(L)          ! unitless
     ENDDO
 
@@ -2762,8 +2816,8 @@ CONTAINS
     CALL HCO_VertGrid_Define( am_I_Root, HcoState%Config,                    &
                               zGrid      = HcoState%Grid%zGrid,              &
                               nz         = State_Grid%NZ,                    &
-                              Ap         = Ap,                               & 
-                              Bp         = Bp,                               & 
+                              Ap         = Ap,                               &
+                              Bp         = Bp,                               &
                               RC         = HMRC                             )
 
     ! Trap potential errors
@@ -2802,7 +2856,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine CheckSettings performs some sanity checks of the
 ! switches provided in the HEMCO configuration file (in combination with the
-! settings specified in input.geos). 
+! settings specified in input.geos).
 !\\
 !\\
 ! !INTERFACE:
@@ -2815,8 +2869,8 @@ CONTAINS
     USE ErrCode_Mod
     USE HCO_Types_Mod,      ONLY : ConfigObj
     USE HCO_ExtList_Mod,    ONLY : GetExtNr,  SetExtNr
-    USE HCO_ExtList_Mod,    ONLY : GetExtOpt, AddExtOpt 
-    USE HCO_ExtList_Mod,    ONLY : CoreNr 
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt, AddExtOpt
+    USE HCO_ExtList_Mod,    ONLY : CoreNr
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
@@ -2824,9 +2878,9 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(ConfigObj),  POINTER        :: HcoConfig  ! HEMCO config obj 
+    TYPE(ConfigObj),  POINTER        :: HcoConfig  ! HEMCO config obj
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2834,7 +2888,7 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REMARKS:
-!  Gfortran will choke unless we use the .eqv. operator to compare LOGICAL 
+!  Gfortran will choke unless we use the .eqv. operator to compare LOGICAL
 !  variables for equality (or .neqv. for inequality).
 
 ! !REVISION HISTORY:
@@ -2871,12 +2925,24 @@ CONTAINS
                'HEMCO log file for additional error messages!'
 
     !-----------------------------------------------------------------------
-    ! If emissions shall not be used, reset all extension numbers to -999. 
-    ! This will make sure that none of the extensions will be initialized 
-    ! and none of the input data related to any of the extensions will be 
-    ! used.  The only exception is the NON-EMISSIONS DATA.
+    ! If emissions are turned off, do not read emissions data
     !-----------------------------------------------------------------------
     IF ( .NOT. Input_Opt%LEMIS ) THEN
+       OptName = 'EMISSIONS : false'
+       CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
+
+       ! Trap potential errors
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "AddExtOpt( EMISSIONS )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          RETURN
+       ENDIF
+
+       ! Reset all extension numbers to -999.
+       ! This will make sure that none of the extensions will be initialized
+       ! and none of the input data related to any of the extensions will be
+       ! used.
        CALL SetExtNr( am_I_Root, HcoConfig, -999, RC=HMRC                   )
 
        ! Trap potential errors
@@ -2889,121 +2955,67 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #1: UV Albedoes
-    !
-    ! Set the UV albedo toggle according to options in input.geos.  This 
-    ! will enable/disable all fields in input.geos that are  bracketed by 
-    ! '+UValbedo+'.  Check first if this bracket values has been set 
-    ! explicitly in the HEMCO configuration file, in which case it will
-    ! not be changed.
-    !
-    ! UV albedoes are needed for photolysis.  Photolysis is only used in 
-    ! fullchem and aerosol-only simulations that have chemistry switched on.
-    ! Now search through full list of extensions (ExtNr = -999).
+    ! If chemistry is turned off, do not read chemistry input data
     !-----------------------------------------------------------------------
-    CALL GetExtOpt( HcoConfig,       -999,       '+UValbedo+',               &
-                    OptValBool=LTMP, FOUND=FOUND, RC=HMRC                   )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "GetExtOpt( +UValbedo+ )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    IF ( FOUND ) THEN
-
-       ! Stop the run if this collection is defined in the HEMCO config
-       ! file, but is set to an value inconsistent with input.geos file.
-       IF ( Input_Opt%LCHEM .AND. ( .NOT. LTMP ) ) THEN
-          ErrMsg= 'Setting +UValbedo+ in the HEMCO configuration file '   // &
-                  'must not be disabled if chemistry is turned on. '      // &
-                  'If you don`t set that setting explicitly, it will '    // &
-                  'be set automatically during run-time (recommended)'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-
-    ELSE
-
-       ! If this collection is not found in the HEMCO config file, then
-       ! activate it for those simulations requiring photolysis (i.e. 
-       ! fullchem or aerosols), and only if chemistry is turned on.
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
-            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-          IF ( Input_Opt%LCHEM ) THEN
-             OptName = '+UValbedo+ : true'
-          ELSE
-             OptName = '+UValbedo+ : false'
-          ENDIF
-       ELSE
-          OptName = '+UValbedo+ : false'
-       ENDIF
+    IF ( .NOT. Input_Opt%LCHEM ) THEN
+       OptName = 'CHEMISTRY_INPUT : false'
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
           RC     = HMRC
-          ErrMsg = 'Error encountered in "AddExtOpt( +UValbedo+ )"!'
+          ErrMsg = 'Error encountered in "AddExtOpt( CHEMISTRY_INPUT )"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           RETURN
        ENDIF
-
-    ENDIF 
+    ENDIF
 
     !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #2: PSC STATE (for UCX) 
+    ! UV Albedo
+    !
+    ! UV albedoes are needed for photolysis.  Photolysis is only used in
+    ! fullchem and aerosol-only simulations that have chemistry switched on.
     !-----------------------------------------------------------------------
-    CALL GetExtOpt( HcoConfig,       -999,        '+STATE_PSC+',             &
-                    OptValBool=LTMP, FOUND=FOUND,  RC=HMRC                  )
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+       IF ( Input_Opt%LCHEM ) THEN
+          OptName = 'UVALBEDO : true'
+       ELSE
+          OptName = 'UVALBEDO : false'
+       ENDIF
+    ELSE
+       OptName = 'UVALBEDO : false'
+    ENDIF
+    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
-       ErrMsg = 'Error encountered in "GetExtOpt( +STATE_PSC+ )"!'
+       ErrMsg = 'Error encountered in "AddExtOpt( UVALBEDO )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
 
-    IF ( FOUND ) THEN
+    !-----------------------------------------------------------------------
+    ! PSC STATE (for UCX)
+    !-----------------------------------------------------------------------
 #ifdef ESMF_
-       ! If this is in an ESMF environment, then we should not get STATE_PSC
-       ! through HEMCO - instead it is an internal restart variable
-       If (LTMP) Then
-          ErrMsg = 'Error encountered in "GetExtOpt( +STATE_PSC+ in ESMF )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
+    OptName = 'STATE_PSC : false'
 #else
-       IF ( Input_Opt%LUCX .neqv. LTMP ) THEN
-          ErrMsg = 'Setting +STATE_PSC+ in the HEMCO configuration'       // &
-                   'file does not agree with stratospheric chemistry'     // &
-                   'settings in input.geos. This may be inefficient'      // &
-                   'and/or yield to wrong results!'
-          CALL GC_Warning( ErrMsg, RC, ThisLoc )
-       ENDIF
-#endif
+    IF ( Input_Opt%LUCX ) THEN
+       OptName = 'STATE_PSC : true'
     ELSE
-#ifdef ESMF_
-       OptName = '+STATE_PSC+ : false'
-#else
-       IF ( Input_Opt%LUCX ) THEN
-          OptName = '+STATE_PSC+ : true'
-       ELSE
-          OptName = '+STATE_PSC+ : false'
-       ENDIF
+       OptName = 'STATE_PSC : false'
+    ENDIF
 #endif
-       CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC ) 
+    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "AddExtOpt(  +STATE_PSC+ )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-    ENDIF 
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "AddExtOpt(  STATE_PSC )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
 
 #ifdef ESMF_
     ! Also check that HEMCO_RESTART is not set
@@ -3026,220 +3038,109 @@ CONTAINS
 #endif
 
     !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #3: GMI linear stratospheric chemistry
+    ! GMI linear stratospheric chemistry
     !
     ! Set stratospheric chemistry toggle according to options in the
-    ! input.geos file.  This will enable/disable all fields in the HEMCO 
-    ! configuration file that are bracketed by '+LinStratChem+'.  Check 
-    ! first if +LinStratChem+  has been set explicitly in the HEMCO 
-    ! configuration file, in which case it will not be changed. Search
-    ! through all extensions (--> ExtNr = -999).
+    ! input.geos file.
     !-----------------------------------------------------------------------
-    CALL GetExtOpt( HcoConfig,      -999,         '+LinStratChem+',          &
-                    OptValBool=LTMP, FOUND=FOUND,  RC=HMRC                  )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "GetExtOpt( +LinStratChem+ )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    IF ( FOUND ) THEN
-
-       ! Print a warning if this collection is defined in the HEMCO config
-       ! file, but is set to an value inconsistent with input.geos file.
-       IF ( Input_Opt%LSCHEM .neqv. LTMP ) THEN
-          ErrMsg = 'Setting +LinStratChem+ in the HEMCO configuration'    // & 
-                   'file does not agree with stratospheric chemistry'     // &
-                   'settings in input.geos. This may be inefficient'      // &
-                   'and/or may yield wrong results!' 
-          CALL GC_Warning( ErrMsg, RC, ThisLoc )
-       ENDIF
-
-    ELSE
-
-       ! If this collection is not found in the HEMCO config file, then
-       ! activate it only if stratospheric chemistry is turned on in
-       ! the input.geos file.
-       IF ( Input_Opt%LSCHEM ) THEN
-          OptName = '+LinStratChem+ : true'
+    IF ( Input_Opt%LSCHEM .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       IF ( Input_Opt%LUCX ) THEN
+          OptName = 'GMI_PROD_LOSS : true'
        ELSE
-          OptName = '+LinStratChem+ : false'
+          OptName = 'UCX_PROD_LOSS : true'
        ENDIF
-       CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC ) 
-
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "AddExtOpt( +LinStratChem+ )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-
-    ENDIF 
-
-    !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #4: TOMS/SBUV overhead O3 columns
-    !
-    ! If we are using the GEOS-FP met fields, then we will not read in 
-    ! the TOMS/SBUV O3 columns unless running a mercury simulation.
-    ! We will instead use the O3 columns from the GEOS-FP met fields.  
-    ! In this case, we will toggle the +TOMS_SBUV_O3+ collection OFF.
-    !
-    ! All other met fields use the TOMS/SBUV data in one way or another,
-    ! so we will have to read these data from netCDF files.  In this
-    ! case, toggle the +TOMS_SBUV_O3+ collection ON if photolysis is
-    ! required (i.e. for fullchem/aerosol simulations w/ chemistry on).
-    !-----------------------------------------------------------------------
-    CALL GetExtOpt( HcoConfig,       -999,       '+TOMS_SBUV_O3+',           &
-                    OptValBool=LTMP, FOUND=FOUND, RC=HMRC                   )
+    ELSE
+       OptName = 'GMI_PROD_LOSS : false'
+       OptName = 'UCX_PROD_LOSS : false'
+    ENDIF
+    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
-       ErrMsg = 'Error encountered in "GetExtOpt( +TOMS_SBUV_O3+ )"!'
+       ErrMsg = 'Error encountered in "AddExtOpt( PROD_LOSS )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
 
-    ! Disable TOMS/SBUV O3 no matter what it is set to in the 
-    ! HEMCO configuration file unless it is a mercury simulation done 
+    !-----------------------------------------------------------------------
+    ! TOMS/SBUV overhead O3 columns
+    !
+    ! Do not read in the TOMS/SBUV O3 columns unless running a mercury
+    ! simulation. We will instead use the O3 columns from the GEOS-FP
+    ! or MERRA-2 met fields.
+    !-----------------------------------------------------------------------
+    ! Disable TOMS/SBUV O3 no matter what it is set to in the
+    ! HEMCO configuration file unless it is a mercury simulation done
     ! with photo-reducible HgII(aq) to UV-B radiation turned on (jaf)
     IF ( Input_Opt%ITS_A_MERCURY_SIM .and.   &
          Input_Opt%LKRedUV ) THEN
-       OptName = '+TOMS_SBUV_O3+ : true'          
+       OptName = 'TOMS_SBUV_O3 : true'
     ELSE
-       OptName = '+TOMS_SBUV_O3+ : false'          
+       OptName = 'TOMS_SBUV_O3 : false'
     ENDIF
-    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC    ) 
+    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC    )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
-       ErrMsg = 'Error encountered in "AddExtOpt( +TOMS_SBUV_O3+ )"!'
+       ErrMsg = 'Error encountered in "AddExtOpt( TOMS_SBUV_O )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #5: Ocean Hg input data (for Hg sims only)
+    ! Ocean Hg input data (for Hg sims only)
     !
     ! If we have turned on the Ocean Mercury simulation in the
-    ! input.geos file, then we will also toggle the +OCEAN_Hg+ 
+    ! input.geos file, then we will also toggle the OCEAN_Hg
     ! collection so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
-    CALL GetExtOpt( HcoConfig,       -999,       '+OCEAN_Hg+',               &
-                    OptValBool=LTMP, FOUND=FOUND, RC=HMRC                   )
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       IF ( Input_Opt%LDYNOCEAN ) THEN
+          OptName = 'OCEAN_Hg : true'
+       ELSE
+          OptName = 'OCEAN_Hg : false'
+       ENDIF
+    ELSE
+       OptName = 'OCEAN_Hg : false'
+    ENDIF
+    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC  )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
-       ErrMsg = 'Error encountered in "GetExtOpt( +OCEAN_Hg+ )"!'
+       ErrMsg = 'Error encountered in "AddExtOpt( OCEAN_Hg )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
 
-    IF ( FOUND ) THEN
-       
-       ! Stop the run if this collection is defined in the HEMCO config
-       ! file, but is set to an value inconsistent with input.geos file.
-       IF ( Input_Opt%LDYNOCEAN .AND. ( .NOT. LTMP ) ) THEN
-          ErrMsg = 'Setting +OCEAN_Hg+ in the HEMCO configuration file '  // &
-                   'must not be disabled if chemistry is turned on. '     // &
-                   'If you don`t set that setting explicitly, it will '   // &
-                   'be set automatically during run-time (recommended)'
-          CALL GC_Warning( ErrMsg, RC, ThisLoc )
-       ENDIF
-       
-    ELSE
-
-       ! If this collection is not found in the HEMCO config file, then
-       ! activate it for those simulations requiring photolysis (i.e. 
-       ! fullchem or aerosols), and only if chemistry is turned on.
-       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-          IF ( Input_Opt%LDYNOCEAN ) THEN
-             OptName = '+OCEAN_Hg+ : true'
-          ELSE
-             OptName = '+OCEAN_Hg+ : false'
-          ENDIF
-       ELSE
-          OptName = '+OCEAN_Hg+ : false'
-       ENDIF
-       CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC  )
-
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "AddExtOpt( +OCEAN_Hg+ )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-
-    ENDIF
-
     !-----------------------------------------------------------------------
-    ! NON-EMISSIONS DATA #6: RRTMG input data
+    ! RRTMG input data
     !
-    ! If we have turned on the Ocean Mercury simulation in the
-    ! input.geos file, then we will also toggle the +OCEAN_Hg+ 
+    ! If we have turned on the RRTMG simulation in the
+    ! input.geos file, then we will also toggle the RRTMG
     ! collection so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
-    CALL GetExtOpt( HcoConfig,       -999,       '+RRTMG+',                  &
-                    OptValBool=LTMP, FOUND=FOUND, RC=HMRC                   )
+    IF ( Input_Opt%LRAD .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       OptName = 'RRTMG : true'
+    ELSE
+       OptName = 'RRTMG : false'
+    ENDIF
+    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC  )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
-       RETURN
-       ErrMsg = 'Error encountered in "GetExtOpt( +RRTMG+ )"!'
+       ErrMsg = 'Error encountered in "AddExtOpt( RRTMG )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-
-    ENDIF
-    
-    IF ( FOUND ) THEN
-
-       ! If this collection is explicitly found in the HEMCO_Config file,
-       ! but RRTMG is turned off, then throw an error and stop the run
-       IF ( ( .not. Input_Opt%LRAD               )   .and.                   &
-            ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) ) THEN 
-
-          ErrMsg = 'Setting +RRTMG+ explicitly in the HEMCO '             // &
-                   'configuration file must only be done if the '         // &
-                   'RRTMG radiative transfer model is turned on, and '    // &
-                   'GEOS-Chem is using one of the full-chemistry '        // &
-                   'simulations.'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-
-    ELSE
-          
-       ! If this collection is not explicitly found in the HEMCO Config file,
-       ! then turn it on if (1) RRTMG is turned on, and (2) the current
-       ! simulation is one of the full-chemistry simulations (bmy, 10/31/18)
-       IF ( Input_Opt%LRAD .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-          OptName = '+RRTMG+ : true'
-       ELSE
-          OptName = '+RRTMG+ : false'
-       ENDIF
-       CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC  )
-
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "AddExtOpt( +RRTMG+ )"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
-       
+       RETURN
     ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE CheckSettings 
+  END SUBROUTINE CheckSettings
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3251,8 +3152,8 @@ CONTAINS
 ! !DESCRIPTION:
 !  Subroutine GET\_SZAFACT returns diurnal scale factors from dividing
 !  the sza by the sum of the total sza per day. These factors are mainly
-!  imposed to the monthly OH climatology. 
-!  However, the same scale factors are dimensionless and can hence be 
+!  imposed to the monthly OH climatology.
+!  However, the same scale factors are dimensionless and can hence be
 !  applied to other compounds too (e.g. O3).
 !\\
 ! !INTERFACE:
@@ -3276,7 +3177,7 @@ CONTAINS
 ! !REMARKS:
 !  Moved here from the obsolete global_oh_mod.F.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
@@ -3287,7 +3188,7 @@ CONTAINS
     !=======================================================================
 
     ! Test for sunlight...
-    IF ( State_Met%SUNCOS(I,J) > 0e+0_fp  .AND. & 
+    IF ( State_Met%SUNCOS(I,J) > 0e+0_fp  .AND. &
          SUMCOSZA(I,J)         > 0e+0_fp ) THEN
 
        ! Impose a diurnal variation on OH during the day
@@ -3312,7 +3213,7 @@ CONTAINS
 !
 ! !DESCRIPTION:
 !  Subroutine CALC\_SUMCOSZA computes the sum of cosine of the solar zenith
-!  angle over a 24 hour day, as well as the total length of daylight. 
+!  angle over a 24 hour day, as well as the total length of daylight.
 !\\
 !\\
 ! !INTERFACE:
@@ -3361,27 +3262,27 @@ CONTAINS
     B3 = 0.000148
     R  = 2.* PI * float( GET_DAY_OF_YEAR() - 1 ) / 365.
 
-    DEC = A0 - A1*cos(  R) + B1*sin(  R) & 
+    DEC = A0 - A1*cos(  R) + B1*sin(  R) &
              - A2*cos(2*R) + B2*sin(2*R) &
              - A3*cos(3*R) + B3*sin(3*R)
 
     LHR0 = int(float( GET_NHMSb() )/10000.)
 
     ! Only do the following at the start of a new day
-    IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN 
+    IF ( SAVEDOY /= GET_DAY_OF_YEAR() ) THEN
 
        ! Zero arrays
        SUMCOSZA(:,:) = 0e+0_fp
 
        ! NDYSTEP is # of chemistry time steps in this day
-       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()      
+       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()
 
        ! NT is the elapsed time [s] since the beginning of the run
        NT = GET_ELAPSED_SEC()
 
-       ! Loop forward through NDYSTEP "fake" timesteps for this day 
+       ! Loop forward through NDYSTEP "fake" timesteps for this day
        DO N = 1, NDYSTEP
-            
+
           ! Zero SUNTMP array
           SUNTMP = 0e+0_fp
 
@@ -3397,7 +3298,7 @@ CONTAINS
 
              TIMLOC = real(LHR0) + real(NT)/3600.0 + &
                       State_Grid%XMid(I,J) / 15.0
-         
+
              DO WHILE (TIMLOC .lt. 0)
                 TIMLOC = TIMLOC + 24.0
              ENDDO
@@ -3410,15 +3311,15 @@ CONTAINS
 
              !===========================================================
              ! The cosine of the solar zenith angle (SZA) is given by:
-             !     
-             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-             !                   
-             ! where LAT = the latitude angle, 
-             !       DEC = the solar declination angle,  
-             !       AHR = the hour angle, all in radians. 
              !
-             ! If SUNCOS < 0, then the sun is below the horizon, and 
-             ! therefore does not contribute to any solar heating.  
+             !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
+             !
+             ! where LAT = the latitude angle,
+             !       DEC = the solar declination angle,
+             !       AHR = the hour angle, all in radians.
+             !
+             ! If SUNCOS < 0, then the sun is below the horizon, and
+             ! therefore does not contribute to any solar heating.
              !===========================================================
 
              ! Compute Cos(SZA)
@@ -3435,10 +3336,10 @@ CONTAINS
 !!$OMP END PARALLEL DO
 
          ! Increment elapsed time [sec]
-         NT = NT + GET_TS_CHEM()             
+         NT = NT + GET_TS_CHEM()
       ENDDO
 
-      ! Set saved day of year to current day of year 
+      ! Set saved day of year to current day of year
       SAVEDOY = GET_DAY_OF_YEAR()
 
    ENDIF
@@ -3469,7 +3370,7 @@ CONTAINS
    USE ErrCode_Mod
    USE FlexGrid_Read_Mod
    USE HCO_INTERFACE_MOD,      ONLY : HcoState
-   USE HCO_EMISLIST_MOD,       ONLY : HCO_GetPtr 
+   USE HCO_EMISLIST_MOD,       ONLY : HCO_GetPtr
    USE Input_Opt_Mod,          ONLY : OptInput
    USE Pressure_Mod,           ONLY : Set_Floating_Pressures
    USE State_Chm_Mod,          ONLY : ChmState
@@ -3489,10 +3390,10 @@ CONTAINS
    TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Meteorology State
    TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry State
    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
-! 
+!
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  07 Feb 2012 - R. Yantosca - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -3505,12 +3406,12 @@ CONTAINS
    INTEGER              :: D(2)               ! Variable for date and time
    LOGICAL              :: FOUND              ! Found in restart file?
    LOGICAL              :: Update_MR          ! Update species mixing ratio?
-   CHARACTER(LEN=255)   :: v_name             ! Variable name 
+   CHARACTER(LEN=255)   :: v_name             ! Variable name
 
    ! Pointers
    REAL*4,  POINTER     :: Ptr2D(:,:)
    REAL*4,  POINTER     :: Ptr3D(:,:,:)
-   
+
    !=================================================================
    !    *****  R E A D   M E T   F I E L D S    *****
    !    *****  At the start of the GEOS-Chem simulation  *****
@@ -3518,18 +3419,18 @@ CONTAINS
 
    ! Assume success
    RC        = GC_SUCCESS
-   
+
    ! Initialize pointers
    Ptr2D       => NULL()
    Ptr3D       => NULL()
-   
+
    !----------------------------------
    ! Read time-invariant data (Phase 0 only)
    !----------------------------------
    IF ( PHASE == 0 ) THEN
       CALL FlexGrid_Read_CN( Input_Opt, State_Grid, State_Met )
    ENDIF
-      
+
    !----------------------------------
    ! Read 1-hr time-averaged data
    !----------------------------------
@@ -3542,7 +3443,7 @@ CONTAINS
         .not. ITS_TIME_FOR_EXIT() ) THEN
       CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Grid, State_Met )
    ENDIF
-   
+
    !----------------------------------
    ! Read 3-hr time averaged data
    !----------------------------------
@@ -3572,12 +3473,12 @@ CONTAINS
       !-------------
 
       ! Define variable name
-      v_name = 'TMPU'
+      v_name = 'TMPU1'
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
                        Ptr3D, RC, FOUND=FOUND )
-      
+
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Met%TMPU1 = Ptr3D
@@ -3598,7 +3499,7 @@ CONTAINS
       !-------------
 
       ! Define variable name
-      v_name = 'SPHU'
+      v_name = 'SPHU1'
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
@@ -3624,7 +3525,7 @@ CONTAINS
       !-------------
 
       ! Define variable name
-      v_name = 'PSWET'
+      v_name = 'PS1WET'
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
@@ -3644,13 +3545,13 @@ CONTAINS
 
       ! Nullify pointer
       Ptr2D => NULL()
-         
+
       !-------------
       ! PS1_DRY
       !-------------
 
       ! Define variable name
-      v_name = 'PSDRY'
+      v_name = 'PS1DRY'
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
@@ -3703,7 +3604,7 @@ CONTAINS
       CALL AvgPole( State_Grid, State_Met%PS1_DRY )
 
       ! Compute avg moist pressure near polar caps
-      CALL AvgPole( State_Grid, State_Met%PS1_WET ) 
+      CALL AvgPole( State_Grid, State_Met%PS1_WET )
 
       ! Initialize surface pressures prior to interpolation
       ! to allow initialization of floating pressures
@@ -3712,10 +3613,22 @@ CONTAINS
       CALL Set_Floating_Pressures( am_I_Root, State_Grid, State_Met, RC )
 
       ! Call AIRQNT to compute initial air mass quantities
-      ! Do not update initial tracer concentrations since not read 
+      ! Do not update initial tracer concentrations since not read
       ! from restart file yet (ewl, 10/28/15)
       CALL AirQnt( am_I_Root, Input_Opt, State_Chm, State_Grid, State_Met, &
                    RC,        update_mixing_ratio=.FALSE. )
+
+      ! Also read in I3 fields at t+3hours for this timestep
+      D = GET_I3_TIME()
+      CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
+
+      ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+      ! and compute avg dry pressure near polar caps
+      CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
+      CALL AvgPole( State_Grid, State_Met%PS2_DRY )
+
+      ! Compute avg moist pressure near polar caps
+      CALL AvgPole( State_Grid, State_Met%PS2_WET )
 
    ELSE
 
@@ -3730,12 +3643,12 @@ CONTAINS
          CALL AvgPole( State_Grid, State_Met%PS2_DRY )
 
          ! Compute avg moist pressure near polar caps
-         CALL AvgPole( State_Grid, State_Met%PS2_WET ) 
+         CALL AvgPole( State_Grid, State_Met%PS2_WET )
 
       ENDIF
 
    ENDIF
-   
+
  END SUBROUTINE Get_Met_Fields
 !EOC
 !------------------------------------------------------------------------------
@@ -3745,8 +3658,8 @@ CONTAINS
 !
 ! !IROUTINE: get_gc_restart
 !
-! !DESCRIPTION: Subroutine GET\_GC\_RESTART reads species concentrations 
-!  [mol/mol] from the GEOS-Chem restart file and uses them to initialize 
+! !DESCRIPTION: Subroutine GET\_GC\_RESTART reads species concentrations
+!  [mol/mol] from the GEOS-Chem restart file and uses them to initialize
 !  species concentrations in [kg/kg dry]. If species data are missing from
 !  the restart file, pre-configured background values are used. If using the
 !  mercury simulation, additional restart data are read from file.
@@ -3755,16 +3668,16 @@ CONTAINS
 ! !INTERFACE:
 !
  SUBROUTINE Get_GC_Restart( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, RC ) 
+                            State_Met, RC )
 !
 ! !USES:
-!     
+!
    USE CMN_SIZE_Mod
    USE DAO_Mod,            ONLY : AIRQNT
    USE ErrCode_Mod
    USE Error_Mod
    USE HCO_INTERFACE_MOD,  ONLY : HcoState
-   USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+   USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
    USE PHYSCONSTANTS,      ONLY : AIRMW
    USE Input_Opt_Mod,      ONLY : OptInput
    USE Species_Mod,        ONLY : Species
@@ -3780,22 +3693,22 @@ CONTAINS
    USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
 #endif
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
    TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
    INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !
 !  09 Feb 2016 - E. Lundgren - Initial version
 !  See the Git history with the gitk browser!
@@ -3809,21 +3722,21 @@ CONTAINS
    LOGICAL              :: FOUND              ! Found in restart file?
    CHARACTER(LEN=60)    :: Prefix             ! utility string
    CHARACTER(LEN=255)   :: LOC                ! routine location
-   CHARACTER(LEN=255)   :: MSG                ! message 
-   CHARACTER(LEN=255)   :: v_name             ! variable name 
+   CHARACTER(LEN=255)   :: MSG                ! message
+   CHARACTER(LEN=255)   :: v_name             ! variable name
    REAL(fp)             :: MW_g               ! species molecular weight
    REAL(fp)             :: SMALL_NUM          ! small number threshold
    CHARACTER(LEN=63)    :: OrigUnit
 
    ! Temporary arrays and pointers
-   REAL*4,  TARGET           :: Temp2D(State_Grid%NX,State_Grid%NY) 
+   REAL*4,  TARGET           :: Temp2D(State_Grid%NX,State_Grid%NY)
    REAL*4,  TARGET           :: Temp3D(State_Grid%NX,State_Grid%NY, &
                                        State_Grid%NZ)
    REAL*4,  POINTER          :: Ptr2D(:,:  )
    REAL*4,  POINTER          :: Ptr3D(:,:,:)
 
    ! For Hg simulation
-   INTEGER                   :: Num_Hg_Categories 
+   INTEGER                   :: Num_Hg_Categories
    INTEGER                   :: Total_Hg_Id
    CHARACTER(LEN=60)         :: HgSpc
    CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
@@ -3852,7 +3765,7 @@ CONTAINS
 
    ! Set minimum value threshold for [mol/mol]
    SMALL_NUM = 1.0e-30_fp
-      
+
    !=================================================================
    ! If running Hg simulation, set Hg-specific local variables
    !=================================================================
@@ -3863,7 +3776,7 @@ CONTAINS
 
       ! Set variable storing names for each of the Hg categories
       Hg_Cat_Name => State_Chm%Hg_Cat_Name
-    
+
       ! Set Hg species index corresponding to a given Hg category number;
       ! total is always the first category
       Total_Hg_Id   =  State_Chm%Hg0_Id_List(1)
@@ -3879,16 +3792,16 @@ CONTAINS
    WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T'
 
    !=================================================================
-   ! Read species concentrations from NetCDF or use default 
+   ! Read species concentrations from NetCDF or use default
    ! background [mol/mol]; store in State_Chm%Species in [kg/kg dry]
    !=================================================================
 
    ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
    ! the molecular weight stored in the species database which is
    ! a meaningful value for advected species but is a bad value (-1)
-   ! for all others. Non-advected species should NOT be used when 
+   ! for all others. Non-advected species should NOT be used when
    ! State_Chm%Species units are in mass mixing ratio. Current
-   ! units can be determined at any point by looking at 
+   ! units can be determined at any point by looking at
    ! State_Chm%Spc_Units. (ewl, 8/11/16)
 
    ! Print header for min/max concentration to log
@@ -3922,16 +3835,16 @@ CONTAINS
       ELSE
          SpcInfo%Is_InRestart = .FALSE.
       ENDIF
-      
-      ! If data is in file, read in as [mol/mol] and convert to 
+
+      ! If data is in file, read in as [mol/mol] and convert to
       ! [kg/kg dry]. Otherwise, set to background value [mol/mol]
       ! either stored in species database (advected species all levels and
       ! non-advected species levels in the chemistry grid) or a small number
-      ! (non-advected species levels above the chemistry grid) converted to 
+      ! (non-advected species levels above the chemistry grid) converted to
       ! [kg/kg dry]
       IF ( SpcInfo%Is_InRestart ) THEN
 
-         ! Print the min & max of each species as it is read from 
+         ! Print the min & max of each species as it is read from
          ! the restart file in mol/mol
          IF ( am_I_Root ) THEN
             WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
@@ -3959,15 +3872,15 @@ CONTAINS
 
       ELSE
 
-         ! Set species to the background value converted to [kg/kg dry] 
+         ! Set species to the background value converted to [kg/kg dry]
 !$OMP PARALLEL DO                                                       &
 !$OMP DEFAULT( SHARED )                                                 &
 !$OMP PRIVATE( I, J, L )
          ! Loop over all grid boxes
-         DO L = 1, State_Grid%NZ 
+         DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-               
+
             ! Special handling for MOH
             IF ( TRIM( SpcInfo%Name ) == 'MOH' ) THEN
 
@@ -3997,7 +3910,7 @@ CONTAINS
                ! we need to multiply by CONV_FACTOR in order to
                ! convert to [molec/cm3].  (bdf, bmy, 2/22/02)
                !----------------------------------------------------
-                  
+
                ! Test for altitude (L < 9 is always in the trop)
                IF ( L <= 9 ) THEN
                   ! Test for ocean/land boxes
@@ -4035,9 +3948,9 @@ CONTAINS
             ELSEIF ( L > State_Grid%MaxChemLev .and. &
                      .NOT. SpcInfo%Is_Advected ) THEN
 
-               State_Chm%Species(I,J,L,N) = SMALL_NUM * MW_g / AIRMW 
+               State_Chm%Species(I,J,L,N) = SMALL_NUM * MW_g / AIRMW
 
-            ! For all other cases except MOH, use the background value  
+            ! For all other cases except MOH, use the background value
             ! stored in the species database
             ELSE
 
@@ -4204,8 +4117,8 @@ CONTAINS
       DO N = 1, State_Chm%nSpecies
          SpcInfo => State_Chm%SpcData(N)%Info
          WRITE(6,150) N, TRIM( SpcInfo%Name ),                 &
-                         MINVAL( State_Chm%Species(:,:,:,N) ), & 
-                         MAXVAL( State_Chm%Species(:,:,:,N) ) 
+                         MINVAL( State_Chm%Species(:,:,:,N) ), &
+                         MAXVAL( State_Chm%Species(:,:,:,N) )
 150      FORMAT( 'Species ', i3, ', ', a9,                     &
                  ': Min = ', es15.9, ', Max = ', es15.9 )
          SpcInfo => NULL()
@@ -4241,8 +4154,8 @@ CONTAINS
          State_Chm%KPPHvalue = Ptr3D
          IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize KPP H-value from restart file'
-            WRITE(6,160) MINVAL( State_Chm%KPPHvalue(:,:,:) ), & 
-                         MAXVAL( State_Chm%KPPHvalue(:,:,:) ) 
+            WRITE(6,160) MINVAL( State_Chm%KPPHvalue(:,:,:) ), &
+                         MAXVAL( State_Chm%KPPHvalue(:,:,:) )
 160         FORMAT( 'KPP_HVALUE: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
@@ -4254,7 +4167,7 @@ CONTAINS
 
       ! Nullify pointer
       Ptr3D => NULL()
-      
+
    ENDIF
 
    !=================================================================
@@ -4274,8 +4187,8 @@ CONTAINS
          State_Chm%WetDepNitrogen = Ptr2D
          IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize wet deposited nitrogen from restart file'
-            WRITE(6,170) MINVAL( State_Chm%WetDepNitrogen(:,:) ), & 
-                         MAXVAL( State_Chm%WetDepNitrogen(:,:) ) 
+            WRITE(6,170) MINVAL( State_Chm%WetDepNitrogen(:,:) ), &
+                         MAXVAL( State_Chm%WetDepNitrogen(:,:) )
 170         FORMAT( 12x, '  WETDEP_N: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
@@ -4300,8 +4213,8 @@ CONTAINS
          State_Chm%DryDepNitrogen = Ptr2D
          IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
-            WRITE(6,180) MINVAL( State_Chm%DryDepNitrogen(:,:) ), & 
-                         MAXVAL( State_Chm%DryDepNitrogen(:,:) ) 
+            WRITE(6,180) MINVAL( State_Chm%DryDepNitrogen(:,:) ), &
+                         MAXVAL( State_Chm%DryDepNitrogen(:,:) )
 180         FORMAT( 12x, '  DRYDEP_N: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
@@ -4334,8 +4247,8 @@ CONTAINS
          State_Chm%H2O2AfterChem = Ptr3D
          IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize H2O2 from restart file'
-            WRITE(6,190) MINVAL( State_Chm%H2O2AfterChem(:,:,:) ), & 
-                         MAXVAL( State_Chm%H2O2AfterChem(:,:,:) ) 
+            WRITE(6,190) MINVAL( State_Chm%H2O2AfterChem(:,:,:) ), &
+                         MAXVAL( State_Chm%H2O2AfterChem(:,:,:) )
 190         FORMAT( 12x, 'H2O2_AChem: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
@@ -4360,8 +4273,8 @@ CONTAINS
          State_Chm%SO2AfterChem = Ptr3D
          IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
-            WRITE(6,200) MINVAL( State_Chm%SO2AfterChem(:,:,:) ), & 
-                         MAXVAL( State_Chm%SO2AfterChem(:,:,:) ) 
+            WRITE(6,200) MINVAL( State_Chm%SO2AfterChem(:,:,:) ), &
+                         MAXVAL( State_Chm%SO2AfterChem(:,:,:) )
 200         FORMAT( 12x, ' SO2_AChem: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
@@ -4375,7 +4288,7 @@ CONTAINS
       Ptr3D => NULL()
 
    ENDIF
-   
+
    !=================================================================
    ! Read variables for UCX
    !=================================================================
@@ -4393,8 +4306,8 @@ CONTAINS
          State_Chm%STATE_PSC = Ptr3D
          IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize PSC from restart for UCX'
-            WRITE(6,210) MINVAL( State_Chm%STATE_PSC(:,:,:) ), & 
-                         MAXVAL( State_Chm%STATE_PSC(:,:,:) ) 
+            WRITE(6,210) MINVAL( State_Chm%STATE_PSC(:,:,:) ), &
+                         MAXVAL( State_Chm%STATE_PSC(:,:,:) )
 210         FORMAT( 12x, ' STATE_PSC: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
@@ -4420,8 +4333,8 @@ CONTAINS
       Ptr3D => NULL()
 
    ENDIF
-  
-#ifdef BPCH_DIAG 
+
+#ifdef BPCH_DIAG
    !=================================================================
    ! Read ocean mercury variables
    !=================================================================
@@ -4439,11 +4352,11 @@ CONTAINS
          ! Define variable name
          SELECT CASE( M )
          CASE ( 1 )
-            HgSpc    = 'Hg0' 
+            HgSpc    = 'Hg0'
          CASE ( 2 )
             HgSpc    = 'Hg2'
          CASE ( 3 )
-            HgSpc    = 'HgP' 
+            HgSpc    = 'HgP'
          END SELECT
          v_name = 'OCEAN_' // TRIM( HgSpc )
 
@@ -4498,11 +4411,11 @@ CONTAINS
                ! Define variable name. Include appended region.
                SELECT CASE( M )
                CASE ( 1 )
-                  HgSpc = 'Hg0' 
+                  HgSpc = 'Hg0'
                CASE ( 2 )
                   HgSpc = 'Hg2'
                CASE ( 3 )
-                  HgSpc = 'HgP' 
+                  HgSpc = 'HgP'
                END SELECT
                v_name = 'OCEAN_' // TRIM( HgSpc ) //  &
                         '_'      // TRIM( Hg_Cat_Name(N) )
@@ -4550,8 +4463,8 @@ CONTAINS
       !--------------------------------------------------------------
       ! Hg snowpack on land and ocean
       !--------------------------------------------------------------
-      DO M = 1, 4               
-         DO N = 1, Num_Hg_Categories               
+      DO M = 1, 4
+         DO N = 1, Num_Hg_Categories
 
             ! Define variable name prefix
             SELECT CASE( M )
@@ -4570,7 +4483,7 @@ CONTAINS
             ELSE
                ! Append category name if tagged
                v_name = TRIM( Prefix         ) // '_' // &
-                        TRIM( Hg_Cat_Name(N) ) 
+                        TRIM( Hg_Cat_Name(N) )
             ENDIF
 
             ! Get variable from HEMCO and store in local array
@@ -4614,12 +4527,12 @@ CONTAINS
 230   FORMAT( a24, ' not found in restart file, set to zero')
 240   FORMAT( a24, ':   ', es15.9, 1x, a4)
 
-      ! Print note that variables are initialized to zero if not 
+      ! Print note that variables are initialized to zero if not
       ! found (currently only happens in tagged Hg simulation)
       IF ( Input_Opt%LSPLIT ) THEN
          WRITE( 6, 250 )
 250      FORMAT( /, 'NOTE: all variables not found in restart ', &
-                    'are initialized to zero') 
+                    'are initialized to zero')
       ENDIF
 
       ! Free pointers for Hg indexing
@@ -4631,7 +4544,7 @@ CONTAINS
    !=================================================================
    ! Clean up
    !=================================================================
-      
+
    ! Mark end of section in log
    IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
       CALL DEBUG_MSG('### DONE GET_GC_RESTART')
@@ -4660,7 +4573,7 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE HCO_INTERFACE_MOD,      ONLY : HcoState
-   USE HCO_EMISLIST_MOD,       ONLY : HCO_GetPtr 
+   USE HCO_EMISLIST_MOD,       ONLY : HCO_GetPtr
    USE Input_Opt_Mod,          ONLY : OptInput
    USE PHYSCONSTANTS,          ONLY : AIRMW
    USE Species_Mod,            ONLY : Species
@@ -4680,10 +4593,10 @@ CONTAINS
    TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Meteorology State
    TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry State
    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
-! 
+!
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  14 Apr 2019 - M. Sulprizio- Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -4696,12 +4609,12 @@ CONTAINS
    LOGICAL              :: FOUND              ! Found in restart file?
    CHARACTER(LEN=60)    :: Prefix             ! utility string
    CHARACTER(LEN=255)   :: LOC                ! routine location
-   CHARACTER(LEN=255)   :: MSG                ! message 
-   CHARACTER(LEN=255)   :: v_name             ! variable name 
+   CHARACTER(LEN=255)   :: MSG                ! message
+   CHARACTER(LEN=255)   :: v_name             ! variable name
    REAL(fp)             :: MW_g               ! species molecular weight
    REAL(fp)             :: SMALL_NUM          ! small number threshold
    CHARACTER(LEN=16)    :: STAMP
-   
+
    ! Temporary arrays and pointers
    REAL*4,  TARGET      :: Temp3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
    REAL*4,  POINTER     :: Ptr3D(:,:,:)
@@ -4709,21 +4622,21 @@ CONTAINS
 
    ! Objects
    TYPE(Species), POINTER :: SpcInfo
-   
+
    !=================================================================
    ! READ_BOUNDARY_CONDITIONS begins here!
    !=================================================================
 
    ! Assume success
    RC        = GC_SUCCESS
-   
+
    ! Initialize pointers
    Ptr3D     => NULL()
    SpcInfo   => NULL()
 
    ! Point to species array [kg/kg]
    Spc       => State_Chm%Species
-   
+
    ! Name of this routine
    LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F)'
 
@@ -4738,11 +4651,11 @@ CONTAINS
    ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
    ! the molecular weight stored in the species database which is
    ! a meaningful value for advected species but is a bad value (-1)
-   ! for all others. Non-advected species should NOT be used when 
+   ! for all others. Non-advected species should NOT be used when
    ! State_Chm%Species units are in mass mixing ratio. Current
-   ! units can be determined at any point by looking at 
+   ! units can be determined at any point by looking at
    ! State_Chm%Spc_Units. (ewl, 8/11/16)
-   
+
    ! Initialize BCs to all zeroes
    State_Chm%BoundaryCond = 0.e+0_fp
 
@@ -4751,7 +4664,7 @@ CONTAINS
 
       ! Get the species ID from the advected species ID
       N = State_Chm%Map_Advect(NA)
-      
+
       ! Get info about this species from the species database
       SpcInfo => State_Chm%SpcData(N)%Info
       MW_g    =  SpcInfo%emMW_g
@@ -4788,7 +4701,7 @@ CONTAINS
             ! First loop over all latitudes of the nested domain
             DO J = 1, State_Grid%NY
 
-               ! West BC 
+               ! West BC
                DO I = 1, State_Grid%WestBuffer
                   State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
                ENDDO
@@ -4797,12 +4710,12 @@ CONTAINS
                DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
                   State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
                ENDDO
-         
+
             ENDDO
-            
+
             ! Then loop over the longitudes of the nested domain
             DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
-              
+
                ! South BC
                DO J = 1, State_Grid%SouthBuffer
                   Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
@@ -4813,10 +4726,10 @@ CONTAINS
                   Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
                ENDDO
             ENDDO
-            
+
          ENDDO
 !OMP END PARALLEL DO
-         
+
       ELSE
 
          MSG = 'No boundary condition found for '// TRIM( SpcInfo%Name )
@@ -4829,14 +4742,14 @@ CONTAINS
       SpcInfo => NULL()
 
    ENDDO
-      
+
    ! Echo output
    STAMP = TIMESTAMP_STRING()
    WRITE( 6, 110 ) STAMP
 110 FORMAT( 'GET_BOUNDARY_CONDITIONS: Found All BCs at ', a )
 
-      
+
  END SUBROUTINE Get_Boundary_Conditions
-!EOC 
+!EOC
 #endif
 END MODULE Hcoi_GC_Main_Mod

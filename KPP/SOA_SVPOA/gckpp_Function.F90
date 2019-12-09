@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Function.f90
-! Time                 : Thu Oct 31 16:27:41 2019
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/SOA_SVPOA
+! Time                 : Mon Nov 18 17:54:36 2019
+! Working directory    : /n/home08/elundgren/GC/Code.12.7.0_gcc/KPP/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -45,7 +45,7 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SUBROUTINE Fun ( V, F, RCT, Vdot )
+SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
 
 ! V - Concentrations of variable species (local)
   REAL(kind=dp) :: V(NVAR)
@@ -56,6 +56,8 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
 ! Vdot - Time derivative of variable species concentrations
   REAL(kind=dp) :: Vdot(NVAR)
 
+
+  REAL(dp), optional :: Aout(NREACT)
 
 ! Computation of equation rates
   A(1) = RCT(1)*V(214)*V(220)
@@ -731,6 +733,9 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   A(671) = RCT(671)*V(87)
   A(672) = RCT(672)*V(79)
   A(673) = RCT(673)*V(81)
+
+! Aout
+  if(present(Aout)) Aout(:) = A(:)
 
 ! Aggregate function
   Vdot(1) = -A(645)

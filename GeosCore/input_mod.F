@@ -27,6 +27,7 @@
 !
       PUBLIC  :: Read_Input_File
       PUBLIC  :: Do_Error_Checks
+      PUBLIC  :: Validate_Directories
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -112,7 +113,7 @@
          WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'G E O S - C H E M   U S E R   I N P U T'
          WRITE( 6, 100   ) TRIM( FILENAME )
- 100     FORMAT( 'READ_INPUT_FILE: Reading ', a )
+ 100     FORMAT( 'READ_INPUT_FILE: Opening ./', a )
       ENDIF
 
       ! Find a free file LUN
@@ -385,32 +386,6 @@
       !=================================================================
       ! Further error-checking and initialization
       !=================================================================
-
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! Do not initialize diagnostics when we are connecting to
-      ! the GEOS-5 GCM via ESMF. (bmy, 11/2/12)
-      !-----------------------------------------------------------------
-#else
-
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! We only need to initialize GEOS-5 diagnostics if we are not
-      ! using ESMF.  The GEOS-5 GCM has its own History component
-      ! for diagnostic output (bmy, 3/4/13)
-      !-----------------------------------------------------------------
-
-      ! Make sure all directories are valid
-      CALL VALIDATE_DIRECTORIES( am_I_Root, Input_Opt, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error in "Validate_Directories"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-#endif
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, State_Grid, RC )
@@ -718,7 +693,7 @@
             Input_Opt%MetField = 'GEOSFP'
          CASE( 'MERRA-2', 'MERRA2' )
             Input_Opt%MetField = 'MERRA2'
-         CASE DEFAULT 
+         CASE DEFAULT
             ErrMsg = Trim( Input_Opt%MetField) // ' is not a valid '  //
      &              ' met field. Supported met fields are GEOS-FP '   //
      &              ' and MERRA-2. Please check your "input.geos" file.'
@@ -1641,14 +1616,6 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LSVPOA
 
-      ! Use spatially and seasonally varying OM/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LOMOC', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LOMOC
-
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDUST', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1852,7 +1819,6 @@
          Input_Opt%LSSALT       = .FALSE.
          Input_Opt%LMPOA        = .FALSE.
          Input_Opt%LSVPOA       = .FALSE.
-         Input_Opt%LOMOC        = .FALSE.
          Input_Opt%LBCAE        = .FALSE.
          Input_Opt%hvAerNIT     = .FALSE.
       ENDIF
@@ -1878,8 +1844,6 @@
      &                        Input_Opt%LSOA
          WRITE( 6, 100     ) 'Semivolatile POA?           : ',
      &                        Input_Opt%LSVPOA
-         WRITE( 6, 100     ) 'Spatial & seasonal OM/OC?   : ',
-     &                        Input_Opt%LOMOC
          WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ',
      &                        Input_Opt%LDUST
          WRITE( 6, 100     ) 'Acid uptake on dust?        : ',
@@ -3332,7 +3296,7 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%CO2_EFFECT
-      
+
       ! CO2 level at simulation
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_LEVEL', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -3387,13 +3351,13 @@
          Input_Opt%PBL_DRYDEP = .TRUE.
       ENDIF
 
-      ! If CO2 effect on RS in turned on, calculate the scaling factor 
+      ! If CO2 effect on RS in turned on, calculate the scaling factor
       ! on Rs based on Franks et al. (2013) (ayhwong, 6/25/2019)
       If (Input_Opt%CO2_EFFECT) THEN
-         Input_Opt%RS_SCALE = Input_Opt%CO2_LEVEL / Input_Opt%CO2_REF * 
-     &                       (Input_Opt%CO2_LEVEL + 80.0_fp) * 
+         Input_Opt%RS_SCALE = Input_Opt%CO2_LEVEL / Input_Opt%CO2_REF *
+     &                       (Input_Opt%CO2_LEVEL + 80.0_fp) *
      &                       (Input_Opt%CO2_REF - 40.0_fp) /
-     &                       (Input_Opt%CO2_LEVEL - 40.0_fp) / 
+     &                       (Input_Opt%CO2_LEVEL - 40.0_fp) /
      &                       (Input_Opt%CO2_REF + 80.0_fp)
       ENDIF
 
@@ -3409,13 +3373,13 @@
      &                        Input_Opt%PBL_DRYDEP
          WRITE( 6, 100     ) 'Turn on wet deposition?     : ',
      &                        Input_Opt%LWETD
-         WRITE( 6, 100     ) 'Turn on CO2 effect?         : ', 
+         WRITE( 6, 100     ) 'Turn on CO2 effect?         : ',
      &                        Input_Opt%CO2_EFFECT
-         WRITE( 6, 110     ) 'CO2 level                   : ', 
-     &                        Input_Opt%CO2_LEVEL         
-         WRITE( 6, 110     ) 'CO2 reference level         : ', 
-     &                        Input_Opt%CO2_REF         
-         WRITE( 6, 110     ) 'RIX scaling factor          : ', 
+         WRITE( 6, 110     ) 'CO2 level                   : ',
+     &                        Input_Opt%CO2_LEVEL
+         WRITE( 6, 110     ) 'CO2 reference level         : ',
+     &                        Input_Opt%CO2_REF
+         WRITE( 6, 110     ) 'RIX scaling factor          : ',
      &                        Input_Opt%RS_SCALE
 
       ENDIF
@@ -5701,6 +5665,9 @@
       ErrMsg  = 'Invalid directory encountered!'
       ThisLoc =
      &   ' -> at Validate_Directories (in module GeosCore/input_mod.F)'
+
+      ! Skip for dry-runs
+      IF ( Input_Opt%DryRun ) RETURN
 
       ! Check directories
       CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%DATA_DIR, RC )

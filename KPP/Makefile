@@ -5,7 +5,7 @@
 #
 # !MODULE: Makefile (in the KPP subdirectory)
 #
-# !DESCRIPTION: This is main "router" makefile for the KPP solver.  It 
+# !DESCRIPTION: This is main "router" makefile for the KPP solver.  It
 #  compiles the KPP code for one of the following types of GEOS-Chem
 #  simulations:
 #
@@ -22,7 +22,7 @@
 #  \item radau5
 #  \item runge\_kutta
 #  \end{enumerate}
-#  
+#
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
@@ -51,10 +51,10 @@
 # NTRAC      Cmd line argument; specifies either 43 or 54 tracer simulation
 # KPPSOLVER  Cmd line argument; specifies the type of integrator to use
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  18 Sep 2009 - P. Le Sager - Added kppintegrator target & commented
-#                              "make -C int" calls 
+#                              "make -C int" calls
 #  20 Nov 2009 - P. Le Sager - Added CHEM option
 #  23 Nov 2009 - R. Yantosca - Added realclean target
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
@@ -112,7 +112,7 @@ SOLVER_TFILE :=./$(KPP_CHEM)/gckpp_Integrator.F90
 ###                                                                         ###
 ###############################################################################
 
-.PHONY: all       lib firstpass kppintegrator clean 
+.PHONY: all       lib firstpass kppintegrator clean
 .PHONY: realclean doc help      slowclean     slowrealclean
 
 all: lib
@@ -149,5 +149,5 @@ slowrealclean:
 	@$(MAKE) -C Custom        slowclean
 
 help:
-	@$(MAKE) -C $(HELP) 
-#EOC	
+	@$(MAKE) -C $(HELP)
+#EOC

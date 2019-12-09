@@ -5,12 +5,12 @@
 !
 ! !MODULE: hcox_gc_RnPbBe_mod.F90
 !
-! !DESCRIPTION: Defines the HEMCO extension for the GEOS-Chem Rn-Pb-Be 
-!  specialty simulation. 
+! !DESCRIPTION: Defines the HEMCO extension for the GEOS-Chem Rn-Pb-Be
+!  specialty simulation.
 !\\
 !\\
 !  This extension parameterizes emissions of Rn and/or Pb based upon the
-!  literature given below. The emission fields become automatically added 
+!  literature given below. The emission fields become automatically added
 !  to the HEMCO emission array of the given species. It is possible to
 !  select only one of the two species (Rn or Pb) in the HEMCO configuration
 !  file. This may be useful if a gridded data inventory shall be applied to
@@ -44,16 +44,16 @@ MODULE HCOX_GC_RnPbBe_Mod
 ! !REMARKS:
 !  References:
 !  ============================================================================
-!  (1 ) Liu,H., D.Jacob, I.Bey, and R.M.Yantosca, Constraints from 210Pb 
+!  (1 ) Liu,H., D.Jacob, I.Bey, and R.M.Yantosca, Constraints from 210Pb
 !        and 7Be on wet deposition and transport in a global three-dimensional
-!        chemical tracer model driven by assimilated meteorological fields, 
+!        chemical tracer model driven by assimilated meteorological fields,
 !        JGR, 106, D11, 12,109-12,128, 2001.
-!  (2 ) Jacob et al.,Evaluation and intercomparison of global atmospheric 
-!        transport models using Rn-222 and other short-lived tracers, 
+!  (2 ) Jacob et al.,Evaluation and intercomparison of global atmospheric
+!        transport models using Rn-222 and other short-lived tracers,
 !        JGR, 1997 (102):5953-5970
 !  (3 ) Dorothy Koch, JGR 101, D13, 18651, 1996.
-!  (4 ) Lal, D., and B. Peters, Cosmic ray produced radioactivity on the 
-!        Earth. Handbuch der Physik, 46/2, 551-612, edited by K. Sitte, 
+!  (4 ) Lal, D., and B. Peters, Cosmic ray produced radioactivity on the
+!        Earth. Handbuch der Physik, 46/2, 551-612, edited by K. Sitte,
 !        Springer-Verlag, New York, 1967.
 !  (5 ) Koch and Rind, Beryllium 10/beryllium 7 as a tracer of stratospheric
 !        transport, JGR, 103, D4, 3907-3917, 1998.
@@ -119,7 +119,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_Gc_RnPbBe_run 
+! !IROUTINE: HCOX_Gc_RnPbBe_run
 !
 ! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Run computes emissions of 222Rn,
 !  7Be, and 10Be for the GEOS-Chem Rn-Pb-Be specialty simulation.
@@ -138,7 +138,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(Ext_State),  POINTER       :: ExtState    ! Options for Rn-Pb-Be sim
-    TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state 
+    TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -160,18 +160,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    
+
     ! Scalars
     INTEGER           :: I,        J,          L,          N
     INTEGER           :: HcoID
     REAL*8            :: A_CM2,    ADD_Rn,     Add_Be7,    Add_Be10
     REAL*8            :: Rn_LAND,  Rn_WATER,   DTSRCE
-    REAL*8            :: Rn_TMP,   LAT,        F_LAND     
+    REAL*8            :: Rn_TMP,   LAT,        F_LAND
     REAL*8            :: F_WATER,  F_BELOW_70, F_BELOW_60, F_ABOVE_60
     REAL*8            :: DENOM
     REAL(hp)          :: LAT_TMP,  P_TMP,      Be_TMP
     CHARACTER(LEN=255):: MSG
-    
+
     ! Pointers
     TYPE(MyInst), POINTER :: Inst
     REAL(hp),     POINTER :: Arr2D(:,:  )
@@ -194,14 +194,14 @@ CONTAINS
     ! Get instance
     Inst   => NULL()
     CALL InstGet ( ExtState%GC_RnPbBe, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
+    IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find GC_RnPbBe instance Nr. ', ExtState%GC_RnPbBe
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
     ENDIF
-    
+
     ! Emission timestep [s]
-    DTSRCE = HcoState%TS_EMIS 
+    DTSRCE = HcoState%TS_EMIS
 
     ! Nullify
     Arr2D => NULL()
@@ -211,19 +211,19 @@ CONTAINS
     ! Compute 222Rn emissions [kg/m2/s], according to the following:
     !
     ! (1) 222Rn emission poleward of 70 degrees = 0.0 [atoms/cm2/s]
-    ! 
+    !
     ! (2) For latitudes 70S-60S and 60N-70N (both land & ocean),
     !     222Rn emission is 0.005 [atoms/cm2/s]
     !
-    ! (3) For latitudes between 60S and 60N, 
+    ! (3) For latitudes between 60S and 60N,
     !     222Rn emission is 1     [atoms/cm2/s] over land or
     !                       0.005 [atoms/cm2/s] over oceans
     !
-    ! (4) For grid boxes where the surface temperature is below 
+    ! (4) For grid boxes where the surface temperature is below
     !     0 deg Celsius, reduce 222Rn emissions by a factor of 3.
-    ! 
-    ! Reference: Jacob et al.,Evaluation and intercomparison of 
-    !  global atmospheric transport models using Rn-222 and other 
+    !
+    ! Reference: Jacob et al.,Evaluation and intercomparison of
+    !  global atmospheric transport models using Rn-222 and other
     !  short-lived tracers, JGR, 1997 (102):5953-5970
     !=======================================================================
     IF ( Inst%IDTRn222 > 0 ) THEN
@@ -236,121 +236,121 @@ CONTAINS
 !$OMP SCHEDULE( DYNAMIC )
        DO J = 1, HcoState%Ny
        DO I = 1, HcoState%Nx
-   
+
           ! Get ABS( latitude ) of the grid box
           LAT           = ABS( HcoState%Grid%YMID%Val( I, J ) )
-   
+
           ! Zero for safety's sake
           F_BELOW_70    = 0d0
           F_BELOW_60    = 0d0
           F_ABOVE_60    = 0d0
-   
-          ! Baseline 222Rn emissions 
+
+          ! Baseline 222Rn emissions
           ! Rn_LAND [kg/m2/s] = [1 atom 222Rn/cm2/s] / [atoms/kg] * [1d4 cm2/m2]
           Rn_LAND       = ( 1d0 / XNUMOL_Rn ) * 1d4
-   
+
           ! Baseline 222Rn emissions over water or ice [kg]
           Rn_WATER      = Rn_LAND * 0.005d0
-   
+
           ! Fraction of grid box that is land
           F_LAND        = ExtState%FRCLND%Arr%Val(I,J)
-   
+
           ! Fraction of grid box that is water
           F_WATER       = 1d0 - F_LAND
-   
+
           !--------------------
           ! 90S-70S or 70N-90N
           !--------------------
-          IF ( LAT >= 70d0 ) THEN 
-   
+          IF ( LAT >= 70d0 ) THEN
+
              ! 222Rn emissions are shut off poleward of 70 degrees
              ADD_Rn = 0.0d0
-   
+
           !--------------------
-          ! 70S-60S or 60N-70N 
+          ! 70S-60S or 60N-70N
           !--------------------
-          ELSE IF ( LAT >= 60d0 ) THEN    
-   
-             IF ( LAT <= 70d0 ) THEN             
-   
+          ELSE IF ( LAT >= 60d0 ) THEN
+
+             IF ( LAT <= 70d0 ) THEN
+
                 ! If the entire grid box lies equatorward of 70 deg,
                 ! then 222Rn emissions here are 0.005 [atoms/cm2/s]
                 ADD_Rn = Rn_WATER
-                  
+
              ELSE
-   
+
                 ! N-S extent of grid box [degrees]
                 DENOM = HcoState%Grid%YMID%Val( I, J+1 ) &
-                      - HcoState%Grid%YMID%Val( I, J   )               
-   
+                      - HcoState%Grid%YMID%Val( I, J   )
+
                 ! Compute the fraction of the grid box below 70 degrees
                 F_BELOW_70 = ( 70.0d0 - LAT ) / DENOM
-   
+
                 ! If the grid box straddles the 70S or 70N latitude line,
                 ! then only count 222Rn emissions equatorward of 70 degrees.
                 ! 222Rn emissions here are 0.005 [atoms/cm2/s].
                 ADD_Rn = F_BELOW_70 * Rn_WATER
-                  
+
              ENDIF
-               
-          ELSE 
-   
+
+          ELSE
+
              !--------------------
              ! 70S-60S or 60N-70N
              !--------------------
              IF ( LAT > 60d0 ) THEN
-                
+
                 ! N-S extent of grid box [degrees]
                 DENOM  = HcoState%Grid%YMID%Val( I, J+1 ) &
                        - HcoState%Grid%YMID%Val( I, J   )
-   
+
                 ! Fraction of grid box with ABS( lat ) below 60 degrees
                 F_BELOW_60 = ( 60.0d0 - LAT ) / DENOM
-   
+
                 ! Fraction of grid box with ABS( lat ) above 60 degrees
                 F_ABOVE_60 = F_BELOW_60
-                
+
                 ADD_Rn =                                                &
-                         ! Consider 222Rn emissions equatorward of 
-                         ! 60 degrees for both land (1.0 [atoms/cm2/s]) 
+                         ! Consider 222Rn emissions equatorward of
+                         ! 60 degrees for both land (1.0 [atoms/cm2/s])
                          ! and water (0.005 [atoms/cm2/s])
                          F_BELOW_60 *                                   &
                          ( Rn_LAND  * F_LAND  ) +                       &
                          ( Rn_WATER * F_WATER ) +                       &
-   
+
                          ! If the grid box straddles the 60 degree boundary
                          ! then also consider the emissions poleward of 60
                          ! degrees.  222Rn emissions here are 0.005 [at/cm2/s].
-                         F_ABOVE_60 * Rn_WATER                    
-   
-   
+                         F_ABOVE_60 * Rn_WATER
+
+
              !--------------------
              ! 60S-60N
              !--------------------
-             ELSE 
-                  
+             ELSE
+
                 ! Consider 222Rn emissions equatorward of 60 deg for
                 ! land (1.0 [atoms/cm2/s]) and water (0.005 [atoms/cm2/s])
                 ADD_Rn = ( Rn_LAND * F_LAND ) + ( Rn_WATER * F_WATER )
-   
+
              ENDIF
           ENDIF
-   
+
           ! For boxes below freezing, reduce 222Rn emissions by 3x
           IF ( ExtState%T2M%Arr%Val(I,J) < 273.15 ) THEN
              ADD_Rn = ADD_Rn / 3d0
           ENDIF
-   
+
           ! Save 222Rn emissions into an array [kg/m2/s]
           Inst%EmissRn222(I,J) = ADD_Rn
        ENDDO
        ENDDO
 !$OMP END PARALLEL DO
-   
+
        !------------------------------------------------------------------------
        ! Add 222Rn emissions to HEMCO data structure & diagnostics
        !------------------------------------------------------------------------
-   
+
        ! Add emissions
        Arr2D => Inst%EmissRn222(:,:)
        CALL HCO_EmisAdd( am_I_Root, HcoState, Arr2D, Inst%IDTRn222, &
@@ -359,13 +359,13 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: EmissRn222', RC )
-          RETURN 
+          RETURN
        ENDIF
-   
+
     ENDIF ! IDTRn222 > 0
 
     !=======================================================================
-    ! Compute 7Be and 10Be emissions [kg/m2/s]    
+    ! Compute 7Be and 10Be emissions [kg/m2/s]
     !
     ! Original units of 7Be and 10Be emissions are [stars/g air/sec],
     ! where "stars" = # of nuclear disintegrations of cosmic rays
@@ -382,28 +382,28 @@ CONTAINS
        DO L = 1, HcoState%Nz
        DO J = 1, HcoState%Ny
        DO I = 1, HcoState%Nx
-   
-          ! Get absolute value of latitude, since we will assume that 
+
+          ! Get absolute value of latitude, since we will assume that
           ! the 7Be distribution is symmetric about the equator
           LAT_TMP = ABS( HcoState%Grid%YMID%Val( I, J ) )
-   
+
           ! Pressure at (I,J,L) [hPa]
           ! Now calculate from edge points (ckeller, 10/06/1014)
           P_TMP = ( HcoState%Grid%PEDGE%Val(I,J,L) + &
-                    HcoState%Grid%PEDGE%Val(I,J,L+1) ) / 200.0_hp 
-                    
+                    HcoState%Grid%PEDGE%Val(I,J,L+1) ) / 200.0_hp
+
           ! Interpolate 7Be [stars/g air/sec] to GEOS-Chem levels
           CALL SLQ( Inst%LATSOU, Inst%PRESOU, Inst%BESOU, 10, 33, &
                     LAT_TMP,     P_TMP,       Be_TMP )
-   
-          ! Be_TMP = [stars/g air/s] * [0.045 atom/star] * 
+
+          ! Be_TMP = [stars/g air/s] * [0.045 atom/star] *
           !          [kg air] * [1e3 g/kg] = 7Be/10Be emissions [atoms/s]
-          Be_TMP  = Be_TMP * 0.045e+0_hp * ExtState%AIR%Arr%Val(I,J,L) * 1.e+3_hp 
-          
+          Be_TMP  = Be_TMP * 0.045e+0_hp * ExtState%AIR%Arr%Val(I,J,L) * 1.e+3_hp
+
           ! ADD_Be = [atoms/s] / [atom/kg] / [m2] = 7Be/10Be emissions [kg/m2/s]
           ADD_Be7  = ( Be_TMP / XNUMOL_Be7  ) / HcoState%Grid%AREA_M2%Val(I,J)
           ADD_Be10 = ( Be_TMP / XNUMOL_Be10 ) / HcoState%Grid%AREA_M2%Val(I,J)
-   
+
           ! Save emissions into an array for use below
           Inst%EmissBe7 (I,J,L) = ADD_Be7
           Inst%EmissBe10(I,J,L) = ADD_Be10
@@ -411,16 +411,16 @@ CONTAINS
              Inst%EmissBe7Strat (I,J,L) = Add_Be7
              Inst%EmissBe10Strat(I,J,L) = Add_Be10
           ENDIF
-          
+
        ENDDO
        ENDDO
        ENDDO
 !$OMP END PARALLEL DO
-   
+
        !------------------------------------------------------------------------
        ! Add Be7 and Be10 emissions to HEMCO data structure & diagnostics
        !------------------------------------------------------------------------
-   
+
        ! Add emissions
        IF ( Inst%IDTBe7 > 0 ) THEN
           Arr3D => Inst%EmissBe7(:,:,:)
@@ -430,7 +430,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
                              'HCO_EmisAdd error: EmissBe7', RC )
-             RETURN 
+             RETURN
           ENDIF
        ENDIF
 
@@ -443,10 +443,10 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
                              'HCO_EmisAdd error: EmissBe7Strat', RC )
-             RETURN 
+             RETURN
           ENDIF
        ENDIF
-       
+
        ! Add emissions
        IF ( Inst%IDTBe10 > 0 ) THEN
           Arr3D => Inst%EmissBe10(:,:,:)
@@ -456,7 +456,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
                              'HCO_EmisAdd error: EmissBe10', RC )
-             RETURN 
+             RETURN
           ENDIF
        ENDIF
 
@@ -469,7 +469,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
                              'HCO_EmisAdd error: EmissBe10Strat', RC )
-             RETURN 
+             RETURN
           ENDIF
        ENDIF
 
@@ -481,7 +481,7 @@ CONTAINS
 
     ! Nullify pointers
     Inst    => NULL()
-    
+
     ! Return w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
@@ -492,7 +492,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_Gc_RnPbBe_Init 
+! !IROUTINE: HCOX_Gc_RnPbBe_Init
 !
 ! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Init initializes the HEMCO
 ! GC\_Rn-Pb-Be extension.
@@ -511,12 +511,12 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
-    TYPE(Ext_State),  POINTER        :: ExtState    ! Module options      
+    TYPE(Ext_State),  POINTER        :: ExtState    ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER        :: HcoState    ! Hemco state 
-    INTEGER,          INTENT(INOUT)  :: RC 
+    TYPE(HCO_State),  POINTER        :: HcoState    ! Hemco state
+    INTEGER,          INTENT(INOUT)  :: RC
 
 ! !REVISION HISTORY:
 !  07 Jul 2014 - R. Yantosca - Initial version
@@ -530,7 +530,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                        :: N, nSpc, ExtNr
-    CHARACTER(LEN=255)             :: MSG 
+    CHARACTER(LEN=255)             :: MSG
 
     ! Arrays
     INTEGER,           ALLOCATABLE :: HcoIDs(:)
@@ -538,7 +538,7 @@ CONTAINS
 
     ! Pointers
     TYPE(MyInst), POINTER          :: Inst
-    
+
     !=======================================================================
     ! HCOX_GC_RnPbBe_INIT begins here!
     !=======================================================================
@@ -560,8 +560,8 @@ CONTAINS
     ENDIF
     ! Also fill Inst%ExtNr
     Inst%ExtNr = ExtNr
-    
-    ! Set HEMCO species IDs      
+
+    ! Set HEMCO species IDs
     CALL HCO_GetExtHcoID( HcoState, Inst%ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -601,7 +601,7 @@ CONTAINS
        CALL HCO_WARNING( HcoState%Config%Err, &
                          'Cannot find Rn222 tracer in list of species!', RC )
     ENDIF
-    
+
     ! WARNING: Be7 tracer is not found
     IF ( Inst%IDTBe7 <= 0 .AND. am_I_Root ) THEN
        CALL HCO_WARNING( HcoState%Config%Err, &
@@ -621,9 +621,9 @@ CONTAINS
     ENDIF
 
     ! Activate met fields required by this extension
-    ExtState%FRCLND%DoUse  = .TRUE. 
-    ExtState%T2M%DoUse     = .TRUE. 
-    ExtState%AIR%DoUse     = .TRUE. 
+    ExtState%FRCLND%DoUse  = .TRUE.
+    ExtState%T2M%DoUse     = .TRUE.
+    ExtState%AIR%DoUse     = .TRUE.
     ExtState%TropLev%DoUse = .TRUE.
 
     !=======================================================================
@@ -636,7 +636,7 @@ CONTAINS
           CALL HCO_ERROR ( HcoState%Config%Err, &
                            'Cannot allocate EmissRn222', RC )
           RETURN
-       ENDIF 
+       ENDIF
     ENDIF
 
     IF ( Inst%IDTBe7 > 0 ) THEN
@@ -646,7 +646,7 @@ CONTAINS
           CALL HCO_ERROR ( HcoState%Config%Err, &
                            'Cannot allocate EmissBe7', RC )
           RETURN
-       ENDIF 
+       ENDIF
        IF ( RC /= 0 ) RETURN
 
        ! Array for latitudes (Lal & Peters data)
@@ -655,24 +655,24 @@ CONTAINS
           CALL HCO_ERROR ( HcoState%Config%Err, &
                            'Cannot allocate LATSOU', RC )
           RETURN
-       ENDIF 
-   
+       ENDIF
+
        ! Array for pressures (Lal & Peters data)
        ALLOCATE( Inst%PRESOU( 33 ), STAT=RC )
        IF ( RC /= 0 ) THEN
           CALL HCO_ERROR ( HcoState%Config%Err, &
                            'Cannot allocate PRESOU', RC )
           RETURN
-       ENDIF 
-   
+       ENDIF
+
        ! Array for 7Be emissions ( Lal & Peters data)
        ALLOCATE( Inst%BESOU( 10, 33 ), STAT=RC )
        IF ( RC /= 0 ) THEN
           CALL HCO_ERROR ( HcoState%Config%Err, &
                            'Cannot allocate BESOU', RC )
           RETURN
-       ENDIF 
-       
+       ENDIF
+
        ! Initialize the 7Be emisisons data arrays
        CALL Init_7Be_Emissions( Inst )
     ENDIF
@@ -684,7 +684,7 @@ CONTAINS
           CALL HCO_ERROR ( HcoState%Config%Err, &
                            'Cannot allocate EmissBe7Strat', RC )
           RETURN
-       ENDIF 
+       ENDIF
        IF ( RC /= 0 ) RETURN
     ENDIF
 
@@ -695,7 +695,7 @@ CONTAINS
           CALL HCO_ERROR ( HcoState%Config%Err, &
                            'Cannot allocate EmissBe10', RC )
           RETURN
-       ENDIF 
+       ENDIF
        IF ( RC /= 0 ) RETURN
     ENDIF
 
@@ -706,7 +706,7 @@ CONTAINS
           CALL HCO_ERROR ( HcoState%Config%Err, &
                            'Cannot allocate EmissBe10Strat', RC )
           RETURN
-       ENDIF 
+       ENDIF
        IF ( RC /= 0 ) RETURN
     ENDIF
 
@@ -718,8 +718,8 @@ CONTAINS
 
     ! Nullify pointers
     Inst    => NULL()
-    
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_Gc_RnPbBe_Init
 !EOC
@@ -754,7 +754,7 @@ CONTAINS
     !=======================================================================
     ! HCOX_GC_RNPBBE_FINAL begins here!
     !=======================================================================
-    
+
     CALL InstRemove ( ExtState%GC_RnPbBe )
 
   END SUBROUTINE HCOX_Gc_RnPbBe_Final
@@ -766,9 +766,9 @@ CONTAINS
 !
 ! !IROUTINE: Init_7Be_Emissions
 !
-! !DESCRIPTION: Subroutine Init\_7Be\_Emissions initializes the 7Be emissions 
-!  from Lal \& Peters on 33 pressure levels.  This data used to be read from 
-!  a file, but we have now hardwired it to facilitate I/O in the ESMF 
+! !DESCRIPTION: Subroutine Init\_7Be\_Emissions initializes the 7Be emissions
+!  from Lal \& Peters on 33 pressure levels.  This data used to be read from
+!  a file, but we have now hardwired it to facilitate I/O in the ESMF
 !  environment.
 !\\
 !\\
@@ -778,11 +778,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(MyInst),    POINTER        :: Inst      ! Instance    
+    TYPE(MyInst),    POINTER        :: Inst      ! Instance
 !
 ! !REMARKS:
-!  (1) Reference: Lal, D., and B. Peters, Cosmic ray produced radioactivity 
-!       on the Earth. Handbuch der Physik, 46/2, 551-612, edited by K. Sitte, 
+!  (1) Reference: Lal, D., and B. Peters, Cosmic ray produced radioactivity
+!       on the Earth. Handbuch der Physik, 46/2, 551-612, edited by K. Sitte,
 !        Springer-Verlag, New York, 1967.
 !                                                                             .
 !  (2) In prior versions of GEOS-Chem, this routine was named READ_7BE, and
@@ -790,16 +790,16 @@ CONTAINS
 !      on a lat/lon grid, ESMF cannot regrid it.  To work around this, we now
 !      hardwire this data in module arrays rather than read it from disk.
 !                                                                             .
-!  (3) Units of 7Be emissions are [stars/g air/s].  
+!  (3) Units of 7Be emissions are [stars/g air/s].
 !      Here, "stars" = # of nuclear disintegrations of cosmic rays
 !                                                                             .
 !  (4) Original data from Lal & Peters (1967), w/ these modifications:
 !      (a) Replace data at (0hPa, 70S) following Koch 1996:
-!          (i ) old value = 3000 
+!          (i ) old value = 3000
 !          (ii) new value = 1900
 !      (b) Copy data from 70S to 80S and 90S at all levels
 !                                                                             .
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  07 Aug 2002 - H. Liu - Initial version
 !  (1 ) This code was split off from routine EMISSRnPbBe below. (bmy, 8/7/02)
 !  (2 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
@@ -825,7 +825,7 @@ CONTAINS
     Inst%LATSOU      = (/     0.0_hp,     10.0_hp,     20.0_hp,    30.0_hp,  &
                              40.0_hp,     50.0_hp,     60.0_hp,    70.0_hp,  &
                              80.0_hp,     90.0_hp  /)
- 
+
     ! Define pressures [hPa]
     Inst%PRESOU      = (/     0.0_hp,     50.0_hp,     70.0_hp,    90.0_hp,  &
                             110.0_hp,    130.0_hp,    150.0_hp,   170.0_hp,  &
@@ -845,83 +845,83 @@ CONTAINS
     Inst%BESOU(:,1)  = (/   150.0_hp,    156.0_hp,    188.0_hp,   285.0_hp,  &
                             500.0_hp,    910.0_hp,   1700.0_hp,  1900.0_hp,  &
                            1900.0_hp,   1900.0_hp  /)
-                       
+
     Inst%BESOU(:,2)  = (/   280.0_hp,    310.0_hp,    390.0_hp,   590.0_hp,  &
                             880.0_hp,   1390.0_hp,   1800.0_hp,  1800.0_hp,  &
                            1800.0_hp,   1800.0_hp  /)
-                       
+
     Inst%BESOU(:,3)  = (/   310.0_hp,    330.0_hp,    400.0_hp,   620.0_hp,  &
                             880.0_hp,   1280.0_hp,   1450.0_hp,  1450.0_hp,  &
                            1450.0_hp,   1450.0_hp  /)
-                       
+
     Inst%BESOU(:,4)  = (/   285.0_hp,    310.0_hp,    375.0_hp,   570.0_hp,  &
                             780.0_hp,   1100.0_hp,   1180.0_hp,  1180.0_hp,  &
                            1180.0_hp,   1180.0_hp  /)
-                       
+
     Inst%BESOU(:,5)  = (/   255.0_hp,    275.0_hp,    330.0_hp,   510.0_hp,  &
                             680.0_hp,    950.0_hp,   1000.0_hp,  1000.0_hp,  &
                            1000.0_hp,   1000.0_hp  /)
-                       
+
     Inst%BESOU(:,6)  = (/   230.0_hp,    245.0_hp,    292.0_hp,   450.0_hp,  &
                             600.0_hp,    820.0_hp,    875.0_hp,   875.0_hp,  &
                             875.0_hp,    875.0_hp  /)
-                       
+
     Inst%BESOU(:,7)  = (/   205.0_hp,    215.0_hp,    260.0_hp,   400.0_hp,  &
                             530.0_hp,    730.0_hp,    750.0_hp,   750.0_hp,  &
                             750.0_hp,    750.0_hp  /)
-                       
+
     Inst%BESOU(:,8)  = (/   182.0_hp,    195.0_hp,    235.0_hp,   355.0_hp,  &
                             480.0_hp,    630.0_hp,    650.0_hp,   650.0_hp,  &
                             650.0_hp,    650.0_hp  /)
-                       
+
     Inst%BESOU(:,9)  = (/   160.0_hp,    173.0_hp,    208.0_hp,   315.0_hp,  &
                             410.0_hp,    543.0_hp,    550.0_hp,   550.0_hp,  &
                             550.0_hp,    550.0_hp  /)
-                       
+
     Inst%BESOU(:,10) = (/   148.0_hp,    152.0_hp,    185.0_hp,   280.0_hp,  &
                             370.0_hp,    480.0_hp,    500.0_hp,   500.0_hp,  &
                             500.0_hp,    500.0_hp  /)
-                       
+
     Inst%BESOU(:,11) = (/   130.0_hp,    139.0_hp,    167.0_hp,   250.0_hp,  &
                             320.0_hp,    425.0_hp,    430.0_hp,   430.0_hp,  &
                             430.0_hp,    430.0_hp  /)
-                       
+
     Inst%BESOU(:,12) = (/   116.0_hp,    123.0_hp,    148.0_hp,   215.0_hp,  &
                             285.0_hp,    365.0_hp,    375.0_hp,   375.0_hp,  &
                             375.0_hp,    375.0_hp  /)
-                       
+
     Inst%BESOU(:,13) = (/   104.0_hp,    110.0_hp,    130.0_hp,   198.0_hp,  &
                             250.0_hp,    320.0_hp,    330.0_hp,   330.0_hp,  &
                             330.0_hp,    330.0_hp  /)
-                       
+
     Inst%BESOU(:,14) = (/    93.0_hp,     99.0_hp,    118.0_hp,   170.0_hp,  &
                             222.0_hp,    280.0_hp,    288.0_hp,   288.0_hp,  &
                             288.0_hp,    288.0_hp  /)
-                       
+
     Inst%BESOU(:,15) = (/    80.0_hp,     84.0_hp,    100.0_hp,   145.0_hp,  &
                             190.0_hp,    235.0_hp,    250.0_hp,   250.0_hp,  &
                             250.0_hp,    250.0_hp  /)
-                       
+
     Inst%BESOU(:,16) = (/    72.0_hp,     74.0_hp,     88.0_hp,   129.0_hp,  &
                             168.0_hp,    210.0_hp,    218.0_hp,   218.0_hp,  &
                             218.0_hp,    218.0_hp  /)
-                       
+
     Inst%BESOU(:,17) = (/    59.5_hp,     62.5_hp,     73.5_hp,   108.0_hp,  &
                             138.0_hp,    171.0_hp,    178.0_hp,   178.0_hp,  &
                             178.0_hp,    178.0_hp  /)
-                       
+
     Inst%BESOU(:,18) = (/    50.0_hp,     53.0_hp,     64.0_hp,    90.0_hp,  &
                             115.0_hp,    148.0_hp,    150.0_hp,   150.0_hp,  &
                             150.0_hp,    150.0_hp  /)
-                       
+
     Inst%BESOU(:,19) = (/    45.0_hp,     46.5_hp,     52.5_hp,    76.0_hp,  &
                              98.0_hp,    122.0_hp,    128.0_hp,   128.0_hp,  &
                             128.0_hp,    128.0_hp  /)
-                       
+
     Inst%BESOU(:,20) = (/    36.5_hp,     37.5_hp,     45.0_hp,    61.0_hp,  &
                              77.0_hp,     98.0_hp,    102.0_hp,   102.0_hp,  &
                             102.0_hp,    102.0_hp  /)
-                       
+
     Inst%BESOU(:,21) = (/    30.8_hp,     32.0_hp,     37.5_hp,    51.5_hp,  &
                              65.0_hp,     81.0_hp,     85.0_hp,    85.0_hp,  &
                              85.0_hp,     85.0_hp  /)
@@ -949,7 +949,7 @@ CONTAINS
     Inst%BESOU(:,27) = (/     7.7_hp,     8.15_hp,      9.4_hp,    11.6_hp,  &
                              14.8_hp,     17.8_hp,     18.5_hp,    18.5_hp,  &
                              18.5_hp,     18.5_hp  /)
- 
+
     Inst%BESOU(:,28) = (/     5.7_hp,     5.85_hp,     6.85_hp,    8.22_hp,  &
                              11.0_hp,     13.1_hp,     13.2_hp,    13.2_hp,  &
                              13.2_hp,     13.2_hp  /)
@@ -974,7 +974,7 @@ CONTAINS
                              1.68_hp,      1.8_hp,      1.8_hp,     1.8_hp,  &
                               1.8_hp,      1.8_hp  /)
 
-    ! All the numbers of BESOU need to be multiplied by 1e-5 in order to put 
+    ! All the numbers of BESOU need to be multiplied by 1e-5 in order to put
     ! them into the correct data range.  NOTE: This multiplication statement
     ! needs to be preserved here in order to  ensure identical output to the
     ! prior code! (bmy, 7/7/14)
@@ -989,7 +989,7 @@ CONTAINS
 !
 ! !IROUTINE: SLQ
 !
-! !DESCRIPTION: Subroutine SLQ is an interpolation subroutine from a 
+! !DESCRIPTION: Subroutine SLQ is an interpolation subroutine from a
 !  Chinese reference book (says Hongyu Liu).
 !\\
 !\\
@@ -997,7 +997,7 @@ CONTAINS
 !
   SUBROUTINE SLQ( X, Y, Z, N, M, U, V, W )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER :: N        ! First dimension of Z
     INTEGER :: M        ! Second dimension of Z
@@ -1009,12 +1009,12 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(hp)  :: W        ! Interpolated value of Z array, at coords (U,V) 
+    REAL(hp)  :: W        ! Interpolated value of Z array, at coords (U,V)
 !
 ! !REMARKS:
 !  This routine was taken from the old RnPbBe_mod.F.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  17 Mar 1998 - H. Liu      - Initial version
 !  (1 ) Added to "RnPbBe_mod.f" (bmy, 7/16/01)
 !  (2 ) Removed duplicate definition of IQ.  Added comments. (bmy, 11/15/01)
@@ -1115,14 +1115,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1132,7 +1132,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1141,11 +1141,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -1162,21 +1162,21 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
-! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+! !DESCRIPTION: Subroutine InstCreate creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1189,7 +1189,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -1205,7 +1205,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -1222,7 +1222,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -1246,18 +1246,18 @@ CONTAINS
 !BOP
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+! !DESCRIPTION: Subroutine InstRemove creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( Instance ) 
+  SUBROUTINE InstRemove ( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: Instance 
+    INTEGER                         :: Instance
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -1273,19 +1273,19 @@ CONTAINS
     ! InstRemove begins here!
     !=================================================================
 
-    ! Init 
+    ! Init
     PrevInst => NULL()
     Inst     => NULL()
-    
+
     ! Get instance. Also archive previous instance.
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
-   
+    IF ( ASSOCIATED(Inst) ) THEN
+
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
-        
+
           ! Cleanup module arrays
           IF ( ASSOCIATED(Inst%EmissRn222    ) ) DEALLOCATE(Inst%EmissRn222    )
           IF ( ASSOCIATED(Inst%EmissBe7      ) ) DEALLOCATE(Inst%EmissBe7      )
@@ -1295,15 +1295,15 @@ CONTAINS
           IF ( ASSOCIATED(Inst%LATSOU        ) ) DEALLOCATE(Inst%LATSOU        )
           IF ( ASSOCIATED(Inst%PRESOU        ) ) DEALLOCATE(Inst%PRESOU        )
           IF ( ASSOCIATED(Inst%BESOU         ) ) DEALLOCATE(Inst%BESOU         )
-      
+
           PrevInst%NextInst => Inst%NextInst
        ELSE
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
-!EOC  
+!EOC
 END MODULE HCOX_GC_RnPbBe_Mod

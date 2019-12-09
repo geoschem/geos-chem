@@ -33,7 +33,7 @@
 # AR         Sys var w/ name of library creator program (i.e., "ar", "ranlib")
 # MAKE       Sys var w/ name of Make command (i.e, "make" or "gmake")
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  12 Jul 2017 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ LIBRARY  :=libHistory.a
 
 all: lib
 
-lib: $(OBJECTS) 
+lib: $(OBJECTS)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
 	mv $(LIBRARY) $(LIB)
 
@@ -113,7 +113,7 @@ debug:
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###

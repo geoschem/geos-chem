@@ -1,16 +1,16 @@
 function(configureGCClassic)
- # Find OpenMP if we're building a multithreaded executable
+    # Find OpenMP if we're building a multithreaded executable
     gc_pretty_print(SECTION "Threading")
     set(OMP "ON" CACHE STRING "Switch to enable/disable OpenMP threading in GEOS-Chem")
     gc_pretty_print(VARIABLE OMP IS_BOOLEAN)
     if("${OMP}")
-    find_package(OpenMP REQUIRED)
-    target_compile_options(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
-        target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
+       find_package(OpenMP REQUIRED)
+       target_compile_options(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
+       target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
     else()
         target_compile_definitions(BaseTarget INTERFACE "NO_OMP")
     endif()
-    
+
     # Check that GEOS-Chem's version number matches the run directory's version
     if(EXISTS ${RUNDIR}/Makefile AND NOT "${BUILD_WITHOUT_RUNDIR}")
         # Read ${RUNDIR}/Makefile which has the version number
@@ -32,7 +32,7 @@ function(configureGCClassic)
 
         # Throw error if major.minor versions don't match
         if(NOT "${GC_VERSION}" VERSION_EQUAL "${RUNDIR_VERSION}")
-            message(FATAL_ERROR 
+            message(FATAL_ERROR
                 "Mismatched version numbers. Your run directory's version number "
                 "is ${RUNDIR_VERSION} but the GEOS-Chem source's version number is ${PROJECT_VERSION}"
             )
@@ -60,7 +60,7 @@ function(configureGCClassic)
         "masscons"      "TransportTracers"  "POPs"          "CH4"
         "tagCH4"        "tagO3"             "tagCO"
         "tagHg"         "CO2"               "aerosol"
-        "Hg"    
+        "Hg"
         "HEMCO" # doesn't matter for the HEMCO standalone
     )
     set(TROPCHEM_MECHS
@@ -179,6 +179,13 @@ function(configureGCClassic)
     set(HCOSA "${HCOSA_DEFAULT}" CACHE BOOL "Switch to build the hemco-standalone (HCOSA) executable")
     gc_pretty_print(VARIABLE HCOSA IS_BOOLEAN)
 
+    # Build Luo et al wetdep scheme?
+    set(LUO_WETDEP "OFF" CACHE BOOL "Switch to build the Luo et al (2019) wetdep scheme into GEOS-Chem")
+    gc_pretty_print(VARIABLE LUO_WETDEP IS_BOOLEAN)
+    if(${LUO_WETDEP})
+        target_compile_definitions(BaseTarget INTERFACE "LUO_WETDEP")
+    endif()
+
     # Determine which executables should be built
     set(GCCLASSIC_EXE_TARGETS "geos" CACHE STRING "Executable targets that get built as a part of \"all\"")
     if(${HCOSA})
@@ -196,5 +203,6 @@ function(configureGCClassic)
     set(APM                     ${APM}                      PARENT_SCOPE)
     set(RRTMG                   ${RRTMG}                    PARENT_SCOPE)
     set(GTMM                    ${GTMM}                     PARENT_SCOPE)
+    set(LUO_WETDEP              ${LUO_WETDEP}               PARENT_SCOPE)
     set(RUNDIR                  ${RUNDIR}                   PARENT_SCOPE)
 endfunction()

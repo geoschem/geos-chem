@@ -17,12 +17,12 @@ include(GC-Helpers)
 
 # Declare the BaseTarget. All GEOS-Chem targets depend on BaseTarget.
 # This is used to control the compiler options and definitions for GEOS-Chem
-# targets (via inheritance). 
+# targets (via inheritance).
 add_library(BaseTarget INTERFACE)
 
 # Put all of GEOS-Chem's mod files in a subdirectory of the build directory called mod
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod)
-target_include_directories(BaseTarget 
+target_include_directories(BaseTarget
 	INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/mod
 )
 
@@ -31,9 +31,9 @@ list(APPEND CMAKE_PREFIX_PATH
 	# Possible NetCDF environment variables
 	$ENV{NetCDF_F_ROOT}         $ENV{NetCDF_C_ROOT}     $ENV{NetCDF_ROOT}
 	$ENV{NETCDF_F_ROOT}         $ENV{NETCDF_C_ROOT}     $ENV{NETCDF_ROOT}
-	$ENV{NetCDF_Fortran_ROOT} 
+	$ENV{NetCDF_Fortran_ROOT}
 	$ENV{NETCDF_FORTRAN_ROOT}
-    
+
 	# Possible GEOS-Chem's environmnet variables
 	$ENV{GC_F_BIN} 		$ENV{GC_BIN}
 	$ENV{GC_F_INCLUDE} 	$ENV{GC_INCLUDE}
@@ -58,19 +58,19 @@ get_repo_version(GC_REPO_VERSION ${CMAKE_CURRENT_SOURCE_DIR})
 message(STATUS "GEOS-Chem @ ${GC_REPO_VERSION}")
 
 if(NOT GC_EXTERNAL_CONFIG)
-	# This conditional block configures the GEOS-Chem build for GEOS-Chem 
+	# This conditional block configures the GEOS-Chem build for GEOS-Chem
 	# Classic. As mentioned above, it sets GCCLASSIC_EXE_TARGETS, RRTMG, GTMM
 	# TOMAS, MECH, and GCHP, and it configures the BaseTarget.
 
 	# Set CMAKE_BUILD_TYPE to Release by default
 	if(NOT CMAKE_BUILD_TYPE)
-		set(CMAKE_BUILD_TYPE "Release" 
+		set(CMAKE_BUILD_TYPE "Release"
 			CACHE STRING
 			"Set the build type"
 			FORCE
 		)
 	endif()
-	
+
 	# Display CMAKE_PREFIX_PATH and CMAKE_BUILD_TYPE
 	gc_pretty_print(SECTION "Useful CMake variables")
 	gc_pretty_print(VARIABLE CMAKE_PREFIX_PATH)
@@ -88,7 +88,7 @@ if(NOT GC_EXTERNAL_CONFIG)
 	if(EXISTS ${RUNDIR}/input.geos)
 		file(STRINGS ${RUNDIR}/input.geos GCHP REGEX ": *gchp_*")
 	elseif(EXISTS ${RUNDIR}/getRunInfo)
-		set(GCHP FALSE) # getRunInfo is only in GC-Classic run direcotries	
+		set(GCHP FALSE) # getRunInfo is only in GC-Classic run direcotries
 	elseif((NOT EXISTS RUNDIR) AND (DEFINED RUNDIR_SIM))
 		set(GCHP FALSE) # special case for building without a run directory
 		set(RUNDIR ${CMAKE_BINARY_DIR})
@@ -149,12 +149,12 @@ if(NOT GC_EXTERNAL_CONFIG AND NOT GC_TRY_RUN_PASSED)
 	endforeach()
 
 	# Try to compile and run try_compile.F90
-	try_run(RUN_FAILED COMPILED_OK 
+	try_run(RUN_FAILED COMPILED_OK
 		${CMAKE_CURRENT_BINARY_DIR}/try_compile 					# binary dir
 		${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts/try_compile.F90	# test source file
 		COMPILE_DEFINITIONS ${TRY_RUN_DEFINITIONS} ${BT_OPTIONS}	# compiler flags
 		LINK_LIBRARIES ${BT_LIBRARIES}								# link flags
-		CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${BT_INCLUDES}"			# include directories 
+		CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${BT_INCLUDES}"			# include directories
 		COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT
 		RUN_OUTPUT_VARIABLE RUN_OUTPUT
 	)

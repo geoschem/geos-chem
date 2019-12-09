@@ -10,10 +10,10 @@
 !  nested grid simulation. (yxw, dan, bmy, 11/6/08)
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE PJC_PFIX_WINDOW_MOD
-! 
+!
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -24,7 +24,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
       PUBLIC :: CLEANUP_PJC_PFIX_WINDOW
       PUBLIC :: DO_PJC_PFIX_WINDOW
-! 
+!
 ! !REVISION HISTORY:
 !  (1 ) Adapted from "pjc_pfix_mod.f" (bmy, 11/6/08)
 !  (2 ) Nested grids do not have polar cap and no periodicity at the edge.
@@ -48,7 +48,7 @@
       !
       ! AI          (REAL(fp) )  : Vertical coord "A" for hybrid grid [hPa]
       ! BI          (REAL(fp) )  : Vertical coord "B" for hybrid grid [unitless]
-      ! CLAT_FV     (REAL(fp) )  : Grid box center latitude [radians] 
+      ! CLAT_FV     (REAL(fp) )  : Grid box center latitude [radians]
       ! COSE_FV     (REAL(fp) )  : COSINE of grid box edge latitudes [radians]
       ! COSP_FV     (REAL(fp) )  : COSINE of grid box center latitudes [radians]
       ! DAP         (REAL(fp) )  : Delta-A vertical coordinate [hPa]
@@ -65,7 +65,7 @@
       ! DLON_FV     (REAL(fp) ): Longitude extent of a grid box [radians]
       ! LOC_PROC    (REAL(fp) ): Local processor number
       ! PR_DIAG     (LOGICAL)  : Flag for printing diagnostic message
-      ! IMP_NBORDER (INTEGER)  : Used for ghost zones for MPI ??? 
+      ! IMP_NBORDER (INTEGER)  : Used for ghost zones for MPI ???
       ! I1_GL       (INTEGER)  : ind of 1st  global lon       (no ghost zones)
       ! I2_GL       (INTEGER)  : ind of last global lon       (no ghost zones)
       ! JU1_GL      (INTEGER)  : ind of 1st  global "u" lat   (no ghost zones)
@@ -108,7 +108,7 @@
       REAL(fp), ALLOCATABLE :: REL_AREA(:,:)
       REAL(fp), ALLOCATABLE :: RGW_FV(:)
       REAL(fp), ALLOCATABLE :: SINE_FV(:)
- 
+
       ! Scalar variables
       LOGICAL               :: PR_DIAG
       INTEGER               :: LOC_PROC
@@ -117,17 +117,17 @@
 
       ! Dimensions for GMI code (from "imp_dims")
       INTEGER               :: IMP_NBORDER
-      INTEGER               :: I1_GL,  I2_GL,   JU1_GL,  JV1_GL            
-      INTEGER               :: J2_GL,  K1_GL,   K2_GL,   ILO_GL    
-      INTEGER               :: IHI_GL, JULO_GL, JVLO_GL, JHI_GL    
-      INTEGER               :: I1,     I2,      JU1,     JV1       
-      INTEGER               :: J2,     K1,      K2,      ILO       
-      INTEGER               :: IHI,    JULO,    JVLO,    JHI       
-      INTEGER               :: ILAT,   ILONG,   IVERT,   J1P       
-      INTEGER               :: J2P       
+      INTEGER               :: I1_GL,  I2_GL,   JU1_GL,  JV1_GL
+      INTEGER               :: J2_GL,  K1_GL,   K2_GL,   ILO_GL
+      INTEGER               :: IHI_GL, JULO_GL, JVLO_GL, JHI_GL
+      INTEGER               :: I1,     I2,      JU1,     JV1
+      INTEGER               :: J2,     K1,      K2,      ILO
+      INTEGER               :: IHI,    JULO,    JVLO,    JHI
+      INTEGER               :: ILAT,   ILONG,   IVERT,   J1P
+      INTEGER               :: J2P
 
-      ! Dimensions for nested grids 
-      INTEGER               :: I1_W,     I2_W,      JU1_W       
+      ! Dimensions for nested grids
+      INTEGER               :: I1_W,     I2_W,      JU1_W
       INTEGER               :: J2_W,     J1P_W,     J2P_W
       INTEGER               :: BUFF_SIZE
 
@@ -141,13 +141,13 @@
 ! !IROUTINE: do_pjc_pfix_window
 !
 ! !DESCRIPTION: Subroutine DO_PJC_PFIX is the driver routine for the Philip
-!  Cameron-Smith pressure fixer for the GEOS-4/fvDAS transport scheme. 
+!  Cameron-Smith pressure fixer for the GEOS-4/fvDAS transport scheme.
 !  (bdf, bmy, 5/8/03, 3/5/07)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PJC_PFIX_WINDOW( State_Grid, D_DYN, P1, P2, 
+      SUBROUTINE DO_PJC_PFIX_WINDOW( State_Grid, D_DYN, P1, P2,
      &                               UWND,  VWND, XMASS, YMASS )
 !
 ! !USES:
@@ -164,7 +164,7 @@
      &                                     State_Grid%NY) ! dyn tstep [hPa]
       REAL(fp),       INTENT(IN)  :: P2   (State_Grid%NX, ! True Psurf at end of
      &                                     State_Grid%NY) ! dyn timestep [hPa]
-      REAL(fp),       INTENT(IN)  :: UWND (State_Grid%NX, ! Zonal wind [m/s] 
+      REAL(fp),       INTENT(IN)  :: UWND (State_Grid%NX, ! Zonal wind [m/s]
      &                                     State_Grid%NY,
      &                                     State_Grid%NZ)
       REAL(fp),       INTENT(IN)  :: VWND (State_Grid%NX, ! Meridional wind[m/s]
@@ -181,9 +181,9 @@
      &                                     State_Grid%NZ)
 !
 ! !REMARKS:
-!  We assume that the winds are on the A-GRID, since this is the input that 
+!  We assume that the winds are on the A-GRID, since this is the input that
 !  the GEOS-4/fvDAS transport scheme takes. (bdf, bmy, 5/8/03)
-!  
+!
 ! !REVISION HISTORYL
 !  (1 ) Now P1 and P2 are "true" surface pressures, and not PS-PTOP.  If using
 !        this P-fixer w/ GEOS-3 winds, pass true surface pressure to this
@@ -202,12 +202,12 @@
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J
       REAL(fp)             :: P2_TMP(State_Grid%NX,State_Grid%NY)
- 
+
       ! Parameters
-      LOGICAL, PARAMETER   :: INTERP_WINDS     = .TRUE.  ! winds are interp'd 
+      LOGICAL, PARAMETER   :: INTERP_WINDS     = .TRUE.  ! winds are interp'd
       INTEGER, PARAMETER   :: MET_GRID_TYPE    = 0       ! A-GRID
-      INTEGER, PARAMETER   :: ADVEC_CONSRV_OPT = 0       ! 2=floating pressure 
-      INTEGER, PARAMETER   :: PMET2_OPT        = 1       ! leave at 1 
+      INTEGER, PARAMETER   :: ADVEC_CONSRV_OPT = 0       ! 2=floating pressure
+      INTEGER, PARAMETER   :: PMET2_OPT        = 1       ! leave at 1
       INTEGER, PARAMETER   :: PRESS_FIX_OPT    = 1       ! Turn on P-Fixer
 
       !=================================================================
@@ -217,7 +217,7 @@
       ! Initialize on first call
       IF ( FIRST ) THEN
 
-         ! Initialize/allocate module variables 
+         ! Initialize/allocate module variables
          CALL INIT_PJC_PFIX_WINDOW( State_Grid )
 
          ! Calculate advection surface-area factors
@@ -229,20 +229,20 @@
 
       ! Copy P2 into P2_TMP (yxw, bmy, 3/5/07)
       P2_TMP = P2
- 
+
       ! Call PJC pressure fixer w/ the proper arguments
       ! NOTE: P1 and P2 are now "true" surface pressure, not PS-PTOP!!!
       CALL ADJUST_PRESS( State_Grid,
-     &                   'GEOS-CHEM',        INTERP_WINDS,  
-     &                   .TRUE.,             MET_GRID_TYPE, 
-     &                   ADVEC_CONSRV_OPT,   PMET2_OPT, 
-     &                   PRESS_FIX_OPT,      D_DYN, 
-     &                   GEOFAC_PC,          GEOFAC, 
-     &                   COSE_FV,            COSP_FV, 
-     &                   REL_AREA,           DAP, 
-     &                   DBK,                P1, 
-     &                   P2_TMP,             P2_TMP,            
-     &                   UWND,               VWND, 
+     &                   'GEOS-CHEM',        INTERP_WINDS,
+     &                   .TRUE.,             MET_GRID_TYPE,
+     &                   ADVEC_CONSRV_OPT,   PMET2_OPT,
+     &                   PRESS_FIX_OPT,      D_DYN,
+     &                   GEOFAC_PC,          GEOFAC,
+     &                   COSE_FV,            COSP_FV,
+     &                   REL_AREA,           DAP,
+     &                   DBK,                P1,
+     &                   P2_TMP,             P2_TMP,
+     &                   UWND,               VWND,
      &                   XMASS,              YMASS )
 
       END SUBROUTINE DO_PJC_PFIX_WINDOW
@@ -255,7 +255,7 @@
 ! !IROUTINE: calc_pressure
 !
 ! !DESCRIPTION: Subroutine CALC\_PRESSURE recalculates the new surface pressure
-!  from the adjusted air masses XMASS and YMASS.  This is useful for debugging 
+!  from the adjusted air masses XMASS and YMASS.  This is useful for debugging
 !  purposes. (bdf, bmy, 5/8/03)
 !\\
 !\\
@@ -285,7 +285,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT) :: PS_AFTER(State_Grid%NX, ! Surface P - PTOP 
+      REAL(fp),       INTENT(OUT) :: PS_AFTER(State_Grid%NX, ! Surface P - PTOP
      &                                        State_Grid%NY) !  after P-fixer
 !
 ! !REVISION HISTORY:
@@ -319,12 +319,12 @@
          DO J = 2, State_Grid%NY-1
 
             DO I =1, State_Grid%NX-1
-               DELP(I,J,L) = DELP1(I,J,L) + 
-     &                       XMASS(I,J,L) - XMASS(I+1,J,L) + 
+               DELP(I,J,L) = DELP1(I,J,L) +
+     &                       XMASS(I,J,L) - XMASS(I+1,J,L) +
      &                     ( YMASS(I,J,L) - YMASS(I,J+1,L) ) * RGW_FV(J)
             ENDDO
-            
-            DELP(State_Grid%NX,J,L) = 
+
+            DELP(State_Grid%NX,J,L) =
      &          DELP1(State_Grid%NX,J,L) +
      &          XMASS(State_Grid%NX,J,L) - XMASS(1,J,L) +
      &        ( YMASS(State_Grid%NX,J,L) - YMASS(State_Grid%NX,J+1,L) )*
@@ -339,7 +339,7 @@
          CALL XPAVG( DELP(1,1,L), State_Grid%NX )
 
          DO I = 1, State_Grid%NX
-            DELP(I,State_Grid%NY,L) = DELP1(I,State_Grid%NY,L) + 
+            DELP(I,State_Grid%NY,L) = DELP1(I,State_Grid%NY,L) +
      &          YMASS(I,State_Grid%NY,L) * RGW_FV(State_Grid%NY)
          ENDDO
 
@@ -377,18 +377,18 @@
 !******************************************************************************
 !
 !  ROUTINE
-!    Calc_Advection_Factors 
-!  
+!    Calc_Advection_Factors
+!
 !  AUTHORS
 !    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!  
-!  DESCRIPTION 
+!
+!  DESCRIPTION
 !      This routine calculates the relative area of each grid
 !      box, and the geometrical factors used by this modified version of
 !      TPCORE. These geomoetrical DO assume that the space is regularly
 !      grided, but do not assume any link between the surface area and
 !      the linear dimensions.
-!  
+!
 !  ARGUMENTS
 !    mcor      : area of grid box (m^2)
 !    rel_area  : relative surface area of grid box (fraction)
@@ -396,7 +396,7 @@
 !                correct spherical geometry, and replaces acosp as the
 !                meridional geometrical factor in tpcore
 !    geofac_pc : special geometrical factor (geofac) for Polar cap
-!  
+!
 !  NOTES:
 !  (1 ) Now reference PI from "CMN_GCTM" for consistency.  Also force
 !        double-precision with the "D" exponent. (bmy, 5/6/03)
@@ -422,7 +422,7 @@
       !----------------------
 
       integer :: ij
- 
+
 ! Variables not used. (ccc, 8/3/10)
 !      real(fp)  :: dp           ! spacing in latitude (rad)
 !      real(fp)  :: ri2_gl
@@ -453,7 +453,7 @@
 
 ! Not used for nested grids. (ccc, 8/3/10)
 !      rj2m1 = j2_gl - 1
-!      dp    = PI / 360D0 
+!      dp    = PI / 360D0
 
 ! The total area does not cover the full globe so use an other definition
 ! for the geometric factor. (lzh, ccc, 8/3/10)
@@ -482,16 +482,16 @@
      &   pctm1, pctm2, pmet2, uu, vv, xmass, ymass)
 !
 !******************************************************************************
-! 
+!
 !  ROUTINE
 !    Adjust_Press
-! 
+!
 !  AUTHORS
 !    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
 !
 !  DESCRIPTION
 !    This routine initializes and calls the pressure fixer code.
-! 
+!
 !  ARGUMENTS
 !    metdata_name_org   : first  part of metdata_name, e.g., "NCAR"
 !    do_timinterp_winds : time interpolate wind fields?
@@ -517,7 +517,7 @@
 !    vv        : wind velocity, y direction at t1+tdt/2 (m/s)
 !    xmass     : horizontal mass flux in E-W direction  (mb)
 !    ymass     : horizontal mass flux in N-S direction  (mb)
-! 
+!
 !  NOTES:
 !  (1 ) Now declare METDATA_NAME_ORG as CHARACTER(LEN=*) (bmy, 6/25/03)
 !******************************************************************************
@@ -550,9 +550,9 @@
       !-----------------------------------------------------------------
       !rel_area : relative surface area of grid box (fraction)
       !-----------------------------------------------------------------
- 
+
       real(fp) :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
-            
+
       !-----------------------------------------------------------------
       !pmet1  : Metfield surface pressure at t1 (mb)
       !pmet2  : Metfield surface pressure at t1+tdt (mb)
@@ -560,7 +560,7 @@
       !pctm2  : CTM surface pressure at t1+tdt (mb)
       !-----------------------------------------------------------------
 
-      REAL(fp) :: 
+      REAL(fp) ::
      &   pmet2(ilo_gl:ihi_gl, julo_gl:jhi_gl),
      &   pctm1(ilo_gl:ihi_gl, julo_gl:jhi_gl),
      &   pctm2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
@@ -646,7 +646,7 @@
 
 !### Debug
 !###      if (DO_ADJUST_PRESS_DIAG) then
-!###        Write (6, *) 'Global mean surface pressure change (mb) = ', 
+!###        Write (6, *) 'Global mean surface pressure change (mb) = ',
 !###     &                dgpress
 !###      end if
 
@@ -665,7 +665,7 @@
          !======================
      &      (geofac_pc, geofac, dbk, dps, dps_ctm, rel_area,
      &       xmass, ymass, xmass_fixed, ymass_fixed )
-          
+
           xmass(:,:,:) = xmass_fixed(:,:,:)
           ymass(:,:,:) = ymass_fixed(:,:,:)
 
@@ -675,8 +675,8 @@
      &      (advec_consrv_opt == 1)) then
 
           dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl) =
-     &      pmet2(i1_gl:i2_gl, ju1_gl:j2_gl) - 
-     &      pctm1(i1_gl:i2_gl, ju1_gl:j2_gl) 
+     &      pmet2(i1_gl:i2_gl, ju1_gl:j2_gl) -
+     &      pctm1(i1_gl:i2_gl, ju1_gl:j2_gl)
 
         !-----------------------------------------------
         !else if (advec_consrv_opt == 2) then do nothing
@@ -686,7 +686,7 @@
 
 
       pctm2(i1_gl:i2_gl, ju1_gl:j2_gl) =
-     &      pctm1(i1_gl:i2_gl, ju1_gl:j2_gl) + 
+     &      pctm1(i1_gl:i2_gl, ju1_gl:j2_gl) +
      &    dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
 
 
@@ -696,7 +696,7 @@
         !Calculate the RMS pressure deviation (diagnostic only).
         !-------------------------------------------------------
 
-        press_dev = 
+        press_dev =
      &    Sqrt (Sum (((pmet2(i1_gl:i2_gl,ju1_gl:j2_gl) -
      &                 pctm2(i1_gl:i2_gl,ju1_gl:j2_gl))**2 *
      &                rel_area(i1_gl:i2_gl,ju1_gl:j2_gl))))
@@ -719,16 +719,16 @@
      &   uu, vv, xmass, ymass)
 !
 !******************************************************************************
-! 
+!
 !  ROUTINE
 !    Init_Press_Fix
 !
 !  AUTHORS
 !    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-! 
+!
 !  DESCRIPTION
 !    This routine initializes the pressure fixer.
-! 
+!
 !  ARGUMENTS
 !    metdata_name_org : first  part of metdata_name, e.g., "NCAR"
 !    met_grid_type    : met grid type, A or C
@@ -752,10 +752,10 @@
 !    xmass     : horizontal mass flux in E-W direction (mb)
 !    ymass     : horizontal mass flux in N-S direction (mb)
 !
-!  NOTES: 
+!  NOTES:
 !  (1 ) Now declare METDATA_NAME_ORG as CHARACTER(LEN=*)
 !******************************************************************************
-! 
+!
       USE State_Grid_Mod, ONLY : GrdState
 
       implicit none
@@ -793,7 +793,7 @@
       !-----------------------------------------------------------------
 
       real(fp)         :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
-            
+
       !-----------------------------------------------------------------
       !pmet1  : Metfield surface pressure at t1 (mb)
       !pmet2  : Metfield surface pressure at t1+tdt (mb)
@@ -801,7 +801,7 @@
       !pctm2  : CTM surface pressure at t1+tdt (mb)
       !-----------------------------------------------------------------
 
-      REAL(fp) :: 
+      REAL(fp) ::
      &   pmet2(ilo_gl:ihi_gl, julo_gl:jhi_gl),
      &   pctm1(ilo_gl:ihi_gl, julo_gl:jhi_gl),
      &   pctm2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
@@ -896,7 +896,7 @@
         call Convert_Winds
         !===================
      &    (State_Grid, met_grid_type, tdt, cosp, crx, cry, uu, vv)
-        
+
 
         !=========================
         call Calc_Horiz_Mass_Flux
@@ -908,7 +908,7 @@
       !====================
      &  (.false., geofac_pc, geofac, dpi, xmass, ymass)
 
-        
+
       dps_ctm(i1:i2,ju1:j2) = Sum (dpi(i1:i2,ju1:j2,:), dim=3)
 
       ! Return to calling program
@@ -921,17 +921,17 @@
      &   xmass, ymass, xmass_fixed, ymass_fixed)
 !
 !******************************************************************************
-! 
+!
 !  ROUTINE
 !    Do_Press_Fix_Llnl
-! 
+!
 !  AUTHORS
 !    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
 !
 !  DESCRIPTION
 !    This routine fixes the mass fluxes to match the met field pressure
 !    tendency.
-! 
+!
 !  ARGUMENTS
 !    geofac_pc   : special geometrical factor (geofac) for Polar cap
 !    geofac      : geometrical factor for meridional advection; geofac uses
@@ -946,9 +946,9 @@
 !    ymass       : horizontal mass flux in N-S direction (mb)
 !    xmass_fixed : horizontal mass flux in E-W direction after fixing (mb)
 !    ymass_fixed : horizontal mass flux in N-S direction after fixing (mb)
-! 
+!
 !  NOTES:
-! 
+!
 !******************************************************************************
 !
       implicit none
@@ -1038,7 +1038,7 @@ c     --------------------------------------
 
       xx = sum(rel_area(i1_w:i2_w,j1p_w:j2p_w))
       dgpress =
-     &  Sum (ddps(i1_w:i2_w,j1p_w:j2p_w) * 
+     &  Sum (ddps(i1_w:i2_w,j1p_w:j2p_w) *
      &  rel_area(i1_w:i2_w,j1p_w:j2p_w))
      &  / xx
 
@@ -1055,11 +1055,11 @@ c     --------------------------------------
 
 ! Work on the inner window only (lzh, ccc, 8/3/10)
 !      do ij = j1p, j2p
-!        mmfd(ij) = -(sum(ddps(:,ij)) / ri2 - dgpress) 
+!        mmfd(ij) = -(sum(ddps(:,ij)) / ri2 - dgpress)
 !      end do
 
       do ij = j1p_w, j2p_w
-        mmfd(ij) = -(sum(ddps(i1_w:i2_w,ij)) / ri2 - dgpress) 
+        mmfd(ij) = -(sum(ddps(i1_w:i2_w,ij)) / ri2 - dgpress)
       end do
 
 ! No special case for poles, no poles. (ccc, 8/3/10)
@@ -1125,13 +1125,13 @@ c     --------------------------------------
       !Distribute colmass_fix's in vertical.
       !-------------------------------------
 
-      do ik = k1, k2      
+      do ik = k1, k2
 !        do ij = j1p, j2p
 !          do il = i1, i2
         do ij = j1p_w, j2p_w
           do il = i1_w, i2_w
 
-            xmass_fixed(il,ij,ik) = xmass(il,ij,ik) + 
+            xmass_fixed(il,ij,ik) = xmass(il,ij,ik) +
      &                              xcolmass_fix(il,ij) * dbk(ik)
 
           end do
@@ -1139,7 +1139,7 @@ c     --------------------------------------
       end do
 
 ! Grid stops at j2p if nested domain (ccc, 8/3/10)
-!      do ik = k1, k2      
+!      do ik = k1, k2
 !        do ij = j1p, j2p+1
 !          do il = i1, i2
 !
@@ -1149,7 +1149,7 @@ c     --------------------------------------
 !          end do
 !        end do
 !      end do
-      do ik = k1, k2      
+      do ik = k1, k2
 !        do ij = j1p, j2p
 !          do il = i1, i2
         do ij = j1p_w, j2p_w
@@ -1161,7 +1161,7 @@ c     --------------------------------------
           end do
         end do
       end do
- 
+
       !====================
       call Calc_Divergence
       !====================
@@ -1182,13 +1182,13 @@ c     --------------------------------------
 !
 !  ROUTINE
 !    Convert_Winds
-!  
+!
 !  AUTHORS
 !    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!  
+!
 !  DESCRIPTION
 !    This routine converts winds on A or C grid to Courant # on C grid.
-!  
+!
 !  ARGUMENTS
 !    igd  : A or C grid
 !    tdt  : model time step (s)
@@ -1197,7 +1197,7 @@ c     --------------------------------------
 !    cry  : Courant number in N-S direction
 !    uu   : wind velocity  in E-W direction at t1+tdt/2 (m/s)
 !    vv   : wind velocity  in N-S direction at t1+tdt/2 (m/s)
-!  
+!
 !  NOTES:
 !  (1 ) Use GEOS-CHEM physical constants Re, PI to be consistent with other
 !        usage everywhere (bmy, 5/5/03)
@@ -1255,8 +1255,8 @@ c     --------------------------------------
       !dtdx5 : 0.5 * dtdx (s/m)
       !------------------------
 
-      real(fp), allocatable, save :: dtdx (:)                   
-      real(fp), allocatable, save :: dtdx5(:)             
+      real(fp), allocatable, save :: dtdx (:)
+      real(fp), allocatable, save :: dtdx5(:)
 
       !----------------
       !Begin execution.
@@ -1372,16 +1372,16 @@ c     --------------------------------------
      &  (State_Grid, cose, delpm, uu, vv, xmass, ymass, tdt, cosp)
 !
 !******************************************************************************
-! 
+!
 !  ROUTINE
 !    Calc_Horiz_Mass_Flux
-! 
+!
 !  AUTHORS
 !    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-! 
+!
 !  DESCRIPTION
 !    This routine calculates the horizontal mass flux for non-GISS met data.
-! 
+!
 !  ARGUMENTS
 !    cose  : cosine of grid box edges
 !    delpm : pressure thickness, the psudo-density in a hydrostatic system
@@ -1391,9 +1391,9 @@ c     --------------------------------------
 !    pu    : pressure at edges in "u"  (mb)
 !    xmass : horizontal mass flux in E-W direction (mb)
 !    ymass : horizontal mass flux in N-S direction (mb)
-! 
+!
 !  NOTES:
-!  
+!
 !******************************************************************************
 !
       USE PhysConstants ! Re, Pi
@@ -1460,7 +1460,7 @@ c     --------------------------------------
 
        factx = 0.5_fp * tdt / (dl * Re * cosp(ij))
 
-       do il = i1+1, i2 
+       do il = i1+1, i2
         xmass(il,ij,:) = factx *
      &    (uu(il,ij,:) * delpm(il,ij,:)+
      &     uu(il-1,ij,:) * delpm(il-1,ij,:))
@@ -1549,7 +1549,7 @@ c     --------------------------------------
       end if
 
       ! Initialize DPI, it's an output
-      dpi = 0.0_fp 
+      dpi = 0.0_fp
 
       !-------------------------
       !Calculate N-S divergence.
@@ -1583,7 +1583,7 @@ c     --------------------------------------
 !      call Do_Divergence_Pole_Sum
 !      !===========================
 !     &  (do_reduction, geofac_pc, dpi, ymass)
-! comment out for nested NA (lzh, 07/20/2010)       
+! comment out for nested NA (lzh, 07/20/2010)
 !        dpi(:,1,:) = 0.  ! (lzh, 07/20/2010)
 !        dpi(:,j2,:) = 0.
 
@@ -1612,7 +1612,7 @@ c     --------------------------------------
      &  (dap, dbk, pres1, pres2, delp1, delpm, pu)
 !
 !******************************************************************************
-! 
+!
 !  ROUTINE
 !    Set_Press_Terms
 !
@@ -1621,7 +1621,7 @@ c     --------------------------------------
 !
 !  DESCRIPTION
 !    This routine sets the pressure terms.
-! 
+!
 !  ARGUMENTS
 !    dap   : pressure difference across layer from (ai * pt) term (mb)
 !    dbk   : difference in bi across layer - the dSigma term
@@ -1638,7 +1638,7 @@ c     --------------------------------------
 !******************************************************************************
 !
       implicit none
- 
+
       !----------------------
       !Argument declarations.
       !----------------------
@@ -1672,7 +1672,7 @@ c     --------------------------------------
      &    dap(ik) + (dbk(ik) * pres1(:,:))
 
         delpm(:,:,ik) =
-     &    dap(ik) + 
+     &    dap(ik) +
      &    (dbk(ik) * 0.5e+0_fp * (pres1(:,:) + pres2(:,:)))
 
       end do
@@ -1699,7 +1699,7 @@ c     --------------------------------------
 !******************************************************************************
 !  Subroutine XPAVG replaces each element of a vector with the average
 !  of the entire array. (bmy, 5/7/03)
-! 
+!
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) P  (REAL(fp))  :: 1-D vector to be averaged
@@ -1732,12 +1732,12 @@ c     --------------------------------------
       ENDIF
 
       ! Take avg of entire P array
-      AVG  = SUM( P ) / DBLE( IM ) 
+      AVG  = SUM( P ) / DBLE( IM )
 
       ! Store average value in all elements of P
       P(:) = AVG
- 
-      ! Return to calling program 
+
+      ! Return to calling program
       END SUBROUTINE XPAVG
 
 !------------------------------------------------------------------------------
@@ -1782,73 +1782,73 @@ c     --------------------------------------
       !=================================================================
       ! INIT_PJC_PFIX_WINDOW begins here!
       !
-      ! Initialize dimensions for GMI pressure-fixer code 
+      ! Initialize dimensions for GMI pressure-fixer code
       !=================================================================
       IMP_NBORDER = 0
-      I1_GL       = 1 
-      I2_GL       = State_Grid%NX 
-      JU1_GL      = 1 
-      JV1_GL      = 1 
-      J2_GL       = State_Grid%NY 
-      K1_GL       = 1 
-      K2_GL       = State_Grid%NZ 
-      ILO_GL      = I1_GL  - IMP_NBORDER 
-      IHI_GL      = I2_GL  + IMP_NBORDER 
-      JULO_GL     = JU1_GL - IMP_NBORDER 
-      JVLO_GL     = JV1_GL - IMP_NBORDER 
-      JHI_GL      = J2_GL  + IMP_NBORDER 
-      I1          = I1_GL 
-      I2          = I2_GL 
-      JU1         = JU1_GL 
-      JV1         = JV1_GL 
-      J2          = J2_GL 
-      K1          = K1_GL 
-      K2          = K2_GL 
-      ILO         = ILO_GL 
-      IHI         = IHI_GL 
-      JULO        = JULO_GL 
-      JVLO        = JVLO_GL 
-      JHI         = JHI_GL 
+      I1_GL       = 1
+      I2_GL       = State_Grid%NX
+      JU1_GL      = 1
+      JV1_GL      = 1
+      J2_GL       = State_Grid%NY
+      K1_GL       = 1
+      K2_GL       = State_Grid%NZ
+      ILO_GL      = I1_GL  - IMP_NBORDER
+      IHI_GL      = I2_GL  + IMP_NBORDER
+      JULO_GL     = JU1_GL - IMP_NBORDER
+      JVLO_GL     = JV1_GL - IMP_NBORDER
+      JHI_GL      = J2_GL  + IMP_NBORDER
+      I1          = I1_GL
+      I2          = I2_GL
+      JU1         = JU1_GL
+      JV1         = JV1_GL
+      J2          = J2_GL
+      K1          = K1_GL
+      K2          = K2_GL
+      ILO         = ILO_GL
+      IHI         = IHI_GL
+      JULO        = JULO_GL
+      JVLO        = JVLO_GL
+      JHI         = JHI_GL
 ! No polar cap. (ccc, 8/3/10)
-!      J1P         = 3 
-      J1P         = 1 
-      J2P         = J2_GL - J1P + 1 
+!      J1P         = 3
+      J1P         = 1
+      J2P         = J2_GL - J1P + 1
 ! Used only to check dimensions
-      ILAT        = J2_GL - JU1_GL + 1 
-      ILONG       = I2_GL -  I1_GL + 1 
-      IVERT       = K2_GL -  K1_GL + 1 
+      ILAT        = J2_GL - JU1_GL + 1
+      ILONG       = I2_GL -  I1_GL + 1
+      IVERT       = K2_GL -  K1_GL + 1
 
-      ! To add a buffer zone to calculate p-fixer for nested grid 
-      ! simulations. The p-fixer is not calculated for the edge boxes. 
+      ! To add a buffer zone to calculate p-fixer for nested grid
+      ! simulations. The p-fixer is not calculated for the edge boxes.
       ! (lzh, ccc, 8/3/10)
       BUFF_SIZE     = 2
       I1_W          = I1_GL + BUFF_SIZE
       I2_W          = I2_GL - BUFF_SIZE
       JU1_W         = JU1_GL + BUFF_SIZE
-      J2_W          = J2_GL - BUFF_SIZE 
+      J2_W          = J2_GL - BUFF_SIZE
       J1P_W         = 1 + BUFF_SIZE
       J2P_W         = J2_GL - J1P_W + 1
 
       ! Error check longitude
       IF ( ILONG /= State_Grid%NX ) THEN
-         CALL ERROR_STOP( 'Invalid longitude dimension ILONG!', 
+         CALL ERROR_STOP( 'Invalid longitude dimension ILONG!',
      &                    'INIT_PJC_FIX_WINDOW' )
       ENDIF
-      
+
       ! Error check latitude
       IF ( ILAT /= State_Grid%NY ) THEN
-         CALL ERROR_STOP( 'Invalid latitude dimension ILAT!', 
+         CALL ERROR_STOP( 'Invalid latitude dimension ILAT!',
      &                    'INIT_PJC_FIX_WINDOW' )
       ENDIF
 
       ! Error check altitude
       IF ( IVERT /= State_Grid%NZ ) THEN
-         CALL ERROR_STOP( 'Invalid altitude dimension IVERT!', 
+         CALL ERROR_STOP( 'Invalid altitude dimension IVERT!',
      &                    'INIT_PJC_FIX_WINDOW' )
       ENDIF
- 
-    
-      !=================================================================      
+
+
+      !=================================================================
       ! Allocate module arrays (use dimensions from GMI code)
       !=================================================================
       ALLOCATE( AI( K1_GL-1:K2_GL ), STAT=AS )
@@ -1883,7 +1883,7 @@ c     --------------------------------------
 
       ALLOCATE( GW_FV( JU1_GL:J2_GL ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GW_FV' )
-      
+
       ALLOCATE( MCOR( I1_GL:I2_GL, JU1_GL:J2_GL ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MCOR' )
 
@@ -1918,15 +1918,15 @@ c     --------------------------------------
          !-------------------------------------------------------------
          ! NOTE:, this was the original code.  But since AI is already
          ! in hPa, we shouldn't need to multiply by PTOP again.  This
-         ! should only matter for the fvDAS fields.  Also, DBK needs 
+         ! should only matter for the fvDAS fields.  Also, DBK needs
          ! to be positive (bmy, 5/8/03)
-         !DAP(L) = ( AI(L) - AI(L-1) ) * PTOP   
+         !DAP(L) = ( AI(L) - AI(L-1) ) * PTOP
          !DBK(L) = BI(L) - BI(L-1)
          !-------------------------------------------------------------
-         DAP(L) = AI(L-1) - AI(L)  
+         DAP(L) = AI(L-1) - AI(L)
          DBK(L) = BI(L-1) - BI(L)
       ENDDO
-         
+
       ! Grid box center latitudes [radians]
       DO J = JU1_GL, J2_GL
          CLAT_FV(J) = State_Grid%YMid_R(1,J)
@@ -1940,7 +1940,7 @@ c     --------------------------------------
       ENDIF
 
       ! Latitude edge at south pole [radians]
-!      ELAT_FV(1) = -0.5e+0_fp * PI 
+!      ELAT_FV(1) = -0.5e+0_fp * PI
       IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
          ELAT_FV(1) = CLAT_FV(1) - 0.125_fp * PI / 180.0_fp
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
@@ -1950,10 +1950,10 @@ c     --------------------------------------
       ! SIN and COS of lat edge at south pole [unitless]
 !      SINE_FV(1) = -1.e+0_fp
 !      COSE_FV(1) =  0.e+0_fp
-! for nested NA or EA (lzh, 07/20/2010) 
+! for nested NA or EA (lzh, 07/20/2010)
       SINE_FV(1) =  SIN( ELAT_FV(1) )
       COSE_FV(1) =  COS( ELAT_FV(1) )
-         
+
       ! Latitude edges [radians] (w/ SIN & COS) at intermediate latitudes
       DO J = JU1_GL+1, J2_GL  !2, State_Grid%NY
          ELAT_FV(J) = 0.5e+0_fp * ( CLAT_FV(J-1) + CLAT_FV(J) )
@@ -1963,7 +1963,7 @@ c     --------------------------------------
 
       ! Latitude edge at North Pole [radians]
 !      ELAT_FV(J2_GL+1) = 0.5e+0_fp * PI
-      ! for nested NA or EA (lzh, 07/20/2010) 
+      ! for nested NA or EA (lzh, 07/20/2010)
       IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
          ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.125_fp * PI / 180.0_fp
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
@@ -1972,23 +1972,23 @@ c     --------------------------------------
 
       ! SIN of lat edge at North Pole
 !      SINE_FV(J2_GL+1) = 1.e+0_fp
-! for nested NA or EA (lzh, 07/20/2010) 
+! for nested NA or EA (lzh, 07/20/2010)
       SINE_FV(J2_GL+1) =  SIN( ELAT_FV(J2_GL+1) )
       COSE_FV(J2_GL+1) =  COS( ELAT_FV(J2_GL+1) )
-       
+
       ! Latitude extent of South polar box [radians]
-!      DLAT_FV(1) = 2.e+0_fp * ( ELAT_FV(2) - ELAT_FV(1) ) 
+!      DLAT_FV(1) = 2.e+0_fp * ( ELAT_FV(2) - ELAT_FV(1) )
 ! comment out for nested NA or EA (lzh, 07/20/2010)
 
       ! Latitude extent of boxes at intermediate latitudes [radians]
 !      DO J = JU1_GL+1, J2_GL-1  ! 2, State_Grid%NY-1
-! for nested NA or EA (lzh, 07/20/2010) 
+! for nested NA or EA (lzh, 07/20/2010)
       DO J = JU1_GL, J2_GL
          DLAT_FV(J) = ELAT_FV(J+1) - ELAT_FV(J)
       ENDDO
 
       ! Latitude extent of North polar box [radians]
-!      DLAT_FV(J2_GL) = 2.e+0_fp * ( ELAT_FV(J2_GL+1) - ELAT_FV(J2_GL) ) 
+!      DLAT_FV(J2_GL) = 2.e+0_fp * ( ELAT_FV(J2_GL+1) - ELAT_FV(J2_GL) )
 ! comment out for nested NA or EA (lzh, 07/20/2010)
 
       ! Other stuff
@@ -2014,7 +2014,7 @@ c     --------------------------------------
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_PJC_PFIX_WINDOW
-!  
+!
 ! !REVISION HISTORY:
 !  04 Nov 2015 - M. Sulprizio- Rename from CLEANUP_PJC_PFIX_GEOS5_WINDOW to
 !                              CLEANUP_PJC_PFIX for use with all nested grids

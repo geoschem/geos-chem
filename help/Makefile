@@ -21,7 +21,7 @@
 # --------   -----------
 # SHELL      Specifies the shell for "make" to use (usually SHELL=/bin/sh)
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  See the Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
@@ -50,8 +50,8 @@ help:
 	@echo 'libhistory      Builds GEOS-Chem objs & libs only in History/'
 	@echo 'libiso          Builds GEOS-Chem objs & libs only in ISORROPIA/'
 	@echo 'libkpp          Builds GEOS-Chem objs & libs only in KPP/'
-	@echo 'libnc           Builds GEOS-Chem objs & libs only in NcdfUtil/'  
-	@echo 'librad          Builds GEOS-Chem objs & libs only in GeosRad/'  
+	@echo 'libnc           Builds GEOS-Chem objs & libs only in NcdfUtil/'
+	@echo 'librad          Builds GEOS-Chem objs & libs only in GeosRad/'
 	@echo 'libutil         Builds GEOS-Chem objs & libs only in GeosUtil/'
 	@echo 'ncdfcheck       Determines if the netCDF library installation works'
 	@echo 'exe             Creates GEOS-Chem executable'
@@ -65,7 +65,7 @@ help:
 #-----------------------------------------------------------------------------
 # Comment out until GTMM is restored.  GTMM hasn't worked for a long time.
 # (bmy, 5/16/18)
-#	@echo ''	       
+#	@echo ''
 #	@echo 'Special targets for mercury simulation:'
 #	@echo '---------------------------------------'
 #	@echo 'allhg           Default target for Hg simulation (synonym for "libhg exehg")'
@@ -92,7 +92,7 @@ help:
 	@echo '                             OPT=-O3 (gfortran)'
 	@echo ''
 	@echo 'M_ARCH=___      Specifies the CPU architecture (gfortran only)'
-	@echo ''	       
+	@echo ''
 	@echo ''
 	@echo 'Chemistry options:'
 	@echo '------------------'
@@ -157,8 +157,8 @@ help:
 	@echo 'TAU_PROF=y      Compiles GEOS-Chem for use with the TAU performance profiler'
 	@echo '                --> Default: TAU_PROF=n'
 	@echo ''
-	@echo 'TAU_SF=___      Specifies the TAU selectfile for removing throttled files' 
-	@echo ''	       
+	@echo 'TAU_SF=___      Specifies the TAU selectfile for removing throttled files'
+	@echo ''
 	@echo ''
 	@echo 'Aerosol microphysics flags:'
 	@echo '---------------------------------------'

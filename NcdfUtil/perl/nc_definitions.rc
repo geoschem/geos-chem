@@ -7,7 +7,7 @@
 #
 # !DESCRIPTION: Resource file that defines the netCDF filename, variables,
 #  and attributes for use with the ncCode* scripts.  Also defines the names
-#  of the files where Fortran code will be written to. 
+#  of the files where Fortran code will be written to.
 #\\
 #\\
 # !REMARKS:
@@ -41,12 +41,12 @@
 #     time = 1
 #                                                                             .
 #  Each dimension of your Fortran data arrays must have a corresponding
-#  netCDF dimension.  We recommend using lon, lat, lev/press/alt, and 
+#  netCDF dimension.  We recommend using lon, lat, lev/press/alt, and
 #  time as standard dimension names.
 #                                                                             .
 #  In the VARIABLES section:
 #  ----------------------------------------------------------------------------
-#  You may separate variables from each other for clarity with a "#" or "#-" 
+#  You may separate variables from each other for clarity with a "#" or "#-"
 #  comment.
 #                                                                             .
 #  netCDF variables are specified with a declaration such as:
@@ -61,31 +61,31 @@
 #                                                                             .
 #    PS:long_name = Surface pressure
 #                                                                             .
-#  where the variable name and attribute name are to the left of the equals 
+#  where the variable name and attribute name are to the left of the equals
 #  sign and separated from each other by a single colon ":".
 #                                                                             .
 #  Guidelines for COARDS compliance:
 #  ----------------------------------------------------------------------------
 #  (1 ) Index array variables must have the same name as the netCDF dimensions
 #        that are used to declare them.
-#  (2 ) Index array data should be monotonically increasing (i.e. longitude 
+#  (2 ) Index array data should be monotonically increasing (i.e. longitude
 #        from -180 to 180 or 0 to 360, latitude from -90 to 90, etc.).
 #  (3 ) All variables should have "long_name" and "units" attributes.
 #  (4 ) Dimension and attribute names should be in lower case.
-#  (5 ) Longitude should have units of "degrees_east". 
+#  (5 ) Longitude should have units of "degrees_east".
 #  (6 ) Latitude should have units of "degrees north".
 #  (6 ) All variables should have a "time" dimension, even if there is only
 #        one time value.
-#  (7 ) The "time" dimension should have units of 
+#  (7 ) The "time" dimension should have units of
 #        "hours since YYYY-MM-DD hh:mm:ss.s GMT", or
 #        "minutes since YYYY-MM-DD hh:mm:ss.s GMT"
-#  (8 ) To specify a 3 hour timestep, for example, the "delta_t" attribute of 
+#  (8 ) To specify a 3 hour timestep, for example, the "delta_t" attribute of
 #       "time" variable should have the value  "0000-00-00 03:00:00", etc.
-#  
+#
 #  Also, for compatibility with the GAMAP visualization package, please add
 #  the "gamap_category" attribute to each variable.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  27 Jan 2012 - R. Yantosca - Initial version
 #------------------------------------------------------------------------------
 
@@ -113,7 +113,7 @@ delta_lat           = 4
 delta_time          = 000000
 
 
-### !DIMENSIONS:     
+### !DIMENSIONS:
 lon                 = 72
 lat                 = 46
 lev                 = 72

@@ -2,25 +2,25 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
-!     
+!
 ! !MODULE: get_ndep_mod.F
-!     
+!
 ! !DESCRIPTION: Module GET\_NDEP\_MOD contains routines for computing the
-! accumulated nitrogen dry and wet deposition between emission time steps. 
+! accumulated nitrogen dry and wet deposition between emission time steps.
 ! These variables are needed for soil NOx emission calculations.
 !\\
 !\\
 ! This module is basically a simple wrapper module to save out the nitrogen
-! dry and wet deposition rates and pass them to HEMCO for soil NOx emission 
+! dry and wet deposition rates and pass them to HEMCO for soil NOx emission
 ! calculation (via hcoi\_gc\_main\_mod.F90).
 !\\
 !\\
 ! IMPORTANT: Routine RESET\_DEP\_N resets the deposition arrays to zero. It
 ! is called in hcoi\_gc\_main\_mod.F90 after the emission calculations.
 !\\
-!\\ 
-! !INTERFACE: 
-!     
+!\\
+! !INTERFACE:
+!
       MODULE GET_NDEP_MOD
 !
 ! !USES:
@@ -29,9 +29,9 @@
 
       IMPLICIT NONE
       PRIVATE
-! 
+!
 ! !PUBLIC MEMBER FUNCTIONS:
-!      
+!
       PUBLIC  :: SOIL_DRYDEP
       PUBLIC  :: SOIL_WETDEP
       PUBLIC  :: RESET_DEP_N
@@ -43,7 +43,7 @@
 !                              and WET_TOTN here from Headers/commsoil_mod.F90
 !  25 Jul 2014 - R. Yantosca - Add routine INIT_GET_NDEP
 !  25 Jul 2014 - R. Yantosca - Add routine CLEANUP_GET_NDEP
-!  09 Oct 2014 - C. Keller   - Removed obsolete routines DEP_RESERVOIR, 
+!  09 Oct 2014 - C. Keller   - Removed obsolete routines DEP_RESERVOIR,
 !                              GET_DEP_N, SOURCE_DRYN, and SOURCE_WETN. These
 !                              are now handled in hcox_soilnox_mod.F90.
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
@@ -57,14 +57,14 @@
 !BOC
 !
 ! !DEFINED PARAMETERS:
-!  
+!
       REAL(fp), PARAMETER :: CONVHNO3 = 0.222 ! MWN/MWHNO3
       REAL(fp), PARAMETER :: CONVNH4  = 0.777 ! MWN/MWNH4
       REAL(fp), PARAMETER :: CONVNH3  = 0.823 ! MWN/MWNH3
       REAL(fp), PARAMETER :: CONVNIT  = 0.226 ! MWN/MWNIT
 !
 ! !LOCAL VARAIABLES:
-!     
+!
       ! Species ID flags (formerly in tracerid_mod.F)
       INTEGER             :: id_HNO3
       INTEGER             :: id_NH3
@@ -97,15 +97,15 @@
       USE State_Chm_Mod, ONLY : ChmState
 
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,  INTENT(IN)  :: I          ! I
       INTEGER,  INTENT(IN)  :: J          ! J
       INTEGER,  INTENT(IN)  :: L          ! Level
-      INTEGER,  INTENT(IN)  :: NN         ! Dry Dep Tracer # 
-      REAL(fp), INTENT(IN)  :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
+      INTEGER,  INTENT(IN)  :: NN         ! Dry Dep Tracer #
+      REAL(fp), INTENT(IN)  :: TDRYFX     ! Dry dep flux [molec/cm2/s]
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -113,14 +113,14 @@
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
 !  14 Mar 2013 - M. Payer    - Replace NOx with NO2 as part of removal of
 !                              NOx-Ox partitioning
-!  16 Jun 2016 - C. Miller   - Now use 
+!  16 Jun 2016 - C. Miller   - Now use
 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
       ! Update the reservoir if it's a nitrogen species
-      IF ( NN == id_NO2  .OR. NN == id_PAN     .OR. 
+      IF ( NN == id_NO2  .OR. NN == id_PAN     .OR.
      &     NN == id_HNO3 .OR. NN == id_NH3     .OR.
      &     NN == id_NH4  .OR. NN == id_NH4aq   .OR.
      &     NN == id_NIT  .OR. NN == id_NITs  ) THEN
@@ -149,15 +149,15 @@
 !
       USE State_Chm_Mod, ONLY : ChmState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,  INTENT(IN) :: I          ! I
       INTEGER,  INTENT(IN) :: J          ! J
       INTEGER,  INTENT(IN) :: L          ! Level
-      INTEGER,  INTENT(IN) :: NN         ! Wet Dep Tracer # 
-      REAL(fp), INTENT(IN) :: TWETFX     ! Wet dep flux [kg/s] 
+      INTEGER,  INTENT(IN) :: NN         ! Wet Dep Tracer #
+      REAL(fp), INTENT(IN) :: TWETFX     ! Wet dep flux [kg/s]
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -172,7 +172,7 @@
 
       ! ckeller (14/04/02)
       SCAL = 0e+0_fp
-      IF ( NN == id_HNO3  ) SCAL = CONVHNO3 
+      IF ( NN == id_HNO3  ) SCAL = CONVHNO3
       IF ( NN == id_NH3   ) SCAL = CONVNH3
       IF ( NN == id_NH4   ) SCAL = CONVNH4
       IF ( NN == id_NH4aq ) SCAL = CONVNH4
@@ -193,8 +193,8 @@
 !
 ! !ROUTINE: reset_dep_N
 !
-! !DESCRIPTION: Subroutine RESET\_DEP\_N resets the dry and wet deposition 
-!               arrays and variables so that they can be refilled. 
+! !DESCRIPTION: Subroutine RESET\_DEP\_N resets the dry and wet deposition
+!               arrays and variables so that they can be refilled.
 !\\
 !\\
 ! !INTERFACE:
@@ -205,7 +205,7 @@
 !
       USE State_Chm_Mod,      ONLY : ChmState
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -233,7 +233,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_Get_Ndep( am_I_Root, Input_Opt, 
+      SUBROUTINE Init_Get_Ndep( am_I_Root, Input_Opt,
      &                          State_Chm, State_Diag, RC )
 !
 ! !USES:
@@ -245,7 +245,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN)           :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -256,7 +256,7 @@
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  25 Jul 2014 - R. Yantosca - Initial version
 !  09 Oct 2014 - C. Keller   - Removed obsolete variable DEP_RESERVOIR
 !  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input

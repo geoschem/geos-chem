@@ -5,16 +5,16 @@
 #
 # !MODULE: definitions_a1.rc
 #
-# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 A1 filename, 
-#  variables, and attributes for use with the ncCode* scripts.  Also defines 
-#  the names of the files where Fortran code will be written to. 
+# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 A1 filename,
+#  variables, and attributes for use with the ncCode* scripts.  Also defines
+#  the names of the files where Fortran code will be written to.
 #\\
 #\\
 # !REMARKS:
 #  This file has been customized to generate GEOS-Chem Fortran code that
-#  will read data from a GEOS-5.7.2 A1 met field file. 
+#  will read data from a GEOS-5.7.2 A1 met field file.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  27 Jan 2012 - R. Yantosca - Initial version
 #------------------------------------------------------------------------------
 
@@ -24,23 +24,23 @@ netCDF FileHandle       = fId
 netCDF FileName         = GEOS572.YYYYMMDD.A1.4x5.nc
 
 
-### !DIMENSIONS:     
+### !DIMENSIONS:
 lon                     = State_Grid%NX
 lat                     = State_Grid%NY
 time                    = 1
 
 
-### !VARIABLES:	        
+### !VARIABLES:
 lon                     = REAL*4::lon
 lon:long_name           = longitude
 lon:units               = degrees_east
-#-		        
+#-
 lat                     = REAL*4::lat
-lat:long_name           = latitude 
-lat:units               = degrees_north 
-#-		        
+lat:long_name           = latitude
+lat:units               = degrees_north
+#-
 time                    = INTEGER::time
-time:long_name          = time 
+time:long_name          = time
 time:units              = minutes since YYYY-MM-DD 00:00:00.0
 time:delta_t            = 0000-00-00 01:00:00
 time:begin_date         = YYYYMMDD
@@ -160,7 +160,7 @@ PRECTOT:gamap_category  = GMAO-2D
 QV2M                    = REAL*4::lon,lat,time
 QV2M:long_name          = Specific humidity at 2m above the displacement height
 QV2M:units              = kg kg-1
-QV2M:gamap_category     = GMAO-2D 
+QV2M:gamap_category     = GMAO-2D
 #-
 SEAICE00                = REAL*4::lon,lat,time
 SEAICE00:long_name      = Fraction of grid box that has 0-10% sea ice coverage
@@ -200,7 +200,7 @@ SEAICE60:gamap_category = GMAO-2D
 SEAICE70                = REAL*4::lon,lat,time
 SEAICE70:long_name      = Fraction of grid box that has 70-80% sea ice coverage
 SEAICE70:units          = fraction
-SEAICE70:gamap_category = GMAO-2D 
+SEAICE70:gamap_category = GMAO-2D
 #-
 SEAICE80                = REAL*4::lon,lat,time
 SEAICE80:long_name      = Fraction of grid box that has 80-90% sea ice coverage
@@ -242,13 +242,13 @@ TS:units                = K
 TS:gamap_category       = GMAO-2D
 #-
 T2M                     = REAL*4::lon,lat,time
-T2M:long_name           = Temperature 2m above displacement height 
-T2M:units               = K 
-T2M:gamap_category      = GMAO-2D 
+T2M:long_name           = Temperature 2m above displacement height
+T2M:units               = K
+T2M:gamap_category      = GMAO-2D
 #-
 U10M                    = REAL*4::lon,lat,time
-U10M:long_name          = Eastward wind 10m above displacement height 
-U10M:units              = m s-1 
+U10M:long_name          = Eastward wind 10m above displacement height
+U10M:units              = m s-1
 U10M:gamap_category     = GMAO-2D
 #-
 USTAR                   = REAL*4::lon,lat,time

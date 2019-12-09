@@ -6,7 +6,7 @@
 !
 ! !MODULE: diag1.F
 !
-! !DESCRIPTION: Subroutine DIAG1 accumulates diagnostic quantities on every 
+! !DESCRIPTION: Subroutine DIAG1 accumulates diagnostic quantities on every
 !  dynamic timestep.
 !\\
 !\\
@@ -19,7 +19,7 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD
-      USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
+      USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03
       USE ErrCode_Mod
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE HCO_ERROR_MOD
@@ -90,7 +90,7 @@
       !=================================================================
       ! First-time setup
       !=================================================================
-      IF ( FIRST ) THEN 
+      IF ( FIRST ) THEN
 
          ! Define species ID's  on the first call
          id_Hg2  = Ind_( 'Hg2' )
@@ -146,7 +146,7 @@
                ! Reactive gaseous mercury [pptv]
                !--------------------------------------------------------
                IF ( id_Hg2 > 0 ) THEN
-                  AD03_RGM(I,J,L) = AD03_RGM(I,J,L) 
+                  AD03_RGM(I,J,L) = AD03_RGM(I,J,L)
      &                            + State_Chm%Species(I,J,L,id_Hg2)
      &                            * ( AIRMW / EmMw_g_Hg2 * 1e+12_fp )
                ENDIF
@@ -155,7 +155,7 @@
                ! Particulate bound mercury [pptv]
                !--------------------------------------------------------
                IF ( id_HgP > 0 ) THEN
-                  AD03_PBM(I,J,L) = AD03_PBM(I,J,L) 
+                  AD03_PBM(I,J,L) = AD03_PBM(I,J,L)
      &                            + State_Chm%Species(I,J,L,id_HgP)
      &                            * ( AIRMW / EmMW_g_HgP * 1e+12_fp )
                ENDIF

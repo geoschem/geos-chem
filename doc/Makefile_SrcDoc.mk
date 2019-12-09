@@ -5,7 +5,7 @@
 #
 # !IROUTINE: Makefile_SrcDoc.mk (in doc subdirectory)
 #
-# !DESCRIPTION: This Makefile fragment contains commands to build the 
+# !DESCRIPTION: This Makefile fragment contains commands to build the
 #  documentation for the GEOS-Chem Source Code.  It is inlined into
 #  the Makefile (in the doc subdirectory) by an "include" command.
 #\\
@@ -20,7 +20,7 @@
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
 #  14 Sep 2010 - R. Yantosca - Added optdepth_mod.f to list
 #  15 Sep 2010 - R. Yantosca - Added diag_2pm, diag_56, diagoh, ohsave
@@ -69,7 +69,7 @@
 #  23 Oct 2012 - R. Yantosca - Added tagged_co_mod
 #  23 Oct 2012 - M. Payer    - Added soil NOx modules; Removed upbdflx_mod.F
 #  27 Nov 2012 - M. Payer    - Added modules for POPs simulation
-#  13 Dec 2012 - R. Yantosca - Added biofit, sunparam, and removed some 
+#  13 Dec 2012 - R. Yantosca - Added biofit, sunparam, and removed some
 #                              obsolete functions
 #  22 Jul 2013 - M. Sulprizio- Added rcp_mod
 #  01 Aug 2013 - M. Sulprizio- Added aeic_mod
@@ -167,7 +167,7 @@ DVI2 := GC_v11-02_Core_Modules.dvi
 PDF2 := GC_v11-02_Core_Modules.pdf
 
 # Make commands
-srcdoc: 
+srcdoc:
 	rm -f $(TEX2)
 	./protex -sfp $(SRC2) > $(TEX2)
 	latex $(TEX2)

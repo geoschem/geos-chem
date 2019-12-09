@@ -10,7 +10,7 @@
 ! the GEOS-Chem model.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE DryDep_ToolBox_Mod
 !
@@ -38,7 +38,7 @@ MODULE DryDep_ToolBox_Mod
 
 !
 ! !REVISION HISTORY:
-!  14 Nov 2013 - C. Keller   - Created from BIOFIT.F and SUNPARAM.F 
+!  14 Nov 2013 - C. Keller   - Created from BIOFIT.F and SUNPARAM.F
 !  09 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  09 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  11 Dec 2014 - M. Yannetti - Split BIOFIT into R4 and R8 versions
@@ -63,7 +63,7 @@ CONTAINS
 !
   FUNCTION BIOFIT_R4( COEFF1, XLAI1, SUNCOS1, CFRAC1, NPOLY ) RESULT ( BIO_FIT )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     REAL*4,  INTENT(IN) :: COEFF1(NPOLY)   ! Baldocchi drydep coefficients
     REAL*4,  INTENT(IN) :: XLAI1           ! Leaf area index [cm2/cm2]
@@ -77,14 +77,14 @@ CONTAINS
 !
 ! !REMARKS:
 !  This routine is ancient code from Yuhang Wang.  It was part of the old
-!  Harvard-GISS CTM and was ported into GEOS-Chem.  See this reference for 
-!  more information: 
+!  Harvard-GISS CTM and was ported into GEOS-Chem.  See this reference for
+!  more information:
 !                                                                             .
-!    Wang, Y., D.J. Jacob, and J.A. Logan, "Global simulation of tropospheric 
-!     O3-NOx-hydrocarbon chemistry, 1. Model formulation", J. Geophys. Res., 
-!     103/D9, 10,713-10,726, 1998. 
-! 
-! !REVISION HISTORY: 
+!    Wang, Y., D.J. Jacob, and J.A. Logan, "Global simulation of tropospheric
+!     O3-NOx-hydrocarbon chemistry, 1. Model formulation", J. Geophys. Res.,
+!     103/D9, 10,713-10,726, 1998.
+!
+! !REVISION HISTORY:
 !  13 Dec 2012 - R. Yantosca - Added ProTeX headers
 !  09 Dec 2014 - R. Yantosca - Now use BIO_FIT as the return value
 !  11 Dec 2014 - M. Yannetti - Split from BIO_FIT
@@ -135,10 +135,10 @@ CONTAINS
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Now explicitly use REAL*8 precision.  This will cause very small
-    ! differences at the level of numerical noise when comparing to 
+    ! differences at the level of numerical noise when comparing to
     ! prior states of the code like v10-01e.  But this is something that
     ! we can live with.  Stick with REAL*8 precision for now, but we'll
-    ! try to implement flexible precision into this routine at a later 
+    ! try to implement flexible precision into this routine at a later
     ! point. (bmy, myannetti, 12/10/14)
     BIO_FIT = 0e0
     DO K = 1, NPOLY
@@ -163,7 +163,7 @@ CONTAINS
 !
   FUNCTION BIOFIT_R8( COEFF1, XLAI1, SUNCOS1, CFRAC1, NPOLY ) RESULT ( BIO_FIT )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     REAL*8,  INTENT(IN) :: COEFF1(NPOLY)   ! Baldocchi drydep coefficients
     REAL*8,  INTENT(IN) :: XLAI1           ! Leaf area index [cm2/cm2]
@@ -177,14 +177,14 @@ CONTAINS
 !
 ! !REMARKS:
 !  This routine is ancient code from Yuhang Wang.  It was part of the old
-!  Harvard-GISS CTM and was ported into GEOS-Chem.  See this reference for 
-!  more information: 
+!  Harvard-GISS CTM and was ported into GEOS-Chem.  See this reference for
+!  more information:
 !                                                                             .
-!    Wang, Y., D.J. Jacob, and J.A. Logan, "Global simulation of tropospheric 
-!     O3-NOx-hydrocarbon chemistry, 1. Model formulation", J. Geophys. Res., 
-!     103/D9, 10,713-10,726, 1998. 
-! 
-! !REVISION HISTORY: 
+!    Wang, Y., D.J. Jacob, and J.A. Logan, "Global simulation of tropospheric
+!     O3-NOx-hydrocarbon chemistry, 1. Model formulation", J. Geophys. Res.,
+!     103/D9, 10,713-10,726, 1998.
+!
+! !REVISION HISTORY:
 !  13 Dec 2012 - R. Yantosca - Added ProTeX headers
 !  09 Dec 2014 - R. Yantosca - Now use BIO_FIT as the return value
 !  11 Dec 2014 - M. Yannetti - Split from BIO_FIT
@@ -194,14 +194,14 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-    INTEGER, PARAMETER :: KK = 4 
+    INTEGER, PARAMETER :: KK = 4
 !
 ! !LOCAL VARIABLES:
 !
     REAL*8             :: TERM(KK)
     REAL*8             :: REALTERM(NPOLY)
     INTEGER            :: K,K1,K2,K3
-    
+
     !=================================================================
     ! BIOFIT begins here!
     !=================================================================
@@ -233,12 +233,12 @@ CONTAINS
 !%%%%%    END DO
 !%%%%%    IF (BIO_FIT .LT. 0.1 ) BIO_FIT=0.1
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-     
+
     ! Now explicitly use REAL*8 precision.  This will cause very small
-    ! differences at the level of numerical noise when comparing to 
+    ! differences at the level of numerical noise when comparing to
     ! prior states of the code like v10-01e.  But this is something that
     ! we can live with.  Stick with REAL*8 precision for now, but we'll
-    ! try to implement flexible precision into this routine at a later 
+    ! try to implement flexible precision into this routine at a later
     ! point. (bmy, myannetti, 12/10/14)
     BIO_FIT = 0d0
     DO K = 1, NPOLY
@@ -255,7 +255,7 @@ CONTAINS
 !
 ! !IROUTINE: SunParam_r4
 !
-! !DESCRIPTION: Subroutine SUNPARAM is called by BIOFIT to perform the 
+! !DESCRIPTION: Subroutine SUNPARAM is called by BIOFIT to perform the
 !  light correction used in the dry deposition and canopy NOx modules.
 !\\
 !\\
@@ -273,14 +273,14 @@ CONTAINS
 !
 ! !REMARKS:
 !  This routine is ancient code from Yuhang Wang.  It was part of the old
-!  Harvard-GISS CTM and was ported into GEOS-Chem.  See this reference for 
-!  more information: 
+!  Harvard-GISS CTM and was ported into GEOS-Chem.  See this reference for
+!  more information:
 !                                                                             .
-!    Wang, Y., D.J. Jacob, and J.A. Logan, "Global simulation of tropospheric 
-!     O3-NOx-hydrocarbon chemistry, 1. Model formulation", J. Geophys. Res., 
-!     103/D9, 10,713-10,726, 1998. 
-! 
-! !REVISION HISTORY: 
+!    Wang, Y., D.J. Jacob, and J.A. Logan, "Global simulation of tropospheric
+!     O3-NOx-hydrocarbon chemistry, 1. Model formulation", J. Geophys. Res.,
+!     103/D9, 10,713-10,726, 1998.
+!
+! !REVISION HISTORY:
 !  13 Dec 2012 - R. Yantosca - Added ProTeX headers
 !  11 Dec 2014 - M. Yannetti - Split into R4 and R8 versions.
 !EOP
@@ -323,7 +323,7 @@ CONTAINS
 !
 ! !IROUTINE: SunParam_r8
 !
-! !DESCRIPTION: Subroutine SUNPARAM is called by BIOFIT to perform the 
+! !DESCRIPTION: Subroutine SUNPARAM is called by BIOFIT to perform the
 !  light correction used in the dry deposition and canopy NOx modules.
 !\\
 !\\
@@ -341,14 +341,14 @@ CONTAINS
 !
 ! !REMARKS:
 !  This routine is ancient code from Yuhang Wang.  It was part of the old
-!  Harvard-GISS CTM and was ported into GEOS-Chem.  See this reference for 
-!  more information: 
+!  Harvard-GISS CTM and was ported into GEOS-Chem.  See this reference for
+!  more information:
 !                                                                             .
-!    Wang, Y., D.J. Jacob, and J.A. Logan, "Global simulation of tropospheric 
-!     O3-NOx-hydrocarbon chemistry, 1. Model formulation", J. Geophys. Res., 
-!     103/D9, 10,713-10,726, 1998. 
-! 
-! !REVISION HISTORY: 
+!    Wang, Y., D.J. Jacob, and J.A. Logan, "Global simulation of tropospheric
+!     O3-NOx-hydrocarbon chemistry, 1. Model formulation", J. Geophys. Res.,
+!     103/D9, 10,713-10,726, 1998.
+!
+! !REVISION HISTORY:
 !  13 Dec 2012 - R. Yantosca - Added ProTeX headers
 !  11 Dec 2014 - M. Yannetti - Split into R4 and R8 versions.
 !EOP

@@ -81,7 +81,7 @@
 !  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
 !  08 Apr 2015 - R. Yantosca   - Now make READ_PSC_FILE a PUBLIC routine
 !  08 May 2015 - C. Keller     - Added WRITE_STATE_PSC
-!  05 Jan 2016 - E. Lundgren   - Use global physical parameters AVO, PI, AIRMW, 
+!  05 Jan 2016 - E. Lundgren   - Use global physical parameters AVO, PI, AIRMW,
 !                                RE, RSTARG, and ATM
 !  28 Jan 2016 - M. Sulprizio  - STATE_PSC and KHETI_SLA are now fields in
 !                                State_Chm instead of public arrays. These need
@@ -1008,14 +1008,14 @@
 !  11 Apr 2013 - S. D. Eastham - Initial version
 !  07 Feb 2014 - R. Yantosca - Add missing variables to !$OMP PRIVATE statement
 !  07 Feb 2014 - R. Yantosca - Cosmetic changes
-!  21 Feb 2014 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm 
+!  21 Feb 2014 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm
 !                              objects via the arg list
 !  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with
 !                              State_Met%PMID and State_Met%PEDGE
 !  24 Feb 2014 - E. Lundgren - Remove dependency on PRESSURE_MOD
 !  24 Feb 2014 - E. Lundgren - Use State_Met%DELP in place of PEDGE difference
 !  08 Apr 2015 - R. Yantosca - Remove call to READ_PSC_FILE, this is
-!                              now done from DO_CHEMISTRY (chemistry_mod.F) 
+!                              now done from DO_CHEMISTRY (chemistry_mod.F)
 !  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on KLOOP. WERADIUS,
 !                              is now a pointer that point to 3D fields in
 !                              in State_Chm.
@@ -1218,18 +1218,18 @@
      &                      * g0 / 9.e+0_fp
 
                      !=========================================================
-                     ! NOTE: Slip correction factor calculations following 
-                     ! Seinfeld, pp464 which is thought to be more accurate 
+                     ! NOTE: Slip correction factor calculations following
+                     ! Seinfeld, pp464 which is thought to be more accurate
                      ! but more computation required. (rjp, 1/24/02)
                      !
                      ! # air molecule number density
                      ! num = P * 1d3 * 6.023d23 / (8.314 * Temp)
                      !
                      ! # gas mean free path
-                     ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+                     ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 )
                      !
                      ! # Slip correction
-                     ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp  
+                     ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp
                      !     &     / (2. * lamda))) / Dp
                      !
                      ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
@@ -1770,7 +1770,7 @@
 !
 ! !IROUTINE: so4_photfrac
 !
-! !DESCRIPTION: FUNCTION SO4\_PHOTFRAC returns the fraction of H2SO4 which 
+! !DESCRIPTION: FUNCTION SO4\_PHOTFRAC returns the fraction of H2SO4 which
 !  is available for photolysis.
 !\\
 !\\
@@ -1808,7 +1808,7 @@
 !
 ! !IROUTINE: calc_strat_aer
 !
-! !DESCRIPTION: Subroutine CALC\_STRAT\_AER calculates aerosol properties    
+! !DESCRIPTION: Subroutine CALC\_STRAT\_AER calculates aerosol properties
 !  stratosphere using the thermodynamic parameterization described in
 !  Kirner et al. (`Simulation of polar stratospheric clouds in the
 !  chemistry-climate-model EMAC via the submodel PSC', Geosci. Mod. Dev.,
@@ -1850,16 +1850,16 @@
 !  13 Apr 2013 - S. D. Eastham - Initial version
 !  06 Feb 2014 - R. Yantosca   - Add missing variables to OpenMP loop
 !  14 Feb 2014 - R. Yantosca   - Make the L-loop the outermost DO loop
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
+!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
 !  06 Nov 2014 - R. Yantosca   - Now use State_Met%CLDF(I,J,L)
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
 !                                air pressure, with State_Met%PMID_DRY and
 !                                remove dependency on PRESSURE_MOD.
 !  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
+!                                now done from DO_CHEMISTRY (chemistry_mod.F)
 !  31 May 2016 - E. Lundgren   - Replace Input_Opt%TRACER_MW_G with emMW_g
-!                                from species database (emitted species g/mol) 
+!                                from species database (emitted species g/mol)
 !  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !  21 Jun 2016 - R. Yantosca   - Now use module variables for species ID flags
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
@@ -2510,7 +2510,7 @@
 !
 ! !IROUTINE: kg_strat_aer
 !
-! !DESCRIPTION: Function KG\_STRAT\_AER returns the calculated mass of a  
+! !DESCRIPTION: Function KG\_STRAT\_AER returns the calculated mass of a
 !  stratospheric aerosol. The routine is essentially just an
 !  interface to allow external routines to "see" the arrays.
 !\\
@@ -2584,7 +2584,7 @@
 !
 ! !IROUTINE: get_strat_opt
 !
-! !DESCRIPTION: Subroutine GET\_STRAT\_OPT returns local optical properties 
+! !DESCRIPTION: Subroutine GET\_STRAT\_OPT returns local optical properties
 !  for a given stratospheric aerosol. The routine is essentially just an
 !  interface to allow external routines to "see" the arrays. However, local
 !  aerosol radius is adjusted from liquid to effective radius for aerosol
@@ -2671,7 +2671,7 @@
 !
 ! !IROUTINE: ternary
 !
-! !DESCRIPTION: Subroutine TERNARY calculates the composition of SSA/STS 
+! !DESCRIPTION: Subroutine TERNARY calculates the composition of SSA/STS
 !  aerosols using a paramaterization from Carslaw et al. "A Thermodynamic
 !  Model of the System HCl-HNO3-H2SO4-H2O, Including Solubilities of HBr,
 !  from <200 to 328 K". The bulk of this code was taken directly from the
@@ -3841,7 +3841,7 @@
 !
 ! !IROUTINE: set_h2o_trac
 !
-! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O species throughout 
+! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O species throughout
 !  the selected domain (either troposphere only or the full grid).
 !\\
 !\\
@@ -3881,13 +3881,13 @@
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Initial version
 !  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
+!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
 !  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD
 !  24 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !  29 Apr 2015 - E. Lundgren   - Now pass am_I_Root and RC to SET_H2O_TRAC
-!  29 Apr 2015 - E. Lundgren   - Now use grid box moist air mass ADMOIST 
+!  29 Apr 2015 - E. Lundgren   - Now use grid box moist air mass ADMOIST
 !                                with SPHU since AD is now dry air mass
 !  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
 !                                1973 and call AirQnt if moisture vars
@@ -3896,11 +3896,11 @@
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  18 Jul 2016 - E. Lundgren   - Remove dependency on grid box mass
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
-!  24 May 2016 - C. Holmes     - Apply H2O from met fields up to the cold point 
+!  24 May 2016 - C. Holmes     - Apply H2O from met fields up to the cold point
 !                                tropopause in the tropics (30S-30N) or the
 !                                lapse-rate tropopause, whichever is higher
 !  13 Mar 2017 - C. Keller     - Add error trap for id_H2O
-!  12 Nov 2017 - C. Keller     - Add option to prescribe trop. H2O up to 
+!  12 Nov 2017 - C. Keller     - Add option to prescribe trop. H2O up to
 !                                tropopause plus offset.
 !EOP
 !------------------------------------------------------------------------------
@@ -3998,7 +3998,7 @@
             ! tropopause or offset levels above. This is to avoid H2O
             ! leaks into the stratosphere due to jumps in the model
             ! tropopause. The offset is 0 by default (ckeller, 11/12/17)
-            ! Logical flag determines if we are in a region where H2O from 
+            ! Logical flag determines if we are in a region where H2O from
             ! met files should overwrite the value from the chemical solver
             ! C. Holmes)
             READ_SPHU = ( ( (L-TPLEV) < TROPPLEV_OFFSET ) .or.
@@ -4055,7 +4055,7 @@
 !$OMP END PARALLEL DO
 
       ! If humidity was updated, update all moist-dependent air quantities
-      ! and species mixing ratio with the new moisture content (ewl, 4/29/15) 
+      ! and species mixing ratio with the new moisture content (ewl, 4/29/15)
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          CALL AIRQNT( am_I_Root, Input_opt, State_Chm, State_Grid,
      &                State_Met, RC,        Update_Mixing_Ratio=.TRUE. )
@@ -4213,7 +4213,7 @@
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IoError
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
 !
@@ -4234,13 +4234,17 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
+      LOGICAL            :: LPRT, FileExists
       INTEGER            :: I, AS, IOS
       INTEGER            :: IMON, ITRAC, ILEV
       INTEGER            :: IU_FILE
+
+      ! Strings
       CHARACTER(LEN=255) :: NOX_FILE
       CHARACTER(LEN=255) :: TARG_TRAC
       CHARACTER(LEN=255) :: DBGMSG
-      LOGICAL            :: LPRT
+      CHARACTER(LEN=255) :: FileMsg
 
       !=================================================================
       ! NOXCOEFF_INIT begins here!
@@ -4248,6 +4252,62 @@
 
       ! Copy fields from INPUT_OPT
       LPRT = Input_Opt%LPRT
+
+      !=================================================================
+      ! In dry-run mode, print file paths to dryrun log and exit.
+      !=================================================================
+      IF ( Input_Opt%DryRun ) THEN
+
+         ! Loop over months and tracers
+         DO IMON  = 1,12
+            DO ITRAC = 1,6
+
+               ! Pick tracer name
+               SELECT CASE (ITRAC)
+                  CASE ( 1 )
+                  TARG_TRAC = 'O'
+                  CASE ( 2 )
+                     TARG_TRAC = 'O1D'
+                  CASE ( 3 )
+                     TARG_TRAC = 'JNO'
+                  CASE ( 4 )
+                     TARG_TRAC = 'JNO2'
+                  CASE ( 5 )
+                     TARG_TRAC = 'JNO3'
+                  CASE ( 6 )
+                     TARG_TRAC = 'JN2O'
+               END SELECT
+
+               ! Create file name for each tracer and month
+               WRITE( NOx_File, '(a,a,a,I0.2,a)' )
+     &              TRIM(NOON_FILE_ROOT),
+     &              TRIM(TARG_TRAC), '_', IMON, '.dat'
+
+               ! Test if the file exists
+               INQUIRE( FILE=TRIM( NOx_File ), EXIST=FileExists )
+
+               ! Test if the file exists and define an output string
+               IF ( FileExists ) THEN
+                  FileMsg = 'UCX (SFCMR_READ): Opening'
+               ELSE
+                  FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+               ENDIF
+
+                ! Write to stdout for both regular and dry-run simulations
+                IF ( Input_Opt%AmIRoot ) THEN
+                   WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NOx_File )
+ 300               FORMAT( a, ' ', a )
+               ENDIF
+            ENDDO
+         ENDDO
+
+         ! exit without doing any computation (dry-run only)
+         RETURN
+      ENDIF
+
+      !=================================================================
+      ! If this is a regular simulation, then read data from files
+      !=================================================================
 
       ! Number of latitude levels of NOXCOEFF array. Data is only
       ! available for 2x25 and 4x5. Use 2x25 for any different grid
@@ -4304,10 +4364,19 @@
 
          IOS = 1
 
+         ! Test if the file exists
+         INQUIRE( FILE=TRIM( NOx_File ), EXIST=FileExists )
+
+         ! Define an output string
+         IF ( FileExists ) THEN
+            FileMsg = 'UCX (SFCMR_READ): Opening'
+         ELSE
+            FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+         ENDIF
+
          ! Print the name of the file being read to stdout (bmy, 10/23/19)
          IF ( am_I_Root ) THEN
-            WRITE( 6, 300 ) TRIM( NOx_File )
- 300        FORMAT( 'UCX (NOXCOEFF_INIT): Reading ', a )
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NOx_File )
          ENDIF
 
          OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS)
@@ -4375,8 +4444,8 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,          INTENT(IN) :: IISIM    ! Latitude index on simulation grid 
-      INTEGER,          INTENT(IN) :: JJSIM    ! Latitude index on simulation grid 
+      INTEGER,          INTENT(IN) :: IISIM    ! Latitude index on simulation grid
+      INTEGER,          INTENT(IN) :: JJSIM    ! Latitude index on simulation grid
       TYPE(GrdState),   INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !OUTPUT VARIABLES:
@@ -4462,7 +4531,7 @@
 !  04 Apr 2013 - S. D. Eastham - Initial version
 !  21 Jun 2016 - R. Yantosca   - Now declare species ID's during INIT phase
 !  21 Jun 2016 - R. Yantosca   - Remove reference to tracerid_mod.F
-!  24 Jun 2016 - R. Yantosca   - Bug fix: get advected species index for H2 
+!  24 Jun 2016 - R. Yantosca   - Bug fix: get advected species index for H2
 !  20 Sep 2016 - R. Yantosca   - Now avoid using SIND, convert the argument
 !                                to radians and use the SIN function instead
 !  03 Nov 2017 - R. Yantosca   - Now accept State_Diag as an argument
@@ -4473,8 +4542,9 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: N, AS
-      CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
       INTEGER            :: JIN, JOUT
       REAL(fp)           :: JMIN_IN, JMAX_IN, JDIF_IN
       REAL(fp)           :: JMIN_OUT,JMAX_OUT,JDIF_OUT
@@ -4485,6 +4555,9 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
       LOGICAL            :: LUCX
+
+      ! Strings
+      CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC, FileMsg, FileName
 
       ! Return code
       INTEGER :: RC
@@ -4569,12 +4642,46 @@
 #else
      &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
 #endif
+
       ENDIF
 
-      ! Print the name of the file being read to stdout (bmy, 10/23/19)
+      !=================================================================
+      ! In dry-run mode, print file path to dryrun log and return.
+      !=================================================================
+      IF ( Input_Opt%DryRun ) THEN
+         
+         ! Test if the file exists and define an output string
+         FileName = Noon_File_Root
+         INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+         IF ( FileExists ) THEN
+            FileMsg = 'UCX (SFCMR_READ): Opening'
+         ELSE
+            FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+         ENDIF
+
+         ! Write to stdout for the dry-run simulation
+         IF ( Input_Opt%AmIRoot ) THEN
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+ 300        FORMAT( a, ' ', a )
+         ENDIF
+
+         ! Exit without doing any computation (dry-run only)
+         RETURN
+      ENDIF
+
+      !=================================================================
+      ! For regular simulations, read data from files
+      !=================================================================
+
+      ! Write the status of Noon_File_Root to stdout
+      INQUIRE( FILE=TRIM( Noon_File_Root ), EXIST=FileExists )
+      IF ( FileExists ) THEN
+         FileMsg = 'UCX (SFCMR_READ): Opening'
+      ELSE
+         FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+      ENDIF
       IF ( am_I_Root ) THEN
-         WRITE( 6, 300 ) TRIM( NOON_FILE_ROOT     )
- 300     FORMAT( 'UCX (INIT_UCX): Reading ', a )
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( Noon_File_Root )
       ENDIF
 
       IF ( LPRT ) THEN

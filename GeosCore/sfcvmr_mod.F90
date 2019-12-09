@@ -51,7 +51,7 @@ MODULE SFCVMR_MOD
 !  24 Dec 2016 - S. D. Eastham - Initial version.
 !  16 Aug 2019 - C. Keller  - Now read 2D fields with boundary concentrations
 !                             via HEMCO. Applicable to any species.
-!  2 Oct 2019 - T. Sherwen - Updates to documentation
+!  02 Oct 2019 - T. Sherwen - Updates to documentation
 !EOP
 !------------------------------------------------------------------------------
 !BOC

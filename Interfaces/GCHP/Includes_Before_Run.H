@@ -20,28 +20,7 @@
 !\\
 ! !REVISION HISTORY: 
 !  10 Oct 2012 - M. Long     - Initial version, for grid-independent model
-!  10 Oct 2012 - R. Yantosca - Added ProTeX headers, updated comments
-!  10 Oct 2012 - R. Yantosca - Converted to F90 free-format
-!  10 Oct 2012 - R. Yantosca - Added Bromine species for v9-01-03
-!  16 Oct 2012 - R. Yantosca - Changed GC_MET to State_Met
-!  16 Oct 2012 - R. Yantosca - Changed GC_STATE to State_Chm
-!  16 Oct 2012 - R. Yantosca - Changed GC_STATE%CSPEC to State_Chm%Species
-!  16 Oct 2012 - R. Yantosca - Renamed to Includes_Before_Run.H (freeform)
-!  18 Oct 2012 - R. Yantosca - Add proper unit conversions for met fields
-!  23 Oct 2012 - R. Yantosca - Now add QI, QL fields to State_Met object
-!  28 Nov 2012 - R. Yantosca - Now populate State_Met%SUNCOS fields from ZTH
-!  13 Feb 2013 - R. Yantosca - Now get ZTH, SLR from MAPL
-!  07 Mar 2013 - R. Yantosca - Now add error checks to prevent OOB errors
-!  15 Mar 2013 - R. Yantosca - Now assign GCCTROPP, which is the last valid
-!                              tropopause pressure, to State_Met%TROPP
-!  27 Oct 2014 - C. Keller   - Fill species only on first call (only those
-!                              that are not advected - others will be 
-!                              initialized from tracers).
-!  19 Oct 2016 - R. Yantosca - Now avoid out of bounds errors.  Also reference
-!                              MAPL pointers to edged data with (:,:,0:LM).
-!  28 Sep 2017 - E. Lundgren - Remove the Monin-Obukhov Len (State_Met%MOLENGTH)
-!  12 Dec 2017 - E. Lundgren - Set State_Met%LWI from surface type fractions
-!  08 Mar 2018 - E. Lundgren - Move non-State_Met code to GC chem Run_ method
+!  See the gitk browser for revision history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,6 +78,15 @@
   ENDDO
   ENDDO
 
+  ! Get UV albedo for photolysis
+  Ptr2d => NULL()
+  CALL MAPL_GetPointer ( IMPORT, Ptr2D, 'UV_ALBEDO', &
+                         notFoundOK=.TRUE., __RC__ )
+  If ( ASSOCIATED(Ptr2D) ) Then
+     State_Met%UVALBEDO(:,:) = Ptr2D(:,:)
+     Ptr2D => NULL()
+  ENDIF
+
   !=========================================================================
   ! Three-dimensional fields on level edges
   !=========================================================================
@@ -134,6 +122,11 @@
      End Do
   End Do
   End Do
+
+  ! Read MODIS leaf area index (LAI) from imports of post-processed MODIS files.
+  ! The third dimension is land type and not level, possible to do with MAPL
+  ! only because the # of land types is the same as # of level edges.
+  State_Met%XLAI_NATIVE(:,:,:) = XLAIMULTI
  
   !=========================================================================
   ! Three-dimensional fields on level centers

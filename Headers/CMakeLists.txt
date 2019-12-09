@@ -5,6 +5,8 @@ add_library(Headers STATIC EXCLUDE_FROM_ALL
 	CMN_O3_mod.F
 	CMN_SIZE_mod.F
 	diaglist_mod.F90
+	dictionary_m.F90
+	taggeddiaglist_mod.F90
 	errcode_mod.F90
 	input_opt_mod.F90
 	inquireMod.F90
@@ -20,7 +22,7 @@ add_library(Headers STATIC EXCLUDE_FROM_ALL
 	state_met_mod.F90
 )
 target_link_libraries(Headers
-	PUBLIC 
+	PUBLIC
 	$<$<STREQUAL:${MECH},SOA_SVPOA>:KPPFirstPass_SOA_SVPOA>
 	$<$<STREQUAL:${MECH},Standard>:KPPFirstPass_Standard>
 	$<$<STREQUAL:${MECH},Tropchem>:KPPFirstPass_Tropchem>

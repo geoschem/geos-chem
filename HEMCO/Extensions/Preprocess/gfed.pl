@@ -6,7 +6,7 @@
 #
 # !MODULE: gfed.pl
 #
-# !DESCRIPTION: Reads the GFED3_emission_factors.txt file and converts 
+# !DESCRIPTION: Reads the GFED3_emission_factors.txt file and converts
 #  the data in the file to hardwired F90 commands for inlining into
 #  an include file.  This facilitates I/O in the ESMF environment.
 #\\
@@ -28,7 +28,7 @@ use strict;          # IMPLICIT NONE style syntax
 # !REMARKS:
 #  You need to specify the root emissions data directory by setting
 #  the $HEMCO_DATA_ROOT environment variable accordingly.
-#  
+#
 # !CALLING SEQUENCE:
 #  gfed.pl
 #
@@ -49,7 +49,7 @@ use strict;          # IMPLICIT NONE style syntax
 #
 sub getProTeXHeader() {
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  11 Aug 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ sub getProTeXHeader() {
 !
 ! !IROUTINE: hcox_gfed_include.H
 !
-! !DESCRIPTION: Include file with GFED emission factor data that was 
+! !DESCRIPTION: Include file with GFED emission factor data that was
 !  originally contained in file GFED\\_emission\\_factors.txt.  We have now
 !  transformed this file into hardwired F90 commands in order to avoid reading
 !  an ASCII file in the ESMF environment.
@@ -81,7 +81,7 @@ sub getProTeXHeader() {
 !    cd HEMCO/Extensions/Preprocess
 !    make gfed
 !
-!  This will regenerate this include file from the original data and 
+!  This will regenerate this include file from the original data and
 !  automatically place it in the HEMCO/Extensions directory.
 !
 !  White space has been removed in order to reduce the file size as much
@@ -95,10 +95,10 @@ sub getProTeXHeader() {
 !  GFED_EMFAC(N,1) = Deforestation        Emission Factor for species N
 !  GFED_EMFAC(N,1) = Extratropical Forest Emission Factor for species N
 !  GFED_EMFAC(N,1) = Peat                 Emission Factor for species N
-!  GFED_EMFAC(N,1) = Savanna              Emission Factor for species N       
+!  GFED_EMFAC(N,1) = Savanna              Emission Factor for species N
 !  GFED_EMFAC(N,1) = Woodland             Emission Factor for species N
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  08 Aug 2014 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -141,8 +141,8 @@ sub makeGfed3Include($$) {
 #  Column 7 = Savanna Emission Factor
 #  Column 8 = Woodland Emission Factor
 #
-# 
-# !REVISION HISTORY: 
+#
+# !REVISION HISTORY:
 #  11 Aug 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
@@ -174,7 +174,7 @@ sub makeGfed3Include($$) {
   #=========================================================================
   # Parse input file and write F90 commands to output file
   #=========================================================================
- 		
+
   # Get each line of input
   foreach $line ( <I> ) {
 
@@ -235,7 +235,7 @@ sub makeGfed3Include($$) {
 #
 sub main() {
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  11 Aug 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------

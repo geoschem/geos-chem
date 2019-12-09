@@ -5,11 +5,11 @@
 !
 ! !MODULE: dust_mod.F
 !
-! !DESCRIPTION: Module DUST\_MOD contains routines for computing dust aerosol 
+! !DESCRIPTION: Module DUST\_MOD contains routines for computing dust aerosol
 !  emissions, chemistry, and optical depths.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DUST_MOD
 !
@@ -23,7 +23,7 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CHEMDUST      
+      PUBLIC  :: CHEMDUST
 #ifdef TOMAS
       PUBLIC  :: SETTLEDUST
 #endif
@@ -31,7 +31,7 @@
       PUBLIC  :: GET_DUST_ALK
       PUBLIC  :: INIT_DUST
       PUBLIC  :: CLEANUP_DUST
-!     
+!
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: DRY_SETTLING
@@ -49,8 +49,8 @@
 ! !PRIVATE TYPES:
 !
       ! Species ID flags
-      INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4  
-      INTEGER               :: id_DAL1,  id_DAL2,  id_DAL3,   id_DAL4  
+      INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4
+      INTEGER               :: id_DAL1,  id_DAL2,  id_DAL3,   id_DAL4
       INTEGER               :: id_DUST1, id_NK1
 
       ! Arrays
@@ -71,7 +71,7 @@
 !
 ! !IROUTINE: chemdust
 !
-! !DESCRIPTION: Subroutine CHEMDUST is the interface between the GEOS-Chem 
+! !DESCRIPTION: Subroutine CHEMDUST is the interface between the GEOS-Chem
 !  main program and the dust chemistry routines that mostly calculates dust
 !  dry deposition.
 !\\
@@ -104,7 +104,7 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
@@ -112,8 +112,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  30 Mar 2004 - T. D. Fairlie - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -159,16 +159,16 @@
 
       ! Execute on first call only
       IF ( FIRST ) THEN
- 
+
          ! Stop w/ error if dust species flags are undefined
          ! NOTE: Ind_() returns -1 for species not found, so for the
          ! algorithm below to work, we need to make sure all id's are
          ! not less than zero (bmy, 7/5/16)
-         IF ( MAX( id_DST1, 0 )  + 
-     &        MAX( id_DST2, 0 )  + 
-     &        MAX( id_DST3, 0 )  + 
-     &        MAX( id_DST4, 0 ) == 0 ) THEN 
-            IF ( LDUST ) THEN 
+         IF ( MAX( id_DST1, 0 )  +
+     &        MAX( id_DST2, 0 )  +
+     &        MAX( id_DST3, 0 )  +
+     &        MAX( id_DST4, 0 ) == 0 ) THEN
+            IF ( LDUST ) THEN
                ErrMsg = 'LDUST=T but dust species are undefined!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
@@ -266,16 +266,16 @@
       !-------------------------------------------------------------
       ! Dust settling for regular dust species
       !
-      ! NOTE: Assumes that id_DST1, id_DST2, id_DST3, id_DST4 are 
+      ! NOTE: Assumes that id_DST1, id_DST2, id_DST3, id_DST4 are
       ! contiguous in the species list.  This is usually correct,
       ! but we may have to update this later. (bmy, 7/5/16)
       !-------------------------------------------------------------
       CALL DRY_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
      &                   State_Diag, State_Grid, State_Met,
      &                   id_DST1,    id_DST4,    RC )
-   
+
       ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN 
+      IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in call to "DRY_SETTLING"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -284,11 +284,11 @@
       !-------------------------------------------------------------
       ! Dust settling for acid uptake on dust species
       !
-      ! NOTE: Assumes that id_DAL1, id_DAL2, id_DAL3, id_DAL4 are 
+      ! NOTE: Assumes that id_DAL1, id_DAL2, id_DAL3, id_DAL4 are
       ! contiguous in the species list.  This is usually correct,
       ! but we may have to update this later. (bmy, 7/5/16)
       !
-      ! ALSO NOTE: Dry settling of DSTNIT, DSTSO4 occurs in 
+      ! ALSO NOTE: Dry settling of DSTNIT, DSTSO4 occurs in
       ! GRAV_SETTLING, called from CHEMSULFATE in SULFATE_MOD.
       !-------------------------------------------------------------
       IF ( LDSTUP ) THEN
@@ -303,7 +303,7 @@
 #endif
 
          ! Trap potential errors
-         IF ( RC /= GC_SUCCESS ) THEN 
+         IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in call to "DRY_SETTLING"!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
@@ -323,11 +323,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: settledust 
+! !IROUTINE: settledust
 !
-! !DESCRIPTION: Subroutine SETTLEDUST is the interface between the 
-!  size-resolved dry deposition subroutine AERO\_DRYDEP and the dust module. 
-!  This is to call only gravitational settling and deals with removal of 
+! !DESCRIPTION: Subroutine SETTLEDUST is the interface between the
+!  size-resolved dry deposition subroutine AERO\_DRYDEP and the dust module.
+!  This is to call only gravitational settling and deals with removal of
 !  aerosol number with the dust mass.  (win, 7/17/09)
 !\\
 !\\
@@ -337,7 +337,7 @@
      &                       State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
-! 
+!
       USE CMN_SIZE_MOD             ! Size parameters
 #ifdef BPCH_DIAG
       USE CMN_DIAG_MOD             ! ND44
@@ -371,7 +371,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
+!
 ! !REVISION HISTORY:
 !  17 Jul 2009 - W. Trivitayanurak - Initial version
 !  See the Git history with the gitk browser!
@@ -446,7 +446,7 @@
      &                   State_Grid, State_Met,
      &                   id_DUST1,   id_DUST1-1+IBINS,
      &                   RC )
-   
+
 
       ! Calculate change in number to correspond with dust redistribution
       ! by gravitational settling
@@ -466,33 +466,33 @@
 
             ! Surface area [cm2]
             AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-         
+
             DIF   = 0.0_fp
             FLUXD = 0e+0_fp
             FLUXN = 0e+0_fp
-!debug            if(i==ii .and. j==jj .and. bin==bb) 
+!debug            if(i==ii .and. j==jj .and. bin==bb)
 !     &          print *,'L    DU0(',I,J,L,BIN,')   DIF    ',
-!     &           'FLUXD  AD44' 
-!            if(i==ix .and. j==jx .and. bin==bb) 
+!     &           'FLUXD  AD44'
+!            if(i==ix .and. j==jx .and. bin==bb)
 !     &          print *,'L    DU0(',I,J,L,BIN,')   DIF    ',
-!     &           'FLUXD  AD44' 
+!     &           'FLUXD  AD44'
 !debug-----
             DO L = 1, State_Grid%NZ
                DIF = DU0(I,J,L,BIN) - Spc(I,J,L,id_DUST1-1+BIN)
 
-               Spc(I,J,L,id_NK1-1+BIN) = Spc(I,J,L,id_NK1-1+BIN) - 
+               Spc(I,J,L,id_NK1-1+BIN) = Spc(I,J,L,id_NK1-1+BIN) -
      &                                DIF/(SQRT( Xk(BIN)*Xk(BIN+1)))
-            
+
                ! Convert flux from [kg/s] to [molec/cm2/s]
-               FLUXD = FLUXD +                                                 
-     &                 DIF / DT_SETTL * AVO / 
-     &                 ( 1.e-3_fp * ThisSpc%emMW_g ) /        
-     &                 AREA_CM2                                                
-           
-               
+               FLUXD = FLUXD +
+     &                 DIF / DT_SETTL * AVO /
+     &                 ( 1.e-3_fp * ThisSpc%emMW_g ) /
+     &                 AREA_CM2
+
+
                FLUXN = FLUXN + DIF/(SQRT( Xk(BIN)*Xk(BIN+1))) /
-     &                 DT_SETTL * AVO / 
-     &                 ( 1.e-3_fp * ThisSpc%emMW_g ) / 
+     &                 DT_SETTL * AVO /
+     &                 ( 1.e-3_fp * ThisSpc%emMW_g ) /
      &                 AREA_CM2
 
 !debug               if(i==ii .and. j==jj .and. bin==bb) then
@@ -511,14 +511,14 @@
             IF ( ND44 > 0 ) THEN
 
                !--------------------------------------------------------
-               ! ND44 DIAGNOSTIC (bpch) 
+               ! ND44 DIAGNOSTIC (bpch)
                ! Dry deposition flux loss [#/cm2/s]
                !
                ! NOTE: Bpch diagnostics are being phased out.
                !--------------------------------------------------------
                !%%% NOTE: Now use TOMAS_IDDEP, which replicates the
                !%%% since-removed Input_Opt%IDDEP field (bmy, 3/17/17)
-               AD44(I,J,TOMAS_IDDEP(BIN),1) = 
+               AD44(I,J,TOMAS_IDDEP(BIN),1) =
      &         AD44(I,J,TOMAS_IDDEP(BIN),1) + FLUXN
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
@@ -546,9 +546,9 @@
 !
 ! !IROUTINE: emissdust
 !
-! !DESCRIPTION: Subroutine EMISSDUST is the driver routine for the dust 
-!  emission module.  You may call either the GINOUX or the DEAD dust source 
-!  function. 
+! !DESCRIPTION: Subroutine EMISSDUST is the driver routine for the dust
+!  emission module.  You may call either the GINOUX or the DEAD dust source
+!  function.
 !\\
 !\\
 ! !INTERFACE:
@@ -587,8 +587,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  30 Mar 2004 - T. D. Fairlie - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -599,12 +599,12 @@
 !
       ! SAVEd scalars
       LOGICAL,  SAVE    :: FIRST = .TRUE.
-      
+
       ! Non-SAVEd scalars
       LOGICAL           :: LDEAD
       LOGICAL           :: LDUST
       LOGICAL           :: LPRT
-      LOGICAL           :: LINTERP 
+      LOGICAL           :: LINTERP
       INTEGER           :: I, J, K
       REAL(fp)          :: MEMIS
       REAL(fp)          :: MINIT(State_Grid%NX,State_Grid%NY,1,IBINS)
@@ -619,7 +619,7 @@
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
-     
+
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = ''
@@ -635,13 +635,13 @@
 
          ! Return if dust ID flags are not defined
          IF ( id_DUST1 == 0 ) THEN
-            IF ( LDUST ) THEN 
+            IF ( LDUST ) THEN
                ErrMsg = 'LDUST=T but dust species are undefined!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
          ENDIF
- 
+
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
@@ -666,15 +666,15 @@
      &           'dust DEAD emission yet!  Switch to GINOUX for now'
             stop
 
-         ELSE 
+         ELSE
 
             !### Debug
-            IF ( LPRT ) 
+            IF ( LPRT )
      &           CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
          ENDIF
 
 #ifdef BPCH_DIAG
-         IF ( ND59 > 0 ) THEN 
+         IF ( ND59 > 0 ) THEN
             DO K = 1, IBINS
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -685,7 +685,7 @@
                Spc(I,J,1,id_NK1-1+K) = Spc(I,J,1,id_NK1-1+K) +
      &                                 MEMIS / (sqrt(Xk(K)*Xk(K+1)))
 
-               AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + 
+               AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
      &                              MEMIS / (sqrt(Xk(K)*Xk(K+1)))
  10            CONTINUE
             ENDDO
@@ -706,9 +706,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_settling 
+! !IROUTINE: dry_settling
 !
-! !DESCRIPTION: Subroutine DRY\_SETTLING computes the dry settling of 
+! !DESCRIPTION: Subroutine DRY\_SETTLING computes the dry settling of
 !  dust species.
 !\\
 !\\
@@ -741,15 +741,15 @@
       INTEGER,        INTENT(IN)    :: Ind1        ! Ending   dust species #
 !
 ! !INPUT/OUTPUT PARAMETERS
-! 
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  30 Mar 2004 - T. D. Fairlie - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -761,31 +761,31 @@
       INTEGER                :: I,        J,     L
       INTEGER                :: N,        NA,    ND
       REAL(fp)               :: DT_SETTL, DELZ,  DELZ1
-      REAL(fp)               :: REFF,     DEN,   CONST   
+      REAL(fp)               :: REFF,     DEN,   CONST
       REAL(fp)               :: NUM,      LAMDA, FLUX
       REAL(fp)               :: AREA_CM2, TC0(State_Grid%NZ)
       REAL(fp)               :: TOT1,     TOT2
 
-      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
-      REAL(fp)               :: P 
+      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
+      REAL(fp)               :: P
 
       ! Diameter of aerosol [um]
       REAL(fp)               :: Dp
 
       ! Pressure * DP
-      REAL(fp)               :: PDp 
+      REAL(fp)               :: PDp
 
-      ! Temperature (K)    
-      REAL(fp)               :: TEMP        
+      ! Temperature (K)
+      REAL(fp)               :: TEMP
 
       ! Slip correction factor
-      REAL(fp)               :: Slip        
+      REAL(fp)               :: Slip
 
       ! Viscosity of air (Pa s)
-      REAL(fp)               :: Visc   
+      REAL(fp)               :: Visc
 
       ! Settling velocity of particle (m/s)
-      REAL(fp)               :: VTS(State_Grid%NZ)  
+      REAL(fp)               :: VTS(State_Grid%NZ)
 
       ! Pointers
       TYPE(Species), POINTER :: ThisSpc
@@ -793,11 +793,11 @@
 
 !
 ! !DEFINED PARAMETERS:
-!      
+!
       REAL(fp),  PARAMETER   :: C1 =  0.7674e+0_fp
-      REAL(fp),  PARAMETER   :: C2 =  3.079e+0_fp 
+      REAL(fp),  PARAMETER   :: C2 =  3.079e+0_fp
       REAL(fp),  PARAMETER   :: C3 =  2.573e-11_fp
-      REAL(fp),  PARAMETER   :: C4 = -1.424e+0_fp 
+      REAL(fp),  PARAMETER   :: C4 = -1.424e+0_fp
 
       !=================================================================
       ! DRY_SETTLING begins here!
@@ -826,7 +826,7 @@
          ! species list, so it's OK to use the advected species ID
          ! to query the Species Database (bmy, 3/16/17)
          ThisSpc => State_Chm%SpcData(NA)%Info
-         
+
          ! Get the drydep ID corresponding to this species
          ND      =  ThisSpc%DryDepId
 
@@ -835,7 +835,7 @@
          REFF    =  ThisSpc%Radius
 
          ! Dp [um] = particle diameter
-         DP      =  2e+0_fp * REFF * 1.e+6_fp    
+         DP      =  2e+0_fp * REFF * 1.e+6_fp
          CONST   =  2e+0_fp * DEN * REFF**2 * g0 / 9e+0_fp
 
          ! Loop over latitudes
@@ -863,33 +863,33 @@
 
                   !=====================================================
                   ! # air molecule number density
-                  ! num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+                  ! num = P * 1d3 * 6.023d23 / (8.314 * Temp)
                   !
                   ! # gas mean free path
-                  ! lamda = 1.d6 / 
-                  !     &   ( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+                  ! lamda = 1.d6 /
+                  !     &   ( 1.41421 * num * 3.141592 * (3.7d-10)**2 )
                   !
                   ! # Slip correction
-                  ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * 
+                  ! Slip = 1. + 2. * lamda * (1.257 + 0.4 *
                   !      &  exp( -1.1 * Dp / (2. * lamda))) / Dp
                   !=====================================================
-                  ! NOTE, Slip correction factor calculations following 
-                  !       Seinfeld, pp464 which is thought to be more 
+                  ! NOTE, Slip correction factor calculations following
+                  !       Seinfeld, pp464 which is thought to be more
                   !       accurate but more computation required.
                   !=====================================================
 
                   ! Slip correction factor as function of (P*dp)
-                  SLIP = 1e+0_fp + ( 15.60e+0_fp + 7.0e+0_fp * 
+                  SLIP = 1e+0_fp + ( 15.60e+0_fp + 7.0e+0_fp *
      &                   EXP(-0.059e+0_fp*PDP) ) / PDP
-            
+
                   !=====================================================
                   ! NOTE, Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
-                  ! which produce slip correction factor with small 
+                  ! which produce slip correction factor with small
                   ! error compared to the above with less computation.
                   !=====================================================
 
                   ! Viscosity [Pa s] of air as a function of temp (K)
-                  VISC = 1.458e-6_fp * (TEMP)**(1.5e+0_fp) / 
+                  VISC = 1.458e-6_fp * (TEMP)**(1.5e+0_fp) /
      &                 ( TEMP + 110.4e+0_fp )
 
                   ! Settling velocity [m/s]
@@ -897,7 +897,7 @@
 
                ENDDO
 
-               ! Method is to solve bidiagonal matrix 
+               ! Method is to solve bidiagonal matrix
                ! which is implicit and first order accurate in Z
                DO L = 1, State_Grid%NZ
                   TC0(L) = TC(I,J,L,NA)
@@ -906,19 +906,19 @@
                ! We know the boundary condition at the model top
                L           = State_Grid%MaxChemLev
                DELZ        = State_Met%BXHEIGHT(I,J,L)
-               TC(I,J,L,NA) = TC(I,J,L,NA) / 
+               TC(I,J,L,NA) = TC(I,J,L,NA) /
      &                        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
 
                DO L = State_Grid%MaxChemLev-1, 1, -1
                   DELZ         = State_Met%BXHEIGHT(I,J,L)
                   DELZ1        = State_Met%BXHEIGHT(I,J,L+1)
-                  TC(I,J,L,NA) = 1.e+0_fp / 
+                  TC(I,J,L,NA) = 1.e+0_fp /
      &                 ( 1.e+0_fp + DT_SETTL * VTS(L)   / DELZ )
      &                 * (TC(I,J,L,NA)  + DT_SETTL * VTS(L+1) / DELZ1
      &                 *  TC(I,J,L+1,NA) )
                ENDDO
 
-               !========================================================      
+               !========================================================
                ! Dry deposition diagnostic [molec/cm2/s]
                !========================================================
                IF ( State_Diag%Archive_DryDepChm .OR.
@@ -933,7 +933,7 @@
                   ! Initialize
                   TOT1 = 0e+0_fp
                   TOT2 = 0e+0_fp
-            
+
                   ! Compute column totals of TCO(:) and TC(I,J,:,N)
                   DO L = 1, State_Grid%NZ
                      TOT1 = TOT1 + TC0(L)
@@ -941,20 +941,20 @@
                   ENDDO
 
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
-                  FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
-                  FLUX = FLUX * AVO * ( AIRMW / 
+                  FLUX = ( TOT1 - TOT2 ) / DT_SETTL
+                  FLUX = FLUX * AVO * ( AIRMW /
      &                    ThisSpc%emMw_g    ) /
-     &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
+     &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2
 
                   ! Drydep flux in chemistry only
                   State_Diag%DryDepChm(I,J,ND) = FLUX
                ENDIF
-            ENDDO 
-         ENDDO    
+            ENDDO
+         ENDDO
 
          ! Nullify pointer
          ThisSpc => NULL()
-      ENDDO       
+      ENDDO
 !$OMP END PARALLEL DO
 
       ! Free pointers
@@ -970,7 +970,7 @@
 !
 ! !IROUTINE: dry_settlingbin
 !
-! !DESCRIPTION: Subroutine DRY\_SETTLINGBIN computes the dry settling of 
+! !DESCRIPTION: Subroutine DRY\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
 !\\
 !\\
@@ -996,7 +996,7 @@
 
       USE CMN_SIZE_MOD             ! Size parameters
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
@@ -1011,7 +1011,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
-! 
+!
 ! !REVISION HISTORY:
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -1028,28 +1028,28 @@
       INTEGER               :: I, J, L, N, K
       INTEGER               :: IDTEMP
       REAL*8                :: DT_SETTL, DELZ,  DELZ1
-      REAL*8                :: REFF,     DEN,   CONST   
+      REAL*8                :: REFF,     DEN,   CONST
       REAL*8                :: NUM,      LAMDA, FLUX
       REAL*8                :: AREA_CM2, TC0(State_Grid%NZ)
       REAL*8                :: TOT1,     TOT2
 
-      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
-      REAL*8                :: P 
+      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
+      REAL*8                :: P
 
       ! Diameter of aerosol [um]
       REAL*8                :: Dp
 
       ! Pressure * DP
-      REAL*8                :: PDp 
+      REAL*8                :: PDp
 
-      ! Temperature (K)    
-      REAL*8                :: TEMP        
+      ! Temperature (K)
+      REAL*8                :: TEMP
 
       ! Slip correction factor
-      REAL*8                :: Slip        
+      REAL*8                :: Slip
 
       ! Viscosity of air (Pa s)
-      REAL*8                :: Visc   
+      REAL*8                :: Visc
 
       ! Settling velocity of particle (m/s)
       REAL*8                :: VTS(State_Grid%NZ)
@@ -1109,7 +1109,7 @@
                   PDP  = P * DP
 
                   ! Slip correction factor as function of (P*dp)
-                  SLIP = 1d0 + 
+                  SLIP = 1d0 +
      &                 ( 15.60d0 + 7.0d0 * EXP(-0.059d0*PDP) ) / PDP
 
                   ! Viscosity [Pa s] of air as a function of temp (K)
@@ -1123,7 +1123,7 @@
 
             ENDDO
 
-            ! Method is to solve bidiagonal matrix 
+            ! Method is to solve bidiagonal matrix
             ! which is implicit and first order accurate in Z
             L = State_Grid%NZ
             IF(MASS(L)>1.D-30)THEN
@@ -1223,9 +1223,9 @@
 !
 ! !IROUTINE: rdust_online
 !
-! !DESCRIPTION: Subroutine RDUST\_ONLINE reads global mineral dust 
-!  concentrations as determined by P. Ginoux.  Calculates dust optical 
-!  depth at each level for the FAST-J routine "set\_prof.f". 
+! !DESCRIPTION: Subroutine RDUST\_ONLINE reads global mineral dust
+!  concentrations as determined by P. Ginoux.  Calculates dust optical
+!  depth at each level for the FAST-J routine "set\_prof.f".
 !\\
 !\\
 ! !INTERFACE:
@@ -1245,8 +1245,8 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
-! !INPUT PARAMETERS: 
-! 
+! !INPUT PARAMETERS:
+!
       LOGICAL,        INTENT(IN)  :: am_I_Root     ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt     ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid    ! Grid State object
@@ -1263,8 +1263,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC            ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -1281,7 +1281,7 @@
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
       ! (tmf, 3/6/09)
       REAL(fp)           :: XRH
-      REAL(fp)           :: CRITRH      ! Critical RH [%], above which 
+      REAL(fp)           :: CRITRH      ! Critical RH [%], above which
                                         !  heteorogeneous chem takes place
 
       INTEGER            :: IWV1,  IWV2
@@ -1320,7 +1320,7 @@
          IDST   = 6
       ENDIF
 
-      ! Dust density 
+      ! Dust density
       MSDENS(1) = 2500.0e+0_fp
       MSDENS(2) = 2500.0e+0_fp
       MSDENS(3) = 2500.0e+0_fp
@@ -1332,10 +1332,10 @@
       ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
       CRITRH = 35.0e+0_fp   ! [%]
 
-      !=================================================================     
+      !=================================================================
       ! Convert concentration [kg/m3] to optical depth [unitless].
       !
-      ! ODMDUST = ( 0.75 * BXHEIGHT * CONC * QAA ) / 
+      ! ODMDUST = ( 0.75 * BXHEIGHT * CONC * QAA ) /
       !           ( MSDENS * RAA * 1e-6 )
       ! (see Tegen and Lacis, JGR, 1996, 19237-19244, eq. 1)
       !
@@ -1346,8 +1346,8 @@
       !            QAA      [ unitless ]
       !            ODMDUST  [ unitless ]
       !
-      ! NOTES: 
-      ! (1) Do the calculation at QAA(IND999,:) (i.e. 999 nm).          
+      ! NOTES:
+      ! (1) Do the calculation at QAA(IND999,:) (i.e. 999 nm).
       !=================================================================
       ! DAR Oct 2012
       ! if the call is from chemistry (ODSWITCH=0) only need one wavelength
@@ -1366,7 +1366,7 @@
             NWVS   = NWVREQUIRED
          ENDIF
       ENDIF
-      
+
       DO IIWV = 1, NWVS
          ! get current wavelength index
          ! (specified by user or all wavelengths for RRTMG)
@@ -1386,7 +1386,7 @@
                   IWV = IIWV+NWVAA0
                ELSE
                   !now we calculate at wvs for the requested AOD
-                  !offset index by NWVAART i.e. start from 1 
+                  !offset index by NWVAART i.e. start from 1
                   IWV = IWVREQUIRED(IIWV-NWVAART)
                ENDIF
             ELSE
@@ -1405,8 +1405,8 @@
 
             ! dust stored in the IDST species bin of LUT variables
             ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp *
-     &                             State_Met%BXHEIGHT(I,J,L) * 
-     &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  / 
+     &                             State_Met%BXHEIGHT(I,J,L) *
+     &                             DUST(I,J,L,N) * QQAA(IWV,N,IDST)  /
      &                           ( MSDENS(N) * RDAA(N,IDST) * 1.0e-6_fp)
 
 #ifdef RRTMG
@@ -1435,10 +1435,10 @@
       !           TAREA    [ cm^2 dust/cm^3 air ]
       !           ERADIUS  [ cm                 ]
       !
-      ! NOTE: first find volume of dust (cm3 dust/cm3 air), then 
+      ! NOTE: first find volume of dust (cm3 dust/cm3 air), then
       !       multiply by 3/radius to convert to surface area in cm2
-      !  
-      ! TAREA(:,1:NDUST) and ERADIUS(:,1:NDUST) are for 
+      !
+      ! TAREA(:,1:NDUST) and ERADIUS(:,1:NDUST) are for
       ! the NDUST FAST-J dust wavelength bins (read into DUST)
       !==============================================================
 !$OMP PARALLEL DO
@@ -1453,12 +1453,12 @@
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ERADIUS(I,J,L,N) = RDAA(N,IDST) * 1.0e-4_fp
-         
-         TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) *
-     &                      DUST(I,J,L,N) / MSDENS(N)  
 
-         ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
-         ! Get RH  
+         TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) *
+     &                      DUST(I,J,L,N) / MSDENS(N)
+
+         ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07)
+         ! Get RH
          XRH                = State_Met%RH( I, J, L )  ! [%]
          WTAREA(I,J,L, N)   = 0.e+0_fp
          WERADIUS(I,J,L, N) = 0.e+0_fp
@@ -1475,7 +1475,7 @@
 !$OMP END PARALLEL DO
 
       IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
-         
+
          ! Initialize local arrays
          tempOD = 0.0_fp
          LINTERPARR(:) = .FALSE.
@@ -1493,24 +1493,24 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
-         DO W = 1, Input_Opt%NWVSELECT 
+         DO W = 1, Input_Opt%NWVSELECT
          DO N = 1, NDUST
          DO L = 1, State_Grid%MaxChemLev
          DO J = 1, State_Grid%NY
-         DO I = 1, State_Grid%NX               
+         DO I = 1, State_Grid%NX
 
             IF ( .not. LINTERPARR(W) ) THEN
 
                tempOD(I,J,L,N,W) = ODMDUST(I,J,L,IWVSELECT(1,W),N)
-            
+
             ELSEIF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
      &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).GT.0)) THEN
-            
+
                ! Interpolate using angstrom exponent between
-               ! closest available wavelengths (coefs pre-calculated 
+               ! closest available wavelengths (coefs pre-calculated
                ! in CALC_AOD)
                ! AOD sometimes zero (if Q zero), must catch this!
-               tempOD(I,J,L,N,W) = 
+               tempOD(I,J,L,N,W) =
      &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)*
      &                  ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
      &                  ODMDUST(I,J,L,IWVSELECT(1,W),N)/
@@ -1566,7 +1566,7 @@
          DO L = 1, State_Grid%MaxChemLev
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-            State_Diag%AerSurfAreaDust(I,J,L) =  
+            State_Diag%AerSurfAreaDust(I,J,L) =
      &                                  SUM( TAREA(I,J,L,1:NDUST) )
          ENDDO
          ENDDO
@@ -1648,13 +1648,13 @@
       ! 200 times smaller 8/28/2K9
       REAL(fp), PARAMETER :: GAMMA_SO2 = 2.5d-4
 
-      !tdf V9 4/1/2K9 Applying Song et al.(2007) reduced value 
-      REAL(fp), PARAMETER :: GAMMA_H2SO4 = 1.d0  
+      !tdf V9 4/1/2K9 Applying Song et al.(2007) reduced value
+      REAL(fp), PARAMETER :: GAMMA_H2SO4 = 1.d0
 
       !  Need this for dust
       !REAL(fp), PARAMETER :: GAMMA_HNO3 = 0.1d0 ! (Song & Carmichael, 2001)
       ! 200 times smaller 8/28/2K9
-      REAL(fp), PARAMETER :: GAMMA_HNO3 = 5.0d-4 
+      REAL(fp), PARAMETER :: GAMMA_HNO3 = 5.0d-4
 
       REAL(fp), PARAMETER :: DG = 0.2d0 ! gas phase diffusion coeff. [cm2/s]
       REAL(fp), PARAMETER :: v = 3.0d4  ! cm/s
@@ -1716,12 +1716,12 @@
       ERADIUS  => State_Chm%AeroRadi ! Aerosol Radius [cm]
       TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 
-      ! Get MWs from species database 
+      ! Get MWs from species database
       MW_DST1 = State_Chm%SpcData(id_DST1)%Info%emMW_g
       MW_DST2 = State_Chm%SpcData(id_DST2)%Info%emMW_g
       MW_DST3 = State_Chm%SpcData(id_DST3)%Info%emMW_g
       MW_DST4 = State_Chm%SpcData(id_DST4)%Info%emMW_g
-     
+
       ! Zero variables
       DO IBIN = 1, NDSTBIN
          ALK_d (IBIN)  = 0.0e+0_fp
@@ -1733,7 +1733,7 @@
       END DO
 
       ! Air density [kg/m3]
-      AIR_DENS = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L) 
+      AIR_DENS = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L)
 
       ! Retrieve Dust Alkalinity [v/v dry from Spc array
       ALK_d(1) = Spc(I,J,L,id_DAL1)
@@ -1785,17 +1785,17 @@
       !-----------------------------------------------------------------------
       ! Very Simple Formulation: For each size bin (i)   ! tdf 8/20/09
       ! Dust Area density = 3 * Dust Mass density  / (REFF(i) * DUSTDEN)
-      ! TAREA computed   in RDUST_ONLINE - Units: cm^2(dust) / cm^3(air) 
+      ! TAREA computed   in RDUST_ONLINE - Units: cm^2(dust) / cm^3(air)
       ! ERADIUS computed in RDUST_ONLINE - Units: cm
-      ! NB: I am now subdividing the submicron dust size bin 
+      ! NB: I am now subdividing the submicron dust size bin
       !     using TAREA (I,J,L,1->4), and ERADIUS (I,J,L,1->4).
       !-----------------------------------------------------------------------
 
       !-------------------------------------------------------------------------
       !  Find Dust surface area density in grid-box, AREA_d [cm^2/cm^3].
       !  Also find the size-weighted surface area density, DF_AREA_d [1/s].
-      !  The latter represents the gas-phase diffusion and surface 
-      !  limited weighting and is used to determine the fraction of H2SO4 
+      !  The latter represents the gas-phase diffusion and surface
+      !  limited weighting and is used to determine the fraction of H2SO4
       !  taken up on dust, versus taken up on other aerosols.
       !                                                 tdf 08/21/09
       !-------------------------------------------------------------------------
@@ -1810,7 +1810,7 @@
             ! For Dust size bin 1, sum over the 4 size sub bins  tdf 8/21/09
 !tdf 11/25/2013            AREA_d   (IBIN) = AREA_sd1(1) + AREA_sd1(1)        ! [cm^2/cm^3]
             AREA_d   (IBIN) = AREA_sd1(1) + AREA_sd1(2)        ![cm^2/cm^3]
-     &                      + AREA_sd1(3) + AREA_sd1(4) 
+     &                      + AREA_sd1(3) + AREA_sd1(4)
             DF_AREA_d(IBIN) = DF_AREA_sd1(1) + DF_AREA_sd1(3)  ! [1/s]
      &                      + DF_AREA_sd1(2) + DF_AREA_sd1(4)
          ELSE
@@ -1849,10 +1849,10 @@
       DF_TOTAL_AREA = SULF_AREA / SULF_FAC + BC_AREA  / BC_FAC
      &              + OC_AREA   / OC_FAC   + SSA_AREA / SSA_FAC
      &              + SSC_AREA  / SSC_FAC
-     &              + DF_AREA_d(1) 
-     &              + DF_AREA_d(2) 
-     &              + DF_AREA_d(3) 
-     &              + DF_AREA_d(4) 
+     &              + DF_AREA_d(1)
+     &              + DF_AREA_d(2)
+     &              + DF_AREA_d(3)
+     &              + DF_AREA_d(4)
 
       ! tdf
       !if (I .eq. 1 .and. J .eq. 63 .and. L .eq. 6) then
@@ -1888,18 +1888,18 @@
 
          !tdf 2/11/2K9
          !tdf Following relative uptake rates of Preszler-Prince et al.(2007)
-         IF (IRH >= 90 ) THEN     
+         IF (IRH >= 90 ) THEN
             GAMS = GAMMA_SO2 * 2.e+0_fp
-         ELSE IF (IRH >= 84 ) THEN  
+         ELSE IF (IRH >= 84 ) THEN
             GAMS = GAMMA_SO2 * (0.5e+0_fp  + 1.5e+0_fp*(IRH-84.e+0_fp)/
      &             (90.e+0_fp-84.e+0_fp))
-         ELSE IF (IRH >= 76 ) THEN 
+         ELSE IF (IRH >= 76 ) THEN
             GAMS = GAMMA_SO2 * (0.16e+0_fp + 0.34e+0_fp*(IRH-76.e+0_fp)/
      &             (84.e+0_fp-76.e+0_fp))
-         ELSE IF (IRH >= 33 ) THEN  
+         ELSE IF (IRH >= 33 ) THEN
             GAMS = GAMMA_SO2 * (0.03e+0_fp + 0.13e+0_fp*(IRH-33.e+0_fp)/
      &             (76.e+0_fp-33.e+0_fp))
-         ELSE IF (IRH >= 20 ) THEN 
+         ELSE IF (IRH >= 20 ) THEN
             GAMS = GAMMA_SO2*0.03e+0_fp
          ELSE                        ! 0.0 below 20%
             GAMS = GAMMA_SO2*0.0e+0_fp
@@ -1962,22 +1962,22 @@
 
          !tdf 2/11/2K9
          !tdf Following uptake coefficients of Liu et al.(2007)
-         IF (IRH >= 80 ) THEN         
+         IF (IRH >= 80 ) THEN
             GAMN = GAMMA_HNO3 * 2.1e+0_fp
-         ELSE IF (IRH >= 70 ) THEN   
-            GAMN = GAMMA_HNO3 * (1.3e+0_fp  + 0.7e+0_fp   * 
+         ELSE IF (IRH >= 70 ) THEN
+            GAMN = GAMMA_HNO3 * (1.3e+0_fp  + 0.7e+0_fp   *
      &             (IRH - 70.e+0_fp)/ 10.e+0_fp)
-         ELSE IF (IRH >= 60 ) THEN 
-            GAMN = GAMMA_HNO3 * (1.0e+0_fp  + 0.3e+0_fp   * 
+         ELSE IF (IRH >= 60 ) THEN
+            GAMN = GAMMA_HNO3 * (1.0e+0_fp  + 0.3e+0_fp   *
      &             (IRH - 60.e+0_fp)/  10.e+0_fp)
          ELSE IF (IRH >= 50 ) THEN
-            GAMN = GAMMA_HNO3 * (0.7e+0_fp  + 0.3e+0_fp   * 
+            GAMN = GAMMA_HNO3 * (0.7e+0_fp  + 0.3e+0_fp   *
      &             (IRH - 50.e+0_fp)/ 10.e+0_fp)
-         ELSE IF (IRH >= 30 ) THEN  
-            GAMN = GAMMA_HNO3 * (0.19e+0_fp + 0.255e+0_fp * 
+         ELSE IF (IRH >= 30 ) THEN
+            GAMN = GAMMA_HNO3 * (0.19e+0_fp + 0.255e+0_fp *
      &             (IRH - 30.e+0_fp)/ 10.e+0_fp)
-         ELSE IF (IRH >= 10 ) THEN  
-            GAMN = GAMMA_HNO3 * (0.03e+0_fp + 0.08e+0_fp  * 
+         ELSE IF (IRH >= 10 ) THEN
+            GAMN = GAMMA_HNO3 * (0.03e+0_fp + 0.08e+0_fp  *
      &             (IRH - 10.e+0_fp)/ 10.e+0_fp)
          ELSE                        ! 0.0 below 10%
             GAMN = GAMMA_HNO3*0.0e+0_fp
@@ -2100,8 +2100,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  30 Mar 2004 - R. Yantosca - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -2137,11 +2137,11 @@
       !=================================================================
       ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
       !=================================================================
-     
+
       !-----------------------------------------------------------------
       ! DST1 - DST4 species (most fullchem + aerosol simulations)
       !
-      ! NOTE: We can consider removing DUSTDEN and DUSTREFF from 
+      ! NOTE: We can consider removing DUSTDEN and DUSTREFF from
       ! the Input_Opt object at a later point.  These can be directly
       ! obtained from the species database object now. (bmy, 6/20/16)
       !-----------------------------------------------------------------
@@ -2162,7 +2162,7 @@
 
       ! Error check the dust uptake species
       IF ( Input_Opt%LDSTUP ) THEN
-         IF ( id_DAL1 < 0 .or. id_DAL2 < 0   .or.  
+         IF ( id_DAL1 < 0 .or. id_DAL2 < 0   .or.
      &        id_DAL3 < 0 .or. id_DAL4 < 0 ) THEN
             ErrMsg = 'Dust uptake species are undefined!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2177,14 +2177,14 @@
 
       ! TOMAS species ID flags
       id_DUST1 = Ind_('DUST1')
-      id_NK1   = Ind_('NK1'  ) 
+      id_NK1   = Ind_('NK1'  )
 
       !----------------------------------
       ! Set up FRAC_S (only for Ginoux)
       !----------------------------------
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !% NOTE: LDEAD has not been set by HCOI_GC_INIT yet. This code needs %
-      !% to be moved or modified accordingly (mps, 4/9/15)                 %    
+      !% to be moved or modified accordingly (mps, 4/9/15)                 %
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !% NOTE: This code replicates the obsolete Input_Opt%IDDEP field,    %
       !% which has since been removed.  TOMAS TEAM please take note.       %
@@ -2194,19 +2194,19 @@
 
          ! Initialize
          TOMAS_IDDEP = 0
-         
+
          DO BIN = 1, IBINS
          DO N   = 1, State_Chm%nDryDep
             IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
                TOMAS_IDDEP(BIN) = N
                GOTO 100
-            ENDIF            
+            ENDIF
          ENDDO
  100     CONTINUE
          ENDDO
 
       ENDIF
-#endif 
+#endif
 
 #if defined( ESMF_ ) || defined( TOMAS )
       ! EXPERIMENTAL: For archiving the dust source for GCHP
@@ -2233,8 +2233,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_DUST
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  30 Mar 2004 - R. Yantosca - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -2249,4 +2249,3 @@
       END SUBROUTINE CLEANUP_DUST
 !EOC
       END MODULE DUST_MOD
-

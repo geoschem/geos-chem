@@ -36,11 +36,16 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! General Runtime & Distributed Comp Info
      !----------------------------------------
-     INTEGER                     :: numCPUs   ! Number of MPI procs
-     INTEGER                     :: thisCPU   ! Local MPI process handle
-     INTEGER                     :: MPIComm   ! MPI Communicator Handle
-     LOGICAL                     :: isMPI     ! Is this an MPI sim?
-     LOGICAL                     :: amIRoot   ! Is this the root cpu?
+     INTEGER                     :: numCPUs    ! Number of MPI procs
+     INTEGER                     :: thisCPU    ! Local MPI process handle
+     INTEGER                     :: MPIComm    ! MPI Communicator Handle
+     LOGICAL                     :: isMPI      ! Is this an MPI sim?
+     LOGICAL                     :: amIRoot    ! Is this the root cpu?
+
+     !----------------------------------------
+     ! Dry run info (print out file names)
+     !----------------------------------------
+     LOGICAL                     :: DryRun     ! Is this a dry run?
 
      !----------------------------------------
      ! SIZE PARAMETER fields
@@ -103,7 +108,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LSOA
      LOGICAL                     :: LMPOA
      LOGICAL                     :: LSVPOA
-     LOGICAL                     :: LOMOC
      LOGICAL                     :: LDUST
      LOGICAL                     :: LDEAD
      LOGICAL                     :: LSSALT
@@ -491,11 +495,16 @@ CONTAINS
     !----------------------------------------
     ! General Runtime & Distributed Comp Info
     !----------------------------------------
-    Input_Opt%amIRoot                = .false.
-    Input_Opt%isMPI                  = .false.
+    Input_Opt%amIRoot                = am_I_Root
+    Input_Opt%isMPI                  = .FALSE.
     Input_Opt%numCPUs                = 1
     Input_Opt%thisCPU                = -1
     Input_Opt%MPIComm                = -1
+
+    !----------------------------------------
+    ! Dry run info (print out file names)
+    !----------------------------------------
+    Input_Opt%DryRun                 = .FALSE.
 
     !----------------------------------------
     ! SIZE PARAMETER fields
@@ -592,7 +601,6 @@ CONTAINS
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LMPOA                  = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
-    Input_Opt%LOMOC                  = .FALSE.
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LDSTUP                 = .FALSE.

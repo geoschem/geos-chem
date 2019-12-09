@@ -6,8 +6,8 @@
 !
 ! !MODULE: apm_driv_mod
 !
-! !DESCRIPTION: Module APM\_DRIV\_MOD contains variables and routines to drive 
-!  the Advanced Particle Microphysics (APM) model.  It serves as the 
+! !DESCRIPTION: Module APM\_DRIV\_MOD contains variables and routines to drive
+!  the Advanced Particle Microphysics (APM) model.  It serves as the
 !  interface between APM module and the 3D model.
 !\\
 !\\
@@ -51,7 +51,7 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: FCLOUD(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: GFTOT3D(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: DENWET3D(:,:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MWSIZE3D(:,:,:,:) 
+      REAL*8,  ALLOCATABLE, PUBLIC :: MWSIZE3D(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: SO2toSO4(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: PLVSOG(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: BCLIFE(:,:,:)
@@ -74,13 +74,13 @@
       ! NIT, NH4, SOA
       INTEGER, ALLOCATABLE, PUBLIC :: IACT1(:,:,:)
       INTEGER, ALLOCATABLE, PUBLIC :: IACT2(:,:,:)
-      INTEGER, ALLOCATABLE, PUBLIC :: IACT3(:,:,:) 
+      INTEGER, ALLOCATABLE, PUBLIC :: IACT3(:,:,:)
 
       ! H2SO4 gas production rate
-      REAL*8,  ALLOCATABLE, PUBLIC :: PSO4GAS(:,:,:) 
-      REAL*8,  ALLOCATABLE, PUBLIC :: XO3(:,:,:) 
+      REAL*8,  ALLOCATABLE, PUBLIC :: PSO4GAS(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: XO3(:,:,:)
 !Yu+ seasalt SST correction
-      REAL*8,  ALLOCATABLE, PUBLIC :: FSST(:,:) 
+      REAL*8,  ALLOCATABLE, PUBLIC :: FSST(:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: XBEXT1k3D(:,:,:,:)
 
 !GanLuo+ add satellite local time
@@ -105,65 +105,65 @@
       PRIVATE :: GET_OH
 !
 ! !REMARKS:
-!  The APM model was designed and developed for implementation into GEOS-Chem 
+!  The APM model was designed and developed for implementation into GEOS-Chem
 !  by Fangqun Yu and Gan Luo at State University of New York (SUNY) at Albany.
-!  (Emails: yfq@asrc.cestm.albany.edu; ganluo@asrc.cestm.albany.edu) 
+!  (Emails: yfq@asrc.cestm.albany.edu; ganluo@asrc.cestm.albany.edu)
 !                                                                             .
-!  Fangqun focused on overall strategy, aerosol structure (bins, compositions, 
-!  types, mixing states) design, computationally efficient schemes, particle 
-!  microphysics (nucleation, growth, coagulation), model evaluation and 
+!  Fangqun focused on overall strategy, aerosol structure (bins, compositions,
+!  types, mixing states) design, computationally efficient schemes, particle
+!  microphysics (nucleation, growth, coagulation), model evaluation and
 !  improvement, and model application.
-!  Gan focused on overall strategy, integration of APM with GEOS-Chem, model 
+!  Gan focused on overall strategy, integration of APM with GEOS-Chem, model
 !  input, emission, transport, size-resolved dry deposition and wet scavenging,
 !  output visualization, and model application.
 !                                                                             .
 !  The major reference of the APM model implemented in GEOS-Chem is:
 !                                                                             .
-!  1. Yu, F., and G. Luo, Simulation of particle size distribution with a 
-!        global aerosol model: Contribution of nucleation to aerosol and CCN 
-!        number concentrations, Atmos. Chem. Phys., 9, 7691-7710, 2009. 
+!  1. Yu, F., and G. Luo, Simulation of particle size distribution with a
+!        global aerosol model: Contribution of nucleation to aerosol and CCN
+!        number concentrations, Atmos. Chem. Phys., 9, 7691-7710, 2009.
 !                                                                             .
-!  The APM model is an advanced multi-type, multi-component, size-resolved 
-!  microphysics model developed for a wide range of applications. The current 
-!  APM model is the result of the past developments and validation efforts 
-!  aimed at explaining atmospheric particle observations, reported in a 
+!  The APM model is an advanced multi-type, multi-component, size-resolved
+!  microphysics model developed for a wide range of applications. The current
+!  APM model is the result of the past developments and validation efforts
+!  aimed at explaining atmospheric particle observations, reported in a
 !  number of previous publications including:
 !                                                                             .
-!  2. Turco, R. P., Hamill, P., Toon, O. B., Whitten, R. C., and Kiang, C. S.: 
-!        A one-dimensional model describing aerosol formation and evolution in 
+!  2. Turco, R. P., Hamill, P., Toon, O. B., Whitten, R. C., and Kiang, C. S.:
+!        A one-dimensional model describing aerosol formation and evolution in
 !        the stratosphere, Part I, Physical processes and mathematical analogs,
 !        J. Atmos. Sci., 36, 699-717, 1979.
-!  3. Toon, O. B., Turco, R. P., Westphal, D., Malone, R., and Liu, M. S.: A 
-!        multidimensional model for aerosols: Description of computational 
+!  3. Toon, O. B., Turco, R. P., Westphal, D., Malone, R., and Liu, M. S.: A
+!        multidimensional model for aerosols: Description of computational
 !        analogs, J. Atmos. Sci., 45, 2123-2143, 1988.
-!  4. Jacobson, M., Turco, R., Jensen, E. and Toon O.: Modeling coagulation 
-!        among particles of different composition and size, Atmos. Environ., 
+!  4. Jacobson, M., Turco, R., Jensen, E. and Toon O.: Modeling coagulation
+!        among particles of different composition and size, Atmos. Environ.,
 !        28, 1327-1338, 1994.
-!  5. Jacobson, M. Z., and Turco, R. P.: Simulating condensational growth, 
-!        evaporation and coagulation of aerosols using a combined moving and 
+!  5. Jacobson, M. Z., and Turco, R. P.: Simulating condensational growth,
+!        evaporation and coagulation of aerosols using a combined moving and
 !        stationary size grid, Aerosol Sci. Tech., 22, 73-92, 1995.
-!  6. Yu, F., and R. P. Turco: The role of ions in the formation and evolution 
-!        of particles in aircraft plumes, Geophys. Res. Lett., 24, 1927-1930, 
+!  6. Yu, F., and R. P. Turco: The role of ions in the formation and evolution
+!        of particles in aircraft plumes, Geophys. Res. Lett., 24, 1927-1930,
 !        1997.
-!  7. Yu, F.: A Study of the Formation and Evolution of Aerosols and Contrails 
-!        in Aircraft Wakes: Development, Validation and Application of an 
-!        Advanced Particle Microphysics (APM) Model, Doctoral Dissertation, 
+!  7. Yu, F.: A Study of the Formation and Evolution of Aerosols and Contrails
+!        in Aircraft Wakes: Development, Validation and Application of an
+!        Advanced Particle Microphysics (APM) Model, Doctoral Dissertation,
 !        UCLA, 1998.
-!  8. Yu, F., From molecular clusters to nanoparticles: Second-generation 
+!  8. Yu, F., From molecular clusters to nanoparticles: Second-generation
 !        ion-mediated nucleation model, Atmos. Chem. Phys.,6, 5193-5211, 2006.
-!  9. Yu, F., and R. P. Turco, Case studies of particle formation events 
-!        observed in boreal forests: Implications for nucleation mechanisms, 
+!  9. Yu, F., and R. P. Turco, Case studies of particle formation events
+!        observed in boreal forests: Implications for nucleation mechanisms,
 !        Atmos. Chem. Phys., 8, 6085-6102, 2008.
 !                                                                             .
-!  While the core components of the present APM model implemented in GEOS-Chem 
-!  was written from scratch using fortran 95, some algorithms and ideas were 
-!  inherited from the above mentioned references. 
+!  While the core components of the present APM model implemented in GEOS-Chem
+!  was written from scratch using fortran 95, some algorithms and ideas were
+!  inherited from the above mentioned references.
 !                                                                             .
-!  For more information and updates, please check the APM aerosol microphysics 
-!  wiki page 
+!  For more information and updates, please check the APM aerosol microphysics
+!  wiki page
 !  http://wiki.seas.harvard.edu/geos-chem/index.php/APM_aerosol_microphysics.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
@@ -189,7 +189,7 @@
       REAL*8,        ALLOCATABLE :: MASSMESA(:,:,:,:)
 
 !      INTEGER, PARAMETER :: MWL=5   ! 0.3, 0.55, 0.94, 1.785, 3.19 um
-      INTEGER, PARAMETER :: MWL=16   ! 
+      INTEGER, PARAMETER :: MWL=16   !
 !      DATA YWLS/0.23,0.30,0.39,0.50,0.53,0.55,0.70,1.01,
 !     &          1.27,1.46,1.78,2.05,2.33,2.79,3.46,8.02/
       INTEGER, PARAMETER :: KOUT1 = 3   !390 nm
@@ -200,7 +200,7 @@
 
       REAL*8,  PARAMETER   :: MAIR         = 28.966d-3           ! kg/mol
 
-      REAL*8  :: YWLS(MWL)   
+      REAL*8  :: YWLS(MWL)
       INTEGER :: IWL,ITYP
       REAL*8  :: ZBEXT(MWL),ZW(MWL),ZG(MWL)
 
@@ -228,7 +228,7 @@
       INTEGER, PARAMETER    :: NBS = 14   !rrtmg
       INTEGER, PARAMETER    :: NBL = 9
       INTEGER               :: NWLS(NBS)
-      REAL,    ALLOCATABLE  :: ALBDRR(:,:,:)   
+      REAL,    ALLOCATABLE  :: ALBDRR(:,:,:)
       REAL,    ALLOCATABLE  :: ZTCST(:,:,:)
       REAL,    ALLOCATABLE  :: ZTCSB(:,:,:)
       REAL,    ALLOCATABLE  :: ZTFST(:,:,:)
@@ -278,13 +278,13 @@
       REAL,    ALLOCATABLE  :: AOD(:,:)
       REAL,    ALLOCATABLE  ::  AAOD(:,:)
       REAL,    ALLOCATABLE  :: AODOUT1(:,:)
-      REAL,    ALLOCATABLE  :: AAODOUT1(:,:)  
+      REAL,    ALLOCATABLE  :: AAODOUT1(:,:)
       REAL,    ALLOCATABLE  :: AODOUT3(:,:)
       REAL,    ALLOCATABLE  :: AAODOUT3(:,:)
       REAL,    ALLOCATABLE  :: CODGC(:,:)
       REAL,    ALLOCATABLE  :: TAOD(:,:,:)
 
-!      DATA YWLS/ 0.34,0.38,0.443,0.469,0.5,0.554,0.645,0.675, 
+!      DATA YWLS/ 0.34,0.38,0.443,0.469,0.5,0.554,0.645,0.675,
 !     &  0.865,0.94,1.02,1.24,1.64,1.785,2.13,3.19/ ! um
       DATA YWLS/0.23,0.30,0.39,0.50,0.53,0.55,0.70,1.01,
      &          1.27,1.46,1.78,2.05,2.33,2.79,3.46,8.02/
@@ -365,7 +365,7 @@
       USE IsorropiaII_Main_Mod, ONLY : Isorropia
       use module_mosaic_therm, only: mosaic
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -378,10 +378,10 @@
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
-! 
+!
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
@@ -394,9 +394,9 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      real(kind=8), parameter :: cpdair = 1.004e3  ! Specific heat capacity 
-                                                   ! of dry air at constant 
-                                                   ! pressure at 273 K 
+      real(kind=8), parameter :: cpdair = 1.004e3  ! Specific heat capacity
+                                                   ! of dry air at constant
+                                                   ! pressure at 273 K
                                                    ! (J kg-1 K-1)
 !
 ! !LOCAL VARIABLES:
@@ -428,7 +428,7 @@
       REAL*8  :: NH3EMIT
       REAL*8  :: CSOG(14),CSOA(14)
       REAL*8  :: GFTOT1,GFTOT2,DENWET1,DENWET2
-      INTEGER :: IACT10, IACT20, IACT30   ! bin index for cloud act 
+      INTEGER :: IACT10, IACT20, IACT30   ! bin index for cloud act
                                           ! diameters corresponding to RDRY
       INTEGER :: RACT1, RACT2, RACT3
       REAL*8  :: FCLOUD1(NSO4+4)
@@ -456,8 +456,8 @@
       REAL*8  :: ACS,XAMINE,SCOS,LOCALTIME
       REAL*8  :: dumc, dumnc, pgam, lamc
       REAL(kind=8)  :: CCLD(State_Grid%NZ)    !!! CLOUD COVER
-      REAL(kind=8)  :: CLDLIQ(State_Grid%NZ)    !!! CLOUD LIQUID WATER CONTENT 
-      REAL(kind=8)  :: CLDICE(State_Grid%NZ)    !!! CLOUD ICE WATER CONTENT 
+      REAL(kind=8)  :: CLDLIQ(State_Grid%NZ)    !!! CLOUD LIQUID WATER CONTENT
+      REAL(kind=8)  :: CLDICE(State_Grid%NZ)    !!! CLOUD ICE WATER CONTENT
       REAL(kind=8)  :: REL(State_Grid%NZ)
       REAL(kind=8)  :: REI(State_Grid%NZ)
       REAL(kind=8)  :: taucloud(State_Grid%NZ,29)
@@ -473,7 +473,7 @@
       LOGICAL, SAVE    :: FIRST = .TRUE.
       LOGICAL, SAVE    :: FIRST1 = .TRUE. !mxy+
       LOGICAL, SAVE    :: FIRSTICE = .TRUE.
-      LOGICAL, SAVE    :: FIRSTCOD = .TRUE. 
+      LOGICAL, SAVE    :: FIRSTCOD = .TRUE.
       CHARACTER(LEN=4) :: YEAROUT='2000'
       CHARACTER(LEN=2) :: MONOUT='01'
 
@@ -544,7 +544,7 @@
 
 ! Calculate 3-D ionization rate
       IF(IFQANN.EQ.1) THEN
-         IF(FIRST) THEN   ! only calculate Q once 
+         IF(FIRST) THEN   ! only calculate Q once
           WRITE(6,*)"CALCULATE 3-D ANNUAL MEAN IONIZATION RATES"
           CALL APM3DQGEOS( am_I_Root,  Input_Opt,
      &                     State_Grid, State_Met, IY)
@@ -578,7 +578,7 @@
                 ATOMGRID(:,GRIDNUM)=ATOMGRIDIN
              ENDDO
              write(*,*)'ATOM2x2.5 outputs=',GRIDNUM
-             
+
           ELSE IF ( State_Grid%NX == 72 .and. State_Grid%NY == 41 ) THEN
              ATOMGRID=-999
              GRIDNUM=0
@@ -641,7 +641,7 @@
         IFTEMPOUT=.TRUE.
         IF(IFTEMPOUT)THEN
          NTEMPOUT=NTEMPOUT1 !number of species you want to output
-         ALLOCATE( TEMPOUT( State_Grid%NX, State_Grid%NY, 
+         ALLOCATE( TEMPOUT( State_Grid%NX, State_Grid%NY,
      &                      State_Grid%NZ, NTEMPOUT       ) )
          TEMPOUT = 0d0
          NPOUTSTEPS = 0
@@ -938,7 +938,7 @@
         gas(3) = real(Spc(I,J,L,APMIDS%id_HNO3)*MAIR/
      &          (State_Met%AD(I,J,L)*63.0e-3))!HNO3
 
-        aer(1) = 
+        aer(1) =
      &  real(
      &  ((MAX(1.e-30,
      &  (SUM(Spc(I,J,L,APMIDS%id_SO4BIN1:(APMIDS%id_SO4BIN1+NSO4-1)))
@@ -1091,7 +1091,7 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-       
+
        YF = 0.
        YC = 1.
        PRESS0 = GET_PEDGE(I,J,1) * 1.d2    ! surafce P in Pa
@@ -1112,11 +1112,11 @@
 
         YSPGF = SPGF(I,J,L)  !SP GF from ISOROPIA/MESA
 
-        XOH = GET_OH( I, J, L, APMIDS%id_OH, 
+        XOH = GET_OH( I, J, L, APMIDS%id_OH,
      &                Input_Opt, State_Chm, State_Met )
 
 !        IF(IFNUCL.EQ.1.or.IFNUCL.EQ.6) THEN
-         XQ = XQ3D(I,J,L)      
+         XQ = XQ3D(I,J,L)
 !        ELSE
 !         XQ = 1.d-20   !ion-pairs/cm3s
 !        ENDIF
@@ -1177,13 +1177,13 @@
         DO ITYP = 1, 3
          CAMINE(ITYP)=Spc(I,J,L,APMIDS%id_AMINE-1+ITYP)/(VOL*
      &   State_Chm%SpcData(APMIDS%id_NH3)%Info%emMW_g*1.d-3*
-     &   MWAMINE(ITYP)/17.)*6.02d17   ! #/cm3  
+     &   MWAMINE(ITYP)/17.)*6.02d17   ! #/cm3
          CAMINE(ITYP)=CAMINE(ITYP)*1.d12/XN0   ! CAMINE now in ppt
 
          YAMINEEMIT(ITYP) = MWAMINE(ITYP)/14.*NH3EMIT*ERATIO(ITYP) ! convert to kg-amine/box-sec
          CAMINEEMIT(ITYP) = YAMINEEMIT(ITYP)/(VOL*
      &   State_Chm%SpcData(APMIDS%id_NH3)%Info%emMW_g*1.d-3*
-     &   MWAMINE(ITYP)/17.)*6.02d17   ! # cm-3s-1 
+     &   MWAMINE(ITYP)/17.)*6.02d17   ! # cm-3s-1
         ENDDO
 
         IF(NUCLAMINE.EQ.1) THEN
@@ -1236,7 +1236,7 @@
      &   (VOL*State_Chm%SpcData(APMIDS%id_TSOG3)%Info%emMW_g*
      &    1.d-3)*6.02d17
 
-        ! Isoprene SOA from Pye et al. (2010) has been removed; 
+        ! Isoprene SOA from Pye et al. (2010) has been removed;
         ! the mechanistic isoprene SOA from Marais et al. is used instead.
         ! Set to low value to avoid breaking APM. (mps, 7/15/19)
         CSOG(5) = 1.0e-30
@@ -1280,7 +1280,7 @@
      &   (VOL*State_Chm%SpcData(APMIDS%id_TSOA3)%Info%emMW_g*
      &    1.d-3)*6.02d17
 
-        ! Isoprene SOA from Pye et al. (2010) has been removed; 
+        ! Isoprene SOA from Pye et al. (2010) has been removed;
         ! the mechanistic isoprene SOA from Marais et al. is used instead.
         ! Set to low value to avoid breaking APM. (mps, 7/15/19)
         CSOA(5) = 1.0e-30
@@ -1441,7 +1441,7 @@
      &         *State_Met%BXHEIGHT(I,J,L)*100.
              XBEXT1k3D(I,J,L,12)=SUM(XBEXT1k(14:18,2))
      &         *State_Met%BXHEIGHT(I,J,L)*100.
-      
+
 !  CS is effective uptake CS from apm_phys,  oxidation rate from Carl and Crowley, 1998.
 !        XSINK =  ACS + XOH*6.49d-11     ! oxid rate for DMA
 
@@ -1464,12 +1464,12 @@
           Spc(I,J,L,APMIDS%id_AMINE+ITYP-1)=YAMINEEMIT(ITYP)/XSINK-
      &     (YAMINEEMIT(ITYP)-XSINK*Spc(I,J,L,APMIDS%id_AMINE+ITYP-1))*
      &     EXP(-XSINK*DTAPM)/XSINK
- 
+
           DXX = (Spc(I,J,L,APMIDS%id_AMINE+ITYP-1)-XX0)*14./
      &           MWAMINE(ITYP)   !kgN/box-step
           DXX = DXX*8.64d4/DTAPM   !kgN/box-day
           UPTAKE(I,J,L,1+ITYP) = DXX * ACS/XSINK
-          OXIDAT(I,J,L,1+ITYP) = DXX * (1.-ACS/XSINK) 
+          OXIDAT(I,J,L,1+ITYP) = DXX * (1.-ACS/XSINK)
          ENDIF
 ! DRYDEP from sulfate_mod.f in v/v-step  --> kgN/box-day
          DRYDEP(I,J,L,1+ITYP)=DRYDEP(I,J,L,1+ITYP)*14.d-3
@@ -1494,8 +1494,8 @@
      &     *8.64d4/DT
 !
 ! NH3 oxidation
-        XSINK =   XOH*1.6d-13     ! oxid rate for NH3 1.6d-13 (Atkinson, 1997) 
-        XX0 = Spc(I,J,L,APMIDS%id_NH3) 
+        XSINK =   XOH*1.6d-13     ! oxid rate for NH3 1.6d-13 (Atkinson, 1997)
+        XX0 = Spc(I,J,L,APMIDS%id_NH3)
         Spc(I,J,L,APMIDS%id_NH3)=Spc(I,J,L,APMIDS%id_NH3)*
      &                           EXP(-XSINK*DTAPM)
         DXX = (Spc(I,J,L,APMIDS%id_NH3)-XX0)*14./17.   !kgN/box-step
@@ -1506,7 +1506,7 @@
         XX1 = exp((9.02 - TK*0.0359)/(8.3144*1.d-3*TK/4.186))
         XCSNH3=XX1/(1.+XX1)*ACS/AGAMA*SQRT(98./17.)
         TAONH3(I,J,L)=1./XCSNH3    ! in s
-         
+
 ! NH3 uptake from ISOROPIA
         UPTAKE(I,J,L,1) = UPTAKE(I,J,L,1)*14./17.*8.64d4/DT   !from kg NH3/box-step to kgN/box-day
 
@@ -1560,7 +1560,7 @@
           MWSIZE3D(I,J,L,1)=MWSIZE3D(I,J,L,1)+
      &         Spc(I,J,L,SIZENUM)*RDRY(N)*GFTOT1
         ENDDO
-        Spc(I,J,L,APMIDS%id_CTBC) = MBCS * VOL 
+        Spc(I,J,L,APMIDS%id_CTBC) = MBCS * VOL
         Spc(I,J,L,(APMIDS%id_CTOC)) = MOCS * VOL
         Spc(I,J,L,APMIDS%id_CTDST) = MDSTS * VOL
         Spc(I,J,L,APMIDS%id_CTSEA) = MSALTS * VOL
@@ -1595,7 +1595,7 @@
            Spc(I,J,L,SIZENUM)=MOC(N)*VOL  !kg/m3
         ENDDO
 
-! Yu++ aerosol-cloud interaction 
+! Yu++ aerosol-cloud interaction
 ! CCN0.4
 
 !       YCCN = TEMPOUT1(11)+TEMPOUT1(12)
@@ -1673,8 +1673,8 @@
 !       YNA(1) = TEMPOUT1(16)/3.  !SP in #/cm3
        YNA(1) = TEMPOUT1(11)  !SP in #/cm3
        YNA(2) = TEMPOUT1(13)  !dust
-!       YNA(3) = 0.0  !soot  -- no soot IN for now 
-!       YNA(3) = TEMPOUT1(14)/100.  ! assume soot a factor 100 less effective compared to dust 
+!       YNA(3) = 0.0  !soot  -- no soot IN for now
+!       YNA(3) = TEMPOUT1(14)/100.  ! assume soot a factor 100 less effective compared to dust
        YNA(3) = TEMPOUT1(14)
 
 !       IF(YCLDICE.GT.1.d-10.and.YCLDF.GT.1.d-5) THEN
@@ -1682,8 +1682,8 @@
 !          wbar = 0.25
 !          relhum = RHIN/100.  ! (RH: 0-1)
 !          yqc   = State_Met%QL(I,J,L)   !kg/kg
-!        
-!          call nucleati(wbar, TK, relhum, YCLDF, yqc,     
+!
+!          call nucleati(wbar, TK, relhum, YCLDF, yqc,
 !     &         YNA, nuci, onihf, oniimm, onidep, onimey)
 !
 !          IN3D(I,J,L) = nuci   !#/cm3
@@ -1691,7 +1691,7 @@
 !           YREI=(3.*YCLDICE/(YCLDF*4.*3.14*0.92d6*nuci*1.d6))
 !     &                                    **(1./3.)*1.d6  ! in um
 !          ELSE
-!           YREI= 30.0 
+!           YREI= 30.0
 !          ENDIF
 !
 !          IF(TK.LE.240.) THEN
@@ -2040,15 +2040,15 @@
 !          SITEOUT2(NSITE,L,NTEMPOUT1+6) = SPGF(I,J,L)
 
           SITEOUT3(NSITE,L,1) = YUV(I,J,L,6) !POH
-          SITEOUT3(NSITE,L,2) = XO3(I,J,L)*1.d9  ! ppb 
-          SITEOUT3(NSITE,L,3) = CNO  ! ppb 
-          SITEOUT3(NSITE,L,4) = CNO2  ! ppb 
-          SITEOUT3(NSITE,L,5) = CNO3  ! ppb 
-          SITEOUT3(NSITE,L,6) = CHNO3  ! ppb 
-          SITEOUT3(NSITE,L,7) = CISOP  ! ppb 
-          SITEOUT3(NSITE,L,8) = CMTPA  ! ppb 
-          SITEOUT3(NSITE,L,9) = XX1/(1.+XX1) 
-          SITEOUT3(NSITE,L,10) = TAONH3(I,J,L) 
+          SITEOUT3(NSITE,L,2) = XO3(I,J,L)*1.d9  ! ppb
+          SITEOUT3(NSITE,L,3) = CNO  ! ppb
+          SITEOUT3(NSITE,L,4) = CNO2  ! ppb
+          SITEOUT3(NSITE,L,5) = CNO3  ! ppb
+          SITEOUT3(NSITE,L,6) = CHNO3  ! ppb
+          SITEOUT3(NSITE,L,7) = CISOP  ! ppb
+          SITEOUT3(NSITE,L,8) = CMTPA  ! ppb
+          SITEOUT3(NSITE,L,9) = XX1/(1.+XX1)
+          SITEOUT3(NSITE,L,10) = TAONH3(I,J,L)
           SITEOUT3(NSITE,L,11) = CCO ! ppm
 
 
@@ -2195,7 +2195,7 @@
 !
 ! radf calculation
 
-      ! Now need to pass State objects 
+      ! Now need to pass State objects
       IF(IFRADF.EQ.1) THEN
          CALL APM_RADFDRIV( am_I_Root,  Input_Opt,  State_Chm,
      &                      State_Diag, State_Grid, State_Met, RC )
@@ -2220,7 +2220,7 @@
          ENDDO
 !         WRITE(KKOUT+30,104)1,(SITEOUT2(NSITE,1,N),
 !     &         N=NTEMPOUT1-22,NTEMPOUT1-15)
-        
+
          IF(IFSITEADD.EQ.1) THEN   ! additional output for size dis and others
           WRITE(KKOUT+10,105)KYEAR,KMON,KDAY,KHOUR,KMIN,
      &      YTOP(NSITE,1),YTOP(NSITE,2)
@@ -2401,7 +2401,7 @@
 !
 ! !IROUTINE: apm_radfdriv
 !
-! !DESCRIPTION: Subroutine APM\_RADFDRIV is the interface between GEOS-Chem/APM 
+! !DESCRIPTION: Subroutine APM\_RADFDRIV is the interface between GEOS-Chem/APM
 !  and 1-column radiative forcing module
 !
 !  Originally written for CCCMa RF module by X. Ma & F. Yu, SUNY-Albany. 2011
@@ -2418,7 +2418,7 @@
 ! !USES:
 !
       USE APM_INIT_MOD, ONLY : IFSITE,SITEOUT2D
-      USE APM_INIT_MOD, ONLY : IFALBMODIS 
+      USE APM_INIT_MOD, ONLY : IFALBMODIS
       USE DAO_MOD,      ONLY : IS_WATER
       USE DAO_MOD,      ONLY : IS_ICE
       USE DAO_MOD,      ONLY : IS_LAND
@@ -2435,7 +2435,7 @@
       use rrtmg_sw_GCAPM, only : rrtmg_sw
       use parkind, only : im => kind_im, rb => kind_rb
 
-      USE ErrCode_Mod                    
+      USE ErrCode_Mod
       Use Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
       Use State_Diag_Mod, ONLY : DgnState
@@ -2444,7 +2444,7 @@
 
       USE CMN_SIZE_MOD
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -2459,8 +2459,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!     
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  2-6/2011 - X. Ma & F. Yu, SUNY-Albany
 !  8/2012 - F. Yu, SUNY-Albany
 !EOP
@@ -2474,22 +2474,22 @@
       INTEGER :: KYEAR,KMON,KDAY,KHOUR,KMIN,NSITE
 
       LOGICAL, SAVE    :: FIRST = .TRUE.
-      LOGICAL, SAVE    :: FIRST1 = .TRUE. 
+      LOGICAL, SAVE    :: FIRST1 = .TRUE.
 
-      INTEGER :: DAY_YR                   
-      INTEGER :: MINIMUM,DDAY,DAY_READ     
-      INTEGER, SAVE :: AFLAG(366)         
+      INTEGER :: DAY_YR
+      INTEGER :: MINIMUM,DDAY,DAY_READ
+      INTEGER, SAVE :: AFLAG(366)
 
       INTEGER :: K, LL, IJLOOP
       INTEGER :: NDAY
 
-      INTEGER, PARAMETER :: KWL=7         !! mxy MODIS spectral bands 
+      INTEGER, PARAMETER :: KWL=7         !! mxy MODIS spectral bands
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LEV=48
 #else
       INTEGER, PARAMETER :: LEV=73
 #endif
-      INTEGER, PARAMETER :: IAE2 = 2 
+      INTEGER, PARAMETER :: IAE2 = 2
       INTEGER, PARAMETER :: IAE1 = 1
       INTEGER, PARAMETER :: IAE0 = 0
 
@@ -2501,7 +2501,7 @@
 !      REAL  :: CLDT            !!! COLUMN CLOUD COVER
       REAL(kind=rb)  :: PSURF, TSURF
 
-      REAL(kind=rb)  :: AIRD(State_Grid%NZ)    
+      REAL(kind=rb)  :: AIRD(State_Grid%NZ)
       REAL(kind=rb)  :: P1D (State_Grid%NZ)
       REAL(kind=rb)  :: PE1D (0:State_Grid%NZ)
       REAL(kind=rb)  :: PDP (State_Grid%NZ)
@@ -2510,14 +2510,14 @@
       REAL(kind=rb)  :: WKL (mxmol,State_Grid%NZ)
       REAL(kind=rb)  :: COLDRY(State_Grid%NZ)    !!! dry air column density (mol/cm2)
       REAL(kind=rb)  :: CCLD(State_Grid%NZ)    !!! CLOUD COVER
-      REAL(kind=rb)  :: CLDLIQ(State_Grid%NZ)    !!! CLOUD LIQUID WATER CONTENT 
-      REAL(kind=rb)  :: CLDICE(State_Grid%NZ)    !!! CLOUD ICE WATER CONTENT 
+      REAL(kind=rb)  :: CLDLIQ(State_Grid%NZ)    !!! CLOUD LIQUID WATER CONTENT
+      REAL(kind=rb)  :: CLDICE(State_Grid%NZ)    !!! CLOUD ICE WATER CONTENT
       REAL(kind=rb)  :: REL(State_Grid%NZ)
       REAL(kind=rb)  :: REI(State_Grid%NZ)
 
       REAL  :: YCOD(State_Grid%NZ)
 
-      REAL  :: MALB(State_Grid%NX,State_Grid%NY,KWL)   
+      REAL  :: MALB(State_Grid%NX,State_Grid%NY,KWL)
 
       REAL(kind=rb)  :: TEXT  (State_Grid%NZ,NBS,NTYP)
       REAL(kind=rb)  :: TOMGA (State_Grid%NZ,NBS,NTYP)
@@ -2532,7 +2532,7 @@
       REAL(kind=rb)  :: YHTRC(State_Grid%NZ),YHTR(State_Grid%NZ)    !heating profiles
       REAL(kind=rb)  :: YHTRC0(State_Grid%NZ),YHTR0(State_Grid%NZ)
 
-      REAL(kind=rb)  :: SALB(NBS)              
+      REAL(kind=rb)  :: SALB(NBS)
 
       REAL(kind=rb)  :: TCST(NTYP),TCSB(NTYP),TFST(NTYP),TFSB(NTYP)
       REAL(kind=rb)  :: TFSA(NTYP)
@@ -2565,7 +2565,7 @@
 
       INTEGER :: IDO3                 !
       INTEGER :: id_O3                ! O3 in g.mol ??
-      INTEGER :: id_CO                ! 
+      INTEGER :: id_CO                !
 
       RC = GC_SUCCESS
 
@@ -2586,7 +2586,7 @@
 
         AFLAG=0
         DO i=1,366
-          IF(MOD(i,8).eq.1) AFLAG(i)=1 
+          IF(MOD(i,8).eq.1) AFLAG(i)=1
         ENDDO
 180     format(366i1)
 
@@ -2610,13 +2610,13 @@
        IF(FIRST1) THEN   ! read data when restart
         IF(IFALBMODIS.EQ.1) THEN
          WRITE(6,*)"NEED TO READ SURFACE ALBEDO DATA WHEN RESTART"
-         IF(AFLAG(DAY_YR) == 1 .and. KHOUR == 0) THEN  
+         IF(AFLAG(DAY_YR) == 1 .and. KHOUR == 0) THEN
           CALL APM_ALB(DAY_YR,KYEAR,State_Grid%NX,
-     &                 State_Grid%NY,KWL,MALB) 
+     &                 State_Grid%NY,KWL,MALB)
           CALL GETALBDRR(State_Grid%NX,State_Grid%NY,MALB,State_Met)
          ENDIF
          IF(AFLAG(DAY_YR) == 0) THEN
-          MINIMUM = 366 
+          MINIMUM = 366
           DO I = 1,366
            IF(AFLAG(I) == 1) THEN
            DDAY=ABS(DAY_YR-I)
@@ -2625,7 +2625,7 @@
            DAY_READ = I
            ENDIF
            ENDIF
-          ENDDO 
+          ENDDO
           print*,'READ DATA FROM THIS DAY',DAY_READ
           IF( KHOUR == 0) THEN
            CALL APM_ALB(DAY_READ,KYEAR,State_Grid%NX,
@@ -2642,12 +2642,12 @@
         IF(AFLAG(DAY_YR) == 1 .and. KHOUR == 0) THEN
          CALL APM_ALB(DAY_YR,KYEAR,State_Grid%NX,State_Grid%NY,KWL,MALB)
          CALL GETALBDRR(State_Grid%NX,State_Grid%NY,MALB,State_Met)
-        ENDIF 
+        ENDIF
        ELSE
         DO IWL=1,NBS
            ALBDRR(:,:,IWL) = State_Met%ALBD(:,:)
         ENDDO
-       ENDIF 
+       ENDIF
 !
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2835,7 +2835,7 @@
 
         T1D(L)= State_Met%T(I,J,L)     ! Temperature center [K]
         IF(L.EQ.State_Grid%NZ) THEN
-         TE1D(L) = State_Met%T(I,J,L) + 
+         TE1D(L) = State_Met%T(I,J,L) +
      &        0.5*(State_Met%T(I,J,L)-State_Met%T(I,J,L-1))
         ELSE
          TE1D(L) = 0.5*(State_Met%T(I,J,L) + State_Met%T(I,J,L+1))
@@ -2870,7 +2870,7 @@
         CLDLIQ(L)=State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1.d3*
      &            State_Met%BXHEIGHT(I,J,L)/CCLD(L)
 !test GEOS5 CLDLIQ appears to be too small, increase 50% to enhance Cloud Forcing
-!        CLDLIQ(L)=1.5*State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1.d3*State_Met%BXHEIGHT(I,J,L)  
+!        CLDLIQ(L)=1.5*State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1.d3*State_Met%BXHEIGHT(I,J,L)
         CLDICE(L)=State_Met%QI(I,J,L)*State_Met%AIRDEN(I,J,L)*1.d3*
      &            State_Met%BXHEIGHT(I,J,L)/CCLD(L)
 
@@ -2894,7 +2894,7 @@
 !        WRITE(1002,101) (TE1D(L),L=0,State_Grid%NZ)
 !
 !        DO N = 1, mxmol
-!         WRITE(1002,101) (WKL(N,L),L=1,State_Grid%NZ)   
+!         WRITE(1002,101) (WKL(N,L),L=1,State_Grid%NZ)
 !        ENDDO
 !        WRITE(1002,101) (COLDRY(L),L=1,State_Grid%NZ)
 !
@@ -2956,7 +2956,7 @@
 
        TFSA(:) = TFST(:) - TFSB(:)
 
-  
+
 ! Each aerosol type
 !      DO ITYP = 1,NTYP
 !         CALL APM_RADF(J,I,State_Grid%NZ,LEV,NBS,NBL,
@@ -2966,9 +2966,9 @@
 !     3              CCLD,CLDLIQ,CLDICE,RCLDL,YCOD,
 !     +              WCL,WCI,
 !     4              TCST(ITYP),TCSB(ITYP),TFST(ITYP),TFSB(ITYP),
-!     5              TFSA(ITYP),THRS(:,ITYP), 
-!     6              TCLT(ITYP),TCLB(ITYP),TFUL(ITYP),TFDL(ITYP), 
-!     +              TFLA(ITYP),THRL(:,ITYP) ) 
+!     5              TFSA(ITYP),THRS(:,ITYP),
+!     6              TCLT(ITYP),TCLB(ITYP),TFUL(ITYP),TFDL(ITYP),
+!     +              TFLA(ITYP),THRL(:,ITYP) )
 !      ENDDO
 
        THRS = 0.
@@ -2978,7 +2978,7 @@
        TFDL = 0.
        TFLA = 0.
        THRL = 0.
-       
+
 !
 ! Total
 !      CALL APM_RADF(J,I,State_Grid%NZ,LEV,NBS,NBL,
@@ -3017,7 +3017,7 @@
        ZALB(I,J)=ZALB(I,J) + ALBDRR(I,J,10)
 
        DO IWL = 1,NBS
-        ZMALB(I,J,IWL)=ZMALB(I,J,IWL) + SALB(IWL)  
+        ZMALB(I,J,IWL)=ZMALB(I,J,IWL) + SALB(IWL)
        ENDDO
 
 
@@ -3029,7 +3029,7 @@
        ZFSB(I,J)=ZFSB(I,J) + (FSB-FSB0 )
        ZFSA(I,J)=ZFSA(I,J) + (FSA-FSA0 )
 
-       
+
 !       if(i.eq.36.and.j.eq.25) then
 !        print*,'CST,CST0,CST-CST0',CST,CST0,CST-CST0
 !        print*,'FST,FST0,FST-FST0',FST,FST0,FST-FST0
@@ -3109,7 +3109,7 @@
      &                         /LOG10(YWLS(KOUT2)/YWLS(KOUT3))            !WL(KOUT1)_WL(KOUT2) Angstrom Exponent
 
           SITEOUT2D(NSITE,11) = State_Met%CLDFRC(I,J)
-          SITEOUT2D(NSITE,12) = CST-CST0  !clear sky aerosol forcing 
+          SITEOUT2D(NSITE,12) = CST-CST0  !clear sky aerosol forcing
           SITEOUT2D(NSITE,13) = FST-FST0  !full sky aerosol forcing
           DO ITYP=1,NTYP
              SITEOUT2D(NSITE,13+ITYP) = TFST(ITYP)-FST0   !full sky 5 type aerosol forcing
@@ -3154,7 +3154,7 @@
 !
 ! !IROUTINE: apm_radfout
 !
-! !DESCRIPTION: Subroutine APM\_RADFOUT is the for radf output 
+! !DESCRIPTION: Subroutine APM\_RADFOUT is the for radf output
 !
 !  Written by X. Ma & F. Yu, SUNY-Albany
 !
@@ -3170,13 +3170,13 @@
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
       USE TIME_MOD,       ONLY : GET_DAY,  GET_HOUR,  GET_MINUTE
       USE CMN_SIZE_MOD
-      USE ErrCode_Mod                    
+      USE ErrCode_Mod
       Use Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -3191,7 +3191,7 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  2-6/2011 - X. Ma & F. Yu, SUNY-Albany
 !EOP
 !------------------------------------------------------------------------------
@@ -3211,8 +3211,8 @@
       REAL*8           :: ZFULAVE     ! longwave TOA
       REAL*8           :: ZFSAAVE, ZTFSTAVE(NTYP)
       ! fraction of time w/ CLDFR<25%, 50%, 75%
-      REAL             :: FAOD25(State_Grid%NX,State_Grid%NY) 
-      REAL             :: FAOD50(State_Grid%NX,State_Grid%NY)  
+      REAL             :: FAOD25(State_Grid%NX,State_Grid%NY)
+      REAL             :: FAOD50(State_Grid%NX,State_Grid%NY)
       REAL             :: FAOD75(State_Grid%NX,State_Grid%NY)
       REAL             :: ZAEEXT(State_Grid%NX,State_Grid%NY)
       REAL             :: ZAEABS(State_Grid%NX,State_Grid%NY)
@@ -3393,7 +3393,7 @@
      &             FORM='UNFORMATTED', RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(896,FILE='radf/radf'//YYYYMM//'AODOUT1.out',
-     &           ACCESS='DIRECT',FORM='UNFORMATTED', 
+     &           ACCESS='DIRECT',FORM='UNFORMATTED',
      &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(897,FILE='radf/radf'//YYYYMM//'AAODOUT1.out',
      &           ACCESS='DIRECT',FORM='UNFORMATTED',
@@ -3402,7 +3402,7 @@
      &           ACCESS='DIRECT',FORM='UNFORMATTED',
      &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(899,FILE='radf/radf'//YYYYMM//'AEabsOUT1.out',
-     &           ACCESS='DIRECT',FORM='UNFORMATTED', 
+     &           ACCESS='DIRECT',FORM='UNFORMATTED',
      &           RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(796,FILE='radf/radf'//YYYYMM//'AODOUT3.out',
@@ -3415,7 +3415,7 @@
      &           ACCESS='DIRECT',FORM='UNFORMATTED',
      &           RECL=State_Grid%NX*State_Grid%NY)
         OPEN(799,FILE='radf/radf'//YYYYMM//'AEabsOUT3.out',
-     &           ACCESS='DIRECT',FORM='UNFORMATTED', 
+     &           ACCESS='DIRECT',FORM='UNFORMATTED',
      &           RECL=State_Grid%NX*State_Grid%NY)
 
         OPEN(811,FILE='radf/radf'//YYYYMM//'AOD25.out',ACCESS='DIRECT',
@@ -3662,7 +3662,7 @@
        ENDDO
 
        WRITE(990,106)KYEAR, KMON, KDAY, ZCLDAVE,ZCLD0AVE,
-     &   ZFSTAVE,ZCSTAVE, ZFSAAVE, 
+     &   ZFSTAVE,ZCSTAVE, ZFSAAVE,
      &   (ZTFSTAVE(ITYP),ITYP=1,NTYP)
  106   FORMAT(I4,I3,I3,2(1PE11.3),20(1PE10.2))
        flush(990)
@@ -3736,7 +3736,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERONUM( am_I_Root,  Input_Opt,  State_Chm, 
+      SUBROUTINE AERONUM( am_I_Root,  Input_Opt,  State_Chm,
      &                    State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -3753,7 +3753,7 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Met_Mod,  ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -3768,9 +3768,9 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  28 Aug 2008 - F. Yu       - Initial version  
+!
+! !REVISION HISTORY:
+!  28 Aug 2008 - F. Yu       - Initial version
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
@@ -3848,15 +3848,15 @@
       USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
-! !REVISION HISTORY: 
-!  17 Mar 2010 - F. Yu       - Initial version  
+! !REVISION HISTORY:
+!  17 Mar 2010 - F. Yu       - Initial version
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
@@ -3871,7 +3871,7 @@
 
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-            
+
          YPSURF = GET_PEDGE(I,J,1) !surface P in mb
          IF( IS_WATER( I, J, State_Met ) .or.
      &        IS_ICE  ( I, J, State_Met )) THEN
@@ -3908,7 +3908,7 @@
       USE Input_Opt_Mod,  ONLY : OptInput
       USE CMN_SIZE_MOD
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
@@ -4016,7 +4016,7 @@
 !Sao_Paulo      -23.56   -46.73  !site46
 !!Cordoba-CETT     -31.52 -64.45  !site47  --> 3., 93.0 for IRF output
 
-      DATA ZLAT/71.32, 67.97,67.77,61.85,  59.78, 58.77, 53.33,51.5, 
+      DATA ZLAT/71.32, 67.97,67.77,61.85,  59.78, 58.77, 53.33,51.5,
      &         43.9, 43.11, 41.05, 40.1, 36.8, -14.24,-25.54,-35.66,
      &  -40.68,-70.65,-89.98,29.44,36.28,47.6,27.96,19.54,
      &  43.83,41.81,39.91,37.87,37.57,36.37,36.06,35.69,
@@ -4025,7 +4025,7 @@
      &  -9.87,-10.93,-15.73,-20.43,-23.56,3.0/
 
 
-      DATA ZLON/-156.6,24.12,29.58,24.28,21.38,17.40, -9.9,12.9, 
+      DATA ZLON/-156.6,24.12,29.58,24.28,21.38,17.40, -9.9,12.9,
      &   -60.0,-70.95,-124.15,-88.3,-97.5,-170.57, 25.75,148.15,
      & 144.69, -8.25, -24.80,79.62,100.9,8.0,86.82,-155.58,
      & 87.62,123.43,116.41,112.55,126.98,126.32,103.83,139.69,
@@ -4054,17 +4054,17 @@
       SITEID  = 0
       DO NSITE=1,MSITE
        IF(NSITE.EQ.4.or.NSITE.EQ.13.or.NSITE.EQ.27) THEN !Hyytiala,SGP,Beijing
-!       IF(NSITE.GE.45) THEN !No sites 
+!       IF(NSITE.GE.45) THEN !No sites
 !       IF(NSITE.EQ.1.or.NSITE.EQ.2.or.NSITE.EQ.4.or.
 !     &  NSITE.EQ.7.or.NSITE.EQ.8.or.NSITE.EQ.13.or.
 !     &  NSITE.EQ.15.or.NSITE.EQ.16.or.NSITE.EQ.18.or.
 !     &  NSITE.EQ.20.or.NSITE.EQ.21.or.NSITE.EQ.27.or.
 !     &  NSITE.EQ.34.or.NSITE.EQ.35.or.NSITE.EQ.36.or.
-!     &  NSITE.GE.41) THEN 
+!     &  NSITE.GE.41) THEN
 !        IF(NSITE.GE.2.and.NSITE.LE.8) THEN
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
        ENDIF
@@ -4098,8 +4098,8 @@
 ! For size distributions
 !site1 Point Barrow  (71.32,  -156.6)  231 m asl
 !site2 Neumayer (-70.65, -8.25 )
-!Site3 Troll  (-72.02 , 2.53 )  
-!site4 Hyytiala (61.85,  24.28 )  
+!Site3 Troll  (-72.02 , 2.53 )
+!site4 Hyytiala (61.85,  24.28 )
 
 ! EPA sopersites
 !site5 New York (40.7144,  -74.01 )
@@ -4119,17 +4119,17 @@
 !!site17  Boulder (40.02,  -105.27)
 !site17  MMSF,Indiana (39.32,  -86.42)
 !site18  Rochester (43.16,  -77.61)
-! 
+!
 !site19 Manacapara, Brazil (-3.21, -60.60)
-!site20 CUIABA-MIRANDA -15.73 -56.02 
-!site21 Sao_Paulo      -23.56   -46.73  
-!site22 Melpitz  (51.5    12.9   ) 
+!site20 CUIABA-MIRANDA -15.73 -56.02
+!site21 Sao_Paulo      -23.56   -46.73
+!site22 Melpitz  (51.5    12.9   )
 !site23 MexicoCity (19.43,  -99.13)
-!site24 Shanghai China	31.23	121.47  
-!site25 Wuhan	  China	30.59	114.31  
-!site26 ChongqingChina	29.57   106.52  
-!site27 ZhengzhouChina 34.77   113.62  
-!site28 Beijing China	39.91	116.41  
+!site24 Shanghai China	31.23	121.47
+!site25 Wuhan	  China	30.59	114.31
+!site26 ChongqingChina	29.57   106.52
+!site27 ZhengzhouChina 34.77   113.62
+!site28 Beijing China	39.91	116.41
 !site28 Wuqing (39.39, 117.01) (same grid box as Beijing)
 !site29 UMBS (45.56N, 84.72W)
 !site30 NAAMES1 (35N, 40W)
@@ -4159,7 +4159,7 @@
 !Site49 Anmyeon-do, South Korea (36.54, 126.33)
 !Site50 DEM_Athens (37.99, 23.82)
 !Site51 Izana (28.31, -16.50)
-!Site52 Zeppelin mountain (78.91, 11.89) 
+!Site52 Zeppelin mountain (78.91, 11.89)
 !
 !Site53 Ascension Island (-7.97, -14.35)
 !Site54 GRW Graciosa Island, Azores, Portugal (39.09, -28.025)
@@ -4217,7 +4217,7 @@
       IFOUTIJ = 0
       SITEID  = 0
       DO NSITE=1,MSITE
-       IF(IFSITE.EQ.73) THEN ! only output 3 sites       
+       IF(IFSITE.EQ.73) THEN ! only output 3 sites
         IF(NSITE.EQ.4.or.NSITE.EQ.13.or.NSITE.EQ.27) THEN !Hyytiala,SGP, BJ
          IFSITEOUT(NSITE) = 1
          ISITE = ISITES(NSITE)
@@ -4229,10 +4229,10 @@
         ELSEIF((NSITE.GE.1.and.NSITE.LE.5).or.NSITE.EQ.7.or.NSITE.EQ.9
      &   .or.(NSITE.GE.12.and.NSITE.LE.22).or.NSITE.EQ.24
      &   .or.NSITE.EQ.28.or.(NSITE.GE.30.and.NSITE.LE.38)
-     &   .or.(NSITE.GE.41.and.NSITE.LE.58)) THEN 
+     &   .or.(NSITE.GE.41.and.NSITE.LE.58)) THEN
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
        ENDIF
@@ -4354,8 +4354,8 @@
       SITEID  = 0
       DO NSITE=1,MSITE
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
       ENDDO
@@ -4401,8 +4401,8 @@
 ! Other sites
 !site10 Bondville (40.050, -88.367	213.0	10.0	987.9	US)
 !site11 SGP (36.8    -97.5)
-!site12 Shanghai China	31.23	121.47  
-!site13 Beijing China	39.91	116.41  
+!site12 Shanghai China	31.23	121.47
+!site13 Beijing China	39.91	116.41
 !site14 Pinnacle State Park (42.10, -77.21)
 !site15 Chacaltaya  (-16.35, -68.13 )
 !Site16 SPL    (40.46 , -106.744 ) 3210 m asl
@@ -4438,14 +4438,14 @@
       IFOUTIJ = 0
       SITEID  = 0
       DO NSITE=1,MSITE
-!       IF(NSITE.GT.MS) THEN !No sites 
-       IF(NSITE.LE.MS) THEN !All sites 
+!       IF(NSITE.GT.MS) THEN !No sites
+       IF(NSITE.LE.MS) THEN !All sites
 !       IF(NSITE.EQ.1.or.NSITE.EQ.4.or.NSITE.EQ.8.
 !     &    or.NSITE.EQ.10.or.NSITE.EQ.12.
-!     &    or.NSITE.EQ.23.or.NSITE.EQ.24) THEN !Selected sites 
+!     &    or.NSITE.EQ.23.or.NSITE.EQ.24) THEN !Selected sites
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
        ENDIF
@@ -4565,14 +4565,14 @@
       IFOUTIJ = 0
       SITEID  = 0
       DO NSITE=1,MSITE
-!       IF(NSITE.GT.MS) THEN !No sites 
-!       IF(NSITE.LE.MS) THEN !All sites 
+!       IF(NSITE.GT.MS) THEN !No sites
+!       IF(NSITE.LE.MS) THEN !All sites
        IF(NSITE.EQ.1.or.NSITE.EQ.4.or.NSITE.EQ.8.
      &    or.NSITE.EQ.10.or.NSITE.EQ.12.
-     &    or.NSITE.EQ.23.or.NSITE.EQ.24) THEN !Selected sites 
+     &    or.NSITE.EQ.23.or.NSITE.EQ.24) THEN !Selected sites
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
        ENDIF
@@ -4678,17 +4678,17 @@
       SITEID  = 0
       DO NSITE=1,MSITE
 !       IF(NSITE.EQ.4.or.NSITE.EQ.13) THEN !Hyytiala,SGP
-!       IF(NSITE.GE.45) THEN !No sites 
+!       IF(NSITE.GE.45) THEN !No sites
 !       IF(NSITE.EQ.1.or.NSITE.EQ.2.or.NSITE.EQ.4.or.
 !     &  NSITE.EQ.7.or.NSITE.EQ.8.or.NSITE.EQ.13.or.
 !     &  NSITE.EQ.15.or.NSITE.EQ.16.or.NSITE.EQ.18.or.
 !     &  NSITE.EQ.20.or.NSITE.EQ.21.or.NSITE.EQ.27.or.
 !     &  NSITE.EQ.34.or.NSITE.EQ.35.or.NSITE.EQ.36.or.
-!     &  NSITE.EQ.41) THEN 
+!     &  NSITE.EQ.41) THEN
        IF(NSITE.GE.1.and.NSITE.LE.MS) THEN
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
        ENDIF
@@ -4803,17 +4803,17 @@
       SITEID  = 0
       DO NSITE=1,MSITE
 !       IF(NSITE.EQ.4.or.NSITE.EQ.13) THEN !Hyytiala,SGP
-!       IF(NSITE.GE.45) THEN !No sites 
+!       IF(NSITE.GE.45) THEN !No sites
 !       IF(NSITE.EQ.1.or.NSITE.EQ.2.or.NSITE.EQ.4.or.
 !     &  NSITE.EQ.7.or.NSITE.EQ.8.or.NSITE.EQ.13.or.
 !     &  NSITE.EQ.15.or.NSITE.EQ.16.or.NSITE.EQ.18.or.
 !     &  NSITE.EQ.20.or.NSITE.EQ.21.or.NSITE.EQ.27.or.
 !     &  NSITE.EQ.34.or.NSITE.EQ.35.or.NSITE.EQ.36.or.
-!     &  NSITE.GE.32) THEN 
+!     &  NSITE.GE.32) THEN
        IF(NSITE.GE.1.and.NSITE.LE.MS) THEN
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
        ENDIF
@@ -4875,7 +4875,7 @@
 !site20  Boulder (40.02,  -105.27)
 !site21  Albany, NY (42.65, -73.76)
 
-!site22  Sweet Briar College (37.56,-79.08) 
+!site22  Sweet Briar College (37.56,-79.08)
 !site23 Brent,AL (32.94,  -87.16)
 !site24 Houston, Texas (29.76,  -95.38)
 !site25 Los Angeles, California  (34.05,  -118.24)
@@ -4885,7 +4885,7 @@
 !site29 Ozarks forest site (38.74, -92.2 )
 !site30 Brooklaven, NY (40.87, -72.89 )
 !site31 CPR (Cape San Juan), PR (18.48, -66.13)
-! 
+!
 
       DATA ZLAT/40.1,41.05,50.01,54.35,40.74,33.75,39.05,
      &         40.44,36.213,44.23,36.0,41.15,36.8,42.10,
@@ -4921,8 +4921,8 @@
       DO NSITE=1,MSITE
 !       IF(NSITE.EQ.4.or.NSITE.EQ.13.or.NSITE.EQ.27) THEN !
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
 !       ENDIF
@@ -4969,7 +4969,7 @@
      & 54.02, 47.10, -22.94, 15.00, -16.96, 2.66, -5.93,
      & 74.88, -1.40, 49.18, 4.34, -14.41, -56.10, 132.89,
      & -170.57, 23.15, -70.31, -46.73, 31.59, 139.35, -58.50,
-     & 144.69, -8.25/ 
+     & 144.69, -8.25/
 
       DATA ZLAT/ 71.32, 61.85, 57.04, 55.70, 53.92, 51.84, 51.50,
      & 50.28, 48.70, 47.00, 46.49, 45.31, 44.24, 44.23,
@@ -5009,8 +5009,8 @@
       DO NSITE=1,MSITE
 !       IF(NSITE.EQ.1) THEN  !SGP only
         IFSITEOUT(NSITE) = 1
-        ISITE = ISITES(NSITE) 
-        JSITE = JSITES(NSITE) 
+        ISITE = ISITES(NSITE)
+        JSITE = JSITES(NSITE)
         IFOUTIJ(ISITE,JSITE)=1
         SITEID(ISITE,JSITE)=NSITE
 !       ENDIF
@@ -5058,7 +5058,7 @@
 
       ISITE = INT((XLON-XEDGE1)/DLON1)+2
       JSITE = INT((YLAT-YEDGE1)/DLAT1)+2
-      IF(ISITE.LT.1.or.ISITE.GT.State_Grid%NX.or.JSITE.LT.1   
+      IF(ISITE.LT.1.or.ISITE.GT.State_Grid%NX.or.JSITE.LT.1
      &   .or.JSITE.GT.State_Grid%NY) THEN
         WRITE(6,*)"SITE location out of nested boundary"
         IF(ISITE.LT.1) ISITE = 1
@@ -5144,7 +5144,7 @@
 ! !IROUTINE: get_oh
 !
 ! !DESCRIPTION: Function GET\_OH returns OH from State\_Chm%Species (for
-!  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal 
+!  coupled runs) or monthly mean OH (for offline runs).  Imposes a diurnal
 !  variation on OH for offline simulations. (bmy, 12/16/02, 7/20/04)
 !\\
 !\\
@@ -5162,7 +5162,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN) :: I, J, L     ! Lon, lat, level indices
       INTEGER,        INTENT(IN) :: id_OH
@@ -5170,11 +5170,11 @@
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  (1 ) We assume SETTRACE has been called to define IDOH (bmy, 11/1/02)
 !  (2 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (3 ) Now reference ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM from 
-!        "tracer_mod.f".  Also replace IJSURF w/ an analytic function. 
+!  (3 ) Now reference ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM from
+!        "tracer_mod.f".  Also replace IJSURF w/ an analytic function.
 !        (bmy, 7/20/04)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
@@ -5191,7 +5191,7 @@
 ! !LOCAL VARIABLES:
 !
       REAL(fp)            :: OH_MOLEC_CM3
- 
+
       !=================================================================
       ! GET_OH begins here!
       !=================================================================
@@ -5217,11 +5217,11 @@
          !---------------------
 
          ! Test for sunlight...
-         IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
+         IF ( State_Met%SUNCOS(I,J) > 0e+0_fp
      &    .and. TCOSZ(I,J) > 0e+0_fp ) THEN
 
             ! Impose a diurnal variation on OH during the day
-            OH_MOLEC_CM3 = OH(I,J,L)                              * 
+            OH_MOLEC_CM3 = OH(I,J,L)                              *
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
      &                     ( 86400e+0_fp           / GET_TS_CHEM() )
 
@@ -5230,7 +5230,7 @@
 
             ! Make sure OH is not negative
             OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
-               
+
          ELSE
 
             ! At night, OH goes to zero
@@ -5242,7 +5242,7 @@
 
          !---------------------
          ! Invalid simulation
-         !---------------------         
+         !---------------------
          CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
 
       ENDIF
@@ -5257,7 +5257,7 @@
 ! !IROUTINE: ohno3time
 !
 ! !DESCRIPTION: Subroutine OHNO3TIME computes the sum of cosine of the solar
-!  zenith angle over a 24 hour day, as well as the total length of daylight. 
+!  zenith angle over a 24 hour day, as well as the total length of daylight.
 !  This is needed to scale the offline OH and NO3 concentrations.
 !  (rjp, bmy, 12/16/02, 3/30/04)
 !\\
@@ -5277,15 +5277,15 @@
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
 !        values.  Figure this out later (rjp, bmy, 1/10/03)
-!  (2 ) Now replace XMID(I) with routine GET_XMID from "grid_mod.f".  
-!        Now replace RLAT(J) with routine GET_YMID_R from "grid_mod.f". 
+!  (2 ) Now replace XMID(I) with routine GET_XMID from "grid_mod.f".
+!        Now replace RLAT(J) with routine GET_YMID_R from "grid_mod.f".
 !        Removed NTIME, NHMSb from the arg list.  Now use GET_NHMSb,
-!        GET_ELAPSED_SEC, GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT from 
+!        GET_ELAPSED_SEC, GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT from
 !        "time_mod.f". (bmy, 3/27/03)
-!  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
+!  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in
 !        the COSZM array. (rjp, bmy, 3/30/04)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
@@ -5301,7 +5301,7 @@
       REAL(fp)            :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)            :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
       REAL(fp)            :: SUNTMP(State_Grid%NX,State_Grid%NY)
-      
+
       !=================================================================
       ! OHNO3TIME begins here!
       !=================================================================
@@ -5323,22 +5323,22 @@
       LHR0 = int(float( GET_NHMSb() )/10000.)
 
       ! Only do the following at the start of a new day
-      IF ( FIRST .or. GET_GMT() < 1e-5 ) THEN 
-      
+      IF ( FIRST .or. GET_GMT() < 1e-5 ) THEN
+
          ! Zero arrays
          TTDAY(:,:) = 0e+0_fp
          TCOSZ(:,:) = 0e+0_fp
          COSZM(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()  
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
 
-         ! Loop forward through NDYSTEP "fake" timesteps for this day 
+         ! Loop forward through NDYSTEP "fake" timesteps for this day
          DO N = 1, NDYSTEP
-            
+
             ! Zero SUNTMP array
             SUNTMP = 0e+0_fp
 
@@ -5349,9 +5349,9 @@
                ! Grid box latitude center [radians]
                YMID_R = State_Grid%YMID_R(I,J)
 
-               TIMLOC = real(LHR0) + real(NT)/3600.0 + 
+               TIMLOC = real(LHR0) + real(NT)/3600.0 +
      &                  State_Grid%XMID(I,J)/15.0
-         
+
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
                ENDDO
@@ -5364,15 +5364,15 @@
 
                !===========================================================
                ! The cosine of the solar zenith angle (SZA) is given by:
-               !     
-               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-               !                   
-               ! where LAT = the latitude angle, 
-               !       DEC = the solar declination angle,  
-               !       AHR = the hour angle, all in radians. 
                !
-               ! If SUNCOS < 0, then the sun is below the horizon, and 
-               ! therefore does not contribute to any solar heating.  
+               !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR)
+               !
+               ! where LAT = the latitude angle,
+               !       DEC = the solar declination angle,
+               !       AHR = the hour angle, all in radians.
+               !
+               ! If SUNCOS < 0, then the sun is below the horizon, and
+               ! therefore does not contribute to any solar heating.
                !===========================================================
 
                ! Compute Cos(SZA)
@@ -5389,7 +5389,7 @@
 
                ! TTDAY is the total daylight time at location (I,J)
                IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
-                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() ) 
+                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
                ENDIF
             ENDDO
             ENDDO
@@ -5407,7 +5407,7 @@
             !PRINT*, '### TTDAY   : ', MINVAL( TCOSZ ), MAXVAL( TCOSZ )
 
             ! Increment elapsed time [sec]
-            NT = NT + GET_TS_CHEM()             
+            NT = NT + GET_TS_CHEM()
          ENDDO
 
          ! Reset first-time flag
@@ -5431,7 +5431,7 @@
 
       USE State_Met_Mod, ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
@@ -5520,17 +5520,17 @@
       USE Module_Mosaic_Therm, ONLY : Load_Mosaic_Parameters
 !
 ! !INPUT PARAMETERS:
-!    
+!
       LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root core?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid State objectg
 !
 ! ! OUTPUT PARAMETERS:
-!     
+!
       INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  28 Aug 2008 - F. Yu       - Initial version  
+!
+! !REVISION HISTORY:
+!  28 Aug 2008 - F. Yu       - Initial version
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -5638,7 +5638,7 @@
       CDN3D = 0d0
 
       ALLOCATE( RCLDI3D(NX,NY,NZ), STAT=RC )
-      CALL GC_CheckVar( 'apm_driv_mod.F%RCLDI3D', 0, RC ) 
+      CALL GC_CheckVar( 'apm_driv_mod.F%RCLDI3D', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       RCLDI3D = 0d0
 
@@ -5860,7 +5860,7 @@
       CALL GC_CheckVar( 'apm_driv_mod.F%TTDAY', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TTDAY = 0e+0_fp
- 
+
       ALLOCATE( COSZM( NX, NY ), STAT=RC )
       CALL GC_CheckVar( 'apm_driv_mod.F%COSZM', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
@@ -5931,7 +5931,7 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       ZCLDF = 0.0D0
 
-      ALLOCATE( ZALB(NX,NY), STAT=RC ) 
+      ALLOCATE( ZALB(NX,NY), STAT=RC )
       CALL GC_CheckVar( 'apm_driv_mod.F%ZALB', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ZALB = 0.0D0
@@ -6173,9 +6173,9 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
-! 
-! !REVISION HISTORY: 
-!  28 Aug 2008 - F. Yu       - Initial version  
+!
+! !REVISION HISTORY:
+!  28 Aug 2008 - F. Yu       - Initial version
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -6188,7 +6188,7 @@
          CALL GC_CheckVar( 'apm_driv_mod.F%T3DAPM', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( RH3DAPM ) ) THEN
          DEALLOCATE( RH3DAPM, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%RH3DAPM', 2, RC )
@@ -6242,259 +6242,259 @@
          CALL GC_CheckVar( 'apm_driv_mod.F%OXIDAT', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( FCLOUD ) ) THEN
          DEALLOCATE( FCLOUD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%FCLOUD', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( AERAREA ) ) THEN
          DEALLOCATE( AERAREA, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%AERAREA', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( AERDRYR) ) THEN
          DEALLOCATE( AERDRYR, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%AERDRYR', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( GAMMAPM ) ) THEN
          DEALLOCATE( GAMMAPM, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%GAMMAPM', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( XN4D ) ) THEN
          DEALLOCATE( XN4D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%XN4D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( XQ3D ) ) THEN
          DEALLOCATE( XQ3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%XQ3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( RCLDL3D) ) THEN
          DEALLOCATE( RCLDL3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%RCLDL3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( CDN3D) ) THEN
          DEALLOCATE( CDN3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%CDN3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( RCLDI3D ) ) THEN
          DEALLOCATE( RCLDI3D, STAT=RC )
-         CALL GC_CheckVar( 'apm_driv_mod.F%RCLDI3D', 2, RC ) 
+         CALL GC_CheckVar( 'apm_driv_mod.F%RCLDI3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( RCLDI2D ) ) THEN
          DEALLOCATE( RCLDI2D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%RCLDL2D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( IN3D ) ) THEN
          DEALLOCATE( IN3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%CDN3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( MASSISRP ) ) THEN
          DEALLOCATE( MASSISRP, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%MASSISRP', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( MASSMESA ) ) THEN
          DEALLOCATE( MASSMESA, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%MASSMESA', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( GFTOT3D ) ) THEN
          DEALLOCATE( GFTOT3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%GFTOT3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( DENWET3D ) ) THEN
          DEALLOCATE( DENWET3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%DENWET3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( MWSIZE3D ) ) THEN
          DEALLOCATE( MWSIZE3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%MWSIZE3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( SO2toSO4 ) ) THEN
          DEALLOCATE( SO2toSO4, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%SO2toSO4', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
- 
+
       IF ( ALLOCATED( NCOAG3D ) ) THEN
          DEALLOCATE( NCOAG3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%NCOAG3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( IACT1 ) ) THEN
          DEALLOCATE( IACT1, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%IACT1', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( IACT2 ) ) THEN
          DEALLOCATE( IACT2, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%IACT2', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( IACT3 ) ) THEN
          DEALLOCATE( IACT3, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%IACT3', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( PSO4GAS) ) THEN
          DEALLOCATE( PSO4GAS, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%PSO4GAS', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( XO3 ) ) THEN
          DEALLOCATE( XO3, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%XO3', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( PLVSOG) ) THEN
          DEALLOCATE( PLVSOG, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%PLVSOG', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( BCLIFE ) ) THEN
          DEALLOCATE( BCLIFE, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%BCLIFE', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( OCLIFE ) ) THEN
          DEALLOCATE( OCLIFE, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%OCLIFE', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( IFOUTIJ ) ) THEN
          DEALLOCATE( IFOUTIJ, STAT=Rc )
          CALL GC_CheckVar( 'apm_driv_mod.F%IFOUTIJ', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( SITEID ) ) THEN
          DEALLOCATE( SITEID, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%SITEID', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( FSST ) ) THEN
          DEALLOCATE( FSST, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%FSST', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( SPGF ) ) THEN
          DEALLOCATE( SPGF, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%SPGF', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( TAONH3 ) ) THEN
          DEALLOCATE( TAONH3, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%TAONH3', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( YCOD3D ) ) THEN
          DEALLOCATE( YCOD3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YCOD3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( TCOD3D ) ) THEN
          DEALLOCATE( TCOD3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%TCOD3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( YHTRC3D ) ) THEN
          DEALLOCATE( YHTRC3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YHTRC3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( YHTR3D ) ) THEN
          DEALLOCATE( YHTR3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YHTR3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( YHTRC03D ) ) THEN
          DEALLOCATE( YHTRC03D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YHTRC03D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( YHTR03D ) ) THEN
          DEALLOCATE( YHTR03D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YHTR03D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZBEXT3D ) ) THEN
          DEALLOCATE( ZBEXT3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZBEXT3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZW3D ) ) THEN
          DEALLOCATE( ZW3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZW3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZG3D ) ) THEN
          DEALLOCATE( ZG3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZG3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( YBEXT3D ) ) THEN
          DEALLOCATE( YBEXT3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YBEXT3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( XBEXT1k3D ) ) THEN
          DEALLOCATE( XBEXT1k3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%XBEXT1K3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( YW3D ) ) THEN
          DEALLOCATE( YW3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YW3D', 2, RC )
@@ -6506,19 +6506,19 @@
          CALL GC_CheckVar( 'apm_driv_mod.F%YG3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZBABS3D ) ) THEN
          DEALLOCATE( ZBABS3D, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZBABS3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( YUV ) ) THEN
          DEALLOCATE( YUV, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YUV', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( GOOD ) ) THEN
          DEALLOCATE( GOOD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%GOOD', 2, RC )
@@ -6536,43 +6536,43 @@
          CALL GC_CheckVar( 'apm_driv_mod.F%CODOUTNUM', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( MODISOUT) ) THEN
          DEALLOCATE( MODISOUT, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%MODISOUT', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( TCOSZ) ) THEN
          DEALLOCATE( TCOSZ, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%TCOSZ', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( TTDAY) ) THEN
          DEALLOCATE( TTDAY, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%TTDAY', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-    
+
       IF ( ALLOCATED( COSZM) ) THEN
          DEALLOCATE( COSZM, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%COSZM', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ALBDRR ) ) THEN
          DEALLOCATE( ALBDRR, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ALBDRR', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTCST ) ) THEN
          DEALLOCATE( ZTCST, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTCST', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTCSB ) ) THEN
          DEALLOCATE( ZTCSB, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTCSB', 2, RC )
@@ -6584,307 +6584,307 @@
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTFST', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-     
+
       IF ( ALLOCATED( ZTFSB ) ) THEN
          DEALLOCATE( ZTFSB, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%YG3D', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTFSA ) ) THEN
          DEALLOCATE( ZTFSA, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTFSA', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTCLT ) ) THEN
          DEALLOCATE( ZTCLT, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTCLT', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTCLB ) ) THEN
          DEALLOCATE( ZTCLB, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTCLB', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTFUL ) ) THEN
          DEALLOCATE( ZTFUL, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTFUL', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTFDL  ) ) THEN
          DEALLOCATE( ZTFDL, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTFDL', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTFLA ) ) THEN
          DEALLOCATE( ZTFLA, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTFLA', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZTAOD ) ) THEN
          DEALLOCATE( ZTAOD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZTAOD', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCLDF ) ) THEN
          DEALLOCATE( ZCLDF, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZCLDF', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZALB ) ) THEN
-         DEALLOCATE( ZALB, STAT=RC ) 
+         DEALLOCATE( ZALB, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZALB', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZMALB ) ) THEN
          DEALLOCATE( ZMALB, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZMALB', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCST ) ) THEN
          DEALLOCATE( ZCST, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZCST', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCSB ) ) THEN
          DEALLOCATE( ZCSB, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZCSB', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZFST ) ) THEN
          DEALLOCATE( ZFST, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZFST', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCLD ) ) THEN
          DEALLOCATE( ZCLD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZCLD', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCLD0) ) THEN
          DEALLOCATE( ZCLD0, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZCLD0', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZFSB ) ) THEN
          DEALLOCATE( ZFSB, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZFSB', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZFSA ) ) THEN
          DEALLOCATE( ZFSA, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZFSA', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCLT ) ) THEN
          DEALLOCATE( ZCLT, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCLB) ) THEN
          DEALLOCATE( ZCLB, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZFUL ) ) THEN
          DEALLOCATE( ZFUL, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZFDL ) ) THEN
          DEALLOCATE( ZFDL, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZFLA ) ) THEN
          DEALLOCATE( ZFLA, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAOD) ) THEN
          DEALLOCATE( ZAOD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCOD ) ) THEN
          DEALLOCATE( ZCOD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZCOD', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZCODGC ) ) THEN
          DEALLOCATE( ZCODGC, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZCODGC', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAODOUT1 ) ) THEN
          DEALLOCATE( ZAODOUT1, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZADOUT1', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAODOUT3 ) ) THEN
          DEALLOCATE( ZAODOUT3, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZAODOUT3', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAOD25 ) ) THEN
          DEALLOCATE( ZAOD25, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD25', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAOD50 ) ) THEN
          DEALLOCATE( ZAOD50, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD50', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAOD75 ) ) THEN
          DEALLOCATE( ZAOD75, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZAOD75', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( NAOD25 ) ) THEN
          DEALLOCATE( NAOD25, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%NAOD25', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( NAOD50 ) ) THEN
          DEALLOCATE( NAOD50, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%NAOD50', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( NAOD75 ) ) THEN
          DEALLOCATE( NAOD75, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%NAOD75', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZVIS) ) THEN
          DEALLOCATE( ZVIS, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZVIS', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( THAZ ) ) THEN
          DEALLOCATE( THAZ, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%THAZ', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( TFOG ) ) THEN
          DEALLOCATE( TFOG, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%TFOG', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAAOD ) ) THEN
          DEALLOCATE( ZAAOD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZAAOD', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAAODOUT1 ) ) THEN
          DEALLOCATE( ZAAODOUT1, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZAAODOUT1', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZAAODOUT3 ) ) THEN
          DEALLOCATE( ZAAODOUT3, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZAAODOUT3', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZABS ) ) THEN
          DEALLOCATE( ZABS, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZABS', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZWCL ) ) THEN
          DEALLOCATE( ZWCL, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZWCL', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( ZWCI ) ) THEN
          DEALLOCATE( ZWCI, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%ZWCI', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( AOD ) ) THEN
          DEALLOCATE( AOD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%AOD', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( AAOD ) ) THEN
          DEALLOCATE( AAOD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%AAOD', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( AODOUT1 ) ) THEN
          DEALLOCATE( AODOUT1, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%AODOUT1', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( AAODOUT1 ) ) THEN
          DEALLOCATE( AAODOUT1, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%AAODOUT1', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( AODOUT3 ) ) THEN
          DEALLOCATE( AODOUT3, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( AAODOUT3 ) ) THEN
          DEALLOCATE( AAODOUT3, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%AAODOUT3', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( CODGC ) ) THEN
          DEALLOCATE( CODGC, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%CODGC', 2, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
       ENDIF
-   
+
       IF ( ALLOCATED( TAOD) ) THEN
          DEALLOCATE( TAOD, STAT=RC )
          CALL GC_CheckVar( 'apm_driv_mod.F%TAOD', 2, RC )
@@ -6933,7 +6933,7 @@
       dumgam1 = gamma(pgam+1.)
       dumgam2 = gamma(pgam+4.)
 
-      lamc = (pi/6.*rhow*ncic*dumgam2/ 
+      lamc = (pi/6.*rhow*ncic*dumgam2/
      &       (qcic*dumgam1))**(1./3.)
 
       ! lammin, 50 micron diameter max mean size
@@ -6945,14 +6945,14 @@
         lamc = lammin
 
         if (nadjflag) then
-           ncic = 6. * lamc**3 * qcic * dumgam1/ 
+           ncic = 6. * lamc**3 * qcic * dumgam1/
      &           (pi * rhow * dumgam2)
         end if
       else if (lamc > lammax) then
         lamc = lammax
 
         if (nadjflag) then
-           ncic = 6. * lamc**3 * qcic * dumgam1/ 
+           ncic = 6. * lamc**3 * qcic * dumgam1/
      &           (pi * rhow * dumgam2)
         end if
       end if
@@ -7020,17 +7020,17 @@
         else
           z=x
         endif
-        data g/1.0,0.5772156649015329, 
-     &      -0.6558780715202538, -0.420026350340952d-1, 
-     &      0.1665386113822915,-.421977345555443d-1, 
-     &      -.96219715278770d-2, .72189432466630d-2, 
-     &      -.11651675918591d-2, -.2152416741149d-3, 
-     &      .1280502823882d-3, -.201348547807d-4, 
-     &      -.12504934821d-5, .11330272320d-5, 
-     &      -.2056338417d-6, .61160950d-8, 
-     &      .50020075d-8, -.11812746d-8, 
-     &      .1043427d-9, .77823d-11, 
-     &     -.36968d-11, .51d-12, 
+        data g/1.0,0.5772156649015329,
+     &      -0.6558780715202538, -0.420026350340952d-1,
+     &      0.1665386113822915,-.421977345555443d-1,
+     &      -.96219715278770d-2, .72189432466630d-2,
+     &      -.11651675918591d-2, -.2152416741149d-3,
+     &      .1280502823882d-3, -.201348547807d-4,
+     &      -.12504934821d-5, .11330272320d-5,
+     &      -.2056338417d-6, .61160950d-8,
+     &      .50020075d-8, -.11812746d-8,
+     &      .1043427d-9, .77823d-11,
+     &     -.36968d-11, .51d-12,
      &     -.206d-13, -.54d-14, .14d-14, .1d-15/
         gr=g(26)
         do k=25,1,-1

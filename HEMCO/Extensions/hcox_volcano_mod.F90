@@ -164,7 +164,7 @@ CONTAINS
     LOGICAL               :: ERR
 
     ! Strings
-    CHARACTER(LEN=255)    :: MSG
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
 
     ! Arrays
     REAL(sp)              :: SO2degas(HcoState%NX,HcoState%NY,HcoState%NZ)
@@ -178,6 +178,9 @@ CONTAINS
     ! HCOX_VOLCANO_RUN begins here!
     !=================================================================
 
+    ! Assume success
+    RC = HCO_SUCCESS
+
     ! Sanity check: return if extension not turned on
     IF ( ExtState%Volcano <= 0 ) RETURN
 
@@ -186,12 +189,17 @@ CONTAINS
                     'HCOX_Volcano_Run (hcox_volcano_mod.F90)', RC           )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Define strings for error messgaes
+    ErrMsg = ''
+    ThisLoc =  &
+    ' -> in HCOX_Volcano_Run (in module HEMCO/Extensions/hcox_volcano_mod.F90)'
+
     ! Get instance
     Inst => NULL()
     CALL InstGet( ExtState%Volcano, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       WRITE(MSG,*) 'Cannot find Volcano instance Nr. ', ExtState%Volcano
-       CALL HCO_Error( HcoState%Config%Err, MSG, RC )
+       WRITE( ErrMsg, * ) 'Cannot find Volcano instance Nr. ', ExtState%Volcano
+       CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -200,53 +208,88 @@ CONTAINS
     ! (will be done only if this is a new day)
     !----------------------------------------------
     CALL ReadVolcTable( am_I_Root, HcoState, ExtState, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "ReadVolcTable"!'
+       CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-    ! Emit volcanos into SO2degas and SO2erupt arrays [kg S/m2/s]
-    CALL EmitVolc( am_I_Root, HcoState, ExtState,                            &
-                   Inst,      SO2degas, SO2erupt, RC                        )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    !=======================================================================
+    ! Compute volcano emissions for non dry-run simulations
+    ! (Skip for GEOS-Chem dry-run or HEMCO-standalone dry-run)
+    !=======================================================================
+    IF ( .not. HcoState%Options%IsDryRun ) THEN
 
-    ! Add eruptive and degassing emissions to emission arrays & diagnostics
-    DO N = 1, Inst%nSpc
+       ! Emit volcanos into SO2degas and SO2erupt arrays [kg S/m2/s]
+       CALL EmitVolc( am_I_Root, HcoState, ExtState,                         &
+                      Inst,      SO2degas, SO2erupt, RC                     )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmitVolc"!'
+          CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
-       !-------------------------------------------
-       ! Add degassing emissions
-       !-------------------------------------------
+       ! Add eruptive and degassing emissions to emission arrays & diagnostics
+       DO N = 1, Inst%nSpc
 
-       ! Convert from [kg S/m2/s] to [kg species/m2/s]
-       iFlx = SO2degas * Inst%SpcScl(N)
+          !-------------------------------------------
+          ! Add degassing emissions
+          !-------------------------------------------
 
-       ! Apply user-defined scaling (if any) for this species
-       CALL HCOX_Scale( am_I_Root, HcoState,                                 &
-                        iFlx,      TRIM(Inst%SpcScalFldNme(N)), RC          )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Convert from [kg S/m2/s] to [kg species/m2/s]
+          iFlx = SO2degas * Inst%SpcScl(N)
 
-       ! Add degassing emissions into the HEMCO state
-       CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,                 &
-                         Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,     &
-                         Cat=Inst%CatDegas                                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Apply user-defined scaling (if any) for this species
+          CALL HCOX_Scale( am_I_Root, HcoState,                              &
+                           iFlx,      TRIM(Inst%SpcScalFldNme(N)), RC       )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_Scale (degassing)"!'
+             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
-       !-------------------------------------------
-       ! Add eruptive emissions
-       !-------------------------------------------
+          ! Add degassing emissions into the HEMCO state
+          CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,              &
+                            Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,  &
+                            Cat=Inst%CatDegas                               )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCO_EmisAdd" (degassing)!'
+             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
-       ! Convert from [kg S/m2/s] to [kg species/m2/s]
-       iFlx = SO2erupt * Inst%SpcScl(N)
+          !-------------------------------------------
+          ! Add eruptive emissions
+          !-------------------------------------------
 
-       ! Apply user-defined scaling (if any) for this species
-       CALL HCOX_Scale( am_I_Root, HcoState,                                 &
-                        iFlx, TRIM(Inst%SpcScalFldNme(N)), RC               )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Convert from [kg S/m2/s] to [kg species/m2/s]
+          iFlx = SO2erupt * Inst%SpcScl(N)
 
-       ! Add eruptive emissions to the HEMCO state
-       CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,                 &
-                         Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,     &
-                         Cat=Inst%CatErupt                                  )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Apply user-defined scaling (if any) for this species
+          CALL HCOX_Scale( am_I_Root, HcoState,                              &
+                           iFlx, TRIM(Inst%SpcScalFldNme(N)), RC            )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCOX_Scale" (eruptive"!'
+             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
-    ENDDO !N
+          ! Add eruptive emissions to the HEMCO state
+          CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,              &
+                            Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,  &
+                            Cat=Inst%CatErupt                               )
+          IF ( RC /= HCO_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "HCO_EmisAdd" (eruptive)!'
+             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       ENDDO !N
+    ENDIF
+
+    !=======================================================================
+    ! Exit
+    !=======================================================================
 
     ! Cleanup
     Inst => NULL()
@@ -311,7 +354,11 @@ CONTAINS
 
     ! Extension Nr.
     ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
-    IF ( ExtNr <= 0 ) RETURN
+    IF ( ExtNr <= 0 ) THEN
+       MSG = 'The Volcano extension is turned off.'
+       CALL HCO_MSG( HcoState%Config%Err,  MSG )
+       RETURN
+    ENDIF
 
     ! Enter
     CALL HCO_Enter( HcoState%Config%Err,                                     &
@@ -439,7 +486,7 @@ CONTAINS
     TYPE(Ext_State), POINTER :: ExtState   ! Module options
 !
 ! !REVISION HISTORY:
-!  04 Jun 2015 - C. Keller   - Initial version 
+!  04 Jun 2015 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,9 +549,9 @@ CONTAINS
     REAL(sp)              :: Dum(10)
     REAL(hp), ALLOCATABLE :: VolcLon(:)      ! Volcano longitude [deg E]
     REAL(hp), ALLOCATABLE :: VolcLat(:)      ! Volcano latitude  [deg N]
-    LOGICAL               :: FileExist, EOF
+    LOGICAL               :: FileExists, EOF
     CHARACTER(LEN=255)    :: ThisFile, ThisLine
-    CHARACTER(LEN=255)    :: MSG
+    CHARACTER(LEN=255)    :: MSG,      FileMsg
     CHARACTER(LEN=255)    :: LOC = 'ReadVolcTable (hcox_volcano_mod.F90)'
 
     !=================================================================
@@ -528,19 +575,44 @@ CONTAINS
        CALL HCO_CharParse( HcoState%Config, ThisFile, YYYY, MM, DD, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Verbose
+       !--------------------------------------------------------------------
+       ! In dry-run mode, print file path to dryrun log and exit.
+       ! Otherwise, print file path to the HEMCO log file and continue.
+       !--------------------------------------------------------------------
+
+       ! Test if the file exists
+       INQUIRE( FILE=TRIM( ThisFile ), EXIST=FileExists )
+
+       ! Create a display string based on whether or not the file is found
+       IF ( FileExists ) THEN
+          FileMsg = 'HEMCO (VOLCANO): Opening'
+       ELSE
+          FileMsg = 'HEMCO (VOLCANO): REQUIRED FILE NOT FOUND'
+       ENDIF
+
+       ! Write file status to stdout and the HEMCO log
        IF ( am_I_Root ) THEN
-          MSG = 'AeroCom: reading ' // TRIM(ThisFile)
-          CALL HCO_MSG( HcoState%Config%Err, MSG)
+          WRITE( 6,   300 ) TRIM( FileMsg ), TRIM( ThisFile )
+          WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+          CALL HCO_MSG( HcoState%Config%Err, MSG )
+ 300      FORMAT( a, ' ', a )
        ENDIF
- 
-       ! Check if file exists
-       INQUIRE ( FILE=TRIM(ThisFile), EXIST=FileExist )
-       IF ( .NOT. FileExist ) THEN
-          MSG = 'Cannot find ' // TRIM(ThisFile)
-          CALL HCO_ERROR( HcoState%Config%Err,  MSG, RC, THISLOC=LOC )
+
+       ! For dry-run simulations, return to calling program.
+       ! For regular simulations, throw an error if we can't find the file.
+       IF ( HcoState%Options%IsDryRun ) THEN
           RETURN
+       ELSE
+          IF ( .not. FileExists ) THEN
+             WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+             RETURN
+          ENDIF
        ENDIF
+
+       !--------------------------------------------------------------------
+       ! Read data from files
+       !--------------------------------------------------------------------
 
        ! Open file
        LUN = findFreeLun()

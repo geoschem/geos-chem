@@ -234,8 +234,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Exit if Phase 0 or 1
-    IF ( ( Phase == 1 ) .or. ( Phase == 0 ) ) RETURN
+    ! Exit if Phase 0 or 1, or if it is a GEOS-Chem dry-run
+    IF ( ( Phase == 1 ) .or. ( Phase == 0 ) .or. Input_Opt%DryRun ) RETURN
 
     ! Call carbon emissions module to make sure that sesquiterpene
     ! emissions calculated in HEMCO (SESQ) are passed to the internal
@@ -351,6 +351,7 @@ CONTAINS
        If ( Input_Opt%LEMIS ) Then
           CALL FixSfcVMR_Run( am_I_Root, Input_Opt, State_Met, &
                              State_Grid, State_Chm, RC          )
+
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "FixSfcVmr_Run"!'

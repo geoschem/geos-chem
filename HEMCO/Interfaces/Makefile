@@ -5,7 +5,7 @@
 #
 # !MODULE: Makefile (in the HEMCO/Interfaces subdirectory)
 #
-# !DESCRIPTION: This Makefile builds the HEMCO interface routines into 
+# !DESCRIPTION: This Makefile builds the HEMCO interface routines into
 #  library file libHCOI.a.
 #\\
 #\\
@@ -16,7 +16,7 @@
 #                                                                             .
 # To display a complete list of options, type "make help".
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  15 Jul 2014 - R. Yantosca - Initial version
 #  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
 #  10 Jun 2015 - R. Yantosca - Also place a copy of the executable in bin
@@ -68,7 +68,7 @@ EXE     :=hemco_standalone.x
 
 .PHONY: clean debug check slowclean
 
-all: 
+all:
 	@${MAKE} lib
 	@${MAKE} exe
 
@@ -88,7 +88,7 @@ slowclean:
 	@rm -f *.x *$(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 	@rm -f $(BIN)/$(EXE)
 
-exe: 
+exe:
 	$(LD) $(OBJECTS) $(LINK_HCO) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
@@ -113,7 +113,7 @@ debug:
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###

@@ -88,7 +88,7 @@ CONTAINS
 !
 ! !IROUTINE: Compute_Julian_Date
 !
-! !DESCRIPTION: Computes the Astronomical Julian Date corresponding to a 
+! !DESCRIPTION: Computes the Astronomical Julian Date corresponding to a
 !  given date and time.  This is useful for computing elapsed times.
 !\\
 !\\
@@ -101,12 +101,12 @@ CONTAINS
     USE Julday_Mod, ONLY : Julday
     USE Time_Mod,   ONLY : Ymd_Extract
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,  INTENT(IN)  :: yyyymmdd   ! Current Year/month/day
     INTEGER,  INTENT(IN)  :: hhmmss     ! Current hour/minute/second
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     REAL(f8), INTENT(OUT) :: Jd         ! Astronomical Julian date
 !
@@ -131,9 +131,9 @@ CONTAINS
     CALL Ymd_Extract( hhmmss,   Hour, Minute, Second )
 
     ! Compute the fractional day
-    FracDay = DBLE( Day ) + ( DBLE( Hour   ) / HOURS_PER_DAY   )  +          & 
+    FracDay = DBLE( Day ) + ( DBLE( Hour   ) / HOURS_PER_DAY   )  +          &
                             ( DBLE( Minute ) / MINUTES_PER_DAY )  +          &
-                            ( DBLE( Second ) / SECONDS_PER_DAY ) 
+                            ( DBLE( Second ) / SECONDS_PER_DAY )
 
     ! Return the Astronomical Julian Date
     Jd = JulDay( Year, Month, FracDay )
@@ -155,7 +155,7 @@ CONTAINS
 !
   SUBROUTINE Compute_Elapsed_Time( CurrentJsec, TimeBaseJsec, ElapsedSec )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     REAL(f8), INTENT(IN)  :: CurrentJsec  ! Current astronomical Julian date
     REAL(f8), INTENT(IN)  :: TimeBaseJsec ! Reference astronomical Julian date

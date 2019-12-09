@@ -1204,9 +1204,9 @@ NO2 = 0.500HNO3 + 0.500HNO2 :                HET(ind_NO2,1);
 NO3 = HNO3 :                                 HET(ind_NO3,1);
 //
 // NOTE: N2O5 + H2O reaction rate is still calculated as first-order,
-// based on Evans and Jacob [2005]. However this is converted to a 
+// based on Evans and Jacob [2005]. However this is converted to a
 // second-order rate in gckpp_HetRates.F90 by dividing by [H2O],
-// allowing the reaction to be listed here as second order 
+// allowing the reaction to be listed here as second order
 // (N2O5 + H2O -> 2HNO3) and thereby permitting chemical loss
 // of H2O in the stratosphere.
 //    -- Seb Eastham (14 May 2018)

@@ -192,7 +192,7 @@
       INTEGER       :: KBOT(State_Grid%NZ)
       INTEGER       :: KTOP(State_Grid%NZ)
       INTEGER       :: INDICATOR(State_Grid%NZ+2)
-      REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction 
+      REAL(fp)      :: FMAX(State_Grid%NZ)    ! maximum cloud fraction
                                               !  in a block, size can be to 
                                               !  FIX(State_Grid%NZ)+1
       REAL(fp)      :: CLDF1D(State_Grid%NZ)
@@ -234,16 +234,17 @@
       ! Was AOD calculated at 999 nm or reference?
       AOD999    = ( WLAOD == 0 )
 
-    ! Zero diagnostic archival arrays to make sure that we don't have any
-    ! leftover values from the last timestep near the top of the chemgrid
-      IF ( State_Diag%Archive_UVFluxDiffuse ) State_Diag%UVFluxDiffuse 
-     &     = 0.0_f4
-      IF ( State_Diag%Archive_UVFluxDirect ) State_Diag%UVFluxDirect 
-     &     = 0.0_f4
-      IF ( State_Diag%Archive_UVFluxNet ) State_Diag%UVFluxNet 
-     &     = 0.0_f4
-
-
+      ! Zero diagnostic archival arrays to make sure that we don't have any
+      ! leftover values from the last timestep near the top of the chemgrid
+      IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
+         State_Diag%UVFluxDiffuse = 0.0_f4
+      ENDIF
+      IF ( State_Diag%Archive_UVFluxDirect ) THEN
+         State_Diag%UVFluxDirect = 0.0_f4
+      ENDIF
+      IF ( State_Diag%Archive_UVFluxNet ) THEN
+         State_Diag%UVFluxNet = 0.0_f4
+      ENDIF
 
       !-----------------------------------------------------------------
       ! Special handling for first-time setup
@@ -1568,7 +1569,7 @@ c---the number of sub-layers + 1
       enddo
 
 c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
       failed   = .FALSE.
        JTOTL    = L2X + 2
        do L2 = L2X,1,-1
@@ -1707,6 +1708,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: notDryRun
       INTEGER            :: JXUNIT, J, NJXX, PhotoId
       REAL(fp)           :: ND64MULT
 
@@ -1721,40 +1723,48 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=================================================================
 
       ! Initialize
-      RC       = GC_SUCCESS
-      ErrMsg   = ''
-      ThisLoc  = ' -> at Init_FJX (in module GeosCore/fast_jx_mod.F)'
+      RC          = GC_SUCCESS
+      notDryRun   = ( .not. Input_Opt%DryRun )
+      ErrMsg      = ''
+      ThisLoc     =
+     &   ' -> at Init_FJX (in module GeosCore/fast_jx_mod.F)'
 
-      ! Define species IDs
-      id_CH2IBr   = IND_('CH2IBr'  )
-      id_IBr      = IND_('IBr'     )
-      id_CH2ICl   = IND_('CH2ICl'  )
-      id_ICl      = IND_('ICl'     )
-      id_I2       = IND_('I2'      )
-      id_HOI      = IND_('HOI'     )
-      id_IO       = IND_('IO'      )
-      id_OIO      = IND_('OIO'     )
-      id_INO      = IND_('INO'     )
-      id_IONO     = IND_('IONO'    )
-      id_IONO2    = IND_('IONO2'   )
-      id_I2O2     = IND_('I2O2'    )
-      id_CH3I     = IND_('CH3i'    )
-      id_CH2I2    = IND_('CH2I2'   )
-      id_I2O4     = IND_('I2O4'    )
-      id_I2O3     = IND_('I2O3'    )
+      ! Skip these opterations when running in dry-run mode
+      IF ( notDryRun ) THEN
 
-      IF ( am_I_Root) THEN
-         write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
+         ! Define species IDs
+         id_CH2IBr   = IND_('CH2IBr'  )
+         id_IBr      = IND_('IBr'     )
+         id_CH2ICl   = IND_('CH2ICl'  )
+         id_ICl      = IND_('ICl'     )
+         id_I2       = IND_('I2'      )
+         id_HOI      = IND_('HOI'     )
+         id_IO       = IND_('IO'      )
+         id_OIO      = IND_('OIO'     )
+         id_INO      = IND_('INO'     )
+         id_IONO     = IND_('IONO'    )
+         id_IONO2    = IND_('IONO2'   )
+         id_I2O2     = IND_('I2O2'    )
+         id_CH3I     = IND_('CH3i'    )
+         id_CH2I2    = IND_('CH2I2'   )
+         id_I2O4     = IND_('I2O4'    )
+         id_I2O3     = IND_('I2O3'    )
 
-         if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
-            ErrMsg =  ' INIT_FJX: invalid no. wavelengths'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         endif
+         ! Print info
+         IF ( am_I_Root ) THEN
+            write(6,*) ' Initializing Fast-JX v7.0 standalone CTM code.'
+
+            if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
+               ErrMsg =  ' INIT_FJX: invalid no. wavelengths'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            endif
+         ENDIF
+
+         ! Get a free LUN
+         JXUNIT = findFreeLUN()
+
       ENDIF
-
-      ! Get a free LUN
-      JXUNIT = findFreeLUN()
 
       ! Define data directory for FAST-JX input
       DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
@@ -1764,39 +1774,68 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=====================================================================
       FILENAME = TRIM( DATA_DIR ) // 'FJX_spec.dat'
 
-      call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
+      ! Read file, or just print filename if we are in dry-run mode
+      CALL RD_XXX( JXUNIT, TRIM( FILENAME ), Input_Opt, RC)
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in FAST-JX routine "RD_XXX"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! Compute factors for UV flux diagnostics
-      IF ( State_Diag%Archive_UVFluxNet      .or.
-     &     State_Diag%Archive_UVFluxDirect   .or.
-     &     State_Diag%Archive_UVFluxDiffuse ) THEN
-         UVXFACTOR = 0e+0_fp
-         ND64MULT  = UVXPLANCK*UVXCCONST*1.0e+13_fp
-         DO J = 1, W_
-            UVXFACTOR(J) = ND64MULT/WL(J)
-         ENDDO
+      IF ( notDryRun ) THEN
+         IF ( State_Diag%Archive_UVFluxNet      .or.
+     &        State_Diag%Archive_UVFluxDirect   .or.
+     &        State_Diag%Archive_UVFluxDiffuse ) THEN
+            UVXFACTOR = 0e+0_fp
+            ND64MULT  = UVXPLANCK*UVXCCONST*1.0e+13_fp
+            DO J = 1, W_
+               UVXFACTOR(J) = ND64MULT/WL(J)
+            ENDDO
+         ENDIF
       ENDIF
 
       !=====================================================================
       ! Read in 5-wavelength scattering data
+      ! (or just print file name if in dry-run mode)
       !=====================================================================
       FILENAME = TRIM( DATA_DIR ) // 'jv_spec_mie.dat'
 
-      call RD_MIE(JXUNIT,TRIM( FILENAME ), am_I_Root, Input_Opt )
+      ! Read data
+      CALL RD_MIE( JXUNIT, TRIM( FILENAME ), Input_Opt, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in FAST-JX routine "RD_MIE"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       !=====================================================================
       ! Read in AOD data
+      ! (or just print file name if in dry-run mode)
       !=====================================================================
-      call RD_AOD(JXUNIT, am_I_Root, Input_Opt )
+      CALL RD_AOD( JXUNIT, Input_Opt, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in FAST-JX routine "RD_AOD"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
-      call SET_AER( am_I_Root, Input_Opt )
+      IF ( notDryRun ) THEN
+         CALL SET_AER( am_I_Root, Input_Opt )
+      ENDIF
 
       !=====================================================================
       ! Read in T & O3 climatology used to fill e.g. upper layers
       ! or if O3 not calc.
       !=====================================================================
-      call RD_PROF_NC( am_I_Root, Input_Opt, RC )
+      CALL RD_PROF_NC( am_I_Root, Input_Opt, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1805,10 +1844,13 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          RETURN
       ENDIF
 
-      NJXX = NJX
-      do J = 1,NJX
-        TITLEJXX(J) = TITLEJX(J)
-      enddo
+      ! Skip if not in dry-run mode
+      IF ( notDryRun ) THEN
+         NJXX = NJX
+         do J = 1,NJX
+            TITLEJXX(J) = TITLEJX(J)
+         enddo
+      ENDIF
 
       !=====================================================================
       ! Read in photolysis rates used in chemistry code and mapping onto
@@ -1828,69 +1870,73 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          RETURN
       ENDIF
 
-      ! Get the GEOS-Chem photolysis index for each of the 1...JVN_ entries
-      ! in the FJX_j2j.dat file.  We'll use this for the diagnostics.
-      DO J = 1, JVN_
+      ! Skip further processing if we are in dry-run mode
+      IF ( notDryRun ) THEN
 
-         IF ( J == Rxn_O3_2a ) THEN
+         ! Get the GEOS-Chem photolysis index for each of the 1...JVN_ entries
+         ! in the FJX_j2j.dat file.  We'll use this for the diagnostics.
+         DO J = 1, JVN_
 
-            !---------------------------------------------------------------
-            ! O3 + hv = O + O(1D) branch 1
-            !
-            ! UCX     : Save this as JO3_O1D in the nPhotol+1 slot
-            ! non_UCX : Save this as JO3     in the nPhotol+1 slot
-            !---------------------------------------------------------------
-            GC_Photo_Id(J) = State_Chm%nPhotol + 1
+            IF ( J == Rxn_O3_2a ) THEN
 
-         ELSE IF ( J == Rxn_O3_1 ) THEN
+               !------------------------------------------------------------
+               ! O3 + hv = O + O(1D) branch 1
+               !
+               ! UCX     : Save this as JO3_O1D in the nPhotol+1 slot
+               ! non_UCX : Save this as JO3     in the nPhotol+1 slot
+               !------------------------------------------------------------
+               GC_Photo_Id(J) = State_Chm%nPhotol + 1
 
-            !---------------------------------------------------------------
-            ! O3 + hv -> O + O
-            !
-            ! UCX     : Save this as JO3_O3P in the nPhotol+2 slot
-            ! non-UCX : undefined
-            !---------------------------------------------------------------
-            IF ( Input_Opt%LUCX ) THEN
-               GC_Photo_Id(J) = State_Chm%nPhotol + 2
+            ELSE IF ( J == Rxn_O3_1 ) THEN
+
+               !------------------------------------------------------------
+               ! O3 + hv -> O + O
+               !
+               ! UCX     : Save this as JO3_O3P in the nPhotol+2 slot
+               ! non-UCX : undefined
+               !-------------------------------------------------------------
+               IF ( Input_Opt%LUCX ) THEN
+                  GC_Photo_Id(J) = State_Chm%nPhotol + 2
+               ELSE
+                  GC_Photo_Id(J) = -999
+               ENDIF
+
+            ELSE IF ( J == Rxn_O3_2b ) THEN
+
+               !------------------------------------------------------------
+               ! O3 + hv -> O2 + O(1d) branch 2
+               !
+               ! UCX     : undefined
+               ! non-UCX : Save into the nPhotol+2 slot
+               !           NOTE: The JPOH rate in the bpch diagnostic will
+               !           now be the sum of the nPhotol+1+nPhotol+2 slots!
+               !------------------------------------------------------------
+               IF ( Input_Opt%LUCX ) THEN
+                  GC_Photo_Id(J) = -999
+               ELSE
+                  GC_Photo_Id(J) = State_Chm%nPhotol + 2
+               ENDIF
+
             ELSE
-               GC_Photo_Id(J) = -999
+
+               !------------------------------------------------------------
+               ! Everything else
+               !
+               ! Find the matching GEOS-Chem photolysis species number
+               !------------------------------------------------------------
+               GC_Photo_Id(J) = Ind_( RNAMES(J), 'P' )
+
             ENDIF
 
-         ELSE IF ( J == Rxn_O3_2b ) THEN
-
-            !---------------------------------------------------------------
-            ! O3 + hv -> O2 + O(1d) branch 2
-            !
-            ! UCX     : undefined
-            ! non-UCX : Save into the nPhotol+2 slot
-            !           NOTE: The JPOH rate in the bpch diagnostic will
-            !           now be the sum of the nPhotol+1 + nPhotol+2 slots!
-            !---------------------------------------------------------------
-            IF ( Input_Opt%LUCX ) THEN
-               GC_Photo_Id(J) = -999
-            ELSE
-               GC_Photo_Id(J) = State_Chm%nPhotol + 2
+            ! Print the mapping
+            IF ( am_I_Root ) THEN
+               IF ( GC_Photo_Id(J) > 0 ) THEN
+                  WRITE(6, 200) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
+ 200              FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
+               ENDIF
             ENDIF
-
-         ELSE
-
-            !---------------------------------------------------------------
-            ! Everything else
-            !
-            ! Find the matching GEOS-Chem photolysis species number
-            !---------------------------------------------------------------
-            GC_Photo_Id(J) = Ind_( RNAMES(J), 'P' )
-
-         ENDIF
-
-         ! Print the mapping
-         IF ( am_I_Root ) THEN
-            IF ( GC_Photo_Id(J) > 0 ) THEN
-               WRITE( 6, 200 ) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
- 200           FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
-            ENDIF
-         ENDIF
-      ENDDO
+         ENDDO
+      ENDIF
 
 #ifdef MODEL_GEOS
       ! Diagnostics arrays
@@ -1915,19 +1961,22 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_XXX (NUN,NAMFIL,am_I_Root)
+      SUBROUTINE RD_XXX ( NUN, NAMFIL, Input_Opt, RC )
 !
 ! !USES:
 !
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: NUN
-      CHARACTER(*), INTENT(IN) ::  NAMFIL
-      LOGICAL,      INTENT(IN) :: am_I_Root
+      INTEGER,        INTENT(IN)  :: NUN
+      CHARACTER(*),   INTENT(IN)  :: NAMFIL
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt
 !
-! !OUTPUT VARIABLES:
+! !OUTPUT PARAMETERS:
 !
+      INTEGER,        INTENT(OUT) :: RC
 !
 ! !REMARKS:
 !    NEW v-6.8  now allow 1 to 3 sets of X-sects for T or P
@@ -1966,17 +2015,64 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  I, J, JJ, K, IW, NQRD, NWWW,   LQ
-      REAL(fp)  QQ2(199), TQQ2
+      ! Scalars
+      LOGICAL            :: FileExists
+      INTEGER            :: I, J, JJ, K, IW, NQRD, NWWW, LQ
+      REAL(fp)           :: TQQ2
 
-      character*78 TITLE0
-      character*6  TITLEJ2,TITLEJ3
-      character*1  TSTRAT
+      ! Arrays
+      REAL(fp)           :: QQ2(199)
+
+      ! Strings
+      CHARACTER(LEN=255) :: FileMsg, FileStatus
+      CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
+      CHARACTER(LEN=78)  :: TITLE0
+      CHARACTER(LEN=6 )  :: TITLEJ2, TITLEJ3
+      CHARACTER(LEN=1 )  :: TSTRAT
+
+      !=================================================================
+      ! In dry-run mode, print file path to dryrun log and exit.
+      ! Otherwise, print file path to stdout and continue.
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = '-> at RD_XXX (in module GeosCore/fast_jx_mod.F)'
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( NamFil ), EXIST=FileExists )
+
+      ! Test if the file exists and define an output string
+      IF ( FileExists ) THEN
+         FileMsg    = 'FAST-JX (RD_XXX): Opening'
+      ELSE
+         FileMsg    = 'FAST-JX (RD_XXX): REQUIRED FILE NOT FOUND'
+      ENDIF
+
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! For dry-run simulations, return to calling program.
+      ! For regular simulations, throw an error if we can't find the file.
+      IF ( Input_Opt%DryRun ) THEN
+         RETURN
+      ELSE
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
 
       !=================================================================
       ! RD_XXX begins here!
       !=================================================================
 
+      ! Initialization
       TQQ(:,:) = 0.e+0_fp
 
 C----------spectral data----set for new format data------------------
@@ -1984,12 +2080,6 @@ c         note that X_ = max # Xsects read in
 c                   NJX = # fast-JX J-values derived from this (.le. X_)
 
 c >>>> W_ = 12 <<<< means trop-only, discard WL #1-4 and #9-10, some X-sects
-
-      ! Print the name of the file being read to stdout (bmy, 10/24/19)
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 300 ) TRIM( NamFil )
- 300     FORMAT( 'FAST-JX (RD_XXX): Reading ', a )
-      ENDIF
 
       ! Open file
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
@@ -1999,7 +2089,7 @@ c----note that NQRD is not used any more, a read until 'endofJ' is performed
       read (NUN,101) NQRD,NWWW
          NW1 = 1
          NW2 = NWWW
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%AmIRoot ) THEN
          write(6,'(1x,a)') TITLE0
          write(6,'(i8)') NWWW
       ENDIF
@@ -2070,7 +2160,7 @@ c---skip stratosphere only J's (denoted by 'x')if W_<18 => trop-only J's
         NJX = JJ
 
       do J = 1,NJX
-        if (am_I_Root) then
+        if ( Input_Opt%AmIRoot ) then
            write(6,200) J,TITLEJX(J),SQQ(J),LQQ(J),(TQQ(I,J),I=1,LQQ(J))
         endif
 c---need to check that TQQ is monotonically increasing:
@@ -2098,7 +2188,7 @@ c---truncate number of wavelengths to do troposphere-only
       if (W_ .ne. WX_) then
 c---TROP-ONLY
        if (W_ .eq. 12) then
-        if (am_I_Root) then
+        if ( Input_Opt%AmIRoot ) then
            write(6,'(a)')
      &      ' >>>TROP-ONLY reduce wavelengths to 12, drop strat X-sects'
         endif
@@ -2135,7 +2225,7 @@ c---TROP-ONLY
         enddo
 c---TROP-QUICK  (must scale solar flux for W=5)
        elseif (W_ .eq. 8) then
-        if (am_I_Root) then
+        if ( Input_Opt%AmIRoot ) then
         write(6,'(a)')
      &   ' >>>TROP-QUICK reduce wavelengths to 8, drop strat X-sects'
         endif
@@ -2202,23 +2292,22 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_MIE(NUN,NAMFIL,am_I_Root, Input_Opt )
+      SUBROUTINE RD_MIE( NUN, NAMFIL, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE FILE_MOD,           ONLY : IOERROR
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN) :: NUN
-      CHARACTER(*),   INTENT(IN) :: NAMFIL
-      LOGICAL,        INTENT(IN) :: am_I_Root
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-
+      INTEGER,        INTENT(IN)  :: NUN         ! Logical unit #
+      CHARACTER(*),   INTENT(IN)  :: NAMFIL      ! File name
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
-! !OUTPUT VARIABLES:
+! !OUTPUT PARAMETERS:
 !
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !   --------------------------------------------------------------------
@@ -2241,31 +2330,66 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  I, J, K, NK
-      CHARACTER*78 TITLE0
-      LOGICAL      :: LBRC
+      ! Scalars
+      INTEGER            :: I, J, K, NK
+      LOGICAL            :: LBRC, FileExists
+
+      ! Strings
+      CHARACTER(LEN=78 ) :: TITLE0
+      CHARACTER(LEN=255) :: FileMsg, ErrMsg, ThisLoc
 
       !=================================================================
-      ! RD_MIE begins here!
+      ! In dry-run mode, print file path to dryrun log and exit.
+      ! Otherwise, print file path to stdout and continue.
+      !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
+      ErrMsg = ''
+      ThisLoc = ' -> at RD_MIE (in module GeosCore/fast_jx_mod.F)'
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( NamFil ), EXIST=FileExists )
+
+      ! Test if the file exists and define an output string
+      IF ( FileExists ) THEN
+         FileMsg = 'FAST-JX (RD_MIE): Opening'
+      ELSE
+         FileMsg = 'FAST-JX (RD_MIE): REQUIRED FILE NOT FOUND'
+      ENDIF
+
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! For dry-run simulations, return to calling program
+      ! For regular simulations, throw an error if we can't find the file.
+      IF ( Input_Opt%DryRun ) THEN
+         RETURN
+      ELSE
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! RD_MIE begins here -- read data from file
       !=================================================================
 
       ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
-
-      ! Print the name of the file being read to stdout (bmy, 10/24/19)
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 300 ) TRIM( NamFil )
- 300     FORMAT( 'FAST-JX (RD_MIE): Reading ', a )
-      ENDIF
 
       ! Open file
       open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
       ! Read header lines
       READ( NUN,'(A)' ) TITLE0
-      IF  ( am_I_Root ) WRITE( 6, '(1X,A)' ) TITLE0
+      IF  ( Input_Opt%AmIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
       READ( NUN,'(A)' ) TITLE0
-
 
       !---Read aerosol phase functions:
 
@@ -2298,7 +2422,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 
       close(NUN)
 
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%AmIRoot ) THEN
          write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):'
      &             ,(WAA(K,1),K=1,5)
          do J=1,NAA
@@ -2326,23 +2450,21 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_AOD( NJ1, am_I_Root, Input_Opt )
+      SUBROUTINE RD_AOD( NJ1, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE FILE_MOD,           ONLY : IOERROR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      IMPLICIT NONE
-
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
-      TYPE(OptInput),   INTENT(IN) :: Input_Opt   ! Input Options object
-      LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      INTEGER,          INTENT(IN)  :: NJ1         ! Unit # of file to open
+      TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
+      INTEGER,          INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  The .dat files for each species contain the optical properties
@@ -2371,25 +2493,32 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !LOCAL VARIABLES
 !
+      ! Scalars
       INTEGER            :: I, J, K, N
       INTEGER            :: IOS
-      CHARACTER*30       :: SPECFIL(6)
-      CHARACTER*30       :: SPECFIL_UCX(8)
+      LOGICAL            :: LBRC, FileExists
+
+      ! Strings
+      CHARACTER(LEN=78 ) :: TITLE0
       CHARACTER(LEN=255) :: DATA_DIR
       CHARACTER(LEN=255) :: THISFILE
+      CHARACTER(LEN=255) :: FileMsg
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
-      LOGICAL            :: LBRC
-
-      CHARACTER*78 TITLE0
+      ! String arrays
+      CHARACTER(LEN=30)  :: SPECFIL(6)
+      CHARACTER(LEN=30)  :: SPECFIL_UCX(8)
 
       !================================================================
       ! RD_AOD begins here!
       !================================================================
 
-      ! Copy fields from Input_Opt
-      LBRC = Input_Opt%LBRC
-
-      ! Define data directory for FAST-JX input
+      ! Initialize
+      RC       = GC_SUCCESS
+      ErrMsg   = ''
+      ThisLoc  = ' -> at RD_AOD (in module GeosCore/fast_jx_mod.F)'
+      LBRC     = Input_Opt%LBRC
       DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
 
       ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
@@ -2412,71 +2541,105 @@ c---TROP-QUICK  (must scale solar flux for W=5)
      &                  "h2so4.dat","h2so4.dat",
      &                  "dust.dat"/
 
-      !array of filenames
+      ! Loop over the array of filenames
       DO k = 1, NSPAA
 
-       ! Choose different set of input files for UCX and tropchem simulations
-       IF ( Input_Opt%LUCX) THEN
-          THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL_UCX(k) )
-       ELSE
-          THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
-       ENDIF
-
-       ! Print the name of the file being read to stdout (bmy, 10/24/19)
-       IF ( am_I_Root ) THEN
-          WRITE( 6, 300 ) TRIM( ThisFile )
- 300      FORMAT( 'FAST-JX (RD_AOD): Reading ', a )
-       ENDIF
-
-       ! Open file
-       OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
-
-       ! Error check
-       IF ( IOS /= 0 ) THEN
-         IF ( am_I_Root ) THEN
-          WRITE(6,100) trim(THISFILE)
- 100      FORMAT('Error opening filename=', a )
-          CALL FLUSH(6)
+         ! Choose different set of input files for UCX and tropchem simulations
+         IF ( Input_Opt%LUCX) THEN
+            THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL_UCX(k) )
+         ELSE
+            THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
          ENDIF
-         CALL IOERROR( IOS, NJ1, 'RD_AOD:1')
-       ENDIF
 
+         !--------------------------------------------------------------
+         ! In dry-run mode, print file path to dryrun log and cycle.
+         ! Otherwise, print file path to stdout and continue.
+         !--------------------------------------------------------------
 
-       ! Read header lines
-       READ(  NJ1,'(A)'    ) TITLE0
-       IF  ( am_I_Root ) WRITE( 6,  '(1X,A)' ) TITLE0
-       READ(  NJ1,'(A)'    ) TITLE0
-       !Second header line added for more info
-       IF  ( am_I_Root ) WRITE( 6,  '(1X,A)' ) TITLE0
-       READ(  NJ1,'(A)'    ) TITLE0
+         ! Test if the file exists
+         INQUIRE( FILE=TRIM( ThisFile ), EXIST=FileExists )
 
+         ! Test if the file exists and define an output string
+         IF ( FileExists ) THEN
+            FileMsg = 'FAST-JX (RD_AOD): Opening'
+         ELSE
+            FileMsg = 'FAST-JX (RD_AOD): REQUIRED FILE NOT FOUND'
+         ENDIF
+
+         ! Write to stdout for both regular and dry-run simulations
+         IF ( Input_Opt%AmIRoot ) THEN
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+ 300        FORMAT( a, ' ', a )
+         ENDIF
+
+         ! For dry-run simulations, cycle to next file.
+         ! For regular simulations, throw an error if we can't find the file.
+         IF ( Input_Opt%DryRun ) THEN
+            CYCLE
+         ELSE
+            IF ( .not. FileExists ) THEN
+               WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! If not a dry-run, read data from each species file
+         !--------------------------------------------------------------
+
+         ! Open file
+         OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=RC )
+
+         ! Error check
+         IF ( RC /= 0 ) THEN
+            ErrMsg = 'Error opening file: ' // TRIM( ThisFile )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Read header lines
+         READ(  NJ1, '(A)' ) TITLE0
+         IF ( Input_Opt%AmIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+
+         ! Second header line added for more info
+         READ(  NJ1, '(A)' ) TITLE0
+         IF ( Input_Opt%AmIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+
+         READ(  NJ1, '(A)' ) TITLE0
  110     FORMAT( 3x, a20 )
-       DO i = 1, NRAA
-        DO j = 1, NWVAA
 
-         READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k),
-     &               RDAA(i,k),RWAA(i,k),SGAA(i,k),QQAA(j,i,k),
-     &               ALPHAA(j,i,k),REAA(i,k),SSAA(j,i,k),
-     &               ASYMAA(j,i,k),(PHAA(j,i,k,n),n=1,8)
-         ! make note of where 1000nm is for FAST-J calcs
-         IF (WVAA(j,k).EQ.1000.0) IWV1000=J
+         DO i = 1, NRAA
+         DO j = 1, NWVAA
 
-        ENDDO
-       ENDDO
-       ! Echo info to stdout
-       IF ( am_I_Root ) THEN
-       ENDIF
-       ! Close file
-       CLOSE( NJ1 )
+            READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k),
+     &                  RDAA(i,k),RWAA(i,k),SGAA(i,k),QQAA(j,i,k),
+     &                  ALPHAA(j,i,k),REAA(i,k),SSAA(j,i,k),
+     &                  ASYMAA(j,i,k),(PHAA(j,i,k,n),n=1,8)
+
+            ! make note of where 1000nm is for FAST-J calcs
+            IF (WVAA(j,k).EQ.1000.0) IWV1000=J
+
+         ENDDO
+         ENDDO
+
+         ! Close file
+         CLOSE( NJ1 )
       ENDDO
 
-      IF ( am_I_Root ) THEN
-         WRITE( 6, * ) 'Optics read for all wavelengths successfully'
-      ENDIF
+      !=================================================================
+      ! Only do the following if we are not running in dry-run mode
+      !=================================================================
+      IF ( .not. Input_Opt%DryRun ) THEN
 
-      !now calculate the required wavelengths in the LUT to calculate
-      !the requested AOD
-      CALL CALC_AOD( am_I_Root, Input_Opt )
+         IF ( Input_Opt%AmIRoot ) THEN
+            WRITE( 6, * ) 'Optics read for all wavelengths successfully'
+         ENDIF
+
+         ! Now calculate the required wavelengths in the LUT to calculate
+         ! the requested AOD
+         CALL CALC_AOD( Input_Opt )
+      ENDIF
 
       END SUBROUTINE RD_AOD
 !EOC
@@ -2496,7 +2659,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_AOD( am_I_Root, Input_Opt )
+      SUBROUTINE CALC_AOD( Input_Opt )
 !
 ! !USES:
 !
@@ -2514,7 +2677,6 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput),   INTENT(IN) :: Input_Opt
 !
 ! !REMARKS:
@@ -2626,7 +2788,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
        CCOEF_WV(W) =(Input_Opt%WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/
      &              (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
       ENDIF
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%AmIRoot ) THEN
          write(6,*) 'N WAVELENGTHS: ',Input_Opt%NWVSELECT
          write(6,*) 'WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
          write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
@@ -2714,7 +2876,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !i.e. without the standard and LW wavelengths
       IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
       IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%AmIRoot ) THEN
       write(6,*) 'N RT WAVELENGTHS: ',Input_Opt%NWVSELECT
       write(6,*) 'RT WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
       write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
@@ -2777,6 +2939,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: J, JJ, K
       REAL(fp)           :: F_FJX
 
@@ -2785,7 +2948,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       CHARACTER(LEN=50 ) :: T_REACT
       CHARACTER(LEN=50 ) :: TEXT
       CHARACTER(LEN=120) :: CLINE
-      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc, FileMsg
 
       ! String arrays
       CHARACTER(LEN=6)   :: JMAP(JVN_)
@@ -2797,23 +2960,52 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Initialize
       RC       = GC_SUCCESS
       ErrMsg   = ''
-      ThisLoc  = ' -> at Rd_Js_Jx  (in module GeosCore/fast_jx_mod.F)'
+      ThisLoc  = ' -> at Rd_Js_Jx (in module GeosCore/fast_jx_mod.F)'
 
-! Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
-! The chemistry code title describes fully the reaction (a50)
-! Blank (unfilled) chemistry J's are unmapped
-! The number NRATJ is the last JJ readin that is .le. JVN
-!   include fractional quantum yield for the fast-JX J's
+      !=================================================================
+      ! In dry-run mode, print file path to dryrun log and exit.
+      ! Otherwise, print file path to stdout and continue.
+      !=================================================================
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( NamFil ), EXIST=FileExists )
+
+      ! Test if the file exists and define an output string
+      IF ( FileExists ) THEN
+         FileMsg = 'FAST-JX (RD_JS_JX): Opening'
+      ELSE
+         FileMsg = 'FAST-JX (RD_JS_JX): REQUIRED FILE NOT FOUND'
+      ENDIF
+
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! For dry-run simulations, return to calling program.
+      ! For regular simulations, throw an error if we can't find the file.
+      IF ( Input_Opt%DryRun ) THEN
+         RETURN
+      ELSE
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( NamFil )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Read the FJX_j2j.dat file to map model specific J's onto fast-JX J's
+      ! The chemistry code title describes fully the reaction (a50)
+      ! Blank (unfilled) chemistry J's are unmapped
+      ! The number NRATJ is the last JJ readin that is .le. JVN
+      ! include fractional quantum yield for the fast-JX J's
+      !=================================================================
 
       JLABEL(:) = '------'
       JMAP(:)   = '------'
       JFACTA(:) = 0.e+0_fp
-
-      ! Print the name of the file being read to stdout (bmy, 10/24/19)
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 300 ) TRIM( NamFil )
- 300     FORMAT( 'FAST-JX (RD_JS_JX): Reading ', a )
-      ENDIF
 
       ! Open file
       open (NUNIT,file=NAMFIL,status='old',form='formatted')
@@ -3573,7 +3765,7 @@ C-----------------------------------------------------------------------
       !=================================================================
       ! UV radiative fluxes (direct, diffuse, net) [W/m2]
       !
-      ! Updated for netCDF from nd64 (JMM 2019-09-11) 
+      ! Updated for netCDF from nd64 (JMM 2019-09-11)
       ! Use it to calculate fluxes for output if necessary
       !
       ! Get net direct and net diffuse fluxes separately
@@ -3615,13 +3807,13 @@ C-----------------------------------------------------------------------
                ENDIF
 
                IF ( State_Diag%Archive_UVFluxDirect ) THEN
-                  State_Diag%UVFluxDirect(ILON,ILAT,L,K) = 
+                  State_Diag%UVFluxDirect(ILON,ILAT,L,K) =
      &            State_Diag%UVFluxDirect(ILON,ILAT,L,K) +
      &                 ( FDIRECT(L) * UVX_CONST )
                ENDIF
 
                IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
-                  State_Diag%UVFluxDiffuse(ILON,ILAT,L,K) = 
+                  State_Diag%UVFluxDiffuse(ILON,ILAT,L,K) =
      &            State_Diag%UVFluxDiffuse(ILON,ILAT,L,K) +
      &                 ( FDIFFUSE(L) * UVX_CONST )
                ENDIF
@@ -4421,7 +4613,7 @@ C---Always does PL(2) = P[1]
 !
 ! !REVISION HISTORY:
 !  30 Mar 2013 - S. D. Eastham - Adapted from J. Mao code
-!  05 Jan 2016 - E. Lundgren   - Use global physical parameters
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4693,7 +4885,7 @@ C---Always does PL(2) = P[1]
 !
 ! !REVISION HISTORY:
 !  31 Mar 2013 - S. D. Eastham - Adapted from J. Mao FJX v6.2 implementation
-!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4784,7 +4976,7 @@ C---Always does PL(2) = P[1]
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4802,52 +4994,82 @@ C---Always does PL(2) = P[1]
 !
 ! !REVISION HISTORY:
 !  19 Apr 2012 - R. Yantosca - Initial version
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  10 Apr 2013 - S. D. Eastham - Adapted for Fast-JX v7.0
-!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! netCDF file handle
+      ! Scalars
+      LOGICAL            :: FileExists          ! Does input file exist?
       INTEGER            :: fId                 ! netCDF file ID
 
-      ! Character strings
+      ! Strings
       CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
       CHARACTER(LEN=255) :: nc_file             ! netCDF file name
       CHARACTER(LEN=255) :: nc_path             ! netCDF path name
       CHARACTER(LEN=255) :: v_name              ! netCDF variable name
       CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
       CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
+      CHARACTER(LEN=255) :: FileMsg
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
-      ! Arrays for netCDF start and count values
+      ! Arrays
       INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays
 
       !=================================================================
       ! RD_PROF_NC begins here!
       !=================================================================
 
+      ! Initialize
       ! Assume success
-      RC = GC_SUCCESS
-
-      !=========================================================================
-      ! Open and read data from the netCDF file
-      !=========================================================================
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/fast_jx_mod.F)'
 
       ! Directory and file names
       nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
       nc_file = 'fastj.jv_atms_dat.nc'
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 
-      ! Print the name of the file being read to stdout (bmy, 10/24/19)
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 300 ) TRIM( nc_path )
- 300     FORMAT( 'FAST-JX (RD_PROF_NC): Reading ', a )
+      !=================================================================
+      ! In dry-run mode, print file path to dryrun log and exit.
+      ! Otherwise, print file path to stdout and continue.
+      !=================================================================
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( nc_path ), EXIST=FileExists )
+
+      ! Test if the file exists and define an output string
+      IF ( FileExists ) THEN
+         FileMsg = 'FAST-JX (RD_PROF_NC): Opening'
+      ELSE
+         FileMsg = 'FAST-JX (RD_PROF_NC): REQUIRED FILE NOT FOUND'
       ENDIF
+
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! For dry-run simulations, return to calling program.
+      ! For regular simulations, throw an error if we can't find the file.
+      IF ( Input_Opt%DryRun ) THEN
+         RETURN
+      ELSE
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      !=========================================================================
+      ! Open and read data from the netCDF file
+      !=========================================================================
 
       ! Open netCDF file
       CALL Ncop_Rd( fId, TRIM(nc_path) )
@@ -4975,13 +5197,7 @@ C---Always does PL(2) = P[1]
 !  %%%% NOT KEEP ANY CONFLICTING OR INCORRECT INFORMATION (bmy, 3/28/16) %%%%
 !
 ! !REVISION HISTORY:
-!  10 Mar 2016 - M. Sulprizio- Added ProTeX header
-!  18 Apr 2016 - R. Yantosca - Remove Input_Opt, State_Met, State_Chm args
-!                              and pass air density & temperature instead
-!  18 Apr 2016 - R. Yantosca - Also prevent div-by-zero conditions
-!  16 Mar 2017 - M. Sulprizio- Restore P(OH) from O3 photolysis for ND22
-!  04 Oct 2017 - E. Lundgren - Pass State_Diag and populate J-Values array
-!  19 Dec 2017 - R. Yantosca - Now use Input_Opt%LUCX instead of ifdefs
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC

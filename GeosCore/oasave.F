@@ -28,7 +28,7 @@
 !
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  10 Jul 2014 - E. A. Marais- Initial version
 !  09 Jun 2017 - M. Sulprizio- Modified for consistency with ND42 updates made
 !                              in v11-01

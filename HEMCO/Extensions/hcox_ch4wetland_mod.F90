@@ -5,11 +5,11 @@
 !
 ! !MODULE: hcox_ch4wetland_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_CH4Wetland\_Mod contains routines to 
+! !DESCRIPTION: Module HCOX\_CH4Wetland\_Mod contains routines to
 ! calculate methane emissions (including rice) from wetlands. This code
 ! is adapted from the GEOS-Chem CH4 offline simulation.
 !\\
-!\\ 
+!\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
 !\\
@@ -21,8 +21,8 @@
 ! This extension can calculate emissions for as many species as desired. Those
 ! can be listed in the extensions settings (see below), together with individual
 ! scale factors and masks. For example, to calculate emissions for total CH4 and
-! two tagged CH4 species (CH4\_NA and CH4\_EU) with NA emissions scaled by a 
-! factor of 1.1, as well as applying the gridded factors NAFIELD and EUFIELD to 
+! two tagged CH4 species (CH4\_NA and CH4\_EU) with NA emissions scaled by a
+! factor of 1.1, as well as applying the gridded factors NAFIELD and EUFIELD to
 ! CH4\_NA and CH4\_EU, respectively:
 !
 !121     CH4\_WETLANDS      : on    CH4/CH4\_NA/CH4\_EU
@@ -30,11 +30,11 @@
 !    --> Rice               :       true
 !    --> Scaling\_CH4\_NA   :       1.10
 !    --> ScaleField\_CH4\_NA:       NAFIELD
-!    --> ScaleField\_CH4\_EU:       EUFIELD 
+!    --> ScaleField\_CH4\_EU:       EUFIELD
 !    --> Cat\_Wetlands      :       1
 !    --> Cat\_Rice          :       2
 !
-! The fields NAFIELD and EUFIELD must be defined in the base emission section of 
+! The fields NAFIELD and EUFIELD must be defined in the base emission section of
 ! the HEMCO configuration file. You can apply any scale factors/masks to that
 ! field.
 !\\
@@ -45,22 +45,22 @@
 ! configuration file (see above). In combination with the ExtNr (121), these
 ! categories can then be used in the HEMCO diagnostics file to output wetland
 ! and rice emissions separately, e.g.:
-! CH4\_WETL 121 1 -1 2 kg/m2/s 
-! CH4\_RICE 121 2 -1 2 kg/m2/s 
+! CH4\_WETL 121 1 -1 2 kg/m2/s
+! CH4\_RICE 121 2 -1 2 kg/m2/s
 !\\
 !\\
 ! References:
 ! \begin{itemize}
-! \item Pickett-Heaps CA, Jacob DJ, Wecht KJ, et al. Magnitude and seasonality 
-! of wetland methane emissions from the Hudson Bay Lowlands (Canada). ACP, 11, 
+! \item Pickett-Heaps CA, Jacob DJ, Wecht KJ, et al. Magnitude and seasonality
+! of wetland methane emissions from the Hudson Bay Lowlands (Canada). ACP, 11,
 ! 3773-3779, 2011.
 ! \end{itemize}
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCOX_CH4WETLAND_Mod
 !
 ! !USES:
-! 
+!
   USE HCO_Error_MOD
   USE HCO_Diagn_MOD
   USE HCOX_TOOLS_MOD
@@ -78,12 +78,12 @@ MODULE HCOX_CH4WETLAND_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: WETLAND_EMIS 
-  PRIVATE :: RICE_EMIS 
+  PRIVATE :: WETLAND_EMIS
+  PRIVATE :: RICE_EMIS
 !
 ! !REVISION HISTORY:
 !  11 Sep 2014 - C. Keller   - Initial version
-!  01 Oct 2013 - C. Keller   - Now a HEMCO extension module 
+!  01 Oct 2013 - C. Keller   - Now a HEMCO extension module
 !  11 Dec 2013 - C. Keller   - Now define container name during initialization
 !  01 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
@@ -102,8 +102,8 @@ MODULE HCOX_CH4WETLAND_Mod
    INTEGER                        :: Instance
    INTEGER                        :: ExtNr
    INTEGER                        :: CatWetland
-   INTEGER                        :: CatRice 
-   LOGICAL                        :: DoWetland 
+   INTEGER                        :: CatRice
+   LOGICAL                        :: DoWetland
    LOGICAL                        :: DoRice
    LOGICAL                        :: DoDiagn
 
@@ -136,7 +136,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_CH4WETLAND_Run
 !
-! !DESCRIPTION: Subroutine HcoX\_CH4WETLAND\_Run is the run routine to 
+! !DESCRIPTION: Subroutine HcoX\_CH4WETLAND\_Run is the run routine to
 ! calculate oceanic emissions for the current time step.
 !\\
 !\\
@@ -147,7 +147,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_CALC_MOD,     ONLY : HCO_EvalFld
-    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr 
+    USE HCO_EMISLIST_MOD, ONLY : HCO_GetPtr
     USE HCO_FLUXARR_MOD,  ONLY : HCO_EmisAdd
     USE HCO_TYPES_MOD,    ONLY : DiagnCont
     USE HCO_CLOCK_MOD,    ONLY : HcoClock_First
@@ -156,13 +156,13 @@ CONTAINS
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
-    TYPE(Ext_State), POINTER       :: ExtState  ! Module options  
+    TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(INOUT) :: RC         ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  11 Sep 2014 - C. Keller   - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !  30 Apr 2018 - C. Keller   - Rice and wetland emissions now have separate categories
@@ -197,7 +197,7 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, LOC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Return if extension disabled 
+    ! Return if extension disabled
     IF ( ExtState%Wetland_CH4 <= 0 ) RETURN
 
     ! Init
@@ -206,18 +206,18 @@ CONTAINS
 
     ! Get instance
     CALL InstGet ( ExtState%Wetland_CH4, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
+    IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find CH4 wetland instance Nr. ', ExtState%Wetland_CH4
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
     ENDIF
 
     ! ---------------------------------------------------------------
-    ! On first call, get pointers to data and check if manual 
-    ! diagnostics will be used 
+    ! On first call, get pointers to data and check if manual
+    ! diagnostics will be used
     ! ---------------------------------------------------------------
     !IF ( HcoClock_First( HcoState%Clock, .TRUE.) ) THEN
-    
+
        IF ( Inst%DoWetland ) THEN
           CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_WETFRAC',  Inst%WETFRAC,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -233,7 +233,7 @@ CONTAINS
              TmpCnt => NULL()
           ENDIF
        ENDIF
- 
+
        ! Fields required by rice emissions
        IF ( Inst%DoRice ) THEN
           CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_RICE',    Inst%RICE,         RC )
@@ -261,14 +261,14 @@ CONTAINS
        CALL WETLAND_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4wtl, RC )
     ENDIF
 
-    ! If turned on, calculate rice emissions. Previously calculated 
+    ! If turned on, calculate rice emissions. Previously calculated
     ! wetland emissions may be subtracted!
     IF ( Inst%DoRice ) THEN
        CALL RICE_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4rce, RC )
     ENDIF
 
     ! ---------------------------------------------------------------
-    ! Pass emissions to HEMCO state and update diagnostics 
+    ! Pass emissions to HEMCO state and update diagnostics
     ! ---------------------------------------------------------------
 
     ! Adjust for double counting
@@ -291,7 +291,7 @@ CONTAINS
     ENDIF
 
 !    ! Total CH4 emissions [kg/m2/s]
-!    CH4wtl = CH4wtl + CH4rce 
+!    CH4wtl = CH4wtl + CH4rce
 
     ! Add flux to all species, eventually apply scaling & masking
     DO N = 1, Inst%nSpc
@@ -305,7 +305,7 @@ CONTAINS
        CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Add emissions 
+       ! Add emissions
        CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
                           ExtNr=Inst%ExtNr, Cat=Inst%CatWetland )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -318,14 +318,14 @@ CONTAINS
        CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Add emissions 
+       ! Add emissions
        CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
                           ExtNr=Inst%ExtNr, Cat=Inst%CatRice )
        IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDDO 
+    ENDDO
 
     ! Leave w/ success
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_CH4WETLAND_Run
 !EOC
@@ -334,11 +334,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: WETLAND_EMIS 
+! !IROUTINE: WETLAND_EMIS
 !
 ! !DESCRIPTION: Subroutine WETLAND\_EMIS is the driver routine for the CH4
-! wetland emissions. It calculates wetland emissions and writes them into 
-! the passed array CH4wtl. 
+! wetland emissions. It calculates wetland emissions and writes them into
+! the passed array CH4wtl.
 !\\
 !\\
 ! !INTERFACE:
@@ -352,7 +352,7 @@ CONTAINS
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
-    TYPE(Ext_State), POINTER       :: ExtState  ! Module options  
+    TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -360,7 +360,7 @@ CONTAINS
     REAL(hp),        INTENT(INOUT) :: CH4wtl(HcoState%NX,HcoState%NY) ! CH4 emis
     INTEGER,         INTENT(INOUT) :: RC         ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
 !       scheme provided by Jed O. Kaplan.
 !  (2 ) CH4 Emissions from Wetland depend on:
@@ -368,8 +368,8 @@ CONTAINS
 !               b - Vegetation type
 !               c - Wetland area (%)
 !               d - Soil moisture.
-!       a, b, c are taken from the LPJ, a vegetation model. Data are provided 
-!       by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
+!       a, b, c are taken from the LPJ, a vegetation model. Data are provided
+!       by J.O.Kaplan. Soil moisture is read from GEOS Met input files.
 !  (3 ) Corrected order of DO loops (bmy, 10/1/09)
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
@@ -399,10 +399,10 @@ CONTAINS
     REAL(dp)            :: litterslow
     REAL(dp)            :: soilfast
     REAL(dp)            :: soilslow
-    REAL(dp)            :: HETEROR 
+    REAL(dp)            :: HETEROR
     REAL(dp)            :: F_TEMP
     REAL(dp)            :: TROPICNESS
-    REAL(dp)            :: EMIT_TROPIC 
+    REAL(dp)            :: EMIT_TROPIC
     REAL(dp)            :: EMIT_TEMPER
 
     ! -------------
@@ -410,7 +410,7 @@ CONTAINS
 
 !    ! Molecular weight of carbon (g/mol)
     REAL(dp), PARAMETER           :: MWC = 12.0_dp
- 
+
     ! Max allowable snowdepth for emissions to take place [meters]
     REAL(dp), PARAMETER           :: MAX_SNOWDP = 0.0001_dp
 
@@ -421,19 +421,19 @@ CONTAINS
     !
     ! Jed and Jerome tune parameter values to the wetland emission
     !    routine using GEOS-4 met variables. I have tuned the model
-    !    using GEOS-5 met variables and found that EMIT_FACT=.01 
+    !    using GEOS-5 met variables and found that EMIT_FACT=.01
     !    and MOIST_SCALE=.1 give a reasonable balance between
     !    extratropical and tropical emissions, kjw (7/20/10).
-    ! 
+    !
     ! UPDATE 12/13/2011
     !    Carbon litter and soil maps used prior to GC v9-01-03 were
     !    incorrect. Carbon litter had wrong spatial distribution, and
-    !    carbon soil values were too high and may also have had the 
+    !    carbon soil values were too high and may also have had the
     !    wrong spatial distribution.
     !    Updated carbon litter, carbon soil, and wetland fraction maps
-    !    are included in v9-01-03. MOIST_SCALE and EMIT_FACT have been 
-    !    tuned to maintain annual global average methane emissions 
-    !    ~ 166.8 Tg/y. Boreal wetland emissions are ~ 28.9 Tg/y, 
+    !    are included in v9-01-03. MOIST_SCALE and EMIT_FACT have been
+    !    tuned to maintain annual global average methane emissions
+    !    ~ 166.8 Tg/y. Boreal wetland emissions are ~ 28.9 Tg/y,
     !    consistent with estimates described in Pickett-Heaps 2011,
     !    3rd pararaph of introduction. New parameter values:
     !      MOIST_SCALE = 0.19
@@ -445,10 +445,10 @@ CONTAINS
     ! UPDATE 1/16/2014
     !    Use of the new carbon litter and soil maps changed global
     !    and regional emission totals. Here, I change MOIST_SCALE
-    !    and EMIT_FACT to 1) match HBL emissions constrained by 
-    !    surface and aircraft data in Pickett-Heaps et al. 2011. 
+    !    and EMIT_FACT to 1) match HBL emissions constrained by
+    !    surface and aircraft data in Pickett-Heaps et al. 2011.
     !    and 2) preserve global total emissions (~165 Tg/y) used
-    !    in comparison to NOAA GMD, SCIAMACHY, and INTEX-A in 
+    !    in comparison to NOAA GMD, SCIAMACHY, and INTEX-A in
     !    Wecht et al. (2014).
     REAL(dp), PARAMETER :: MOIST_SCALE = 0.205_dp   ! tropical emissions
     REAL(dp), PARAMETER :: EMIT_FACT   = 0.018_dp   ! extratropical emissions
@@ -471,7 +471,7 @@ CONTAINS
 !$OMP PRIVATE( soilfast, soilslow, TROPICNESS, EFF_GWET               )   &
 !$OMP PRIVATE( EMIT_TROPIC, EMIT_TEMPER                               )   &
 !$OMP SCHEDULE( DYNAMIC )
-    DO J = 1, HcoState%NY 
+    DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
 
        !===================================================================
@@ -490,7 +490,7 @@ CONTAINS
 
        ! Init
        REALWET = 0.0_hp
-   
+
        ! GEOS5 Calculation of inundated fraction
        ! We don't want emissions in frozen or snow-covered regions
        IF ( ExtState%TSKIN%Arr%Val(I,J) > 273d0      ) THEN
@@ -498,12 +498,12 @@ CONTAINS
 
              ! We want emissions from any box that contains some land
              ! FRLAND is fraction of grid box that is land
-             IF ( ExtState%FRLAND%Arr%Val(I,J) > 0) THEN 
+             IF ( ExtState%FRLAND%Arr%Val(I,J) > 0) THEN
 
                 ! Actual wetness of land /= GWETTOP because GWETTOP includes
                 ! wetness in lakes, ocean, and ice.  Below is a scheme to
                 ! calculate effective GWETTOP of the land fraction
-                EFF_GWET = ( ExtState%GWETTOP%Arr%Val(I,J)       -   & 
+                EFF_GWET = ( ExtState%GWETTOP%Arr%Val(I,J)       -   &
                              ( ExtState%FROCEAN%Arr%Val(I,J)     +   &
                                ExtState%FRLAKE%Arr%Val(I,J)      +   &
                                ExtState%FRLANDIC%Arr%Val(I,J)      ) &
@@ -538,14 +538,14 @@ CONTAINS
        !===================================================================
        ! Calculate CH4 emissions!
        !===================================================================
- 
+
        IF ( ExtState%TSKIN%Arr%Val(I,J) < 233.d0 ) THEN
           F_TEMP = 0d0
        ELSE
           F_TEMP = exp(308.56d0*(1.0d0/56.02d0-&
                    1.0d0/(ExtState%TSKIN%Arr%Val(I,J)-227.13d0))) !Lloyd & Taylor 1994
        ENDIF
- 
+
        ! Calculate Heterotrophic respiration
        litterfast = 0.985d0 * Inst%LITTER_C(i,j)
        litterslow = 0.015d0 * Inst%LITTER_C(i,j)
@@ -558,7 +558,7 @@ CONTAINS
                                + litterslow*0.05d0  &
                                + soilfast*0.03d0    &
                                + soilslow*0.001d0 ) * 0.34d0 ! / 12d0
- 
+
        ! Calculate "tropicness" of each box
        TROPICNESS = exp((Inst%MEAN_T(I,J) - 303.15d0) / 8d0)
        IF ( TROPICNESS < 0d0 ) THEN
@@ -567,15 +567,15 @@ CONTAINS
        IF ( TROPICNESS > 1d0 ) THEN
           TROPICNESS = 1d0
        ENDIF
-         
+
        EMIT_TROPIC = 0.0d0
        EMIT_TEMPER = 0.0d0
 
-!         EMIT_TROPIC = EMIT_TROPIC + HETEROR * MOIST_SCALE 
-!     &                * REALWET(I,J) 
+!         EMIT_TROPIC = EMIT_TROPIC + HETEROR * MOIST_SCALE
+!     &                * REALWET(I,J)
 !
-!         EMIT_TEMPER = EMIT_TEMPER + HETEROR * EMIT_FACT 
-!     &                * REALWET(I,J) 
+!         EMIT_TEMPER = EMIT_TEMPER + HETEROR * EMIT_FACT
+!     &                * REALWET(I,J)
 
        EMIT_TROPIC = HETEROR * MOIST_SCALE * REALWET
        EMIT_TEMPER = HETEROR * EMIT_FACT   * REALWET
@@ -595,16 +595,16 @@ CONTAINS
 !    CH4wtl = CH4wtl / MWC * HcoState%Spc(IDTtot)%MW_g
 
     ! Leave w/ success
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
-  END SUBROUTINE WETLAND_EMIS 
+  END SUBROUTINE WETLAND_EMIS
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: RICE_EMIS 
+! !IROUTINE: RICE_EMIS
 !
 ! !DESCRIPTION: Subroutine RICE\_EMIS is the driver routine for the CH4
 ! rice emissions. It calculates rice emissions and writes them into the
@@ -622,7 +622,7 @@ CONTAINS
 !
     LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
-    TYPE(Ext_State), POINTER       :: ExtState  ! Module options  
+    TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -669,7 +669,7 @@ CONTAINS
 !$OMP DEFAULT( SHARED )           &
 !$OMP PRIVATE( I, J, wet_ratio )  &
 !$OMP SCHEDULE( DYNAMIC )
-    DO J = 1, HcoState%NY 
+    DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
        wet_ratio = Inst%GWET_MONTHLY(I,J)/Inst%GWET_ANNUAL(I,J)-1.0_hp
        wet_ratio = wet_ratio * 2.0_dp
@@ -681,9 +681,9 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     ! Leave w/ success
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
-  END SUBROUTINE RICE_EMIS 
+  END SUBROUTINE RICE_EMIS
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -693,7 +693,7 @@ CONTAINS
 ! !IROUTINE: HCOX_CH4WETLAND_INIT
 !
 ! !DESCRIPTION: Subroutine HCOX\_CH4WETLAND\_INIT initializes all module
-! variables. 
+! variables.
 !\\
 !\\
 ! !INTERFACE:
@@ -744,8 +744,8 @@ CONTAINS
     ! Extension Nr.
     ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
- 
-    ! Enter 
+
+    ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_CH4WETLAND_Init (hcox_wetlands_ch4_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -759,17 +759,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    ALLOCATE ( Inst%RICE(HcoState%NX, HcoState%NY), & 
-               Inst%GWET_ANNUAL(HcoState%NX, HcoState%NY), & 
-               Inst%GWET_MONTHLY(HcoState%NX, HcoState%NY), & 
-               Inst%WETFRAC(HcoState%NX, HcoState%NY), & 
-               Inst%LITTER_C(HcoState%NX, HcoState%NY), & 
-               Inst%SOIL_C(HcoState%NX, HcoState%NY), & 
+    ALLOCATE ( Inst%RICE(HcoState%NX, HcoState%NY), &
+               Inst%GWET_ANNUAL(HcoState%NX, HcoState%NY), &
+               Inst%GWET_MONTHLY(HcoState%NX, HcoState%NY), &
+               Inst%WETFRAC(HcoState%NX, HcoState%NY), &
+               Inst%LITTER_C(HcoState%NX, HcoState%NY), &
+               Inst%SOIL_C(HcoState%NX, HcoState%NY), &
                Inst%MEAN_T(HcoState%NX, HcoState%NY), STAT=AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Allocation error', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%RICE         = 0.0_hp
     Inst%GWET_ANNUAL  = 0.0_hp
     Inst%GWET_MONTHLY = 0.0_hp
@@ -778,7 +778,7 @@ CONTAINS
     Inst%SOIL_C       = 0.0_hp
     Inst%MEAN_T       = 0.0_hp
 
-    ! HEMCO species IDs of species names defined in config. file 
+    ! HEMCO species IDs of species names defined in config. file
     CALL HCO_GetExtHcoID( HcoState, ExtNr, Inst%SpcIDs, SpcNames, Inst%nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -797,7 +797,7 @@ CONTAINS
     CALL GetExtOpt( HcoState%Config, ExtNr, 'Wetlands', &
                      OptValBool=Inst%DoWetland, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'Rice', & 
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Rice', &
                      OptValBool=Inst%DoRice,    RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -811,7 +811,7 @@ CONTAINS
     ! See if wetland and rice categories are given
     Inst%CatWetland = 1
     Inst%CatRice    = 2
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Wetlands', & 
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Wetlands', &
                     OptValInt=Dum, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) Inst%CatWetland = Dum
@@ -827,7 +827,7 @@ CONTAINS
        WRITE(MSG,*) 'Use wetlands         : ', Inst%DoWetland
        CALL HCO_MSG(HcoState%Config%Err,MSG )
        IF ( Inst%DoWetland ) THEN
-          WRITE(MSG,*) 'Wetland emission category: ', Inst%CatWetland 
+          WRITE(MSG,*) 'Wetland emission category: ', Inst%CatWetland
           CALL HCO_MSG(HcoState%Config%Err,MSG )
        ENDIF
        WRITE(MSG,*) 'Use rice             : ', Inst%DoRice
@@ -870,7 +870,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_CH4WETLAND_Final
 !
-! !DESCRIPTION: Subroutine HCOX\_CH4WETLAND\_Final deallocates 
+! !DESCRIPTION: Subroutine HCOX\_CH4WETLAND\_Final deallocates
 !  all module arrays.
 !\\
 !\\
@@ -880,7 +880,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !REVISION HISTORY:
 !  11 Sep 2014 - C. Keller - Initial version
@@ -900,14 +900,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -917,7 +917,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -926,11 +926,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -947,21 +947,21 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
-! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+! !DESCRIPTION: Subroutine InstCreate creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -974,7 +974,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -990,7 +990,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -1008,7 +1008,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -1028,9 +1028,9 @@ CONTAINS
 !    Inst%SOIL_C       => NULL()
 !    Inst%MEAN_T       => NULL()
 
-    Inst%DoWetland  = .FALSE. 
-    Inst%DoRice     = .FALSE. 
-    Inst%DoDiagn    = .FALSE. 
+    Inst%DoWetland  = .FALSE.
+    Inst%DoRice     = .FALSE.
+    Inst%DoDiagn    = .FALSE.
     Inst%CatWetland = 1
     Inst%CatRice    = 2
 
@@ -1044,21 +1044,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+! !DESCRIPTION: Subroutine InstRemove creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( Instance ) 
+  SUBROUTINE InstRemove ( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: Instance 
+    INTEGER                         :: Instance
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1069,12 +1069,12 @@ CONTAINS
     !=================================================================
     ! InstRemove begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
+    IF ( ASSOCIATED(Inst) ) THEN
        IF ( ALLOCATED (Inst%SpcIDs       ) ) DEALLOCATE ( Inst%SpcIDs        )
        IF ( ALLOCATED (Inst%SpcScal      ) ) DEALLOCATE ( Inst%SpcScal       )
        IF ( ALLOCATED (Inst%SpcScalFldNme) ) DEALLOCATE ( Inst%SpcScalFldNme )
@@ -1093,7 +1093,7 @@ CONTAINS
 !       Inst%LITTER_C => NULL()
 !       Inst%SOIL_C => NULL()
 !       Inst%MEAN_T => NULL()
- 
+
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
           PrevInst%NextInst => Inst%NextInst
@@ -1101,9 +1101,9 @@ CONTAINS
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_CH4WETLAND_Mod

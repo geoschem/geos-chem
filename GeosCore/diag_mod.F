@@ -6,11 +6,11 @@
 !
 ! !MODULE: diag_mod.F
 !
-! !DESCRIPTION: Module DIAG\_MOD contains declarations for allocatable arrays 
-!  for use with GEOS-CHEM diagnostics. 
+! !DESCRIPTION: Module DIAG\_MOD contains declarations for allocatable arrays
+!  for use with GEOS-CHEM diagnostics.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DIAG_MOD
 !
@@ -91,7 +91,7 @@
       !=================================================================
 #ifdef TOMAS
       IF ( ALLOCATED( AD44        ) ) DEALLOCATE( AD44        )
-      IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   ) 
+      IF ( ALLOCATED( AD59_NUMB   ) ) DEALLOCATE( AD59_NUMB   )
       IF ( ALLOCATED( AD59_SULF   ) ) DEALLOCATE( AD59_SULF   )
       IF ( ALLOCATED( AD59_SALT   ) ) DEALLOCATE( AD59_SALT   )
       IF ( ALLOCATED( AD59_ECIL   ) ) DEALLOCATE( AD59_ECIL   )
@@ -106,7 +106,7 @@
       IF ( ALLOCATED( AD60_ERROR  ) ) DEALLOCATE( AD60_ERROR  )
       IF ( ALLOCATED( AD60_SOA    ) ) DEALLOCATE( AD60_SOA    )
       IF ( ALLOCATED( AD61        ) ) DEALLOCATE( AD61        )
-      IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   ) 
+      IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   )
       IF ( ALLOCATED( AD65        ) ) DEALLOCATE( AD65        )
 #endif
 #ifdef RRTMG
@@ -114,7 +114,5 @@
 #endif
       END SUBROUTINE CLEANUP_DIAG
 !EOC
-      END MODULE DIAG_MOD 
+      END MODULE DIAG_MOD
 #endif
-
-

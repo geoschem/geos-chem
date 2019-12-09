@@ -7,7 +7,7 @@
 ! !MODULE: CMN_DIAG_mod.F
 !
 ! !DESCRIPTION: Module CMN\_DIAG\_mod contains size parameters and global
-!  variables for the GEOS-Chem diagnostic arrays.  This is mostly historical 
+!  variables for the GEOS-Chem diagnostic arrays.  This is mostly historical
 !  baggage.
 !\\
 !\\
@@ -31,9 +31,9 @@
       !=================================================================
       ! Settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
       !=================================================================
-      INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC   
-      INTEGER, PARAMETER :: PD60=TOMASBIN*TOMASSPEC    
-      INTEGER, PARAMETER :: PD61=2 
+      INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC
+      INTEGER, PARAMETER :: PD60=TOMASBIN*TOMASSPEC
+      INTEGER, PARAMETER :: PD61=2
       INTEGER            :: PD65
       INTEGER, PARAMETER :: MAX_DIAG   = 80
 
@@ -80,9 +80,9 @@
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
       !=================================================================
-      INTEGER :: TINDEX(MAX_DIAG,MAX_TRACER)          
-      INTEGER :: TCOUNT(MAX_DIAG) 				  
-      INTEGER :: TMAX(MAX_DIAG)					
+      INTEGER :: TINDEX(MAX_DIAG,MAX_TRACER)
+      INTEGER :: TCOUNT(MAX_DIAG)
+      INTEGER :: TMAX(MAX_DIAG)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -125,8 +125,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -135,12 +135,10 @@
       RC   = GC_SUCCESS
 
 #ifdef TOMAS
-      PD65 = State_Grid%NZ * MAXFAM 
+      PD65 = State_Grid%NZ * MAXFAM
 #endif
 
       END SUBROUTINE Init_CMN_DIAG
 !EOC
       END MODULE CMN_DIAG_MOD
 #endif
-
-

@@ -132,7 +132,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_GC_POPs_run 
+! !IROUTINE: HCOX_GC_POPs_run
 !
 ! !DESCRIPTION: Subroutine HcoX\_Gc\_POPs\_Run computes emissions of OC-phase,
 !  BC-phase, and gas-phase POPs for the GEOS-Chem POPs specialty simulation.
@@ -153,7 +153,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(Ext_State),  POINTER       :: ExtState    ! Options for POPs sim
-    TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state 
+    TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -198,7 +198,7 @@ CONTAINS
     REAL(hp)            :: T_POP
     REAL(hp)            :: C_OC1,            C_BC1
     REAL(hp)            :: C_OC2,            C_BC2
-    REAL(hp)            :: F_POP_OC,         F_POP_BC 
+    REAL(hp)            :: F_POP_OC,         F_POP_BC
     REAL(hp)            :: F_POP_G,          AIR_VOL
     REAL(hp)            :: KOA_T,            KBC_T
     REAL(hp)            :: KOC_BC_T,         KBC_OC_T
@@ -213,18 +213,18 @@ CONTAINS
     LOGICAL             :: aIR
     LOGICAL             :: IS_SNOW_OR_ICE,   IS_LAND_OR_ICE
     CHARACTER(LEN=255)  :: MSG
-    
+
     ! Delta H for POP [kJ/mol]. Delta H is enthalpy of phase transfer
-    ! from gas phase to OC. For now we use Delta H for phase transfer 
-    ! from the gas phase to the pure liquid state. 
-    ! For PHENANTHRENE: 
+    ! from gas phase to OC. For now we use Delta H for phase transfer
+    ! from the gas phase to the pure liquid state.
+    ! For PHENANTHRENE:
     ! this is taken as the negative of the Delta H for phase transfer
     ! from the pure liquid state to the gas phase (Schwarzenbach,
     ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -74000 [J/mol].
     ! For PYRENE:
     ! this is taken as the negative of the Delta H for phase transfer
     ! from the pure liquid state to the gas phase (Schwarzenbach,
-    ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -87000 [J/mol].    
+    ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -87000 [J/mol].
     ! For BENZO[a]PYRENE:
     ! this is also taken as the negative of the Delta H for phase transfer
     ! from the pure liquid state to the gas phase (Schwarzenbach,
@@ -232,7 +232,7 @@ CONTAINS
     REAL(hp)            :: DEL_H
 
     ! KOA_298 for partitioning of gas phase POP to atmospheric OC
-    ! KOA_298 = Cpop in octanol/Cpop in atmosphere at 298 K 
+    ! KOA_298 = Cpop in octanol/Cpop in atmosphere at 298 K
     ! For PHENANTHRENE:
     ! log KOA_298 = 7.64, or 4.37*10^7 [unitless]
     ! For PYRENE:
@@ -256,7 +256,7 @@ CONTAINS
     ! Pointers
     REAL(hp),     POINTER :: Arr3D(:,:,:)
     TYPE(MyInst), POINTER :: Inst
-    
+
     !=======================================================================
     ! HCOX_GC_POPs_RUN begins here!
     !=======================================================================
@@ -271,13 +271,13 @@ CONTAINS
     ! Get instance
     Inst => NULL()
     CALL InstGet ( ExtState%GC_POPs, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
+    IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find GC_POPs instance Nr. ', ExtState%GC_POPs
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
     ENDIF
-    
-    ! am I root? 
+
+    ! am I root?
     aIR = am_I_Root
 
     DEL_H   = ExtState%POP_DEL_H
@@ -365,7 +365,7 @@ CONTAINS
 
        !====================================================================
        ! Apportion total POPs emitted to gas phase, OC-bound, and BC-bound
-       ! emissions (clf, 2/1/2011)         
+       ! emissions (clf, 2/1/2011)
        ! Then partition POP throughout PBL; store into STT [kg]
        ! Now make sure STT does not underflow (cdh, bmy, 4/6/06; eck 9/20/10)
        !====================================================================
@@ -393,20 +393,20 @@ CONTAINS
           ! Get monthly mean OC and BC concentrations [kg/box]
           C_OC1    = Inst%C_OC(I,J,L)
           C_BC1    = Inst%C_BC(I,J,L)
-           
+
           ! Make sure OC is not negative
           C_OC1    = MAX( C_OC1, 0e+0_hp )
 
-          ! Convert C_OC and C_BC units to volume per box 
+          ! Convert C_OC and C_BC units to volume per box
           ! [m^3 OC or BC/box]
           C_OC2    = C_OC1 / DENS_OCT
           C_BC2    = C_BC1 / DENS_BC
 
           ! Get air volume (m^3)
-          AIR_VOL  = ExtState%AIRVOL%Arr%Val(I,J,L) 
+          AIR_VOL  = ExtState%AIRVOL%Arr%Val(I,J,L)
 
           ! Define volume ratios:
-          ! VR_OC_AIR = volume ratio of OC to air [unitless]    
+          ! VR_OC_AIR = volume ratio of OC to air [unitless]
           VR_OC_AIR   = C_OC2 / AIR_VOL
 
           ! VR_OC_BC  = volume ratio of OC to BC [unitless]
@@ -417,26 +417,26 @@ CONTAINS
 
           ! VR_BC_OC  = volume ratio of BC to OC [unitless]
           !VR_BC_OC(I,J,L)    = 1d0 / VR_OC_BC(I,J,L)
-          VR_BC_OC    = 1d0 / VR_OC_BC 
+          VR_BC_OC    = 1d0 / VR_OC_BC
 
           ! Redefine fractions of total POPs in box (I,J,L) that are OC-phase,
-          ! BC-phase, and gas phase with new time step (should only change if 
-          ! temp changes or OC/BC concentrations change) 
-          OC_AIR_RATIO = 1e+0_hp / (KOA_T    * VR_OC_AIR) 
-          OC_BC_RATIO  = 1e+0_hp / (KOC_BC_T * VR_OC_BC) 
-  
-          BC_AIR_RATIO = 1e+0_hp / (KBC_T    * VR_BC_AIR) 
+          ! BC-phase, and gas phase with new time step (should only change if
+          ! temp changes or OC/BC concentrations change)
+          OC_AIR_RATIO = 1e+0_hp / (KOA_T    * VR_OC_AIR)
+          OC_BC_RATIO  = 1e+0_hp / (KOC_BC_T * VR_OC_BC)
+
+          BC_AIR_RATIO = 1e+0_hp / (KBC_T    * VR_BC_AIR)
           BC_OC_RATIO  = 1e+0_hp / (KBC_OC_T * VR_BC_OC)
 
           ! If there are zeros in OC or BC concentrations, make sure they
           ! don't cause problems with phase fractions
           IF ( C_OC1 > SMALLNUM .and. C_BC1 > SMALLNUM ) THEN
-             F_POP_OC  = 1e+0_hp / (1e+0_hp + OC_AIR_RATIO + OC_BC_RATIO) 
+             F_POP_OC  = 1e+0_hp / (1e+0_hp + OC_AIR_RATIO + OC_BC_RATIO)
              F_POP_BC  = 1e+0_hp / (1e+0_hp + BC_AIR_RATIO + BC_OC_RATIO)
-         
+
           ELSE IF ( C_OC1 > SMALLNUM .and. C_BC1 .le. SMALLNUM ) THEN
              F_POP_OC  = 1e+0_hp / (1e+0_hp + OC_AIR_RATIO)
-             F_POP_BC  = SMALLNUM           
+             F_POP_BC  = SMALLNUM
 
           ELSE IF ( C_OC1 .le. SMALLNUM .and. C_BC1 > SMALLNUM ) THEN
              F_POP_OC  = SMALLNUM
@@ -451,14 +451,14 @@ CONTAINS
           F_POP_G   = 1e+0_hp - F_POP_OC - F_POP_BC
 
           ! Check that sum of fractions equals 1
-          SUM_F = F_POP_OC + F_POP_BC + F_POP_G                
-            
+          SUM_F = F_POP_OC + F_POP_BC + F_POP_G
+
           ! Fraction of PBL that box (I,J,L) makes up [unitless]
-          F_OF_PBL = ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) 
+          F_OF_PBL = ExtState%FRAC_OF_PBL%Arr%Val(I,J,L)
 
           ! Calculate rates of POP emissions in each phase [kg/m2/s]
           ! OC-phase:
-          Inst%EPOP_OC(I,J,L) = F_POP_OC * F_OF_PBL * T_POP 
+          Inst%EPOP_OC(I,J,L) = F_POP_OC * F_OF_PBL * T_POP
 
           ! BC-phase
           Inst%EPOP_BC(I,J,L) = F_POP_BC * F_OF_PBL * T_POP
@@ -475,16 +475,16 @@ CONTAINS
 !       ! through bottom layer to top of PBL for storage in ND53 diagnostic
 !       !==================================================================
 !
-!       Inst%SUM_OC_EM(I,J) =  SUM(Inst%EPOP_OC(I,J,1:PBL_MAX))  
+!       Inst%SUM_OC_EM(I,J) =  SUM(Inst%EPOP_OC(I,J,1:PBL_MAX))
 !       Inst%SUM_BC_EM(I,J) =  SUM(Inst%EPOP_BC(I,J,1:PBL_MAX))
-!       Inst%SUM_G_EM(I,J)  =  SUM(Inst%EPOP_G(I,J,1:PBL_MAX))           
-!       
+!       Inst%SUM_G_EM(I,J)  =  SUM(Inst%EPOP_G(I,J,1:PBL_MAX))
+!
 !       Inst%SUM_OF_ALL(I,J) = Inst%SUM_OC_EM(I,J) + Inst%SUM_BC_EM(I,J) + &
 !                              Inst%SUM_G_EM(I,J)
 !
 !       ! Check that sum thru PBL is equal to original emissions array
 !       ! NOTE: Prevent div-by-zero floating point error (bmy, 4/14/14)
-!       IF ( Inst%SUM_OF_ALL(I,J) > 0e+0_hp ) THEN 
+!       IF ( Inst%SUM_OF_ALL(I,J) > 0e+0_hp ) THEN
 !          Inst%SUM_OF_ALL(I,J) = Inst%POP_TOT_EM(I,J) / Inst%SUM_OF_ALL(I,J)
 !       ENDIF
 !-----------------------------------------------------------------------------
@@ -508,7 +508,7 @@ CONTAINS
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EPOP_OC', RC )
-          RETURN 
+          RETURN
        ENDIF
     ENDIF
 
@@ -524,7 +524,7 @@ CONTAINS
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EPOP_BC', RC )
-          RETURN 
+          RETURN
        ENDIF
     ENDIF
 
@@ -540,7 +540,7 @@ CONTAINS
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EPOP_G', RC )
-          RETURN 
+          RETURN
        ENDIF
 
     ENDIF
@@ -627,7 +627,7 @@ CONTAINS
 
     ! Nullify pointers
     Inst    => NULL()
-    
+
     ! Return w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
@@ -664,7 +664,7 @@ CONTAINS
 !
 ! !REMARKS:
 !
-!  
+!
 !
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
@@ -674,14 +674,14 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+!
 ! !LOCAL VARIABLES:
-!     
+!
       LOGICAL  :: IS_SNOW_OR_ICE
       LOGICAL  :: IS_LAND_OR_ICE
       INTEGER  :: I, J, L
       REAL(hp) :: POPG
-      REAL(hp) :: TK_SURF 
+      REAL(hp) :: TK_SURF
       REAL(hp) :: KSA_T, FLUX, F_OC
       REAL(hp) :: SOIL_CONC, DTSRCE, KOA_T
       REAL(hp) :: DIFF, FSOIL, FAIR, DS
@@ -695,16 +695,16 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
       ! Delta H for POP [kJ/mol]. Delta H is enthalpy of phase transfer
-      ! from gas phase to OC. For now we use Delta H for phase transfer 
-      ! from the gas phase to the pure liquid state. 
-      ! For PHENANTHRENE: 
+      ! from gas phase to OC. For now we use Delta H for phase transfer
+      ! from the gas phase to the pure liquid state.
+      ! For PHENANTHRENE:
       ! this is taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       !  Gschwend, Imboden, 2003, pg 200, Table 6.3), or -74000 [J/mol].
       ! For PYRENE:
       ! this is taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
-      ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -87000 [J/mol]. 
+      ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -87000 [J/mol].
       ! For BENZO[a]PYRENE:
       ! this is also taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
@@ -713,7 +713,7 @@ CONTAINS
 
       ! R = universal gas constant for adjusting KOA for temp:
       ! 8.3144598 [J/mol/K OR m3*Pa/K/mol]
-      REAL(hp), PARAMETER :: R = 8.3144598d0 
+      REAL(hp), PARAMETER :: R = 8.3144598d0
 
       ! Molecular weight
       ! For phe, 0.17823 kg/mol
@@ -768,7 +768,7 @@ CONTAINS
          ! IS_LAND will return non-ocean boxes but may still contain lakes
          ! If land, is it covered by snow/ice? (IS_SNOW_OR_ICE)
          IS_LAND_OR_ICE = ( ( IS_LAND(I,J,ExtState) ) .OR.  &
-                            ( IS_ICE (I,J,ExtState) ) ) 
+                            ( IS_ICE (I,J,ExtState) ) )
          IS_SNOW_OR_ICE = ( ( IS_ICE (I,J,ExtState) ) .OR.  &
                             ( IS_LAND(I,J,ExtState)   .AND. &
                               ExtState%SNOWHGT%Arr%Val(I,J) > 10e+0_hp ) )
@@ -795,7 +795,7 @@ CONTAINS
             TK = ExtState%TK%Arr%Val(I,J,1)
 
             ! Get gas phase air POP concentration at surface in mol/m3
-            ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
+            ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15)
             POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
 ! old
@@ -814,11 +814,11 @@ CONTAINS
             ! From Howsam et al, soil burdens are equal to
             ! 2.6 years deposition for PHE,
             ! 10 years for PYR, and 9.4 years for BaP
-            ! Convert to mol/m3      
+            ! Convert to mol/m3
             ! 2.6 yrs * kg deposited to soil in 1 yr * / 0.178 kg/mol
-            ! / area grid box (m2) / 0.05 m  
+            ! / area grid box (m2) / 0.05 m
             SOIL_CONC = 10e+0_hp * POP_SURF(I,J) / MW / &
-                        AREA_M2 / 5e-2_hp ! mol/m3   
+                        AREA_M2 / 5e-2_hp ! mol/m3
 
             ! Get rid of mass due to degradation
             ! Use rate constant for BaP from Mackay and Paterson 1991:
@@ -830,13 +830,13 @@ CONTAINS
             NEWSOIL = SOIL_CONC * E_KDEG
 
             ! Get foc from GTMM saved files
-            F_OC = F_OC_SOIL(I,J) 
+            F_OC = F_OC_SOIL(I,J)
 
             ! Define temperature-dependent KOA:
             KOA_T = KOA_298 * EXP((-DEL_H/R) * ( ( 1e+0_hp / TK_SURF ) - &
-                    ( 1e+0_hp / 298e+0_hp ) )) 
+                    ( 1e+0_hp / 298e+0_hp ) ))
 
-            ! Dimensionless coefficient (mol/m3 soil / mol/m3 air) 
+            ! Dimensionless coefficient (mol/m3 soil / mol/m3 air)
             ! KSA = 1.5 (fTOC)*Koa
             KSA_T = 1.5 * F_OC * KOA_T
             KSA_T = MAX( KSA_T, SMALLNUM )
@@ -862,7 +862,7 @@ CONTAINS
             DIFF  = FSOIL - FAIR
             FUG_R = FSOIL/FAIR
 
-            ! Calculate "Z" values from fugacities. 
+            ! Calculate "Z" values from fugacities.
             ! Z is the fugacity capacity in mol/m3*Pa. C = Z*f, so Z = C/f
             ZAIR  = POPG / FAIR ! (mol/m3) / (Pa)
             ZSOIL = NEWSOIL / FSOIL ! (mol/m3) / (Pa)
@@ -879,7 +879,7 @@ CONTAINS
             !  porewater [mol/h*Pa]
             ! Dsa is in series with soil-air and soil-water diffusion,
             !  which are in parallel
-  
+
             ! Need to define each D value
             ! DSA = kSA * Zair
             ! where kSA is a mass transfer coefficient [m/h],
@@ -902,7 +902,7 @@ CONTAINS
             FLUX = DS * DIFF
 
             ! Change to units of ng/m2/d for storage
-            FLUX = FLUX * 24e+0_hp * MW * 1e+12_hp 
+            FLUX = FLUX * 24e+0_hp * MW * 1e+12_hp
 
             ! Kludge soil emissions from poles for now
             ! Bug somewhere that allows GCAP versions to think some high polar
@@ -921,12 +921,12 @@ CONTAINS
 
             ! Multiply the mass emitted by the fraction of land that is soil
             Inst%EPOP_SOIL(I,J) = FRAC_SOIL * Inst%EPOP_SOIL(I,J)
-         
+
             ! If the flux is positive, then the direction will be from the
-            ! soil to the air. 
-            ! Store this in a diagnostic array. 
+            ! soil to the air.
+            ! Store this in a diagnostic array.
             ! If the flux is zero or negative, store it in a separate array.
-            IF ( FLUX > 0e+0_hp ) THEN 
+            IF ( FLUX > 0e+0_hp ) THEN
 
                ! Store total mass emitted from soil [kg] for ND53 diagnostic.
                ! (We don't care about the mass in the other direction right
@@ -941,7 +941,7 @@ CONTAINS
 
                ! Store the soil/air fugacity ratio
                Inst%FUG_SOILAIR(I,J)   = FUG_R
-             
+
             ELSE IF ( FLUX <= 0e+0_hp ) THEN
 
                ! Store the negative flux
@@ -956,7 +956,7 @@ CONTAINS
 
             ENDIF
 
-         ELSE 
+         ELSE
 
             ! We are not on land or the land is covered with ice or snow
             FLUX                    = 0e+0_hp
@@ -967,7 +967,7 @@ CONTAINS
             Inst%FUG_SOILAIR(I,J)   = 0e+0_hp
 
          ENDIF
-        
+
       ENDDO
       ENDDO
 
@@ -995,8 +995,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
       REAL(sp), DIMENSION(:,:), INTENT(IN)  :: POP_SURF   ! POP sfc conc [kg]
-      TYPE(HCO_STATE),          POINTER     :: HcoState   ! Hemco state 
-      TYPE(Ext_State),          POINTER     :: ExtState   ! Module options 
+      TYPE(HCO_STATE),          POINTER     :: HcoState   ! Hemco state
+      TYPE(Ext_State),          POINTER     :: ExtState   ! Module options
       TYPE(MyInst),             POINTER     :: Inst       ! Instance
 !
 ! !OUTPUT PARAMETERS:
@@ -1015,12 +1015,12 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+!
 ! !LOCAL VARIABLES:
-!     
+!
 
       INTEGER  :: I, J, L
-      REAL(hp) :: TK_SURF 
+      REAL(hp) :: TK_SURF
       REAL(hp) :: KAW_T, FLUX, KOL_T
       REAL(hp) :: DTSRCE
       REAL(hp) :: KA_H2O, KA_POP, KW_CO2, KW_POP
@@ -1030,14 +1030,14 @@ CONTAINS
       REAL(hp) :: C_DISS
       REAL(hp) :: POPG, U10M, ALPHA
       REAL(hp) :: FRAC_LAKE, VISC_H2O
-      REAL(hp) :: SFCWINDSQR 
+      REAL(hp) :: SFCWINDSQR
       REAL(hp) :: AREA_M2
       LOGICAL  :: IS_SNOW_OR_ICE, IS_LAND_OR_ICE
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Delta H for POP:   
-      ! For PHENANTHRENE: 
+      ! Delta H for POP:
+      ! For PHENANTHRENE:
       ! this is the Delta H for phase transfer
       ! from air to water (Schwarzenbach,
       !  Gschwend, Imboden, 2003, pg 200, Table 6.3), or 47 [kJ/mol].
@@ -1046,7 +1046,7 @@ CONTAINS
 
       ! R = universal gas constant for adjusting KOA for temp:
       ! 8.3144598d-3 [kJ/mol/K]
-      REAL(hp), PARAMETER :: R = 8.3144598d-3 
+      REAL(hp), PARAMETER :: R = 8.3144598d-3
 
       ! Molecular weight
       ! For phe, 0.17823 kg/mol
@@ -1059,13 +1059,13 @@ CONTAINS
       REAL(hp), PARAMETER :: MWH2O  = 18.1d0 ! g/mol
 
       ! Molar volumes calculated following Abraham and McGowan 1987 as
-      ! summarized by Schwarzenbach et al. 2003. 
+      ! summarized by Schwarzenbach et al. 2003.
       ! Each element is assigned a characteristic atomic volume, and an atomic
       ! volume of 6.56 cm3/mol is subtracted for each bond, no matter whether
-      ! single, double, or triple 
+      ! single, double, or triple
       ! C = 16.35,  H = 8.71,  O = 12.43, N = 14.39, P = 24.87, F = 10.48
       ! Br = 26.21, I = 34.53, S = 22.91, Si = 26.83
-      
+
       ! Molar volume of water
       ! 2*(8.71) + 12.43 - 2*(6.56) = 16.73
       REAL(hp), PARAMETER :: V_H2O  = 16.73d0 ! cm3/mol
@@ -1073,20 +1073,20 @@ CONTAINS
       ! Molar volume of CO2
       ! 16.35 + 2*(12.43) - 2*(6.56) = 28.1
       REAL(hp), PARAMETER :: V_CO2   = 28.1d0  ! cm3/mol
-     
+
       ! Molar volume of POP
       ! For PHE (C16H10):
-      ! 16*(16.35) + 10*(8.71) - 29*(6.56) = 
+      ! 16*(16.35) + 10*(8.71) - 29*(6.56) =
       REAL(hp), PARAMETER :: V_POP  = 538.94d0 ! cm3/mol
 
       ! Molar volume of air - average of gases in air
       REAL(hp), PARAMETER :: V_AIR  = 20.1d0     ! cm3/mol
-      
+
       ! For PHENANTHRENE:
       ! log KAW_298 = -2.76, or 1.74*10-3 [unitless]
       ! For PYRENE:
       ! log KAW_298 = -3.27, or 5.37*10-4 [unitless]
-      REAL(hp)            :: KAW_298 
+      REAL(hp)            :: KAW_298
 
       ! Set the kinematic viscosity of freshwater at 20C
 !      REAL(hp), PARAMETER :: VISC_H2O  ! = 1d0    ![cm2/s]
@@ -1120,7 +1120,7 @@ CONTAINS
          ! IS_LAND will return non-ocean boxes but may still contain lakes
          ! If land, is it covered by snow/ice? (IS_SNOW_OR_ICE)
          IS_LAND_OR_ICE = ( ( IS_LAND(I,J,ExtState) ) .OR.  &
-                            ( IS_ICE (I,J,ExtState) ) ) 
+                            ( IS_ICE (I,J,ExtState) ) )
          IS_SNOW_OR_ICE = ( ( IS_ICE (I,J,ExtState) ) .OR.  &
                             ( IS_LAND(I,J,ExtState)   .AND. &
                               ExtState%SNOWHGT%Arr%Val(I,J) > 10e+0_hp ) )
@@ -1143,11 +1143,11 @@ CONTAINS
                ! Get surface pressure at end of dynamic time step [hPa]
                PRESS = ExtState%PSC2_WET%Arr%Val(I,J)
 
-               ! Convert to units of atm 
+               ! Convert to units of atm
                PRESS = PRESS / 1013.25e+0_hp
 
                ! Get gas phase air POP concentration at surface in mol/m3
-               ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
+               ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15)
                POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
 ! old
@@ -1200,7 +1200,7 @@ CONTAINS
 
                ! Relate POP and H2O air-side MTCs
                KA_POP = KA_H2O * ( DA_POP / DA_H2O )**( 0.67e+0_hp ) ! cm/s
- 
+
                ! Now calculate water-side MTCs
                ! Start with calculating the water side MTC of CO2
                ! This depends on wind speed (Schwarzenbach et al 2003)
@@ -1217,7 +1217,7 @@ CONTAINS
                ELSE IF ( U10M > 4.2e+0_hp .AND. U10M <= 13e+0_hp ) THEN
                   KW_CO2 = ( 0.79e+0_hp * U10M - 2.68e+0_hp ) * 1e-3_hp
                   ALPHA  = 0.5e+0_hp
-               ELSE IF (U10M > 13e+0_hp) THEN 
+               ELSE IF (U10M > 13e+0_hp) THEN
                   KW_CO2 = ( 1.64e+0_hp * U10M - 13.69e+0_hp ) * 1e-3_hp
                   ALPHA  = 0.50e+0_hp
                ENDIF
@@ -1247,7 +1247,7 @@ CONTAINS
                DW_POP = ( 13.26 * 1e-5_hp ) /               &
                         (( VISC_H2O*1e+2_hp )**1.14e+0_hp * &
                         (V_POP)**0.589e+0_hp )   ! [cm2/s]
- 
+
                ! Calculate the Schmidt numbers for CO2 and POP
                SCH_CO2 = VISC_H2O / DW_CO2    ! [unitless]
                SCH_POP = VISC_H2O / DW_POP    ! [unitless]
@@ -1264,7 +1264,7 @@ CONTAINS
                KOL_T = 1e+0_hp / ( 1e+0_hp/KW_POP + &
                        1e+0_hp / (KA_POP*KAW_T) ) ! [cm/s]
 
-               ! Calculate Flux in ng/m2/day ! 
+               ! Calculate Flux in ng/m2/day !
                FLUX = KOL_T * 3600e+0_hp * 24e+0_hp * ( C_DISS - &
                       POPG/KAW_T ) * MWPOP * 1e+12_hp / 100e+0_hp
 
@@ -1276,12 +1276,12 @@ CONTAINS
 
                ! Multiply the mass emitted by the fraction of land that is water
                EPOP_LAKE(I,J) = FRAC_LAKE * EPOP_LAKE(I,J)
-         
+
                ! If the flux is positive, then the direction will be from the
-               ! soil to the air. 
-               ! Store this in a diagnostic array. 
+               ! soil to the air.
+               ! Store this in a diagnostic array.
                ! If the flux is zero or negative, store it in a separate array.
-               IF ( FLUX > 0e+0_hp ) THEN 
+               IF ( FLUX > 0e+0_hp ) THEN
 
                   ! Store total mass emitted from soil [kg] in ND53 diagnostic.
                   ! (We don't care about the mass in the other direction right
@@ -1296,7 +1296,7 @@ CONTAINS
 
                      ! Store the soil/air fugacity ratio
                   Inst%FUG_LAKEAIR(I,J)   = C_DISS / (POPG/KAW_T)
-             
+
                ELSE IF ( FLUX <= 0e+0_hp ) THEN
 
                   ! Store the negative flux
@@ -1319,13 +1319,13 @@ CONTAINS
             ! or we are land but there is no water
             FLUX                    = 0e+0_hp
             Inst%EPOP_LAKE(I,J)     = 0e+0_hp
-            Inst%EMIS_LAKE(I,J)     = 0e+0_hp 
+            Inst%EMIS_LAKE(I,J)     = 0e+0_hp
             Inst%FLUX_LAKE2AIR(I,J) = 0e+0_hp
             Inst%FLUX_AIR2LAKE(I,J) = 0e+0_hp
             Inst%FUG_LAKEAIR(I,J)   = 0e+0_hp
 
          ENDIF
-        
+
       ENDDO
       ENDDO
 
@@ -1363,7 +1363,7 @@ CONTAINS
 !
 ! !REMARKS:
 !
-!  
+!
 !
 ! !REVISION HISTORY:
 !  21 Aug 2012 - C.L. Friedman - Initial version based on LAND_MERCURY_MOD
@@ -1373,13 +1373,13 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+!
 ! !LOCAL VARIABLES:
-!     
+!
 
       INTEGER  :: I, J, L
       REAL(hp) :: POPG, POPG_GL
-      REAL(hp) :: FRAC_SNOWFREE_LAND, TK_SURF 
+      REAL(hp) :: FRAC_SNOWFREE_LAND, TK_SURF
       REAL(hp) :: KLA_T, FLUX, K_MT
       REAL(hp) :: LEAF_CONC, DTSRCE, KOA_T
       REAL(hp) :: DIFF, FLEAF, FAIR, DS
@@ -1396,37 +1396,37 @@ CONTAINS
 ! !DEFINED PARAMETERS:
 !
       ! Delta H for POP [kJ/mol]. Delta H is enthalpy of phase transfer
-      ! from gas phase to OC. For now we use Delta H for phase transfer 
-      ! from the gas phase to the pure liquid state. 
-      ! For PHENANTHRENE: 
+      ! from gas phase to OC. For now we use Delta H for phase transfer
+      ! from the gas phase to the pure liquid state.
+      ! For PHENANTHRENE:
       ! this is taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       !  Gschwend, Imboden, 2003, pg 200, Table 6.3), or -74000 [J/mol].
       ! For PYRENE:
       ! this is taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
-      ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -87000 [J/mol]. 
+      ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -87000 [J/mol].
       ! For BENZO[a]PYRENE:
       ! this is also taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       ! Gschwend, Imboden, 2003, pg 452, Prob 11.1), or -110,000 [J/mol]
       REAL(hp)             :: DEL_H
 
-      ! Delta H for POP [kJ/mol].  
-      ! For PHENANTHRENE: 
+      ! Delta H for POP [kJ/mol].
+      ! For PHENANTHRENE:
       ! this is the Delta H for phase transfer
       ! from air to water (Schwarzenbach,
       !  Gschwend, Imboden, 2003, pg 200, Table 6.3), or 47000 [J/mol].
       ! For PYRENE: 43000 [J/mol]
-      REAL(hp)            :: DEL_HW     
+      REAL(hp)            :: DEL_HW
 
       ! R = universal gas constant for adjusting KOA for temp:
       ! 8.314 [J/mol/K OR m3*Pa/K/mol]
-      REAL(hp), PARAMETER :: R = 8.3144598e+0_hp 
+      REAL(hp), PARAMETER :: R = 8.3144598e+0_hp
 
       ! Molecular weight
       ! For phe, 0.17823 kg/mol
-      REAL(hp)            :: MW   
+      REAL(hp)            :: MW
 
       ! Molecular weight of air
       REAL(hp), PARAMETER :: MWAIR  = 28.97d0 ! g/mol
@@ -1438,13 +1438,13 @@ CONTAINS
       ! For BENZO[a]PYRENE:
       ! log KOA_298 = 11.48, or 3.02*10^11 [unitless]
       ! (Ma et al., J. Chem. Eng. Data, 2010, 55:819-825).
-      REAL(hp)            :: KOA_298 
+      REAL(hp)            :: KOA_298
 
       ! For PHENANTHRENE:
       ! log KAW_298 = -2.76, or 1.74*10-3 [unitless]
       ! For PYRENE:
       ! log KAW_298 = -3.27, or 5.37*10-4 [unitless]
-      REAL(hp)            :: KAW_298 
+      REAL(hp)            :: KAW_298
 
       ! Set volume fractions of octanol and water in surface and reservoir
       ! leaf compartments [unitless]
@@ -1485,7 +1485,7 @@ CONTAINS
          ! IS_LAND will return non-ocean boxes but may still contain lakes
          ! If land, is it covered by snow/ice? (IS_SNOW_OR_ICE)
          IS_LAND_OR_ICE = ( (IS_LAND(I,J,ExtState)) .OR.  &
-                            (IS_ICE (I,J,ExtState)) ) 
+                            (IS_ICE (I,J,ExtState)) )
          IS_SNOW_OR_ICE = ( (IS_ICE (I,J,ExtState)) .OR.  &
                             (IS_LAND(I,J,ExtState)  .AND. &
                              ExtState%SNOWHGT%Arr%Val(I,J) > 10e+0_hp ) )
@@ -1496,7 +1496,7 @@ CONTAINS
 
             ! Get fraction of grid box covered by leaf surface area
             ! Do not consider different vegetation types for now
-            LAI = ExtState%LAI%Arr%Val(I,J) 
+            LAI = ExtState%LAI%Arr%Val(I,J)
 
             IF ( LAI > 0e+0_hp ) THEN
 
@@ -1507,7 +1507,7 @@ CONTAINS
                TK = ExtState%TK%Arr%Val(I,J,1)
 
                ! Get gas phase air POP concentration at surface in mol/m3
-               ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15) 
+               ! ExtState%POPG is now in units of kg/kg dry air (ewl, 10/2/15)
                POPG = MAX( ExtState%POPG%Arr%Val(I,J,1), SMALLNUM )
 
 ! old
@@ -1525,25 +1525,25 @@ CONTAINS
                ! for now following Mackay et al 2006 Environ Sci & Pollut Res
                ! Include reservoir when land-atm models become dynamic
 
-               ! Assume that all leaf surfaces contain an average lipid content 
-               ! of 80% (Mackay et al 2006) 
+               ! Assume that all leaf surfaces contain an average lipid content
+               ! of 80% (Mackay et al 2006)
 
-               ! Get leaf concentration 
-               ! Convert to mol/m3      
+               ! Get leaf concentration
+               ! Convert to mol/m3
                ! kg deposited to leaf in 1 yr * / 0.178 kg/mol
-               ! / area grid box (m2) / surface thickness m    
-               LEAF_CONC = POP_SURF(I,J) / MW / AREA_M2 / SURF_THICK ! mol/m3   
+               ! / area grid box (m2) / surface thickness m
+               LEAF_CONC = POP_SURF(I,J) / MW / AREA_M2 / SURF_THICK ! mol/m3
 
                ! Check concentration in leaves by assuming a density similar
                ! to water (1 g/cm3)
 
                ! No degradation/metabolism for now. Just scale leaf
-               ! concentrations to match flux observations 
+               ! concentrations to match flux observations
                NEWLEAF = LEAF_CONC/1e+4_hp  !SCALING FACTOR
 
                ! Define temperature-dependent KOA:
                KOA_T = KOA_298 * EXP((-DEL_H/R) * ((1e+0_hp/TK_SURF) - &
-                       (1e+0_hp/298e+0_hp))) 
+                       (1e+0_hp/298e+0_hp)))
 
                ! Calculate the temperature-dependent dimensionless Henry's Law
                ! constant
@@ -1554,8 +1554,8 @@ CONTAINS
                ! constant
                KOW_T = KOA_T * KAW_T
 
-               ! Define dimensionless leaf surface-air partition coefficient 
-               ! (mol/m3 leaf / mol/m3 air) 
+               ! Define dimensionless leaf surface-air partition coefficient
+               ! (mol/m3 leaf / mol/m3 air)
                ! KLA = foct_surf * Koa
                KLA_T = OCT_SURF * KOA_T
 !               KLA_T = MAX( KLA_T, SMALLNUM )
@@ -1581,7 +1581,7 @@ CONTAINS
                DIFF = FLEAF - FAIR
                FUG_R = FLEAF/FAIR
 
-               ! Calculate "Z" values from fugacities. 
+               ! Calculate "Z" values from fugacities.
                ! Z is the fugacity capacity in mol/m3*Pa. C = Z*f, so Z = C/f
                ZAIR  = POPG / FAIR ! (mol/m3) / (Pa)
                ZLEAF = NEWLEAF / FLEAF ! (mol/m3) / (Pa)
@@ -1599,22 +1599,22 @@ CONTAINS
                ! Uab-f is a mass transfer coefficient for surface-air boundary
                ! layer diffusion [m/h],
                ! and Za is the fugacity capacity of the air [mol/(m3*Pa)]
-               ! Dc is the cuticle diffusion, given by 
+               ! Dc is the cuticle diffusion, given by
                ! Dc = As * L * Uc * Zf
                ! where As and L are as above, Uc is the cuticle mass transfer
                ! coefficient [m/h],
                ! and Zf is the fugacity capacity of the leaf surface
                ! (mol/(m3*Pa))
 
-               ! Uc is given by 
+               ! Uc is given by
                ! Uc = 3600 * Pc * 1/Kaw
                ! where Pc is the cuticle permeance (m/s) and Kaw is the
-               ! dimensionless air-water partition coefficient. 
-               ! Pc is given by 
+               ! dimensionless air-water partition coefficient.
+               ! Pc is given by
                ! Log Pc = ((0.704 * log Kow - 11.2) +
                !          (-3.47 - 2.79 * logMW + 0.970 log Kow)) / 2
                ! (an average of two equations)
-  
+
                ! Need to define each D value
                ! DAB_F:
                !  m/h * mol/(m3*Pa)  =  (mol/h*Pa*m2)
@@ -1638,7 +1638,7 @@ CONTAINS
                FLUX = DLA * DIFF
 
                ! Change to units of ng/m2/d for storage
-               FLUX = FLUX * 24e+0_hp * MW * 1e+12_hp 
+               FLUX = FLUX * 24e+0_hp * MW * 1e+12_hp
 
                ! Convert to an emission rate in kg/m2/s for returning to
                ! HcoX_GC_POPs_Run
@@ -1647,8 +1647,8 @@ CONTAINS
                                    1e+12_hp, 0e+0_hp)
 
                ! If the flux is positive, then the direction will be from the
-               ! soil to the air. 
-               ! Store this in a diagnostic array. 
+               ! soil to the air.
+               ! Store this in a diagnostic array.
                ! If the flux is zero or negative, store it in a separate array.
                IF ( FLUX > 0e+0_hp ) THEN
 
@@ -1656,7 +1656,7 @@ CONTAINS
                   ! (We don't care about the mass in the other direction right
                   ! now)
                   Inst%EMIS_LEAF(I,J)     = EPOP_VEG(I,J) * AREA_M2 * DTSRCE
- 
+
                   ! Store positive flux
                   Inst%FLUX_LEAF2AIR(I,J) = FLUX
 
@@ -1665,7 +1665,7 @@ CONTAINS
 
                   ! Store the soil/air fugacity ratio
                   Inst%FUG_LEAFAIR(I,J) = FUG_R
-             
+
                ELSE IF ( FLUX <= 0e+0_hp ) THEN
 
                   ! Store the negative flux
@@ -1680,12 +1680,12 @@ CONTAINS
 
                ENDIF
 
-            ELSE 
+            ELSE
 
                ! We are not on land or the land is covered with ice or snow
                FLUX                    = 0e+0_hp
                Inst%EPOP_VEG(I,J)      = 0e+0_hp
-               Inst%EMIS_LEAF(I,J)     = 0e+0_hp 
+               Inst%EMIS_LEAF(I,J)     = 0e+0_hp
                Inst%FLUX_LEAF2AIR(I,J) = 0e+0_hp
                Inst%FLUX_AIR2LEAF(I,J) = 0e+0_hp
                Inst%FUG_LEAFAIR(I,J)   = 0e+0_hp
@@ -1706,7 +1706,7 @@ CONTAINS
 !
 ! !IROUTINE: is_land
 !
-! !DESCRIPTION: Function IS\_LAND returns TRUE if surface grid box (I,J) is 
+! !DESCRIPTION: Function IS\_LAND returns TRUE if surface grid box (I,J) is
 !  a land box.
 !\\
 !\\
@@ -1717,7 +1717,7 @@ CONTAINS
 ! !USES:
 !
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,         INTENT(IN) :: I           ! Longitude index of grid box
       INTEGER,         INTENT(IN) :: J           ! Latitude  index of grid box
@@ -1726,8 +1726,8 @@ CONTAINS
 ! !RETURN VALUE:
 !
       LOGICAL                     :: LAND        ! =T if it is a land box
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  26 Jun 2000 - R. Yantosca - Initial version
 !  (1 ) Now use ALBEDO field to determine land or land ice boxes for GEOS-3.
 !        (bmy, 4/4/01)
@@ -1758,7 +1758,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
+      ! LWI=1 and ALBEDO less than 69.5% is a LAND box
       LAND = ( NINT( ExtState%WLI%Arr%Val(I,J) ) == 1   .and. &
                      ExtState%ALBD%Arr%Val(I,J)  <  0.695e+0_hp )
 
@@ -1771,8 +1771,8 @@ CONTAINS
 !
 ! !IROUTINE: is_ice
 !
-! !DESCRIPTION: Function IS\_ICE returns TRUE if surface grid box (I,J) 
-!  contains either land-ice or sea-ice. 
+! !DESCRIPTION: Function IS\_ICE returns TRUE if surface grid box (I,J)
+!  contains either land-ice or sea-ice.
 !\\
 !\\
 ! !INTERFACE:
@@ -1782,7 +1782,7 @@ CONTAINS
 ! !USES:
 !
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,         INTENT(IN) :: I           ! Longitude index of grid box
       INTEGER,         INTENT(IN) :: J           ! Latitude  index of grid box
@@ -1792,8 +1792,8 @@ CONTAINS
 !
       LOGICAL                     :: ICE         ! =T if this is an ice box
 !
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  09 Aug 2005 - R. Yantosca - Initial version
 !  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
@@ -1815,7 +1815,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_GC_POPs_Init 
+! !IROUTINE: HCOX_GC_POPs_Init
 !
 ! !DESCRIPTION: Subroutine HcoX\_GC\_POPs\_Init initializes the HEMCO
 ! GC\_POPs extension.
@@ -1834,12 +1834,12 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
-    TYPE(Ext_State),  POINTER        :: ExtState    ! Module options      
-    TYPE(HCO_State),  POINTER        :: HcoState    ! Hemco state 
+    TYPE(Ext_State),  POINTER        :: ExtState    ! Module options
+    TYPE(HCO_State),  POINTER        :: HcoState    ! Hemco state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)  :: RC 
+    INTEGER,          INTENT(INOUT)  :: RC
 
 ! !REVISION HISTORY:
 !  19 Aug 2014 - M. Sulprizio- Initial version
@@ -1852,7 +1852,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                        :: N, nSpc, ExtNr
-    CHARACTER(LEN=255)             :: MSG 
+    CHARACTER(LEN=255)             :: MSG
 
     ! Arrays
     INTEGER,           ALLOCATABLE :: HcoIDs(:)
@@ -1860,7 +1860,7 @@ CONTAINS
 
     ! Pointers
     TYPE(MyInst), POINTER          :: Inst
-    
+
     !=======================================================================
     ! HCOX_GC_POPs_INIT begins here!
     !=======================================================================
@@ -1880,10 +1880,10 @@ CONTAINS
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create GC_POPs instance', RC )
        RETURN
     ENDIF
-    ! Also fill ExtNrSS - this is the same as the parent ExtNr 
+    ! Also fill ExtNrSS - this is the same as the parent ExtNr
     Inst%ExtNr = ExtNr
-    
-    ! Set species IDs      
+
+    ! Set species IDs
     CALL HCO_GetExtHcoID( HcoState, Inst%ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1920,7 +1920,7 @@ CONTAINS
        CALL HCO_ERROR( HcoState%Config%Err, 'Cannot find POPG tracer in list of species!', RC )
        RETURN
     ENDIF
-    
+
     ! ERROR! POPPOCPO tracer is not found
     IF ( Inst%IDTPOPPOCPO <= 0 ) THEN
        RC = HCO_FAIL
@@ -1941,19 +1941,19 @@ CONTAINS
 
     ! Activate met fields required by this extension
     ExtState%POPG%DoUse        = .TRUE.
-    ExtState%ALBD%DoUse        = .TRUE. 
+    ExtState%ALBD%DoUse        = .TRUE.
     ExtState%AIRVOL%DoUse      = .TRUE.
-    ExtState%AIRDEN%DoUse      = .TRUE. 
-    ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
+    ExtState%AIRDEN%DoUse      = .TRUE.
+    ExtState%FRAC_OF_PBL%DoUse = .TRUE.
     ExtState%FRLAKE%DoUse      = .TRUE.
     ExtState%LAI%DoUse         = .TRUE.
-    ExtState%PSC2_WET%DoUse    = .TRUE. 
+    ExtState%PSC2_WET%DoUse    = .TRUE.
     ExtState%SNOWHGT%DoUse     = .TRUE.
-    ExtState%TK%DoUse          = .TRUE. 
-    ExtState%TSKIN%DoUse       = .TRUE. 
-    ExtState%U10M%DoUse        = .TRUE. 
-    ExtState%V10M%DoUse        = .TRUE. 
-    ExtState%WLI%DoUse         = .TRUE. 
+    ExtState%TK%DoUse          = .TRUE.
+    ExtState%TSKIN%DoUse       = .TRUE.
+    ExtState%U10M%DoUse        = .TRUE.
+    ExtState%V10M%DoUse        = .TRUE.
+    ExtState%WLI%DoUse         = .TRUE.
 
     !=======================================================================
     ! Initialize data arrays
@@ -1963,168 +1963,168 @@ CONTAINS
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_G', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EPOP_G = 0.0e0_hp
 
     ALLOCATE( Inst%EPOP_OC( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_OC', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EPOP_OC = 0.0e0_hp
 
     ALLOCATE( Inst%EPOP_BC( HcoState%NX, HcoState%NY, HcoState%NZ ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_BC', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EPOP_BC = 0.0e0_hp
 
     ALLOCATE( Inst%EPOP_VEG( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_VEG', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EPOP_VEG = 0.0e0_hp
 
     ALLOCATE( Inst%EPOP_LAKE( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_LAKE', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EPOP_LAKE = 0.0e0_hp
 
     ALLOCATE( Inst%EPOP_SOIL( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_SOIL', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EPOP_SOIL = 0.0e0_hp
 
     ALLOCATE( Inst%EPOP_OCEAN( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_OCEAN', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EPOP_OCEAN = 0.0e0_hp
 
     ALLOCATE( Inst%EPOP_SNOW( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EPOP_SNOW', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EPOP_SNOW = 0.0e0_hp
 
     ALLOCATE( Inst%SUM_OC_EM( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate SUM_OC_EM', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%SUM_OC_EM = 0.0e0_hp
 
     ALLOCATE( Inst%SUM_BC_EM( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate SUM_BC_EM', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%SUM_BC_EM = 0.0e0_hp
 
     ALLOCATE( Inst%SUM_G_EM( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate SUM_G_EM', RC )
        RETURN
-    ENDIF     
+    ENDIF
     Inst%SUM_G_EM = 0.0e0_hp
 
     ALLOCATE( Inst%SUM_OF_ALL( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate SUM_OF_ALL', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%SUM_OF_ALL = 0.0e0_hp
 
     ALLOCATE( Inst%EMIS_SOIL( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EMIS_SOIL', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EMIS_SOIL = 0.0e0_hp
 
     ALLOCATE( Inst%FLUX_SOIL2AIR( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_SOIL2AIR', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%FLUX_SOIL2AIR = 0.0e0_hp
 
     ALLOCATE( Inst%FLUX_AIR2SOIL( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_AIR2SOIL', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%FLUX_AIR2SOIL = 0.0e0_hp
 
     ALLOCATE( Inst%FUG_SOILAIR( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FUG_SOILAIR', RC )
        RETURN
-    ENDIF 
-    Inst%FUG_SOILAIR = 0.0e0_hp 
+    ENDIF
+    Inst%FUG_SOILAIR = 0.0e0_hp
 
     ALLOCATE( Inst%EMIS_LAKE( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EMIS_LAKE', RC )
        RETURN
-    ENDIF 
-    Inst%EMIS_LAKE = 0.0e0_hp 
-  
+    ENDIF
+    Inst%EMIS_LAKE = 0.0e0_hp
+
     ALLOCATE( Inst%FLUX_LAKE2AIR( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_LAKE2AIR', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%FLUX_LAKE2AIR = 0.0e0_hp
 
     ALLOCATE( Inst%FLUX_AIR2LAKE( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_AIR2LAKE', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%FLUX_AIR2LAKE = 0.0e0_hp
 
     ALLOCATE( Inst%FUG_LAKEAIR( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FUG_LAKEAIR', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%FUG_LAKEAIR = 0.0e0_hp
 
     ALLOCATE( Inst%EMIS_LEAF( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EMIS_LEAF', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%EMIS_LEAF = 0.0e0_hp
 
     ALLOCATE( Inst%FLUX_LEAF2AIR( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_LEAF2AIR', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%FLUX_LEAF2AIR = 0.0e0_hp
 
     ALLOCATE( Inst%FLUX_AIR2LEAF( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FLUX_AIR2LEAF', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%FLUX_AIR2LEAF = 0.0e0_hp
 
     ALLOCATE( Inst%FUG_LEAFAIR  ( HcoState%NX, HcoState%NY ), STAT=RC )
     IF ( RC /= 0 ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate FUG_LEAFAIR', RC )
        RETURN
-    ENDIF 
+    ENDIF
     Inst%FUG_LEAFAIR = 0.0e0_hp
 
     !=======================================================================
@@ -2136,7 +2136,7 @@ CONTAINS
     ! Nullify pointers
     Inst           => NULL()
 
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_GC_POPs_Init
 !EOC
@@ -2179,14 +2179,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2196,7 +2196,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2205,11 +2205,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -2226,21 +2226,21 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
-! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+! !DESCRIPTION: Subroutine InstCreate creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2253,7 +2253,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -2269,7 +2269,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -2286,7 +2286,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -2310,18 +2310,18 @@ CONTAINS
 !BOP
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+! !DESCRIPTION: Subroutine InstRemove creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( Instance ) 
+  SUBROUTINE InstRemove ( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: Instance 
+    INTEGER                         :: Instance
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -2337,16 +2337,16 @@ CONTAINS
     ! InstRemove begins here!
     !=================================================================
 
-    ! Init 
+    ! Init
     PrevInst => NULL()
     Inst     => NULL()
-    
+
     ! Get instance. Also archive previous instance.
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
-   
+    IF ( ASSOCIATED(Inst) ) THEN
+
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
 
@@ -2369,15 +2369,15 @@ CONTAINS
           IF ( ASSOCIATED(Inst%FLUX_LEAF2AIR) ) DEALLOCATE(Inst%FLUX_LEAF2AIR)
           IF ( ASSOCIATED(Inst%FLUX_AIR2LEAF) ) DEALLOCATE(Inst%FLUX_AIR2LEAF)
           IF ( ASSOCIATED(Inst%FUG_LEAFAIR  ) ) DEALLOCATE(Inst%FUG_LEAFAIR  )
-          
+
           PrevInst%NextInst => Inst%NextInst
        ELSE
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_GC_POPs_Mod

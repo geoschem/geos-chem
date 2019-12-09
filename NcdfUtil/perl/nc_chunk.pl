@@ -75,7 +75,7 @@ sub chunkTheFile($$) {
   # Arrays
   my @ncDumpTxt = ();
   my @subStrs   = ();
-  
+
   # Exit if the file does not exist
   if ( !( -f $ncFile ) ) { print "Could not find $ncFile!\n"; exit(-1); }
 
@@ -95,8 +95,8 @@ sub chunkTheFile($$) {
     if ( $isDims > 0 ) {
 
       # Create chunking command for lon dimension
-      # Create the chinking 
-      if ( $line =~ m/[Ll][0o][Nn]/ ) { 
+      # Create the chinking
+      if ( $line =~ m/[Ll][0o][Nn]/ ) {
 	$lonCmd  =  $line;
 	$lonCmd  =~ s/ = /\//g;
 	$lonCmd  =~ s/ ;//g;
@@ -104,7 +104,7 @@ sub chunkTheFile($$) {
       }
 
       # Create chunking command for lat dimension
-      if ( $line =~ m/[Ll][Aa][Tt]/ ) { 
+      if ( $line =~ m/[Ll][Aa][Tt]/ ) {
 	$latCmd  = $line;
 	$latCmd  =~ s/ = /\//g;
 	$latCmd  =~ s/ ;//g;
@@ -112,21 +112,21 @@ sub chunkTheFile($$) {
       }
 
       # Create chunking command for level midpoints dimension
-      if ( $line =~ m/[Ll][Ee][Vv]/ ) { 
+      if ( $line =~ m/[Ll][Ee][Vv]/ ) {
 	@subStrs = split( ' = ', $line );
 	$levCmd  = "$subStrs[0]/1";
 	$levCmd  =~ s/^\s+|\s+$//g
       }
 
       # Create chunking command for level interfaces dimension
-      if ( $line =~ m/[Ii][Ll][Ee][Vv]/ ) { 
+      if ( $line =~ m/[Ii][Ll][Ee][Vv]/ ) {
 	@subStrs = split( ' = ', $line );
 	$levCmd  = "$subStrs[0]/1";
 	$levCmd  =~ s/^\s+|\s+$//g
       }
 
       # Create chunking command for time dimension
-      if ( $line =~ m/[Tt][Ii][Mm][Ee]/ ) { 
+      if ( $line =~ m/[Tt][Ii][Mm][Ee]/ ) {
 	@subStrs = split( ' = ', $line );
 	$timeCmd = "$subStrs[0]/1";
 	$timeCmd =~ s/^\s+|\s+$//g
@@ -141,13 +141,13 @@ sub chunkTheFile($$) {
 quit:
 
   # Chunking command
-  if ( $levCmd eq "" && $timeCmd eq "" ) 
+  if ( $levCmd eq "" && $timeCmd eq "" )
     { $cmd = "nccopy -c $lonCmd,$latCmd";                  }
-  elsif ( $levCmd eq "" ) 
+  elsif ( $levCmd eq "" )
     { $cmd = "nccopy -c $lonCmd,$latCmd,$timeCmd";         }
   else
     { $cmd = "nccopy -c $lonCmd,$latCmd,$levCmd,$timeCmd"; }
-  
+
   # Deflation command
   if ( $deflate > 0 ) { $cmd .= " -d$deflate" }
 

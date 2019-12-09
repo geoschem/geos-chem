@@ -6,10 +6,10 @@
 !
 ! !IROUTINE: hcox_finn_include.H
 !
-! !DESCRIPTION: Include file with FINN emission factor data that was 
+! !DESCRIPTION: Include file with FINN emission factor data that was
 !  originally contained in files FINN\_EFratios\_CO2.csv and
 !  FINN\_VOC\_speciation.csv.  We transform these data into hardwired F90
-!  assignment statements so that we can avoid reading ASCII files in the 
+!  assignment statements so that we can avoid reading ASCII files in the
 !  ESMF environment.
 !
 ! !REMARKS:
@@ -21,14 +21,14 @@
 !    cd HEMCO/Extensions/Preprocess
 !    make finn
 !
-!  This will regenerate this include file from the original data and 
+!  This will regenerate this include file from the original data and
 !  automatically place it in the HEMCO/Extensions directory.
 !
 !  White space has been removed in order to reduce the file size as much
 !  as possible.  If you have to recreate this file, then it is easier to
 !  generate via the Perl script than to try to hand edit the code below.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  11 Aug 2014 - R. Yantosca - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
 !EOP

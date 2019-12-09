@@ -6,7 +6,7 @@
 !
 ! !IROUTINE: get_met_mod.F90
 !
-! !DESCRIPTION: Module GET\_MET\_MOD contains variables and routines for 
+! !DESCRIPTION: Module GET\_MET\_MOD contains variables and routines for
 !  reading the meteorological data, from the HEMCO data structure.
 !\\
 !\\
@@ -55,7 +55,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Error_Stop
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
+    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE State_Grid_Mod,     ONLY : GrdState
 !
 !
@@ -78,7 +78,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!   
+!
     ! Scalars
     INTEGER :: T
     LOGICAL :: FND
@@ -111,12 +111,12 @@ CONTAINS
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
-       CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), & 
+       CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), &
                          'GET_MET_2D (get_met_mod.F90)' )
     ENDIF
 
     ! transfer to output array
-    Q = Ptr2D(:,:) 
+    Q = Ptr2D(:,:)
 
     ! Free the pointer
     Ptr2D => NULL()
@@ -166,7 +166,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!   
+!
     ! Scalars
     INTEGER :: T
     LOGICAL :: FND
@@ -192,19 +192,19 @@ CONTAINS
     ELSE
        T = 1
     ENDIF
-    
+
     ! Get the pointer to the data in the HEMCO data structure
     CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, TIDX=T, &
                      FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
-       CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), & 
+       CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), &
                          'GET_MET_3D(get_met_mod.F90)' )
     ENDIF
 
     ! transfer to output array
-    Q = Ptr3D(:,:,:) 
+    Q = Ptr3D(:,:,:)
 
     ! Free the pointer
     Ptr3D => NULL()
@@ -230,7 +230,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Error_Stop
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
+    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE State_Grid_Mod,     ONLY : GrdState
 !
 !
@@ -254,7 +254,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-!   
+!
     ! Scalars
     INTEGER :: T
     LOGICAL :: FND
@@ -287,12 +287,12 @@ CONTAINS
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
-       CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), & 
+       CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), &
                          'GET_MET_3De(get_met_mod.F90)' )
     ENDIF
 
     ! transfer to output array
-    Q = Ptr3D(:,:,:) 
+    Q = Ptr3D(:,:,:)
 
     ! Free the pointer
     Ptr3D => NULL()

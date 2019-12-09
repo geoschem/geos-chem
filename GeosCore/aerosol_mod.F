@@ -95,7 +95,7 @@
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER,   PUBLIC :: OCFG = 1.e+0_fp
 
-      ! For SOAMG, assume the total aerosol mass/methylglyoxal mass = 1.d0 
+      ! For SOAMG, assume the total aerosol mass/methylglyoxal mass = 1.d0
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER,   PUBLIC :: OCFM = 1.e+0_fp
 !
@@ -252,9 +252,9 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
-!  This code was originally included in "chemdr.f", but the same computation 
-!  also needs to be done for offline aerosol simulations.  Therefore, we have 
-!  split this code off into a separate subroutine which can be called by both 
+!  This code was originally included in "chemdr.f", but the same computation
+!  also needs to be done for offline aerosol simulations.  Therefore, we have
+!  split this code off into a separate subroutine which can be called by both
 !  fullchem and offline aerosol simulations.
 !
 ! !REVISION HISTORY:
@@ -270,11 +270,11 @@
 !  05 Mar 2013 - R. Yantosca - Remove call to INIT_AEROSOL, this is now done
 !                              in the initialization stage
 !  25 Mar 2013 - M. Payer    - Now pass State_Chm object via the arg list
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  17 Jun 2014 - J. Pierce   - Now allow bulk dust in TOMAS simulations
 !  07 Apr 2015 - R. Yantosca - Add check to prevent div-by-zero errors
-!  25 Jun 2015 - E. Lundgren - Use L. Zhang dust size distribution params for 
+!  25 Jun 2015 - E. Lundgren - Use L. Zhang dust size distribution params for
 !                              mineral dust aerosols (non-TOMAS)
 !  13 Aug 2015 - E. Lundgren - Convert tracer units to kg if input units are
 !                              mixing ratio
@@ -417,30 +417,22 @@
       ! Get spatial and seasonally varying OM/OC from Philip et al. (2014)
       ! or use default global mean values recommended by Aerosols WG
       !=================================================================
-      IF ( Input_Opt%LOMOC ) THEN
 
-         ! Get pointer to OM/OC for current month from HEMCO
-         MONTH = GET_MONTH()
-         IF      ( MONTH == 12 .or. MONTH == 1  .or. MONTH == 2  ) THEN
-            FieldName = 'OMOC_DJF'
-         ELSE IF ( MONTH == 3  .or. MONTH == 4  .or. MONTH == 5  ) THEN
-            FieldName = 'OMOC_MAM'
-         ELSE IF ( MONTH == 6  .or. MONTH == 7  .or. MONTH == 8  ) THEN
-            FieldName = 'OMOC_JJA'
-         ELSE IF ( MONTH == 9  .or. MONTH == 10 .or. MONTH == 11 ) THEN
-            FieldName = 'OMOC_SON'
-         ENDIF
-         CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, OMOC, RC,
-     &                    FOUND=FND )
+      ! Attempt to get pointer to OM/OC for current month from HEMCO
+      MONTH = GET_MONTH()
+      IF      ( MONTH == 12 .or. MONTH == 1  .or. MONTH == 2  ) THEN
+         FieldName = 'OMOC_DJF'
+      ELSE IF ( MONTH == 3  .or. MONTH == 4  .or. MONTH == 5  ) THEN
+         FieldName = 'OMOC_MAM'
+      ELSE IF ( MONTH == 6  .or. MONTH == 7  .or. MONTH == 8  ) THEN
+         FieldName = 'OMOC_JJA'
+      ELSE IF ( MONTH == 9  .or. MONTH == 10 .or. MONTH == 11 ) THEN
+         FieldName = 'OMOC_SON'
+      ENDIF
+      CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, OMOC, RC,
+     &                 FOUND=FND )
 
-         ! Trap potential errors
-         IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
-            ErrMsg= 'Cannot find seasonal OM/OC field ' //
-     &             TRIM(FIELDNAME) // '. Please add a corresponding ' //
-     &            'entry to the HEMCO configuration file.'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
+      IF ( RC == HCO_SUCCESS .AND. FND ) THEN
 
          ! Set OM/OC using spatially and seasonally varying data from
          ! Philip et al. (2014)
@@ -1216,7 +1208,7 @@
 !        from "error_mod.f".  Delete local declaration of TIME, since that
 !        is also declared w/in comode.h -- this causes compile-time errors
 !        on the ALPHA platform. (gcc, bmy, 11/6/02)
-!  (6 ) Now use the online SO4, NH4, NIT aerosol, taken from the STT array, 
+!  (6 ) Now use the online SO4, NH4, NIT aerosol, taken from the STT array,
 !        and passed via SO4_NH4_NIT argument if sulfate chemistry is turned on.
 !        Otherwise, read monthly mean sulfate from disk.  (rjp, bmy, 3/23/03)
 !  (7 ) Now call READ_BPCH2 with QUIET=.TRUE., which prevents info from being
@@ -1459,7 +1451,7 @@
       ! into WAERSL(:,:,:,1) for use w/ FAST-J and hetchem.  This is
       ! updated every timestep.  (For fullchem and offline runs)
       !
-      ! If LSULF = FALSE, then read monthly mean offline sulfate aerosol   
+      ! If LSULF = FALSE, then read monthly mean offline sulfate aerosol
       ! concentrations [kg/m3] from disk at the start of each month.
       ! (For fullchem simulations only)
       !=================================================================
@@ -1491,8 +1483,8 @@
       !
       ! If LCARB = TRUE, then take Hydrophilic OC, Hydrophobic OC,
       ! Hydropilic BC, and Hydrophobic BC, and 2ndary organic aerosol
-      ! concentrations [kg/m3] that have been computed by AEROSOL_CONC.   
-      ! Save these into DAERSL and WAERSL for use w/ FAST-J and hetchem.  
+      ! concentrations [kg/m3] that have been computed by AEROSOL_CONC.
+      ! Save these into DAERSL and WAERSL for use w/ FAST-J and hetchem.
       ! These fields are updated every chemistry timestep.
       ! (For both fullchem and offline simulations)
       !
@@ -1626,15 +1618,15 @@
       ! DAR 09/2013
       ! There are two ways RDAER can be called:
       ! (1) When Fast-J requires aerosol optics at 1000nm (ODSWITCH=0)
-      ! (2) Before diags are accumulated, from RECOMPUTE_AOD (ODSWITCH=1) 
+      ! (2) Before diags are accumulated, from RECOMPUTE_AOD (ODSWITCH=1)
       ! for (1) we just need the optics stored at a single wavelength
       !     not for all user specified wavelengths, hence NWVS=1, IWV=IWV1000
       ! for (2) we need to determine if RRTMG is switched on
-      !     if LRAD=true, calculation is over total minus standard wavelengths 
+      !     if LRAD=true, calculation is over total minus standard wavelengths
       !     in optics dat files (NWVAA-NWVAA0)
       !     if LRAD=false, calculation is for the wavelengths required for
       !     user-requested wavelength output. These are determined in CALC_AOD
-      !     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to 
+      !     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to
       !     interpolate from the LUT wavelengths to the user-requested
       !     waveelenths (in CALC_AOD) are used here.
 
@@ -1985,9 +1977,9 @@
                !    WAERSL   [ kg dry mass of wet aerosol m^-3 air ]
                !    ERADIUS  [ cm wet aerosol radius ]
                !    MSDENS   [ kg dry mass of aerosol m^-3 dry volume of aerosol ]
-               !    TAREA    [ cm^2 wet sfc area of aerosol cm^-3 air ]   
-               !    WTAREA   : same as TAREA, but excludes dry dust, BCPO, OCPO 
-               !               use same units as TAREA    (tmf, 4/18/07) 
+               !    TAREA    [ cm^2 wet sfc area of aerosol cm^-3 air ]
+               !    WTAREA   : same as TAREA, but excludes dry dust, BCPO, OCPO
+               !               use same units as TAREA    (tmf, 4/18/07)
                !    WERADIUS : same as ERADIUS, but excludes dry dust, BCPO,OCPO
                !               use same units as ERADIUS  (tmf, 4/18/07)
                ! Wet dust WTAREA and WERADIUS are archived in dust_mod.f.

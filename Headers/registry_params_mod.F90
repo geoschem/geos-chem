@@ -6,7 +6,7 @@
 ! !MODULE: registry_params_mod.F90
 !
 ! !DESCRIPTION: Contains parameters that are used to denote the types
-!  of pointers arrays (e.g. REAL(fp), REAL(f4), INTEGER) used in the 
+!  of pointers arrays (e.g. REAL(fp), REAL(f4), INTEGER) used in the
 !  GEOS-Chem Registry and History routines, as well as the vertical
 !  location.
 !\\

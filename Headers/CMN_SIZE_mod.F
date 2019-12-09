@@ -23,7 +23,7 @@
       REAL*8,     PARAMETER :: PTOP       = 0.01d0
 
       !=================================================================
-      ! OTHER PARAMETERS 
+      ! OTHER PARAMETERS
       !=================================================================
 
       ! NSURFTYPE - Maximum number of surface types: 73 olson
@@ -34,7 +34,7 @@
       !-----------------------------------------------------------------
       !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
       !
-      ! For testing the ESMF interface to GEOS-Chem with a grid that 
+      ! For testing the ESMF interface to GEOS-Chem with a grid that
       ! is smaller than the usual 72x46, increase NTYPE (bmy, 12/4/12)
       !-----------------------------------------------------------------
       INTEGER,    PARAMETER :: NTYPE    = 50
@@ -111,7 +111,7 @@
 # else
       ! NDSTBIN -- redimensioned for TOMAS (dwest, bmy, 2/1/10)
       INTEGER,    PARAMETER :: NDSTBIN   = 30
-      INTEGER,    PARAMETER :: TOMASBIN  = 30 ! Number of TOMAS bins 
+      INTEGER,    PARAMETER :: TOMASBIN  = 30 ! Number of TOMAS bins
 # endif
 
 #else
@@ -160,16 +160,16 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
 !
-! !INPUT PARAMETERS: 
-! 
+! !INPUT PARAMETERS:
+!
       LOGICAL,        INTENT(IN) :: am_I_Root     ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt     ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  15 Oct 2012 - M. Long     - Initial version
 !  See the Git history with the gitk browser!
 !EOP
@@ -190,7 +190,7 @@
 
       ! Return w/ success
       RC = GC_SUCCESS
-      
+
       END SUBROUTINE Init_CMN_SIZE
 !EOC
 !------------------------------------------------------------------------------
@@ -211,15 +211,15 @@
 !
       USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !   3 Dec 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
