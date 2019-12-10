@@ -941,7 +941,7 @@ CONTAINS
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
     CALL Init_Diag_OH( am_I_Root, Input_Opt, State_Grid, RC )
 
-#if !defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !
