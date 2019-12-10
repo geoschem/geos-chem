@@ -18,6 +18,7 @@
 ! \item Month: update every month (monthly data)
 ! \item Day: update every day (daily data)
 ! \item Hour: update every hour (hourly data)
+! \item Hour3: update every 3 hours (3-hourly data)
 ! \item Once: update only once (time-invariant data)
 ! \item Always: update every time step
 ! \end{itemize}
@@ -682,6 +683,9 @@ CONTAINS
     ALLOCATE ( ReadLists%Hour )
     NULLIFY ( ReadLists%Hour  )
 
+    ALLOCATE ( ReadLists%Hour3 )
+    NULLIFY ( ReadLists%Hour3  )
+
     ALLOCATE ( ReadLists%Always )
     NULLIFY ( ReadLists%Always  )
 
@@ -754,6 +758,10 @@ CONTAINS
        WRITE(MSG,*) 'Contents of day list:'
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Day, verb )
+
+       WRITE(MSG,*) 'Contents of 3-hour list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
+       CALL HCO_PrintList ( HcoState, ReadLists%Hour3, verb )
 
        WRITE(MSG,*) 'Contents of hour list:'
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
@@ -830,7 +838,7 @@ CONTAINS
     Next => NULL()
 
     ! Search for the given container
-    DO I = 1,6
+    DO I = 1,7
 
        ! Select list to be used
        IF ( I == 1 ) This => HcoState%ReadLists%Once
@@ -839,6 +847,7 @@ CONTAINS
        IF ( I == 4 ) This => HcoState%ReadLists%Day
        IF ( I == 5 ) This => HcoState%ReadLists%Hour
        IF ( I == 6 ) This => HcoState%ReadLists%Always
+       IF ( I == 7 ) This => HcoState%ReadLists%Hour3
 
        ! Initialize working variables
        FOUND = .FALSE.
@@ -881,6 +890,7 @@ CONTAINS
           IF ( I == 4 ) HcoState%ReadLists%Day    => Next
           IF ( I == 5 ) HcoState%ReadLists%Hour   => Next
           IF ( I == 6 ) HcoState%ReadLists%Always => Next
+          IF ( I == 7 ) HcoState%ReadLists%Hour3  => Next
 
        ! - Otherwise, just pop out this container from list
        ELSE
@@ -957,6 +967,7 @@ CONTAINS
        CALL ListCont_Cleanup ( ReadLists%Month,  RemoveDct )
        CALL ListCont_Cleanup ( ReadLists%Day,    RemoveDct )
        CALL ListCont_Cleanup ( ReadLists%Hour,   RemoveDct )
+       CALL ListCont_Cleanup ( ReadLists%Hour3,  RemoveDct )
        CALL ListCont_Cleanup ( ReadLists%Always, RemoveDct )
 
        ! Remove ReadList
