@@ -698,9 +698,10 @@
 !
 ! !DESCRIPTION: Function OCEANO3 calculates the dry deposition velcoity of O3
 !     to the ocean using method described in Pound et.al (2019)
-!     currently unpublished. Will account for the turbulence of the surface, 
-!     Iodide concentration
-!     and surface temperature effects on the dry deposition velocity.
+!     currently under discussion in ACPD. 
+!     Accounts for the turbulence of the ocean surface,Iodide concentration
+!     and surface temperature effects on the dry deposition velocity of
+!     ozone to the ocean.
 !\\
 !\\
 ! !INTERFACE:
@@ -719,19 +720,6 @@
       INTEGER,  INTENT(IN)         :: I,J
       REAL(f8), INTENT(OUT)        :: DEPV  ! the new deposition vel [cm/s]
 ! !REMARKS:
-!     Initial implemenentaion of an improved parameterisation of dry
-!     deposition of ozone to the ocean, currently under development.
-!     rp819@york.ac.uk - 16/10/2017
-!     Later versions should aim to streamline some of these eqns but
-!     for now they will exist seperately (may help with diagnostics)
-!     - Chemical reactivity should remain staged as this can allow for
-!     the introduction of other chemicals to this in the future
-!     - Currently using a constant value for the deltam value for
-!     a quick/temp implementation but this needs revising in fututre
-!     -Diagnostics:
-!     --- The optional input array exists to store the data that is
-!     calculated in this function and I,J are to ensure that the
-!     data is being stored for the correct grid of the simulation
 ! 
 ! !REVISION HISTORY: 
 ! 
@@ -749,21 +737,21 @@
       ! OCEANO3 begins here!
       !=================================================================
       
-      USTARWater = 0.0345_f8*USTAR
+      USTARWater = 0.0345_f8*USTAR !waterside friction velocity
     
-      Iodide = HCO_Iodide(I,J)*1.0E-9_f8
+      Iodide = HCO_Iodide(I,J)*1.0E-9_f8 !retrieve iodide from HEMCO
      
-      a = Iodide*EXP((-8772.2/TEMPK)+51.5)
+      a = Iodide*EXP((-8772.2/TEMPK)+51.5) !chemical reactivity
 
-      D = 1.1E-6*EXP(-1896.0/TEMPK)
+      D = 1.1E-6*EXP(-1896.0/TEMPK) ! diffusivity
 
-      DelM = SQRT(D/a)
+      DelM = SQRT(D/a) ! reaction-diffusion length
       
       b = 2.0_f8/(0.4_f8*USTARWater)
    
-      LAM = DelM*SQRT(a/D)
+      LAM = DelM*SQRT(a/D) ! this cancels to 1 but here for completeness
+                           ! of equations
 
-!     LUHAR EPSILON EQN
       EP = SQRT(2.0_f8*a*b*(DelM+(b*D/2.0_f8)))
 
       PSI = EP/SQRT(a*b**2*D)
@@ -783,26 +771,30 @@
 !
 ! !IROUTINE: K0K1_APROX
 !
-! !DESCRIPTION: This is a placeholder for a future version of the subroutine.
-!     Currently it just uses some lookup tables to solve for a value of K0 
-!     and K1 but in the future a fiited exponential function for each of
-!     these will be used to approximate the values, this will give much more
-!     flexibility in the usefulness of this routine.
+! !DESCRIPTION:  Function to estimate the modified Bessel functions of
+!     the second kind order zero and one (K0,K1). Approach initially based on 
+!     that described in Numerical Recipes in Fortran 90 second edition
+!     (1996). This implementation is designed to be specific to the use
+!     case required for calculating oceanic deposition velocity. Uses a
+!     polynomial fit of each type of modified bessel function to
+!     estimate the value of the function for each input. 
+
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE K0K1_APROX( input_arg, K0, K1 )
+      
+      IMPLICIT NONE
 !     
 !     !INPUT PARAMETERS: 
 !     
       REAL(f8), INTENT(IN)  :: input_arg !the value we want the soln for
       REAL(f8), INTENT(OUT) :: K0,K1 !the values of the modified bessel fncs
 
-!     !REMARKS: Early implementation version -- needs to be updated as per 
-!     the description
+!     !REMARKS: 
 !     
-!     !REVISION HISTORY: 12/01/2018 -- created R.Pound
+!     !REVISION HISTORY: 
 !     
 !     EOP
 !------------------------------------------------------------------------------
@@ -811,147 +803,75 @@
 !     !LOCAL VARIABLES:
 !     
       
-      K0 = bessk0(input_arg)
-      K1 = bessk1(input_arg)
+      REAL(f8), DIMENSION(7) :: coeff !coefficients for polynomial fit
+                                      ! of each bessel function
+      REAL(f8)               :: I0,I1 !modified bessel functions of
+                                      ! first kind order 0 and 1
+
+      ! begin the calculation of k0 by estimating i0
+      coeff = (/1.0,3.5156229,3.0899424,1.2067492,0.2659732,0.360768e-1,
+     &      0.45813e-2/)
+      I0 = poly_fit((input_arg/3.75_f8)**2,coeff)
+      !now we can use this estimate of i0 to calculate k0
+      coeff = (/-0.57721566,0.42278420,0.23069756,0.3488590e-1,
+     &      0.262698e-2,0.10750e-3,0.74e-5/)
+      K0 = (-LOG(0.5_f8*input_arg)*I0)+
+     &        poly_fit(0.25_f8*input_arg**2,coeff)
+
+      !begin the calculation of k0 by estimating i1
+      coeff = (/0.5,0.87890594,0.51498869,0.15084934,0.2658733e-1,
+     &      0.301532e-2,0.32411e-3/)
+      I1 = input_arg*poly_fit((input_arg/3.75_f8)**2,coeff)
+      ! now we can use this to estimate to get a value for k1
+      coeff = (/1.0,0.15443144,-0.67278579,-0.18156897,-0.1919402e-1,
+     &      -0.110404e-2,-0.4686e-4/)
+      K1 = (LOG(0.5_f8*input_arg)*I1)+(1.0_f8/input_arg)*
+     &      poly_fit(0.25_f8*input_arg**2,coeff)
 
       END SUBROUTINE K0K1_APROX
 
-      FUNCTION bessk0(x)
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: poly_fit
+!
+! !DESCRIPTION: Function to calculate the value of a polynomial fit,
+! used in the K0K1_APPROX function in estimating the values of a
+! modified bessel function.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION poly_fit ( input, coeffs )
 
       IMPLICIT NONE
-      REAL(f8), INTENT(IN) :: x
-      REAL(f8) :: bessk0
-!     Returns the modified Bessel function k0(x)
-      REAL(f8) :: y 
-      REAL(f8), DIMENSION(7) :: p = (/-0.57721566,0.42278420,
-     &     0.23069756,0.3488590e-1,0.262698e-2,0.10750e-3,
-     &     0.74e-5/)
-      REAL(f8), DIMENSION(7) :: q = (/1.25331414,-0.7832358e-1,
-     &     0.2189568e-1,-0.1062446e-1,0.587872e-2,
-     &     -0.251540e-2,0.53208e-3/)
-      
-      IF (x <= 2.0) THEN
-         y=x*x/4.0
-         bessk0=(-LOG(x/2.0)*bessi0(x))+poly(y,p)
-      ELSE
-         y=(2.0/x)
-         bessk0=(EXP(-x)/SQRT(x))*poly(y,q)
-      ENDIF
-      END FUNCTION bessk0
-
-      FUNCTION bessk1(x)
-
-      IMPLICIT NONE
-
-      REAL(f8), INTENT(IN) :: x
-      REAL(f8) :: bessk1
-!     Returns the modified Bessel function K1(x) for positive real x.
-      REAL(f8) :: y !Accumulate polynomials 
-      REAL(f8), DIMENSION(7) :: p = (/1.0,0.15443144,
-     &     -0.67278579,-0.18156897,-0.1919402e-1,
-     &     -0.110404e-2,-0.4686e-4/)
-      REAL(f8), DIMENSION(7) :: q = (/1.25331414,0.23498619,
-     &     -0.3655620e-1,0.1504268e-1,-0.780353e-2,
-     &     0.325614e-2,-0.68245e-3/)
-
-      IF (x <= 2.0) THEN !Polynomial fit.
-         y=x*x/4.0
-         bessk1=(LOG(x/2.0)*bessi1(x))+(1.0/x)*poly(y,p)
-      ELSE
-         y=2.0/x
-         bessk1=(EXP(-x)/SQRT(x))*poly(y,q)
-      ENDIF
-      
-      END FUNCTION bessk1
-      
-      FUNCTION bessi0(x)
-
-      IMPLICIT NONE
-      
-      REAL(f8), INTENT(IN) :: x
-      REAL(f8) :: bessi0
-!     Returns the modified Bessel function I0(x) for any real x.
-      REAL(f8) :: ax
-      REAL(f8), DIMENSION(7) :: p = (/1.0,3.5156229,
-     &     3.0899424,1.2067492,0.2659732,0.360768e-1,
-     &     0.45813e-2/)
-      REAL(f8), DIMENSION(9) :: q = (/0.39894228,0.1328592e-1,
-     &     0.225319e-2,-0.157565e-2,0.916281e-2,
-     &     -0.2057706e-1,0.2635537e-1,-0.1647633e-1,
-     &     0.392377e-2/)
-      
-      ax=ABS(x)
-      IF (ax < 3.75) THEN !Polynomial fit.
-         bessi0=poly((x/3.75_f8)**2,p)
-      ELSE
-         bessi0=(EXP(ax)/SQRT(ax))*poly((3.75_f8/ax),q)
-      ENDIF
-      END FUNCTION bessi0
-
-      FUNCTION bessi1(x)
-
-      IMPLICIT NONE
-      REAL(f8), INTENT(IN) :: x
-      REAL(f8) :: bessi1
-!     Returns the modified Bessel function I1(x) for any real x.
-      REAL(f8) :: ax
-      REAL(f8), DIMENSION(7) :: p = (/0.5,0.87890594,
-     &     0.51498869,0.15084934,0.2658733e-1,
-     &     0.301532e-2,0.32411e-3/)
-!     Accumulate polynomials in double precision.
-      REAL(f8), DIMENSION(9) :: q = (/0.39894228,-0.3988024e-1,
-     &     -0.362018e-2,0.163801e-2,-0.1031555e-1,
-     &     0.2282967e-1,-0.2895312e-1,0.1787654e-1,
-     &     -0.420059e-2/)
-
-      ax=ABS(x)
-      IF (ax < 3.75) THEN 
-         bessi1=ax*poly(REAL((x/3.75)**2,f8),p)
-      ELSE
-         bessi1=(EXP(ax)/SQRT(ax))*poly(REAL(3.75/ax,f8),q)
-      ENDIF
-      
-      IF (x < 0.0) bessi1=-bessi1
-      
-      END FUNCTION bessi1
-      
-      FUNCTION poly(x,coeffs)
-
-      IMPLICIT NONE
-      
-      REAL(f8), INTENT(IN) :: x
+!     
+!     !INPUT PARAMETERS: 
+!     
+      REAL(f8), INTENT(IN)               :: input
       REAL(f8), DIMENSION(:), INTENT(IN) :: coeffs
-      REAL(f8) :: poly
-      REAL(f8) :: pow
-      REAL(f8), DIMENSION(:), ALLOCATABLE :: vec
-      INTEGER :: i,n,nn
-      INTEGER :: NPAR_POLY=8
-      
-      n=SIZE(coeffs)
-      
-      IF (n <= 0) THEN
-         poly=0.0
-      ELSEIF (n < NPAR_POLY) THEN
-         poly=coeffs(n)
-         DO i=n-1,1,-1
-            poly=x*poly+coeffs(i)
-         ENDDO
-      ELSE
-         allocate(vec(n+1))
-         pow=x
-         vec(1:n)=coeffs
-         DO
-            vec(n+1)=0.0
-            nn=ishft(n+1,-1)
-            vec(1:nn)=vec(1:n:2)+pow*vec(2:n+1:2)
-            IF (nn == 1) EXIT
-            pow=pow*pow
-            n=nn
-         ENDDO
-         poly=vec(1)
-         deallocate(vec)
-      ENDIF
-      END FUNCTION poly
+
+!     !REMARKS:
+!     
+!     !REVISION HISTORY: 
+!     
+!     EOP
+!------------------------------------------------------------------------------
+!     BOC
+!     
+!     !LOCAL VARIABLES:
+!     
+      REAL(f8)                           :: poly_fit
+      INTEGER                            :: i
+      poly_fit = 0
+      DO i = 1,7,1
+           poly_fit = poly_fit+coeffs(i)*input**i
+      ENDDO
+
+      END FUNCTION poly_fit
 
 !EOC
 !------------------------------------------------------------------------------
