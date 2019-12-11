@@ -3860,10 +3860,6 @@ CONTAINS
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-            ! Apply minimum value threshold where input conc is very low
-            IF ( Ptr3D(I,J,L) < SMALL_NUM ) THEN
-                 Ptr3D(I,J,L) = SMALL_NUM
-            ENDIF
             State_Chm%Species(I,J,L,N) = Ptr3D(I,J,L) * MW_g / AIRMW
          ENDDO
          ENDDO
@@ -4612,7 +4608,6 @@ CONTAINS
    CHARACTER(LEN=255)   :: MSG                ! message
    CHARACTER(LEN=255)   :: v_name             ! variable name
    REAL(fp)             :: MW_g               ! species molecular weight
-   REAL(fp)             :: SMALL_NUM          ! small number threshold
    CHARACTER(LEN=16)    :: STAMP
 
    ! Temporary arrays and pointers
@@ -4639,9 +4634,6 @@ CONTAINS
 
    ! Name of this routine
    LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F)'
-
-   ! Set minimum value threshold for [mol/mol]
-   SMALL_NUM = 1.0e-30_fp
 
    !=================================================================
    ! Read species concentrations from NetCDF [mol/mol] and

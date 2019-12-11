@@ -564,7 +564,7 @@
       ! Locations where LT is between HR1_OH and HR2_OH
       ALLOCATE( LTHO2( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
->>>>>>> dev/12.6.2
+
 
       ! Assume successful return
       RC = GC_SUCCESS
