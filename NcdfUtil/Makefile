@@ -30,20 +30,8 @@
 #
 # F90, LD, LINK_NC are included from "Makefile_header.mk"
 #
-# !REVISION HISTORY: 
-#  04 Aug 2009 - R. Yantosca - Initial version
-#  24 Jan 2012 - R. Yantosca - Now explicitly list all dependencies
-#  25 Jan 2012 - R. Yantosca - Now use := for the assignment statement
-#  05 Apr 2012 - R. Yantosca - Change BL_INC_NETCDF to INC_NETCDF
-#  05 Apr 2012 - R. Yantosca - Change BL_INC_HDF5   to INC_HDF5
-#  05 Apr 2012 - R. Yantosca - Change BL_LIB_NETCDF to LIB_NETCDF
-#  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
-#  11 May 2012 - R. Yantosca - Now use exported NCL from Makefile_header.mk
-#  20 Aug 2013 - R. Yantosca - Make sure Makefile target names are consistent
-#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
-#  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90
-#  02 Dec 2014 - R. Yantosca - Now use NC_LINK_CMD variable instead of NCL
-#  04 Jun 2015 - R. Yantosca - Now remove *.a and *.mod files with make clean
+# !REVISION HISTORY:
+#  See the Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -115,7 +103,7 @@ LIBRARY  :=libNcUtils.a
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###
@@ -199,7 +187,7 @@ lib: libnc
 
 ncdfcheck: $(OBJECTSx)
 	$(LD) $(OBJECTSx) -L$(LIB) -lNcUtils $(NC_LINK_CMD) -o $(EXE)
-	./$(EXE) 
+	./$(EXE)
 
 check: ncdfcheck
 test: ncdfcheck
@@ -234,7 +222,6 @@ help:
 	@echo 'help       Displays this help screen'
 	@echo ''
 	@echo 'OPTIONAL-FLAGS may be:'
-	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
 	@echo 'DEBUG=yes      Compiles GEOS-Chem for use w/ a debugger'
 	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debugging purposes)'
 	@echo 'TRACEBACK=yes  Compiles with -traceback flag (ifort only)'

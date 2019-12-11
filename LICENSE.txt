@@ -1,8 +1,8 @@
-GEOS-Chem License Agreement
+License Agreement for GEOS-Chem, HEMCO, and Related Software
 (The MIT "Expat" License, http://opensource.org/licenses/MIT)
 ==============================================================================
 
-Copyright (c) 2017 GEOS-Chem developers
+Copyright (c) 2017-2019 Developers of GEOS-Chem, GCPy, HEMCO, and Related Software
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,8 @@ SOFTWARE.
 
 ------------------------------------------------------------------------------
 NOTE: Please see the AUTHORS.txt file (in this folder) for the list of
-GEOS-Chem developers.  This list will be updated with each public release.
+Developers of GEOS-Chem, GCPy and Related Software.  This list will
+be updated frequently, such as at each major GEOS-Chem or GCPy release.
 ------------------------------------------------------------------------------
 
 
@@ -74,6 +75,39 @@ RRTM/RRTMG Copyright and Disclaimer:
    http://rtweb.aer.com/rrtm_frame.html
 
 
+Fortran hash table code (used in 12.7.0 and later):
+https://github.com/pdebuyl/fortran_hash_table
+
+   Copyright (c) 2018, Pierre de Buyl
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are
+   met:
+
+   1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+   3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+   HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
 SMVGEAR chemical solver (used in GEOS-Chem v10-01 and prior versions):
  
    *********************************************************************
@@ -82,3 +116,11 @@ SMVGEAR chemical solver (used in GEOS-Chem v10-01 and prior versions):
    ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      ***
    ***                         (650) 723-6836                        ***
    *********************************************************************
+
+
+Licenses for packages used by HEMCO:
+==============================================================================
+
+Modular Earth Submodel System (MESSy) tools:
+
+   https://www.messy-interface.org/current/messy_licence.html

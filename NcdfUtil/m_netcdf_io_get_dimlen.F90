@@ -20,7 +20,7 @@ module m_netcdf_io_get_dimlen
 ! !DESCRIPTION: Provides routines to obtain the length of a given dimension.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -61,13 +61,13 @@ CONTAINS
 !!  dim_len: netCDF dimension length
     integer,           intent(out)   :: dim_len
 !
-! !DESCRIPTION: Returns the length of a given netCDF dimension. 
-!               If err\_stop is set to FALSE, -1 is returned if 
+! !DESCRIPTION: Returns the length of a given netCDF dimension.
+!               If err\_stop is set to FALSE, -1 is returned if
 !               the given dimension cannot be found. Otherwise,
 !               an error is prompted and the program stops.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:
@@ -84,7 +84,7 @@ CONTAINS
 
     ierr = Nf_Inq_Dimid  (ncid, dim_name, dimid)
 
-    if (ierr /= NF_NOERR ) then 
+    if (ierr /= NF_NOERR ) then
        err_msg = 'In Ncget_Dimlen #1:  ' // Trim (dim_name) // &
                  ', ' // Nf_Strerror (ierr)
        call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
@@ -131,7 +131,7 @@ CONTAINS
 ! !DESCRIPTION: Returns the length of the unlimited netCDF dimension.
 !\\
 !\\
-! !AUTHOR: 
+! !AUTHOR:
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
 ! !REVISION HISTORY:

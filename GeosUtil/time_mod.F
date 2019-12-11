@@ -9,10 +9,10 @@
 !  and timesteps, and routines for accessing them.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE TIME_MOD
-! 
+!
 ! !USES:
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -29,19 +29,7 @@
       PUBLIC  :: SET_CURRENT_TIME
       PUBLIC  :: SET_BEGIN_TIME
       PUBLIC  :: SET_END_TIME
-      PUBLIC  :: SET_DIAGb
-      PUBLIC  :: SET_DIAGe
       PUBLIC  :: SET_TIMESTEPS
-      PUBLIC  :: SET_CT_CHEM
-      PUBLIC  :: SET_CT_CONV
-      PUBLIC  :: SET_CT_DYN
-      PUBLIC  :: SET_CT_EMIS
-      PUBLIC  :: SET_CT_DIAG
-      PUBLIC  :: SET_CT_RAD
-      PUBLIC  :: SET_CT_A1 
-      PUBLIC  :: SET_CT_A3
-      PUBLIC  :: SET_CT_I3
-      PUBLIC  :: SET_CT_XTRA
       PUBLIC  :: SET_ELAPSED_SEC
       PUBLIC  :: GET_JD
       PUBLIC  :: GET_ELAPSED_SEC
@@ -63,11 +51,8 @@
       PUBLIC  :: GET_TAU
       PUBLIC  :: GET_TAUb
       PUBLIC  :: GET_TAUe
-      PUBLIC  :: GET_DIAGb
-      PUBLIC  :: GET_DIAGe
       PUBLIC  :: GET_LOCALTIME
       PUBLIC  :: GET_LOCALTIME_IN_SEC
-      PUBLIC  :: GET_SEASON
       PUBLIC  :: GET_TS_CHEM
       PUBLIC  :: GET_TS_CONV
       PUBLIC  :: GET_TS_DIAG
@@ -75,16 +60,6 @@
       PUBLIC  :: GET_TS_EMIS
       PUBLIC  :: GET_TS_UNIT
       PUBLIC  :: GET_TS_RAD
-      PUBLIC  :: GET_CT_CHEM
-      PUBLIC  :: GET_CT_CONV
-      PUBLIC  :: GET_CT_DYN
-      PUBLIC  :: GET_CT_EMIS
-      PUBLIC  :: GET_CT_RAD
-      PUBLIC  :: GET_CT_A1
-      PUBLIC  :: GET_CT_A3
-      PUBLIC  :: GET_CT_I3
-      PUBLIC  :: GET_CT_XTRA
-      PUBLIC  :: GET_CT_DIAG
       PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
       PUBLIC  :: GET_I3_TIME
@@ -97,22 +72,17 @@
       PUBLIC  :: ITS_TIME_FOR_EMIS
       PUBLIC  :: ITS_TIME_FOR_EXCH
       PUBLIC  :: ITS_TIME_FOR_UNIT
-      PUBLIC  :: ITS_TIME_FOR_DIAG
       PUBLIC  :: ITS_TIME_FOR_RT
       PUBLIC  :: ITS_TIME_FOR_SURFACE_RAD
       PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_I3
       PUBLIC  :: ITS_TIME_FOR_EXIT
-      PUBLIC  :: ITS_TIME_FOR_BPCH
       PUBLIC  :: ITS_A_LEAPYEAR
       PUBLIC  :: ITS_A_NEW_YEAR
       PUBLIC  :: ITS_A_NEW_MONTH
-      PUBLIC  :: ITS_MIDMONTH
       PUBLIC  :: ITS_A_NEW_DAY
-      ! Add for FLAMBE compatibility (skim, 6/21/13)
       PUBLIC  :: ITS_A_NEW_HOUR
-      PUBLIC  :: ITS_A_NEW_SEASON
       PUBLIC  :: PRINT_CURRENT_TIME
       PUBLIC  :: TIMESTAMP_STRING
       PUBLIC  :: YMD_EXTRACT
@@ -122,15 +92,44 @@
       PUBLIC  :: SYSTEM_DATE_TIME
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
-      PUBLIC  :: GET_NYMD_DIAG
-      PUBLIC  :: GET_Hg2_DIAG !hma, 25 Oct 2011
-      PUBLIC  :: SET_Hg2_DIAG !hma, 25 Oct 2011
-![eml
-      PUBLIC  :: SET_HISTYR
-      PUBLIC  :: GET_HISTYR
-!eml]
 #if defined( ESMF_ ) || defined( MODEL_ )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
+      !%%%  IS COMPILED FOR GCHP OR FOR CONNECTION TO EXTERNAL ESMs   %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       PUBLIC  :: Accept_External_Date_Time
+#endif
+#ifdef BPCH_DIAG
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
+      !%%%  IS COMPILED WITH BPCH_DIAG=y (bmy, 10/4/19)               %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      PUBLIC  :: GET_DIAGb
+      PUBLIC  :: GET_DIAGe
+      PUBLIC  :: GET_CT_CHEM
+      PUBLIC  :: GET_CT_CONV
+      PUBLIC  :: GET_CT_DYN
+      PUBLIC  :: GET_CT_EMIS
+      PUBLIC  :: GET_CT_RAD
+      PUBLIC  :: GET_CT_A3
+      PUBLIC  :: GET_CT_I3
+      PUBLIC  :: GET_CT_DIAG
+      PUBLIC  :: GET_NYMD_DIAG
+      PUBLIC  :: ITS_MIDMONTH
+      PUBLIC  :: SET_CT_CHEM
+      PUBLIC  :: SET_CT_CONV
+      PUBLIC  :: SET_CT_DYN
+      PUBLIC  :: SET_CT_EMIS
+      PUBLIC  :: SET_CT_DIAG
+      PUBLIC  :: SET_CT_RAD
+      PUBLIC  :: SET_CT_A3
+      PUBLIC  :: SET_CT_I3
+      PUBLIC  :: SET_DIAGb
+      PUBLIC  :: SET_DIAGe
+      PUBLIC  :: SET_Hg2_DIAG
+      PUBLIC  :: ITS_TIME_FOR_BPCH
+      PUBLIC  :: ITS_TIME_FOR_DIAG
+      PUBLIC  :: GET_Hg2_DIAG
 #endif
 !
 ! !REMARKS:
@@ -145,90 +144,7 @@
 !
 ! !REVISION HISTORY:
 !  21 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Updated comments (bmy, 9/4/01)
-!  (2 ) Added routine YMD_EXTRACT.  Also rewrote TIMECHECK using astronomical
-!        Julian day routines from "julday_mod.f". (bmy, 11/21/01)
-!  (3 ) Eliminated obsolete code (bmy, 2/27/02)
-!  (4 ) Updated comments (bmy, 5/28/02)
-!  (5 ) Added routine "expand_date".  Also now reference "charpak_mod.f".
-!        (bmy, 6/27/02)
-!  (6 ) Now references "error_mod.f".  Also added function GET_SEASON, which
-!        returns the current season number. (bmy, 10/22/02)
-!  (7 ) Now added module variables and various GET_ and SET_ routines to
-!        access them.  Now minutes are the smallest timing unit. (bmy, 3/21/03)
-!  (8 ) Bug fix in DATE_STRING (bmy, 5/15/03)
-!  (9 ) Added GET_FIRST_A3_TIME and GET_FIRST_A6_TIME.  Also added changes for
-!        reading fvDAS fields. (bmy, 6/26/03)
-!  (10) Now allow ITS_A_LEAPYEAR to take an optional argument.  Bug fix for
-!        Linux: must use ENCODE to convert numbers to strings (bmy, 9/29/03)
-!  (11) Bug fix in EXPAND_DATE.  Also add optional arguments to function
-!        TIMESTAMP_STRNIG. (bmy, 10/28/03)
-!  (12) Changed the name of some cpp switches in "define.h" (bmy, 12/2/03)
-!  (13) Modified ITS_TIME_FOR_A6 and GET_FIRST_A6_TIME for both GEOS-4 
-!        "a_llk_03" and "a_llk_04" data versions. (bmy, 3/22/04)
-!  (14) Added routines ITS_A_NEW_MONTH, ITS_A_NEW_YEAR, ITS_A_NEW_DAY.
-!        (bmy, 4/1/04)
-!  (15) Added routines ITS_A_NEW_SEASON, GET_NDIAGTIME, SET_NDIAGTIME, and
-!        variable NDIAGTIME. (bmy, 7/20/04)
-!  (17) Added routine GET_DAY_OF_WEEK (bmy, 11/5/04)
-!  (18) Removed obsolete FIRST variable in GET_A3_TIME (bmy, 12/10/04)
-!  (19) Added routines SYSTEM_DATE_TIME and SYSTEM_TIMESTAMP.  Also modified
-!        for GCAP and GEOS-5 met fields. (swu, bmy, 5/3/05)
-!  (20) GCAP/GISS met fields don't have leap years (swu, bmy, 8/29/05)
-!  (21) Added counter variable & routines for XTRA fields (tmf, bmy, 10/20/05)
-!  (22) Bug fix in ITS_A_NEW_YEAR (bmy, 11/1/05)
-!  (23) Added function ITS_MIDMONTH.  Also removed obsolete functions
-!        NYMD_Y2K, NYMD6_2_NYMD8, NYMD_STRING, DATE_STRING. 
-!        (sas, cdh, bmy, 12/15/05)
-!  (24) GCAP bug fix: There are no leapyears, so transition from 2/28 to 3/1,
-!        skipping 2/29 for all years. (swu, bmy, 4/24/06)
-!  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (26) Further bug fix to skip over Feb 29th in GCAP (phs, bmy, 10/3/06)
-!  (27) Moved ITS_TIME_FOR_BPCH here from "main.f" (bmy, 2/2/07)
-!  (28) Add TS_DIAG and CT_DIAG variables to correctly output diagnostics 
-!        (good time step).
-!       Add SET_CT_DIAG and GET_CT_DIAG to implement TS_DIAG correctly.
-!       (ccc, 5/21/09)
-!  (29) Add NYMD_DIAG, GET_NYMD_DIAG, TIMESTAMP_DIAG to get the good timestamp
-!       for diagnostic filenames (ccc, 8/12/09)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Apr 2010 - R. Yantosca - Added OFFSET argument to GET_LOCALTIME
-!  27 Apr 2010 - R. Yantosca - Added TS_SUN_2 to hold 1/2 of the interval
-!                              for computing SUNCOS.
-!  27 Apr 2010 - R. Yantosca - Added public routine GET_TS_SUN_2
-!  19 Aug 2010 - R. Yantosca - Added variable CT_A1 and routine SET_CT_A1
-!  20 Aug 2010 - R. Yantosca - Added function ITS_TIME_FOR_A1
-!  27 Sep 2010 - R. Yantosca - Added function GET_FIRST_I6_TIME
-!  17 Dec 2010 - R. Yantosca - Bug fix for HHMMSS=240000 in GET_TIME_AHEAD
-!  27 Mar 2011 - R. Yantosca - Bug fix for GCAP leap year problem
-!  29 Jul 2011 - R. Yantosca - Add LEAP_YEAR_DAYS as a SAVEd module variable
-!  17 Feb 2011 - R. Yantosca - Added ITS_TIME_FOR_A6UPDATE for APM (G. Luo)
-!  07 Oct 2011 - M. Payer    - Modifications for central chemistry timestep
-!  07 Oct 2011 - R. Yantosca - Remove obsolete TS_SUN_2, GET_TS_SUN_2
-!  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
-!  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
-!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
-!                              v9-01-02
-!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
-!  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
-!  14 Jun 2013 - R. Yantosca - Now compute day of week in SET_CURRENT_TIME
-!  14 Jun 2013 - R. Yantosca - Added comments to module variable declarations
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  18 Sep 2013 - M. Long     - Now use #if defined( ESMF_ ) for HPC code
-!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  17 Dec 2014 - R. Yantosca - Need to keep time variables as 8-byte precision
-!  06 Jan 2015 - R. Yantosca - Add ITS_TIME_FOR_EXCH function for 2-way nests
-!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
-!                              compatible with the FlexChem implementation
-!  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
-!                              compatible with the FlexChem implementation
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
-!                              MERRA; Remove obsolete A6 and I6 routines
-!  06 Feb 2018 - E. Lundgren - Change timestep units from min to secf
-!  06 Jul 2018 - R. Yantosca - Add Valid_Date and Valid_Time functions
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,10 +211,8 @@
       INTEGER             :: CT_DYN       ! # of elapsed dynamic timesteps
       INTEGER             :: CT_EMIS      ! # of elapsed emission timesteps
       INTEGER             :: CT_RAD       ! # of elapsed radiation timesteps
-      INTEGER             :: CT_A1        ! # of elapsed A1 met field reads
       INTEGER             :: CT_A3        ! # of elapsed A3 met field reads
       INTEGER             :: CT_I3        ! # of elapsed I3 met field reads
-      INTEGER             :: CT_XTRA      ! # of elapsed XTRA met field reads
       INTEGER             :: CT_DIAG      ! # of elapsed diagnostic timesteps
       INTEGER             :: Hg2_DIAG     ! # of elapsed Hg2 diag outputs
 
@@ -321,8 +235,8 @@
 !
 ! !IROUTINE: Set_current_time
 !
-! !DESCRIPTION: Subroutine SET\_CURRENT\_TIME takes in the elapsed time in 
-!  minutes since the start of a GEOS-Chem simulation and sets the GEOS-Chem 
+! !DESCRIPTION: Subroutine SET\_CURRENT\_TIME takes in the elapsed time in
+!  minutes since the start of a GEOS-Chem simulation and sets the GEOS-Chem
 !  time variables accordingly.  NOTE: All time variables are returned
 !  w/r/t Greenwich Mean Time (aka Universal Time).
 !\\
@@ -340,23 +254,10 @@
 !  the leap-year days.  SET_CURRENT_TIME computes the days according to the
 !  Astronomical Julian Date algorithms (in "julday_mod.f"), which contain
 !  leap-year days.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2006 - R. Yantosca - Initial Version
-!  (1 ) GCAP/GISS fields don't have leap years, so if JULDAY says it's 
-!        Feb 29th, reset MONTH, DAY, JD1 to Mar 1st. (swu, bmy, 8/29/05)
-!  (2 ) Now references "define.h".  Now add special handling to skip from
-!        Feb 28th to Mar 1st for GCAP model. (swu, bmy, 4/24/06)
-!  (3 ) Fix bug in case of GCAP fields for runs that start during leap year
-!       and after February 29 (phs, 9/27/06)  
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2011 - R. Yantosca - Bug fix: For GCAP, we need to skip over the
-!                              # of leap-year-days that have already occurred
-!                              when going from Julian date to Y/M/D date
-!  14 Jun 2013 - R. Yantosca - Now move the day of week computation here
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  06 Feb 2018 - E. Lundgren - Update Julian Data calc to use new minimum time
-!                              unit of seconds (previously minutes)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -372,7 +273,7 @@
       !=================================================================
 
       ! Initialize LEAP_YEAR_DAYS
-      IF ( FIRST ) THEN 
+      IF ( FIRST ) THEN
          LEAP_YEAR_DAYS = 0e+0_f8
          FIRST          = .FALSE.
       ENDIF
@@ -401,8 +302,8 @@
       !=================================================================
 
       ! Current Greenwich Mean Time
-      GMT         = ( DBLE( HOUR )                ) + 
-     &              ( DBLE( MINUTE ) /   60e+0_f8 ) + 
+      GMT         = ( DBLE( HOUR )                ) +
+     &              ( DBLE( MINUTE ) /   60e+0_f8 ) +
      &              ( DBLE( SECOND ) / 3600e+0_f8 )
 
       ! Days elapsed in this year (0-366)
@@ -433,7 +334,7 @@
       ! Get fractional GMT day
       THISDAY     = DAY + ( GMT / 24e+0_f8 ) ! real*8
 
-      ! Get current Julian date 
+      ! Get current Julian date
       JD          = JULDAY( YEAR, MONTH, DBLE(THISDAY) ) ! real*8
 
       ! Add 1.5 to JD and divide by 7
@@ -445,7 +346,7 @@
       ! NOTE: This is not in the Duffett-Smith book, but when using
       ! REAL(f8), we have to round B to 4 decimal places in order
       ! to avoid floating-point errors. (bmy, 6/13/13)
-      B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) ) 
+      B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) )
      &            / 10e+0_f8 ) / 1e+4_f8
 
       ! Discard the fractional part of B
@@ -461,7 +362,7 @@
 ! !IROUTINE: Set_begin_time
 !
 ! !DESCRIPTION: Subroutine SET\_BEGIN\_TIME initializes NYMDb, NHMSb, and TAUb,
-!  which are the YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to 
+!  which are the YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to
 !  the beginning date and time of a GEOS-Chem run.
 !\\
 !\\
@@ -473,7 +374,7 @@
 !
       USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)  :: THISNYMDb   ! YYYYMMDD @ start of G-C simulation
       INTEGER, INTENT(IN)  :: THISNHMSb   ! HHMMSS   @ start of G-C simulation
@@ -481,13 +382,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
-!                              MERRA met data goes back prior to 1985
-!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -506,7 +404,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = ''
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Set_Begin_Time (in module GeosUtil/time_mod.F)'
 
       ! Error check THISNHMSb
@@ -544,8 +442,8 @@
 !
 ! !IROUTINE: Set_end_time
 !
-! !DESCRIPTION: Subroutine SET\_END\_TIME initializes NYMDe, NHMSe, and TAUe, 
-!  which are the YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to 
+! !DESCRIPTION: Subroutine SET\_END\_TIME initializes NYMDe, NHMSe, and TAUe,
+!  which are the YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to
 !  the ending date and time of a GEOS-Chem run.
 !\\
 !\\
@@ -557,7 +455,7 @@
 !
       USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)  :: THISNYMDe   ! YYYYMMDD @ end of G-C simulation
       INTEGER, INTENT(IN)  :: THISNHMSe   ! HHMMSS   @ end of G-C simulation
@@ -565,13 +463,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
-!                              MERRA met data goes back prior to 1985
-!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -591,7 +486,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = ''
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Set_End_Time (in module GeosUtil/time_mod.F)'
 
       ! Error check THISNHMS
@@ -626,7 +521,7 @@
 !
 ! !IROUTINE: Set_diagb
 !
-! !DESCRIPTION: Subroutine SET\_DIAGb initializes DIAGb, the TAU value at the 
+! !DESCRIPTION: Subroutine SET\_DIAGb initializes DIAGb, the TAU value at the
 !  start of the diagnostic averaging interval.
 !\\
 !\\
@@ -634,19 +529,20 @@
 !
       SUBROUTINE SET_DIAGb( THISDIAGb )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(f8), INTENT(IN) :: THISDIAGb  ! Initial DIAGb value [hrs from 1/1/85]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       DIAGb = THISDIAGb
 
       END SUBROUTINE SET_DIAGb
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -655,7 +551,7 @@
 !
 ! !IROUTINE: Set_diage
 !
-! !DESCRIPTION: Subroutine SET\_DIAGe initializes DIAGe, the TAU value at the 
+! !DESCRIPTION: Subroutine SET\_DIAGe initializes DIAGe, the TAU value at the
 !  end of the diagnostic averaging interval.
 !\\
 !\\
@@ -663,19 +559,20 @@
 !
       SUBROUTINE SET_DIAGe( THISDIAGe )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       REAL(f8), INTENT(IN) :: THISDIAGe  ! Initial DIAGe value [hrs from 1/1/85]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       DIAGe = THISDIAGe
 
       END SUBROUTINE SET_DIAGe
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -684,15 +581,15 @@
 !
 ! !IROUTINE: Set_timesteps
 !
-! !DESCRIPTION: Subroutine SET\_TIMESTEPS initializes the timesteps for 
-!  dynamics, convection, chemistry, emissions, and diagnostics.  
-!  Counters are also zeroed. 
+! !DESCRIPTION: Subroutine SET\_TIMESTEPS initializes the timesteps for
+!  dynamics, convection, chemistry, emissions, and diagnostics.
+!  Counters are also zeroed.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE SET_TIMESTEPS( am_I_Root,
-     &                          CHEMISTRY, CONVECTION, DYNAMICS,  
+     &                          CHEMISTRY, CONVECTION, DYNAMICS,
      &                          EMISSION,  UNIT_CONV,  DIAGNOS,
      &                          RADIATION )
 !
@@ -706,20 +603,10 @@
       INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [sec]
       INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [sec]
       INTEGER, INTENT(IN) :: RADIATION    ! Radiation  timestep [sec]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  (1 ) Suppress some output lines (bmy, 7/20/04)
-!  (2 ) Also zero CT_XTRA (tmf, bmy, 10/20/05)
-!  (3 ) Add TS_DIAG as the diagnostic timestep. (ccc, 5/13/09)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Apr 2010 - R. Yantosca - Now add SUNCOS argument to set 1/2 of the
-!                              interval for computing the cosine of the
-!                              solar zenith angle.
-!  07 Oct 2011 - R. Yantosca - Remove obsolete SUNCOS argument
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  06 Feb 2018 - E. Lundgren - Update timestep unit from min to sec
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -733,15 +620,17 @@
       TS_RAD   = RADIATION
 
       ! Zero timestep counters
+#ifdef BPCH_DIAG
       CT_CHEM  = 0
       CT_CONV  = 0
       CT_DYN   = 0
       CT_EMIS  = 0
       CT_RAD   = 0
       CT_A3    = 0
-      CT_XTRA  = 0
+      CT_I3    = 0
       CT_DIAG  = 0
       Hg2_DIAG = 0
+#endif
 
       ! Echo to stdout
       IF ( am_I_Root ) THEN
@@ -757,6 +646,7 @@
       ENDIF
 
       END SUBROUTINE SET_TIMESTEPS
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -766,7 +656,7 @@
 ! !IROUTINE: Set_ct_chem
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_CHEM increments CT\_CHEM, the counter
-!  of chemistry timesteps executed thus far. 
+!  of chemistry timesteps executed thus far.
 !\\
 !\\
 ! !INTERFACE:
@@ -777,10 +667,10 @@
 !
       LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -814,6 +704,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -844,10 +735,10 @@
 !
       LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
+!
 ! !REVISION HISTORY:
-!  18 Feb 2012 - H. Amos     - Initial version 
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  18 Feb 2012 - H. Amos     - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -868,7 +759,7 @@
 ! !IROUTINE: Set_ct_conv
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_CONV increments CT\_CONV, the counter
-!  of convection timesteps executed thus far. 
+!  of convection timesteps executed thus far.
 !\\
 !\\
 ! !INTERFACE:
@@ -879,17 +770,17 @@
 !
       LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_CONV = CT_CONV + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_CONV = 0 
+         CT_CONV = 0
       ENDIF
 
       END SUBROUTINE SET_CT_CONV
@@ -902,7 +793,7 @@
 ! !IROUTINE: Set_ct_dyn
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_DYN increments CT\_DYN, the counter
-!  of dynamical timesteps executed thus far. 
+!  of dynamical timesteps executed thus far.
 !\\
 !\\
 ! !INTERFACE:
@@ -913,10 +804,10 @@
 !
       LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -936,7 +827,7 @@
 ! !IROUTINE: Set_ct_emis
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_EMIS increments CT\_EMIS, the counter
-!  of emission timesteps executed thus far. 
+!  of emission timesteps executed thus far.
 !\\
 !\\
 ! !INTERFACE:
@@ -947,10 +838,10 @@
 !
       LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2009 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -970,7 +861,7 @@
 ! !IROUTINE: Set_ct_diag
 !
 ! !DESCRIPTION: Subroutine SET\_CT\_DIAG increments CT\_DIAG, the counter
-!  of largest timesteps executed thus far. 
+!  of largest timesteps executed thus far.
 !\\
 !\\
 ! !INTERFACE:
@@ -981,10 +872,10 @@
 !
       LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  13 May 2009 - C. Carouge  - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1001,42 +892,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_ct_a1
-!
-! !DESCRIPTION: Subroutine SET\_CT\_A1 increments CT\_A1, the counter of the 
-!  number of times we have read in A1 fields.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_CT_A1( INCREMENT, RESET )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
-!  19 Aug 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_A1 = CT_A1 + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_A1 = 0
-      ENDIF
-
-      END SUBROUTINE SET_CT_A1
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Set_ct_a3
 !
-! !DESCRIPTION: Subroutine SET\_CT\_A3 increments CT\_A3, the counter of the 
+! !DESCRIPTION: Subroutine SET\_CT\_A3 increments CT\_A3, the counter of the
 !  number of times we have read in A-3 fields.
 !\\
 !\\
@@ -1048,10 +906,10 @@
 !
       LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1070,7 +928,7 @@
 !
 ! !IROUTINE: Set_ct_i3
 !
-! !DESCRIPTION: Subroutine SET\_CT\_I3 increments CT\_I3, the counter of the 
+! !DESCRIPTION: Subroutine SET\_CT\_I3 increments CT\_I3, the counter of the
 !  number of times we have read in I-3 fields.
 !\\
 !\\
@@ -1082,9 +940,10 @@
 !
       LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
       LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
+!
 ! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1095,40 +954,7 @@
       ENDIF
 
       END SUBROUTINE SET_CT_I3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_ct_xtra
-!
-! !DESCRIPTION: Subroutine SET\_CT\_XTRA increments CT\_XTRA, the counter of 
-!  the number of times we have read in GEOS-3 XTRA fields. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_CT_XTRA( INCREMENT, RESET )
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
-! 
-! !REVISION HISTORY: 
-!  20 Oct 2009 - T-M Fu, R. Yantosca - Initial Version
-!  15 Jan 2010 -         R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_XTRA = CT_XTRA + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_XTRA = 0
-      ENDIF
-
-      END SUBROUTINE SET_CT_XTRA
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1137,17 +963,17 @@
 !
 ! !IROUTINE: Set_elapsed_sec
 !
-! !DESCRIPTION: Subroutine SET\_ELAPSED\_SEC increments the number of elapsed 
+! !DESCRIPTION: Subroutine SET\_ELAPSED\_SEC increments the number of elapsed
 !  seconds by the dynamic timestep TS\_DYN.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE SET_ELAPSED_SEC
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !  06 Feb 2018 - E. lundgren - Rename from SET_ELAPSED_MIN to SET_ELAPSED_SEC;
 !                              update minimum time unit from min to sec
 !EOP
@@ -1164,8 +990,8 @@
 !
 ! !IROUTINE: Get_jd
 !
-! !DESCRIPTION: Function GET\_JD is a wrapper for the JULDAY routine.  Given 
-!  the current NYMD and NHMS values, GET\_JD will return the current 
+! !DESCRIPTION: Function GET\_JD is a wrapper for the JULDAY routine.  Given
+!  the current NYMD and NHMS values, GET\_JD will return the current
 !  astronomical Julian date.
 !\\
 !\\
@@ -1185,10 +1011,10 @@
 ! !RETURN VALUE:
 !
       REAL(f8)             :: THISJD     ! Output value
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1204,15 +1030,15 @@
 
       ! Extract year, month, day from NYMDb
       CALL YMD_EXTRACT( THISNYMD, Y, M, D )
-         
-      ! Extract hour, minute, second from NHMSb
-      CALL YMD_EXTRACT( THISNHMS, H, MI, S )      
 
-      ! Decimal day (including fractional part) 
-      DAY  = DBLE( D ) + ( DBLE( H  ) /    24e+0_f8 ) + 
+      ! Extract hour, minute, second from NHMSb
+      CALL YMD_EXTRACT( THISNHMS, H, MI, S )
+
+      ! Decimal day (including fractional part)
+      DAY  = DBLE( D ) + ( DBLE( H  ) /    24e+0_f8 ) +
      &                   ( DBLE( MI ) /  1440e+0_f8 ) +
-     &                   ( DBLE( S  ) / 86400e+0_f8 ) 
-     
+     &                   ( DBLE( S  ) / 86400e+0_f8 )
+
       ! Compute astronomical Julian day at start of run
       THISJD = JULDAY( Y, M, DAY )
 
@@ -1226,7 +1052,7 @@
 !
 ! !IROUTINE: Get_elapsed_sec
 !
-! !DESCRIPTION: Function GET\_ELAPSED\_SEC returns the elapsed seconds since 
+! !DESCRIPTION: Function GET\_ELAPSED\_SEC returns the elapsed seconds since
 !  the start of a GEOS-Chem run to the calling program.
 !\\
 !\\
@@ -1237,10 +1063,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_ELAPSED_SEC
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1255,7 +1081,7 @@
 !
 ! !IROUTINE: Get_nymdb
 !
-! !DESCRIPTION: Function GET\_NYMDb returns the NYMDb value (YYYYMMDD at the 
+! !DESCRIPTION: Function GET\_NYMDb returns the NYMDb value (YYYYMMDD at the
 !  beginning of the run).
 !\\
 !\\
@@ -1266,10 +1092,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISNYMDb
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1284,7 +1110,7 @@
 !
 ! !IROUTINE: Get_nhmsb
 !
-! !DESCRIPTION: Function GET\_NHMSb returns the NHMSb value (HHMMSS at the 
+! !DESCRIPTION: Function GET\_NHMSb returns the NHMSb value (HHMMSS at the
 !  beginning of the run) to the calling program. (bmy, 3/21/03)
 !\\
 !\\
@@ -1295,10 +1121,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISNHMSb
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1313,7 +1139,7 @@
 !
 ! !IROUTINE: Get_nymde
 !
-! !DESCRIPTION: Function GET\_NYMDe returns the NYMDe value (YYYYMMDD at the 
+! !DESCRIPTION: Function GET\_NYMDe returns the NYMDe value (YYYYMMDD at the
 !  end of the run) to the calling program. (bmy, 3/21/03)
 !\\
 !\\
@@ -1324,10 +1150,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISNYMDe
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1353,10 +1179,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISNHMSe
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1381,10 +1207,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISNYMD
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1409,10 +1235,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISNHMS
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1427,8 +1253,8 @@
 !
 ! !IROUTINE: Get_time_ahead
 !
-! !DESCRIPTION: Function GET\_3h\_AHEAD returns to the calling program a 
-!  2-element vector containing the YYYYMMDD and HHMMSS values at the current 
+! !DESCRIPTION: Function GET\_3h\_AHEAD returns to the calling program a
+!  2-element vector containing the YYYYMMDD and HHMMSS values at the current
 !  time plus N\_SECS seconds.
 !\\
 !\\
@@ -1447,20 +1273,16 @@
 ! !RETURN VALUE:
 !
       INTEGER             :: DATE(2)  ! Date & time output
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  17 Dec 2010 - R. Yantosca - Added fix in case HHMMSS is returned as 240000
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  06 Feb 2018 - E. Lundgren - Change passed units from minutes to seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       INTEGER  :: THISYEAR, THISMONTH, THISDAY, TMP
       REAL(f8) :: JD
 
@@ -1475,8 +1297,8 @@
       CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
 
       ! Check to see if HHMMSS is 240000.  This may occur due to a
-      ! roundoff error in CALDATE.  If this is the case, then add 1 
-      ! to the date and then set HHMMSS = 0.  Use the GET_JD and 
+      ! roundoff error in CALDATE.  If this is the case, then add 1
+      ! to the date and then set HHMMSS = 0.  Use the GET_JD and
       ! CALDATE functions to do this computation rigorously.
       IF ( DATE(2) == 240000 ) THEN
 
@@ -1510,10 +1332,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISMONTH
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1538,10 +1360,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISDAY
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1566,74 +1388,16 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISYEAR
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THISYEAR = YEAR
 
       END FUNCTION GET_YEAR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_histyr
-!
-! !DESCRIPTION: Function SET\_HISTYR returns the year stored in HISTYR w/o
-!  needing to include the CMN\_O3 common block (eml, 8/20/08)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_HISTYR( YEARIN )
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN) :: YEARIN
-! 
-! !REVISION HISTORY:
-!  20 Aug 2008 - E. Leibensperger - Initial version
-!  07 Mar 2012 - M. Payer         - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      HISTYRA = YEARIN
-      
-      END SUBROUTINE SET_HISTYR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_histyr
-!
-! !DESCRIPTION: Function GET\_HISTYR returns the year stored in HISTYR w/o
-!  needing to include the CMN\_O3 common block (eml, 8/20/08)
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_HISTYR() RESULT( HISTYEAR )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: HISTYEAR
-! 
-! !REVISION HISTORY:
-!  20 Aug 2008 - E. Leibensperger - Initial version
-!  07 Mar 2012 - M. Payer         - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      HISTYEAR = HISTYRA
-
-      END FUNCTION GET_HISTYR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1652,10 +1416,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISHOUR
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1680,10 +1444,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISMINUTE
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1709,10 +1473,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISSECOND
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1738,10 +1502,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISDAYOFYEAR  ! Day of year
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1756,7 +1520,7 @@
 !
 ! !IROUTINE: Get_gmt
 !
-! !DESCRIPTION:  Function GET\_GMT returns the current Greenwich Mean Time 
+! !DESCRIPTION:  Function GET\_GMT returns the current Greenwich Mean Time
 !  to the calling program.
 !\\
 !\\
@@ -1767,10 +1531,10 @@
 ! !RETURN VALUE:
 !
       REAL(f8) :: THISGMT   ! Greenwich mean time [hrs]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1786,8 +1550,8 @@
 !
 ! !IROUTINE: Get_tau
 !
-! !DESCRIPTION: Function GET\_TAU returns TAU (hours since 1 Jan 
-!  1985 at the start of a GEOS-Chem run) to the calling program. 
+! !DESCRIPTION: Function GET\_TAU returns TAU (hours since 1 Jan
+!  1985 at the start of a GEOS-Chem run) to the calling program.
 !\\
 !\\
 ! !INTERFACE:
@@ -1797,10 +1561,10 @@
 ! !RETURN VALUE:
 !
       REAL(f8) :: THISTAU  ! TAUb [hrs since 1/1/1985]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1815,8 +1579,8 @@
 !
 ! !IROUTINE: Get_taub
 !
-! !DESCRIPTION: Function GET\_TAUb returns TAUb (hours since 1 Jan 1985 
-!  at the start of a GEOS-Chem run) to the calling program. 
+! !DESCRIPTION: Function GET\_TAUb returns TAUb (hours since 1 Jan 1985
+!  at the start of a GEOS-Chem run) to the calling program.
 !\\
 !\\
 ! !INTERFACE:
@@ -1826,10 +1590,10 @@
 ! !RETURN VALUE:
 !
       REAL(f8) :: THISTAUb  ! TAUb [hrs since 1/1/1985]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1844,8 +1608,8 @@
 !
 ! !IROUTINE: Get_taue
 !
-! !DESCRIPTION: Function GET\_TAUe returns TAUe (hours since 1 Jan 1985 
-!  at the end of a GEOS-Chem run) to the calling program. 
+! !DESCRIPTION: Function GET\_TAUe returns TAUe (hours since 1 Jan 1985
+!  at the end of a GEOS-Chem run) to the calling program.
 !\\
 !\\
 ! !INTERFACE:
@@ -1855,16 +1619,17 @@
 ! !RETURN VALUE:
 !
       REAL(f8) :: THISTAUe  ! TAUe [hrs since 1/1/1985]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THISTAUe = TAUe
 
       END FUNCTION GET_TAUe
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1884,11 +1649,10 @@
 ! !RETURN VALUE:
 !
       REAL(f8) :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGb needs to be REAL(fp)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1914,17 +1678,17 @@
 ! !RETURN VALUE:
 !
       REAL(f8) :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  29 Jul 2014 - R. Yantosca - Bug fix: THISDIAGe needs to be REAL(fp)
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THISDIAGe = DIAGe
 
       END FUNCTION GET_DIAGe
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1957,21 +1721,14 @@
 ! !RETURN VALUE:
 !
       REAL(f8) :: THISLOCALTIME  ! Local time [hrs]
-! 
+!
 ! !REMARKS:
 !  Local Time = GMT + ( longitude / 15 ) since each hour of time
 !  corresponds to 15 degrees of longitude on the globe
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Apr 2010 - R. Yantosca - Add OFFSET to argument list, to allow the
-!                              local time to be computed at an arbitrary time
-!                              (e.g. at the halfway point of an interval)
-!  05 Oct 2011 - R. Yantosca - Now add GMT as an optional argument
-!  07 Oct 2011 - R. Yantosca - Removed obsolete OFFSET argument
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90, and
-!                              add J, L indices to the argument list
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1989,7 +1746,7 @@
       ENDIF
 
       ! Local time  = GMT time [hrs] + longitude / 15
-      THISLOCALTIME = GMT_HRS + ( State_Grid%XMid(I,J) / 15.0_f8 ) 
+      THISLOCALTIME = GMT_HRS + ( State_Grid%XMid(I,J) / 15.0_f8 )
 
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
       IF ( THISLOCALTIME > 24.0_f8 ) THEN
@@ -2033,13 +1790,14 @@
 ! !RETURN VALUE:
 !
       INTEGER :: Lt_In_Sec   ! Local time [s]
-! 
+!
 ! !REMARKS:
 !  Local Time = GMT + ( longitude / 15 ) since each hour of time
 !  corresponds to 15 degrees of longitude on the globe
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  18 Apr 2019 - R. Yantosca - Initial Version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2074,38 +1832,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_season
-!
-! !DESCRIPTION: Function GET\_SEASON returns the climatological season number 
-!  (1=DJF, 2=MAM, 3=JJA, 4=SON) to the calling program.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_SEASON() RESULT( THISSEASON )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THISSEASON   ! Current season
-! 
-! !REVISION HISTORY: 
-!  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THISSEASON = NSEASON
-
-      END FUNCTION GET_SEASON
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Get_ts_chem
 !
-! !DESCRIPTION: Function GET\_TS\_CHEM returns the chemistry timestep in 
+! !DESCRIPTION: Function GET\_TS\_CHEM returns the chemistry timestep in
 !  seconds.
 !\\
 !\\
@@ -2114,12 +1843,12 @@
       FUNCTION GET_TS_CHEM() RESULT( THIS_TS_CHEM )
 !
 ! !RETURN VALUE:
-! 
+!
       INTEGER :: THIS_TS_CHEM   ! ! Chemistry timestep [sec]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2148,6 +1877,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2162,7 +1892,7 @@
 !
 ! !IROUTINE: Get_ts_conv
 !
-! !DESCRIPTION: Function GET\_TS\_CONV returns the convection timestep in 
+! !DESCRIPTION: Function GET\_TS\_CONV returns the convection timestep in
 !  seconds.
 !\\
 !\\
@@ -2173,10 +1903,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_TS_CONV   ! Convective timestep [sec]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2191,7 +1921,7 @@
 !
 ! !IROUTINE: Get_ts_diag
 !
-! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in 
+! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in
 !  seconds.
 !\\
 !\\
@@ -2202,10 +1932,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_TS_DIAG   ! Diagnostic timestep [sec]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2220,7 +1950,7 @@
 !
 ! !IROUTINE: Get_ts_dyn
 !
-! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in 
+! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in
 !  seconds.
 !\\
 !\\
@@ -2231,10 +1961,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_TS_DYN    ! Dynamic timestep [sec]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2249,7 +1979,7 @@
 !
 ! !IROUTINE: Get_ts_emis
 !
-! !DESCRIPTION: Function GET\_TS\_EMIS returns the emission timestep in 
+! !DESCRIPTION: Function GET\_TS\_EMIS returns the emission timestep in
 !  seconds.
 !\\
 !\\
@@ -2260,10 +1990,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_TS_EMIS   ! Emissions timestep [sec]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2289,16 +2019,17 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_TS_UNIT   ! Unit conversion timestep [sec]
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THIS_TS_UNIT = TS_UNIT
 
       END FUNCTION GET_TS_UNIT
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2307,7 +2038,7 @@
 !
 ! !IROUTINE: Get_ct_chem
 !
-! !DESCRIPTION: Function GET\_CT\_CHEM returns the chemistry timestep counter 
+! !DESCRIPTION: Function GET\_CT\_CHEM returns the chemistry timestep counter
 !  to the calling program.
 !\\
 !\\
@@ -2318,10 +2049,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_CHEM
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2350,6 +2081,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2364,7 +2096,7 @@
 !
 ! !IROUTINE: Get_ct_conv
 !
-! !DESCRIPTION: Function GET\_CT\_CONV returns the convection timestep 
+! !DESCRIPTION: Function GET\_CT\_CONV returns the convection timestep
 !  counter to the calling program.
 !\\
 !\\
@@ -2375,10 +2107,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_CONV   ! # of convection timesteps
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2393,7 +2125,7 @@
 !
 ! !IROUTINE: Get_ct_dyn
 !
-! !DESCRIPTION: Function GET\_CT\_CHEM returns the dynamic timestep counter 
+! !DESCRIPTION: Function GET\_CT\_CHEM returns the dynamic timestep counter
 !  to the calling program.
 !\\
 !\\
@@ -2404,10 +2136,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_DYN   ! # of dynamics timesteps
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2434,10 +2166,10 @@
 !
       INTEGER :: THIS_CT_EMIS  ! # of emissions timesteps
 !
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2450,38 +2182,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_ct_a1
-!
-! !DESCRIPTION: Function GET\_CT\_A1 returns the A1 fields timestep 
-!  counter to the calling program.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_CT_A1() RESULT( THIS_CT_A1 )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THIS_CT_A1   ! # of A-3 timesteps
-! 
-! !REVISION HISTORY: 
-!  19 Aug 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-      THIS_CT_A1 = CT_A1
-
-      END FUNCTION GET_CT_A1
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Get_ct_a3
 !
-! !DESCRIPTION: Function GET\_CT\_A3 returns the A-3 fields timestep 
+! !DESCRIPTION: Function GET\_CT\_A3 returns the A-3 fields timestep
 !  counter to the calling program.
 !\\
 !\\
@@ -2492,10 +2195,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_A3   ! # of A-3 timesteps
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2522,44 +2225,16 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_I3   ! # of I-6 timesteps
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THIS_CT_I3 = CT_I3
 
       END FUNCTION GET_CT_I3
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_ct_xtra
-!
-! !DESCRIPTION: Function GET\_CT\_XTRA returns the XTRA fields timestep 
-!  counter to the calling program.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_CT_XTRA() RESULT( THIS_CT_XTRA )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THIS_CT_XTRA    ! # of XTRA timesteps
-! 
-! !REVISION HISTORY: 
-!  20 Oct 2005 - T-M Fu, R. Yantosca - Initial Version
-!  15 Jan 2010 -         R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THIS_CT_XTRA = CT_XTRA
-
-      END FUNCTION GET_CT_XTRA
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2579,10 +2254,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_DIAG   ! # of diagnostic timesteps
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 May 2009 - C. Carouge  - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2608,16 +2283,17 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_Hg2_DIAG  ! # of diagnostic timesteps
-! 
+!
 ! !REVISION HISTORY:
-!  18 Feb 2012 - H. Amos     - Initial version 
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  18 Feb 2012 - H. Amos     - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       THIS_Hg2_DIAG = Hg2_DIAG
 
       END FUNCTION GET_Hg2_DIAG
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2626,8 +2302,8 @@
 !
 ! !IROUTINE: Get_a1_time
 !
-! !DESCRIPTION: Function GET\_A1\_TIME returns the correct YYYYMMDD and HHMMSS 
-!  values that are needed to read in the next average 1-hour (A-1) fields. 
+! !DESCRIPTION: Function GET\_A1\_TIME returns the correct YYYYMMDD and HHMMSS
+!  values that are needed to read in the next average 1-hour (A-1) fields.
 !\\
 !\\
 ! !INTERFACE:
@@ -2637,19 +2313,15 @@
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version
-!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  11 Aug 2015 - R. Yantosca - Return DATE for MERRA2 the same as for GEOS-FP
-!  06 Feb 2017 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-      ! GEOS-FP and MERRA-2 met fields are 1-hour time-averages, timestamped 
+      ! GEOS-FP and MERRA-2 met fields are 1-hour time-averages, timestamped
       ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
       DATE = GET_TIME_AHEAD( 1800 )
 
@@ -2662,8 +2334,8 @@
 !
 ! !IROUTINE: Get_a3_time
 !
-! !DESCRIPTION: Function GET\_A3\_TIME returns the correct YYYYMMDD and HHMMSS 
-!  values that are needed to read in the next average 3-hour (A-3) fields. 
+! !DESCRIPTION: Function GET\_A3\_TIME returns the correct YYYYMMDD and HHMMSS
+!  values that are needed to read in the next average 3-hour (A-3) fields.
 !\\
 !\\
 ! !INTERFACE:
@@ -2673,17 +2345,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Now return proper time for GEOS-4/fvDAS fields (bmy, 6/19/03)
-!  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
-!  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
-!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  06 Feb 2017 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2691,7 +2356,7 @@
       ! The A-3 fields are timestamped by center time.
       ! Therefore, the difference between the actual time when the fields
       ! are read and the A-3 timestamp time is 90 minutes.
-      DATE = GET_TIME_AHEAD( 5400 )   
+      DATE = GET_TIME_AHEAD( 5400 )
 
       END FUNCTION GET_A3_TIME
 !EOC
@@ -2702,9 +2367,9 @@
 !
 ! !IROUTINE: Get_i3_time
 !
-! !DESCRIPTION: Function GET\_I3\_TIME returns the correct YYYYMMDD and 
-!  HHMMSS values that are needed to read in the next instantaneous 3-hour 
-!  (I-3) fields. 
+! !DESCRIPTION: Function GET\_I3\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values that are needed to read in the next instantaneous 3-hour
+!  (I-3) fields.
 !\\
 !\\
 ! !INTERFACE:
@@ -2714,30 +2379,30 @@
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
-!  
+!
 ! !REMARKS:
 !  Modified for start times other than 0 GMT.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Initial version
-!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: HH, MM, SS, SECS, OFFSET
 
       !=================================================================
       ! ALL MET FIELDS:
       !=================================================================
- 
+
       IF ( FIRST ) THEN
 
          !--------------------------------------------------------------
-         ! FIRST-TIME ONLY!  Get the proper # of hours until the next 
+         ! FIRST-TIME ONLY!  Get the proper # of hours until the next
          ! I3 time.  Also works for start times other than 0 GMT.
          !--------------------------------------------------------------
 
@@ -2751,7 +2416,7 @@
          OFFSET = 10800 - SECS
 
          ! Get YYYY/MM/DD and hh:mm:ss to next I3 time
-         DATE   = GET_TIME_AHEAD( OFFSET ) 
+         DATE   = GET_TIME_AHEAD( OFFSET )
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -2762,7 +2427,7 @@
          ! Other than the 1st time: Search 180 mins ahead
          !--------------------------------------------------------------
 
-         ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs) 
+         ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs)
          ! ahead of time
          DATE = GET_TIME_AHEAD( 10800 )
 
@@ -2778,7 +2443,7 @@
 ! !IROUTINE: Get_first_a1_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_A1\_TIME returns the correct YYYYMMDD
-!  and HHMMSS values the first time that A-3 fields are read in from disk. 
+!  and HHMMSS values the first time that A-3 fields are read in from disk.
 !\\
 !\\
 ! !INTERFACE:
@@ -2788,20 +2453,17 @@
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  26 Jun 2003 - R. Yantosca - Initial Version
-!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
       ! Return the first A-1 time
       DATE = GET_A1_TIME()
-  
+
       END FUNCTION GET_FIRST_A1_TIME
 !EOC
 !------------------------------------------------------------------------------
@@ -2812,7 +2474,7 @@
 ! !IROUTINE: Get_first_a3_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_A3\_TIME returns the correct YYYYMMDD
-!  and HHMMSS values the first time that A-3 fields are read in from disk. 
+!  and HHMMSS values the first time that A-3 fields are read in from disk.
 !\\
 !\\
 ! !INTERFACE:
@@ -2822,16 +2484,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  26 Jun 2003 - R. Yantosca - Initial Version
-!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2849,7 +2505,7 @@
 
       ! Compute seconds elapsed in the 3-hour interval
       SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
-      
+
       ! Compute offset to midpoint of 3hr interval
       OFFSET = 10800 - ( SECS + 5400 )
 
@@ -2876,10 +2532,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
-!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2893,7 +2549,7 @@
       !==================================================================
 
       ! Split NYMS into hours, mins, seconds
-      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )
 
       ! Compute seconds elapsed in the 3-hour interval
       SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
@@ -2902,7 +2558,7 @@
       OFFSET = -SECS
 
       ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
-      DATE   = GET_TIME_AHEAD( OFFSET ) 
+      DATE   = GET_TIME_AHEAD( OFFSET )
 
       END FUNCTION GET_FIRST_I3_TIME
 !EOC
@@ -2913,7 +2569,7 @@
 !
 ! !IROUTINE: Its_Time_For_chem
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_CHEM returns TRUE if it is time to do 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_CHEM returns TRUE if it is time to do
 !  chemistry, or FALSE otherwise.
 !\\
 !\\
@@ -2923,15 +2579,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  27 Sep 2011 - M. Payer    - Modifications for centralizing the chemistry
-!                              time step (lzh)
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2939,7 +2591,7 @@
 ! !LOCAL VARIABLES:
 !
       ! changes for proper chemistry time (lzh, ccc, 3/20/10)
-      INTEGER :: M 
+      INTEGER :: M
 
       !=================================================================
       ! ITS_TIME_FOR_CHEM begins here!
@@ -2978,10 +2630,7 @@
 !
 ! !REVISION HISTORY:
 !  04 Oct 2012 - D. Ridley   - Initial Version
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
-!  18 May 2018 - C. Holmes   - Call radiation the first time after half-interval,
-!                              without requiring an exact time match.
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3029,6 +2678,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial Version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3056,7 +2706,7 @@
 !
 ! !IROUTINE: Its_Time_For_conv
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_CONV returns TRUE if it is time to do 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_CONV returns TRUE if it is time to do
 !  convection, or FALSE otherwise.
 !\\
 !\\
@@ -3066,13 +2716,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3088,7 +2736,7 @@
 !
 ! !IROUTINE: Its_Time_For_dyn
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_DYN returns TRUE if it is time to do 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_DYN returns TRUE if it is time to do
 !  chemistry and false otherwise.
 !\\
 !\\
@@ -3098,11 +2746,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
 !                              timestep units of seconds
 !EOP
@@ -3120,8 +2768,8 @@
 !
 ! !IROUTINE: Its_Time_For_emis
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_EMIS returns TRUE if it is time to do 
-!  emissions, or FALSE otherwise. 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_EMIS returns TRUE if it is time to do
+!  emissions, or FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -3130,15 +2778,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  07 Oct 2011 - R. Yantosca - Modifications for centralizing the chemistry
-!                              time step (lzh)
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3146,7 +2790,7 @@
 ! !LOCAL VARIABLES:
 !
       ! changes for proper chemistry time (lzh, ccc, 3/20/10)
-      INTEGER :: M 
+      INTEGER :: M
 
       !=================================================================
       ! ITS_TIME_FOR_EMIS begins here!
@@ -3185,8 +2829,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Mar 2014 - Y.Y. Yan    - Initial Version
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3219,7 +2862,7 @@
 !
 ! !IROUTINE: Its_Time_For_unit
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_UNIT returns TRUE if it is time to do 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_UNIT returns TRUE if it is time to do
 !  unit conversion, or FALSE otherwise.
 !\\
 !\\
@@ -3229,13 +2872,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3244,6 +2885,7 @@
       FLAG = ( MOD( ELAPSED_SEC, TS_DYN ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_UNIT
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3252,7 +2894,7 @@
 !
 ! !IROUTINE: Its_Time_For_diag
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_DIAG returns TRUE if it is time to 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_DIAG returns TRUE if it is time to
 !  archive certain diagnostics, or FALSE otherwise.
 !\\
 !\\
@@ -3262,14 +2904,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  20 Jul 2009 - C. Carouge  - Use TS_DIAG now and not 60 minutes
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3277,6 +2916,7 @@
       FLAG = ( MOD( ELAPSED_SEC, TS_DIAG ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_DIAG
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3285,8 +2925,8 @@
 !
 ! !IROUTINE: Its_Time_For_a1
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_A1 returns TRUE if it is time to read 
-!  in A1 (average 1-hr fields) and FALSE otherwise. 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_A1 returns TRUE if it is time to read
+!  in A1 (average 1-hr fields) and FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -3295,10 +2935,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  20 Aug 2010 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3314,8 +2955,8 @@
 !
 ! !IROUTINE: Its_Time_For_a3
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_A3 returns TRUE if it is time to read 
-!  in A3 (average 3-hr fields) and FALSE otherwise. 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_A3 returns TRUE if it is time to read
+!  in A3 (average 3-hr fields) and FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -3324,11 +2965,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3344,7 +2985,7 @@
 !
 ! !IROUTINE: Its_Time_For_i3
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_I3 returns TRUE if it is time to read 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_I3 returns TRUE if it is time to read
 !  in I2 (instantaneous 3-hr fields) and FALSE otherwise.
 !\\
 !\\
@@ -3354,10 +2995,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3365,10 +3007,10 @@
 ! !LOCAL VARAIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
-      
+
       ! We read in I-6 fields at 00, 03, 06, 09, 12, 15, 18, 21 GMT
       FLAG = ( ( MOD( NHMS, 030000 ) == 0 ) .or. FIRST )
-      
+
       FIRST = .FALSE.
 
       END FUNCTION ITS_TIME_FOR_I3
@@ -3390,11 +3032,11 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG 
-! 
-! !REVISION HISTORY: 
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3403,6 +3045,7 @@
       FLAG = ( TAU >= TAUe )
 
       END FUNCTION ITS_TIME_FOR_EXIT
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3411,7 +3054,7 @@
 !
 ! !IROUTINE: Its_Time_For_bpch
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_BPCH returns TRUE if it's time to 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_BPCH returns TRUE if it's time to
 !  write output to the bpch file, or FALSE otherwise.
 !\\
 !\\
@@ -3430,14 +3073,14 @@
 ! !RETURN VALUE:
 !
       LOGICAL :: DO_BPCH
-! 
+!
 ! !REMARKS:
 !  NJDAY is now located in CMN_SIZE_mod.F, so that we can eventually
 !  retire the obsolete CMN_DIAG_mod.F. (bmy, 1/16/18)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 Feb 2007 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3447,7 +3090,7 @@
 
       !=================================================================
       ! ITS_TIME_FOR_BPCH begins here!
-      !================================================================= 
+      !=================================================================
 
       ! Return FALSE if it's the first timestep
       IF ( TAU == TAUb ) THEN
@@ -3461,7 +3104,7 @@
       ! Look up appropriate value of NJDAY array.  We may need to add a
       ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
       IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. DOY > 59 ) THEN
-         THIS_NJDAY = Input_Opt%NJDAY( DOY + 1 ) 
+         THIS_NJDAY = Input_Opt%NJDAY( DOY + 1 )
       ELSE
          THIS_NJDAY = Input_Opt%NJDAY( DOY )
       ENDIF
@@ -3474,6 +3117,7 @@
       ENDIF
 
       END FUNCTION ITS_TIME_FOR_BPCH
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3482,15 +3126,15 @@
 !
 ! !IROUTINE: Its_A_LeapYear
 !
-! !DESCRIPTION: Function ITS\_A\_LEAPYEAR tests to see if a year is really a 
-!  leapyear. 
+! !DESCRIPTION: Function ITS\_A\_LEAPYEAR tests to see if a year is really a
+!  leapyear.
 !\\
 !\\
 ! !INTERFACE:
 !
       FUNCTION ITS_A_LEAPYEAR( YEAR_IN, FORCE ) RESULT( IS_LEAPYEAR )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN), OPTIONAL :: YEAR_IN   ! Year to test if leapyear
       LOGICAL, INTENT(IN), OPTIONAL :: FORCE     ! Do not exit if using GCAP
@@ -3498,17 +3142,10 @@
 ! !RETURN VALUE:
 !
       LOGICAL                       :: IS_LEAPYEAR  ! =T if it's a leapyear
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  17 Mar 1999 - R. Yantosca - Initial Version
-!  (1 ) Now remove YEAR from ARG list; use the module variable (bmy, 3/21/03)
-!  (2 ) Now add YEAR_IN as an optional argument.  If YEAR_IN is not passed,
-!        then test if the current year is a leapyear (bmy, 9/25/03)
-!  (3 ) Now always return FALSE for GCAP (swu, bmy, 8/29/05)
-!  (4 ) Now add FORCE argument to force ITS_A_LEAPYEAR to return a value
-!        instead of just returning with FALSE for the GCAP met fields.
-!        (swu, bmy, 4/24/06)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3522,7 +3159,7 @@
       ! LEAPYEAR begins here!
       !=================================================================
 
-      ! If YEAR_IN is passed, use that value; otherwise use the value 
+      ! If YEAR_IN is passed, use that value; otherwise use the value
       ! of the current year as stored in module variable YEAR.
       IF ( PRESENT( YEAR_IN ) ) THEN
          THISYEAR = YEAR_IN
@@ -3543,13 +3180,13 @@
       ! (2) evenly divisible by 4, 100, and 400 (if a century year)
       !
       ! EXAMPLES:
-      ! (a) 1992 is a leap year since it is evenly divisible by 4, 
+      ! (a) 1992 is a leap year since it is evenly divisible by 4,
       !     and is not a century year (i.e. it doesn't end in '00').
       !
-      ! (b) 1900 is NOT a leap year, since while being evenly divisible 
+      ! (b) 1900 is NOT a leap year, since while being evenly divisible
       !     by 4 and 100, it is NOT divisible by 400.
       !
-      ! (c) 2000 is a leap year, since it is divisible by 
+      ! (c) 2000 is a leap year, since it is divisible by
       !     4, 100, and 400.
       !=================================================================
       IS_LEAPYEAR = .FALSE.
@@ -3562,7 +3199,7 @@
          ELSE
             IS_LEAPYEAR = .TRUE.
          ENDIF
-      ENDIF        
+      ENDIF
 
       END FUNCTION ITS_A_LEAPYEAR
 !EOC
@@ -3573,7 +3210,7 @@
 !
 ! !IROUTINE: Its_A_New_Year
 !
-! !DESCRIPTION: Function ITS\_A\_NEW\_YEAR returns TRUE if it's the first 
+! !DESCRIPTION: Function ITS\_A\_NEW\_YEAR returns TRUE if it's the first
 !  timestep of the year when we have to read in annual data.
 !\\
 !\\
@@ -3589,7 +3226,7 @@
 ! !RETURN VALUE:
 !
       LOGICAL           :: IS_NEW_YEAR   ! =T if it's 1st data read of year
-! 
+!
 ! !REMARKS:
 !  ITS_A_NEW_YEAR assumes that we are using the central chemistry timestep
 !  option (i.e. do chemistry & emissions & related processes at the midpoint
@@ -3597,28 +3234,25 @@
 !  optional flag NO_CCTS = .TRUE.
 !                                                                             .
 !  If we are using the central chemistry timestep option (which is now the
-!  default behavior), then we must not read data at 00:00 GMT on the first day 
-!  of the year, but at the center of the first chemistry timestep of the 
-!  year.  This is because emissions and chemistry are done at the same time.  
-!  The proper time of day for reading emissions is determined by function 
+!  default behavior), then we must not read data at 00:00 GMT on the first day
+!  of the year, but at the center of the first chemistry timestep of the
+!  year.  This is because emissions and chemistry are done at the same time.
+!  The proper time of day for reading emissions is determined by function
 !  ITS_TIME_FOR_EMIS, also within time_mod.f.
 !                                                                             .
-!  Similarly, for simulations that start at an arbitrary midmonth date and 
+!  Similarly, for simulations that start at an arbitrary midmonth date and
 !  time, we must not read data at the starting date and time of the simulation,
 !  but at the midpoint of the first chemistry timestep of the simulation.
 !                                                                             .
 !  If we are not using the central chemistry timestep option (specified by
-!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT 
-!  on the Jan 1st.  Similarly, for those simulations that start at midmonth, 
+!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT
+!  on the Jan 1st.  Similarly, for those simulations that start at midmonth,
 !  the first data read will occur the starting date and time
 !  of the simulation.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Apr 2004 - R. Yantosca - Initial Version
-!  01 Nov 2005 - R. Yantosca - Bug fix: Need month & day to be 1
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep
-!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3642,7 +3276,7 @@
 
       ! Emissions timestep [hours]
       TS = DBLE( TS_EMIS ) / 3600e+0_f8
-     
+
       !==============================================================
       ! FOR JANUARY 1st OF THE YEAR
       !==============================================================
@@ -3650,7 +3284,7 @@
 
          IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.  
+            ! Here, we are not using the central chemistry timestep.
             ! Therefore, the first data read of the year should occur
             ! at 00:00 GMT on Jan 1st.
             IS_NEW_YEAR = ( NHMS == 000000 )
@@ -3658,8 +3292,8 @@
          ELSE
 
             ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the year will occur not at 
-            ! 00:00 GMT on the Jan 1st, but offset by a small amount (as 
+            ! Therefore, the first data read of the year will occur not at
+            ! 00:00 GMT on the Jan 1st, but offset by a small amount (as
             ! diagnosed by function ITS_TIME_FOR_EMIS).
             IS_NEW_YEAR = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
 
@@ -3673,8 +3307,8 @@
          !==============================================================
          IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.  
-            ! Therefore, the first data read of this year should occur 
+            ! Here, we are not using the central chemistry timestep.
+            ! Therefore, the first data read of this year should occur
             ! at the start time of the simulation.
             IS_NEW_YEAR = ( NHMS == NHMSb )
 
@@ -3685,10 +3319,10 @@
 
             ! Compute GMT at the start of the simulation
             GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
-            
+
             ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the year will occur not 
-            ! at  00:00 GMT on Jan 1st, but offset by a small amount (as  
+            ! Therefore, the first data read of the year will occur not
+            ! at  00:00 GMT on Jan 1st, but offset by a small amount (as
             ! diagnosed by function ITS_TIME_FOR_EMIS).
             IS_NEW_YEAR  = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
 
@@ -3702,7 +3336,7 @@
 
          ! It isn't time for the first data read of the year; return FALSE
          IS_NEW_YEAR = .FALSE.
-         
+
       ENDIF
 
       END FUNCTION ITS_A_NEW_YEAR
@@ -3738,28 +3372,25 @@
 !  optional flag NO_CCTS = .TRUE.
 !                                                                             .
 !  If we are using the central chemistry timestep option (which is now the
-!  default behavior), then we must not read data at 00:00 GMT on the first day 
-!  of the month, but at the center of the first chemistry timestep of the 
-!  month.  This is because emissions and chemistry are done at the same time.  
-!  The proper time of day for reading emissions is determined by function 
+!  default behavior), then we must not read data at 00:00 GMT on the first day
+!  of the month, but at the center of the first chemistry timestep of the
+!  month.  This is because emissions and chemistry are done at the same time.
+!  The proper time of day for reading emissions is determined by function
 !  ITS_TIME_FOR_EMIS, also within time_mod.f.
 !                                                                             .
-!  Similarly, for simulations that start at an arbitrary midmonth date and 
+!  Similarly, for simulations that start at an arbitrary midmonth date and
 !  time, we must not read data at the starting date and time of the simulation,
 !  but at the midpoint of the first chemistry timestep of the simulation.
 !                                                                             .
 !  If we are not using the central chemistry timestep option (specified by
-!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT 
+!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT
 !  on the first day of the month.  Similarly, for those simulations that start
 !  at midmonth, the first data read will occur the starting date and time
 !  of the simulation.
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  01 Apr 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  12 Oct 2011 - R. Yantosca - Modified for central chemistry timestep option
-!  27 Apr 2016 - E. Lundgren - Include minute condition for first day of month
-!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3774,7 +3405,7 @@
       ! Initialization
       !==============================================================
 
-      ! Save 
+      ! Save
       IF ( PRESENT( NO_CCTS ) ) THEN
          NO_CENTRAL = NO_CCTS
       ELSE
@@ -3791,21 +3422,21 @@
          !==============================================================
          IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.  
-            ! Therefore, the first data read of the month should occur 
+            ! Here, we are not using the central chemistry timestep.
+            ! Therefore, the first data read of the month should occur
             ! at 00:00 GMT of the 1st day of the month.
-            IS_NEW_MONTH = ( NHMS == 000000 ) 
+            IS_NEW_MONTH = ( NHMS == 000000 )
 
          ELSE
 
             ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the month will occur not at 
+            ! Therefore, the first data read of the month will occur not at
             ! 00:00 GMT on the 1st day of the month, but offset by a small
             ! amount (as diagnosed by function ITS_TIME_FOR_EMIS).
             IS_NEW_MONTH = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
 
          ENDIF
-      
+
       ELSE IF ( NYMD == NYMDb ) THEN
 
          !==============================================================
@@ -3814,8 +3445,8 @@
          !==============================================================
          IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.  
-            ! Therefore, the first data read of this month should occur 
+            ! Here, we are not using the central chemistry timestep.
+            ! Therefore, the first data read of this month should occur
             ! at the start time of the simulation.
             IS_NEW_MONTH = ( NHMS == NHMSb )
 
@@ -3826,9 +3457,9 @@
 
             ! Compute GMT at the start of the simulation
             GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
-            
+
             ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the month will occur not at 
+            ! Therefore, the first data read of the month will occur not at
             ! 00:00 GMT on the 1st day of the month, but offset by a small
             ! amount (as diagnosed by function ITS_TIME_FOR_EMIS).
             IS_NEW_MONTH = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
@@ -3845,8 +3476,9 @@
          IS_NEW_MONTH = .FALSE.
 
       ENDIF
-      
+
       END FUNCTION ITS_A_NEW_MONTH
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3855,7 +3487,7 @@
 !
 ! !IROUTINE: Its_MidMonth
 !
-! !DESCRIPTION: Function ITS\_MIDMONTH returns TRUE if it's the middle of a 
+! !DESCRIPTION: Function ITS\_MIDMONTH returns TRUE if it's the middle of a
 !  month.
 !\\
 !\\
@@ -3867,10 +3499,9 @@
 !
       LOGICAL :: IS_MIDMONTH
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  10 Oct 2005 - S. Strode   - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep 
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3879,6 +3510,7 @@
       IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
 
       END FUNCTION ITS_MIDMONTH
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3912,26 +3544,23 @@
 !                                                                             .
 !  If we are using the central chemistry timestep option (which is now the
 !  default behavior), then we must not read data at 00:00 GMT of each day,
-!  but at the center of the first chemistry timestep of the day.  This is 
-!  because emissions and chemistry are done at the same time.  The proper 
-!  time of day for reading emissions is determined by function 
+!  but at the center of the first chemistry timestep of the day.  This is
+!  because emissions and chemistry are done at the same time.  The proper
+!  time of day for reading emissions is determined by function
 !  ITS_TIME_FOR_EMIS, also within time_mod.f.
 !                                                                             .
-!  Similarly, for simulations that start at an arbitrary midmonth date and 
+!  Similarly, for simulations that start at an arbitrary midmonth date and
 !  time, we must not read data at the starting date and time of the simulation,
 !  but at the midpoint of the first chemistry timestep of the simulation.
 !                                                                             .
 !  If we are not using the central chemistry timestep option (specified by
-!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT 
-!  each day.  Similarly, for those simulations that start at midmonth, the 
+!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT
+!  each day.  Similarly, for those simulations that start at midmonth, the
 !  first data read will occur the starting date and time of the simulation.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Apr 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep
-!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
-!
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3955,7 +3584,7 @@
 
       ! Emissions timestep [hours]
       TS = DBLE( TS_EMIS ) / 3600e+0_f8
-     
+
       IF ( NYMD == NYMDb ) THEN
 
          !==============================================================
@@ -3964,7 +3593,7 @@
          !==============================================================
          IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep option 
+            ! Here, we are not using the central chemistry timestep option
             ! Therefore, the first data read of this day should occur at
             ! the start time of the simulation.
             IS_NEW_DAY = ( NHMS == NHMSb )
@@ -3976,10 +3605,10 @@
 
             ! Compute GMT at the start of the simulation
             GMTb       = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
-            
+
             ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the day will occur not at 
-            ! 00:00 GMT, but offset by a small amount (as diagnosed by 
+            ! Therefore, the first data read of the day will occur not at
+            ! 00:00 GMT, but offset by a small amount (as diagnosed by
             ! function ITS_TIME_FOR_EMIS).
             IS_NEW_DAY = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
 
@@ -3992,16 +3621,16 @@
          !==============================================================
          IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.  
-            ! Therefore, the first data read of this day should occur 
+            ! Here, we are not using the central chemistry timestep.
+            ! Therefore, the first data read of this day should occur
             ! at 00:00 GMT.
             IS_NEW_DAY = ( NHMS == 000000 )
 
          ELSE
 
             ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the day will occur not at 
-            ! 00:00 GMT, but offset by a small amount (as diagnosed by 
+            ! Therefore, the first data read of the day will occur not at
+            ! 00:00 GMT, but offset by a small amount (as diagnosed by
             ! function ITS_TIME_FOR_EMIS).
             IS_NEW_DAY = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
 
@@ -4031,9 +3660,9 @@
 !
       LOGICAL :: IS_NEW_HOUR
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Apr 2004 - R. Yantosca - Initial Version
-!  25 Feb 2014 - M. Sulprizio- Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4058,7 +3687,7 @@
 
          ! Otherwise, it's not a new year
          IS_NEW_HOUR = .FALSE.
-         
+
       ENDIF
 
       END FUNCTION ITS_A_NEW_HOUR
@@ -4068,62 +3697,19 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Its_A_New_Season
-!
-! !DESCRIPTION: Function ITS\_A\_NEW\_SEASON returns TRUE if it's a new season 
-!  or FALSE if it's not a new season.  Seasons are (1=DJF, 2=MAM, 3=JJA, 
-!  4=SON).
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_A_NEW_SEASON( ) RESULT( IS_NEW_SEASON )
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: IS_NEW_SEASON  
-!
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER, SAVE :: LAST_SEASON = -1
-      
-      IF ( NSEASON /= LAST_SEASON ) THEN
-         IS_NEW_SEASON = .TRUE.
-         LAST_SEASON   = NSEASON
-      ELSE
-         IS_NEW_SEASON = .FALSE.
-      ENDIF
-
-      END FUNCTION ITS_A_NEW_SEASON
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Print_Current_Time
 !
-! !DESCRIPTION: Subroutine PRINT\_CURRENT\_TIME prints the date, GMT time, and 
-!  elapsed hours of a GEOS-Chem simulation. 
+! !DESCRIPTION: Subroutine PRINT\_CURRENT\_TIME prints the date, GMT time, and
+!  elapsed hours of a GEOS-Chem simulation.
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE PRINT_CURRENT_TIME
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  10 Oct 2017 - R. Yantosca - Now print 6 decimal digits for elapsed time
-!  10 Oct 2017 - R. Yantosca - Change "GMT" to "UTC", which is more standard
-!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4139,7 +3725,7 @@
       WRITE( 6, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE, E_HOURS
 
       ! Format string
- 100  FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2, 
+ 100  FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2,
      &            '  UTC: ', i2.2, ':', i2.2, '  X-HRS: ', f13.6 )
 
       END SUBROUTINE PRINT_CURRENT_TIME
@@ -4151,9 +3737,9 @@
 !
 ! !IROUTINE: Timestamp_String
 !
-! !DESCRIPTION: Function TIMESTAMP\_STRING returns a formatted string 
+! !DESCRIPTION: Function TIMESTAMP\_STRING returns a formatted string
 !  "YYYY/MM/DD hh:mm" for the a date and time specified by YYYYMMDD and hhmmss.
-!  If YYYYMMDD and hhmmss are omitted, then TIMESTAMP\_STRING will create a 
+!  If YYYYMMDD and hhmmss are omitted, then TIMESTAMP\_STRING will create a
 !  formatted string for the current date and time.
 !\\
 !\\
@@ -4161,7 +3747,7 @@
 !
       FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN), OPTIONAL :: YYYYMMDD   ! YYYY/MM/DD date
       INTEGER, INTENT(IN), OPTIONAL :: HHMMSS     ! hh:mm:ss time
@@ -4170,13 +3756,9 @@
 !
       CHARACTER(LEN=16)             :: TIME_STR
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
-!  (1 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
-!  (2 ) Now add optional arguments YYYYMMDD and HHMMSS (bmy, 10/27/03)
-!  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4186,7 +3768,7 @@
       INTEGER :: THISYEAR, THISMONTH,  THISDAY
       INTEGER :: THISHOUR, THISMINUTE, THISSECOND
 
-      ! If YYYYMMDD is passed, then use that date.  Otherwise use the 
+      ! If YYYYMMDD is passed, then use that date.  Otherwise use the
       ! current date stored in global variables YEAR, MONTH, DAY.
       IF ( PRESENT( YYYYMMDD ) ) THEN
          CALL YMD_EXTRACT( YYYYMMDD, THISYEAR, THISMONTH, THISDAY )
@@ -4195,8 +3777,8 @@
          THISMONTH = MONTH
          THISDAY   = DAY
       ENDIF
-         
-      ! If HHMMSS is passed, then use that time.  Otherwise use the 
+
+      ! If HHMMSS is passed, then use that time.  Otherwise use the
       ! current time stored in global variables HOUR and MINUTE.
       IF ( PRESENT( HHMMSS ) ) THEN
          CALL YMD_EXTRACT( HHMMSS, THISHOUR, THISMINUTE, THISSECOND )
@@ -4205,20 +3787,9 @@
          THISMINUTE = MINUTE
       ENDIF
 
-#if   defined( LINUX_PGI ) 
-      
-      ! For PGI/F90 Linux, we must use the ENCODE command
-      ! to convert from numeric to string format (bmy, 9/29/03)
-      ENCODE( 16, 100, TIME_STR ) THISYEAR, THISMONTH, 
-     &                            THISDAY,  THISHOUR, THISMINUTE
-
-#else
-
       ! For other platforms, we can just use a FORTRAN internal write
-      WRITE( TIME_STR, 100 ) THISYEAR, THISMONTH, 
+      WRITE( TIME_STR, 100 ) THISYEAR, THISMONTH,
      &                       THISDAY,  THISHOUR, THISMINUTE
-
-#endif
 
       ! Format statement
  100  FORMAT( i4.4, '/', i2.2, '/', i2.2, ' ', i2.2, ':', i2.2 )
@@ -4232,8 +3803,8 @@
 !
 ! !IROUTINE: Ymd_Extract
 !
-! !DESCRIPTION: Subroutine YMD\_EXTRACT extracts the year, month, and date 
-!  from an integer variable in YYYYMMDD format.  It can also extract the 
+! !DESCRIPTION: Subroutine YMD\_EXTRACT extracts the year, month, and date
+!  from an integer variable in YYYYMMDD format.  It can also extract the
 !  hours, minutes, and seconds from a variable in HHMMSS format.
 !\\
 !\\
@@ -4241,17 +3812,17 @@
 !
       SUBROUTINE YMD_EXTRACT( NYMD, Y, M, D )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)  :: NYMD      ! YYYY/MM/DD format date
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: Y, M, D   ! Separated YYYY, MM, DD values
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  21 Nov 2001 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+! See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4260,7 +3831,7 @@
 !
       REAL(f8) :: REM
 
-      ! Extract YYYY from YYYYMMDD 
+      ! Extract YYYY from YYYYMMDD
       Y = INT( DBLE( NYMD ) / 1e+4_f8 )
 
       ! Extract MM from YYYYMMDD
@@ -4281,7 +3852,7 @@
 !
 ! !IROUTINE: Expand_Date
 !
-! !DESCRIPTION: Subroutine EXPAND\_DATE replaces "YYYYMMDD" and "hhmmss" 
+! !DESCRIPTION: Subroutine EXPAND\_DATE replaces "YYYYMMDD" and "hhmmss"
 !  tokens within a filename string with the actual values.
 !\\
 !\\
@@ -4293,25 +3864,18 @@
 !
       USE CHARPAK_MOD, ONLY : STRREPL
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,          INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD date
       INTEGER,          INTENT(IN)    :: HHMMSS     ! hh:mm:ss time
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(INOUT) :: FILENAME   ! Filename to modify
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  27 Jun 2002 - R. Yantosca - Initial Version
-!  (1 ) Bug fix for Linux: use ENCODE statement to convert number to string 
-!        instead of F90 internal read. (bmy, 9/29/03)
-!  (2 ) Now replace 2 and 4 digit year strings for all models (bmy, 10/23/03)
-!  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
-!  (4 ) Now do not replace "ss" with seconds, as the smallest GEOS-Chem
-!        timestep is in minutes. (bmy, 7/20/04)
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4339,18 +3903,6 @@
       YY = YYYY - 1900
       IF ( YY >= 100 ) YY = YY - 100
 
-#if   defined( LINUX_PGI )
-      
-      ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
-      ENCODE( 4, '(i4.4)', YYYY_STR ) YYYY
-      ENCODE( 2, '(i2.2)', YY_STR   ) YY
-      ENCODE( 2, '(i2.2)', MM_STR   ) MM
-      ENCODE( 2, '(i2.2)', DD_STR   ) DD
-      ENCODE( 2, '(i2.2)', HH_STR   ) HH
-      ENCODE( 2, '(i2.2)', II_STR   ) II
-
-#else
-
       ! For other platforms, use an F90 internal write (bmy, 9/29/03)
       WRITE( YYYY_STR, '(i4.4)' ) YYYY
       WRITE( YY_STR,   '(i2.2)' ) YY
@@ -4359,9 +3911,7 @@
       WRITE( HH_STR,   '(i2.2)' ) HH
       WRITE( II_STR,   '(i2.2)' ) II
 
-#endif
-
-      ! Replace YYYY, MM, DD, HH tokens w/ actual values 
+      ! Replace YYYY, MM, DD, HH tokens w/ actual values
       CALL STRREPL( FILENAME, 'YYYY', YYYY_STR )
       CALL STRREPL( FILENAME, 'YY',   YY_STR   )
       CALL STRREPL( FILENAME, 'MM',   MM_STR   )
@@ -4386,7 +3936,7 @@
 !
       FUNCTION Valid_Date( YYYYMMDD ) RESULT( Is_Valid )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD date
 !
@@ -4395,8 +3945,9 @@
       LOGICAL             :: Is_Valid   ! =T if YYYYMMDD is a valid date
                                         ! =F otherwise
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  06 Jul 2018 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4412,7 +3963,7 @@
 
       ! Assume success until otherwise proven
       Is_Valid = .TRUE.
-      
+
       ! Extract the date value into year, month, and day sections
       CALL YMD_EXTRACT( YYYYMMDD, YYYY, MM, DD )
 
@@ -4432,7 +3983,7 @@
             ELSE
                LastDay = 28
             ENDIF
-    
+
          ! 30 days hath September, April, June, and November
          CASE( 4, 6, 9, 11 )
             LastDay = 30
@@ -4440,7 +3991,7 @@
          ! All the rest have 31
          CASE DEFAULT
             LastDay = 31
-             
+
       END SELECT
 
       ! Exit if the day is out of range
@@ -4466,7 +4017,7 @@
 !
       FUNCTION Valid_Time( HHMMSS ) RESULT( Is_Valid )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: HHMMSS     ! HH:MM:SS time
 !
@@ -4475,8 +4026,9 @@
       LOGICAL             :: Is_Valid   ! =T if HHMMSS is a valid time
                                         ! =F otherwise
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  06 Jul 2018 - R. Yantosca - Initial version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4491,7 +4043,7 @@
 
       ! Assume success until otherwise proven
       Is_Valid = .TRUE.
-      
+
       ! Extract the time value into hour, minute, and second sections
       CALL YMD_EXTRACT( HHMMSS, HH, MM, SS )
 
@@ -4522,7 +4074,7 @@
 !
 ! !IROUTINE: System_Date_Time
 !
-! !DESCRIPTION: Subroutine SYSTEM\_DATE\_TIME returns the actual local date 
+! !DESCRIPTION: Subroutine SYSTEM\_DATE\_TIME returns the actual local date
 !  and time (as opposed to the model date and time).
 !\\
 !\\
@@ -4538,9 +4090,9 @@
 ! !REMARKS:
 !  Uses the F90 intrinsic function DATE_AND_TIME.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 May 2005 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4567,7 +4119,7 @@
       CALL DATE_AND_TIME( DATE=D, TIME=T, VALUES=V )
 
       ! Save to YYYYMMDD and HHMMSS format
-      SYS_NYMD = ( V(1) * 10000 ) + ( V(2) * 100 ) + V(3) 
+      SYS_NYMD = ( V(1) * 10000 ) + ( V(2) * 100 ) + V(3)
       SYS_NHMS = ( V(5) * 10000 ) + ( V(6) * 100 ) + V(7)
 
       END SUBROUTINE SYSTEM_DATE_TIME
@@ -4579,7 +4131,7 @@
 !
 ! !IROUTINE: System_Timestamp
 !
-! !DESCRIPTION: Function SYSTEM\_TIMESTAMP returns a 16 character string with 
+! !DESCRIPTION: Function SYSTEM\_TIMESTAMP returns a 16 character string with
 !  the system date and time in YYYY/MM/DD HH:MM format.
 !\\
 !\\
@@ -4590,10 +4142,10 @@
 ! !RETURN VALUE:
 !
       CHARACTER(LEN=16) :: STAMP
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  03 May 2005 - R. Yantosca - Initial version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4621,8 +4173,8 @@
 !
 ! !IROUTINE: timestamp_diag
 !
-! !DESCRIPTION: Subroutine TIMESTAMP\_DIAG save timestamps to be used in 
-!  filenames for diagnostics. We do not want the time when the diagnostic 
+! !DESCRIPTION: Subroutine TIMESTAMP\_DIAG save timestamps to be used in
+!  filenames for diagnostics. We do not want the time when the diagnostic
 !  is saved but the time for previous dynamic time step because midnight is
 !  considered as the beginning of next day (and not ending of previous day).
 !\\
@@ -4630,10 +4182,10 @@
 ! !INTERFACE:
 !
       SUBROUTINE TIMESTAMP_DIAG
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  12 Aug 2009 - C. Carouge  - Initial version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4641,6 +4193,7 @@
       NYMD_DIAG = GET_NYMD()
 
       END SUBROUTINE TIMESTAMP_DIAG
+#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4649,8 +4202,8 @@
 !
 ! !IROUTINE: Get_nymd_diag
 !
-! !DESCRIPTION: Function GET\_NYMD\_DIAG returns the previous NYMD value 
-!  (YYYYMMDD) to the calling program.  Used for diagnostic filenames. 
+! !DESCRIPTION: Function GET\_NYMD\_DIAG returns the previous NYMD value
+!  (YYYYMMDD) to the calling program.  Used for diagnostic filenames.
 !\\
 !\\
 ! !INTERFACE:
@@ -4660,10 +4213,10 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THISNYMD
-! 
+!
 ! !REVISION HISTORY:
 !  12 Aug 2009 - C. Carouge  - Initial version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4671,6 +4224,7 @@
       THISNYMD = NYMD_DIAG
 
       END FUNCTION GET_NYMD_DIAG
+#endif
 !EOC
 #if defined( ESMF_ ) || defined( MODEL_ )
 !------------------------------------------------------------------------------
@@ -4682,13 +4236,13 @@
 !
 ! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_DATE\_TIME sets the date and
 !  time variables in time\_mod.F with the values obtained from an external
-!  GCM (such as NASA's GEOS-5 GCM).  The various date \& time values from 
+!  GCM (such as NASA's GEOS-5 GCM).  The various date \& time values from
 !  the GCM are passed as arguments.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Accept_External_Date_Time( 
+      SUBROUTINE Accept_External_Date_Time(
      &   am_I_Root,    value_NYMDb,    value_NYMDe,   value_NYMD,
      &   value_NHMSb,  value_NHMSe,    value_NHMS,    value_YEAR,
      &   value_MONTH,  value_DAY,      value_DAYOFYR, value_HOUR,
@@ -4702,7 +4256,7 @@
       USE JULDAY_MOD,       ONLY : JULDAY
       USE JULDAY_MOD,       ONLY : CALDATE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,  INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
       INTEGER,  OPTIONAL    :: value_NYMDb     ! YYYY/MM/DD @ start of run
@@ -4711,7 +4265,7 @@
       INTEGER,  OPTIONAL    :: value_NHMSb     ! hh:mm:ss   @ start of run
       INTEGER,  OPTIONAL    :: value_NHMSe     ! hh:mm:ss   @ end of run
       INTEGER,  OPTIONAL    :: value_NHMS      ! hh:mm:ss   @ current time
-      INTEGER,  OPTIONAL    :: value_YEAR      ! UTC year 
+      INTEGER,  OPTIONAL    :: value_YEAR      ! UTC year
       INTEGER,  OPTIONAL    :: value_MONTH     ! UTC month
       INTEGER,  OPTIONAL    :: value_DAY       ! UTC day
       INTEGER,  OPTIONAL    :: value_DAYOFYR   ! UTC day of year
@@ -4730,14 +4284,12 @@
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  The date and time values are obtained via the Extract_ subroutine in 
-!  module file GEOSCHEMchem_GridCompMod.F90.      
-! 
-! !REVISION HISTORY: 
+!  The date and time values are obtained via the Extract_ subroutine in
+!  module file GEOSCHEMchem_GridCompMod.F90.
+!
+! !REVISION HISTORY:
 !  06 Dec 2012 - Initial version
-!  11 Dec 2012 - R. Yantosca - Renamed to ACCEPT_EXTERNAL_DATE_TIME
-!  18 Jun 2013 - R. Yantosca - Now compute day of week w/r/t GMT, which is
-!                              the same modification made in SET_CURRENT_TIME
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4747,17 +4299,17 @@
       REAL(f8) :: A, B, JD, THISDAY, TMP
 
       !=================================================================
-      ! Set time/date values of time_mod.F from the ESMF inputs 
+      ! Set time/date values of time_mod.F from the ESMF inputs
       !=================================================================
       IF ( PRESENT( value_NYMDb    ) ) NYMDb       = value_NYMdb
       IF ( PRESENT( value_NYMDe    ) ) NYMDe       = value_NYMDe
       IF ( PRESENT( value_NYMD     ) ) NYMD        = value_NYMD
-      IF ( PRESENT( value_NHMSb    ) ) NHMSb       = value_NHMSb 
+      IF ( PRESENT( value_NHMSb    ) ) NHMSb       = value_NHMSb
       IF ( PRESENT( value_NHMSe    ) ) NHMSe       = value_NHMSe
-      IF ( PRESENT( value_NHMS     ) ) NHMS        = value_NHMS 
-      IF ( PRESENT( value_YEAR     ) ) YEAR        = value_YEAR 
+      IF ( PRESENT( value_NHMS     ) ) NHMS        = value_NHMS
+      IF ( PRESENT( value_YEAR     ) ) YEAR        = value_YEAR
       IF ( PRESENT( value_MONTH    ) ) MONTH       = value_MONTH
-      IF ( PRESENT( value_DAY      ) ) DAY         = value_DAY 
+      IF ( PRESENT( value_DAY      ) ) DAY         = value_DAY
       IF ( PRESENT( value_DAYOFYR  ) ) DAY_OF_YEAR = value_DAYOFYR
       IF ( PRESENT( value_HOUR     ) ) HOUR        = value_HOUR
       IF ( PRESENT( value_MINUTE   ) ) MINUTE      = value_MINUTE
@@ -4768,7 +4320,7 @@
       IF ( PRESENT( value_TS_EMIS  ) ) TS_EMIS     = value_TS_EMIS
 
       ! Special handling for GMT to avoid roundoff error
-      IF ( PRESENT( value_UTC  ) ) THEN 
+      IF ( PRESENT( value_UTC  ) ) THEN
          TMP = value_UTC
          GMT = TMP
       ENDIF
@@ -4776,7 +4328,7 @@
       !=================================================================
       ! Compute various other derived time/date values
       !=================================================================
-      
+
       ! Elapsed seconds since the start of the run
       IF ( PRESENT( value_HELAPSED ) ) THEN
          ELAPSED_SEC = value_HELAPSED * 3600
@@ -4812,13 +4364,13 @@
             NSEASON = 4
       END SELECT
 
-      ! Day of week w/r/t the GMT date  
+      ! Day of week w/r/t the GMT date
       ! Use same algorithm as in routine SET_CURRENT_TIME
       THISDAY     = DAY + ( GMT / 24e+0_f8 )
       JD          = JULDAY( YEAR, MONTH, THISDAY )
       A           = ( JD + 1.5e+0_f8 ) / 7e+0_f8
       B           = ( A - INT( A ) ) * 7e+0_f8
-      B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) ) 
+      B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) )
      &            / 10e+0_f8 ) / 1e+4_f8
       DAY_OF_WEEK = INT( B )
 
@@ -4829,7 +4381,3 @@
 !EOC
 #endif
       END MODULE TIME_MOD
-
-
-
-

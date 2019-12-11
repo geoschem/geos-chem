@@ -1,0 +1,411 @@
+Ext_AllowExtrap: .true.
+DEBUG_LEVEL: 0
+#
+PrimaryExports%%
+#--------|-------|------|------------|---------------|--------|-------|---------------------|
+# Export |       |      |            |___ Refresh ___|____ Factors ___|___ External File ___|
+# Name   | Units | Clim |Conservative| Time Template | Offset | Scale | Variable | Template |
+#--------|-------|------|------------|---------------|--------|-------|----------|----------|
+# 
+# Notes:
+# Units should be in single quotes if they contain whitespace
+# V Loc should be C if the data is vertically centered
+# Climatology should be Y if the file contains monthly climatology; otherwise it should be N
+# Conservative should be Y if units imply mass conservation dependency on regrid method (e.g. value per area)
+# Refresh Time Template should be:
+#    1. - if the file contains time-invariant constants
+#    2. prefixed with F if no time interpolation between data reads (F = fixed)
+#    3. 0 if data should be kept up-to-date at all times
+#    4. 0:HHMMSS if data occurs in file with frequency HHMMSS and should be updated at that frequency
+#    5. %y4-%m2-%d2T%h2:00:00, with any tokens replaced by appropriate constant time value, if multiple time
+#       values are in the same file. Note that including an F prefix indicates the data should be treated
+#       as constant until the next refresh time. Omission of the F prefix will time-interpolate between
+#       the values.  
+
+###############################################################################
+###
+### Meteorology data
+###
+###############################################################################
+
+# --- 2D variables, 1-hr averaged ---
+ALBD     '1'         N Y F0;003000 none none         ALBEDO     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+CLDFRC   '1'         N Y F0;003000 none none         CLDTOT     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+EFLUX    '1'         N Y F0;003000 none none         EFLUX      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+EVAP     '1'         N Y F0;003000 none none         EVAP       ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+FRSEAICE '1'         N Y F0;003000 none none         FRSEAICE   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+FRSNO    '1'         N Y F0;003000 none none         FRSNO      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+GRN      '1'         N Y F0;003000 none none         GRN        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+GWETROOT '1'         N Y F0;003000 none none         GWETROOT   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+GWETTOP  '1'         N Y F0;003000 none none         GWETTOP    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+HFLUX    '1'         N Y F0;003000 none none         HFLUX      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+LAI      '1'         N Y F0;003000 none none         LAI        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+LWI      '1'         N Y F0;003000 none none         LWI        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+RADLWG   '1'         N Y F0;003000 none none         LWGNT      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+PARDF    '1'         N Y F0;003000 none none         PARDF      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+PARDR    '1'         N Y F0;003000 none none         PARDR      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+PBLH     '1'         N Y F0;003000 none none         PBLH       ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+PRECANV  '1'         N Y F0;003000 none none         PRECANV    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+PRECCON  '1'         N Y F0;003000 none none         PRECCON    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+PRECLSC  '1'         N Y F0;003000 none none         PRECLSC    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+PRECSNO  '1'         N Y F0;003000 none none         PRECSNO    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+PRECTOT  '1'         N Y F0;003000 none none         PRECTOT    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE00 '1'         N Y F0;003000 none none         SEAICE00   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE10 '1'         N Y F0;003000 none none         SEAICE10   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE20 '1'         N Y F0;003000 none none         SEAICE20   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE30 '1'         N Y F0;003000 none none         SEAICE30   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE40 '1'         N Y F0;003000 none none         SEAICE40   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE50 '1'         N Y F0;003000 none none         SEAICE50   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE60 '1'         N Y F0;003000 none none         SEAICE60   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE70 '1'         N Y F0;003000 none none         SEAICE70   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE80 '1'         N Y F0;003000 none none         SEAICE80   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SEAICE90 '1'         N Y F0;003000 none none         SEAICE90   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SLP      {PRES_UNIT} N Y F0;003000 none {PRES_SCALE} SLP        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SNODP    '1'         N Y F0;003000 none none         SNODP      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+SNOMAS   '1'         N Y F0;003000 none none         SNOMAS     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+RADSWG   '1'         N Y F0;003000 none none         SWGDN      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+TO3      'dobson'    N Y F0;003000 none none         TO3        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+TROPP    {PRES_UNIT} N Y F0;003000 none {PRES_SCALE} TROPPT     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+TSKIN    '1'         N Y F0;003000 none none         TS         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+TS       '1'         N Y F0;003000 none none         T2M        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+USTAR    '1'         N Y F0;003000 none none         USTAR      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+U10M     'm s-1'     N N F0;003000 none none         U10M       ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+V10M     'm s-1'     N N F0;003000 none none         V10M       ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+Z0       '1'         N Y F0;003000 none none         Z0M        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A1.{MET_RES}.{MET_EXT}
+
+# --- Surface pressure, 3-hr instantaneous ---
+PS1      {PRES_UNIT} N Y 0         none {PRES_SCALE} PS         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+PS2      {PRES_UNIT} N Y 0;001000  none {PRES_SCALE} PS         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+
+# --- 3D variables, 3-hr instantaneous ---
+SPHU1    'kg kg-1'   N Y 0         none none         QV         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+SPHU2    'kg kg-1'   N Y 0;001000  none none         QV         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+TMPU1    'K'         N Y 0         none none         T          ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+TMPU2    'K'         N Y 0;001000  none none         T          ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.I3.{MET_RES}.{MET_EXT}
+
+# --- 3D variables, 3-hr averaged ---
+QI       '1'         N Y F0;013000 none none         QI         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
+QL       '1'         N Y F0;013000 none none         QL         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
+TAUCLI   '1'         N Y F0;013000 none none         TAUCLI     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
+TAUCLW   '1'         N Y F0;013000 none none         TAUCLW     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
+OPTDEP   '1'         N Y F0;013000 none none         OPTDEPTH   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
+CLDF     '1'         N Y F0;013000 none none         CLOUD      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3cld.{MET_RES}.{MET_EXT}
+DTRAIN   '1'         N Y F0;013000 none none         DTRAIN     ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+OMEGA    'Pa s-1'    N Y F0;013000 none none         OMEGA      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+RH       '-'         N Y F0;013000 none none         RH         ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+UC;VC    'm s-1'     N N F0;013000 none none         U;V        ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+ULL      'm s-1'     N N F0;013000 none none         U          ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+VLL      'm s-1'     N N F0;013000 none none         V          ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3dyn.{MET_RES}.{MET_EXT}
+DQRCU    '1'         N Y F0;013000 none none         DQRCU      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
+DQRLSAN  '1'         N Y F0;013000 none none         DQRLSAN    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
+REEVAPCN '1'         N Y F0;013000 none none         REEVAPCN   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
+REEVAPLS '1'         N Y F0;013000 none none         REEVAPLS   ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstC.{MET_RES}.{MET_EXT}
+CMFMC    '1'         N Y F0;013000 none none         CMFMC      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
+PFICU    '1'         N Y F0;013000 none none         PFICU      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
+PFILSAN  '1'         N Y F0;013000 none none         PFILSAN    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
+PFLCU    '1'         N Y F0;013000 none none         PFLCU      ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
+PFLLSAN  '1'         N Y F0;013000 none none         PFLLSAN    ./MetDir/%y4/%m2/{MET_SOURCE}.%y4%m2%d2.A3mstE.{MET_RES}.{MET_EXT}
+
+# --- Fixed variables, from constants file ---
+FRLAKE   '1'         N Y -         none none         FRLAKE     ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
+FRLAND   '1'         N Y -         none none         FRLAND     ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
+FRLANDIC '1'         N Y -         none none         FRLANDIC   ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
+FROCEAN  '1'         N Y -         none none         FROCEAN    ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
+PHIS     'm2 s-2'    N Y -         none none         PHIS       ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
+
+#==============================================================================
+# --- Fields for lightning emissions (Extension 103) ---
+# These fields are stored in State_Met, along with the other met fields
+#==============================================================================
+FLASH_DENS '1'       N Y F0;013000 none none         LDENS      ./MainDataDir/OFFLINE_LIGHTNING/v2019-01/{MET_SOURCE}/%y4/FLASH_CTH_{MET_SOURCE}_{NATIVE_RES}_%y4_%m2.nc4
+CONV_DEPTH '1'       N Y F0;013000 none none         CTH        ./MainDataDir/OFFLINE_LIGHTNING/v2019-01/{MET_SOURCE}/%y4/FLASH_CTH_{MET_SOURCE}_{NATIVE_RES}_%y4_%m2.nc4
+
+
+###############################################################################
+###
+### Land data (not handled by HEMCO)
+###
+###############################################################################
+
+#==============================================================================
+# Olson land types - conservative frac regridding of OLSON
+#==============================================================================
+# Use conservative fraction regridding to extract land type fraction
+OLSON00 1 N F;0  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON01 1 N F;1  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON02 1 N F;2  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON03 1 N F;3  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON04 1 N F;4  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON05 1 N F;5  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON06 1 N F;6  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON07 1 N F;7  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON08 1 N F;8  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON09 1 N F;9  - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON10 1 N F;10 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON11 1 N F;11 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON12 1 N F;12 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON13 1 N F;13 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON14 1 N F;14 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON15 1 N F;15 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON16 1 N F;16 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON17 1 N F;17 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON18 1 N F;18 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON19 1 N F;19 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON20 1 N F;20 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON21 1 N F;21 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON22 1 N F;22 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON23 1 N F;23 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON24 1 N F;24 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON25 1 N F;25 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON26 1 N F;26 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON27 1 N F;27 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON28 1 N F;28 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON29 1 N F;29 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON30 1 N F;30 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON31 1 N F;31 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON32 1 N F;32 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON33 1 N F;33 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON34 1 N F;34 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON35 1 N F;35 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON36 1 N F;36 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON37 1 N F;37 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON38 1 N F;38 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON39 1 N F;39 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON40 1 N F;40 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON41 1 N F;41 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON42 1 N F;42 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON43 1 N F;43 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON44 1 N F;44 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON45 1 N F;45 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON46 1 N F;46 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON47 1 N F;47 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON48 1 N F;48 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON49 1 N F;49 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON50 1 N F;50 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON51 1 N F;51 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON52 1 N F;52 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON53 1 N F;53 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON54 1 N F;54 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON55 1 N F;55 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON56 1 N F;56 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON57 1 N F;57 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON58 1 N F;58 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON59 1 N F;59 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON60 1 N F;60 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON61 1 N F;61 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON62 1 N F;62 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON63 1 N F;63 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON64 1 N F;64 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON65 1 N F;65 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON66 1 N F;66 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON67 1 N F;67 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON68 1 N F;68 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON69 1 N F;69 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON70 1 N F;70 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON71 1 N F;71 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON72 1 N F;72 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+
+# Alternatively read files containing land type masks. This implementation needs further testing to assess relative performance.
+#OLSON00 1 N Y - none none LANDTYPE00 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON01 1 N Y - none none LANDTYPE01 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON02 1 N Y - none none LANDTYPE02 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON03 1 N Y - none none LANDTYPE03 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON04 1 N Y - none none LANDTYPE04 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON05 1 N Y - none none LANDTYPE05 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON06 1 N Y - none none LANDTYPE06 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON07 1 N Y - none none LANDTYPE07 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON08 1 N Y - none none LANDTYPE08 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON09 1 N Y - none none LANDTYPE09 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON10 1 N Y - none none LANDTYPE10 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON11 1 N Y - none none LANDTYPE11 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON12 1 N Y - none none LANDTYPE12 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON13 1 N Y - none none LANDTYPE13 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON14 1 N Y - none none LANDTYPE14 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON15 1 N Y - none none LANDTYPE15 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON16 1 N Y - none none LANDTYPE16 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON17 1 N Y - none none LANDTYPE17 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON18 1 N Y - none none LANDTYPE18 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON19 1 N Y - none none LANDTYPE19 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON20 1 N Y - none none LANDTYPE20 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON21 1 N Y - none none LANDTYPE21 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON22 1 N Y - none none LANDTYPE22 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON23 1 N Y - none none LANDTYPE23 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON24 1 N Y - none none LANDTYPE24 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON25 1 N Y - none none LANDTYPE25 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON26 1 N Y - none none LANDTYPE26 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON27 1 N Y - none none LANDTYPE27 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON28 1 N Y - none none LANDTYPE28 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON29 1 N Y - none none LANDTYPE29 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON30 1 N Y - none none LANDTYPE30 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON31 1 N Y - none none LANDTYPE31 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON32 1 N Y - none none LANDTYPE32 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON33 1 N Y - none none LANDTYPE33 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON34 1 N Y - none none LANDTYPE34 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON35 1 N Y - none none LANDTYPE35 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON36 1 N Y - none none LANDTYPE36 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON37 1 N Y - none none LANDTYPE37 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON38 1 N Y - none none LANDTYPE38 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON39 1 N Y - none none LANDTYPE39 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON40 1 N Y - none none LANDTYPE40 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON41 1 N Y - none none LANDTYPE41 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON42 1 N Y - none none LANDTYPE42 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON43 1 N Y - none none LANDTYPE43 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON44 1 N Y - none none LANDTYPE44 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON45 1 N Y - none none LANDTYPE45 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON46 1 N Y - none none LANDTYPE46 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON47 1 N Y - none none LANDTYPE47 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON48 1 N Y - none none LANDTYPE48 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON49 1 N Y - none none LANDTYPE49 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON50 1 N Y - none none LANDTYPE50 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON51 1 N Y - none none LANDTYPE51 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON52 1 N Y - none none LANDTYPE52 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON53 1 N Y - none none LANDTYPE53 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON54 1 N Y - none none LANDTYPE54 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON55 1 N Y - none none LANDTYPE55 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON56 1 N Y - none none LANDTYPE56 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON57 1 N Y - none none LANDTYPE57 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON58 1 N Y - none none LANDTYPE58 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON59 1 N Y - none none LANDTYPE59 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON60 1 N Y - none none LANDTYPE60 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON61 1 N Y - none none LANDTYPE61 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON62 1 N Y - none none LANDTYPE62 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON63 1 N Y - none none LANDTYPE63 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON64 1 N Y - none none LANDTYPE64 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON65 1 N Y - none none LANDTYPE65 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON66 1 N Y - none none LANDTYPE66 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON67 1 N Y - none none LANDTYPE67 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON68 1 N Y - none none LANDTYPE68 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON69 1 N Y - none none LANDTYPE69 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON70 1 N Y - none none LANDTYPE70 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON71 1 N Y - none none LANDTYPE71 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+#OLSON72 1 N Y - none none LANDTYPE72 ./MainDataDir/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc
+
+#==============================================================================
+# MODIS Leaf Area Index
+#
+# NOTE: There are two options for offline MODIS LAI: legacy and Yuan et al.
+#       Both may be used in GCHP but legacy should be used when comparing with
+#       GEOS-Chem Classic until it because default. Legacy is default in GCHP.
+#==============================================================================
+
+#---------------------------
+# Option 1: legacy MODIS LAI
+#---------------------------
+# Use file with land type stored as 3rd dimension to speed up file read
+XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./ChemDataDir/MODIS_LAI_201707/For_Olson_2001/XLAI_for_GCHP/%y4/Condensed_MODIS_XLAI.025x025.%y4%m2.nc
+
+#---------------------------
+# Option 2: Yuan processed
+#---------------------------
+# Use file with land type stored as 3rd dimension to speed up file read
+#XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./MainDataDir/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+
+###############################################################################
+###
+### HEMCO Base Emissions (Update if HEMCO_Config.rc changes) 
+###
+###############################################################################
+
+#==============================================================================
+# SF6 emissions from EDGAR v4.2
+#==============================================================================
+EDGAR_SF6 1 N Y F%y4-01-01T00:00:00 none none emi_sf6 ./MainDataDir/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
+
+#==============================================================================
+# --- EDGAR v4.3 (EDGARv4.3) ---
+# EDGARv4.3 is turned off by default in HEMCO_Config.rc
+#==============================================================================
+EDGAR_CO25d_POW  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
+EDGAR_CO25d_ENG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
+EDGAR_CO25d_IND  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
+EDGAR_CO25d_TRO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
+EDGAR_CO25d_TNG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
+EDGAR_CO25d_RCO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
+EDGAR_CO25d_PPA  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
+#EDGAR_CO25d_AWB kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc
+EDGAR_CO25d_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
+EDGAR_CO25d_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
+
+#==============================================================================
+# --- HTAP v2 (HTAP) ---
+# HTAP is off by default in HEMCO_Config.rc
+#==============================================================================
+HTAP_CO25d_IND    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_INDUSTRY.generic.01x01.nc
+HTAP_CO25d_POW    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_ENERGY.generic.01x01.nc
+HTAP_CO25d_RES    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_RESIDENTIAL.generic.01x01.nc
+HTAP_CO25d_TRA    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_TRANSPORT.generic.01x01.nc
+#HTAP_CO25d_AIR1  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_LTO.generic.01x01.nc
+#HTAP_CO25d_AIR2  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CDS.generic.01x01.nc
+#HTAP_CO25d_AIR3  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./MainDataDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CRS.generic.01x01.nc
+
+#==============================================================================
+# --- CEDS (CEDS) ---
+#==============================================================================
+CEDS_CO25d_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./MainDataDir/CEDS/v2018-04/CO-em-anthro_CMIP_CEDS_195001-201412.nc                     
+CEDS_CO25d_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene  ./MainDataDir/CEDS/v2018-04/CO-em-anthro_CMIP_CEDS_195001-201412.nc                     
+CEDS_CO25d_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind  ./MainDataDir/CEDS/v2018-04/CO-em-anthro_CMIP_CEDS_195001-201412.nc                     
+CEDS_CO25d_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra  ./MainDataDir/CEDS/v2018-04/CO-em-anthro_CMIP_CEDS_195001-201412.nc                     
+CEDS_CO25d_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco  ./MainDataDir/CEDS/v2018-04/CO-em-anthro_CMIP_CEDS_195001-201412.nc                     
+CEDS_CO25d_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv  ./MainDataDir/CEDS/v2018-04/CO-em-anthro_CMIP_CEDS_195001-201412.nc                     
+CEDS_CO25d_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst  ./MainDataDir/CEDS/v2018-04/CO-em-anthro_CMIP_CEDS_195001-201412.nc
+
+###############################################################################
+###
+### HEMCO Non-Emissions Data (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# --- Time zones (offset to UTC) ---
+#==============================================================================
+TIMEZONES count N V - none none UTC_OFFSET ./MainDataDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
+
+###############################################################################
+###
+### HEMCO Scale Factors (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# --- annual scale factors ---
+#==============================================================================
+LIQFUEL_THISYR     1 N Y F%y4-01-01T00:00:00   none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
+LIQFUEL_2008_2010  1 N Y F%y4-01-01T00:00:00   none none COscalar  ./MainDataDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
+
+#==============================================================================
+# --- seasonal scale factors ---
+#==============================================================================
+# --- From EDGAR 4.3.1 ---
+POW 1 Y Y F2010-%m2-01T00:00:00 none none POW ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+ENG 1 Y Y F2010-%m2-01T00:00:00 none none ENG ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+IND 1 Y Y F2010-%m2-01T00:00:00 none none IND ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+TRO 1 Y Y F2010-%m2-01T00:00:00 none none TRO ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+TNG 1 Y Y F2010-%m2-01T00:00:00 none none TNG ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+RCO 1 Y Y F2010-%m2-01T00:00:00 none none RCO ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+PPA 1 Y Y F2010-%m2-01T00:00:00 none none PPA ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+AGR 1 Y Y F2010-%m2-01T00:00:00 none none AGR ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+AWB 1 Y Y F2010-%m2-01T00:00:00 none none AWB ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+SOL 1 Y Y F2010-%m2-01T00:00:00 none none SOL ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+SWD 1 Y Y F2010-%m2-01T00:00:00 none none SWD ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+FFF 1 Y Y F2010-%m2-01T00:00:00 none none FFF ./MainDataDir/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+
+###############################################################################
+###
+### Masks (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# Country/region masks
+#==============================================================================
+OCEAN_MASK   1 N Y - none none FROCEAN    ./MetDir/{MET_CN_YR}/01/{MET_SOURCE}.{MET_CN_YR}0101.CN.{MET_RES}.{MET_EXT}
+
+%%
+
+DerivedExports%%
+# ---------|---------|--------------------------------------------|
+#  Export  | Primary |_________________ Mask _____________________|
+#  Name    |  Name   |    Name    |           Expression          |    
+# ---------|---------|------------|-------------------------------|
+# ---------|---------|------------|-------------------------------|
+%%

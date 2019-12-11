@@ -1,0 +1,148 @@
+This directory is for GEOS-Chem (GCHP) with high performance option. 
+
+Instructions to set up, compile, and run GCHP:
+
+1. Inspect your source code versions
+
+   Type 'make printbuildinfo' to view the version information of the source
+   code symbolic link CodeDir points to. The CodeDir symbolic link is set up
+   by default to point to the GEOS-Chem source code from which you created
+   the run directory. 
+
+   a. Make sure your GEOS-Chem and GCHP source code repository branches are 
+      consistent with each other. 
+   b. If you need to change your GCHP version, make sure to create a new run 
+      directory. For version prior to 12.1.0, do this using the
+      geos-chem-unittest repository. For 12.1.0 and later, do this using
+      the GCHP repository.
+   c. You can check what version of GCHP was used to create your run 
+      directory by looking at file rundir.version.
+   d. Optionally reset the CodeDir symbolic link with './setCodeDir 
+      /path/to/your/code' if you wish to use source code stored elsewhere.
+
+2. Create an environment file, or set of env files, specific to your system
+
+   Environment files, when sourced, define environment variables used in 
+   GCHP and load all libraries necessary for compiling and running. Sample 
+   environment files that are customized to the Harvard Odyssey compute
+   cluster are in the environmentFileSamples/ subdirectory. The env file
+   marked 'standalone' is more generic for other systems. Work with your 
+   systems administrator to determine what libraries are available to you.
+   Reach out the GEOS-Chem Support Team or the GCHP Working Group for help.
+   Once you have one or more environment files that work on your system, 
+   store them in a central location for repeated use.
+
+3. Set the gchp.env symbolic link to point to your environment file
+
+   Always set the gchp.env symbolic to point to your environment file when 
+   setting up a new run directory. Set the symlink with:
+
+     ./setEnvironment /path/to/env/file
+
+4. Compile all source code (ESMF, MAPL, FV3, Core) with the Makefile
+
+   Compiling with the Makefile automatically sources your environment and 
+   copies the 'geos' executable to the run directory. Compile by using the 
+   Makefile as follows:
+
+   1. First compile: 'make build_esmf'
+   2. Subsequent compile depends on what you changed:
+    a. If you change GEOS-Chem files or files in GCHP source code directory (common):
+        'make build_core'             : skips recompiling MAPL, ESMF, and FV3 advection
+        'make build_core_debug'       : same as above but with debug compile flags on
+    b. If you change files in the Shared, FV3, or Registry directories (advanced):
+        'make build_mapl'             : skips recompiling ESMF
+        'make build_mapl_debug'       : same as above but with debug compile flags on
+    c. If you change files in the ESMF directory (should not happen; make github issue):
+        'make build_esmf'             : recompiles all source code
+        'make build_esmf_debug'       : same as above but with debug compile flags on
+    d. If you change libraries, e.g. switch compiler:
+        'make clean_esmf; build_esmf' : cleans and recompiles all source code
+ 
+   NOTES:
+    (a) You can see all make options with 'make help' or simply 'make'
+    (b) You can skip this step and copy an executable from another run
+        directory, being very careful to use the same environment file
+        the executable was created with. It is good practice also copy the 
+        compile log (compile.log) as well to have as a record of the last build.
+        That file includes git information about the version compiled.
+    (c) A clean compile will take over a half-hour while subsequent
+        compilations will be of time on par with GEOS-Chem classic compile 
+        time.
+    (d) You should always recompile from scratch if you change libraries or do
+        a major GEOS-Chem version update.
+
+5. Set run settings in bash script runConfig.sh
+ 
+   Set common settings here to avoid updating the same settings across 
+   multiple config files (*.rc and input.geos). Settings include restart file,
+   internal grid resolution, compute resources, and start/end/duration, 
+   among others.
+
+   When runConfig.sh is sourced, settings in the following config files 
+   will be over-written:
+   1. CAP.rc           : simulation start/end/duration; heartbeat; debug level
+   2. fvcore_layout.rc : grid res; transport dt
+   3. GCHP.rc          : compute resources; restart; grid res; all dt; 
+                         transport on/off 
+   4. HISTORY.rc       : output frequency, duration, and mode; cores per node
+   5. input.geos*      : most settings
+
+   NOTES 
+    a. start time, end time, restart filename, and diagnostics are all 
+       ignored in input.geos when using GCHP.
+    b. Symbolic links to default restart files for various resolutions are 
+       included in the run directory. You can configure usage of other 
+       restart files in runConfig.sh. As with GEOS-Chem Classic, we recommend 
+       only using the default restart files to initialize a spin-up of the 
+       model to generate production run restart files.
+    c. runConfig.sh does not control source met-fields. To change met-field 
+       source you must edit ExtData.rc manually and also change the MetDir 
+       symbolic link to point to the correct files
+
+6. Create a run script to submit a job
+
+   Sample run scripts are in the runScriptSamples subdirectory. One example is 
+   provided for Sun Grid Engine. All others assume use of SLURM (simple linux
+   utility for resource management) and are customized for the Harvard
+   Odyssey compute cluster.
+
+   Adapt gchp.run for single run jobs. Adapt gchp.multirun.sh and 
+   gchp.multirun.run for multiple consecutive jobs (e.g. 1 year of 1-month 
+   jobs). Using the multi-run option allows you to output monthly mean 
+   diagnostics. See sample run scripts for more information.
+
+   It is important that you make sure your resource settings (# cores, 
+   # nodes) are compatible with what you configured in runConfig.sh. 
+
+   It is also important to source your environment settings (gchp.env) and your
+   run settings (runConfig.sh). Both these steps are done automatically in
+   the sample run scripts.
+
+7. Submit job
+
+   If using SLURM and doing a single run, do 'sbatch gchp.run'. If using 
+   SLURM and doing multiple runs, do 'source gchp.multirun.sh'. Adapt as 
+   needed for your own cluster and your own run scripts. 
+
+8. Inspect output data
+
+   Output data are stored in the 'OutputDir' directory. The output restart 
+   filename is set in GCHP.rc next to GIGCchem_INTERNAL_CHECKPOINT_TYPE. It is
+   set up by default to start with string 'gcchem'. 
+
+9. Optionally archive your run with './archiveRun.sh dirname'
+
+   You can save a previous run (logs, output, config files) to a subdirectory
+   using the archiveRun.sh bash script. This is useful if you want to clean up
+   your run directory for another run but don't want to overwrite information
+   from a past run. The dirname passed as an argument must not exist yet.
+
+10. Clean run directory prior to rerunning
+
+   Do 'make cleanup_output' to clean the run directory (includes data
+   deletion) prior to doing a new run. Your executable will not be deleted.
+
+For more information, see the GEOS-Chem High Performance wiki page at
+http://wiki.seas.harvard.edu/geos-chem/index.php/GEOS-Chem_HP
+or contact the GEOS-Chem Support Team (geos-chem-support@as.harvard.edu).

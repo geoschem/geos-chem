@@ -5,12 +5,12 @@
 !
 ! !MODULE: hco_fluxarr_mod.F90
 !
-! !DESCRIPTION: Module HCO\_FluxArr\_Mod contains routines to handle 
+! !DESCRIPTION: Module HCO\_FluxArr\_Mod contains routines to handle
 ! the HEMCO flux arrays. These are the emissions and deposition arrays
 ! listed in the HEMCO state object.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE HCO_FluxArr_Mod
 !
@@ -35,9 +35,9 @@ MODULE HCO_FluxArr_Mod
   PRIVATE :: DiagnCheck
 !
 ! !REMARKS:
-!                                                                             
+!
 ! !REVISION HISTORY:
-!  05 Jan 2014 - C. Keller - Initial version, adapted from hco_state_mod.F90 
+!  05 Jan 2014 - C. Keller - Initial version, adapted from hco_state_mod.F90
 !  21 Oct 2014 - C. Keller - Added error check for negative values to HCO_EmisAdd
 !EOP
 !------------------------------------------------------------------------------
@@ -46,8 +46,8 @@ MODULE HCO_FluxArr_Mod
 ! !PRIVATE TYPES:
 !
   INTERFACE HCO_EmisAdd
-     MODULE PROCEDURE HCO_EmisAdd_3D_Dp 
-     MODULE PROCEDURE HCO_EmisAdd_3D_Sp 
+     MODULE PROCEDURE HCO_EmisAdd_3D_Dp
+     MODULE PROCEDURE HCO_EmisAdd_3D_Sp
      MODULE PROCEDURE HCO_EmisAdd_2D_Sp
      MODULE PROCEDURE HCO_EmisAdd_2D_Dp
      MODULE PROCEDURE HCO_EmisAdd_Dp
@@ -68,10 +68,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCO_FluxarrReset 
+! !IROUTINE: HCO_FluxarrReset
 !
-! !DESCRIPTION: Routine HCO\_FluxarrReset (re)sets all data arrays 
-! of the passed HEMCO state object. The (optional) argument Typ 
+! !DESCRIPTION: Routine HCO\_FluxarrReset (re)sets all data arrays
+! of the passed HEMCO state object. The (optional) argument Typ
 ! indicates whether only emissions (1), deposition (2), or concentration
 ! (3) arrays shall be reset. To reset all, set Typ to 0 (default).
 !\\
@@ -81,9 +81,9 @@ CONTAINS
   SUBROUTINE HCO_FluxarrReset( HcoState, RC, Typ )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER                 :: HcoState
-    INTEGER,         INTENT(INOUT)           :: RC 
+    INTEGER,         INTENT(INOUT)           :: RC
 !
 ! !INPUT PARAMETERS:
 !
@@ -91,7 +91,7 @@ CONTAINS
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !  21 Aug 2014 - C. Keller - Added concentration
 !EOP
@@ -110,7 +110,7 @@ CONTAINS
        thisTyp = 0
     ENDIF
 
-    ! Loop over all arrays. 
+    ! Loop over all arrays.
     DO N = 1, HcoState%nSpc
 
        ! 3D flux rates array
@@ -131,7 +131,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! 3D concentrations 
+       ! 3D concentrations
        IF ( thisTyp == 0 .OR. thisTyp == 3 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(N)%Conc) ) THEN
              IF ( ASSOCIATED(HcoState%Spc(N)%Conc%Val) ) THEN
@@ -145,7 +145,7 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE HCO_FluxarrReset 
+  END SUBROUTINE HCO_FluxarrReset
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -154,7 +154,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_EmisAdd_3D_Dp
 !
-! !DESCRIPTION: Routine HCO\_EmisAdd\_3D adds the 3D-array Arr3D 
+! !DESCRIPTION: Routine HCO\_EmisAdd\_3D adds the 3D-array Arr3D
 ! to the emissions array of species HcoID in HEMCO object HcoState.
 ! This routine also updates all autofill diagnostics that are defined
 ! for the givne species, extension number, emission category and
@@ -168,26 +168,26 @@ CONTAINS
                                 MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER                 :: HcoState
     REAL(dp),        INTENT(INOUT)           :: Arr3D( HcoState%NX, &
                                                        HcoState%NY, &
                                                        HcoState%NZ )
-    INTEGER,         INTENT(INOUT)           :: RC 
+    INTEGER,         INTENT(INOUT)           :: RC
 !
 ! !INPUT PARAMETERS:
-! 
+!
     LOGICAL,         INTENT(IN   )           :: am_I_Root
-    INTEGER,         INTENT(IN   )           :: HcoID 
-    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   )           :: HcoID
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
-    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !  20 Apr 2015 - C. Keller - Added DiagnCheck
-!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,8 +205,8 @@ CONTAINS
     ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
     IF ( HcoState%Options%NegFlag /= 2 ) THEN
        IF ( ANY( Arr3D < 0.0_hp ) ) THEN
-  
-          ! Negative flag is 1: set to zero and prompt warning 
+
+          ! Negative flag is 1: set to zero and prompt warning
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              WHERE ( Arr3D < 0.0_hp ) Arr3D = 0.0_hp
              CALL HCO_WARNING ( HcoState%Config%Err, &
@@ -238,7 +238,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_EmisAdd_3D_Dp
 !EOC
@@ -249,7 +249,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_EmisAdd_3D_Sp
 !
-! !DESCRIPTION: Routine HCO\_EmisAdd\_3D adds the 3D-array Arr3D to the 
+! !DESCRIPTION: Routine HCO\_EmisAdd\_3D adds the 3D-array Arr3D to the
 ! emissions array of species HcoID in HEMCO object HcoState.
 ! This routine also updates all autofill diagnostics that are defined
 ! for the givne species, extension number, emission category and
@@ -263,26 +263,26 @@ CONTAINS
                                  MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER                 :: HcoState
     REAL(sp),        INTENT(INOUT)           :: Arr3D( HcoState%NX, &
                                                        HcoState%NY, &
                                                        HcoState%NZ )
-    INTEGER,         INTENT(INOUT)           :: RC 
+    INTEGER,         INTENT(INOUT)           :: RC
 !
 ! !INPUT PARAMETERS:
-! 
+!
     LOGICAL,         INTENT(IN   )           :: am_I_Root
-    INTEGER,         INTENT(IN   )           :: HcoID 
-    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   )           :: HcoID
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
-    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !  20 Apr 2015 - C. Keller - Added DiagnCheck
-!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,8 +300,8 @@ CONTAINS
     ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
     IF ( HcoState%Options%NegFlag /= 2 ) THEN
        IF ( ANY( Arr3D < 0.0_sp ) ) THEN
-  
-          ! Negative flag is 1: set to zero and prompt warning 
+
+          ! Negative flag is 1: set to zero and prompt warning
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              WHERE ( Arr3D < 0.0_sp ) Arr3D = 0.0_sp
              CALL HCO_WARNING ( HcoState%Config%Err, &
@@ -328,7 +328,7 @@ CONTAINS
 
     ! Check for diagnostics
     CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr,   Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr3Dsp=Arr3D,          & 
+                     Hier=Hier, HcoID=HcoID, Arr3Dsp=Arr3D,          &
                      MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -344,7 +344,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_EmisAdd_2D_Dp
 !
-! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_Dp adds the real*8 2D-array Arr2D 
+! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_Dp adds the real*8 2D-array Arr2D
 ! to the emission array of species HcoID in HEMCO object HcoState.
 ! This routine also updates all autofill diagnostics that are defined
 ! for the givne species, extension number, emission category and
@@ -358,24 +358,24 @@ CONTAINS
                                 MinDiagnLev )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER                 :: HcoState
     REAL(dp),        INTENT(INOUT)           :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(INOUT)           :: RC 
-!                                  
-! !INPUT PARAMETERS:        
-!                                  
+    INTEGER,         INTENT(INOUT)           :: RC
+!
+! !INPUT PARAMETERS:
+!
     LOGICAL,         INTENT(IN   )           :: am_I_Root
-    INTEGER,         INTENT(IN   )           :: HcoID 
-    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   )           :: HcoID
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
-    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !  20 Apr 2015 - C. Keller - Added DiagnCheck
-!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -393,11 +393,11 @@ CONTAINS
     ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
     IF ( HcoState%Options%NegFlag /= 2 ) THEN
        IF ( ANY( Arr2D < 0.0_hp ) ) THEN
-  
-          ! Negative flag is 1: set to zero and prompt warning 
+
+          ! Negative flag is 1: set to zero and prompt warning
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              WHERE ( Arr2D < 0.0_hp ) Arr2D = 0.0_hp
-             CALL HCO_WARNING ( HcoState%Config%Err, & 
+             CALL HCO_WARNING ( HcoState%Config%Err, &
                'Negative values found - set to zero!', &
                 RC, THISLOC = 'HCO_EmisAdd (HCO_FLUXARR_MOD.F90)' )
 
@@ -421,12 +421,12 @@ CONTAINS
 
     ! Check for diagnostics
     CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr, Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr2D=Arr2D,          & 
+                     Hier=Hier, HcoID=HcoID, Arr2D=Arr2D,          &
                      MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_EmisAdd_2D_Dp
 !EOC
@@ -437,7 +437,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_EmisAdd_2D_Sp
 !
-! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_Sp adds the real*4 2D-array Arr2D 
+! !DESCRIPTION: Routine HCO\_EmisAdd\_2D\_Sp adds the real*4 2D-array Arr2D
 ! to the emission array of species HcoID in HEMCO object HcoState.
 ! This routine also updates all autofill diagnostics that are defined
 ! for the givne species, extension number, emission category and
@@ -455,21 +455,21 @@ CONTAINS
 !
     TYPE(HCO_State), POINTER                 :: HcoState
     REAL(sp),        INTENT(INOUT)           :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(INOUT)           :: RC 
+    INTEGER,         INTENT(INOUT)           :: RC
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   )           :: am_I_Root
-    INTEGER,         INTENT(IN   )           :: HcoID 
-    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   )           :: HcoID
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
-    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !  20 Apr 2015 - C. Keller - Added DiagnCheck
-!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -487,8 +487,8 @@ CONTAINS
     ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
     IF ( HcoState%Options%NegFlag /= 2 ) THEN
        IF ( ANY( Arr2D < 0.0_sp ) ) THEN
-  
-          ! Negative flag is 1: set to zero and prompt warning 
+
+          ! Negative flag is 1: set to zero and prompt warning
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              WHERE ( Arr2D < 0.0_sp ) Arr2D = 0.0_sp
              CALL HCO_WARNING ( HcoState%Config%Err, &
@@ -515,7 +515,7 @@ CONTAINS
 
     ! Check for diagnostics
     CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr,   Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr2Dsp=Arr2D,          & 
+                     Hier=Hier, HcoID=HcoID, Arr2Dsp=Arr2D,          &
                      MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -532,7 +532,7 @@ CONTAINS
 ! !IROUTINE: HCO_EmisAdd_Dp
 !
 ! !DESCRIPTION: Routine HCO\_EmisAdd\_Dp adds value iVal to the emission
-! array of species HcoID in HEMCO object HcoState. The value is placed at 
+! array of species HcoID in HEMCO object HcoState. The value is placed at
 ! location I, J, L of the array.
 !\\
 !\\
@@ -541,21 +541,21 @@ CONTAINS
   SUBROUTINE HCO_EmisAdd_Dp( HcoState, iVal, HcoID, I, J, L, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER       :: HcoState
-    REAL(dp),        INTENT(INOUT) :: iVal 
-    INTEGER,         INTENT(INOUT) :: RC 
+    REAL(dp),        INTENT(INOUT) :: iVal
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !INPUT PARAMETERS:
-! 
-    INTEGER,         INTENT(IN   ) :: HcoID 
-    INTEGER,         INTENT(IN   ) :: I 
-    INTEGER,         INTENT(IN   ) :: J 
-    INTEGER,         INTENT(IN   ) :: L 
 !
-! !REVISION HISTORY: 
+    INTEGER,         INTENT(IN   ) :: HcoID
+    INTEGER,         INTENT(IN   ) :: I
+    INTEGER,         INTENT(IN   ) :: J
+    INTEGER,         INTENT(IN   ) :: L
+!
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
-!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -591,8 +591,8 @@ CONTAINS
     ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
     IF ( HcoState%Options%NegFlag /= 2 ) THEN
        IF ( iVal < 0.0_hp ) THEN
-  
-          ! Negative flag is 1: set to zero and prompt warning 
+
+          ! Negative flag is 1: set to zero and prompt warning
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              iVal = 0.0_hp
              CALL HCO_WARNING ( HcoState%Config%Err, &
@@ -618,7 +618,7 @@ CONTAINS
        HcoState%Spc(HcoID)%Emis%Val(I,J,L) + iVal
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_EmisAdd_Dp
 !EOC
@@ -630,7 +630,7 @@ CONTAINS
 ! !IROUTINE: HCO_EmisAdd_Sp
 !
 ! !DESCRIPTION: Routine HCO\_EmisAdd\_Sp adds value iVal to the emission
-! array of species HcoID in HEMCO object HcoState. The value is placed 
+! array of species HcoID in HEMCO object HcoState. The value is placed
 ! at location I, J, L of the array.
 !\\
 !\\
@@ -639,21 +639,21 @@ CONTAINS
   SUBROUTINE HCO_EmisAdd_Sp( HcoState, iVal, HcoID, I, J, L, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER       :: HcoState
-    REAL(sp),        INTENT(INOUT) :: iVal 
-    INTEGER,         INTENT(INOUT) :: RC 
+    REAL(sp),        INTENT(INOUT) :: iVal
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN   ) :: HcoID 
-    INTEGER,         INTENT(IN   ) :: I 
-    INTEGER,         INTENT(IN   ) :: J 
-    INTEGER,         INTENT(IN   ) :: L 
+    INTEGER,         INTENT(IN   ) :: HcoID
+    INTEGER,         INTENT(IN   ) :: I
+    INTEGER,         INTENT(IN   ) :: J
+    INTEGER,         INTENT(IN   ) :: L
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
-!  12 May 2017 - C. Keller - Added option to use uniform scale factor 
+!  12 May 2017 - C. Keller - Added option to use uniform scale factor
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -689,8 +689,8 @@ CONTAINS
     ! negative values: 2 = allow; 1 = set to zero + warning; 0 = error.
     IF ( HcoState%Options%NegFlag /= 2 ) THEN
        IF ( iVal < 0.0_sp ) THEN
-  
-          ! Negative flag is 1: set to zero and prompt warning 
+
+          ! Negative flag is 1: set to zero and prompt warning
           IF ( HcoState%Options%NegFlag == 1 ) THEN
              iVal = 0.0_sp
              CALL HCO_WARNING ( HcoState%Config%Err, &
@@ -727,7 +727,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_DepvAdd_2D_Dp
 !
-! !DESCRIPTION: Routine HCO\_DepvAdd\_2D\_Dp adds the real*8 2D-array Arr2D 
+! !DESCRIPTION: Routine HCO\_DepvAdd\_2D\_Dp adds the real*8 2D-array Arr2D
 ! to the depostion array of species HcoID in HEMCO object HcoState.
 !\\
 !\\
@@ -736,16 +736,16 @@ CONTAINS
   SUBROUTINE HCO_DepvAdd_2D_Dp( HcoState, Arr2D, HcoID, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER       :: HcoState
-    INTEGER,         INTENT(INOUT) :: RC 
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !INPUT PARAMETERS:
-! 
-    REAL(dp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(IN   ) :: HcoID 
 !
-! !REVISION HISTORY: 
+    REAL(dp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
+    INTEGER,         INTENT(IN   ) :: HcoID
+!
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -766,7 +766,7 @@ CONTAINS
        HcoState%Spc(HcoID)%Depv%Val(:,:) + Arr2D(:,:)
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_DepvAdd_2D_Dp
 !EOC
@@ -777,7 +777,7 @@ CONTAINS
 !
 ! !IROUTINE: HCO_DepvAdd_2D_Sp
 !
-! !DESCRIPTION: Routine HCO\_DepvAdd\_2D\_Sp adds the real*4 2D-array Arr2D 
+! !DESCRIPTION: Routine HCO\_DepvAdd\_2D\_Sp adds the real*4 2D-array Arr2D
 ! to the depostion array of species HcoID in HEMCO object HcoState.
 !\\
 !\\
@@ -786,16 +786,16 @@ CONTAINS
   SUBROUTINE HCO_DepvAdd_2D_Sp( HcoState, Arr2D, HcoID, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER       :: HcoState
-    INTEGER,         INTENT(INOUT) :: RC 
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !INPUT PARAMETERS:
-! 
-    REAL(sp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
-    INTEGER,         INTENT(IN   ) :: HcoID 
 !
-! !REVISION HISTORY: 
+    REAL(sp),        INTENT(IN   ) :: Arr2D(HcoState%NX,HcoState%NY)
+    INTEGER,         INTENT(IN   ) :: HcoID
+!
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -815,7 +815,7 @@ CONTAINS
        HcoState%Spc(HcoID)%Depv%Val(:,:) + Arr2D(:,:)
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_DepvAdd_2D_Sp
 !EOC
@@ -826,8 +826,8 @@ CONTAINS
 !
 ! !IROUTINE: HCO_DepvAdd_Dp
 !
-! !DESCRIPTION: Routine HCO\_DepvAdd\_Dp adds value iVal to the deposition 
-! array of species HcoID in HEMCO object HcoState. The value is placed at 
+! !DESCRIPTION: Routine HCO\_DepvAdd\_Dp adds value iVal to the deposition
+! array of species HcoID in HEMCO object HcoState. The value is placed at
 ! location I, J of the array.
 !\\
 !\\
@@ -836,18 +836,18 @@ CONTAINS
   SUBROUTINE HCO_DepvAdd_Dp( HcoState, iVal, HcoID, I, J, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER       :: HcoState
-    INTEGER,         INTENT(INOUT) :: RC 
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !INPUT PARAMETERS:
-! 
-    REAL(dp),        INTENT(IN   ) :: iVal 
-    INTEGER,         INTENT(IN   ) :: HcoID 
-    INTEGER,         INTENT(IN   ) :: I 
-    INTEGER,         INTENT(IN   ) :: J 
 !
-! !REVISION HISTORY: 
+    REAL(dp),        INTENT(IN   ) :: iVal
+    INTEGER,         INTENT(IN   ) :: HcoID
+    INTEGER,         INTENT(IN   ) :: I
+    INTEGER,         INTENT(IN   ) :: J
+!
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -877,7 +877,7 @@ CONTAINS
 
     ! Add array
     HcoState%Spc(HcoID)%Depv%Val(I,J) = &
-       HcoState%Spc(HcoID)%Depv%Val(I,J) + iVal 
+       HcoState%Spc(HcoID)%Depv%Val(I,J) + iVal
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -891,8 +891,8 @@ CONTAINS
 !
 ! !IROUTINE: HCO_DepvAdd_Sp
 !
-! !DESCRIPTION: Routine HCO\_DepvAdd\_Sp adds value iVal to the deposition 
-! array of species HcoID in HEMCO object HcoState. The value is placed at 
+! !DESCRIPTION: Routine HCO\_DepvAdd\_Sp adds value iVal to the deposition
+! array of species HcoID in HEMCO object HcoState. The value is placed at
 ! location I, J of the array.
 !\\
 !\\
@@ -901,18 +901,18 @@ CONTAINS
   SUBROUTINE HCO_DepvAdd_Sp( HcoState, iVal, HcoID, I, J, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER       :: HcoState
-    INTEGER,         INTENT(INOUT) :: RC 
+    INTEGER,         INTENT(INOUT) :: RC
 !
 ! !INPUT PARAMETERS:
-! 
-    REAL(sp),        INTENT(IN   ) :: iVal 
-    INTEGER,         INTENT(IN   ) :: HcoID 
-    INTEGER,         INTENT(IN   ) :: I 
-    INTEGER,         INTENT(IN   ) :: J 
 !
-! !REVISION HISTORY: 
+    REAL(sp),        INTENT(IN   ) :: iVal
+    INTEGER,         INTENT(IN   ) :: HcoID
+    INTEGER,         INTENT(IN   ) :: I
+    INTEGER,         INTENT(IN   ) :: J
+!
+! !REVISION HISTORY:
 !  01 May 2013 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -945,7 +945,7 @@ CONTAINS
        HcoState%Spc(HcoID)%Depv%Val(I,J) + iVal
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
   END SUBROUTINE HCO_DepvAdd_Sp
 !EOC
@@ -954,7 +954,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DiagnCheck 
+! !IROUTINE: DiagnCheck
 !
 ! !DESCRIPTION: Subroutine DiagnCheck checks if the given emission array needs
 !               to be added to any auto-fill diagnostics. The diagnostics to be
@@ -966,23 +966,23 @@ CONTAINS
 !
   SUBROUTINE DiagnCheck( am_I_Root, HcoState, ExtNr,   Cat,     &
                          Hier,      HcoID,    Arr3D,   Arr3Dsp, &
-                         Arr2D,     Arr2Dsp,  MinDiagnLev,  RC   ) 
+                         Arr2D,     Arr2Dsp,  MinDiagnLev,  RC   )
 !
 ! !USES:
 !
     USE HCO_DIAGN_MOD
 !
 ! !INPUT PARAMETERS:
-! 
+!
     LOGICAL,         INTENT(IN   )           :: am_I_Root
-    INTEGER,         INTENT(IN   )           :: HcoID 
-    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr 
+    INTEGER,         INTENT(IN   )           :: HcoID
+    INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
     INTEGER,         INTENT(IN   ), OPTIONAL :: Hier
-    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev 
+    INTEGER,         INTENT(IN   ), OPTIONAL :: MinDiagnLev
 !
 ! !INPUT/OUTPUT PARAMETERS:
-! 
+!
     TYPE(HCO_State), POINTER                 :: HcoState
     REAL(dp),        INTENT(INOUT), OPTIONAL :: Arr3D(   HcoState%NX, &
                                                          HcoState%NY, &
@@ -991,12 +991,12 @@ CONTAINS
                                                          HcoState%NY, &
                                                          HcoState%NZ )
     REAL(dp),        INTENT(INOUT), OPTIONAL :: Arr2D(   HcoState%NX, &
-                                                         HcoState%NY ) 
+                                                         HcoState%NY )
     REAL(sp),        INTENT(INOUT), OPTIONAL :: Arr2Dsp( HcoState%NX, &
                                                          HcoState%NY )
-    INTEGER,         INTENT(INOUT)           :: RC 
+    INTEGER,         INTENT(INOUT)           :: RC
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  20 Apr 2015 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -1012,9 +1012,9 @@ CONTAINS
 
     ! Initialize values
 
-    ! Autofill level: 
+    ! Autofill level:
     ! 1=species level, 2=ExtNr level, 3=Cat level, 4=Hier level
-    AFL =  1  
+    AFL =  1
 
     ! ExtNr, Cat & Hier
     XT  = -1
@@ -1048,14 +1048,14 @@ CONTAINS
     ENDIF
 
     ! Check if we need to call diagnostics
-    IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,AFL) ) THEN 
-   
+    IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,AFL) ) THEN
+
        ! 3D HP array
        IF ( PRESENT(Arr3D) ) THEN
           CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
                              Hier=HR, HcoID=HcoID, AutoFill=1,      &
                              Array3D=Arr3D, MinDiagnLev=MinDiagnLev, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN          
+          IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! 3D SP array
@@ -1063,7 +1063,7 @@ CONTAINS
           CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
                              Hier=HR, HcoID=HcoID, AutoFill=1,      &
                              Array3D=Arr3Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN          
+          IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! 2D HP array
@@ -1071,7 +1071,7 @@ CONTAINS
           CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
                              Hier=HR, HcoID=HcoID, AutoFill=1,      &
                              Array2D=Arr2D, MinDiagnLev=MinDiagnLev, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN          
+          IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! 2D SP array
@@ -1079,7 +1079,7 @@ CONTAINS
           CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
                              Hier=HR, HcoID=HcoID, AutoFill=1,      &
                              Array2D=Arr2Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN          
+          IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
     ENDIF
@@ -1087,6 +1087,6 @@ CONTAINS
     ! Return w/ success
     RC = HCO_SUCCESS
 
-  END SUBROUTINE DiagnCheck 
+  END SUBROUTINE DiagnCheck
 !EOC
 END MODULE HCO_FluxArr_Mod

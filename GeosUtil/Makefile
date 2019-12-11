@@ -47,7 +47,7 @@
 # AR         Sys var w/ name of library creator program (i.e., "ar", "ranlib")
 # MAKE       Sys var w/ name of Make command (i.e, "make" or "gmake")
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  19 Nov 2009 - R. Yantosca - Initial version
 #  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
 #                              automatically written to the mod directory
@@ -100,7 +100,7 @@ TMP       :=$(SOURCES:.F=.o)
 OBJECTS   :=$(TMP:.F90=.o)
 
 # Special files just for IFORT
-ifeq ($(COMPILER),ifort) 
+ifeq ($(COMPILER),ifort)
   OBJECTS += ifort_errmsg.o
 endif
 
@@ -156,7 +156,7 @@ debug:
 ###                                                                         ###
 ###  NOTES:                                                                 ###
 ###  (1) Only specify object-file dependencies that are within this         ###
-###       directory.  Object files in other directories will be referenced  ### 
+###       directory.  Object files in other directories will be referenced  ###
 ###       at link-time.                                                     ###
 ###  (2) For "make -jN" (i.e. compile N files simultaneously), all files    ###
 ###       in this directory must have a listed dependency.                  ###
@@ -166,7 +166,7 @@ debug:
 bpch2_mod.o         : bpch2_mod.F           \
                       error_mod.o           \
                       file_mod.o            \
-                      julday_mod.o          
+                      julday_mod.o
 
 error_mod.o         : error_mod.F           \
                       geos_timers_mod.o
@@ -198,7 +198,7 @@ roundoff_mod.o      : roundoff_mod.F90
 time_mod.o          : time_mod.F            \
                       error_mod.o           \
                       gc_grid_mod.o         \
-                      julday_mod.o 
+                      julday_mod.o
 
 transfer_mod.o      : transfer_mod.F        \
                       error_mod.o
@@ -208,13 +208,6 @@ unitconv_mod.o	    : unitconv_mod.F90      \
                       geos_timers_mod.o
 
 geos_timers_mod.o   : geos_timers_mod.F90
-
-#%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
-# NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
-# in the HDF5 include path (bmy, 12/21/09)
-hdf_mod.o           : hdf_mod.F             \
-                      error_mod.o           \
-                      gc_grid_mod.o
 
 ifeq ($(HDF5),yes)
 	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<

@@ -5,14 +5,14 @@
 !
 ! !MODULE: hcox_soilnox_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_SoilNOx\_Mod contains routines to compute soil 
+! !DESCRIPTION: Module HCOX\_SoilNOx\_Mod contains routines to compute soil
 !  NOx emissions.  We follow the implementation in GEOS-Chem by Hudman
 !  et al 2012.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE HCOX_SoilNOx_Mod 
+MODULE HCOX_SoilNOx_Mod
 !
 ! !USES:
 !
@@ -37,9 +37,9 @@ MODULE HCOX_SoilNOx_Mod
 ! utilities.
 !                                                                             .
 !  Original codes from:
-!    HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP 
-!    MODULE FOR SOIL NOX EMISSIONS           
-!    by Yuhang Wang, Gerry Gardner, and Prof. Daniel Jacob 
+!    HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP
+!    MODULE FOR SOIL NOX EMISSIONS
+!    by Yuhang Wang, Gerry Gardner, and Prof. Daniel Jacob
 !  Updated model code:
 !    by  Rynda Hudman, Neil Moore, Randall Martin, and Bram Maasakkers
 !                                                                             .
@@ -50,38 +50,38 @@ MODULE HCOX_SoilNOx_Mod
 !  ENOx   = f( T, biome, w/d)  x Pulse(precip) x canopy uptake + FERT
 !                                                                             .
 !  New:
-!  ENOx   = f( T, biome, WFPS, Fert)  x Pulse(dryspell) x canopy uptake 
+!  ENOx   = f( T, biome, WFPS, Fert)  x Pulse(dryspell) x canopy uptake
 !                                                                             .
-!  1 - Update moisture treatment: soil moisture as a continuous variable 
-!  using WFPS rather than discrete wet/dry states and purely exponential 
+!  1 - Update moisture treatment: soil moisture as a continuous variable
+!  using WFPS rather than discrete wet/dry states and purely exponential
 !  T impact (impact = -1. Tg N/yr)
 !                                                                             .
-!  2 - Update to Fertilizer:  new fertilizer maps including chemical and 
-!  manure fertilizer from Potter et al., [2010] distributed using MODIS EVI 
+!  2 - Update to Fertilizer:  new fertilizer maps including chemical and
+!  manure fertilizer from Potter et al., [2010] distributed using MODIS EVI
 !  seasonality, online-N deposition as a fertilizer source, and N-fertilizer
 !  source subject to T, WFPS, and pulsing like other N (impact = +1.3 Tg N/yr)
-!                                                                             . 
-!  3- Update Pulsing Scheme: Yan et al., [2005] (shorter, stronger pulses) 
-!  (impact = +1. Tg N/yr). Also added restart file containing dry spell 
-!  information to properly account for dry spell length in continuing runs. 
+!                                                                             .
+!  3- Update Pulsing Scheme: Yan et al., [2005] (shorter, stronger pulses)
+!  (impact = +1. Tg N/yr). Also added restart file containing dry spell
+!  information to properly account for dry spell length in continuing runs.
 !                                                                             .
 !  References:
 !  ============================================================================
-!  (1 ) Wang, Y., D.J. Jacob, and J.A. Logan,  Global simulation of 
-!        tropospheric O3-NOx-hydrocarbon chemistry, 1. Model formulation, 
+!  (1 ) Wang, Y., D.J. Jacob, and J.A. Logan,  Global simulation of
+!        tropospheric O3-NOx-hydrocarbon chemistry, 1. Model formulation,
 !        J. Geophys. Res., 103/D9, 10, 713-10,726, 1998.
 !  (2 ) Yienger, J.J, and H. Levy, Empirical model of global soil-biogenic
 !        NOx emissions, J. Geophys. Res., 100, D6, 11,447-11464, June 20, 1995.
 !  (3 ) Yan, X., T. Ohara, and H. Akimoto, Statistical modeling of global
 !        soil NOx emissions, Global Biogeochem. Cycles, 19, GB3019,
 !        doi:10.1029/2004GB002276, 2005.
-!  (4 ) Potter, P., Ramankutty, N., Bennett, E., and Donner, S.: 
+!  (4 ) Potter, P., Ramankutty, N., Bennett, E., and Donner, S.:
 !        Characterizing the Spatial Patterns of Global Fertilizer Application
-!        and Manure Production, Earth Interactions, 14, 1-22, 
+!        and Manure Production, Earth Interactions, 14, 1-22,
 !        10.1175/2009EI288.1, 2010.
 !  (5 ) Moore, N.E., Improving global bottom-up biogenic soil NOx inventories,
 !        Master's Thesis, Dalhousie University, 2007.
-!  (6 ) Hudman, R.C., N.E. Moore, A.K. Mebust, R.V. Martin, A.R. Russell, 
+!  (6 ) Hudman, R.C., N.E. Moore, A.K. Mebust, R.V. Martin, A.R. Russell,
 !        L.C. Valin, and R.C Cohen, Steps toward a mechanistic model of global
 !        soil nitric oxide emissions: implementation and space
 !        based-constraints, Atmos. Chem. Phys., 12, 7779-7795,
@@ -92,16 +92,16 @@ MODULE HCOX_SoilNOx_Mod
 !  17 Aug 2009 - R. Yantosca     - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca     - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman       - Added new code12259.perceus-ucb0
-!  31 Jan 2011 - R. Hudman       - Updated headers 
+!  31 Jan 2011 - R. Hudman       - Updated headers
 !  29 Aug 2012 - J.D. Maasakkers - Implemented Jacob and Bakwin CRF
 !  29 Aug 2012 - J.D. Maasakkers - Adapted code to work with new (online
 !                                  regridded) landfraction, climate and
 !                                  fertilizer data
 !  29 Aug 2012 - J.D. Maasakkers - Removed all unused Wang et al. code
-!                                  (comments) 
+!                                  (comments)
 !  04 Nov 2013 - C. Keller       - Moved all soil NOx routines into one
 !                                  module. Now a HEMCO extension.
-!  28 Jul 2014 - C. Keller       - Now allow DRYCOEFF to be read through 
+!  28 Jul 2014 - C. Keller       - Now allow DRYCOEFF to be read through
 !                                  configuration file (as setting)
 !  11 Dec 2014 - M. Yannetti     - Changed REAL*8 to REAL(hp)
 !  14 Oct 2016 - C. Keller       - Now use HCO_EvalFld instead of HCO_GetPtr.
@@ -122,41 +122,41 @@ MODULE HCOX_SoilNOx_Mod
      INTEGER                        :: IDTNO          ! NO tracer ID
      LOGICAL                        :: LFERTILIZERNOX ! Use fertilizer NOx?
      REAL(hp)                       :: FERT_SCALE     ! fertilizer scale factor
-  
+
      ! Dry period length (from restart)
      REAL(sp), ALLOCATABLE          :: DRYPERIOD    (:,:  )
-  
+
      ! Pulse factors (from restart)
      REAL(sp), ALLOCATABLE          :: PFACTOR      (:,:  )
      REAL(sp), ALLOCATABLE          :: GWET_PREV    (:,:  )
 
      ! Deposition reservoir (from restart)
-     REAL(sp), ALLOCATABLE          :: DEP_RESERVOIR(:,:  ) 
-  
+     REAL(sp), ALLOCATABLE          :: DEP_RESERVOIR(:,:  )
+
      ! NOx in the canopy
      REAL(hp), ALLOCATABLE          :: CANOPYNOX        (:,:,:)
-  
+
      ! MODIS landtype
      TYPE(MODL), POINTER            :: LANDTYPE         (:    ) => NULL()
-  
-     ! Soil fertilizer (kg/m3) 
+
+     ! Soil fertilizer (kg/m3)
      REAL(hp), POINTER              :: SOILFERT         (:,:  ) => NULL()
 
      ! Fraction of arid and non-arid land
      REAL(hp), POINTER              :: CLIMARID         (:,:  ) => NULL()
      REAL(hp), POINTER              :: CLIMNARID        (:,:  ) => NULL()
-  
+
      ! DRYCOEFF (if read from settings in configuration file)
      REAL(hp), POINTER              :: DRYCOEFF(:)
-  
+
      ! Overall scale factor to be applied to total soil NOx emissions. Must
-     ! be defined in the HEMCO configuration file as extension attribute 
+     ! be defined in the HEMCO configuration file as extension attribute
      ! 'Scaling_NO'
      REAL(sp),          ALLOCATABLE :: SpcScalVal(:)
      CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
      ! Diagnostics to write out the pulse (testing only)
-#if defined(DEVEL) 
+#if defined(DEVEL)
      REAL(sp), ALLOCATABLE          :: DGN_PULSE    (:,:  )
 #endif
 
@@ -169,15 +169,15 @@ MODULE HCOX_SoilNOx_Mod
 ! !DEFINED PARAMETERS:
 !
   ! # of MODIS/Koppen biome types
-  INTEGER, PARAMETER               :: NBIOM = 24 
+  INTEGER, PARAMETER               :: NBIOM = 24
 
   ! Max. # of allowed drycoeff vars
-  INTEGER, PARAMETER               :: MaxDryCoeff = 50 
+  INTEGER, PARAMETER               :: MaxDryCoeff = 50
 
   ! Canopy wind extinction coefficients
   ! (cf. Yienger & Levy [1995], Sec 5), now a function of the
   ! MODIS/KOPPEN biometype (J.D. Maasakkers)
-  REAL(hp),  PARAMETER, PRIVATE :: SOILEXC(NBIOM) =                 (/ & 
+  REAL(hp),  PARAMETER, PRIVATE :: SOILEXC(NBIOM) =                 (/ &
         0.10, 0.50, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 1.00,    &
         1.00, 1.00, 1.00, 2.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00,    &
         4.00, 2.00, 0.10, 2.00                                       /)
@@ -240,7 +240,7 @@ MODULE HCOX_SoilNOx_Mod
        9999, 2000, 9999, 2000                                        /)
 
   INTEGER, PARAMETER, PRIVATE :: SNIRCLO(NBIOM) =                   (/ &
-       9999, 1000, 1000, 9999, 1000, 9999, 1000, 1000, 1000, 1000,     & 
+       9999, 1000, 1000, 9999, 1000, 9999, 1000, 1000, 1000, 1000,     &
        1000, 1000, 1000, 1000, 1000, 9999, 1000, 1000, 1000, 1000,     &
        9999, 1000, 9999, 1000                                        /)
 
@@ -259,11 +259,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_SoilNOx_Run 
+! !IROUTINE: HCOX_SoilNOx_Run
 !
-! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Run is the driver routine to 
+! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Run is the driver routine to
 ! calculate ship NOx emissions for the current time step. Emissions in
-! [kg/m2/s] are added to the emissions array of the passed  
+! [kg/m2/s] are added to the emissions array of the passed
 !\\
 !\\
 ! !INTERFACE:
@@ -273,7 +273,7 @@ CONTAINS
 ! !USES:
 !
     USE HCO_Types_Mod,      ONLY : DiagnCont
-    USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_First
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
     USE HCO_FLuxArr_Mod,    ONLY : HCO_EmisAdd
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -292,7 +292,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HCO_State), POINTER        :: HcoState   ! Output obj
-    INTEGER,         INTENT(INOUT)  :: RC 
+    INTEGER,         INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller - Initial Version
@@ -331,11 +331,11 @@ CONTAINS
     ! HCOX_SoilNOx_RUN begins here!
     !=================================================================
 
-    ! Enter 
+    ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SoilNox_Run (hcox_soilnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Return if extension disabled 
+    ! Return if extension disabled
     IF ( ExtState%SoilNOx < 0 ) RETURN
 
     ! Nullify
@@ -344,7 +344,7 @@ CONTAINS
 
     ! Get Instance
     CALL InstGet ( ExtState%SoilNox, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
+    IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find soil NOx instance Nr. ', ExtState%SoilNOx
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
@@ -416,7 +416,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_NONARID', Inst%CLIMNARID,        RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
     IF ( FIRST ) THEN
        ! Check if ExtState variables DRYCOEFF is defined. Otherwise, try to
        ! read it from settings.
@@ -424,7 +424,7 @@ CONTAINS
           CALL GetExtOpt( HcoState%Config, Inst%ExtNr, 'DRYCOEFF', &
                            OptValChar=DMY, FOUND=FOUND, RC=RC )
           IF ( .NOT. FOUND ) THEN
-             CALL HCO_ERROR( HcoState%Config%Err, 'DRYCOEFF not defined', RC ) 
+             CALL HCO_ERROR( HcoState%Config%Err, 'DRYCOEFF not defined', RC )
              RETURN
           ENDIF
           ALLOCATE(VecDp(MaxDryCoeff))
@@ -445,13 +445,13 @@ CONTAINS
     ENDIF
 
     !---------------------------------------------------------------
-    ! Fill restart variables. Restart variables can be specified 
+    ! Fill restart variables. Restart variables can be specified
     ! in the HEMCO configuration file. In an ESMF environment, they
-    ! can also be defined as internal state fields. The internal 
-    ! state fields take precedence over fields read through the 
+    ! can also be defined as internal state fields. The internal
+    ! state fields take precedence over fields read through the
     ! HEMCO interface.
     ! The restart variables must be read on the first time step or
-    ! after the rewinding the clock. 
+    ! after the rewinding the clock.
     !---------------------------------------------------------------
 
     IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
@@ -467,7 +467,7 @@ CONTAINS
        CALL HCO_RestartGet( am_I_Root, HcoState,   'DEP_RESERVOIR', &
                             Inst%DEP_RESERVOIR, RC, Def2D=Def2D )
        IF ( RC /= HCO_SUCCESS ) RETURN
-    
+
        ! GWET_PREV [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'GWET_PREV', &
                             Inst%GWET_PREV, RC,  FILLED=FOUND )
@@ -479,7 +479,7 @@ CONTAINS
              CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
-   
+
        ! PFACTOR [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'PFACTOR', &
                             Inst%PFACTOR,   RC,  FILLED=FOUND )
@@ -491,7 +491,7 @@ CONTAINS
              CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
-      
+
        ! DRYPERIOD [unitless]
        CALL HCO_RestartGet( am_I_Root, HcoState, 'DRYPERIOD', &
                             Inst%DRYPERIOD, RC,  FILLED=FOUND )
@@ -503,26 +503,26 @@ CONTAINS
              CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
-       
+
     ENDIF
-   
+
     !---------------------------------------------------------------
     ! Now need to call GET_CANOPY_NOX to break ugly dependency between
-    ! drydep and soil NOx emissions. (bmy, 6/22/09) 
+    ! drydep and soil NOx emissions. (bmy, 6/22/09)
     ! Now a function of the new MODIS/Koppen biome map (J.D. Maasakkers)
     CALL GET_CANOPY_NOX( aIR, HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
     TSEMIS  = HcoState%TS_EMIS
-    FLUX_2D = 0e+0_hp 
-    IF(DoDiagn) DIAG = 0e+0_hp 
+    FLUX_2D = 0e+0_hp
+    IF(DoDiagn) DIAG = 0e+0_hp
 
     ! Loop over each land grid-box, removed loop over landpoints
 !$OMP PARALLEL DO                                               &
 !$OMP DEFAULT( SHARED )                                         &
 !$OMP PRIVATE( I, J, DEP_FERT, SOILFRT, FERTDIAG, IJFLUX )
-    DO J = 1, HcoState%NY 
+    DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
 
        ! Do not calculate soil NOx emissions if there is no soil in
@@ -535,7 +535,7 @@ CONTAINS
        ! Get N fertilizer reservoir associated with chemical and
        ! manure fertilizer [kg NO/m2]
        IF ( Inst%LFERTILIZERNOX ) THEN
-          SOILFRT =  Inst%SOILFERT( I, J )  
+          SOILFRT =  Inst%SOILFERT( I, J )
        ELSE
           SOILFRT = 0e+0_hp
        ENDIF
@@ -544,7 +544,7 @@ CONTAINS
        ! avoid unrealistic pulse
        IF ( Inst%DRYPERIOD(I,J) > 8760e+0_sp ) &
           Inst%DRYPERIOD(I,J) = 8760e+0_sp
- 
+
        ! Return NO emissions from soils [kg NO/m2/s]
        CALL SOIL_NOX_EMISSION( ExtState,  Inst,                &
                                TSEMIS, I, J,                   &
@@ -559,12 +559,12 @@ CONTAINS
        FLUX_2D(I,J) = MAX(IJFLUX,0.0_hp)
        IF (DoDiagn) DIAG(I,J) = FERTDIAG
 
-    ENDDO !J 
+    ENDDO !J
     ENDDO !I
 !$OMP END PARALLEL DO
 
     !-----------------------------------------------------------------
-    ! EVENTUALLY ADD SCALE FACTORS 
+    ! EVENTUALLY ADD SCALE FACTORS
     !-----------------------------------------------------------------
 
     ! Eventually apply species specific scale factor
@@ -573,11 +573,11 @@ CONTAINS
     ENDIF
 
     ! Eventually apply spatiotemporal scale factors
-    CALL HCOX_SCALE ( am_I_Root, HcoState, FLUX_2D, TRIM(Inst%SpcScalFldNme(1)), RC ) 
+    CALL HCOX_SCALE ( am_I_Root, HcoState, FLUX_2D, TRIM(Inst%SpcScalFldNme(1)), RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
-    ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
+    ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS
     !-----------------------------------------------------------------
 
     ! Add flux to emission array
@@ -585,7 +585,7 @@ CONTAINS
                       RC,        ExtNr=Inst%ExtNr )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error', RC )
-       RETURN 
+       RETURN
     ENDIF
 
     ! 'EmisNO_Fert' is the fertilizer NO emissions.
@@ -594,9 +594,9 @@ CONTAINS
     ! diagnostics are treated as zeros!
     IF ( DoDiagn ) THEN
        DiagnName = 'EmisNO_Fert'
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, & 
+       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
                           cName=TRIM(DiagnName), Array2D=DIAG, RC=RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! ----------------------------------------------------------------
@@ -604,34 +604,34 @@ CONTAINS
     ! ----------------------------------------------------------------
 
     ! DEP_RESERVOIR [kg/m3]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'DEP_RESERVOIR', Inst%DEP_RESERVOIR, RC ) 
+    CALL HCO_RestartWrite( am_I_Root, HcoState, &
+                          'DEP_RESERVOIR', Inst%DEP_RESERVOIR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! GWET_PREV [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'GWET_PREV', Inst%GWET_PREV, RC ) 
+    CALL HCO_RestartWrite( am_I_Root, HcoState, &
+                          'GWET_PREV', Inst%GWET_PREV, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-          
+
     ! PFACTOR [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'PFACTOR', Inst%PFACTOR, RC ) 
+    CALL HCO_RestartWrite( am_I_Root, HcoState, &
+                          'PFACTOR', Inst%PFACTOR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-   
+
     ! DRYPERIOD [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'DRYPERIOD', Inst%DRYPERIOD, RC ) 
+    CALL HCO_RestartWrite( am_I_Root, HcoState, &
+                          'DRYPERIOD', Inst%DRYPERIOD, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 #if defined(DEVEL)
-    CALL HCO_RestartWrite( am_I_Root, HcoState, & 
-                          'SOILNO_PULSE', Inst%DGN_PULSE, RC ) 
+    CALL HCO_RestartWrite( am_I_Root, HcoState, &
+                          'SOILNO_PULSE', Inst%DGN_PULSE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
 
     ! Leave w/ success
     Inst => NULL()
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_SoilNox_Run
 !EOC
@@ -640,7 +640,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_SoilNOx_Init 
+! !IROUTINE: HCOX_SoilNOx_Init
 !
 ! !DESCRIPTION: Subroutine HcoX\_SoilNox\_Init initializes the HEMCO
 ! SOILNOX extension.
@@ -664,7 +664,7 @@ CONTAINS
     TYPE(HCO_State),  POINTER        :: HcoState   ! Output obj
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState     ! Module options
-    INTEGER,          INTENT(INOUT)  :: RC 
+    INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REMARKS:
 !
@@ -693,7 +693,7 @@ CONTAINS
     ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
 
-    ! Enter 
+    ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_SoilNOx_Init (hcox_soilnox_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -705,17 +705,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ---------------------------------------------------------------------- 
-    ! Get species IDs and settings 
-    ! ---------------------------------------------------------------------- 
+    ! ----------------------------------------------------------------------
+    ! Get species IDs and settings
+    ! ----------------------------------------------------------------------
 
     ! Read settings specified in configuration file
-    ! Note: the specified strings have to match those in 
+    ! Note: the specified strings have to match those in
     !       the config. file!
     CALL GetExtOpt( HcoState%Config, ExtNr, 'Use fertilizer NOx', &
                      OptValBool=Inst%LFERTILIZERNOX, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
- 
+
     ! Get global scale factor
     Inst%FERT_SCALE = HCOX_SoilNOx_GetFertScale()
 
@@ -745,19 +745,19 @@ CONTAINS
 
        WRITE(MSG,*) '   - NOx species            : ', TRIM(SpcNames(1)), Inst%IDTNO
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-       WRITE(MSG,*) '   - NOx scale factor       : ', Inst%SpcScalVal(1) 
+       WRITE(MSG,*) '   - NOx scale factor       : ', Inst%SpcScalVal(1)
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) '   - NOx scale field        : ', TRIM(Inst%SpcScalFldNme(1))
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) '   - Use fertilizer NOx     : ', Inst%LFERTILIZERNOX
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-       WRITE(MSG,*) '   - Fertilizer scale factor: ', Inst%FERT_SCALE 
+       WRITE(MSG,*) '   - Fertilizer scale factor: ', Inst%FERT_SCALE
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
     ENDIF
 
-    ! ---------------------------------------------------------------------- 
+    ! ----------------------------------------------------------------------
     ! Set module variables
-    ! ---------------------------------------------------------------------- 
+    ! ----------------------------------------------------------------------
 
     ! horizontal dimensions
     I = HcoState%NX
@@ -831,18 +831,18 @@ CONTAINS
     Inst%DGN_PULSE = 0.0_sp
 #endif
 
-    ! Initialize pointers 
+    ! Initialize pointers
     !Inst%CLIMARID  => NULL()
     !Inst%CLIMNARID => NULL()
     !Inst%SOILFERT  => NULL()
 
-    ! ---------------------------------------------------------------------- 
+    ! ----------------------------------------------------------------------
     ! Set diagnostics
     ! ----------------------------------------------------------------------
     CALL HCO_RestartDefine( am_I_Root, HcoState, 'PFACTOR', &
                             Inst%PFACTOR,   '1',  RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
- 
+
     CALL HCO_RestartDefine( am_I_Root, HcoState, 'DRYPERIOD', &
                             Inst%DRYPERIOD, '1',  RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -859,22 +859,22 @@ CONTAINS
     CALL HCO_RestartDefine( am_I_Root, HcoState, 'SOILNO_PULSE', &
                             Inst%DGN_PULSE, '1',  RC                )
     IF ( RC /= HCO_SUCCESS ) RETURN
-#endif 
- 
-    ! ---------------------------------------------------------------------- 
-    ! Set HEMCO extensions variables 
-    ! ---------------------------------------------------------------------- 
+#endif
+
+    ! ----------------------------------------------------------------------
+    ! Set HEMCO extensions variables
+    ! ----------------------------------------------------------------------
 
     ! Activate required met fields
-    ExtState%T2M%DoUse       = .TRUE. 
-    ExtState%GWETTOP%DoUse   = .TRUE. 
-    ExtState%SUNCOS%DoUse    = .TRUE. 
-    ExtState%U10M%DoUse      = .TRUE. 
-    ExtState%V10M%DoUse      = .TRUE. 
-    ExtState%LAI%DoUse       = .TRUE. 
-    ExtState%ALBD%DoUse      = .TRUE. 
-    ExtState%RADSWG%DoUse    = .TRUE. 
-    ExtState%CLDFRC%DoUse    = .TRUE. 
+    ExtState%T2M%DoUse       = .TRUE.
+    ExtState%GWETTOP%DoUse   = .TRUE.
+    ExtState%SUNCOS%DoUse    = .TRUE.
+    ExtState%U10M%DoUse      = .TRUE.
+    ExtState%V10M%DoUse      = .TRUE.
+    ExtState%LAI%DoUse       = .TRUE.
+    ExtState%ALBD%DoUse      = .TRUE.
+    ExtState%RADSWG%DoUse    = .TRUE.
+    ExtState%CLDFRC%DoUse    = .TRUE.
 
     ! Activate required deposition parameter
     ExtState%DRY_TOTN%DoUse = .TRUE.
@@ -884,7 +884,7 @@ CONTAINS
     Inst => NULL()
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HCOX_SoilNOx_Init
 !EOC
@@ -914,12 +914,12 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(INOUT)  :: RC 
+    INTEGER,         INTENT(INOUT)  :: RC
 !
 ! !REVISION HISTORY:
 !  05 Nov 2013 - C. Keller - Initial Version
 !
-! !NOTES: 
+! !NOTES:
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -942,7 +942,7 @@ CONTAINS
 ! !IROUTINE: HCOX_SoilNOx_GetFertScale
 !
 ! !DESCRIPTION: Function HCOX\_SoilNOx\_GETFERTSCALE returns the scale factor
-! applied to fertilizer NOx emissions. 
+! applied to fertilizer NOx emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -968,7 +968,7 @@ CONTAINS
     ! Scale factor so that fertilizer emission = 1.8 Tg N/yr
     ! (Stehfest and Bouwman, 2006)
     ! before canopy reduction
-    FERT_SCALE = 0.0068 
+    FERT_SCALE = 0.0068
     ! Value calculated by running the 2x2.5 model
     ! For now, use this value for all resolutions since regular soil NOx
     ! emissions change with resolution as well (J.D. Maasakkers)
@@ -999,13 +999,13 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(Ext_State), POINTER :: ExtState      ! Module options
-    TYPE(MyInst),    POINTER :: Inst          ! Instance object 
+    TYPE(MyInst),    POINTER :: Inst          ! Instance object
     REAL*4,   INTENT(IN)  :: TS_EMIS          ! Emission timestep [s]
-    INTEGER,  INTENT(IN)  :: I                ! grid box lon index 
-    INTEGER,  INTENT(IN)  :: J                ! grid box lat index 
+    INTEGER,  INTENT(IN)  :: I                ! grid box lon index
+    INTEGER,  INTENT(IN)  :: J                ! grid box lat index
     REAL(hp), INTENT(IN)  :: DEPN             ! Dry Dep Fert term [kg/m2]
     REAL(hp), INTENT(IN)  :: SOILFRT          ! Fertilizer emissions [kg/m2]
-    REAL(hp), INTENT(IN)  :: UNITCONV         ! ng N to kg NO 
+    REAL(hp), INTENT(IN)  :: UNITCONV         ! ng N to kg NO
 
     !Input parameters for the canopy reduction factor
     REAL(hp), INTENT(IN)  :: R_CANOPY(:)      ! Resist. of canopy to NOx [1/s]
@@ -1019,16 +1019,16 @@ CONTAINS
     REAL(hp), INTENT(OUT) :: FERTDIAG         ! Fert emissions [kg/m2/s]
 !
 ! !REMARKS:
-!  R_CANOPY is computed in routine GET_CANOPY_NOX of "canopy_nox_mod.f". 
-!  This was originally in the GEOS-Chem dry deposition code, but was split 
+!  R_CANOPY is computed in routine GET_CANOPY_NOX of "canopy_nox_mod.f".
+!  This was originally in the GEOS-Chem dry deposition code, but was split
 !  off in order to avoid an ugly code dependency between the dry deposition
 !  and soil NOx codes.
-! 
+!
 !  As of v9-02, this module uses the MODIS/Koppen biome types instead
-!  of the Olson land type / biome type, making it different from the original 
+!  of the Olson land type / biome type, making it different from the original
 !  dry deposition code (J.D. Maasakkers)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - New Model added
@@ -1043,7 +1043,7 @@ CONTAINS
     INTEGER :: K
     REAL(hp)  :: BASE_TERM, CRF_TERM,  PULSE
     REAL(hp)  :: TC,        TEMP_TERM, WINDSQR
-    REAL(hp)  :: WET_TERM,  A_FERT,    A_BIOM 
+    REAL(hp)  :: WET_TERM,  A_FERT,    A_BIOM
     REAL(hp)  :: LAI,       SUNCOS,    GWET
     REAL(hp)  :: ARID,      NARID
 
@@ -1075,7 +1075,7 @@ CONTAINS
     ! Compute soil NOx emissions
     !=================================================================
 
-    ! Cumulative multiplication factor (over baseline emissions) 
+    ! Cumulative multiplication factor (over baseline emissions)
     ! that accounts for soil pulsing
     PULSE = PULSING( GWET, TS_EMIS, GWET_PREV, PFACTOR, DRYPERIOD )
 
@@ -1095,12 +1095,12 @@ CONTAINS
        NARID    = Inst%CLIMNARID(I,J)
        WET_TERM = SOILWET( GWET , ARID, NARID )
 
-       ! Fertilizer emission [kg/m2/s] 
+       ! Fertilizer emission [kg/m2/s]
        A_FERT = FERTADD( SOILFRT , DEPN)
 
        ! Scale fertilizer emissions as specified
        ! (scale needed to force fert emiss of 1.8 Tg N/yr w/o canopy uptake)
-       A_FERT = A_FERT * Inst%FERT_SCALE 
+       A_FERT = A_FERT * Inst%FERT_SCALE
 
        ! Canopy reduction factor
        CRF_TERM  = SOILCRF( K, LAI, R_CANOPY(K), WINDSQR, SUNCOS )
@@ -1133,10 +1133,10 @@ CONTAINS
 !
 ! !IROUTINE: Get_Canopy_NOx
 !
-! !DESCRIPTION: Subroutine Get\_Canopy\_NOx computes the bulk surface 
-!  resistance of the canopy to NOx.  This computation was originally done 
-!  within legacy routine DEPVEL (in "drydep\_mod.f").  Moving this computation 
-!  to Get\_Canopy\_NOx now allows for a totally clean separation between 
+! !DESCRIPTION: Subroutine Get\_Canopy\_NOx computes the bulk surface
+!  resistance of the canopy to NOx.  This computation was originally done
+!  within legacy routine DEPVEL (in "drydep\_mod.f").  Moving this computation
+!  to Get\_Canopy\_NOx now allows for a totally clean separation between
 !  dry deposition routines and emissions routines in GEOS-Chem.
 !\\
 !\\
@@ -1189,21 +1189,21 @@ CONTAINS
     ! Scalars
     INTEGER             :: I,     J,     K,      KK
     INTEGER             :: DCSZ
-    REAL(hp)            :: F0,    HSTAR, XMW              
+    REAL(hp)            :: F0,    HSTAR, XMW
     REAL(hp)            :: DTMP1, DTMP2, DTMP3,  DTMP4, GFACT, GFACI
     REAL(hp)            :: RT,    RAD0,  RIX,    RIXX,  RDC,   RLUXX
     REAL(hp)            :: RGSX,  RCLX,  TEMPK,  TEMPC
     REAL(hp)            :: LAI,   SUNCOS, CLDFRC
     REAL(hp)            :: BIO_RESULT
 
-    ! Arrays            
-    REAL(hp)            :: RI  (NBIOM) 
-    REAL(hp)            :: RLU (NBIOM)      
-    REAL(hp)            :: RAC (NBIOM)      
-    REAL(hp)            :: RGSS(NBIOM)     
-    REAL(hp)            :: RGSO(NBIOM)     
-    REAL(hp)            :: RCLS(NBIOM)     
-    REAL(hp)            :: RCLO(NBIOM)  
+    ! Arrays
+    REAL(hp)            :: RI  (NBIOM)
+    REAL(hp)            :: RLU (NBIOM)
+    REAL(hp)            :: RAC (NBIOM)
+    REAL(hp)            :: RGSS(NBIOM)
+    REAL(hp)            :: RGSO(NBIOM)
+    REAL(hp)            :: RCLS(NBIOM)
+    REAL(hp)            :: RCLO(NBIOM)
 
     !=================================================================
     ! GET_CANOPY_NOX begins here!
@@ -1211,7 +1211,7 @@ CONTAINS
 
     ! Set physical parameters
     HSTAR = 0.01e+0_hp              ! Henry's law constant
-    F0    = 0.1e+0_hp               ! Reactivity factor for biological oxidation 
+    F0    = 0.1e+0_hp               ! Reactivity factor for biological oxidation
     XMW   = 46e-3_hp               ! Molecular wt of NO2 (kg)
 
     ! Get size of DRYCOEFF (will be passed to routine BIOFIT)
@@ -1225,25 +1225,25 @@ CONTAINS
        TEMPK = ExtState%T2M%Arr%Val(I,J)
        TEMPC = ExtState%T2M%Arr%Val(I,J) - 273.15e+0_hp
 
-       ! Compute bulk surface resistance for gases.    
-       !                                  
-       !  Adjust external surface resistances for temperature; 
-       !  from Wesely [1989], expression given in text on p. 1296.        
+       ! Compute bulk surface resistance for gases.
+       !
+       !  Adjust external surface resistances for temperature;
+       !  from Wesely [1989], expression given in text on p. 1296.
        RT = 1000.0e+0_hp * EXP( -TEMPC - 4.0e+0_hp )
 
        !--------------------------------------------------------------
        ! Get surface resistances - loop over biome types K
        !
-       ! The land types within each grid square are defined using the 
-       ! Olson land-type database.  Each of the Olson land types is 
-       ! assigned a corresponding "deposition land type" with 
-       ! characteristic values of surface resistance components.  
-       ! There are 74 Olson land-types but only 11 deposition 
-       ! land-types (i.e., many of the Olson land types share the 
-       ! same deposition characteristics).  Surface resistance 
-       ! components for the "deposition land types" are from Wesely 
-       ! [1989] except for tropical forests [Jacob and Wofsy, 1990] 
-       ! and for tundra [Jacob et al., 1992].  All surface resistance 
+       ! The land types within each grid square are defined using the
+       ! Olson land-type database.  Each of the Olson land types is
+       ! assigned a corresponding "deposition land type" with
+       ! characteristic values of surface resistance components.
+       ! There are 74 Olson land-types but only 11 deposition
+       ! land-types (i.e., many of the Olson land types share the
+       ! same deposition characteristics).  Surface resistance
+       ! components for the "deposition land types" are from Wesely
+       ! [1989] except for tropical forests [Jacob and Wofsy, 1990]
+       ! and for tundra [Jacob et al., 1992].  All surface resistance
        ! components are normalized to a leaf area index of unity.
        !--------------------------------------------------------------
        !Loop over all biometypes
@@ -1252,7 +1252,7 @@ CONTAINS
           ! Skip if not present
           IF ( Inst%LANDTYPE(K)%VAL(I,J) == 0.0_hp ) CYCLE
 
-          ! Set second loop variable to K to allow snow/ice correction    
+          ! Set second loop variable to K to allow snow/ice correction
           KK = K
 
           ! If the surface is snow or ice, then set K=3
@@ -1260,17 +1260,17 @@ CONTAINS
 
           ! USE new MODIS/KOPPEN Biometypes to read data
 
-          ! Read the internal resistance RI (minimum stomatal resistance 
-          ! for water vapor, per unit area of leaf) from the IRI array; 
-          ! a '9999' value means no deposition to stomata so we impose a 
+          ! Read the internal resistance RI (minimum stomatal resistance
+          ! for water vapor, per unit area of leaf) from the IRI array;
+          ! a '9999' value means no deposition to stomata so we impose a
           ! very large value for RI.
           RI(K) = DBLE( SNIRI(KK) )
           IF ( RI(K) >= 9999.e+0_hp ) RI(K)= 1.e+12_hp
 
           ! Cuticular resistances IRLU read in from 'drydep.table'
-          ! are per unit area of leaf; divide them by the leaf area index 
-          ! to get a cuticular resistance for the bulk canopy.  If IRLU is 
-          !'9999' it means there are no cuticular surfaces on which to 
+          ! are per unit area of leaf; divide them by the leaf area index
+          ! to get a cuticular resistance for the bulk canopy.  If IRLU is
+          !'9999' it means there are no cuticular surfaces on which to
           ! deposit so we impose a very large value for RLU.
           IF ( SNIRLU(KK) >= 9999 .OR. &
                ExtState%LAI%Arr%Val(I,J) <= 0e+0_hp ) THEN
@@ -1281,53 +1281,53 @@ CONTAINS
 
           ! The following are the remaining resistances for the Wesely
           ! resistance-in-series model for a surface canopy
-          ! (see Atmos. Environ. paper, Fig.1).  
+          ! (see Atmos. Environ. paper, Fig.1).
           RAC(K)  = MAX( DBLE( SNIRAC(KK)  ),      1e+0_hp )
           RGSS(K) = MAX( DBLE( SNIRGSS(KK) ) + RT, 1e+0_hp )
-          RGSO(K) = MAX( DBLE( SNIRGSO(KK) ) + RT, 1e+0_hp ) 
-          RCLS(K) =      DBLE( SNIRCLS(KK) ) + RT           
-          RCLO(K) =      DBLE( SNIRCLO(KK) ) + RT 
+          RGSO(K) = MAX( DBLE( SNIRGSO(KK) ) + RT, 1e+0_hp )
+          RCLS(K) =      DBLE( SNIRCLS(KK) ) + RT
+          RCLO(K) =      DBLE( SNIRCLO(KK) ) + RT
 
           IF (  RAC(K) >= 9999.e+0_hp ) RAC(K)  = 1e+12_hp
           IF ( RGSS(K) >= 9999.e+0_hp ) RGSS(K) = 1e+12_hp
           IF ( RGSO(K) >= 9999.e+0_hp ) RGSO(K) = 1e+12_hp
-          IF ( RCLS(K) >= 9999.e+0_hp ) RCLS(K) = 1e+12_hp         
+          IF ( RCLS(K) >= 9999.e+0_hp ) RCLS(K) = 1e+12_hp
           IF ( RCLO(K) >= 9999.e+0_hp ) RCLO(K) = 1e+12_hp
 
           !-------------------------------------------------------------
-          ! Adjust stomatal resistances for insolation and temperature:  
-          ! 
+          ! Adjust stomatal resistances for insolation and temperature:
+          !
           ! Temperature adjustment is from Wesely [1989], equation (3).
-          ! 
-          ! Light adjustment by the function BIOFIT is described by Wang 
+          !
+          ! Light adjustment by the function BIOFIT is described by Wang
           ! [1996].  It combines:
           !
-          ! - Local dependence of stomal resistance on the intensity I 
-          !   of light impinging the leaf; this is expressed as a 
-          !   multiplicative factor I/(I+b) to the stomatal resistance 
+          ! - Local dependence of stomal resistance on the intensity I
+          !   of light impinging the leaf; this is expressed as a
+          !   multiplicative factor I/(I+b) to the stomatal resistance
           !   where b = 50 W m-2
           !   (equation (7) of Baldocchi et al. [1987])
-          ! - Radiative transfer of direct and diffuse radiation in the 
-          !   canopy using equations (12)-(16) from Guenther et al. 
+          ! - Radiative transfer of direct and diffuse radiation in the
+          !   canopy using equations (12)-(16) from Guenther et al.
           !   [1995]
           ! - Separate accounting of sunlit and shaded leaves using
           !   equation (12) of Guenther et al. [1995]
-          ! - Partitioning of the radiation at the top of the canopy 
-          !   into direct and diffuse components using a 
-          !   parameterization to results from an atmospheric radiative 
+          ! - Partitioning of the radiation at the top of the canopy
+          !   into direct and diffuse components using a
+          !   parameterization to results from an atmospheric radiative
           !   transfer model [Wang, 1996]
           !
-          ! The dependent variables of the function BIOFIT are the leaf 
-          ! area index (XYLAI), the cosine of zenith angle (SUNCOS) and 
-          ! the fractional cloud cover (CFRAC).  The factor GFACI 
+          ! The dependent variables of the function BIOFIT are the leaf
+          ! area index (XYLAI), the cosine of zenith angle (SUNCOS) and
+          ! the fractional cloud cover (CFRAC).  The factor GFACI
           ! integrates the light dependence over the canopy depth; so
-          ! be scaled by LAI to yield a bulk canopy value because that's 
+          ! be scaled by LAI to yield a bulk canopy value because that's
           ! already done in the GFACI formulation.
           !-------------------------------------------------------------
 
           ! Radiation @ sfc [W/m2]
           RAD0 = ExtState%RADSWG%Arr%Val(I,J)
-            
+
           ! Internal resistance
           RIX  = RI(K)
 
@@ -1346,19 +1346,19 @@ CONTAINS
                 LAI    = ExtState%LAI%Arr%Val(I,J)
                 SUNCOS = ExtState%SUNCOS%Arr%Val(I,J)
                 CLDFRC = ExtState%CLDFRC%Arr%Val(I,J)
-               
+
                 BIO_RESULT = BIOFIT( ExtState%DRYCOEFF, LAI, &
                               SUNCOS, CLDFRC, SIZE(ExtState%DRYCOEFF) )
 
                 GFACI= 1e+0_hp / BIO_RESULT
              ENDIF
-            
+
              RIX = RIX * GFACT * GFACI
           ENDIF
 
-          ! Compute aerodynamic resistance to lower elements in lower 
-          ! part of the canopy or structure, assuming level terrain - 
-          ! equation (5) of Wesely [1989].                     
+          ! Compute aerodynamic resistance to lower elements in lower
+          ! part of the canopy or structure, assuming level terrain -
+          ! equation (5) of Wesely [1989].
           RDC = 100.e+0_hp*(1.0e+0_hp+1000.0e+0_hp/(RAD0 + 10.e+0_hp))
 
           ! Loop over species; species-dependent corrections to resistances
@@ -1375,25 +1375,25 @@ CONTAINS
              RLUXX = RLU(K) / ( HSTAR / 1.0e+05_hp + F0 )
           ENDIF
 
-          ! To prevent virtually zero resistance to species with huge HSTAR, 
-          ! such as HNO3, a minimum value of RLUXX needs to be set. 
-          ! The rationality of the existence of such a minimum is 
-          ! demonstrated by the observed relationship between Vd(NOy-NOx) 
-          ! and Ustar in Munger et al.[1996]; Vd(HNO3) never exceeds 2 cm/s 
+          ! To prevent virtually zero resistance to species with huge HSTAR,
+          ! such as HNO3, a minimum value of RLUXX needs to be set.
+          ! The rationality of the existence of such a minimum is
+          ! demonstrated by the observed relationship between Vd(NOy-NOx)
+          ! and Ustar in Munger et al.[1996]; Vd(HNO3) never exceeds 2 cm/s
           ! in observations. The corresponding minimum resistance is 50 s/m.
           ! was introduced by J.Y. Liang on 7/9/95.
           RGSX = 1e+0_hp / ( HSTAR/1e+5_hp/RGSS(K) + F0/RGSO(K) )
           RCLX = 1e+0_hp / ( HSTAR/1e+5_hp/RCLS(K) + F0/RCLO(K) )
 
           ! Get the bulk surface resistance of the canopy
-          ! from the network of resistances in parallel and in series 
+          ! from the network of resistances in parallel and in series
           ! (Fig. 1 of Wesely [1989])
           DTMP1 = 1.e+0_hp / RIXX
           DTMP2 = 1.e+0_hp / RLUXX
           DTMP3 = 1.e+0_hp / ( RAC(K) + RGSX )
           DTMP4 = 1.e+0_hp / ( RDC      + RCLX )
 
-          ! Save the within canopy depvel of NOx, used in calculating 
+          ! Save the within canopy depvel of NOx, used in calculating
           ! the canopy reduction factor for soil emissions [1/s]
           Inst%CANOPYNOX(I,J,K) = DTMP1 + DTMP2 + DTMP3 + DTMP4
 
@@ -1413,8 +1413,8 @@ CONTAINS
 !
 ! !IROUTINE: DiffG
 !
-! !DESCRIPTION: Function DiffG calculates the molecular diffusivity [m2/s] in 
-!  air for a gas X of molecular weight XM [kg] at temperature TK [K] and 
+! !DESCRIPTION: Function DiffG calculates the molecular diffusivity [m2/s] in
+!  air for a gas X of molecular weight XM [kg] at temperature TK [K] and
 !  pressure PRESS [Pa].
 !\\
 !\\
@@ -1440,17 +1440,17 @@ CONTAINS
 !  to supply a molecular radius we specify here a generic value of 2.E-10 m for
 !  all molecules, which is good enough in terms of calculating the diffusivity
 !  as long as molecule is not too big.
-! 
+!
 ! !REVISION HISTORY:
 !     22 Jun 2009 - R. Yantosca - Copied from "drydep_mod.f"
 !     07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
 !EOP
 !------------------------------------------------------------------------------
-!BOC      
+!BOC
 !
 ! !DEFINED PARAMETERS:
 !
-    REAL(hp), PARAMETER  :: XMAIR  = 28.8e-3_hp 
+    REAL(hp), PARAMETER  :: XMAIR  = 28.8e-3_hp
     REAL(hp), PARAMETER  :: RADAIR = 1.2e-10_hp
     REAL(hp), PARAMETER  :: PI     = 3.14159265358979323e+0_hp
     REAL(hp), PARAMETER  :: RADX   = 1.5e-10_hp
@@ -1459,7 +1459,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(hp)             :: AIRDEN, Z, DIAM, FRPATH, SPEED      
+    REAL(hp)             :: AIRDEN, Z, DIAM, FRPATH, SPEED
 
     !=================================================================
     ! DIFFG begins here!
@@ -1471,7 +1471,7 @@ CONTAINS
     ! DIAM is the collision diameter for gas X with air.
     DIAM   = RADX + RADAIR
 
-    ! Calculate the mean free path for gas X in air: 
+    ! Calculate the mean free path for gas X in air:
     ! eq. 8.5 of Seinfeld [1986];
     Z      = XM  / XMAIR
     FRPATH = 1e+0_hp /( PI * SQRT( 1e+0_hp + Z ) * AIRDEN*( DIAM**2 ) )
@@ -1479,7 +1479,7 @@ CONTAINS
     ! Calculate average speed of gas X; eq. 15.47 of Levine [1988]
     SPEED  = SQRT( 8e+0_hp * RGAS * TK / ( PI * XM ) )
 
-    ! Calculate diffusion coefficient of gas X in air; 
+    ! Calculate diffusion coefficient of gas X in air;
     ! eq. 8.9 of Seinfeld [1986]
     DIFF_G = ( 3e+0_hp * PI / 32e+0_hp ) * ( 1e+0_hp + Z ) * FRPATH * SPEED
 
@@ -1501,18 +1501,18 @@ CONTAINS
 !
   SUBROUTINE Get_Dep_N( I, J, ExtState, HcoState, Inst, DEP_FERT )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER,  INTENT(IN)         :: I
     INTEGER,  INTENT(IN)         :: J
-    TYPE(Ext_State), POINTER     :: ExtState 
-    TYPE(HCO_State), POINTER     :: HcoState   
-    TYPE(MyInst),    POINTER     :: Inst       
+    TYPE(Ext_State), POINTER     :: ExtState
+    TYPE(HCO_State), POINTER     :: HcoState
+    TYPE(MyInst),    POINTER     :: Inst
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     ! Dep emitted as Fert [kgNO/m2]
-    REAL(hp) ,  INTENT(INOUT) :: DEP_FERT  
+    REAL(hp) ,  INTENT(INOUT) :: DEP_FERT
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -1529,14 +1529,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(hp)             :: DRYN  ! Dry dep. N since prev timestep
-                                  ! Units ng N/m2/s     
-    REAL(hp)             :: WETN  ! Wet dep. N since prev timestep 
-    REAL(hp)             :: DEPN  ! dep. N since prev timestep 
+                                  ! Units ng N/m2/s
+    REAL(hp)             :: WETN  ! Wet dep. N since prev timestep
+    REAL(hp)             :: DEPN  ! dep. N since prev timestep
 
     REAL(hp)             :: C1
-    REAL(hp)             :: C2 
+    REAL(hp)             :: C2
     REAL(hp)             :: TAU_SEC
-    REAL(hp)             :: TS_SEC  
+    REAL(hp)             :: TS_SEC
 
     !Total all N species & convert molec/cm2/s --> kg NO/m2/s
     DRYN = SOURCE_DRYN( I, J, ExtState, HcoState, Inst )
@@ -1545,7 +1545,7 @@ CONTAINS
     WETN = SOURCE_WETN( I, J, ExtState, HcoState )
 
     ! Sum wet and dry deposition [kg NO/m2/s]
-    DEPN = DRYN + WETN 
+    DEPN = DRYN + WETN
 
     ! Emission Timestep in seconds
     TS_SEC = HcoState%TS_EMIS
@@ -1557,7 +1557,7 @@ CONTAINS
     TAU_SEC = TAU_MONTHS * DAYSPERMONTH * SECPERDAY
 
     C1 = EXP( - TS_SEC / TAU_SEC)
-    C2 = 1.e+0_hp - C1        
+    C2 = 1.e+0_hp - C1
 
     ! kg NO/m2
     ! NOTE: DEP_RESERVOIR is stored in kg NO/m3, but we just assume
@@ -1565,8 +1565,8 @@ CONTAINS
     Inst%DEP_RESERVOIR(I,J) = ( Inst%DEP_RESERVOIR (I,J) * C1 ) &
                             + DEPN * TAU_SEC * C2
 
-    ! 40% runoff. 
-    DEP_FERT = Inst%DEP_RESERVOIR(I,J) * 0.6e+0_hp 
+    ! 40% runoff.
+    DEP_FERT = Inst%DEP_RESERVOIR(I,J) * 0.6e+0_hp
 
   END SUBROUTINE Get_Dep_N
 !EOC
@@ -1585,10 +1585,10 @@ CONTAINS
 !
   FUNCTION Source_Dryn( I, J, ExtState, HcoState, Inst ) RESULT( DRYN )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN) :: I           
-    INTEGER,         INTENT(IN) :: J           
+    INTEGER,         INTENT(IN) :: I
+    INTEGER,         INTENT(IN) :: J
     TYPE(Ext_State), POINTER    :: ExtState   ! Module options
     TYPE(HCO_State), POINTER    :: HcoState   ! Output obj
     TYPE(MyInst),    POINTER    :: Inst
@@ -1607,12 +1607,12 @@ CONTAINS
 !
     REAL(hp),  PARAMETER   :: CM2_PER_M2  = 1.e+4_hp
     REAL(hp)               :: NTS
- 
+
     ! Divide through by number of chemistry timesteps
     ! because DRY_TOTN is summed over chemistry timesteps
     ! need to get average
 
-    !Molecules/cm2/s --> kg NO/m2/s 
+    !Molecules/cm2/s --> kg NO/m2/s
     NTS  = HcoState%TS_EMIS / HcoState%TS_CHEM
     DRYN = ExtState%DRY_TOTN%Arr%Val(I,J) * CM2_PER_M2 / NTS / &
            HcoState%Phys%Avgdr * HcoState%Spc(Inst%IDTNO)%EmMW_g / 1000.0e+0_hp
@@ -1634,10 +1634,10 @@ CONTAINS
 !
   FUNCTION Source_WetN( I, J, ExtState, HcoState ) RESULT(WETN )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN) :: I           
-    INTEGER,         INTENT(IN) :: J           
+    INTEGER,         INTENT(IN) :: I
+    INTEGER,         INTENT(IN) :: J
     TYPE(Ext_State), POINTER    :: ExtState   ! Module options
     TYPE(HCO_State), POINTER    :: HcoState   ! Output obj
 !
@@ -1653,14 +1653,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(hp)               :: NTS,    AREA_M2     
- 
+    REAL(hp)               :: NTS,    AREA_M2
+
     ! Divide through by number of transport timesteps
     ! because WET_TOTN is summed over transport timesteps
     ! need to get average
 
-    NTS     = HcoState%TS_EMIS / HcoState%TS_DYN 
-    AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J) 
+    NTS     = HcoState%TS_EMIS / HcoState%TS_DYN
+    AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
     ! Total N wet dep
     WETN = ExtState%WET_TOTN%Arr%Val(I,J) / AREA_M2 / NTS
@@ -1682,9 +1682,9 @@ CONTAINS
 !
   FUNCTION SoilTemp( NN, TC, GWET ) RESULT( SOIL_TEMP )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    INTEGER,  INTENT(IN) :: NN           ! Soil biome type 
+    INTEGER,  INTENT(IN) :: NN           ! Soil biome type
     REAL(hp), INTENT(IN) :: TC           ! Surface air temperature [C]
     REAL(hp), INTENT(IN) :: GWET         ! Top soil moisture
 !
@@ -1694,36 +1694,36 @@ CONTAINS
                                          ! soil NOx emissions [unitless]
 !
 ! !REMARKS:
-!    Based on Ormeci et al., [1999] and Otter et al., [1999]     
-!    there exists and entirely exponential relationship between 
+!    Based on Ormeci et al., [1999] and Otter et al., [1999]
+!    there exists and entirely exponential relationship between
 !    temperature and soil NOx emissions at constant soil moisture
-!    Therefore we use the following relationship based 
-!    on Yienger and Levy et al., [1995] for temperatures 0-30C:        
-!                     
-!                           
-!         f(T) =  exp( 0.103+/-0.04 * T ) 
-!           in ng N/m2/s    
-!                      
-!                                                                             
-!     where T is the temperature in degrees Celsius....Below 
-!     0 C, we assume emissions are zero because they are insignificant 
+!    Therefore we use the following relationship based
+!    on Yienger and Levy et al., [1995] for temperatures 0-30C:
+!
+!
+!         f(T) =  exp( 0.103+/-0.04 * T )
+!           in ng N/m2/s
+!
+!
+!     where T is the temperature in degrees Celsius....Below
+!     0 C, we assume emissions are zero because they are insignificant
 !     for the purposes of this global source. ...
-! 
+!
 !  References:
 !  ============================================================================
-!  (1 ) Ormeci, B., S. L. Sanin, and J. J. Pierce, Laboratory study of 
-!        NO flux from agricultural soil: Effects of soil moisture, pH, 
+!  (1 ) Ormeci, B., S. L. Sanin, and J. J. Pierce, Laboratory study of
+!        NO flux from agricultural soil: Effects of soil moisture, pH,
 !        and temperature, J. Geophys. Res., 104 ,16211629, 1999.
-!  (2 ) Otter, L. B., W. X. Yang, M. C. Scholes, and F. X. Meixner, 
-!        Nitric oxide emissions from a southern African savanna, J. 
+!  (2 ) Otter, L. B., W. X. Yang, M. C. Scholes, and F. X. Meixner,
+!        Nitric oxide emissions from a southern African savanna, J.
 !        Geophys. Res., 105 , 20,69720,706, 1999.
 !  (3 ) Yienger, J.J, and H. Levy, Empirical model of global soil-biogenic
 !        NOx emissions, J. Geophys. Res., 100, D6, 11,447-11464, June 20, 1995.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  17 Aug 2009 - R. Yantosca - Initial Version
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
-!  31 Jan 2011 - R. Hudman   - Added new soil T dependance 
+!  31 Jan 2011 - R. Hudman   - Added new soil T dependance
 !  31 Jan 2011 - R. Hudman   - Updated headers
 !  12 May 2015 - R. Yantosca - Cosmetic changes
 !EOP
@@ -1731,19 +1731,19 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES
-!     
+!
     REAL(hp)  :: TMMP
 
     !==============================================================
-    ! 1) Convert from Surface Temp  --> Soil Temp 
+    ! 1) Convert from Surface Temp  --> Soil Temp
     !==============================================================
 
     ! Save surface air temp in shadow variable TMMP
     TMMP   = TC
 
     ! DRY
-    IF ( GWET < 0.3e+0_hp ) THEN 
-     
+    IF ( GWET < 0.3e+0_hp ) THEN
+
        ! Convert surface air temperature to model temperature
        ! by adding 5 degrees C to model temperature
        TMMP = TMMP + 5e+0_hp
@@ -1759,7 +1759,7 @@ CONTAINS
     ! 2) Compute Temperature Dependence
     !==============================================================
 
-    ! Compute the soil temperature dependence term according 
+    ! Compute the soil temperature dependence term according
     ! to equations 9b, 9a of Yienger & Levy [1995].
     ! We now assume that soil response is exponential 0-30C
     ! based on latest observations, caps at 30C
@@ -1769,15 +1769,15 @@ CONTAINS
        ! No soil emissions if temp below freezing
        SOIL_TEMP = 0e+0_hp
 
-    ELSE 
+    ELSE
 
        ! Caps temperature response at 30C
-       IF ( TMMP >= 30.e+0_hp ) TMMP = 30.e+0_hp 
-      
+       IF ( TMMP >= 30.e+0_hp ) TMMP = 30.e+0_hp
+
        SOIL_TEMP =  EXP( 0.103 * TMMP )
 
     ENDIF
- 
+
   END FUNCTION SoilTemp
 !EOC
 !----------------------------------------------------------------------------
@@ -1787,81 +1787,81 @@ CONTAINS
 !
 ! !IROUTINE: SoilWet
 !
-! !DESCRIPTION: Function SoilWet returns the soil moisture scaling 
-!  of soil NOx emissions (values from 0-1). 
+! !DESCRIPTION: Function SoilWet returns the soil moisture scaling
+!  of soil NOx emissions (values from 0-1).
 !\\
 !\\
 ! !INTERFACE:
 !
   FUNCTION SoilWet( GWET, ARID, NONARID ) RESULT( WETSCALE )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     ! Top soil wetness [unitless]
-    REAL(hp), INTENT(IN) :: GWET 
+    REAL(hp), INTENT(IN) :: GWET
 
-    ! Fraction of arid & non-arid soil in the gridbox          
-    REAL(hp), INTENT(IN) :: ARID       
-    REAL(hp), INTENT(IN) :: NONARID       
+    ! Fraction of arid & non-arid soil in the gridbox
+    REAL(hp), INTENT(IN) :: ARID
+    REAL(hp), INTENT(IN) :: NONARID
 !
 ! !RETURN_VALUE:
-! 
+!
     ! A scaling term between 0-1 based on soil moisture
-    REAL(hp)             :: WETSCALE      
+    REAL(hp)             :: WETSCALE
 !
 ! !REMARKS:
 !  Soil moisture and temperature and now decoupled, the temperature
 !  term is scaled with a value from 0-1 based on water filled pore space
-!  WFPS in top-soil. 
-! 
+!  WFPS in top-soil.
+!
 !  From N.E. Moore thesis:
-!  The response of SNOx is not monotonic to WFPS. SNOx are low for the 
-!  extreme values of WFPS (0 and 1). For low values, emissions are 
-!  substrate-limited. For high values, emissions are trapped and cannot 
-!  diffuse to the surface [Yan et al., 2005]. SNOx dependence on soil 
-!  moisture is best described as a Poisson function [Parsons et al., 1996; 
-!  Otter et al., 1999; Pierce and Aneja, 2000; Kirkman et al., 2001; 
+!  The response of SNOx is not monotonic to WFPS. SNOx are low for the
+!  extreme values of WFPS (0 and 1). For low values, emissions are
+!  substrate-limited. For high values, emissions are trapped and cannot
+!  diffuse to the surface [Yan et al., 2005]. SNOx dependence on soil
+!  moisture is best described as a Poisson function [Parsons et al., 1996;
+!  Otter et al., 1999; Pierce and Aneja, 2000; Kirkman et al., 2001;
 !  van Dijk and Meixner, 2001; van Dijk et al., 2002]:
-! 
-!     scaling = a*x*exp(-b*x^2) 
-! 
-!  where the values of a and b are chosen such that the maximum value 
-!  (unity) occurs for WFPS=0.3, which laboratory and field measurements have 
-!  found to be the optimal value for emissions in most soils. The typical 
-!  range of values are 0.2 (arid) up to 0.45 (floodplain) 
-!  [Yang and Meixner, 1997; Ormeci et al., 1999].  
-! 
+!
+!     scaling = a*x*exp(-b*x^2)
+!
+!  where the values of a and b are chosen such that the maximum value
+!  (unity) occurs for WFPS=0.3, which laboratory and field measurements have
+!  found to be the optimal value for emissions in most soils. The typical
+!  range of values are 0.2 (arid) up to 0.45 (floodplain)
+!  [Yang and Meixner, 1997; Ormeci et al., 1999].
+!
 !  Rice paddies no longer have to be scaled as in the Yienger & Levy model.
-! 
+!
 !  References:
 !  ============================================================================
-!  (1 ) Galbally, I. E., and R. Roy, Loss of fixed nitrogen from soils 
+!  (1 ) Galbally, I. E., and R. Roy, Loss of fixed nitrogen from soils
 !        by nitric oxide exhalation, Nature, 275 , 734735, 1978.
-!  (2 ) Kirkman, G. A., W. X. Yang, and F. X. Meixner, Biogenic nitric 
-!        oxide emissions upscaling: An approach for Zimbabwe, Global 
+!  (2 ) Kirkman, G. A., W. X. Yang, and F. X. Meixner, Biogenic nitric
+!        oxide emissions upscaling: An approach for Zimbabwe, Global
 !        Biogeochemical Cycles, 15 ,1005 1020, 2001.
-!  (3 ) Ormeci, B., S. L. Sanin, and J. J. Pierce, Laboratory study of NO 
-!        flux from agricultural soil: Effects of soil moisture, pH, and 
+!  (3 ) Ormeci, B., S. L. Sanin, and J. J. Pierce, Laboratory study of NO
+!        flux from agricultural soil: Effects of soil moisture, pH, and
 !        temperature, J. Geophys. Res., 104 , 16211629, 1999.
-!  (4 ) Otter, L. B., W. X. Yang, M. C. Scholes, and F. X. Meixner, 
-!        Nitric oxide emissions from a southern African savanna, J. 
+!  (4 ) Otter, L. B., W. X. Yang, M. C. Scholes, and F. X. Meixner,
+!        Nitric oxide emissions from a southern African savanna, J.
 !        Geophys. Res., 105 , 20,69720,706, 1999.
-!  (5 ) Parsons, D. A., M. C. Scholes, R. J. Scholes, and J. S. Levine, 
-!        Biogenic NO emissions from savanna soils as a function of fire 
-!        regime, soil type, soil nitrogen, and water status, J. Geophys. 
+!  (5 ) Parsons, D. A., M. C. Scholes, R. J. Scholes, and J. S. Levine,
+!        Biogenic NO emissions from savanna soils as a function of fire
+!        regime, soil type, soil nitrogen, and water status, J. Geophys.
 !        Res., 101 , 23,68323,688, 1996.
-!  (6 ) Pierce, J. J., and V. P. Aneja, Nitric oxide emissions from 
-!        engineered soil systems, Journal of Environmental Engineering, 
+!  (6 ) Pierce, J. J., and V. P. Aneja, Nitric oxide emissions from
+!        engineered soil systems, Journal of Environmental Engineering,
 !        pp. 225232, 2000.
-!  (7 ) van Dijk, S. M., and J. H. Duyzer, Nitric oxide emissions from 
+!  (7 ) van Dijk, S. M., and J. H. Duyzer, Nitric oxide emissions from
 !        forest soils, J. Geophys. Res., 104 , 15,95515,961, 1999.
-!  (8 ) van Dijk, S. M., and F. X. Meixner, Production and consumption of 
+!  (8 ) van Dijk, S. M., and F. X. Meixner, Production and consumption of
 !        NO in forest and pasture soils from the Amazon basin, Water, Air,
 !        and Soil Pollution: Focus 1 , pp. 119130, 2001.
-!  (9 ) Yang, W. X., and F. X. Meixner, Gaseous Nitrogen Emissions from 
+!  (9 ) Yang, W. X., and F. X. Meixner, Gaseous Nitrogen Emissions from
 !        Grasslands, CAB Int., Wallingford, UK, 1997, 67-71.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - Rewrote scaling scheme
@@ -1870,13 +1870,13 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
-    !Scale by soil moisture           
-    IF ( ARID .GE. NONARID .AND. ARID .NE. 0) THEN 
+    !Scale by soil moisture
+    IF ( ARID .GE. NONARID .AND. ARID .NE. 0) THEN
        !Arid, max Poisson = 0.2
        WETSCALE = 8.24 * GWET * EXP(-12.5*GWET*GWET)
     ELSE
        !Non-arid, max Poisson = 0.3
-       WETSCALE = 5.5 * GWET * EXP( -5.55 * GWET * GWET) 
+       WETSCALE = 5.5 * GWET * EXP( -5.55 * GWET * GWET)
     ENDIF
 
   END FUNCTION SoilWet
@@ -1889,15 +1889,15 @@ CONTAINS
 ! !IROUTINE: SoilCrf
 !
 ! !DESCRIPTION: Computes the canopy reduction factor for the soil NOx
-!  emissions according to Jacob \% Bakwin [1991] (and as used in Wang 
+!  emissions according to Jacob \% Bakwin [1991] (and as used in Wang
 !  et al [1998]).
 !\\
 !\\
 ! !INTERFACE:
-!	
+!
   FUNCTION SoilCrf( K, LAI, CPYNOX, WINDSQR, SUNCOS ) RESULT( SOIL_CRF )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: K          ! Soil biome type
     REAL(hp),  INTENT(IN) :: LAI        ! Leaf area index [cm2/cm2]
@@ -1906,7 +1906,7 @@ CONTAINS
     REAL(hp),  INTENT(IN) :: SUNCOS     ! Cosine of solar zenith angle
 !
 ! !RETURN_VALUE:
-! 
+!
     REAL(hp)              :: SOIL_CRF   ! Canopy reduction factor (see below)
 !
 ! !REMARKS:
@@ -1914,7 +1914,7 @@ CONTAINS
 !  in routine GET_CANOPY_NOx (in "canopy_nox_mod.f") and is passed here
 !  as an argument.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  17 Aug 2009 - R. Yantosca - Initial Version
 !EOP
 !------------------------------------------------------------------------------
@@ -1924,7 +1924,7 @@ CONTAINS
 !
     ! Ventilation velocity for NOx, day & night values [m/s]
     REAL(hp),  PARAMETER :: VFDAY   = 1.0e-2_hp
-    REAL(hp),  PARAMETER :: VFNIGHT = 0.2e-2_hp 
+    REAL(hp),  PARAMETER :: VFNIGHT = 0.2e-2_hp
 !
 ! !LOCAL VARIABLES:
 !
@@ -1932,17 +1932,17 @@ CONTAINS
 
     ! Pick proper ventilation velocity for day or night
     IF ( SUNCOS > 0e+0_hp ) THEN
-       VFNEW = VFDAY              
-    ELSE 
-       VFNEW = VFNIGHT            
+       VFNEW = VFDAY
+    ELSE
+       VFNEW = VFNIGHT
     ENDIF
 
     ! If the leaf area index and the bulk surface resistance
     ! of the canopy to NOx deposition are both nonzero ...
     IF ( LAI > 0e+0_hp .and. CPYNOX > 0e+0_hp ) THEN
 
-       ! Adjust the ventilation velocity.  
-       ! NOTE: SOILEXC(21) is the canopy wind extinction 
+       ! Adjust the ventilation velocity.
+       ! NOTE: SOILEXC(21) is the canopy wind extinction
        ! coefficient for the tropical rainforest biome.
        VFNEW    = (VFNEW * SQRT( WINDSQR/9e+0_hp * 7e+0_hp/LAI     ) * &
                   ( SOILEXC(21)  / SOILEXC(K) ))
@@ -1951,7 +1951,7 @@ CONTAINS
        SOIL_CRF = CPYNOX / ( CPYNOX + VFNEW )
 
     ELSE
-     
+
        ! Otherwise set the soil canopy reduction factor to zero
        SOIL_CRF = 0e+0_hp
 
@@ -1973,7 +1973,7 @@ CONTAINS
 !
   FUNCTION FertAdd( SOILFRT, DEPN ) RESULT( FERT_ADD )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     REAL(hp), INTENT(IN) :: DEPN       ! N emissions from deposition
     REAL(hp), INTENT(IN) :: SOILFRT    ! N emissions from fertilizers
@@ -1981,48 +1981,48 @@ CONTAINS
                                        !  here as an argument [ng N/m2/s]
 !
 ! !RETURN_VALUE:
-! 
+!
     REAL(hp)             :: FERT_ADD   ! Total Fert emissions
 !
 ! !REMARKS:
 !  We use a new spatially explicit data set of chemical and manure fert
-!  (native resolution 0.5\B0x0.5\B0) from Potter et al., [2010] 
-!  distributed using MODIS EVI seasonality as described in 
+!  (native resolution 0.5\B0x0.5\B0) from Potter et al., [2010]
+!  distributed using MODIS EVI seasonality as described in
 !  N.E. Moore thesis, and Hudman et al., in prep.
-!    
-!  In previous model, fertilizer emissions were emitted instantaneously as 
-!  2.5% of applied fertilizer, independent of soil moisture/soil temperature, 
-!  so that they were constant over the growing season. 
-! 
-!  Similar to the YL  parameterization, we now treat fertilizer emissions 
-!  as part of the Aw. If we treat the wet biome coefficient as a measure of 
-!  available N multiplied by a mean emission rate, we can treat fertilizer 
-!  N in the same manner. 
-! 
-!  AW = SOILAW(BinewsoilAWS_08112011_emissonlyome) + N available in soil 
+!
+!  In previous model, fertilizer emissions were emitted instantaneously as
+!  2.5% of applied fertilizer, independent of soil moisture/soil temperature,
+!  so that they were constant over the growing season.
+!
+!  Similar to the YL  parameterization, we now treat fertilizer emissions
+!  as part of the Aw. If we treat the wet biome coefficient as a measure of
+!  available N multiplied by a mean emission rate, we can treat fertilizer
+!  N in the same manner.
+!
+!  AW = SOILAW(BinewsoilAWS_08112011_emissonlyome) + N available in soil
 !       x mean emission rate
-! 
-!  Instead of choosing an emission rate for each box equivalent to 2.5% 
-!  of applied N yearly as done in the YL scheme, we chose the mean emission 
-!  rate so that the total global above canopy SNOx due to fertilizer matches 
-!  observed estimates of fertilizer emissions of 1.8 Tg N yr-1 from Stehfest 
-!  and Bouman [2006].  This treatment allows for interannual and daily 
-!  variability in the strength  of response to temperature and precipitation. 
-!  Note: this scaling must be set for each resolution. 
-! 
+!
+!  Instead of choosing an emission rate for each box equivalent to 2.5%
+!  of applied N yearly as done in the YL scheme, we chose the mean emission
+!  rate so that the total global above canopy SNOx due to fertilizer matches
+!  observed estimates of fertilizer emissions of 1.8 Tg N yr-1 from Stehfest
+!  and Bouman [2006].  This treatment allows for interannual and daily
+!  variability in the strength  of response to temperature and precipitation.
+!  Note: this scaling must be set for each resolution.
+!
 !  References:
 !  ============================================================================
-!  (1 ) Potter, P., Ramankutty, N., Bennett, E.,  and Donner, S.: 
-!        Characterizing the Spatial Patterns of Global Fertilizer 
-!        Application and Manure Production, Earth Interactions, 
+!  (1 ) Potter, P., Ramankutty, N., Bennett, E.,  and Donner, S.:
+!        Characterizing the Spatial Patterns of Global Fertilizer
+!        Application and Manure Production, Earth Interactions,
 !        in press, 2010.
-!  (2 ) Stehfest, E. and L. Bouwman, N2O and NO emission from 
-!        agricultural fields and soils under natural vegetation: 
+!  (2 ) Stehfest, E. and L. Bouwman, N2O and NO emission from
+!        agricultural fields and soils under natural vegetation:
 !        summarizing available measurement data and modeling
-!        of global annual emissions, Nutrient Cycling in Agroecosystems 
+!        of global annual emissions, Nutrient Cycling in Agroecosystems
 !        (2006), 74:207-228 DOI 10.1007/s10705-006-9000-7.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - Rewrote pulsing scheme
@@ -2040,7 +2040,7 @@ CONTAINS
 
     ! Convert [ng N/m2] --> [kg/m2/s]
     ! (scale needed to force fert emiss of 1.8 Tg N/yr w/o canopy uptake)
-!    FERT_ADD = FERT_ADD * FERT_SCALE   
+!    FERT_ADD = FERT_ADD * FERT_SCALE
 
   END FUNCTION FERTADD
 !EOC
@@ -2051,25 +2051,25 @@ CONTAINS
 !
 ! !IROUTINE: Pulsing
 !
-! !DESCRIPTION: Function Pulsing calculates the increase (or "pulse") of 
-!  soil NOx emission that happens after preciptiation falls on dry soil.  
+! !DESCRIPTION: Function Pulsing calculates the increase (or "pulse") of
+!  soil NOx emission that happens after preciptiation falls on dry soil.
 !                                                                             .
-!  According to  Yan et al., [2005] , this pulsing process is thought to  
-!  be due to a release of inorganic nitrogen trapped on top of the dry soil 
-!  and a subsequent reactivation of water-stressed bacteria, which then 
+!  According to  Yan et al., [2005] , this pulsing process is thought to
+!  be due to a release of inorganic nitrogen trapped on top of the dry soil
+!  and a subsequent reactivation of water-stressed bacteria, which then
 !  metabolize the excess nitrogen. This can happen in seasonally dry
 !  grasslands and savannahs or over freshly fertilized fields.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Pulsing( GWET,      TS_EMIS,             & 
+  FUNCTION Pulsing( GWET,      TS_EMIS,             &
                     GWET_PREV, PFACTOR, DRYPERIOD ) &
                     RESULT( THE_PULSING )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
-    REAL(hp), INTENT(IN)    :: GWET        ! Soil Moisture 
+    REAL(hp), INTENT(IN)    :: GWET        ! Soil Moisture
     REAL*4,   INTENT(IN)    :: TS_EMIS     ! Emissions timestep [s]
 
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2077,35 +2077,35 @@ CONTAINS
     REAL(sp), INTENT(INOUT) :: GWET_PREV   ! Soil Moisture Prev timestep
     REAL(sp), INTENT(INOUT) :: PFACTOR     ! Pulsing Factor
     REAL(sp), INTENT(INOUT) :: DRYPERIOD   ! Dry period length in hours
-!  
+!
 ! !RETURN VALUE:
 !
-    REAL(hp)                :: THE_PULSING ! Factor to multiply baseline 
+    REAL(hp)                :: THE_PULSING ! Factor to multiply baseline
                                            ! emissions by to account for
                                            ! soil pulsing of all types
 !
 ! !REMARKS:
 !  Soil NOx emissions consist of baseline emissions plus discrete "pulsing"
 !  episodes.  We follow thw Yan et al., [2005] algorithm, where the pulse
-!  (relative to the flux prewetting) is determined by the antecedent dry 
+!  (relative to the flux prewetting) is determined by the antecedent dry
 !  period, with a simple logarithmic relationship,
-! 
+!
 !     PFACTOR = 13.01 ln ( DRYPERIOD ) -  53.6
-! 
-!  where PFACTOR is the magnitude of peak flux relative to prewetting flux, 
+!
+!  where PFACTOR is the magnitude of peak flux relative to prewetting flux,
 !  and DRYPERIOD  is the length of the antecedent dry period in hours.
-! 
-!  The pulse decays with 
-! 
-!     PFACTOR = PFACTOR * EXP( -0.068e+0_hp * DTSRCE )       
-! 
+!
+!  The pulse decays with
+!
+!     PFACTOR = PFACTOR * EXP( -0.068e+0_hp * DTSRCE )
+!
 !  References:
 !  ============================================================================
-!  (1 ) Yan, X., T. Ohara, and H. Akimoto (2005), Statistical modeling of 
-!        global soil NOx emissions, Global Biogeochem. Cycles, 19, GB3019, 
+!  (1 ) Yan, X., T. Ohara, and H. Akimoto (2005), Statistical modeling of
+!        global soil NOx emissions, Global Biogeochem. Cycles, 19, GB3019,
 !        doi:10.1029/2004GB002276.Section 2.3.3
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - Rewrote pulsing scheme
@@ -2119,7 +2119,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(hp)  :: DTSRCE, GDIFF 
+    REAL(hp)  :: DTSRCE, GDIFF
 
     !=================================================================
     ! PULSING begins here!
@@ -2169,7 +2169,7 @@ CONTAINS
 
        ! If end of pulse
        IF ( PFACTOR < 1.e+0_hp ) PFACTOR = 1.e+0_hp
-      
+
     ENDIF
 
     ! Update soil moisture holder for previous timestep
@@ -2185,14 +2185,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a pointer to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a pointer to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2202,7 +2202,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2211,11 +2211,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -2232,23 +2232,23 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
 ! !DESCRIPTION: Subroutine InstCreate adds a new instance to the list of
 !  instances, assigns a unique instance number to this new instance, and
-!  archives this instance number to output argument Instance. 
+!  archives this instance number to output argument Instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2261,7 +2261,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -2277,7 +2277,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -2294,7 +2294,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -2309,7 +2309,7 @@ CONTAINS
 
     ! Make sure pointers are not dangling
     Inst%DRYCOEFF  => NULL()
-    Inst%CLIMARID  => NULL() 
+    Inst%CLIMARID  => NULL()
     Inst%CLIMNARID => NULL()
     Inst%SOILFERT  => NULL()
     Inst%LANDTYPE  => NULL()
@@ -2324,15 +2324,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove removes an instance from the list of 
+! !DESCRIPTION: Subroutine InstRemove removes an instance from the list of
 ! instances.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( ExtState ) 
+  SUBROUTINE InstRemove ( ExtState )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2352,14 +2352,14 @@ CONTAINS
     !=================================================================
     ! InstRemove begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
     PrevInst => NULL()
     Inst     => NULL()
     CALL InstGet ( ExtState%SoilNOx, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
+    IF ( ASSOCIATED(Inst) ) THEN
 
        ! Deallocate arrays
        IF ( ALLOCATED  ( Inst%DRYPERIOD     ) ) DEALLOCATE ( Inst%DRYPERIOD     )
@@ -2372,8 +2372,8 @@ CONTAINS
 #if defined(DEVEL)
        IF ( ALLOCATED  ( Inst%DGN_PULSE     ) ) DEALLOCATE ( Inst%DGN_PULSE     )
 #endif
-   
-       ! Deallocate LANDTYPE vector 
+
+       ! Deallocate LANDTYPE vector
        IF ( ASSOCIATED(Inst%LANDTYPE) ) THEN
           DO I = 1,NBIOM
              IF ( ASSOCIATED(Inst%LANDTYPE(I)%VAL) ) &
@@ -2381,18 +2381,18 @@ CONTAINS
           ENDDO
           DEALLOCATE ( Inst%LANDTYPE )
        ENDIF
- 
+
        ! Eventually deallocate DRYCOEFF. Make sure ExtState DRYCOEFF pointer is
-       ! not dangling! 
+       ! not dangling!
        IF ( ASSOCIATED ( Inst%DRYCOEFF ) ) THEN
           DEALLOCATE ( Inst%DRYCOEFF )
           ExtState%DRYCOEFF => NULL()
        ENDIF
 
-       ! Free pointers 
-       IF ( ASSOCIATED( Inst%CLIMARID  ) ) DEALLOCATE ( Inst%CLIMARID  ) 
-       IF ( ASSOCIATED( Inst%CLIMNARID ) ) DEALLOCATE ( Inst%CLIMNARID ) 
-       IF ( ASSOCIATED( Inst%SOILFERT  ) ) DEALLOCATE ( Inst%SOILFERT  ) 
+       ! Free pointers
+       IF ( ASSOCIATED( Inst%CLIMARID  ) ) DEALLOCATE ( Inst%CLIMARID  )
+       IF ( ASSOCIATED( Inst%CLIMNARID ) ) DEALLOCATE ( Inst%CLIMNARID )
+       IF ( ASSOCIATED( Inst%SOILFERT  ) ) DEALLOCATE ( Inst%SOILFERT  )
 
        ! ----------------------------------------------------------------
        ! Pop off instance from list
@@ -2403,9 +2403,9 @@ CONTAINS
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_SoilNOx_Mod

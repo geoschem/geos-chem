@@ -1,0 +1,3 @@
+&fms_nml 
+print_memory_usage = .false., 
+domains_stack_size = 20000000/

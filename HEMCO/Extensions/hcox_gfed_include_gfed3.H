@@ -6,7 +6,7 @@
 !
 ! !IROUTINE: hcox_gfed_include_gfed3.H
 !
-! !DESCRIPTION: Include file with GFED emission factor data that was 
+! !DESCRIPTION: Include file with GFED emission factor data that was
 !  originally contained in file GFED\_emission\_factors.txt.  We have now
 !  transformed this file into hardwired F90 commands in order to avoid reading
 !  an ASCII file in the ESMF environment.
@@ -20,7 +20,7 @@
 !    cd HEMCO/Extensions/Preprocess
 !    make gfed
 !
-!  This will regenerate this include file from the original data and 
+!  This will regenerate this include file from the original data and
 !  automatically place it in the HEMCO/Extensions directory.
 !
 !  White space has been removed in order to reduce the file size as much
@@ -34,9 +34,9 @@
 !  GFED3_EMFAC(N,1) = Deforestation        Emission Factor for species N
 !  GFED3_EMFAC(N,1) = Extratropical Forest Emission Factor for species N
 !  GFED3_EMFAC(N,1) = Peat                 Emission Factor for species N
-!  GFED3_EMFAC(N,1) = Savanna              Emission Factor for species N       
+!  GFED3_EMFAC(N,1) = Savanna              Emission Factor for species N
 !  GFED3_EMFAC(N,1) = Woodland             Emission Factor for species N
-! 
+!
 !  References:
 !  ============================================================================
 !  (1 ) Akagi, S.K., R.J. Yokelson, C. Wiedinmyer, M.J. Alvarado, J.S. Reid,
@@ -44,7 +44,7 @@
 !       domestic biomass burning for use in atmospheric models, Atmos. Chem.
 !       Phys., 11, 4039-4072, 10.5194/acp-11-4039-2011, 2011.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  08 Aug 2014 - R. Yantosca - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
 !  16 Oct 2015 - M. Sulprizio- Added the following updates from E. Fischer:

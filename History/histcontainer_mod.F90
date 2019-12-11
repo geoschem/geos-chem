@@ -11,7 +11,7 @@
 !  instantaneous, hourly, daily, monthly, end-of-run, etc.)
 !\\
 !\\
-!  In other words, the HISTORY CONTAINER provides metadata for the 
+!  In other words, the HISTORY CONTAINER provides metadata for the
 !  netCDF file, and the HISTORY ITEMS belonging to the HISTORY CONTAINER
 !  contains the data and attributes for each variable that will be
 !  saved to the netCDF file.
@@ -66,16 +66,16 @@ MODULE HistContainer_Mod
      LOGICAL                     :: OnLevelEdges        ! =T if data is defined
                                                         !    on level edges;
                                                         ! =F if on centers
-     
+
      !----------------------------------------------------------------------
      ! List of history items in this collection
      !----------------------------------------------------------------------
-     TYPE(MetaHistItem), POINTER :: HistItems => NULL() ! List and # of 
+     TYPE(MetaHistItem), POINTER :: HistItems => NULL() ! List and # of
      INTEGER                     :: nHistItems          !  HISTORY ITEMS
-                                                        !  in this container 
+                                                        !  in this container
 
      !----------------------------------------------------------------------
-     ! Time quantities measured since start of simulation             
+     ! Time quantities measured since start of simulation
      !----------------------------------------------------------------------
      REAL(f8)                    :: EpochJd             ! Astronomical Julian
                                                         !  date @ start of sim
@@ -97,9 +97,9 @@ MODULE HistContainer_Mod
                                                         !  for file write
 
      !----------------------------------------------------------------------
-     ! Time quantities measured since the time of netCDF file creation          
+     ! Time quantities measured since the time of netCDF file creation
      !----------------------------------------------------------------------
-     INTEGER                     :: ReferenceYmd        ! Reference YMD & hms 
+     INTEGER                     :: ReferenceYmd        ! Reference YMD & hms
      INTEGER                     :: ReferenceHms        !  for the "time" dim
      REAL(f8)                    :: ReferenceJd         ! Julian Date at the
                                                         !  reference YMD & hms
@@ -169,13 +169,13 @@ MODULE HistContainer_Mod
   END TYPE HistContainer
 !
 ! !REMARKS:
-!  Linked list routines taken from original code (linkedlist.f90) 
+!  Linked list routines taken from original code (linkedlist.f90)
 !  by Arjen Markus; http://flibs.sourceforge.net/linked_list.html
 !
 ! !REVISION HISTORY:
 !  12 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd, FileWriteHms
-!  08 Aug 2017 - R. Yantosca - Add IsFileDefined, IsFileOpen, nX, nY, nZ and 
+!  08 Aug 2017 - R. Yantosca - Add IsFileDefined, IsFileOpen, nX, nY, nZ and
 !                              the ouptuts xDimId, yIDimd, zDimId, tDimId
 !  16 Aug 2017 - R. Yantosca - Rename Archival* variables to Update*
 !  17 Aug 2017 - R. Yantosca - Added the *Alarm variables
@@ -203,7 +203,7 @@ CONTAINS
 ! !IROUTINE: HistContainer_Create
 !
 ! !DESCRIPTION: Initializes a single HISTORY CONTAINER object, which
-!  will hold a METAHISTORY ITEM (which is a list of HISTORY ITEMS), to 
+!  will hold a METAHISTORY ITEM (which is a list of HISTORY ITEMS), to
 !  archive to netCDF output.
 !\\
 !\\
@@ -233,7 +233,7 @@ CONTAINS
   USE History_Util_Mod
   USE MetaHistItem_Mod, ONLY : MetaHistItem
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     !-----------------------------------------------------------------------
     ! REQUIRED INPUTS
@@ -246,7 +246,7 @@ CONTAINS
     ! OPTIONAL INPUTS: Time and date quantities
     !-----------------------------------------------------------------------
     REAL(f8),            OPTIONAL    :: EpochJd        ! Astronomical Julian
-                                                       !  date @ start of sim  
+                                                       !  date @ start of sim
     INTEGER,             OPTIONAL    :: CurrentYmd     ! Current YMD date
     INTEGER,             OPTIONAL    :: CurrentHms     ! Current hms time
 
@@ -260,7 +260,7 @@ CONTAINS
     INTEGER,             OPTIONAL    :: Operation      ! Operation code:
                                                        !  0=copy  from source
                                                        !  1=accum from source
-    REAL(f8),            OPTIONAL    :: HeartBeatDtSec ! Model "heartbeat" 
+    REAL(f8),            OPTIONAL    :: HeartBeatDtSec ! Model "heartbeat"
                                                        !  timestep [sec]
 
     !-----------------------------------------------------------------------
@@ -292,16 +292,16 @@ CONTAINS
     CHARACTER(LEN=*),    OPTIONAL    :: StartTimeStamp ! Timestamps at start
     CHARACTER(LEN=*),    OPTIONAL    :: EndTimeStamp   !  & end of simulation
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HistContainer), POINTER     :: Container      ! Collection object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,             INTENT(OUT) :: RC             ! Success or failure
 !
 ! !REMARKS:
-!  (1) We need to copy string data to a temporary string of length 255 
+!  (1) We need to copy string data to a temporary string of length 255
 !       characters, or else Gfortran will choke.
 !
 ! !REVISION HISTORY:
@@ -309,7 +309,7 @@ CONTAINS
 !  07 Aug 2017 - R. Yantosca - Add FileWriteYmd and FileWriteHms
 !  09 Aug 2017 - R. Yantosca - Add nX, ny, and, nZ
 !  11 Aug 2017 - R. Yantosca - Add FileCloseYmd, FileCloseHms, ReferenceYmd,
-!                              ReferenceHms, and CurrTimeSlice 
+!                              ReferenceHms, and CurrTimeSlice
 !  14 Aug 2017 - R. Yantosca - Add FileCloseYmd and FileCloseHms arguments
 !  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
 !  17 Aug 2017 - R. Yantosca - Add *Alarm and Reference* arguments
@@ -356,7 +356,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    
+
     ! Local value for ID
     ThisId = 0
 
@@ -431,7 +431,7 @@ CONTAINS
     ! Update frequency in YYYYMMDD
     !----------------------------------
     IF ( PRESENT( UpdateYmd ) ) THEN
-       Container%UpdateYmd = UpdateYmd 
+       Container%UpdateYmd = UpdateYmd
     ELSE
        Container%UpdateYmd = 0
     ENDIF
@@ -440,7 +440,7 @@ CONTAINS
     ! Update frequency in hhmmss
     !----------------------------------
     IF ( PRESENT( UpdateHms ) ) THEN
-       Container%UpdateHms = UpdateHms 
+       Container%UpdateHms = UpdateHms
     ELSE
        Container%UpdateHms = 0
     ENDIF
@@ -476,7 +476,7 @@ CONTAINS
     ! File write frequency in YYYYMMDD
     !----------------------------------
     IF ( PRESENT( FileWriteYmd ) ) THEN
-       Container%FileWriteYmd = FileWriteYmd 
+       Container%FileWriteYmd = FileWriteYmd
     ELSE
        Container%FileWriteYmd = 0
     ENDIF
@@ -485,7 +485,7 @@ CONTAINS
     ! File write frequency in hhmmss
     !----------------------------------
     IF ( PRESENT( FileWriteHms ) ) THEN
-       Container%FileWriteHms = FileWriteHms 
+       Container%FileWriteHms = FileWriteHms
     ELSE
        Container%FileWriteHms = 0
     ENDIF
@@ -503,7 +503,7 @@ CONTAINS
     ! File close frequency in YYYYMMDD
     !----------------------------------
     IF ( PRESENT( FileCloseYmd ) ) THEN
-       Container%FileCloseYmd = FileCloseYmd 
+       Container%FileCloseYmd = FileCloseYmd
     ELSE
        Container%FileCloseYmd = 0
     ENDIF
@@ -512,7 +512,7 @@ CONTAINS
     ! File close frequency in hhmmss
     !----------------------------------
     IF ( PRESENT( FileCloseHms ) ) THEN
-       Container%FileCloseHms = FileCloseHms 
+       Container%FileCloseHms = FileCloseHms
     ELSE
        Container%FileCloseHms = 0
     ENDIF
@@ -571,8 +571,8 @@ CONTAINS
 
     ELSE
 
-       ! If the FILETEMPLATE argument isn't passed, 
-       ! then construct a default template 
+       ! If the FILETEMPLATE argument isn't passed,
+       ! then construct a default template
        Container%FileTemplate = '%y4%m2%d2_%h2%n2z.nc4'
 
     ENDIF
@@ -595,8 +595,8 @@ CONTAINS
        ENDIF
 
     ELSE
-       
-       ! If the FILENAME argument isn't passed, 
+
+       ! If the FILENAME argument isn't passed,
        ! construct a default file name
        Container%FileName = TRIM( Container%FilePrefix   ) // &
                             TRIM( Container%FileTemplate )
@@ -704,7 +704,7 @@ CONTAINS
     !=======================================================================
     ! Set other fields to initial or undefined values
     !=======================================================================
-    
+
     ! These fields won't get defined until we open/write the netCDF file
     Container%IsFileDefined   = .FALSE.
     Container%IsFileOpen      = .FALSE.
@@ -741,9 +741,9 @@ CONTAINS
     Container%Y1              = UNDEFINED_INT
     Container%Z0              = UNDEFINED_INT
     Container%OnLevelEdges    = .FALSE.
-    
+
     ! If the collection is instantaneous, then set a flag to denote that
-    ! first the netCDF file reference date/time should be the start-of-the- 
+    ! first the netCDF file reference date/time should be the start-of-the-
     ! simulation time.  This will ensure that all timestamps and filenames
     ! for instantaneous collections are consistent.
     IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
@@ -882,17 +882,17 @@ CONTAINS
   SUBROUTINE HistContainer_Print( am_I_Root, Container, RC )
 !
 ! !USES:
-! 
+!
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
     TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,             INTENT(OUT) :: RC         ! Success or failure 
+    INTEGER,             INTENT(OUT) :: RC         ! Success or failure
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
@@ -928,7 +928,7 @@ CONTAINS
     Current => NULL()
 
     !=======================================================================
-    ! Print information about this HISTORY CONTAINER 
+    ! Print information about this HISTORY CONTAINER
     ! only if we are on the root CPU
     !=======================================================================
     IF ( ASSOCIATED( Container ) .and. am_I_Root ) THEN
@@ -969,10 +969,10 @@ CONTAINS
        WRITE( 6, 150 ) 'IsFileOpen       : ', Container%IsFileOpen
        WRITE( 6, 150 ) 'IsFileDefined    : ', Container%IsFileDefined
        WRITE( 6, 130 ) 'FileId           : ', Container%FileId
-       WRITE( 6, 130 ) 'xDimId           : ', Container%xDimId 
-       WRITE( 6, 130 ) 'yDimId           : ', Container%yDimId 
-       WRITE( 6, 130 ) 'zDimId           : ', Container%zDimId 
-       WRITE( 6, 130 ) 'tDimId           : ', Container%tDimId 
+       WRITE( 6, 130 ) 'xDimId           : ', Container%xDimId
+       WRITE( 6, 130 ) 'yDimId           : ', Container%yDimId
+       WRITE( 6, 130 ) 'zDimId           : ', Container%zDimId
+       WRITE( 6, 130 ) 'tDimId           : ', Container%tDimId
        WRITE( 6, 120 ) 'FileExpId        : ', TRIM( Container%FileExpId    )
        WRITE( 6, 120 ) 'FilePrefix       : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate     : ', TRIM( Container%FileTemplate )
@@ -1000,16 +1000,16 @@ CONTAINS
  160   FORMAT( 1x, a, f17.1    )
 
        ! If there are HISTORY ITEMS belonging to this container ...
-       IF ( ASSOCIATED( Container%HistItems ) ) THEN 
-          
+       IF ( ASSOCIATED( Container%HistItems ) ) THEN
+
           ! Point to the start of the list of HISTORY ITEMS
           Current => Container%HistItems
 
           ! As long as this HISTORY ITEM is valid ...
-          DO WHILE ( ASSOCIATED( Current ) ) 
+          DO WHILE ( ASSOCIATED( Current ) )
 
-             ! Print the name, long-name, and units of each HISTORY ITEM 
-             ! that is stored in the METAHISTORY ITEM belonging to this 
+             ! Print the name, long-name, and units of each HISTORY ITEM
+             ! that is stored in the METAHISTORY ITEM belonging to this
              ! HISTORY CONTAINER.  In other words, these are the diagnostic
              ! quantities that will get archived to the netCDF file.
              WRITE( 6, 100 ) Current%Item%Name,        &
@@ -1047,13 +1047,13 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE MetaHistItem_Mod, ONLY : MetaHistItem_Destroy 
+    USE MetaHistItem_Mod, ONLY : MetaHistItem_Destroy
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
 !
@@ -1175,7 +1175,7 @@ CONTAINS
      ' -> at HistContainer_UpdateIvalSet (in History/histcontainer_mod.F90)'
 
     !=======================================================================
-    ! Compute the interval for the "UpdateAlarm" 
+    ! Compute the interval for the "UpdateAlarm"
     !=======================================================================
     IF ( Container%UpdateYmd >= 010000 ) THEN
 
@@ -1185,15 +1185,15 @@ CONTAINS
 
        ! Split the current date & time into its constituent values
        CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
-    
+
        ! Update the alarm increment
        CALL AlarmIncrementYears( IntervalYmd = Container%UpdateYmd,          &
                                  Year        = Year,                         &
                                  Increment   = Container%UpdateIvalSec      )
-       
+
     ELSE IF ( Container%UpdateYmd <  001200  .and.                           &
               Container%UpdateYmd >= 000100 ) THEN
-       
+
        !--------------------------------------------------------------------
        ! Update interval is between 1 month and 1 year
        !--------------------------------------------------------------------
@@ -1300,7 +1300,7 @@ CONTAINS
 
        ! Split the current date & time into its constituent values
        CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
-    
+
        ! Update the alarm increment
        CALL AlarmIncrementYears( IntervalYmd = Container%FileCloseYmd,       &
                                  Year        = Year,                         &
@@ -1308,7 +1308,7 @@ CONTAINS
 
     ELSE IF ( Container%FileCloseYmd <  001200  .and.                        &
               Container%FileCloseYmd >= 000100 ) THEN
-       
+
        !--------------------------------------------------------------------
        ! File close interval is between 1 month and 1 year
        !--------------------------------------------------------------------
@@ -1422,10 +1422,10 @@ CONTAINS
 
     ELSE IF ( Container%FileWriteYmd <  001200  .and.                        &
               Container%FileWriteYmd >= 000100 ) THEN
-       
+
        !--------------------------------------------------------------------
        ! File write interval is one or more months but less than a year
-       ! 
+       !
        ! This will probably be the most common option.
        ! Now accounts properly for leap year days. (bmy, 2/26/19)
        !--------------------------------------------------------------------
@@ -1480,14 +1480,14 @@ CONTAINS
     USE History_Util_Mod
     USE Julday_Mod,      ONLY :CALDATE
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(HistContainer), POINTER     :: Container   ! HISTORY CONTAINER object
     REAL(f8),            OPTIONAL    :: HeartBeatDt ! Heartbeat increment for
                                                     !  for timestepping [days]
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,             INTENT(OUT) :: RC          ! Success or failure
 !
@@ -1515,14 +1515,14 @@ CONTAINS
     ! Initialize
     !=======================================================================
     RC      =  GC_SUCCESS
-    ErrMsg  =  '' 
+    ErrMsg  =  ''
     ThisLoc =  &
-         ' -> at HistContainer_SetTime (in History/history_mod.F90)' 
+         ' -> at HistContainer_SetTime (in History/history_mod.F90)'
 
     !========================================================================
     ! Update the current time by the heartbeat time (in seconds)
     !========================================================================
- 
+
     ! Update the Astronomical Julian seconds value by the heartbeat interval.
     ! Increment in seconds instead of days to avoid roundoff errors.
     IF ( PRESENT( HeartBeatDt ) ) THEN

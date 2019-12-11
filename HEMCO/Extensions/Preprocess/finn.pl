@@ -6,7 +6,7 @@
 #
 # !MODULE: finn.pl
 #
-# !DESCRIPTION: Reads the FINN_emission_factors.txt file and converts 
+# !DESCRIPTION: Reads the FINN_emission_factors.txt file and converts
 #  the data in the file to hardwired F90 commands for inlining into
 #  an include file.  This facilitates I/O in the ESMF environment.
 #\\
@@ -29,7 +29,7 @@ use strict;         # IMPLICIT NONE syntax
 # !REMARKS:
 #  You need to specify the root emissions data directory by setting
 #  the $HEMCO_DATA_ROOT environment variable accordingly.
-#  
+#
 # !CALLING SEQUENCE:
 #  gfed3.pl
 #
@@ -49,7 +49,7 @@ use strict;         # IMPLICIT NONE syntax
 #\\
 # !INTERFACE:
 #
-sub baseName($) { 
+sub baseName($) {
 #
 # !INPUT PARAMETERS:
 #
@@ -70,7 +70,7 @@ sub baseName($) {
 
   # Take the text following the colon
   my @result = split( '/', $dir );
-  
+
   # Return the last part of the directory
   $baseName = $result[ scalar( @result ) - 1 ];
 
@@ -96,9 +96,9 @@ sub num2str($) {
 # !INPUT PARAMETERS:
 #
   # Input number
-  my( $num ) = @_;   
+  my( $num ) = @_;
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  11 Aug 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
@@ -128,7 +128,7 @@ sub num2str($) {
 #
 sub getProTeXHeader() {
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  11 Aug 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
@@ -146,10 +146,10 @@ sub getProTeXHeader() {
 !
 ! !IROUTINE: hcox_finn_include.H
 !
-! !DESCRIPTION: Include file with FINN emission factor data that was 
+! !DESCRIPTION: Include file with FINN emission factor data that was
 !  originally contained in files FINN\\_EFratios\\_CO2.csv and
 !  FINN\\_VOC\\_speciation.csv.  We transform these data into hardwired F90
-!  assignment statements so that we can avoid reading ASCII files in the 
+!  assignment statements so that we can avoid reading ASCII files in the
 !  ESMF environment.
 !
 ! !REMARKS:
@@ -161,14 +161,14 @@ sub getProTeXHeader() {
 !    cd HEMCO/Extensions/Preprocess
 !    make finn
 !
-!  This will regenerate this include file from the original data and 
+!  This will regenerate this include file from the original data and
 !  automatically place it in the HEMCO/Extensions directory.
 !
 !  White space has been removed in order to reduce the file size as much
 !  as possible.  If you have to recreate this file, then it is easier to
 !  generate via the Perl script than to try to hand edit the code below.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  11 Aug 2014 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -201,7 +201,7 @@ sub makeFinnInclude($$$) {
   # $outFile : File path of the FINN include file
   my( $co2Path, $vocPath, $outFile ) = @_;
 
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  17 Apr 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
@@ -227,7 +227,7 @@ sub makeFinnInclude($$$) {
   # Arrays
   my @result  = ();
   my @header  = &getProTeXHeader();
-  
+
   #========================================================================
   # Open files and write the subroutine header to the output file
   #========================================================================
@@ -241,7 +241,7 @@ sub makeFinnInclude($$$) {
   foreach $line ( @header ) { print O "$line"; }
 
   #=========================================================================
-  # Read data from the CO2 speciation file 
+  # Read data from the CO2 speciation file
   #=========================================================================
 
   # Parse input file and write F90 commands to output file
@@ -257,7 +257,7 @@ sub makeFinnInclude($$$) {
     elsif ( $line =~ m/GenVegCode/    ) {
 
       #=====================================================================
-      # This line has the CO2 file species names 
+      # This line has the CO2 file species names
       #=====================================================================
 
       # Split the line by commas
@@ -293,12 +293,12 @@ sub makeFinnInclude($$$) {
 
 	# Write F90 code to output file
 	print O "IN_SPEC_NAME($spcStr)=\"$name\"\n";
-      } 
- 
+      }
+
       print O "\n";
 
     } else {
-      
+
       #=====================================================================
       # The following lines have the CO2 file emission factors
       #=====================================================================
@@ -310,10 +310,10 @@ sub makeFinnInclude($$$) {
       # CROPS is listed as #9 but reset to #6
       $fac = $result[0];
       if ( $fac > 6 ) { $fac = 6 }
-      		
+
       # Print emission factor name
       print O "! $result[1] emission factors from $co2File\n";
-	
+
       # Loop over substrings
       for ( $i = 0; $i < $nCo2; $i++ ) {
 
@@ -322,7 +322,7 @@ sub makeFinnInclude($$$) {
 
 	# Column w/ data for the given species
 	$col    = $i + 2;
-	
+
 	# Write the F90 commands to the output file
 	print O "EMFAC_IN($spcStr,$fac)=$result[$col]_dp\n";
       }
@@ -333,7 +333,7 @@ sub makeFinnInclude($$$) {
   }
 
   #=========================================================================
-  # Read from the VOC speciation file 
+  # Read from the VOC speciation file
   #=========================================================================
 
   # Parse input file and write F90 commands to output file
@@ -349,7 +349,7 @@ sub makeFinnInclude($$$) {
     elsif ( $line =~ m/GenVegCode/  ) {
 
       #=====================================================================
-      # This line has the VOC file species names 
+      # This line has the VOC file species names
       #=====================================================================
 
       # Split the line by commas
@@ -391,7 +391,7 @@ sub makeFinnInclude($$$) {
       print O "\n";
 
     } else {
-      
+
       #=====================================================================
       # The following lines have the emission factors
       #=====================================================================
@@ -403,10 +403,10 @@ sub makeFinnInclude($$$) {
       # CROPS is listed as #9 but reset to #6
       $fac = $result[0];
       if ( $fac > 6 ) { $fac = 6 }
-      	
+
       # Write comment header
       print O "! $result[1] emission factors from $vocFile\n";
-	
+
       # Loop over substrings
       for ( $i = 0; $i < $nVoc; $i++ ) {
 
@@ -427,7 +427,7 @@ sub makeFinnInclude($$$) {
   }
 
   #=========================================================================
-  # Cleanup and quit 
+  # Cleanup and quit
   #=========================================================================
 
   # Write subroutine header to output file
@@ -457,7 +457,7 @@ sub makeFinnInclude($$$) {
 #
 sub main() {
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  11 Aug 2014 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------

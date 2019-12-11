@@ -1,0 +1,91 @@
+# Atmospheric Model Configuration Parameters
+# ------------------------------------------
+NX: 1
+NY: 6
+
+GCHP.GRID_TYPE: Cubed-Sphere
+GCHP.GRIDNAME: PE24x144-CF
+GCHP.NF: 6
+GCHP.IM_WORLD: 24
+GCHP.IM: 24
+GCHP.JM: 144
+GCHP.LM: 72
+
+# For FV advection do not use grid comp name prefix
+IM: 24
+JM: 144
+LM: 72
+
+GEOSChem_CTM: 1
+
+AdvCore_Advection: 1
+	DYCORE: OFF
+  HEARTBEAT_DT: 600
+
+SOLAR_DT: 600
+IRRAD_DT: 600
+RUN_DT:   600
+GIGCchem_DT: 1200
+DYNAMICS_DT: 600
+
+SOLARAvrg: 0
+IRRADAvrg: 0
+
+GIGCchem_REFERENCE_TIME: 121000
+
+# Print Resource Parameters (0: Non-Default values, 1: ALL values)
+#-----------------------------------------------------------------
+PRINTRC: 0
+
+# Set the number of parallel I/O processes to use when
+# RESTART_TYPE and or CHECKPOINT_TYPE are set to pbinary or pnc4
+#---------------------------------------------------------------
+PARALLEL_READFORCING: 0
+NUM_READERS: 1
+NUM_WRITERS: 1
+
+# Active observer when desired
+# ----------------------------
+BKG_FREQUENCY: 0
+
+# Settings for production of restart files
+#---------------------------------------------------------------
+# Record frequency (HHMMSS) : Frequency of restart file write
+#                             Can exceed 24 hours (e.g. 1680000 for 7 days)
+# Record ref date (YYYYMMDD): Reference date; set to before sim start date
+# Record ref time (HHMMSS)  : Reference time 
+RECORD_FREQUENCY: 1680000 
+RECORD_REF_DATE: 20000101
+RECORD_REF_TIME: 000000
+
+# Chemistry/AEROSOL Model Restart Files
+# Enter +none for GIGCchem_INTERNAL_RESTART_FILE not use an initial restart file
+# -------------------------------------
+GIGCchem_INTERNAL_RESTART_FILE:     +initial_GEOSChem_rst.c24_{SIMULATION}.nc
+GIGCchem_INTERNAL_RESTART_TYPE:     pnc4
+GIGCchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
+GIGCchem_INTERNAL_CHECKPOINT_TYPE:  pnc4
+
+DYN_INTERNAL_RESTART_FILE:    -fvcore_internal_rst
+DYN_INTERNAL_RESTART_TYPE:    pbinary
+DYN_INTERNAL_CHECKPOINT_FILE: -fvcore_internal_checkpoint
+DYN_INTERNAL_CHECKPOINT_TYPE: pbinary
+DYN_INTERNAL_HEADER:          1
+
+RUN_PHASES:           1
+
+#
+# %%% HEMCO configuration file %%%
+#
+HEMCO_CONFIG:         HEMCO_Config.rc
+
+#
+# %%% Log file names for redirecting stdout %%%
+#
+STDOUT_LOGFILE:       PET%%%%%.GEOSCHEMchem.log
+STDOUT_LOGLUN:        700
+
+#
+# %%% Memory debug print level (integer 0 to 3; 0=none, 3=highest)
+#
+MEMORY_DEBUG_LEVEL:   0

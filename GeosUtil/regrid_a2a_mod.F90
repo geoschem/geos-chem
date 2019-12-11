@@ -5,11 +5,11 @@
 !
 ! !MODULE: regrid_a2a_mod.F90
 !
-! !DESCRIPTION: Module REGRID\_A2A\_MOD uses an algorithm adapted from 
+! !DESCRIPTION: Module REGRID\_A2A\_MOD uses an algorithm adapted from
 !  MAP\_A2A code to regrid from one horizontal grid to another.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
 MODULE Regrid_A2A_Mod
 !
@@ -29,7 +29,7 @@ MODULE Regrid_A2A_Mod
 
   ! Map_A2A overloads these routines
   INTERFACE Map_A2A
-    MODULE PROCEDURE Map_A2A_R8R8 
+    MODULE PROCEDURE Map_A2A_R8R8
     MODULE PROCEDURE Map_A2A_R4R8
     MODULE PROCEDURE Map_A2A_R4R4
     MODULE PROCEDURE Map_A2A_R8R4
@@ -53,7 +53,7 @@ MODULE Regrid_A2A_Mod
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - M. Cooper   - Initial version
-!  03 Apr 2012 - M. Payer    - Now use functions GET_AREA_CM2(I,J,L), 
+!  03 Apr 2012 - M. Payer    - Now use functions GET_AREA_CM2(I,J,L),
 !                              GET_YEDGE(I,J,L) and GET_YSIN(I,J,L) from the
 !                              new grid_mod.F90
 !  22 May 2012 - L. Murray   - Implemented several bug fixes
@@ -64,7 +64,7 @@ MODULE Regrid_A2A_Mod
 !  27 Aug 2012 - R. Yantosca - Now parallelize key DO loops
 !  19 May 2014 - C. Keller   - MAP_A2A now accepts single and double precision
 !                              input/output.
-!  14 Jul 2014 - R. Yantosca - Now save IIPAR, JJPAR, OUTLON, OUTSIN, OUTAREA 
+!  14 Jul 2014 - R. Yantosca - Now save IIPAR, JJPAR, OUTLON, OUTSIN, OUTAREA
 !                              as module variables.  This helps us remove a
 !                              dependency for the HEMCO emissions package.
 !                              input/output.
@@ -96,7 +96,7 @@ MODULE Regrid_A2A_Mod
 ! !DEFINED PARAMETERS:
 !
   !---------------------------------------------------------------------------
-  ! These were taken from CMN_GCTM_mod.F90.  This helps us to avoid depending 
+  ! These were taken from CMN_GCTM_mod.F90.  This helps us to avoid depending
   ! on GEOS-Chem modules in the core HEMCO modules.  (bmy, 7/14/14)
   ! NOTE: CMN_GCTM_mod.F90 is now physconstants.F90 (ewl, 1/8/2016)
   !---------------------------------------------------------------------------
@@ -137,7 +137,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN)    :: FILENAME
 
     ! Number of lon centers and lat centers on the INPUT GRID
-    INTEGER,          INTENT(IN)    :: IM 
+    INTEGER,          INTENT(IN)    :: IM
     INTEGER,          INTENT(IN)    :: JM
 
     ! Data array on the input grid
@@ -149,7 +149,7 @@ CONTAINS
     INTEGER,          INTENT(IN)    :: IS_MASS
 
     ! Read from netCDF file?  (needed for debugging, will disappear later)
-    LOGICAL, OPTIONAL,INTENT(IN)    :: netCDF  
+    LOGICAL, OPTIONAL,INTENT(IN)    :: netCDF
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -258,8 +258,8 @@ CONTAINS
 !
 ! !IROUTINE: Map_A2A_r8r8
 !
-! !DESCRIPTION: Subroutine MAP\_A2A\_R8R8 is a horizontal arbitrary grid to 
-!  arbitrary grid conservative high-order mapping regridding routine by S-J 
+! !DESCRIPTION: Subroutine MAP\_A2A\_R8R8 is a horizontal arbitrary grid to
+!  arbitrary grid conservative high-order mapping regridding routine by S-J
 !  Lin.  Both the input data and output data have REAL(fp) precision.
 !\\
 !\\
@@ -276,7 +276,7 @@ CONTAINS
     ! Longitude and Latitude dimensions of OUTPUT grid
     INTEGER, INTENT(IN)  :: in, jn
 
-    ! IG=0: pole to pole; 
+    ! IG=0: pole to pole;
     ! IG=1 J=1 is half-dy north of south pole
     INTEGER, INTENT(IN)  :: ig
 
@@ -328,13 +328,13 @@ CONTAINS
        qtmp = missval
        q2   = missval
     ELSE
-       qtmp = miss_r8 
-       q2   = miss_r8 
+       qtmp = miss_r8
+       q2   = miss_r8
     ENDIF
 
     !===================================================================
     ! E-W regridding
-    !===================================================================    
+    !===================================================================
     IF ( im         == in         .and. &
          lon1(1)    == lon2(1)    .and. &
          lon1(im+1) == lon2(in+1)        ) THEN
@@ -358,11 +358,11 @@ CONTAINS
                       missval=missval )
 
     ENDIF
-    
+
     !===================================================================
     ! N-S regridding
-    !===================================================================    
-    IF ( jm         == jn         .and. & 
+    !===================================================================
+    IF ( jm         == jn         .and. &
          sin1(1)    == sin2(1)    .and. &
          sin1(jm+1) == sin2(jn+1)        ) THEN
 
@@ -370,7 +370,7 @@ CONTAINS
        ! but assign the value of QTMP to the output Q2 array
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J )      
+       !$OMP PRIVATE( I, J )
        DO j=1,jm-ig
        DO i=1,in
           q2(i,j+ig) = qtmp(i,j+ig)
@@ -395,8 +395,8 @@ CONTAINS
 !
 ! !IROUTINE: Map_A2A_r4r4
 !
-! !DESCRIPTION: Subroutine MAP\_A2A\_R4R4 is a horizontal arbitrary grid 
-!  to arbitrary grid conservative high-order mapping regridding routine 
+! !DESCRIPTION: Subroutine MAP\_A2A\_R4R4 is a horizontal arbitrary grid
+!  to arbitrary grid conservative high-order mapping regridding routine
 !  by S-J Lin.  Both the input and output data have REAL*4 precision.
 !\\
 !\\
@@ -413,7 +413,7 @@ CONTAINS
     ! Longitude and Latitude dimensions of OUTPUT grid
     INTEGER, INTENT(IN)  :: in, jn
 
-    ! IG=0: pole to pole; 
+    ! IG=0: pole to pole;
     ! IG=1 J=1 is half-dy north of south pole
     INTEGER, INTENT(IN)  :: ig
 
@@ -470,7 +470,7 @@ CONTAINS
 
     !===================================================================
     ! E-W regridding
-    !===================================================================    
+    !===================================================================
     IF ( im         == in         .and. &
          lon1(1)    == lon2(1)    .and. &
          lon1(im+1) == lon2(in+1)        ) THEN
@@ -497,8 +497,8 @@ CONTAINS
 
     !===================================================================
     ! N-S regridding
-    !===================================================================    
-    IF ( jm         == jn         .and. & 
+    !===================================================================
+    IF ( jm         == jn         .and. &
          sin1(1)    == sin2(1)    .and. &
          sin1(jm+1) == sin2(jn+1)        ) THEN
 
@@ -506,7 +506,7 @@ CONTAINS
        ! but assign the value of QTMP to the output Q2 array
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J )      
+       !$OMP PRIVATE( I, J )
        DO j=1,jm-ig
        DO i=1,in
           q2(i,j+ig) = qtmp(i,j+ig)
@@ -531,7 +531,7 @@ CONTAINS
 !
 ! !IROUTINE: Map_A2A_r4r8
 !
-! !DESCRIPTION: Subroutine MAP\_A2A\_R4R8 is a horizontal arbitrary grid to 
+! !DESCRIPTION: Subroutine MAP\_A2A\_R4R8 is a horizontal arbitrary grid to
 !  arbitrary grid conservative high-order mapping regridding routine by
 !  S-J Lin.  The input data has REAL*4 precision, but the output argument
 !  has REAL(fp) precision.
@@ -550,7 +550,7 @@ CONTAINS
     ! Longitude and Latitude dimensions of OUTPUT grid
     INTEGER, INTENT(IN)  :: in, jn
 
-    ! IG=0: pole to pole; 
+    ! IG=0: pole to pole;
     ! IG=1 J=1 is half-dy north of south pole
     INTEGER, INTENT(IN)  :: ig
 
@@ -601,13 +601,13 @@ CONTAINS
        qtmp = real(missval,8)
        q2   = real(missval,8)
     ELSE
-       qtmp = miss_r8 
+       qtmp = miss_r8
        q2   = miss_r8
     ENDIF
 
     !===================================================================
     ! E-W regridding
-    !===================================================================    
+    !===================================================================
     IF ( im         == in         .and. &
          lon1(1)    == lon2(1)    .and. &
          lon1(im+1) == lon2(in+1)        ) THEN
@@ -631,11 +631,11 @@ CONTAINS
                       missval=missval )
 
     ENDIF
-    
+
     !===================================================================
     ! N-S regridding
-    !===================================================================    
-    IF ( jm         == jn         .and. & 
+    !===================================================================
+    IF ( jm         == jn         .and. &
          sin1(1)    == sin2(1)    .and. &
          sin1(jm+1) == sin2(jn+1)        ) THEN
 
@@ -643,7 +643,7 @@ CONTAINS
        ! but assign the value of QTMP to the output Q2 array
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J )      
+       !$OMP PRIVATE( I, J )
        DO j=1,jm-ig
        DO i=1,in
           q2(i,j+ig) = qtmp(i,j+ig)
@@ -668,7 +668,7 @@ CONTAINS
 !
 ! !IROUTINE: Map_A2A_r8r4
 !
-! !DESCRIPTION: Subroutine MAP\_A2A\_R8R4 is a horizontal arbitrary grid to 
+! !DESCRIPTION: Subroutine MAP\_A2A\_R8R4 is a horizontal arbitrary grid to
 !  arbitrary grid conservative high-order mapping regridding routine by
 !  S-J Lin.  The input data has REAL*8 precision, but the output argument
 !  has REAL*4 precision.
@@ -687,7 +687,7 @@ CONTAINS
     ! Longitude and Latitude dimensions of OUTPUT grid
     INTEGER, INTENT(IN)  :: in, jn
 
-    ! IG=0: pole to pole; 
+    ! IG=0: pole to pole;
     ! IG=1 J=1 is half-dy north of south pole
     INTEGER, INTENT(IN)  :: ig
 
@@ -738,13 +738,13 @@ CONTAINS
        qtmp = real(missval,4)
        q2   = real(missval,4)
     ELSE
-       qtmp = miss_r4 
-       q2   = miss_r4 
+       qtmp = miss_r4
+       q2   = miss_r4
     ENDIF
 
     !===================================================================
     ! E-W regridding
-    !===================================================================    
+    !===================================================================
     IF ( im         == in         .and. &
          lon1(1)    == lon2(1)    .and. &
          lon1(im+1) == lon2(in+1)        ) THEN
@@ -768,11 +768,11 @@ CONTAINS
                       missval=missval )
 
     ENDIF
-    
+
     !===================================================================
     ! N-S regridding
-    !===================================================================    
-    IF ( jm         == jn         .and. & 
+    !===================================================================
+    IF ( jm         == jn         .and. &
          sin1(1)    == sin2(1)    .and. &
          sin1(jm+1) == sin2(jn+1)        ) THEN
 
@@ -780,7 +780,7 @@ CONTAINS
        ! but assign the value of QTMP to the output Q2 array
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J )      
+       !$OMP PRIVATE( I, J )
        DO j=1,jm-ig
        DO i=1,in
           q2(i,j+ig) = qtmp(i,j+ig)
@@ -805,7 +805,7 @@ CONTAINS
 !
 ! !IROUTINE: Ymap_r8r8
 !
-! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
+! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an
 !  arbitrary resolution to another.  Both the input and output arguments
 !  have REAL(fp) precision.
 !\\
@@ -817,39 +817,39 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! original E-W dimension
-    INTEGER, INTENT(IN)  :: im            
-    
+    INTEGER, INTENT(IN)  :: im
+
     ! original N-S dimension
-    INTEGER, INTENT(IN)  :: jm            
+    INTEGER, INTENT(IN)  :: jm
 
     ! Target N-S dimension
-    INTEGER, INTENT(IN)  :: jn           
-    
+    INTEGER, INTENT(IN)  :: jn
+
     ! IG=0: scalars from SP to NP (D-grid v-wind is also IG=0)
     ! IG=1: D-grid u-wind
-    INTEGER, INTENT(IN)  :: ig            
-  
-    ! IV=0: scalar; 
+    INTEGER, INTENT(IN)  :: ig
+
+    ! IV=0: scalar;
     ! IV=1: vector
-    INTEGER, INTENT(IN)  :: iv            
-  
-    ! Original southern edge of the cell sin(lat1)  
-    REAL*8,  INTENT(IN)  :: sin1(jm+1-ig) 
-    
+    INTEGER, INTENT(IN)  :: iv
+
+    ! Original southern edge of the cell sin(lat1)
+    REAL*8,  INTENT(IN)  :: sin1(jm+1-ig)
+
     ! Original data at center of the cell
-    REAL*8,  INTENT(IN)  :: q1(im,jm)      
-    
+    REAL*8,  INTENT(IN)  :: q1(im,jm)
+
     ! Target cell's southern edge sin(lat2)
-    REAL*8,  INTENT(IN)  :: sin2(jn+1-ig) 
+    REAL*8,  INTENT(IN)  :: sin2(jn+1-ig)
 !
 ! !OPTIONAL INPUT PARAMETERS:
 !
-    REAL*8,  INTENT(IN), OPTIONAL :: missval 
+    REAL*8,  INTENT(IN), OPTIONAL :: missval
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*8,  INTENT(OUT) :: q2(im,jn)     
+    REAL*8,  INTENT(OUT) :: q2(im,jn)
 !
 ! !REMARKS:
 !
@@ -867,7 +867,7 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
 !                                values in nested grids
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
 !EOP
@@ -880,21 +880,21 @@ CONTAINS
     REAL*8               :: dy1(jm)
     REAL*8               :: dy
     REAL*8               :: qsum, sum
-    REAL*8               :: dlat, nlon, miss   
- 
+    REAL*8               :: dlat, nlon, miss
+
     ! YMAP begins here!
     do j=1,jm-ig
        dy1(j) = sin1(j+1) - sin1(j)
     enddo
 
     ! Missing value
-    miss = miss_r8 
+    miss = miss_r8
     if ( present(missval) ) miss=missval
 
     !===============================================================
     ! Area preserving mapping
     !===============================================================
-    
+
     !$OMP PARALLEL DO                                &
     !$OMP DEFAULT( SHARED                          ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, DLAT, MM, DY )
@@ -904,20 +904,20 @@ CONTAINS
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
-             
+
           !=========================================================
           ! locate the southern edge: sin2(i)
           !=========================================================
           if(sin2(j) .ge. sin1(m) .and. sin2(j) .le. sin1(m+1)) then
-             
+
              if(sin2(j+1) .le. sin1(m+1)) then
-                
+
                 ! entire new cell is within the original cell
                 if( abs(q1(i,m)-miss)>tiny_r8 ) q2(i,j)=q1(i,m)
                 j0 = m
                 goto 555
              else
-                
+
                 ! South most fractional area
                 if( abs(q1(i,m)-miss)>tiny_r8 ) then
                    dlat= sin1(m+1)-sin2(j)
@@ -925,17 +925,17 @@ CONTAINS
                 endif
 
                 do mm=m+1,jm-ig
-                   
+
                    ! locate the northern edge: sin2(j+1)
                    if(sin2(j+1) .gt. sin1(mm+1) ) then
-                      
+
                       ! Whole layer
                       if( abs(q1(i,mm)-miss)>tiny_r8 ) then
                          dlat = dlat + dy1(mm)
                          qsum = qsum + dy1(mm)*q1(i,mm)
                       endif
                    else
-                      
+
                       ! North most fractional area
                       dy = sin2(j+1)-sin1(mm)
                       if ( abs(q1(i,mm)-miss)>tiny_r8 ) then
@@ -960,7 +960,7 @@ CONTAINS
      ! Final processing for poles
      !===================================================================
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
-         
+
         ! South pole
         sum = 0.e+0_fp
         nlon= 0.0d0
@@ -968,10 +968,10 @@ CONTAINS
            if(abs(q2(i,1)-miss)>tiny_r8 ) then
               sum = sum + q2(i,1)
               nlon= nlon + 1.0d0
-           endif 
+           endif
         enddo
 
-        if ( nlon > 0.0d0 ) sum = sum / nlon 
+        if ( nlon > 0.0d0 ) sum = sum / nlon
         do i=1,im
            q2(i,1) = sum
         enddo
@@ -1002,7 +1002,7 @@ CONTAINS
 !
 ! !IROUTINE: Ymap_r4r8
 !
-! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
+! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an
 !  arbitrary resolution to another.  The input argument has REAL*4 precision
 !  but the output argument has REAL(fp) precision.
 !\\
@@ -1015,40 +1015,40 @@ CONTAINS
 !
 
     ! original E-W dimension
-    INTEGER, INTENT(IN)  :: im            
-    
+    INTEGER, INTENT(IN)  :: im
+
     ! original N-S dimension
-    INTEGER, INTENT(IN)  :: jm            
+    INTEGER, INTENT(IN)  :: jm
 
     ! Target N-S dimension
-    INTEGER, INTENT(IN)  :: jn           
-    
+    INTEGER, INTENT(IN)  :: jn
+
     ! IG=0: scalars from SP to NP (D-grid v-wind is also IG=0)
     ! IG=1: D-grid u-wind
-    INTEGER, INTENT(IN)  :: ig            
-  
-    ! IV=0: scalar; 
+    INTEGER, INTENT(IN)  :: ig
+
+    ! IV=0: scalar;
     ! IV=1: vector
-    INTEGER, INTENT(IN)  :: iv            
-  
-    ! Original southern edge of the cell sin(lat1)  
-    REAL*4,  INTENT(IN)  :: sin1(jm+1-ig) 
-    
+    INTEGER, INTENT(IN)  :: iv
+
+    ! Original southern edge of the cell sin(lat1)
+    REAL*4,  INTENT(IN)  :: sin1(jm+1-ig)
+
     ! Original data at center of the cell
-    REAL*8,  INTENT(IN)  :: q1(im,jm)      
-    
+    REAL*8,  INTENT(IN)  :: q1(im,jm)
+
     ! Target cell's southern edge sin(lat2)
-    REAL*4,  INTENT(IN)  :: sin2(jn+1-ig) 
+    REAL*4,  INTENT(IN)  :: sin2(jn+1-ig)
 !
 ! !OPTIONAL INPUT PARAMETERS:
 !
-    REAL*4,  INTENT(IN), OPTIONAL :: missval 
+    REAL*4,  INTENT(IN), OPTIONAL :: missval
 !
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*8,  INTENT(OUT) :: q2(im,jn)     
+    REAL*8,  INTENT(OUT) :: q2(im,jn)
 !
 ! !REMARKS:
 !
@@ -1066,7 +1066,7 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
 !                                values in nested grids
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
 !EOP
@@ -1080,20 +1080,20 @@ CONTAINS
     REAL*8               :: dy
     REAL*8               :: qsum, dlat, nlon, sum
     REAL*4               :: miss
- 
+
     ! YMAP begins here!
     do j=1,jm-ig
        dy1(j) = sin1(j+1) - sin1(j)
     enddo
 
     ! Missing value
-    miss = miss_r4 
+    miss = miss_r4
     if ( present(missval) ) miss=missval
 
     !===============================================================
     ! Area preserving mapping
     !===============================================================
-    
+
     !$OMP PARALLEL DO                                &
     !$OMP DEFAULT( SHARED                          ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, DLAT, MM, DY )
@@ -1103,44 +1103,44 @@ CONTAINS
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
-             
+
           !=========================================================
           ! locate the southern edge: sin2(i)
           !=========================================================
           if(sin2(j) .ge. sin1(m) .and. sin2(j) .le. sin1(m+1)) then
-             
+
              if(sin2(j+1) .le. sin1(m+1)) then
-                
+
                 ! entire new cell is within the original cell
                 if ( abs(q1(i,m)-miss)>tiny_r4 ) q2(i,j)=q1(i,m)
                 j0 = m
                 goto 555
              else
-                
+
                 ! South most fractional area
                 if( abs(q1(i,m)-miss)>tiny_r4 ) then
                    dlat= sin1(m+1)-sin2(j)
                    qsum=(sin1(m+1)-sin2(j))*q1(i,m)
-                endif 
-                
+                endif
+
                 do mm=m+1,jm-ig
-                   
+
                    ! locate the northern edge: sin2(j+1)
                    if(sin2(j+1) .gt. sin1(mm+1) ) then
-                      
+
                       ! Whole layer
                       if( abs(q1(i,mm)-miss)>tiny_r4 ) then
                          qsum = qsum + dy1(mm)*q1(i,mm)
                          dlat = dlat + dy1(mm)
-                      endif 
+                      endif
                    else
-                      
+
                       ! North most fractional area
                       if( abs(q1(i,mm)-miss)>tiny_r4 ) then
                          dy = sin2(j+1)-sin1(mm)
                          qsum=qsum+dy*q1(i,mm)
                          dlat=dlat+dy
-                      endif 
+                      endif
                       j0 = mm
                       goto 123
                    endif
@@ -1158,7 +1158,7 @@ CONTAINS
      ! Final processing for poles
      !===================================================================
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
-         
+
         ! South pole
         sum = 0.e+0_fp
         nlon= 0.0d0
@@ -1166,10 +1166,10 @@ CONTAINS
            if( abs(q2(i,1)-miss)>tiny_r4 ) then
               sum = sum + q2(i,1)
               nlon = nlon + 1.0d0
-           endif 
+           endif
         enddo
 
-        if ( nlon > 0.0d0 ) sum = sum / nlon 
+        if ( nlon > 0.0d0 ) sum = sum / nlon
         do i=1,im
            q2(i,1) = sum
         enddo
@@ -1184,7 +1184,7 @@ CONTAINS
            endif
         enddo
 
-        if ( nlon > 0.0d0 ) sum = sum / nlon 
+        if ( nlon > 0.0d0 ) sum = sum / nlon
         do i=1,im
            q2(i,jn) = sum
         enddo
@@ -1200,7 +1200,7 @@ CONTAINS
 !
 ! !IROUTINE: Ymap_r8r4
 !
-! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
+! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an
 !  arbitrary resolution to another.  The input argument has REAL*8 precision
 !  but the output argument has REAL*4 precision.
 !\\
@@ -1213,40 +1213,40 @@ CONTAINS
 !
 
     ! original E-W dimension
-    INTEGER, INTENT(IN)  :: im            
-    
+    INTEGER, INTENT(IN)  :: im
+
     ! original N-S dimension
-    INTEGER, INTENT(IN)  :: jm            
+    INTEGER, INTENT(IN)  :: jm
 
     ! Target N-S dimension
-    INTEGER, INTENT(IN)  :: jn           
-    
+    INTEGER, INTENT(IN)  :: jn
+
     ! IG=0: scalars from SP to NP (D-grid v-wind is also IG=0)
     ! IG=1: D-grid u-wind
-    INTEGER, INTENT(IN)  :: ig            
-  
-    ! IV=0: scalar; 
+    INTEGER, INTENT(IN)  :: ig
+
+    ! IV=0: scalar;
     ! IV=1: vector
-    INTEGER, INTENT(IN)  :: iv            
-  
-    ! Original southern edge of the cell sin(lat1)  
-    REAL*4,  INTENT(IN)  :: sin1(jm+1-ig) 
-    
+    INTEGER, INTENT(IN)  :: iv
+
+    ! Original southern edge of the cell sin(lat1)
+    REAL*4,  INTENT(IN)  :: sin1(jm+1-ig)
+
     ! Original data at center of the cell
-    REAL*8,  INTENT(IN)  :: q1(im,jm)      
-    
+    REAL*8,  INTENT(IN)  :: q1(im,jm)
+
     ! Target cell's southern edge sin(lat2)
-    REAL*4,  INTENT(IN)  :: sin2(jn+1-ig) 
+    REAL*4,  INTENT(IN)  :: sin2(jn+1-ig)
 !
 ! !OPTIONAL INPUT PARAMETERS:
 !
-    REAL*8,  INTENT(IN), OPTIONAL :: missval 
+    REAL*8,  INTENT(IN), OPTIONAL :: missval
 !
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*4,  INTENT(OUT) :: q2(im,jn)     
+    REAL*4,  INTENT(OUT) :: q2(im,jn)
 !
 ! !REMARKS:
 !
@@ -1264,7 +1264,7 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
 !                                values in nested grids
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
 !EOP
@@ -1278,8 +1278,8 @@ CONTAINS
     REAL*8               :: dy
     REAL*8               :: qsum, sum, dlat
     REAL*8               :: miss
-    REAL*4               :: nlon 
-    
+    REAL*4               :: nlon
+
     ! YMAP begins here!
     do j=1,jm-ig
        dy1(j) = sin1(j+1) - sin1(j)
@@ -1292,7 +1292,7 @@ CONTAINS
     !===============================================================
     ! Area preserving mapping
     !===============================================================
-    
+
     !$OMP PARALLEL DO                                &
     !$OMP DEFAULT( SHARED                          ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, DLAT, MM, DY )
@@ -1302,44 +1302,44 @@ CONTAINS
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
-             
+
           !=========================================================
           ! locate the southern edge: sin2(i)
           !=========================================================
           if(sin2(j) .ge. sin1(m) .and. sin2(j) .le. sin1(m+1)) then
-             
+
              if(sin2(j+1) .le. sin1(m+1)) then
-                
+
                 ! entire new cell is within the original cell
                 if( abs(q1(i,m)-miss)>tiny_r8 ) q2(i,j)=q1(i,m)
                 j0 = m
                 goto 555
              else
-                
+
                 ! South most fractional area
                 if( abs(q1(i,m)-miss)>tiny_r8 ) then
                    dlat= sin1(m+1)-sin2(j)
                    qsum=(sin1(m+1)-sin2(j))*q1(i,m)
-                endif               
- 
+                endif
+
                 do mm=m+1,jm-ig
-                   
+
                    ! locate the northern edge: sin2(j+1)
                    if(sin2(j+1) .gt. sin1(mm+1) ) then
-                      
+
                       ! Whole layer
                       if( abs(q1(i,mm)-miss)>tiny_r8 ) then
                          qsum = qsum + dy1(mm)*q1(i,mm)
                          dlat = dlat + dy1(mm)
                       endif
                    else
-                      
+
                       ! North most fractional area
                       dy = sin2(j+1)-sin1(mm)
                       if( abs(q1(i,mm)-miss)>tiny_r8 ) then
                          qsum=qsum+dy*q1(i,mm)
                          dlat=dlat+dy
-                      endif 
+                      endif
                       j0 = mm
                       goto 123
                    endif
@@ -1357,7 +1357,7 @@ CONTAINS
      ! Final processing for poles
      !===================================================================
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
-         
+
         ! South pole
         sum = 0.0_f4
         nlon= 0.0
@@ -1368,7 +1368,7 @@ CONTAINS
            endif
         enddo
 
-        if ( nlon > 0.0 ) sum = sum / nlon 
+        if ( nlon > 0.0 ) sum = sum / nlon
         do i=1,im
            q2(i,1) = sum
         enddo
@@ -1383,7 +1383,7 @@ CONTAINS
            endif
         enddo
 
-        if ( nlon > 0.0 ) sum = sum / nlon 
+        if ( nlon > 0.0 ) sum = sum / nlon
         do i=1,im
            q2(i,jn) = sum
         enddo
@@ -1399,7 +1399,7 @@ CONTAINS
 !
 ! !IROUTINE: Ymap_r4r4
 !
-! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
+! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an
 !  arbitrary resolution to another.  Both the input and output arguments
 !  have REAL(fp) precision.
 !\\
@@ -1412,40 +1412,40 @@ CONTAINS
 !
 
     ! original E-W dimension
-    INTEGER, INTENT(IN)  :: im            
-    
+    INTEGER, INTENT(IN)  :: im
+
     ! original N-S dimension
-    INTEGER, INTENT(IN)  :: jm            
+    INTEGER, INTENT(IN)  :: jm
 
     ! Target N-S dimension
-    INTEGER, INTENT(IN)  :: jn           
-    
+    INTEGER, INTENT(IN)  :: jn
+
     ! IG=0: scalars from SP to NP (D-grid v-wind is also IG=0)
     ! IG=1: D-grid u-wind
-    INTEGER, INTENT(IN)  :: ig            
-  
-    ! IV=0: scalar; 
+    INTEGER, INTENT(IN)  :: ig
+
+    ! IV=0: scalar;
     ! IV=1: vector
-    INTEGER, INTENT(IN)  :: iv            
-  
-    ! Original southern edge of the cell sin(lat1)  
-    REAL*4,  INTENT(IN)  :: sin1(jm+1-ig) 
-    
+    INTEGER, INTENT(IN)  :: iv
+
+    ! Original southern edge of the cell sin(lat1)
+    REAL*4,  INTENT(IN)  :: sin1(jm+1-ig)
+
     ! Original data at center of the cell
-    REAL*4,  INTENT(IN)  :: q1(im,jm)      
-    
+    REAL*4,  INTENT(IN)  :: q1(im,jm)
+
     ! Target cell's southern edge sin(lat2)
-    REAL*4,  INTENT(IN)  :: sin2(jn+1-ig) 
+    REAL*4,  INTENT(IN)  :: sin2(jn+1-ig)
 !
 ! !OPTIONAL INPUT PARAMETERS:
 !
-    ! Missing value 
-    REAL*4,  INTENT(IN), OPTIONAL  :: missval 
+    ! Missing value
+    REAL*4,  INTENT(IN), OPTIONAL  :: missval
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*4,  INTENT(OUT) :: q2(im,jn)     
+    REAL*4,  INTENT(OUT) :: q2(im,jn)
 !
 ! !REMARKS:
 !
@@ -1463,7 +1463,7 @@ CONTAINS
 !  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
 !                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined 
+!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
 !                                values in nested grids
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
 !EOP
@@ -1476,21 +1476,21 @@ CONTAINS
     REAL*4               :: dy1(jm)
     REAL*4               :: dy
     REAL*4               :: qsum, sum
-    REAL*4               :: dlat, nlon, miss 
- 
+    REAL*4               :: dlat, nlon, miss
+
     ! YMAP begins here!
     do j=1,jm-ig
        dy1(j) = sin1(j+1) - sin1(j)
     enddo
 
     ! missing value
-    miss = miss_r4 
+    miss = miss_r4
     if ( present(missval) ) miss = missval
 
     !===============================================================
     ! Area preserving mapping
     !===============================================================
-    
+
     !$OMP PARALLEL DO                                &
     !$OMP DEFAULT( SHARED                          ) &
     !$OMP PRIVATE( I, J0, J, M, QSUM, DLAT, MM, DY )
@@ -1500,38 +1500,38 @@ CONTAINS
        j0 = 1
        do 555 j=1,jn-ig
        do 100 m=j0,jm-ig
-             
+
           !=========================================================
           ! locate the southern edge: sin2(i)
           !=========================================================
           if(sin2(j) .ge. sin1(m) .and. sin2(j) .le. sin1(m+1)) then
-             
+
              if(sin2(j+1) .le. sin1(m+1)) then
-                
+
                 ! entire new cell is within the original cell
                 if( abs(q1(i,m)-miss)>tiny_r4 ) q2(i,j)=q1(i,m)
                 j0 = m
                 goto 555
              else
-                
+
                 ! South most fractional area
                 if( abs(q1(i,m)-miss)>tiny_r4 ) then
                    dlat=sin1(m+1)-sin2(j)
                    qsum=dlat*q1(i,m)
-                endif 
+                endif
 
                 do mm=m+1,jm-ig
-                   
+
                    ! locate the northern edge: sin2(j+1)
                    if(sin2(j+1) .gt. sin1(mm+1) ) then
-                      
+
                       ! Whole layer
                       if( abs(q1(i,mm)-miss)>tiny_r4 ) then
                          qsum = qsum + dy1(mm)*q1(i,mm)
                          dlat = dlat + dy1(mm)
                       endif
                    else
-                      
+
                       ! North most fractional area
                       if( abs(q1(i,mm)-miss)>tiny_r4 ) then
                          dy = sin2(j+1)-sin1(mm)
@@ -1556,7 +1556,7 @@ CONTAINS
      ! Final processing for poles
      !===================================================================
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
-         
+
         ! South pole
         sum  = 0.e+0_fp
         nlon = 0.0
@@ -1567,7 +1567,7 @@ CONTAINS
            endif
         enddo
 
-        if ( nlon > 0.0 ) sum = sum / nlon 
+        if ( nlon > 0.0 ) sum = sum / nlon
         !sum = sum / REAL( im, 4 )
         do i=1,im
            q2(i,1) = sum
@@ -1579,12 +1579,12 @@ CONTAINS
         do i=1,im
            if( abs(q2(i,jn)-miss)>tiny_r4 ) then
               sum  = sum + q2(i,jn)
-              nlon = nlon + 1.0 
+              nlon = nlon + 1.0
            endif
         enddo
 
         !sum = sum / REAL( im, 4 )
-        if ( nlon > 0.0 ) sum = sum / nlon 
+        if ( nlon > 0.0 ) sum = sum / nlon
         do i=1,im
            q2(i,jn) = sum
         enddo
@@ -1599,7 +1599,7 @@ CONTAINS
 !
 ! !IROUTINE: Xmap_r8r8
 !
-! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
+! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an
 !  arbitrary resolution to another.  Both the input and output arguments
 !  have REAL(fp) precision.
 !\\
@@ -1615,32 +1615,32 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Original E-W dimension
-    INTEGER, INTENT(IN)  :: im           
+    INTEGER, INTENT(IN)  :: im
 
     ! Target E-W dimension
     INTEGER, INTENT(IN)  :: iin
-  
+
     ! Original N-S dimension
-    INTEGER, INTENT(IN)  :: jm           
-  
+    INTEGER, INTENT(IN)  :: jm
+
     ! Original western edge of the cell
-    REAL*8,  INTENT(IN)  :: lon1(im+1)   
-  
+    REAL*8,  INTENT(IN)  :: lon1(im+1)
+
     ! Original data at center of the cell
-    REAL*8,  INTENT(IN)  :: q1(im,jm)    
-  
+    REAL*8,  INTENT(IN)  :: q1(im,jm)
+
     ! Target cell's western edge
-    REAL*8,  INTENT(IN), TARGET  :: ilon2(iin+1)   
+    REAL*8,  INTENT(IN), TARGET  :: ilon2(iin+1)
 !
 ! !OPTIONAL INPUT PARAMETERS:
 !
-    ! Missing value 
-    REAL*8,  INTENT(IN), OPTIONAL  :: missval 
+    ! Missing value
+    REAL*8,  INTENT(IN), OPTIONAL  :: missval
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*8,  INTENT(OUT), TARGET :: iq2(iin,jm)    
+    REAL*8,  INTENT(OUT), TARGET :: iq2(iin,jm)
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -1659,7 +1659,7 @@ CONTAINS
 !                                to valid range n1:(n2-1). Do not initialize q2
 !                                to zero after pointer assignment. This seems to
 !                                cause problems with some compilers.
-!  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts 
+!  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
 !  21 Aug 2018 - H.P. Lin      - Return missing value if no overlap between lon1, lon2
 !EOP
@@ -1689,7 +1689,7 @@ CONTAINS
     Real*8               :: xSpan
 
     ! Missing value
-    Real*8               :: miss 
+    Real*8               :: miss
 
     ! Initialize pointers
     lon2 => NULL()
@@ -1703,7 +1703,7 @@ CONTAINS
     do i=1,im+1
        x1(i) = lon1(i)
     enddo
-  
+
     do i=1,im
        dx1(i) = x1(i+1) - x1(i)
     enddo
@@ -1712,7 +1712,7 @@ CONTAINS
     ! define minimum and maximum longitude on output grid
     ! to be used. Remapping will be restricted to this
     ! domain. This procedure allows remapping of nested
-    ! domains onto larger (e.g. global) domains. 
+    ! domains onto larger (e.g. global) domains.
     ! ckeller, 2/11/15).
     !===================================================================
     minlon = minval(lon1)
@@ -1726,7 +1726,7 @@ CONTAINS
           minlon = minval(lon1s)
           maxlon = maxval(lon1s)
        enddo
-    endif    
+    endif
 
     ! maxlon must represent the easter edge of the grid:
     maxlon = maxlon + ( lon1(im+1)-lon1(im) )
@@ -1775,7 +1775,7 @@ CONTAINS
           endif
        endif
     enddo
-    
+
     !===================================================================
     ! Eastern edge:
     !===================================================================
@@ -1800,12 +1800,12 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                ) &
     !$OMP PRIVATE( J, QTMP, I, I0, M, QSUM, DLON, MM, DX )
     do 1000 j=1,jm
-       
+
        !=================================================================
        ! Area preserving mapping
        !================================================================
-      
-       qtmp(:) = 0.0d0 
+
+       qtmp(:) = 0.0d0
        do i=1,im
           qtmp(i)=q1(i,j)
        enddo
@@ -1824,7 +1824,7 @@ CONTAINS
                 qtmp(i) = qtmp(im+i)
              enddo
           endif
-          
+
           ! Eastern edge:
           if ( i2 .gt. im+1 ) then
              do i=im+1,i2-1
@@ -1832,25 +1832,25 @@ CONTAINS
              enddo
           endif
        End If
-        
+
        i0 = i1
 
        do 555 i=1,in
        do 100 m=i0,i2-1
 
-          !=============================================================  
+          !=============================================================
           ! locate the western edge: lon2(i)
-          !=============================================================  
+          !=============================================================
           if(lon2(i) .ge. x1(m) .and. lon2(i) .le. x1(m+1)) then
-             
+
              if(lon2(i+1) .le. x1(m+1)) then
-                
+
                 ! entire new grid is within the original grid
                 if( abs(qtmp(m)-miss)>tiny_r8 ) q2(i,j)=qtmp(m)
                 i0 = m
                 goto 555
              else
-  
+
                 ! Left most fractional area
                 if( abs(qtmp(m)-miss)>tiny_r8 ) then
                    qsum=(x1(m+1)-lon2(i))*qtmp(m)
@@ -1860,22 +1860,22 @@ CONTAINS
                    dlon = 0.0d0
                 endif
                 do mm=m+1,i2-1
-                   
+
                    ! locate the eastern edge: lon2(i+1)
                    if(lon2(i+1) .gt. x1(mm+1) ) then
-                      
+
                       ! Whole layer
                       if( abs(qtmp(mm)-miss)>tiny_r8 ) then
                          qsum = qsum + dx1(mm)*qtmp(mm)
                          dlon = dlon + dx1(mm)
-                      endif 
+                      endif
                    else
                       ! Right most fractional area
                       if( abs(qtmp(mm)-miss)>tiny_r8 ) then
                          dx = lon2(i+1)-x1(mm)
                          qsum=qsum+dx*qtmp(mm)
                          dlon=dlon+dx
-                      endif 
+                      endif
                       i0 = mm
                       goto 123
                    endif
@@ -1890,9 +1890,9 @@ CONTAINS
      !$OMP END PARALLEL DO
 
     ! Cleanup
-    lon2 => NULL() 
-    q2   => NULL() 
-    
+    lon2 => NULL()
+    q2   => NULL()
+
   END SUBROUTINE xmap_r8r8
 !EOC
 !------------------------------------------------------------------------------
@@ -1902,7 +1902,7 @@ CONTAINS
 !
 ! !IROUTINE: Xmap_r4r4
 !
-! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
+! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an
 !  arbitrary resolution to another.  Both the input and output arguments
 !  have REAL*4 precision.
 !\\
@@ -1918,32 +1918,32 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Original E-W dimension
-    INTEGER, INTENT(IN)  :: im           
+    INTEGER, INTENT(IN)  :: im
 
     ! Target E-W dimension
     INTEGER, INTENT(IN)  :: iin
-  
+
     ! Original N-S dimension
-    INTEGER, INTENT(IN)  :: jm           
-  
+    INTEGER, INTENT(IN)  :: jm
+
     ! Original western edge of the cell
-    REAL*4,  INTENT(IN)  :: lon1(im+1)   
-  
+    REAL*4,  INTENT(IN)  :: lon1(im+1)
+
     ! Original data at center of the cell
-    REAL*4,  INTENT(IN)  :: q1(im,jm)    
-  
+    REAL*4,  INTENT(IN)  :: q1(im,jm)
+
     ! Target cell's western edge
-    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)   
+    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)
 !
 ! !OPTIONAL INPUT PARAMETERS:
 !
-    ! Missing value 
-    REAL*4,  INTENT(IN), OPTIONAL  :: missval 
+    ! Missing value
+    REAL*4,  INTENT(IN), OPTIONAL  :: missval
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*4,  INTENT(OUT), TARGET :: iq2(iin,jm)    
+    REAL*4,  INTENT(OUT), TARGET :: iq2(iin,jm)
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -1961,7 +1961,7 @@ CONTAINS
 !  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
 !                                to valid range n1:(n2-1). Do not initialize q2
 !                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers. 
+!                                cause problems with some compilers.
 !  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
 !  21 Aug 2018 - H.P. Lin      - Return missing value if no overlap between lon1, lon2
@@ -1984,7 +1984,7 @@ CONTAINS
     INTEGER              :: in
     REAL*4, POINTER      :: lon2(:)
     REAL*4, POINTER      :: q2(:,:)
-    REAL*4               :: minlon, maxlon 
+    REAL*4               :: minlon, maxlon
     REAL*4               :: lon1s(im+1)
 
     ! Ghost correction
@@ -1999,14 +1999,14 @@ CONTAINS
     q2   => NULL()
 
     ! Missing value
-    miss = miss_r4 
+    miss = miss_r4
     if ( present(missval) ) miss = missval
 
     ! XMAP begins here!
     do i=1,im+1
        x1(i) = lon1(i)
     enddo
-  
+
     do i=1,im
        dx1(i) = x1(i+1) - x1(i)
     enddo
@@ -2015,7 +2015,7 @@ CONTAINS
     ! define minimum and maximum longitude on output grid
     ! to be used. Remapping will be restricted to this
     ! domain. This procedure allows remapping of nested
-    ! domains onto larger (e.g. global) domains. 
+    ! domains onto larger (e.g. global) domains.
     ! ckeller, (2/11/15).
     !===================================================================
     minlon = minval(lon1)
@@ -2029,7 +2029,7 @@ CONTAINS
           minlon = minval(lon1s)
           maxlon = maxval(lon1s)
        enddo
-    endif    
+    endif
 
     ! maxlon must represent the easter edge of the grid:
     maxlon = maxlon + ( lon1(im+1)-lon1(im) )
@@ -2058,7 +2058,7 @@ CONTAINS
     ! Periodic BC only valid if the variable is "global"
     xSpan = x1(im+1)-x1(1)
     isGlobal = ((xSpan.ge.355.0).and.(xSpan.le.365.0))
- 
+
     !===================================================================
     ! check to see if ghosting is necessary
     ! Western edge:
@@ -2079,7 +2079,7 @@ CONTAINS
           endif
        endif
     enddo
-    
+
     !===================================================================
     ! Eastern edge:
     !===================================================================
@@ -2104,11 +2104,11 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                ) &
     !$OMP PRIVATE( J, QTMP, I, I0, M, QSUM, DLON, MM, DX )
     do 1000 j=1,jm
-       
+
        !=================================================================
        ! Area preserving mapping
        !================================================================
-       
+
        qtmp(:) = 0.0
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -2128,7 +2128,7 @@ CONTAINS
                 qtmp(i) = qtmp(im+i)
              enddo
           endif
-          
+
           ! Eastern edge:
           if ( i2 .gt. im+1 ) then
              do i=im+1,i2-1
@@ -2136,25 +2136,25 @@ CONTAINS
              enddo
           endif
        End If
-        
+
        i0 = i1
 
        do 555 i=1,in
        do 100 m=i0,i2-1
 
-          !=============================================================  
+          !=============================================================
           ! locate the western edge: lon2(i)
-          !=============================================================  
+          !=============================================================
           if(lon2(i) .ge. x1(m) .and. lon2(i) .le. x1(m+1)) then
-             
+
              if(lon2(i+1) .le. x1(m+1)) then
-                
+
                 ! entire new grid is within the original grid
                 if ( abs(qtmp(m)-miss)>tiny_r4 ) q2(i,j)=qtmp(m)
                 i0 = m
                 goto 555
              else
-  
+
                 ! Left most fractional area
                 if( abs(qtmp(m)-miss)>tiny_r4 ) then
                    dlon=x1(m+1)-lon2(i)
@@ -2164,15 +2164,15 @@ CONTAINS
                    qsum=0.0
                 endif
                 do mm=m+1,i2-1
-                   
+
                    ! locate the eastern edge: lon2(i+1)
                    if(lon2(i+1) .gt. x1(mm+1) ) then
-                      
+
                       ! Whole layer
                       if( abs(qtmp(mm)-miss)>tiny_r4 ) then
                          qsum = qsum + dx1(mm)*qtmp(mm)
                          dlon = dlon + dx1(mm)
-                      endif                      
+                      endif
 
                    else
                       ! Right most fractional area
@@ -2207,7 +2207,7 @@ CONTAINS
 !
 ! !IROUTINE: Xmap_r4r8
 !
-! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
+! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an
 !  arbitrary resolution to another.  The input argument has REAL*4 precision
 !  but the output argument has REAL(fp) precision.
 !\\
@@ -2223,31 +2223,31 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Original E-W dimension
-    INTEGER, INTENT(IN)  :: im           
+    INTEGER, INTENT(IN)  :: im
 
     ! Target E-W dimension
     INTEGER, INTENT(IN)  :: iin
-  
+
     ! Original N-S dimension
-    INTEGER, INTENT(IN)  :: jm           
-  
+    INTEGER, INTENT(IN)  :: jm
+
     ! Original western edge of the cell
-    REAL*4,  INTENT(IN)  :: lon1(im+1)   
-  
+    REAL*4,  INTENT(IN)  :: lon1(im+1)
+
     ! Original data at center of the cell
-    REAL*4,  INTENT(IN)  :: q1(im,jm)    
-  
+    REAL*4,  INTENT(IN)  :: q1(im,jm)
+
     ! Target cell's western edge
-    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)   
+    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)
 !
 ! !OPTIONAL INPUT PARAMETERS:
 !
-    REAL*4,  INTENT(IN), OPTIONAL :: missval 
+    REAL*4,  INTENT(IN), OPTIONAL :: missval
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*8,  INTENT(OUT), TARGET :: iq2(iin,jm)    
+    REAL*8,  INTENT(OUT), TARGET :: iq2(iin,jm)
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -2265,7 +2265,7 @@ CONTAINS
 !  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
 !                                to valid range n1:(n2-1). Do not initialize q2
 !                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers. 
+!                                cause problems with some compilers.
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
 !EOP
 !------------------------------------------------------------------------------
@@ -2286,7 +2286,7 @@ CONTAINS
     INTEGER              :: in
     REAL*4, POINTER      :: lon2(:)
     REAL*8, POINTER      :: q2(:,:)
-    REAL*4               :: minlon, maxlon 
+    REAL*4               :: minlon, maxlon
     REAL*4               :: lon1s(im+1)
 
     ! Ghost correction
@@ -2301,23 +2301,23 @@ CONTAINS
     q2   => NULL()
 
     ! Missing value
-    miss = miss_r4 
+    miss = miss_r4
     if ( present(missval) ) miss = missval
 
     ! XMAP begins here!
     do i=1,im+1
        x1(i) = lon1(i)
     enddo
-  
+
     do i=1,im
        dx1(i) = x1(i+1) - x1(i)
     enddo
-    
+
     !===================================================================
     ! define minimum and maximum longitude on output grid
     ! to be used. Remapping will be restricted to this
     ! domain. This procedure allows remapping of nested
-    ! domains onto larger (e.g. global) domains. 
+    ! domains onto larger (e.g. global) domains.
     ! ckeller, 2/11/15).
     !===================================================================
     minlon = minval(lon1)
@@ -2331,7 +2331,7 @@ CONTAINS
           minlon = minval(lon1s)
           maxlon = maxval(lon1s)
        enddo
-    endif    
+    endif
 
     ! maxlon must represent the easter edge of the grid:
     maxlon = maxlon + ( lon1(im+1)-lon1(im) )
@@ -2371,7 +2371,7 @@ CONTAINS
           endif
        endif
     enddo
-    
+
     !===================================================================
     ! Eastern edge:
     !===================================================================
@@ -2396,11 +2396,11 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                ) &
     !$OMP PRIVATE( J, QTMP, I, I0, M, QSUM, DLON, MM, DX )
     do 1000 j=1,jm
-       
+
        !=================================================================
        ! Area preserving mapping
        !================================================================
-       
+
        qtmp(:) = 0.0d0
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -2420,7 +2420,7 @@ CONTAINS
                 qtmp(i) = qtmp(im+i)
              enddo
           endif
-          
+
           ! Eastern edge:
           if ( i2 .gt. im+1 ) then
              do i=im+1,i2-1
@@ -2428,25 +2428,25 @@ CONTAINS
              enddo
           endif
        End If
-        
+
        i0 = i1
 
        do 555 i=1,in
        do 100 m=i0,i2-1
 
-          !=============================================================  
+          !=============================================================
           ! locate the western edge: lon2(i)
-          !=============================================================  
+          !=============================================================
           if(lon2(i) .ge. x1(m) .and. lon2(i) .le. x1(m+1)) then
-             
+
              if(lon2(i+1) .le. x1(m+1)) then
-                
+
                 ! entire new grid is within the original grid
                 if( abs(qtmp(m)-miss)>tiny_r4 ) q2(i,j)=qtmp(m)
                 i0 = m
                 goto 555
              else
-  
+
                 ! Left most fractional area
                 if( abs(qtmp(m)-miss)>tiny_r4 ) then
                    qsum=(x1(m+1)-lon2(i))*qtmp(m)
@@ -2456,10 +2456,10 @@ CONTAINS
                    dlon=0.0d0
                 endif
                 do mm=m+1,i2-1
-                   
+
                    ! locate the eastern edge: lon2(i+1)
                    if(lon2(i+1) .gt. x1(mm+1) ) then
-                      
+
                       ! Whole layer
                       if( abs(qtmp(mm)-miss)>tiny_r4 ) then
                          qsum = qsum + dx1(mm)*qtmp(mm)
@@ -2471,7 +2471,7 @@ CONTAINS
                          dx = lon2(i+1)-x1(mm)
                          qsum=qsum+dx*qtmp(mm)
                          dlon=dlon+dx
-                      endif 
+                      endif
                       i0 = mm
                       goto 123
                    endif
@@ -2480,15 +2480,15 @@ CONTAINS
              endif
           endif
 100    continue
-123    if ( dlon /= 0.0d0 ) q2(i,j) = qsum / dlon 
+123    if ( dlon /= 0.0d0 ) q2(i,j) = qsum / dlon
 555    continue
 1000 continue
      !$OMP END PARALLEL DO
 
     ! Cleanup
-    lon2 => NULL() 
-    q2   => NULL() 
-    
+    lon2 => NULL()
+    q2   => NULL()
+
   END SUBROUTINE xmap_r4r8
 !EOC
 !------------------------------------------------------------------------------
@@ -2498,7 +2498,7 @@ CONTAINS
 !
 ! !IROUTINE: Xmap_r8r4
 !
-! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
+! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an
 !  arbitrary resolution to another.  The input argument has REAL*8 precision
 !  but the output argument has REAL*4 precision.
 !\\
@@ -2514,31 +2514,31 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Original E-W dimension
-    INTEGER, INTENT(IN)  :: im           
+    INTEGER, INTENT(IN)  :: im
 
     ! Target E-W dimension
-    INTEGER, INTENT(IN)  :: iin           
-  
+    INTEGER, INTENT(IN)  :: iin
+
     ! Original N-S dimension
-    INTEGER, INTENT(IN)  :: jm           
-  
+    INTEGER, INTENT(IN)  :: jm
+
     ! Original western edge of the cell
-    REAL*4,  INTENT(IN)  :: lon1(im+1)   
-  
+    REAL*4,  INTENT(IN)  :: lon1(im+1)
+
     ! Original data at center of the cell
-    REAL*8,  INTENT(IN)  :: q1(im,jm)    
-  
+    REAL*8,  INTENT(IN)  :: q1(im,jm)
+
     ! Target cell's western edge
-    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)   
+    REAL*4,  INTENT(IN), TARGET  :: ilon2(iin+1)
 !
 ! !OPTIONAL INPUT PARAMETERS:
 !
-    REAL*8,  INTENT(IN), OPTIONAL :: missval 
+    REAL*8,  INTENT(IN), OPTIONAL :: missval
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Mapped data at the target resolution
-    REAL*4,  INTENT(OUT), TARGET :: iq2(iin,jm)    
+    REAL*4,  INTENT(OUT), TARGET :: iq2(iin,jm)
 !
 ! !REMARKS:
 !   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
@@ -2556,7 +2556,7 @@ CONTAINS
 !  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
 !                                to valid range n1:(n2-1). Do not initialize q2
 !                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers. 
+!                                cause problems with some compilers.
 !  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
 !EOP
@@ -2578,7 +2578,7 @@ CONTAINS
     INTEGER              :: in
     REAL*4, POINTER      :: lon2(:)
     REAL*4, POINTER      :: q2(:,:)
-    REAL*4               :: minlon, maxlon 
+    REAL*4               :: minlon, maxlon
     REAL*4               :: lon1s(im+1)
 
     ! Ghost correction
@@ -2593,23 +2593,23 @@ CONTAINS
     q2   => NULL()
 
     ! Missing value
-    miss = miss_r8 
+    miss = miss_r8
     if ( present(missval) ) miss = missval
 
     ! XMAP begins here!
     do i=1,im+1
        x1(i) = lon1(i)
     enddo
-  
+
     do i=1,im
        dx1(i) = x1(i+1) - x1(i)
     enddo
-    
+
     !===================================================================
     ! define minimum and maximum longitude on output grid
     ! to be used. Remapping will be restricted to this
     ! domain. This procedure allows remapping of nested
-    ! domains onto larger (e.g. global) domains. 
+    ! domains onto larger (e.g. global) domains.
     ! ckeller, 2/11/15).
     !===================================================================
     minlon = minval(lon1)
@@ -2623,7 +2623,7 @@ CONTAINS
           minlon = minval(lon1s)
           maxlon = maxval(lon1s)
        enddo
-    endif    
+    endif
 
     ! maxlon must represent the easter edge of the grid:
     maxlon = maxlon + ( lon1(im+1)-lon1(im) )
@@ -2663,7 +2663,7 @@ CONTAINS
           endif
        endif
     enddo
-    
+
     !===================================================================
     ! Eastern edge:
     !===================================================================
@@ -2688,11 +2688,11 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                ) &
     !$OMP PRIVATE( J, QTMP, I, I0, M, QSUM, DLON, MM, DX )
     do 1000 j=1,jm
-       
+
        !=================================================================
        ! Area preserving mapping
        !================================================================
-      
+
        qtmp(:) = 0.0
        do i=1,im
           qtmp(i)=q1(i,j)
@@ -2712,7 +2712,7 @@ CONTAINS
                 qtmp(i) = qtmp(im+i)
              enddo
           endif
-          
+
           ! Eastern edge:
           if ( i2 .gt. im+1 ) then
              do i=im+1,i2-1
@@ -2720,25 +2720,25 @@ CONTAINS
              enddo
           endif
        End If
-        
+
        i0 = i1
 
        do 555 i=1,in
        do 100 m=i0,i2-1
 
-          !=============================================================  
+          !=============================================================
           ! locate the western edge: lon2(i)
-          !=============================================================  
+          !=============================================================
           if(lon2(i) .ge. x1(m) .and. lon2(i) .le. x1(m+1)) then
-             
+
              if(lon2(i+1) .le. x1(m+1)) then
-                
+
                 ! entire new grid is within the original grid
                 if( abs(qtmp(m)-miss)>tiny_r8 ) q2(i,j)=qtmp(m)
                 i0 = m
                 goto 555
              else
-  
+
                 ! Left most fractional area
                 if( abs(qtmp(m)-miss)>tiny_r8 ) then
                    qsum=(x1(m+1)-lon2(i))*qtmp(m)
@@ -2748,15 +2748,15 @@ CONTAINS
                    dlon=0.0
                 endif
                 do mm=m+1,i2-1
-                   
+
                    ! locate the eastern edge: lon2(i+1)
                    if(lon2(i+1) .gt. x1(mm+1) ) then
-                      
+
                       ! Whole layer
                       if( abs(qtmp(mm)-miss)>tiny_r8 ) then
                          qsum = qsum + dx1(mm)*qtmp(mm)
                          dlon = dlon + dx1(mm)
-                      endif                     
+                      endif
                    else
                       ! Right most fractional area
                       if( abs(qtmp(m)-miss)>tiny_r8 ) then
@@ -2772,15 +2772,15 @@ CONTAINS
              endif
           endif
 100    continue
-123    if( dlon /= 0.0 ) q2(i,j) = qsum / dlon 
+123    if( dlon /= 0.0 ) q2(i,j) = qsum / dlon
 555    continue
 1000 continue
      !$OMP END PARALLEL DO
 
     ! Cleanup
-    lon2 => NULL() 
-    q2   => NULL() 
-    
+    lon2 => NULL()
+    q2   => NULL()
+
   END SUBROUTINE xmap_r8r4
 !EOC
 !------------------------------------------------------------------------------
@@ -2801,16 +2801,25 @@ CONTAINS
 !
 ! !USES:
 !
+#if defined(ESMF_)
+    USE ESMF
+    USE MAPL_Mod
+#else
     ! Modules for netCDF read
     USE m_netcdf_io_open
     USE m_netcdf_io_get_dimlen
     USE m_netcdf_io_read
     USE m_netcdf_io_readattr
     USE m_netcdf_io_close
+#endif
 
     IMPLICIT NONE
 
+#if defined(ESMF_)
+#   include "MAPL_Generic.h"
+#else
 #   include "netcdf.inc"
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -2819,7 +2828,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN)  :: fileName          ! File w/ grid info
 !
 ! !OUTPUT PARAMETERS:
-!   
+!
     REAL(fp),           INTENT(OUT) :: lon_edges(IM+1)   ! Lon edges [degrees]
     REAL(fp),           INTENT(OUT) :: lat_sines(JM+1)   ! SIN( latitude edges )
 !
@@ -2829,6 +2838,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2012 - R. Yantosca - Initial version
+!  26 Aug 2019 - C. Keller   - (Re)added ESMF_ wrapper
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2841,6 +2851,15 @@ CONTAINS
     ! Arrays
     INTEGER            :: st1d(1), ct1d(1)             ! netCDF start & count
 
+#if defined(ESMF_)
+    INTEGER            :: RC
+    __Iam__( 'Read_Input_Grid (regrid_a2a_mod.F90)' )
+
+    IF ( MAPL_am_I_Root() ) THEN
+       WRITE(*,*) 'Subroutine `Read_Input_Grid` currently not ESMF-ready!'
+    ENDIF
+    ASSERT_(.FALSE.)
+#else
     !======================================================================
     ! Read data from file
     !======================================================================
@@ -2852,7 +2871,7 @@ CONTAINS
     st1d = (/ 1    /)
     ct1d = (/ IM+1 /)
     CALL NcRd( lon_edges, fId,  "lon_edges", st1d, ct1d )
-        
+
     ! Read lat_sines from file
     st1d = (/ 1    /)
     ct1d = (/ JM+1 /)
@@ -2860,6 +2879,7 @@ CONTAINS
 
     ! Close netCDF file
     CALL NcCl( fId )
+#endif
 
   END SUBROUTINE Read_Input_Grid
 !EOC
@@ -2887,7 +2907,7 @@ CONTAINS
     REAL(fp),         INTENT(IN) :: LONS (NX+1 )   ! Longitudes
     REAL(fp),         INTENT(IN) :: SINES(NY+1 )   ! Sines of latitudes
     REAL(fp),         INTENT(IN) :: AREAS(NX,NY)   ! Surface areas [m2]
-    CHARACTER(LEN=*), INTENT(IN) :: DIR            ! Dir for netCDF files w/ 
+    CHARACTER(LEN=*), INTENT(IN) :: DIR            ! Dir for netCDF files w/
                                                    !  grid definitions
 !
 ! !REVISION HISTORY:
@@ -2905,22 +2925,22 @@ CONTAINS
     !------------------------------------------
     IF ( .not. ALLOCATED( OUTLON ) ) THEN
        ALLOCATE( OUTLON( NX+1 ), STAT=AS )
-       IF ( AS /= 0 ) THEN 
+       IF ( AS /= 0 ) THEN
           PRINT*, '### Could not allocate OUTLON (regrid_a2a_mod.F90)'
           STOP
        ENDIF
     ENDIF
 
     IF ( .not. ALLOCATED( OUTSIN ) ) THEN
-       ALLOCATE( OUTSIN( NY+1 ), STAT=AS ) 
+       ALLOCATE( OUTSIN( NY+1 ), STAT=AS )
        IF ( AS /= 0 ) THEN
           PRINT*, '### Could not allocate OUTSIN (regrid_a2a_mod.F90)'
           STOP
        ENDIF
     ENDIF
 
-    IF ( .not. ALLOCATED( OUTAREA ) ) THEN 
-       ALLOCATE( OUTAREA( NX, NY ), STAT=AS ) 
+    IF ( .not. ALLOCATED( OUTAREA ) ) THEN
+       ALLOCATE( OUTAREA( NX, NY ), STAT=AS )
        IF ( AS /= 0 ) THEN
           PRINT*, '### Could not allocate OUTAREA (regrid_a2a_mod.F90)'
           STOP

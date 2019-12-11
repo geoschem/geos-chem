@@ -5,7 +5,7 @@
 !
 ! !MODULE: linoz_mod.F
 !
-! !DESCRIPTION: Module LINOZ\_MOD contains routines to perform the Linoz 
+! !DESCRIPTION: Module LINOZ\_MOD contains routines to perform the Linoz
 !  stratospheric ozone chemistry.
 !\\
 !\\
@@ -27,7 +27,7 @@
       PUBLIC  :: LINOZ_READ
 !
 ! !PRIVATE MEMBER FUNCTIONS:
-! 
+!
       PRIVATE :: LINOZ_CHEM3
       PRIVATE :: LINOZ_STRATL
       PRIVATE :: LINOZ_STRT2M
@@ -57,7 +57,7 @@
 !  ============================================================================
 !  Dylan Jones (dbj@atmosp.physics.utoronto.ca) wrote:
 !                                                                             .
-!    Testing this code [in v8-02-04] was more difficult that I thought. 
+!    Testing this code [in v8-02-04] was more difficult that I thought.
 !    I began by trying to compare the output of v8-02-04 with our previous 
 !    runs with v8-02-01.  I accounted for the changes in the transport_mod.f 
 !    and I tried to undo the changes in when the diagnostics are archived in 
@@ -66,11 +66,11 @@
 !    in reverting to the old way of doing the diagnostics in v8-02-04.  In 
 !    the end I took the new linoz code from v8-02-04 and used it in v8-02-01. 
 !    I ran two GEOS-5 full chemistry simulations for 2007 and the output 
-!    were consistent over the full year.  
+!    were consistent over the full year.
 !                                                                             .
 !    I think that it is safe to release [Linoz in v8-02-04].  However, we 
 !    should acknowledge that it was [only] tested in v8-02-01, since I was 
-!    not able to assess the quality of the output in v8-02-04. 
+!    not able to assess the quality of the output in v8-02-04.
 !                                                                             .
 !  Bob Yantosca (yantosca@seas.harvard.edu) wrote:
 !                                                                             .
@@ -82,7 +82,7 @@
 !     phase at the start of the run. (bmy, 3/18/13)
 
 ! REVISION HISTORY:
-!  23 Mar 2000 - P. Cameron-Smith    - Initial version adapted heavily 
+!  23 Mar 2000 - P. Cameron-Smith    - Initial version adapted heavily
 !                                      from McLinden's original file.
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  28 May 2009 - D. Jones            - Further modifications
@@ -136,7 +136,7 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -144,9 +144,9 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
-!  10 Jun 2012 - L. Murray - Move call to DO_LINOZ from transport code to 
+!  10 Jun 2012 - L. Murray - Move call to DO_LINOZ from transport code to
 !                chemistry code, so the use of DT_TS_CHEM is now correct.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
@@ -186,10 +186,10 @@
       NSCHEM = GET_TS_CHEM()
 
       ! Call the Linoz chemistry
-      CALL LINOZ_CHEM3( NSCHEM,    am_I_Root,  Input_Opt, 
+      CALL LINOZ_CHEM3( NSCHEM,    am_I_Root,  Input_Opt,
      &                  State_Chm, State_Grid, State_Met, RC )
 
-      END SUBROUTINE DO_LINOZ    
+      END SUBROUTINE DO_LINOZ
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -198,13 +198,13 @@
 !
 ! !IROUTINE: linoz_chem3
 !
-! !DESCRIPTION: Subroutine LINOZ\_CHEM3 applies linearized chemistry based on 
+! !DESCRIPTION: Subroutine LINOZ\_CHEM3 applies linearized chemistry based on
 !  tables from PRATMO model using climatological T, O3, time of year
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_CHEM3( DTCHEM,    am_I_Root,  Input_Opt, 
+      SUBROUTINE LINOZ_CHEM3( DTCHEM,    am_I_Root,  Input_Opt,
      &                        State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -226,7 +226,7 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -239,10 +239,10 @@
 !  use GEOS-Chem within the GEOS-5 GCM, the fields within Input_Opt will
 !  be read on the root CPU and MPI-broadcasted to all other CPUs.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
-!  18 Nov 2009 - D. Jones            - For now, set tagged stratospheric 
-!                                      tracer to total O3 in the overworld 
+!  18 Nov 2009 - D. Jones            - For now, set tagged stratospheric
+!                                      tracer to total O3 in the overworld
 !                                      to avoid issues with spin ups
 !  08 Feb 2010 - R. Yantosca         - Deleted obsolete local variables
 !  22 Oct 2010 - R. Yantosca         - Added OMP parallel loop
@@ -288,7 +288,7 @@
       REAL(fp) :: COLO3   (State_Grid%NX,State_Grid%NY,State_Grid%NZ )
       REAL(fp) :: OUT_DATA(State_Grid%NX,State_Grid%NY,State_Grid%NZ )
 
-      ! We need to define local arrays to hold corresponding values 
+      ! We need to define local arrays to hold corresponding values
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
@@ -361,10 +361,10 @@
             STOP
          ENDIF
       ENDIF
-      
+
       ! Echo info
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) 
+         WRITE( 6, 100 )
  100     FORMAT( '     - LINOZ_CHEM3: Doing LINOZ' )
       ENDIF
 
@@ -387,7 +387,7 @@
          !IF ( LPRT ) THEN
          ! PRINT*, '### NUM_TRACER: ', NUM_TRACER
          ! PRINT*, '### ITRC: ', ITRC, 'JM: ', JM , 'IM', IM
-         ! CALL FLUSH(6) 
+         ! CALL FLUSH(6)
          !END IF
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -399,7 +399,7 @@
 
             !IF ( LPRT ) THEN
             ! PRINT*, '### I: ', I, 'J: ', J
-            ! CALL FLUSH(6) 
+            ! CALL FLUSH(6)
             !END IF
 
             LBOT = State_Met%ChemGridLev(I,J) + 1
@@ -431,7 +431,7 @@
             ! when doing a tagged O3 simulation. (bmy, 3/18/13)
             !-----------------------------------------------------------
 
-            ! dbj: for now, set tagged stratospheric tracer to total 
+            ! dbj: for now, set tagged stratospheric tracer to total
             ! O3 in the overworld to avoid issues with spin ups
             IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
               Spc(I,J,(L_OVERWRLD+1):State_Grid%NZ,NTRACER) =
@@ -445,7 +445,7 @@
             DO L = LM, LBOT, -1
             ! IF ( LPRT ) THEN
             !   PRINT*, '### Spc: ', Spc(I,J,L,NTRACER)
-            !   CALL FLUSH(6) 
+            !   CALL FLUSH(6)
             ! ENDIF
 
                ! Skip if tracer is negative
@@ -460,19 +460,19 @@
                ! bdf Spc is in v/v, make conversion to DU
                if (l.eq.lm) then !top model layer
                   dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *
-     &                 State_Met%AD(I,J,L) / ( AIRMW 
-     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
-     &                 / ( State_Grid%Area_M2(I,J) * 1e+4_fp ) 
-     &                 * AVO / (AIRMW / ( AIRMW 
+     &                 State_Met%AD(I,J,L) / ( AIRMW
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g ))
+     &                 / ( State_Grid%Area_M2(I,J) * 1e+4_fp )
+     &                 * AVO / (AIRMW / ( AIRMW
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
      &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
-                  dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) * 
-     &                 State_Met%AD(I,J,L) / ( AIRMW 
-     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
+                  dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *
+     &                 State_Met%AD(I,J,L) / ( AIRMW
+     &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g ))
      &                 / ( State_Grid%Area_M2(I,J) * 1e+4_fp )
-     &                 * AVO / (AIRMW / ( AIRMW 
+     &                 * AVO / (AIRMW / ( AIRMW
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
      &                 *1e-3_fp) / 2.687e+16_fp
                   colo3(i,j,l) = colo3(i,j,l+1) +
@@ -480,39 +480,39 @@
                endif
                out_data(i,j,l) = colo3(i,j,l)
 
-               ! ++++++ climatological P-L:   ++++++          
+               ! ++++++ climatological P-L:   ++++++
                climpml=tlstt(i,j,l,4)      ! Climatological P-L = (P-L)^o
 
-               ! ++++++ local ozone feedback: ++++++ 
+               ! ++++++ local ozone feedback: ++++++
                dero3=tlstt(i,j,l,5)               ! Derivative w.r.t. O3. 
                                                 !  dero3=-1/(time constant)
-               IF (dero3.EQ.0) CYCLE            ! Skip Linoz if lifetime 
+               IF (dero3.EQ.0) CYCLE            ! Skip Linoz if lifetime
                                                 !  is infinite.
                climo3=tlstt(i,j,l,1)              ! Climatological O3 = f^o
                derco3=tlstt(i,j,l,7)              ! Derivative w.r.t. Column O3
                dco3=(colo3(i,j,l)-tlstt(i,j,l,3)) ! deviation from o3 climatology.
-               ! ++++++ temperature feedback: ++++++ 
+               ! ++++++ temperature feedback: ++++++
                dertmp=tlstt(i,j,l,6)              ! Derivative w.r.t. Temperature
-               dtmp=(State_Met%T(I,J,L) -       ! Deviation in Temperature 
+               dtmp=(State_Met%T(I,J,L) -       ! Deviation in Temperature
      &                tlstt(i,j,l,2))             !  from climatology.
 
-               ! ++++++ calculate steady-state ozone: ++++++ 
-               sso3=climo3 - (climpml+dtmp*dertmp+dco3*derco3)/dero3 
+               ! ++++++ calculate steady-state ozone: ++++++
+               sso3=climo3 - (climpml+dtmp*dertmp+dco3*derco3)/dero3
 
                ! ++++++ change in ozone mass due to chemistry: ++++++
                !ssO3 = f^*
                dmass=(sso3-Spc(I,J,L,NTRACER))*(1.0-exp(dero3*dtchem))
 
-               ! ++++++ update ozone mass ++++++ 
+               ! ++++++ update ozone mass ++++++
                ! LINOX valid only up to 58 km, so do not use above 0.3 hPa
-               ! dbj: impose exponential fall off of mixing ratio 
+               ! dbj: impose exponential fall off of mixing ratio
                ! between 0.3 and 0.01 hPa (with fall off of a scale height)
                IF (State_Met%PEDGE(I,J,L) .LE. 0.3e+0_f8) THEN
-                  Spc(I,J,L,NTRACER) = 
+                  Spc(I,J,L,NTRACER) =
      &                (State_Met%PMID(I,J,L)/State_Met%PMID(I,J,LPOS-1)) 
      &                * Spc(I,J,LPOS-1,NTRACER)
                ELSE
-                  Spc(I,J,L,NTRACER) = Spc(I,J,L,NTRACER)+DMASS 
+                  Spc(I,J,L,NTRACER) = Spc(I,J,L,NTRACER)+DMASS
                ENDIF
 
             ENDDO       ! loop over L
@@ -540,7 +540,7 @@
 !
 ! !IROUTINE: linoz_stratl
 !
-! !DESCRIPTION: Subroutine LINOZ\_STRATL performs a monthly fixup of chemistry 
+! !DESCRIPTION: Subroutine LINOZ\_STRATL performs a monthly fixup of chemistry
 !  parameters for the Linoz stratospheric ozone chemistry.
 !\\
 !\\
@@ -585,7 +585,7 @@
 !    * 12 months
 !    *  N fields (currently N=7)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -691,7 +691,7 @@
 
       ! YSTRT(J) are the latitudes (-85, -75, -65, ... +65, +75, +85)
       ! contained in the LINOZ climatology
-      YSTRT(1) = -85.e+0_fp   
+      YSTRT(1) = -85.e+0_fp
       do J = 2, NLAT_LINOZ
         YSTRT(J) = YSTRT(J-1) + 10.e+0_fp
       enddo
@@ -713,7 +713,7 @@
       ENDDO
 
       !=================================================================
-      ! Lookup data in the LINOZ climatology 
+      ! Lookup data in the LINOZ climatology
       !=================================================================
 
       ! Loop over the # of fields in the LINOZ climatology
@@ -780,15 +780,15 @@
                STRTX(K) = Input_Opt%LINOZ_TPARM(K,JJ,MONTH,N)
             ENDDO
 
-            ! *PJC* Interpolate and calculate moments of column distribution 
+            ! *PJC* Interpolate and calculate moments of column distribution
             CALL LINOZ_STRT2M( am_I_Root,     Input_Opt, State_Grid,
      &                         State_Grid%NZ, STRTX,     P0L,
      &                         STRT0L,        STRT1L,    STRT2L,    RC )
 
-            ! Store loss freq/yields & moments in TLSTT/SWT/SWW 
+            ! Store loss freq/yields & moments in TLSTT/SWT/SWW
             ! for exact CTM layers LM down
             ! Order reversed from C.McLinden version {PJC}
-            DO LR = 1,State_Grid%NZ  
+            DO LR = 1,State_Grid%NZ
                TLSTT(I,J,LR,N) = STRT0L(State_Grid%NZ+1-LR)
             ENDDO
          ENDDO     ! loop over I
@@ -973,7 +973,7 @@
 !
 ! !IROUTINE: linoz_somlfq
 !
-! !DESCRIPTION: subroutine LINOZ\_SOMLFQ calculates loss freq moments from a 
+! !DESCRIPTION: subroutine LINOZ\_SOMLFQ calculates loss freq moments from a
 !  set of loss frequencies at std z*, given a CTM model interval pressure
 !  range: P1 > P2 (decreasing up)
 !\\
@@ -1009,7 +1009,7 @@
 !      S1 = 3 f0 (x^2 - x)                [from x=b to x=c]
 !      S2 = 5 f0 (2x^3 - 3x^2 + x)        [from x=b to x=c]
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  19 Mar 2013 - R. Yantosca - P1, P2 are now declared as INTENT(IN)
 !EOP
@@ -1034,14 +1034,14 @@
             XB = (PB-P2)/(P1-P2)
 
             ! assume that the loss freq, F, is constant over interval [XB,XC],
-            ! F0: (c-b),   
-            ! F1: 6((c2-c)-(b2-b)),  
+            ! F0: (c-b),
+            ! F1: 6((c2-c)-(b2-b)),
             ! F2: 5((2c3-3c2+c)-(2b3-3b2+b))
             ! calculate its contribution to the moments in the interval [0,1]
             F0 = F0 +F(I) *(XC -XB)
             F1 = F1 +F(I) *3.e+0_fp *((XC *XC -XC) - (XB *XB -XB))
             F2 = F2 +F(I) *5.e+0_fp *
-     &      ((XC+XC-1.e+0_fp)*(XC*XC -XC) - 
+     &      ((XC+XC-1.e+0_fp)*(XC*XC -XC) -
      &      (XB+XB-1.e+0_fp)*(XB*XB -XB))
          ENDIF
       ENDDO
@@ -1055,7 +1055,7 @@
          sgnf0=1.0
       endif
       f0=abs(f0)
-      
+
       !F0 = MAX(F0, 0.D0)
       THIRD = 1.e+0_fp/3.e+0_fp
       IF (F2 .GT. 0.e+0_fp)  THEN
@@ -1101,9 +1101,8 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE FILE_MOD,           ONLY : IOERROR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE InquireMod,         ONLY : findFreeLun
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE InquireMod,    ONLY : findFreeLun
 !
 ! !INPUT PARAMETERS:
 !
@@ -1121,7 +1120,7 @@
 !  LINOZ_READ is called from "main.f" at the start of the simulation.
 !  LINOZ_READ will also call INIT_LINOZ to initialize the arrays.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  16 Oct 2009 - R. Yantosca         - Now use IU_FILE instead of IU_LINOZ
 !  16 Oct 2009 - R. Yantosca         - Read file from DATA_DIR_1x1
@@ -1134,8 +1133,9 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-! 
+!
       ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: IU_FILE, K,     J
       INTEGER            :: M,       NTBLS, IOS
       REAL(fp)           :: TMAX,    TMIN
@@ -1150,6 +1150,8 @@
       CHARACTER(LEN=80)  :: HEADING, TITL1
       CHARACTER(LEN=255) :: ERRMSG
       CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=255) :: FileMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
       !=================================================================
       ! LINOZ_READ begins here!
@@ -1157,6 +1159,8 @@
 
       ! Assume success
       RC             = GC_SUCCESS
+      ErrMsg         = ''
+      ThisLoc        = ' -> at LINOZ_READ (in GeosCore/linoz_mod.F)'
 
       ! Get fields from Input_Opt
       NFIELDS_LINOZ  = Input_Opt%LINOZ_NFIELDS
@@ -1168,11 +1172,42 @@
       FILENAME       = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
      &                 'Linoz_200910/Linoz_March2007.dat'
 
-      ! Echo info
-      IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - LINOZ_READ: Reading ', a )
+      !=================================================================
+      ! In dry-run mode, print file path to dryrun log and exit.
+      ! Otherwise, print file path to stdout and continue.
+      !=================================================================
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+
+      ! Test if the file exists and define an output string
+      IF ( FileExists ) THEN
+         FileMsg = 'LINOZ (LINOZ_READ): Opening'
+      ELSE
+         FileMsg = 'LINOZ (LINOZ_READ): REQUIRED FILE NOT FOUND'
       ENDIF
+
+      ! Write message to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%AmIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+ 300     FORMAT( a, ' ', a )
+      ENDIF
+
+      ! For dry-run simulations, return to calling program.
+      ! For regular simulations, throw an error if we can't find the file.
+      IF ( Input_Opt%DryRun ) THEN
+         RETURN
+      ELSE
+         IF ( .not. FileExists ) THEN
+            WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( FileName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      !=================================================================
+      ! Read climatological data from the LINOZ lookup tables
+      !=================================================================
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -1181,12 +1216,14 @@
       ERRMSG  = 'LINOZ_READ (in GeosCore/linoz_mod.F)'
 
       ! new std z*=2km levels from model:  z*=10,12,...(25*2)+8 km
-      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
+      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD',
      &               FORM='FORMATTED',      IOSTAT=IOS )
 
-      ! Stop on error
+      ! Return if there was an error opening the file
       IF ( IOS /= 0 ) THEN
-         CALL IOERROR( IOS, IU_FILE, ERRMSG )
+         WRITE( FileMsg, 300 ) TRIM( FileMsg ), TRIM( FileName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Read header
@@ -1218,7 +1255,9 @@
 
                ! Stop on error
                IF ( IOS > 0 ) THEN
-                  CALL IOERROR( IOS, IU_FILE, ERRMSG )
+                  ErrMsg = 'Error reading ' // TRIM( FileName )
+                  CALL GC_Error( ErrMsg, RC, ThisLoc )
+                  RETURN
                ENDIF
 
                ! Loop over # of levels in the LINOZ climatology
@@ -1231,7 +1270,7 @@
          enddo
 
          ! Write overall min & max
-         write (6,912) TITL1,TMIN,TMAX
+         IF ( am_I_Root ) write (6,912) TITL1,TMIN,TMAX
  912     FORMAT('  Linoz Data:  ',a80,1p,2e10.3)
 
       enddo
@@ -1243,7 +1282,7 @@
       ENDIF
 
       ! Close the files
-      CLOSE( IU_FILE ) 
+      CLOSE( IU_FILE )
 
       END SUBROUTINE LINOZ_READ
 !EOC
@@ -1267,7 +1306,7 @@
       INTEGER, INTENT(IN)  :: IE
       INTEGER, INTENT(IN)  :: ND
       INTEGER, INTENT(IN)  :: NE
-      REAL(fp),  INTENT(IN)  :: XI(IE) 
+      REAL(fp),  INTENT(IN)  :: XI(IE)
       REAL(fp),  INTENT(IN)  :: XN(ND)
       REAL(fp),  INTENT(IN)  :: YI(KE,IE)
 !
@@ -1276,7 +1315,7 @@
       REAL(fp),  INTENT(OUT) :: YN(KE,ND)
 
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !EOP
 !------------------------------------------------------------------------------

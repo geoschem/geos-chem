@@ -9,7 +9,7 @@
 !  and DERIVED QUANTITIES.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE PHYSCONSTANTS
 !
@@ -20,7 +20,7 @@
       IMPLICIT NONE
       PUBLIC
 !
-! !DEFINED PARAMETERS: 
+! !DEFINED PARAMETERS:
 !
       ! AIRMW : Average molecular weight of dry air [g/mol]
       REAL(fp), PARAMETER :: AIRMW    = 28.97e+0_fp
@@ -36,25 +36,25 @@
       ! g0    : Acceleration due to gravity at earth's surface [m/s^2]
       ! Now use more precise value of 9.80665 instead of 9.8 (ewl, 1/7/16)
       ! Source: NIST, 2014 (NEED TO CHANGE HEMCO)
-      REAL(fp), PARAMETER :: g0       =   9.80665e+0_fp                 
+      REAL(fp), PARAMETER :: g0       =   9.80665e+0_fp
 
       ! g0_100 : 100 / g0
       REAL(fp), PARAMETER :: g0_100   = 100.e+0_fp / g0
 
-      ! PI    : Double-Precision value of PI          
-      REAL(fp), PARAMETER :: PI       = 3.14159265358979323e+0_fp 
+      ! PI    : Double-Precision value of PI
+      REAL(fp), PARAMETER :: PI       = 3.14159265358979323e+0_fp
 
       ! PI_180 : Number of radians per degree
       REAL(fp), PARAMETER :: PI_180   = PI / 180e+0_fp
 
-      ! Re    : Radius of Earth [m] 
-      REAL(fp), PARAMETER :: Re       = 6.375e+6_fp               
+      ! Re    : Radius of Earth [m]
+      REAL(fp), PARAMETER :: Re       = 6.375e+6_fp
 
-      ! Rd    : Gas Constant in Dry Air [J/K/kg] 
-      REAL(fp), PARAMETER :: Rd       = 287.0e+0_fp 
+      ! Rd    : Gas Constant in Dry Air [J/K/kg]
+      REAL(fp), PARAMETER :: Rd       = 287.0e+0_fp
 
-      ! Rv    : Gas Constant for water vapor [J/K/kg] 
-      REAL(fp), PARAMETER :: Rv       = 461.0e+0_fp   
+      ! Rv    : Gas Constant for water vapor [J/K/kg]
+      REAL(fp), PARAMETER :: Rv       = 461.0e+0_fp
 
       ! Rdg0   = Rd    / g0
       REAL(fp), PARAMETER :: Rdg0     = Rd / g0
@@ -69,7 +69,7 @@
       ! Now use more precise value 8.3144598 instead of 8.31450? (ewl, 1/7/16)
       ! Source: NIST, 2014 (NEED TO CHANGE HEMCO)
       REAL(fp), PARAMETER :: RSTARG   = 8.3144598e+0_fp
-      
+
       ! XNUMOLAIR : Molecules dry air per kg dry air
       REAL(fp), PARAMETER :: XNUMOLAIR = AVO / ( AIRMW * 1.e-3_fp)
 

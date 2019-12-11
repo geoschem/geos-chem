@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Mon Oct 14 12:53:25 2019
-! Working directory    : /panfs/roc/groups/13/milletd/chen3849/naames/mohpatch/code/Code.12.5.0_mohtogcst/KPP/Tropchem
+! Time                 : Wed Dec 11 14:04:27 2019
+! Working directory    : /n/scratchlfs/jacob_lab/msulprizio/GC/rundirs/12.7.0_Tests/GC_12.7.0_MOHchem/CodeDir/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,7 +39,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(215),FIX(1) )
+!      EQUIVALENCE( C(222),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time

@@ -2,16 +2,16 @@
 !               MIT Laboratory for Aviation and the Environment               !
 !------------------------------------------------------------------------------
 !BOP
-!     
+!
 ! !MODULE: ucx_mod.F
-!     
+!
 ! !DESCRIPTION: Module UCX\_MOD contains routines and variables which
 !  are associated with the addition of full stratospheric chemistry to
 !  GEOS-Chem (based on the NASA GMI implementation, forming the Unified
 !  Chemistry eXtension (UCX).
-!\\   
-!\\   
-! !INTERFACE: 
+!\\
+!\\
+! !INTERFACE:
 !
       MODULE UCX_MOD
 !
@@ -42,7 +42,7 @@
 ! !PUBLIC DATA MEMBERS:
 !
       CHARACTER(LEN=255), PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
-      CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
+      CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
                           PUBLIC :: NDENS_AER ! See below
 !
@@ -77,9 +77,9 @@
       PRIVATE :: SFCMR_READ
       PRIVATE :: SFCMR_GET
       PRIVATE :: NOXCOEFF_INIT
-      PRIVATE :: GET_JJNOX 
+      PRIVATE :: GET_JJNOX
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  26 Mar 2013 - S. D. Eastham - Initial version
 !  04 Apr 2013 - S. D. Eastham - Rolled several routines into module
 !  20 Feb 2014 - M. Sulprizio  - Removed "define.h", this is now obsolete
@@ -91,7 +91,7 @@
 !  14 Jan 2014 - C. Keller     - Now read and diagnose STATE_PSC through HEMCO.
 !  08 Apr 2015 - R. Yantosca   - Now make READ_PSC_FILE a PUBLIC routine
 !  08 May 2015 - C. Keller     - Added WRITE_STATE_PSC
-!  05 Jan 2016 - E. Lundgren   - Use global physical parameters AVO, PI, AIRMW, 
+!  05 Jan 2016 - E. Lundgren   - Use global physical parameters AVO, PI, AIRMW,
 !                                RE, RSTARG, and ATM
 !  28 Jan 2016 - M. Sulprizio  - STATE_PSC and KHETI_SLA are now fields in
 !                                State_Chm instead of public arrays. These need
@@ -138,7 +138,7 @@
 
 #if defined( ESMF_ ) || defined( MODEL_WRF )
       ! Never use NETCDF in ESMF environment (ckeller, 12/05/14).
-      ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not 
+      ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not
       ! preprocessed for external grid (hplin, 8/15/18).
       LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 #else
@@ -170,8 +170,8 @@
       ! ICEMEW             : Molar mass of ice (kg/kmol)
       ! DENSNAT            : Density of pure NAT (kg/m3)
       ! DENSICE            : Density of pure ice (kg/m3)
-      ! ISR_ClNO3          : ClNO3 MW (inverse sqrt) (kg/kmol)^-0.5 
-      ! ISR_BrNO3          : BrNO3 MW (inverse sqrt) (kg/kmol)^-0.5 
+      ! ISR_ClNO3          : ClNO3 MW (inverse sqrt) (kg/kmol)^-0.5
+      ! ISR_BrNO3          : BrNO3 MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_N2O5           : N2O5 MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOCl           : HOCl MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOBr           : HOBr MW (inverse sqrt) (kg/kmol)^-0.5
@@ -203,9 +203,9 @@
       ! TRAC_EMIT          ! Species names for emission
       !
       ! Logicals
-      ! 
+      !
       ! TRAC_ADD            : Add to (rather than overwrite) species
-      ! 
+      !
       !=================================================================
 
       ! Scalars
@@ -245,7 +245,7 @@
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_O
       REAL(fp),DIMENSION(:,:,:,:),ALLOCATABLE :: NOX_J
       REAL(fp),DIMENSION(:,:),ALLOCATABLE     :: SO4_TOPPHOT
- 
+
       ! Strings
       CHARACTER(LEN=255)                :: TRAC_FILE
       CHARACTER(LEN=2)                  :: MONTH_STR
@@ -261,17 +261,17 @@
       ! This type holds the surface boundary mixing ratios MR of a given
       ! species (NAME) and for the given dates (YR). The dates are in
       ! decimal years, i.e. 1990.04 refers to (mid of) January 1990. SCAL
-      ! is the scale factor to be applied to the MR values, e.g. to 
+      ! is the scale factor to be applied to the MR values, e.g. to
       ! convert ppt to mixing ratios.
       ! The SFCMR vector will be allocated and filled during the UCX
-      ! initialization call (SFCMR_INIT). Surface boundary conditions 
+      ! initialization call (SFCMR_INIT). Surface boundary conditions
       ! for any given year and month can then be obtained by calling
       ! SFCMR_GET without the need to read the file anymore
       ! (ckeller, 05/12/2014).
       !=================================================================
       TYPE :: SfcMrTyp
          CHARACTER(LEN=31)      :: NAME   ! Species name
-         INTEGER                :: ID     ! Species ID 
+         INTEGER                :: ID     ! Species ID
          INTEGER                :: NX     ! # of values
          REAL(fp)               :: SCAL   ! Scale factor
          REAL(fp), ALLOCATABLE  :: YR(:)  ! year
@@ -289,8 +289,8 @@
 
       !=================================================================
       ! Variables to use NOx coefficients in ESMF / grid-independent
-      ! envionment. The NOx coefficients are climatological 2D 
-      ! (lat/lev/12 months) data that are currently available for 
+      ! envionment. The NOx coefficients are climatological 2D
+      ! (lat/lev/12 months) data that are currently available for
       ! horizontal (latitude) resolutions of 2 and 4 degrees. For other
       ! resolutions, the horizontal data becomes mapped onto the
       ! simulation grid (see GET_JJNOX).
@@ -309,7 +309,7 @@
       ! (sde, bmy, 6/21/16)
       !=================================================================
       INTEGER :: id_BCPI,    id_Br,       id_Br2,    id_BrCl,  id_BrNO2
-      INTEGER :: id_BrNO3,   id_BrO,      id_CCl4,   id_CFC11, id_CFC12 
+      INTEGER :: id_BrNO3,   id_BrO,      id_CCl4,   id_CFC11, id_CFC12
       INTEGER :: id_CH3Br,   id_CHBr3,    id_CH2Br2, id_CH3Cl
       INTEGER :: id_CH3CCl3, id_CH4,      id_Cl,     id_Cl2,   id_Cl2O2
       INTEGER :: id_ClNO2,   id_ClNO3,    id_ClO,    id_ClOO,  id_H1211
@@ -322,7 +322,7 @@
       INTEGER :: id_HCFC123, id_HCFC141b, id_HCFC142b
 
       !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
+      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
 !
@@ -334,7 +334,7 @@
 !
 ! !IROUTINE: montreal_scalefac
 !
-! !DESCRIPTION: Function MONTREAL\_SCALEFAC calculates a scaling factor for  
+! !DESCRIPTION: Function MONTREAL\_SCALEFAC calculates a scaling factor for
 !  long-lived species between a future year and a reference year, based
 !  on WMO projections.
 !\\
@@ -360,8 +360,8 @@
 !
 ! !REMARKS:
 ! (1) A remark
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -374,7 +374,7 @@
       !=================================================================
       ! MONTREAL_SCALEFAC begins here!
       !=================================================================
-       
+
       IF (UCXNETCDF) THEN
          SCALEFAC = GET_MONTREAL_NCDF(MS_TRAC,MS_FUTRYR,MS_TARGMO)/
      &              GET_MONTREAL_NCDF(MS_TRAC,MS_INITYR,MS_TARGMO)
@@ -397,9 +397,9 @@
 !
 ! !IROUTINE: ucx_nox
 !
-! !DESCRIPTION: Subroutine UCX\_NOX calculates NOx and N2O loss  
-!  rates above the chemistry grid, based on estimates of j-rates from 
-!  a 2D model and simple photochemical assumptiones.              
+! !DESCRIPTION: Subroutine UCX\_NOX calculates NOx and N2O loss
+!  rates above the chemistry grid, based on estimates of j-rates from
+!  a 2D model and simple photochemical assumptiones.
 !\\
 !\\
 ! !INTERFACE:
@@ -430,11 +430,11 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  16 Jul 2013 - S. D. Eastham - Initial version
 !  14 Feb 2014 - R. Yantosca   - Now pull computation of ZMID out of main
 !                                parallel DO loop.  Switch loop order to L-J-I.
@@ -564,7 +564,7 @@
       ! Main parallel DO loop over lon, lat, alt
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,        J,        L                       ) 
+!$OMP+PRIVATE( I,        J,        L                       )
 !$OMP+PRIVATE( DAYFRAC,            DN2O,     CYCLEBOX      )
 !$OMP+PRIVATE(           RRATE,    T3K,      TINV          )
 !$OMP+PRIVATE( NDAIR,    XAIR,     KGNOX,    KGN2O         )
@@ -606,14 +606,14 @@
          ! Ignore the data for atomic N - not well defined for
          ! non-chemgrid boxes, and in any case the molar mass
          ! may not be present or correctly defined
-         OLD_N   = 0.0_fp 
-         OLD_NO   = Spc(I,J,L,id_NO) * 
+         OLD_N   = 0.0_fp
+         OLD_NO   = Spc(I,J,L,id_NO) *
      &    (AIRMW / State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR
-         OLD_NO2   = Spc(I,J,L,id_NO2) * 
+         OLD_NO2   = Spc(I,J,L,id_NO2) *
      &    (AIRMW / State_Chm%SpcData(id_NO2)%Info%emMW_g) * XAIR
-         OLD_NO3   = Spc(I,J,L,id_NO3) * 
+         OLD_NO3   = Spc(I,J,L,id_NO3) *
      &    (AIRMW / State_Chm%SpcData(id_NO3)%Info%emMW_g) * XAIR
-         OLD_N2O   = kgN2O * 
+         OLD_N2O   = kgN2O *
      &    (AIRMW / State_Chm%SpcData(id_N2O)%Info%emMW_g) * XAIR
 
          ! Total concentrations
@@ -621,7 +621,7 @@
          localN2O = OLD_N2O
 
          ! Get ozone from model
-         LOCALO3  = Spc(I,J,L,id_O3) *  ( AIRMW / 
+         LOCALO3  = Spc(I,J,L,id_O3) *  ( AIRMW /
      &              State_Chm%SpcData(id_O3)%Info%emMW_g ) * XAIR
 
          ! These reactions are relevant during both day and night-time
@@ -633,7 +633,7 @@
 
          ! During night time, assume everything is NO2 and
          ! that there is no significant production or loss.
-         ! The only exception is NO3, which is assumed to 
+         ! The only exception is NO3, which is assumed to
          ! remain unchanged
          If (DayFrac.lt.1.0e-10_fp) Then
             ! Simple assumption: all N and NO go to NO2
@@ -648,11 +648,11 @@
             ! analytically (decay chain)
             NEW_N   = 0.0e+0_fp
             NEW_NO  = (OLD_NO + OLD_N)*dexp(-dtChem*RRATE(2)*localO3)
-            NEW_NO2 = OLD_NO2*dexp(-dtChem*RRATE(3)*localO3) + 
+            NEW_NO2 = OLD_NO2*dexp(-dtChem*RRATE(3)*localO3) +
      &              ((OLD_NO + OLD_N)/((RRATE(3)/RRATE(2))-1.0e+0_fp))
-     &              *(dexp(-dtChem*RRATE(2)*localO3) - 
+     &              *(dexp(-dtChem*RRATE(2)*localO3) -
      &                dexp(-dtChem*RRATE(3)*localO3))
-            NEW_NO3 = OLD_NO3 + (OLD_NO2 + OLD_NO + OLD_N) - 
+            NEW_NO3 = OLD_NO3 + (OLD_NO2 + OLD_NO + OLD_N) -
      &                          (NEW_NO2 + NEW_NO + NEW_N)
             FRACN   = 0.0e+0_fp
             FRACNO  = NEW_NO/localNOx
@@ -713,18 +713,18 @@
             NOXRATE = 2.e+0_fp*((RRATE(11)*LOCALN2O*LOCALO1D) -
      &       (((RRATE(7)*FRACN*FRACNO2)+(RRATE(8)*FRACN*FRACNO))
      &                                      *LOCALNOX*LOCALNOX))
-            N2ORATE = (RRATE(7)*FRACN*FRACNO2*LOCALNOX*LOCALNOX) - 
+            N2ORATE = (RRATE(7)*FRACN*FRACNO2*LOCALNOX*LOCALNOX) -
      &      ((RRATE(k_JN2O)+((RRATE(10)+RRATE(11))*LOCALO1D))*LOCALN2O)
 
-            ! Calculate NOx in kg NO at the beginning        
-            kgNOx = localNOx / (AIRMW /  
+            ! Calculate NOx in kg NO at the beginning
+            kgNOx = localNOx / (AIRMW /
      &                 State_Chm%SpcData(id_NO )%Info%emMW_g*XAIR)
 
             ! Calculate total change in NOx and N2O
             ! Explicit Euler method (fast)
-            DNOX = NOXRATE * DTCHEM / ( ( AIRMW / 
+            DNOX = NOXRATE * DTCHEM / ( ( AIRMW /
      &             State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR )
-            DN2O = N2ORATE * DTCHEM / ( AIRMW / 
+            DN2O = N2ORATE * DTCHEM / ( AIRMW /
      &             State_Chm%SpcData(id_N2O)%Info%emMW_g * XAIR )
 
             ! Safety check - ensure NOx and N2O are positive
@@ -756,10 +756,10 @@
      &                State_Chm%SpcData(id_NO3)%Info%emMW_g * XAIR)
          NEW_N2O = kgN2O
 
-         Spc(I,J,L,id_N)   = 0.d0 
-         Spc(I,J,L,id_NO)  = NEW_NO 
-         Spc(I,J,L,id_NO2) = NEW_NO2 
-         Spc(I,J,L,id_NO3) = NEW_NO3 
+         Spc(I,J,L,id_N)   = 0.d0
+         Spc(I,J,L,id_NO)  = NEW_NO
+         Spc(I,J,L,id_NO2) = NEW_NO2
+         Spc(I,J,L,id_NO3) = NEW_NO3
          Spc(I,J,L,id_N2O) = NEW_N2O
 
          MESONOX_DELTA = MESONOX_DELTA + DNOX
@@ -797,8 +797,8 @@
 !
 ! !IROUTINE: get_noxcoeff
 !
-! !DESCRIPTION: Subroutine GET\_NOXCOEFF reads in O1D and O3P mixing  
-!  ratios along with NO, NO2, NO3 and N2O J-rates from 2D data, 
+! !DESCRIPTION: Subroutine GET\_NOXCOEFF reads in O1D and O3P mixing
+!  ratios along with NO, NO2, NO3 and N2O J-rates from 2D data,
 !  interpolating onto the 3D grid and storing in NOX\_O and NOX\_J.
 !\\
 !\\
@@ -816,7 +816,7 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN)    :: TARG_MONTH
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
@@ -827,9 +827,9 @@
 !  At some later point we should attempt to rewrite the parallel DO loop so
 !  that the loop order is L-J-I.  Not sure how easy that is. (bmy, 2/14/14)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  26 Mar 2013 - S. D. Eastham - Initial version
-!  14 Feb 2014 - R. Yantosca   - Parallelize main DO loop 
+!  14 Feb 2014 - R. Yantosca   - Parallelize main DO loop
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt and State_Met objects via
 !                                the arg list
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
@@ -861,10 +861,14 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL                               :: LPRT
+      LOGICAL                               :: am_I_Root
 
       !=================================================================
       ! GET_NOXCOEFF begins here!
       !=================================================================
+
+      ! Are we on the root CPU?
+      am_I_Root = Input_Opt%amIRoot
 
       ! Copy fields from INPUT_OPT
       LPRT = Input_Opt%LPRT
@@ -883,11 +887,11 @@
          ALLOCATE( NOXD2D_IN( UCX_NLAT, UCX_NLEVS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXD2D_IN' )
          NOXD2D_IN = 0e+0_fp
-         
+
          NOX_FILE = TRIM(NOON_FILE_ROOT)
 
          IF (LPRT) THEN
-            WRITE(DBGMSG,'(a,a,I02,a,a)') ' ### UCX: Reading ', 
+            WRITE(DBGMSG,'(a,a,I02,a,a)') ' ### UCX: Reading ',
      &           'mesospheric NOx coeff for month ', MONTH_STR_INT ,
      &           ' from ', TRIM( NOX_FILE )
             CALL DEBUG_MSG( TRIM(DBGMSG) )
@@ -918,7 +922,7 @@
 
 !            ! Debug
 !            IF (LPRT) THEN
-!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 
+!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ',
 !     &            TRIM(TARG_TRAC), ', native: '
 !               CALL DEBUG_MSG( DBGMSG )
 !               DO J=1,19
@@ -931,13 +935,13 @@
             ! Precalculated matrix for simple linear algebra
             ! Need to reverse levels - have layer 1 = TOA
             DO ILEV = 1,51
-               NOXDATA2D(:,UCX_NLEVS+1-ILEV,ITRAC) = 
+               NOXDATA2D(:,UCX_NLEVS+1-ILEV,ITRAC) =
      &            MATMUL(UCX_REGRID,NOXD2D_IN(:,ILEV))
             ENDDO
 
 !            ! Debug
 !            IF (LPRT) THEN
-!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 
+!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ',
 !     &            TRIM(TARG_TRAC), ', regridded: '
 !               CALL DEBUG_MSG( DBGMSG )
 !               DO J=1,State_Grid%NY
@@ -951,7 +955,7 @@
          CALL NcCl( fId )
       ELSE
 
-          ! All the coefficients are now stored in NOXCOEFF. 
+          ! All the coefficients are now stored in NOXCOEFF.
           ! NOXDATA2D points to the desired month slice.
           ! (ckeller, 05/12/14)
           NOXDATA2D => NOXCOEFF(:,:,:,TARG_MONTH)
@@ -983,18 +987,18 @@
 !            IU_FILE = findFreeLUN()
 !
 !            IOS = 1
-!            OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS) 
+!            OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS)
 !            IF ( IOS /= 0 ) THEN
 !               WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
 !               CALL IOERROR( IOS, IU_FILE,'UCX_MOD:GET_NOXCOEFF')
 !            ENDIF
-!  
+!
 !           IF (LPRT) THEN
-!               WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
+!               WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ',
 !     &           TRIM( NOX_FILE )
 !               CALL DEBUG_MSG( TRIM(DBGMSG) )
 !            ENDIF
-! 
+!
 !            ! Read in data
 !            DO ILEV = 1,51
 !               READ(IU_FILE, 110, IOSTAT=IOS ) NOXDATA2D(:,ILEV,ITRAC)
@@ -1010,7 +1014,7 @@
 !            ELSE IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
 !110            FORMAT(46E10.3)
 !            ELSE
-!               ! use 2x25 as default 
+!               ! use 2x25 as default
 !110            FORMAT(91E10.3)
 !            ENDIF
 !
@@ -1018,7 +1022,7 @@
 !
 !            ! Debug
 !            IF (LPRT) THEN
-!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 
+!               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ',
 !     &            TRIM(TARG_TRAC), ', regridded: '
 !               CALL DEBUG_MSG( DBGMSG )
 !               DO J=1,State_Grid%NY
@@ -1078,7 +1082,7 @@
                   CURRVAL = (UCX_PLEVS(VERTCOUNT+1)-PCENTER)
                   CURRVAL = CURRVAL/(UCX_PLEVS(VERTCOUNT+1)-
      &                               UCX_PLEVS(VERTCOUNT))
-                  CURRVAL = CURRVAL * 
+                  CURRVAL = CURRVAL *
      &               (NOXDATA2D(JJNOX,VERTCOUNT+1,ITRAC)-
      &                NOXDATA2D(JJNOX,VERTCOUNT,ITRAC))
                   CURRVAL = NOXDATA2D(JJNOX,VERTCOUNT+1,ITRAC) - CURRVAL
@@ -1100,7 +1104,7 @@
       ! Cleanup
       IF (UCXNETCDF) THEN
          IF ( ASSOCIATED(NOXDATA2D) ) DEALLOCATE( NOXDATA2D )
-      ELSE 
+      ELSE
          NOXDATA2D => NULL()
       ENDIF
 
@@ -1125,15 +1129,12 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput     
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
-#if defined( MODEL_GEOS )
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1142,19 +1143,19 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT) :: RC          ! Failure or success
 !
 ! !REMARKS:
-!  
-! 
-! !REVISION HISTORY: 
+!
+!
+! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Initial version
 !  11 Feb 2014 - R. Yantosca   - Rewrote DO loop to be more efficient
 !  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
+!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
 !  10 Sep 2015 - E. Lundgren   - Tracer units are now kg/kg dry air (prev v/v)
 !  25 Jul 2016 - M. Yannetti   - Pass State_Chm as arg for spc db access;
@@ -1172,7 +1173,7 @@
 !
       INTEGER              :: I, J, N, N_EMITTED
 #if defined( MODEL_GEOS )
-      INTEGER              :: PBL_TOP 
+      INTEGER              :: PBL_TOP
 #endif
       REAL(fp)             :: N2O_MULT,OCS_MULT,CFC_MULT,HCFC_MULT
       REAL(fp)             :: DT_YR
@@ -1200,16 +1201,16 @@
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
          CALL GC_Error( 'Incorrect species units: ' //
-     &                  State_Chm%Spc_Units, RC, 
+     &                  State_Chm%Spc_Units, RC,
      &                  'Routine EMISS_BASIC in ucx_mod.F' )
          RETURN
       ENDIF
 
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
-      
+
       IF ( LPRT ) THEN
-         WRITE(*,'(a,2(x,I5))') ' CALLING EMISS_BASIC ', 
+         WRITE(*,'(a,2(x,I5))') ' CALLING EMISS_BASIC ',
      &                        Input_Opt%CFCYEAR, GET_YEAR()
       ENDIF
 
@@ -1256,13 +1257,13 @@
          SFC_MONTH = GET_MONTH()
          IF ( LPRT ) THEN
             WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
-     &         'Using Montreal reference year', 
+     &         'Using Montreal reference year',
      &         ( SFC_YEAR + OFFSETYEAR )
             CALL DEBUG_MSG( OUTMSG )
          ENDIF
          CALL READ_SFC( am_I_Root, Input_Opt )
       END IF
-#endif  
+#endif
 
       ! Loop over emitted species
 !$OMP PARALLEL DO
@@ -1279,7 +1280,7 @@
       DO I = 1, State_Grid%NX
 
          ! Top level of boundary layer at (I,J)
-         !PBL_TOP = CEILING( GET_PBL_TOP_L(I,J) )
+         !PBL_TOP = CEILING( State_Met%PBL_TOP_L(I,J) )
          PBL_TOP = 1 ! only set surface layer
 
          ! Do for every species
@@ -1311,11 +1312,11 @@
             ! Loop over surface grmid boxes
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
-           
+
                ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
                Spc(I,J,1,N_EMITTED) = GRID_EMIT(I,J,N)
      &                        / ( AIRMW /
-     &                        State_Chm%SpcData(N_EMITTED)%Info%emMW_g ) 
+     &                        State_Chm%SpcData(N_EMITTED)%Info%emMW_g )
 
              ENDDO
              ENDDO
@@ -1361,7 +1362,7 @@
 ! !OUTPUT VARIABLES:
 !
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  04 Apr 2013 - S. D. Eastham - Initial version
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt object via the arg list
 !EOP
@@ -1387,7 +1388,7 @@
 
 #if defined( MODEL_GEOS )
       ! Get target year. This is either the current year (if CFC year in
-      ! input_opt is zero), or the set CFC year plus the offset years 
+      ! input_opt is zero), or the set CFC year plus the offset years
       ! since simulation start.
       IF ( Input_Opt%CFCYEAR <= 0 ) THEN
          TARGYEAR = GET_YEAR()
@@ -1533,7 +1534,7 @@
       INTEGER,INTENT(IN)             :: TARG_MO_NC
       INTEGER,INTENT(IN)             :: N
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  10 Oct 2013 - S. D. Eastham - Wrapper built from edges of original GET
 !  04 Mar 2014 - S. D. Eastham - Updated to NetCDF
 !EOP
@@ -1547,7 +1548,7 @@
       ! SET_MONTREAL_NCDF begins here!
       !=================================================================
 
-      GRID_EMIT(:,:,N) = GRID_EMIT(:,:,N) + 
+      GRID_EMIT(:,:,N) = GRID_EMIT(:,:,N) +
      &      GET_MONTREAL_NCDF(TRAC_NAME,TARG_YR_NC,TARG_MO_NC)
 
       ! Return to calling routine
@@ -1583,7 +1584,7 @@
       INTEGER,INTENT(IN)             :: TARG_YR_NC
       INTEGER,INTENT(IN)             :: TARG_MO_NC
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  04 Apr 2013 - S. D. Eastham - Initial version
 !  10 Oct 2013 - S. D. Eastham - Split into two routines (GET and SET)
 !  04 Mar 2014 - S. D. Eastham - Added NetCDF compatibility
@@ -1596,7 +1597,7 @@
       CHARACTER(LEN=255)             :: FILENAME, DBGMSG
       ! For NetCDF
       INTEGER                        :: fId
-      INTEGER                        :: st1d(1), ct1d(1)   ! Start + count, for 3D arrays 
+      INTEGER                        :: st1d(1), ct1d(1)   ! Start + count, for 3D arrays
       REAL(fp)                         :: ncTemp(1)
 
       !=================================================================
@@ -1608,11 +1609,12 @@
       FILENAME = TRIM(MONTREAL_FILE_ROOT)
 
       IF ( doPrint ) THEN
-         WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ', 
+         WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ',
      &        TRIM(TRAC_NAME), ' from ', TRIM( FILENAME )
          CALL DEBUG_MSG( TRIM(DBGMSG) )
       ENDIF
 
+      ! Open the file
       CALL NcOp_Rd (fId,TRIM(FILENAME))
 
       ! Start and count indices
@@ -1627,7 +1629,7 @@
       CALL NcCl( fId )
 
 !      IF (LPRT) THEN
-!         WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', 
+!         WRITE(DBGMSG,'(a,E16.4)') ' ### UCX: Retrieved value: ',
 !     &        MEAN_MIXRATIO
 !         CALL DEBUG_MSG( TRIM(DBGMSG) )
 !      ENDIF
@@ -1647,7 +1649,7 @@
 !
 ! !IROUTINE: set_montreal
 !
-! !DESCRIPTION: Subroutine SET\_MONTREAL calls GET\_MONTREAL for the surface 
+! !DESCRIPTION: Subroutine SET\_MONTREAL calls GET\_MONTREAL for the surface
 !  mixing ratio for a specific year, and applies it to GRID\_EMIT.
 !\\
 !\\
@@ -1669,7 +1671,7 @@
       INTEGER,INTENT(IN)             :: N
       TYPE(OptInput),  INTENT(IN)    :: Input_Opt   ! Input options
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  10 Oct 2013 - S. D. Eastham - Wrapper built from edges of original GET
 !EOP
 !------------------------------------------------------------------------------
@@ -1681,7 +1683,7 @@
 
       !=================================================================
       ! SET_MONTREAL begins here!
-      !=================================================================   
+      !=================================================================
 #if defined( MODEL_GEOS )
       YY = Input_Opt%CFCYEAR
       IF ( YY <= 0 ) THEN
@@ -1712,7 +1714,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETTLE_STRAT_AER( am_I_Root,  Input_Opt, State_Chm, 
+      SUBROUTINE SETTLE_STRAT_AER( am_I_Root,  Input_Opt, State_Chm,
      &                             State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -1734,23 +1736,23 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,        INTENT(INOUT) :: RC          ! Return code
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  11 Apr 2013 - S. D. Eastham - Initial version
 !  07 Feb 2014 - R. Yantosca - Add missing variables to !$OMP PRIVATE statement
 !  07 Feb 2014 - R. Yantosca - Cosmetic changes
-!  21 Feb 2014 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm 
+!  21 Feb 2014 - M. Sulprizio- Now pass Input_Opt, State_Met, and State_Chm
 !                              objects via the arg list
-!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with 
+!  24 Feb 2014 - E. Lundgren - Replace GET_PCENTER and GET_PEDGE with
 !                              State_Met%PMID and State_Met%PEDGE
 !  24 Feb 2014 - E. Lundgren - Remove dependency on PRESSURE_MOD
 !  24 Feb 2014 - E. Lundgren - Use State_Met%DELP in place of PEDGE difference
 !  08 Apr 2015 - R. Yantosca - Remove call to READ_PSC_FILE, this is
-!                              now done from DO_CHEMISTRY (chemistry_mod.F) 
+!                              now done from DO_CHEMISTRY (chemistry_mod.F)
 !  12 May 2016 - M. Sulprizio- Remove 1D arrays that depend on KLOOP. WERADIUS,
 !                              is now a pointer that point to 3D fields in
 !                              in State_Chm.
@@ -1767,19 +1769,19 @@
       ! Common
       INTEGER                :: I,      J,     L,        DTCHEM
       REAL(fp)               :: DELZ,   DELZ1
-      REAL(fp)               :: P,      TEMP,  DP,       PDP     
+      REAL(fp)               :: P,      TEMP,  DP,       PDP
       REAL(fp)               :: CONST,  SLIP,  VISC,     FAC1
       REAL(fp)               :: FAC2,   FLUX,  AREA_CM2, RHB
       REAL(fp)               :: RCM
       REAL(fp)               :: TOT1,   TOT2,  NIT_MW_G, HNO3_MW_G
       INTEGER                :: K
       LOGICAL                :: NATCOL
-     
+
       ! Specific to each class
       REAL(fp)               :: RWET(2),CONST_V(2)
       REAL(fp)               :: RHO(2),RATIO_R(2),REFF(2)
       REAL(fp)               :: VTS(State_Grid%NZ,2)
- 
+
       ! Used for old Seinfeld & Pandis slip factor calc
       REAL(fp)               :: sp_Lambda, sp_Num
 
@@ -1838,7 +1840,7 @@
       HNO3_MW_G   = State_Chm%SpcData(id_HNO3)%Info%emMW_g ! g/mol
 
       ! Initialize pointers
-      Spc       => State_Chm%Species     ! Chemical species [kg]       
+      Spc       => State_Chm%Species     ! Chemical species [kg]
       STATE_PSC => State_Chm%STATE_PSC   ! PSC type (Kirner et al. 2011, GMD)
       WERADIUS  => State_Chm%WetAeroRadi ! Aerosol Radius [cm]
 
@@ -1873,9 +1875,9 @@
 !$OMP+PRIVATE( SEDH2O,       SEDNAT,       SEDPSC                 )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, State_Grid%NY
-      DO I = 1, State_Grid%NX       
+      DO I = 1, State_Grid%NX
 
-         ! Initialize 
+         ! Initialize
          DO L = 1, State_Grid%NZ
             VTS(L,:) = 0e+0_fp
             VNAT(L) = 0e+0_fp
@@ -1893,7 +1895,7 @@
 
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)
- 
+
             ! Pressure at center of the level [kPa]
             ! Use moist air pressure for mean free path (ewl, 3/2/15)
             P       = State_Met%PMID(I,J,L)  * 0.1e+0_fp
@@ -1934,8 +1936,8 @@
                sp_Lambda = 1.e+6_fp / ( SQRT(2e+0_fp) * sp_Num * PI
      &                     * (3.7e-10_fp)**2 )
 
-               ! Viscosity [Pa*s] of air as a function of temperature 
-               VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp) 
+               ! Viscosity [Pa*s] of air as a function of temperature
+               VISC = 1.458e-6_fp * (Temp)**(1.5e+0_fp)
      &               / ( Temp + 110.4e+0_fp )
 
                DO IAERO=1,2
@@ -1943,47 +1945,47 @@
                      VTS(L,IAERO) = 0e+0_fp
                   ELSE
                      ! Dp = particle diameter [um]
-                     DP = 2.e+0_fp * RWET(IAERO) * 1.e+6_fp        
+                     DP = 2.e+0_fp * RWET(IAERO) * 1.e+6_fp
 
                      ! PdP = P * dP [hPa * um]
                      PDp     = P * Dp
 
                      ! Constant
-                     CONST = 2.e+0_fp * RHO(IAERO) * RWET(IAERO)**2 
+                     CONST = 2.e+0_fp * RHO(IAERO) * RWET(IAERO)**2
      &                      * g0 / 9.e+0_fp
 
                      !=========================================================
-                     ! NOTE: Slip correction factor calculations following 
-                     ! Seinfeld, pp464 which is thought to be more accurate 
+                     ! NOTE: Slip correction factor calculations following
+                     ! Seinfeld, pp464 which is thought to be more accurate
                      ! but more computation required. (rjp, 1/24/02)
                      !
                      ! # air molecule number density
-                     ! num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+                     ! num = P * 1d3 * 6.023d23 / (8.314 * Temp)
                      !
                      ! # gas mean free path
-                     ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+                     ! lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 )
                      !
                      ! # Slip correction
-                     ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp  
+                     ! Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp
                      !     &     / (2. * lamda))) / Dp
                      !
                      ! NOTE: Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
                      ! which produces slip correction factore with small error
                      ! compared to the above with less computation.
-                     !========================================================= 
-                   
+                     !=========================================================
+
                      ! Slip correction factor (as function of P*dp)
                      ! Slip = 1.e+0_fp+(15.60e+0_fp + 7.0e+0_fp *
      &               !           EXP(-0.059e+0_fp * PDp)) / PDp
                      ! Reverting to Seinfeld and Pandis
                      Slip = 1. + 2. * sp_Lambda * (1.257 + 0.4*exp(-1.1*
      &                     Dp / (2. * sp_Lambda))) / Dp
-   
+
                      ! Settling velocity [m/s]
-                     VTS(L,IAERO) = CONST * Slip / VISC 
+                     VTS(L,IAERO) = CONST * Slip / VISC
                   ENDIF ! RWET
                ENDDO ! IAERO
-               
+
                ! Now solid PSC particles
                IF (NATCOL) THEN
                   ! sp_Num: Air molecule#/m3
@@ -2000,7 +2002,7 @@
          ! Handle model top condition
          L    = State_Grid%NZ
          DELZ = State_Met%BXHEIGHT(I,J,L)
-         
+
          DO IAERO=1,2
             CONST_V(IAERO) = 1.e+0_fp / (1.e+0_fp + DTCHEM
      &                      * VTS(L,IAERO) / DELZ)
@@ -2041,7 +2043,7 @@
                Spc(I,J,L,IDTCURRENT) = PHASEMASS(3,2)
             ENDIF
          ENDDO
-         Spc(I,J,L,id_BCPI)= Spc(I,J,L,id_BCPI)* CONST_V(IBC) 
+         Spc(I,J,L,id_BCPI)= Spc(I,J,L,id_BCPI)* CONST_V(IBC)
 
          DO L = State_Grid%NZ-1,1,-1
             IF ( State_Met%InTroposphere(I,J,L+1) ) CYCLE
@@ -2057,14 +2059,14 @@
                   PHASEMASS(2,2) = AERFRAC(I,J,L+1,K)*PHASEMASS(3,2)
                   ! Gas-phase upper gridbox mass
                   PHASEMASS(1,2) = PHASEMASS(3,2) - PHASEMASS(2,2)
-                  
+
                   ! Total lower gridbox mass
                   PHASEMASS(3,1) = Spc(I,J,L,IDTCURRENT)
                   ! Aerosol-phase lower gridbox mass
                   PHASEMASS(2,1) = AERFRAC(I,J,L,K)*PHASEMASS(3,1)
                   ! Gas-phase lower gridbox mass
                   PHASEMASS(1,1) = PHASEMASS(3,1) - PHASEMASS(2,1)
-                  
+
                   ! New lower gridbox mass
                   PHASEMASS(2,1) = 1.e+0_fp/(1.e+0_fp+DTCHEM
      &               * VTS(L,ILIQ) / DELZ)
@@ -2088,7 +2090,7 @@
             Spc(I,J,L,id_BCPI) = 1.e+0_fp/(1.e+0_fp+DTCHEM
      &              * VTS(L,IBC) / DELZ)
      &              * (Spc(I,J,L,id_BCPI)+DTCHEM*VTS(L+1,IBC)/DELZ1
-     &              * Spc(I,J,L+1,id_BCPI)) 
+     &              * Spc(I,J,L+1,id_BCPI))
          ENDDO
 
          ! Now perform trapezoidal scheme for particulates
@@ -2102,7 +2104,7 @@
                ! Will need to run iteratively
                ! Calculate minimum necessary number of steps, limiting to
                ! 10 steps if excessive
-               TEMPREAL = DTCHEM/SEDSTEP 
+               TEMPREAL = DTCHEM/SEDSTEP
                NUMSEDSTEPS = CEILING(TEMPREAL)
                NUMSEDSTEPS = MIN(10,NUMSEDSTEPS)
                SEDSTEP = DTCHEM/(NUMSEDSTEPS*1.e+0_fp)
@@ -2119,7 +2121,7 @@
                   XNAT_0 = 0e+0_fp
                   XICE_0 = 0e+0_fp
                ELSE
-                  XNO3_0 = Spc(I,J,L,id_NIT) * AIRMW / 
+                  XNO3_0 = Spc(I,J,L,id_NIT) * AIRMW /
      &                     ( NIT_MW_G * State_Met%AD(I,J,L) )
                   XNAT_0 = XNO3_0! * 4.e+0_fp
                   XICE_0 = (KG_AER(I,J,L,I_SPA)-
@@ -2128,7 +2130,7 @@
      &                     State_Met%AD(I,J,L))
                ENDIF
                XPSC_0   = XNAT_0 + XICE_0
-               P_0      = 100.0e+0_fp * State_Met%PMID(I,J,L) 
+               P_0      = 100.0e+0_fp * State_Met%PMID(I,J,L)
                INVAIR_0 = AIRMW/State_Met%AD(I,J,L)
                IF (L .lt. (State_Grid%NZ-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
@@ -2137,7 +2139,7 @@
                      XNAT_ABOVE = 0e+0_fp
                      XICE_ABOVE = 0e+0_fp
                   ELSE
-                     XNO3_ABOVE = Spc(I,J,L+1,id_NIT) * INVAIR_ABOVE / 
+                     XNO3_ABOVE = Spc(I,J,L+1,id_NIT) * INVAIR_ABOVE /
      &                            NIT_MW_G
                      ! NAT = HNO3.3H2O = 4 molecules
                      XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
@@ -2156,7 +2158,7 @@
                   PSEDABOVE  = VNAT(L+1) * SEDSTEP * 1.e+2_fp *
      &                         State_Met%DELP(I,J,L+1)
      &                         / State_Met%BXHEIGHT(I,J,L+1)
-!                  PSEDABOVE=g0 * (1.0d3*AIRMW) * P_ABOVE * 
+!                  PSEDABOVE=g0 * (1.0d3*AIRMW) * P_ABOVE *
 !     &               VNAT(L+1) / (Rd * T(I,J,L+1))*SEDSTEP
                ELSE
                   INVAIR_ABOVE = 1.0e+0_fp
@@ -2186,11 +2188,11 @@
                   P_0 = P_ABOVE
                   PSED0 = PSEDABOVE
                   INVAIR_0 = INVAIR_ABOVE
-                  
+
                   IF (L.lt.(State_Grid%NZ-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                      IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
-                        XNO3_ABOVE = Spc(I,J,L+2,id_NIT)*INVAIR_ABOVE/ 
+                        XNO3_ABOVE = Spc(I,J,L+2,id_NIT)*INVAIR_ABOVE/
      &                               NIT_MW_G
                         XNAT_ABOVE = XNO3_ABOVE! * 4.e+0_fp
                         XICE_ABOVE = (KG_AER(I,J,L+2,I_SPA)-
@@ -2202,10 +2204,10 @@
                         XICE_ABOVE = 0e+0_fp
                      ENDIF
                      XPSC_ABOVE = XNAT_ABOVE + XICE_ABOVE
-                     P_ABOVE    = State_Met%PMID(I,J,L+2) 
+                     P_ABOVE    = State_Met%PMID(I,J,L+2)
      &                            * 100.0e+0_fp
 
-                     ! Replace PEDGE(I,J,L+2) - PEDGE(I,J,L+3) 
+                     ! Replace PEDGE(I,J,L+2) - PEDGE(I,J,L+3)
                      ! with equivalent State_Met%DELP(I,J,L+2)
                      ! (ewl, 3/2/15)
                      PSEDABOVE  = VNAT(L+2) * SEDSTEP * 1.e+2_fp *
@@ -2219,7 +2221,7 @@
                      XNAT_ABOVE = 0.0e+0_fp
                      XICE_ABOVE = 0.0e+0_fp
                      XPSC_ABOVE = 0.0e+0_fp
-                     P_ABOVE = State_Met%PEDGE(I,J,L+2) 
+                     P_ABOVE = State_Met%PEDGE(I,J,L+2)
      &                         * 100.0e+0_fp
                      PSEDABOVE = 0.0e+0_fp
                   ENDIF
@@ -2233,7 +2235,7 @@
                   ! theoretically do without localprofile as a variable, but
                   ! should be sure to check for the possible (but phenomenally
                   ! unlikely) condition that the gradients are both zero
-                  IF ((ABOVEGRAD .eq. 0e+0_fp) .and. 
+                  IF ((ABOVEGRAD .eq. 0e+0_fp) .and.
      &                            (BELOWGRAD .eq. 0e+0_fp)) THEN
                      ! Extremelely unlikely case, but use standard scheme
                      ! for flat vertical profile
@@ -2242,7 +2244,7 @@
      &                     (BELOWGRAD .le. 0e+0_fp)) THEN
                      ! Consistently decreasing with height - above a peak
                      LOCALPROFILE = -1
-                  ELSEIF ((ABOVEGRAD .ge. 0e+0_fp) .and. 
+                  ELSEIF ((ABOVEGRAD .ge. 0e+0_fp) .and.
      &                     (BELOWGRAD .ge. 0e+0_fp)) THEN
                      ! Consistently increasing with height - below a peak
                      LOCALPROFILE = +1
@@ -2281,21 +2283,21 @@
                   ! multiply numerator by (1/100)
                   IF (L .ne. State_Grid%NZ) THEN
 
-                     ! Replace PEDGE(I,J,L+1) - PEDGE(I,J,L+2) 
+                     ! Replace PEDGE(I,J,L+1) - PEDGE(I,J,L+2)
                      ! with equivalent State_Met%DELP(I,J,L+1)
                      ! (ewl, 3/2/15)
                      SEDQUANT = (1.e-2_fp) * SEDQUANT /
      &                          State_Met%DELP(I,J,L+1)
-                     SEDNO3 = (1.e-2_fp) * SEDNO3 / 
+                     SEDNO3 = (1.e-2_fp) * SEDNO3 /
      &                          State_Met%DELP(I,J,L+1)
-                     SEDICE = (1.e-2_fp) * SEDICE / 
+                     SEDICE = (1.e-2_fp) * SEDICE /
      &                          State_Met%DELP(I,J,L+1)
                   ELSE
                      ! This shouldn't be possible?
                      CALL ERROR_STOP('Unknown sedimentation error',
      &                               'UCX_mod.F')
                   ENDIF
-            
+
                   ! Apply limits so that sedimented quantity is:
                   ! Greater than or equal to zero
                   ! Less than or equal to the total available quantity
@@ -2306,11 +2308,11 @@
                   SEDQUANT = MAX(0.0e+0_fp,SEDQUANT)
                   SEDNO3 = MAX(0.0e+0_fp,SEDNO3)
                   SEDICE = MAX(0.0e+0_fp,SEDICE)
-                  
+
                   ! Convert v/v to kg/box
                   SEDNO3 = SEDNO3 * NIT_MW_G / INVAIR_0
                   SEDICE = SEDICE*ICEMW/INVAIR_0
-                  
+
                   SEDNO3 = MIN(SEDNO3,Spc(I,J,L+1,id_NIT))
                   Spc(I,J,L,id_NIT) = Spc(I,J,L,id_NIT) + SEDNO3
                   Spc(I,J,L+1,id_NIT)=Spc(I,J,L+1,id_NIT)-SEDNO3
@@ -2337,7 +2339,7 @@
 
       ! Free pointers
       Spc       => NULL()
-      STATE_PSC => NULL() 
+      STATE_PSC => NULL()
       WERADIUS  => NULL()
 
       END SUBROUTINE SETTLE_STRAT_AER
@@ -2372,7 +2374,7 @@
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  11 Apr 2013 - S. D. Eastham - Initial version
 !  07 Feb 2014 - R. Yantosca   - Cosmetic changes
 !  14 Feb 2014 - R. Yantosca   - Changed parallel DO loop order to L-J-I,
@@ -2406,7 +2408,7 @@
       REAL(fp)           :: GF_PP,GF_PVAP,GF_DIFF
 
       INTEGER            :: I, J, L
-      REAL(fp)           :: PCENTER, PCENTER_P, TCENTER, H2SO4SUM 
+      REAL(fp)           :: PCENTER, PCENTER_P, TCENTER, H2SO4SUM
       REAL(fp)           :: INVAIR
       REAL(fp)           :: SO4_MW_G
 
@@ -2505,7 +2507,7 @@
 !
 ! !IROUTINE: so4_photfrac
 !
-! !DESCRIPTION: FUNCTION SO4\_PHOTFRAC returns the fraction of H2SO4 which 
+! !DESCRIPTION: FUNCTION SO4\_PHOTFRAC returns the fraction of H2SO4 which
 !  is available for photolysis.
 !\\
 !\\
@@ -2521,7 +2523,7 @@
 !
 !      REAL(fp), INTENT(OUT)         :: PHOTFRAC   ! Gaseous fraction of H2SO4
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  11 Apr 2013 - S. D. Eastham - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -2543,7 +2545,7 @@
 !
 ! !IROUTINE: calc_strat_aer
 !
-! !DESCRIPTION: Subroutine CALC\_STRAT\_AER calculates aerosol properties    
+! !DESCRIPTION: Subroutine CALC\_STRAT\_AER calculates aerosol properties
 !  stratosphere using the thermodynamic parameterization described in
 !  Kirner et al. (`Simulation of polar stratospheric clouds in the
 !  chemistry-climate-model EMAC via the submodel PSC', Geosci. Mod. Dev.,
@@ -2573,28 +2575,28 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
-!      
+!
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  13 Apr 2013 - S. D. Eastham - Initial version
 !  06 Feb 2014 - R. Yantosca   - Add missing variables to OpenMP loop
 !  14 Feb 2014 - R. Yantosca   - Make the L-loop the outermost DO loop
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
+!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
 !  06 Nov 2014 - R. Yantosca   - Now use State_Met%CLDF(I,J,L)
 !  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
 !                                air pressure, with State_Met%PMID_DRY and
 !                                remove dependency on PRESSURE_MOD.
 !  08 Apr 2015 - R. Yantosca   - Remove call to READ_PSC_FILE, this is
-!                                now done from DO_CHEMISTRY (chemistry_mod.F) 
+!                                now done from DO_CHEMISTRY (chemistry_mod.F)
 !  31 May 2016 - E. Lundgren   - Replace Input_Opt%TRACER_MW_G with emMW_g
-!                                from species database (emitted species g/mol) 
+!                                from species database (emitted species g/mol)
 !  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
 !  21 Jun 2016 - R. Yantosca   - Now use module variables for species ID flags
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
@@ -2785,7 +2787,7 @@
 
                ! Apply other limits from Kirner et al.
                IS_STRAT =  State_Met%InStratMeso(I,J,L)
-               IS_VALID = (IS_POLAR).and.(IS_STRAT).and.       
+               IS_VALID = (IS_POLAR).and.(IS_STRAT).and.
      &                        (.not.((PCENTER_PA.lt.PSC_PMIN).or.
      &                               (PCENTER_PA.gt.PSC_PMAX)))
                IS_VALID = (IS_VALID.or.PSC_FULL)
@@ -2795,7 +2797,7 @@
                KG_NAT       = 0.0e+0_fp
                VOL_ICE      = 0.0e+0_fp
                KG_ICE       = 0.0e+0_fp
- 
+
                RAD_AER_BOX  = 0.0e+0_fp
                RHO_AER_BOX  = 0.0e+0_fp
                KG_AER_BOX   = 0.0e+0_fp
@@ -2871,7 +2873,7 @@
                      TOFFSET = 280.0e+0_fp
                      PSATHNO3_SUPERCOOL = HNO3PP + 1e+0_fp
                   ENDIF
-                  
+
                   IF (LACTIVEH2O) THEN
                      ! Only interested in sign
                      IF (STATE_LOCAL .gt. 1) THEN
@@ -2930,7 +2932,7 @@
      &                              State_Met%AD(I,J,L)
                      ENDIF
                      VOL_ICE = H2O_BOX_S * DENAIR * (1.e-3_fp) * ICEMW /
-     &                             (DENSICE*AVO) ! m3 ice/m3 air 
+     &                             (DENSICE*AVO) ! m3 ice/m3 air
                   ELSE
                      VOL_ICE = 0e+0_fp
                      H2O_BOX_S = 0e+0_fp
@@ -2980,7 +2982,7 @@
 
                      ! Prevent div-zero (ckeller, 1/16/15)
                      IF ( VOL_TOT > 0.0_fp ) THEN
-                        RHO_AER_BOX = 
+                        RHO_AER_BOX =
      &                     ((VOL_ICE*DENSICE)+(VOL_NAT*DENSNAT))/VOL_TOT
                      ELSE
                         RHO_AER_BOX = DENSICE ! Is that correct?
@@ -3017,7 +3019,7 @@
                   ! Remove (kg NO3 as NAT) from total kg NO3
                   ! then convert to kg HNO3
                   Spc(I,J,L,id_HNO3) = (KG_NO3-Spc(I,J,L,id_NIT))
-     &                  * HNO3_MW_G / NIT_MW_G 
+     &                  * HNO3_MW_G / NIT_MW_G
                ENDIF
 
                ! Now start liquid aerosol consideration
@@ -3050,7 +3052,7 @@
 
                ! Zero local properties
                RHO_AER_BOX   = 1000e+0_fp
-               RAD_AER_BOX   = 0e+0_fp 
+               RAD_AER_BOX   = 0e+0_fp
                KG_AER_BOX    = 0e+0_fp
                NDENS_AER_BOX = 0e+0_fp
                SAD_AER_BOX   = 0e+0_fp
@@ -3100,7 +3102,7 @@
      &                  W_H2SO4,W_H2O,W_HNO3,W_HCl,W_HOCl,W_HBr,W_HOBr,
      &                  HNO3GASFRAC,HClGASFRAC,HOClGASFRAC,
      &                  HBrGASFRAC,HOBrGASFRAC,VOL_SLA,RHO_AER_BOX)
-        
+
                         ! Partition HNO3 here for safety
                         HNO3_BOX_G = HNO3_BOX_G*HNO3GASFRAC
                         HNO3_BOX_L = HNO3SUM - (HNO3_BOX_G+HNO3_BOX_S)
@@ -3152,15 +3154,15 @@
      &                    * (W_H2O/W_H2SO4)
                H2O_BOX_L = MAX(0e+0_fp,MIN(H2O_BOX_L-H2O_BOX_S,H2OSUM))
                H2O_BOX_G = MAX(0e+0_fp,H2O_BOX_G-(H2O_BOX_L+H2O_BOX_S))
-  
+
                ! If very low number density, ignore settling
-               AERFRAC(I,J,L,2) = 0e+0_fp 
-               AERFRAC(I,J,L,3) = 0e+0_fp 
-               AERFRAC(I,J,L,4) = 0e+0_fp 
-               AERFRAC(I,J,L,5) = 0e+0_fp 
-               AERFRAC(I,J,L,6) = 0e+0_fp 
+               AERFRAC(I,J,L,2) = 0e+0_fp
+               AERFRAC(I,J,L,3) = 0e+0_fp
+               AERFRAC(I,J,L,4) = 0e+0_fp
+               AERFRAC(I,J,L,5) = 0e+0_fp
+               AERFRAC(I,J,L,6) = 0e+0_fp
                AERFRAC(I,J,L,7) = 0e+0_fp
- 
+
                IF ((HNO3SUM.gt.1e+0_fp).and.
      &            (IS_SAFE_DIV(HNO3_BOX_L,HNO3SUM))) THEN
                   AERFRAC(I,J,L,2) = HNO3_BOX_L/HNO3SUM
@@ -3206,7 +3208,7 @@
                KHETI_SLA(I,J,L,3)  = GAMMA_BOX(3 )*KHET_SPECIFIC
                KHETI_SLA(I,J,L,4)  = GAMMA_BOX(4 )*KHET_SPECIFIC
                KHETI_SLA(I,J,L,5)  = GAMMA_BOX(5 )*KHET_SPECIFIC
- 
+
                ! BrNO3 + H2O/HCl
                KHET_SPECIFIC= KHET_COMMON*ISR_BrNO3
                KHETI_SLA(I,J,L,6)  = GAMMA_BOX(6 )*KHET_SPECIFIC
@@ -3245,7 +3247,7 @@
 !
 ! !IROUTINE: kg_strat_aer
 !
-! !DESCRIPTION: Function KG\_STRAT\_AER returns the calculated mass of a  
+! !DESCRIPTION: Function KG\_STRAT\_AER returns the calculated mass of a
 !  stratospheric aerosol. The routine is essentially just an
 !  interface to allow external routines to "see" the arrays.
 !\\
@@ -3262,7 +3264,7 @@
                                                 ! 2 = STS
                                                 ! 3 = Solid PSC
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  18 Apr 2013 - S. D. Eastham - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -3298,7 +3300,7 @@
                                                 ! 1 = Liquid aerosol
                                                 ! 2 = Solid aerosol
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  18 Apr 2013 - S. D. Eastham - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -3319,7 +3321,7 @@
 !
 ! !IROUTINE: get_strat_opt
 !
-! !DESCRIPTION: Subroutine GET\_STRAT\_OPT returns local optical properties 
+! !DESCRIPTION: Subroutine GET\_STRAT\_OPT returns local optical properties
 !  for a given stratospheric aerosol. The routine is essentially just an
 !  interface to allow external routines to "see" the arrays. However, local
 !  aerosol radius is adjusted from liquid to effective radius for aerosol
@@ -3349,8 +3351,8 @@
 !  than some small value (say 1 nm2/cm3,  which is a vanishingly small surface
 !  area), it returns SADSTRAT=XSASTRAT=0.d0 and RAER=REFF=0.1d0 for safety's
 !  sake. I think that will prevent code blow-up later on."
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  17 Apr 2013 - S. D. Eastham - Initial version
 !  07 Apr 2015 - R. Yantosca   - Add error check to prevent div-by-zero errors
 !                                in other areas of GEOS-Chem caused by low SAD
@@ -3364,20 +3366,20 @@
 
       ! Surface area density [cm2/cm3]
       SAD  = SAD_AER(I,J,L,IAER)
-      
+
       ! Add error check: threshold is 1e-14 cm2/cm3 (bmy, 4/7/15)
       IF ( SAD < 1e-14_fp ) THEN
 
          !--------------------------------------------------------------
-         ! FOR SAFETY'S SAKE: Set outputs to "safe" values and 
+         ! FOR SAFETY'S SAKE: Set outputs to "safe" values and
          ! exit if very small SAD is encountered. (bmy, 4/7/15)
          !--------------------------------------------------------------
          SAD  = 0.0e+0_fp
          XSA  = 0.0e+0_fp
          RAER = 0.1e+0_fp
          REFF = 0.1e+0_fp
-         
-      ELSE 
+
+      ELSE
 
          !--------------------------------------------------------------
          ! Otherwise, compute RAER, REFF, XSA normally
@@ -3406,7 +3408,7 @@
 !
 ! !IROUTINE: ternary
 !
-! !DESCRIPTION: Subroutine TERNARY calculates the composition of SSA/STS 
+! !DESCRIPTION: Subroutine TERNARY calculates the composition of SSA/STS
 !  aerosols using a paramaterization from Carslaw et al. "A Thermodynamic
 !  Model of the System HCl-HNO3-H2SO4-H2O, Including Solubilities of HBr,
 !  from <200 to 328 K". The bulk of this code was taken directly from the
@@ -3448,15 +3450,15 @@
       REAL(fp), INTENT(OUT) :: W_HOCl       ! kg HOCl /kg SLA
       REAL(fp), INTENT(OUT) :: W_HBr        ! kg HBr  /kg SLA
       REAL(fp), INTENT(OUT) :: W_HOBr       ! kg HOBr /kg SLA
-      REAL(fp), INTENT(OUT) :: HNO3GASFRAC  ! Gas fraction HNO3     
-      REAL(fp), INTENT(OUT) :: HClGASFRAC   ! Gas fraction HCl     
-      REAL(fp), INTENT(OUT) :: HOClGASFRAC  ! Gas fraction HOCl     
-      REAL(fp), INTENT(OUT) :: HBrGASFRAC   ! Gas fraction HBr     
-      REAL(fp), INTENT(OUT) :: HOBrGASFRAC  ! Gas fraction HOBr     
+      REAL(fp), INTENT(OUT) :: HNO3GASFRAC  ! Gas fraction HNO3
+      REAL(fp), INTENT(OUT) :: HClGASFRAC   ! Gas fraction HCl
+      REAL(fp), INTENT(OUT) :: HOClGASFRAC  ! Gas fraction HOCl
+      REAL(fp), INTENT(OUT) :: HBrGASFRAC   ! Gas fraction HBr
+      REAL(fp), INTENT(OUT) :: HOBrGASFRAC  ! Gas fraction HOBr
       REAL(fp), INTENT(OUT) :: SLA_VOL      ! Aerosol volume (m3/m3)
       REAL(fp), INTENT(OUT) :: SLA_RHO      ! Aer. mass density (kg/m3)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  19 Apr 2013 - S. D. Eastham - Initial version
 !  16 Apr 2015 - M. Yannetti   - Changed EXP to SAFE_EXP in H_HCL
 !  01 Jan 2016 - E. Lundgren   - Calculate R_ATM from global params
@@ -3532,7 +3534,7 @@
       ! Error trapping
       REAL(fp) :: TMP1,TMP2,TMP3,TMP4,TMP5,TMP6
 
-      REAL(fp), PARAMETER :: TNY = 1.0e-28_fp     
+      REAL(fp), PARAMETER :: TNY = 1.0e-28_fp
 
       ! Debug message
       CHARACTER(LEN=255)   :: DBGMSG
@@ -4070,7 +4072,7 @@
       REAL(fp), INTENT(IN) :: CN         ! HNO3 molality (mol HNO3/kg solvent)
       REAL(fp), INTENT(IN) :: T          ! Temperature (K)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  19 Apr 2013 - S. D. Eastham - Initial version
 !  29 Dec 2017 - C. Keler      - Added error traps for zeros
 !EOP
@@ -4085,14 +4087,14 @@
       ! CARSLAW_DENSITY begins here!
       !=================================================================
 
-        DENSS=1000.0e+0_fp+123.64e+0_fp*CS-5.6e-4_fp*CS*T**2  
+        DENSS=1000.0e+0_fp+123.64e+0_fp*CS-5.6e-4_fp*CS*T**2
      &       -29.54e+0_fp*CS**1.5e+0_fp + 1.814e-4_fp*CS**1.5e+0_fp
-     &       *T**2+2.343e+0_fp*CS**2  -1.487e-3_fp*CS**2*T  
+     &       *T**2+2.343e+0_fp*CS**2  -1.487e-3_fp*CS**2*T
      &       -1.324e-5_fp*CS**2*T**2
 
-        DENSN=1000.0e+0_fp+85.107e+0_fp*CN-5.043e-4_fp*CN*T**2  
+        DENSN=1000.0e+0_fp+85.107e+0_fp*CN-5.043e-4_fp*CN*T**2
      &       -18.96e+0_fp*CN**1.5e+0_fp + 1.427e-4_fp*CN**1.5e+0_fp
-     &       *T**2+1.458e+0_fp*CN**2  -1.198e-3_fp*CN**2*T  
+     &       *T**2+1.458e+0_fp*CN**2  -1.198e-3_fp*CN**2*T
      &       -9.703e-6_fp*CN**2*T**2
 
         ! Error trap for zeros (ckeller, 12/29/17)
@@ -4138,8 +4140,8 @@
 !
 ! !REMARKS:
 ! (1) A remark
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  11 Aug 2012 - S. D. Eastham - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -4176,7 +4178,7 @@
 
       ! Velocities should be of the order of 0.1 m/s
       IF (VEL.gt.10.e+0_fp) THEN
-         CALL ERROR_STOP(' Excessive fall velocity? ', 
+         CALL ERROR_STOP(' Excessive fall velocity? ',
      &                   ' CALC_FALLVEL, UCX_mod')
       ENDIF
 
@@ -4189,8 +4191,8 @@
 !
 ! !IROUTINE: cacl_sla_gamma
 !
-! !DESCRIPTION: Subroutine CALC\_SLA\_GAMMA calculates 11 different sticking 
-!  coefficients on the surface of local stratospheric liquid aerosols, 
+! !DESCRIPTION: Subroutine CALC\_SLA\_GAMMA calculates 11 different sticking
+!  coefficients on the surface of local stratospheric liquid aerosols,
 !  relevant to each of the 11 reactions listed in Kirner's paper.
 !\\
 !\\
@@ -4224,7 +4226,7 @@
 !
       REAL(fp), INTENT(OUT) :: RXNGAMMA(11) ! Premultiplying factors
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  10 Oct 2012 - S. D. Eastham - Initial version
 !  15 Apr 2015 - M. Yannetti   - Adjustment to f8 from fp due to overflow concerns
 !  29 Dec 2017 - C. Keller     - Avoid div by zero.
@@ -4280,7 +4282,7 @@
       REAL(f8)               :: gClNO3
       REAL(f8)               :: gClNO3_HCl
       REAL(f8)               :: gClNO3_H2O
- 
+
       ! N2O5 parameters
       REAL(f8), DIMENSION(3) :: AK
 
@@ -4345,7 +4347,7 @@
       ClNO3PP = ClNO3SUM*P/(ATM*1e-2_f8)
       BrNO3PP = BrNO3SUM*P/(ATM*1e-2_f8)
       HOBrPP = HOBrSUM*P/(ATM*1e-2_f8) ! Note atm, not hPa
- 
+
       ! Should we bother running calculations?
       HClOK = (HClPP .gt. 1.e-30_f8)
       HOBrOK = (HOBrPP .gt. 1.e-30_f8)
@@ -4355,7 +4357,7 @@
       AK(2)=9283.76+115.345*WT-5.19258*WT**2+0.0483464*WT**3
       AK(3)=-851801-22191.2*WT+766.916*WT**2-6.85427*WT**3
       RXNGAMMA(1)=exp(AK(1)+AK(2)/T+AK(3)/T**2)
-      
+
       ! Reaction 2. N2O5 + HCl
       ! JPL 10-06 suggests near-zero gamma
       RXNGAMMA(2) = TINY(1e+0_f8)
@@ -4402,7 +4404,7 @@
             gClNO3_HCl  =  gClNO3 *(Gsp + GbHClp)/(Gsp + Gb)
             gClNO3_H2O  =  gClNO3 - gClNO3_HCl
          ENDIF
-   
+
          !IF (HClOK) THEN
          RXNGAMMA(3) =  gClNO3_H2O
          RXNGAMMA(4) =  gClNO3_HCl
@@ -4419,7 +4421,7 @@
 !      RXNGAMMA(6) = 1.0/(1.0/0.88+exp(-17.832+0.245*WT))
       RXNGAMMA(6) = 1.e+0_f8/(1.e+0_f8/0.80e+0_f8+1.e+0_f8/
      &             (exp(29.2e+0_f8-0.4e+0_f8*WT )+0.11))
-      
+
       ! Reaction 7. BrNO3 + HCl
       RXNGAMMA(7) = 0.9e+0_f8 ! JPL 10-06
 
@@ -4450,7 +4452,7 @@
       ELSE
          gHOCl_HCl = TINY(1e+0_f8)
       ENDIF
-   
+
       RXNGAMMA(8) = gHOCl_HCl
 
       ! Reaction 9. HOCl + HBr
@@ -4555,7 +4557,7 @@
       REAL(fp), INTENT(IN)          :: T       ! Temperature (K)
       REAL(fp), INTENT(IN)          :: MOLMASS ! Molecular mass (g/mol)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  10 Oct 2012 - S. D. Eastham - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -4576,13 +4578,13 @@
 !
 ! !IROUTINE: set_h2o_trac
 !
-! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O species throughout 
+! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O species throughout
 !  the selected domain (either troposphere only or the full grid).
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_H2O_TRAC ( am_I_Root, SETSTRAT,   Input_Opt, 
+      SUBROUTINE SET_H2O_TRAC ( am_I_Root, SETSTRAT,   Input_Opt,
      &                          State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -4595,16 +4597,16 @@
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod 
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
-!      
+!
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)    :: SETSTRAT    ! Set strat H2O?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
@@ -4613,16 +4615,16 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Initial version
 !  14 Feb 2014 - R. Yantosca   - Reordered DO loop for efficiency
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
+!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
 !                                objects via the arg list
 !  24 Feb 2015 - E. Lundgren   - Replace GET_PCENTER with State_Met%PMID and
 !                                remove dependency on PRESSURE_MOD
-!  24 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg 
+!  24 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
 !  29 Apr 2015 - E. Lundgren   - Now pass am_I_Root and RC to SET_H2O_TRAC
-!  29 Apr 2015 - E. Lundgren   - Now use grid box moist air mass ADMOIST 
+!  29 Apr 2015 - E. Lundgren   - Now use grid box moist air mass ADMOIST
 !                                with SPHU since AD is now dry air mass
 !  29 Apr 2015 - E. Lundgren   - Replace RH calculation method with Nordquist,
 !                                1973 and call AirQnt if moisture vars
@@ -4631,11 +4633,11 @@
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  18 Jul 2016 - E. Lundgren   - Remove dependency on grid box mass
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
-!  24 May 2016 - C. Holmes     - Apply H2O from met fields up to the cold point 
+!  24 May 2016 - C. Holmes     - Apply H2O from met fields up to the cold point
 !                                tropopause in the tropics (30S-30N) or the
 !                                lapse-rate tropopause, whichever is higher
 !  13 Mar 2017 - C. Keller     - Add error trap for id_H2O
-!  12 Nov 2017 - C. Keller     - Add option to prescribe trop. H2O up to 
+!  12 Nov 2017 - C. Keller     - Add option to prescribe trop. H2O up to
 !                                tropopause plus offset.
 !EOP
 !------------------------------------------------------------------------------
@@ -4658,17 +4660,17 @@
       !  Selected Meteorological Parameters Related to Cloud Physics"
       !  Text quality clarifications from Stipanuk, 1973. "Algorithms
       !  for Generating a Skew-T, Log P Diagram and Computing Selected
-      !  Meteorological Quantities") 
-      REAL(fp), PARAMETER   :: ESATP1  = 2.3832241e+1_fp   
-      REAL(fp), PARAMETER   :: ESATP2  = -5.02808e+0_fp       
-      REAL(fp), PARAMETER   :: ESATP3  = 8.1328e-3_fp    
-      REAL(fp), PARAMETER   :: ESATP4  = 3.49149e+0_fp     
+      !  Meteorological Quantities")
+      REAL(fp), PARAMETER   :: ESATP1  = 2.3832241e+1_fp
+      REAL(fp), PARAMETER   :: ESATP2  = -5.02808e+0_fp
+      REAL(fp), PARAMETER   :: ESATP3  = 8.1328e-3_fp
+      REAL(fp), PARAMETER   :: ESATP4  = 3.49149e+0_fp
       REAL(fp), PARAMETER   :: ESATP5  = -1.3028844e+3_fp
       REAL(fp), PARAMETER   :: ESATP6  = -1.3816e-7_fp
       REAL(fp), PARAMETER   :: ESATP7  = 1.1344e+1_fp
       REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
       REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
-      
+
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
 
@@ -4682,7 +4684,7 @@
       !=================================================================
 
       ! Assume success
-      RC  = GC_SUCCESS   
+      RC  = GC_SUCCESS
 
       ! Copy fields from INPUT_OPT
       LACTIVEH2O = Input_Opt%LACTIVEH2O
@@ -4697,7 +4699,7 @@
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
 
-      ! Error trap: make sure id_H2O is defined. There are instances 
+      ! Error trap: make sure id_H2O is defined. There are instances
       ! in GEOS-5 where we want to call this routine even with UCX
       ! turned off, in which case id_H2O might be undefined.
       ! (ckeller, 3/13/17)
@@ -4719,9 +4721,9 @@
          ! Between 30S-30N, find the level of cold point tropopause,
          ! the altitude with the coldest temperature below 10 hPa
          IF ( ABS(State_Grid%YMid(I,J)) <= 30 ) THEN
-            ! Level with minimum temperature, 
+            ! Level with minimum temperature,
             ! use MASK to screen for >10 hPa
-            LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, 
+            LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1,
      &                       MASK=(State_Met%PMID(I,J,:) >= 10) )
          ELSE
             LEVCPT = -1
@@ -4730,20 +4732,20 @@
          DO L = 1, State_Grid%NZ
 
             ! Mark as tropospheric air everything that is at current
-            ! tropopause or offset levels above. This is to avoid H2O 
-            ! leaks into the stratosphere due to jumps in the model 
+            ! tropopause or offset levels above. This is to avoid H2O
+            ! leaks into the stratosphere due to jumps in the model
             ! tropopause. The offset is 0 by default (ckeller, 11/12/17)
-            ! Logical flag determines if we are in a region where H2O from 
+            ! Logical flag determines if we are in a region where H2O from
             ! met files should overwrite the value from the chemical solver
-            ! C. Holmes) 
+            ! C. Holmes)
             READ_SPHU = ( ( (L-TPLEV) < TROPPLEV_OFFSET ) .or.
-     &                    SETSTRAT .or. ( .not. LACTIVEH2O ) .or. 
+     &                    SETSTRAT .or. ( .not. LACTIVEH2O ) .or.
      &                    (L < LEVCPT)  )
 
             IF ( READ_SPHU ) THEN
 
                ! Calculate specific humidity [g H2O/kg total air] as
-               ! [kg/kg] 
+               ! [kg/kg]
                SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.e-3_fp
 
                ! Set H2O species concentration [kg/kg dry] using SPHU
@@ -4753,35 +4755,35 @@
 
             ELSE
 
-               ! Calculate specific humidity in [kg H2O / kg total air] 
+               ! Calculate specific humidity in [kg H2O / kg total air]
                ! using transported H2O [kg/kg dry] (ewl, 7/18/16)
-               SPHU_kgkg =  Spc(I,J,L,id_H2O) / 
-     &                     ( 1.0e+0_fp + Spc(I,J,L,id_H2O) ) 
-   
+               SPHU_kgkg =  Spc(I,J,L,id_H2O) /
+     &                     ( 1.0e+0_fp + Spc(I,J,L,id_H2O) )
+
                ! Set State_Met specific humidity [g/kg]
                State_Met%SPHU(I,J,L) = SPHU_kgkg * 1.e+3_fp
-               
+
                ! Calculate water vapor saturation pressure [hPa] from T
                ! (see local variables above for method reference)
-               EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) ) 
+               EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) )
                EsatB = ESATP3 * 10**( ESATP4+ESATP5/State_Met%T(I,J,L) )
                EsatC = ESATP6 * 10**( ESATP7+ESATP8*State_Met%T(I,J,L) )
                EsatD = ESATP9 / State_Met%T(I,J,L)
-               Esat = 10**( EsatA + EsatB + EsatC + EsatD ) 
-   
+               Esat = 10**( EsatA + EsatB + EsatC + EsatD )
+
                ! Calculate mol water vapor per mol moist air from SPHU
                ! Note that SPHU must be converted to [kg/kg] to use 1-SPHU
                ! as mass dry air / mass moist air
-               H2OVV_moist = SPHU_kgkg * AIRMW 
+               H2OVV_moist = SPHU_kgkg * AIRMW
      &                 / ( SPHU_kgkg * AIRMW + (1 - SPHU_kgkg) * H2OMW )
-      
+
                ! Calculate water vapor partial pressure at grid box center [hPa]
                ! Note that grid box center is defined as the arithmetic average
                ! of the grid box pressure edges not the vertical mid-point.
                Ev_mid = State_Met%PMID(I,J,L) * H2OVV_MOIST
-    
+
                ! Set State_Met relative humidity [%]
-               State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp 
+               State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp
 
             ENDIF
          ENDDO ! L
@@ -4790,7 +4792,7 @@
 !$OMP END PARALLEL DO
 
       ! If humidity was updated, update all moist-dependent air quantities
-      ! and species mixing ratio with the new moisture content (ewl, 4/29/15) 
+      ! and species mixing ratio with the new moisture content (ewl, 4/29/15)
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
          CALL AIRQNT( am_I_Root, Input_opt, State_Chm, State_Grid,
      &                State_Met, RC,        Update_Mixing_Ratio=.TRUE. )
@@ -4835,15 +4837,15 @@
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
 !
 ! !REMARKS:
 ! (1) A remark
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  17 Aug 2013 - S. D. Eastham - Initial version
 !  14 Feb 2014 - R. Yantosca   - Reorder DO loops for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm
@@ -4953,13 +4955,13 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN) :: am_I_Root          ! Root CPU? 
+      LOGICAL,          INTENT(IN) :: am_I_Root          ! Root CPU?
       TYPE(OptInput),   INTENT(IN) :: Input_Opt          ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  05 Dec 2014 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -4987,33 +4989,33 @@
 
             CASE ('CFC113')
                LOCAL_NAME = TRIM('CFC113')
-               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
             CASE ('CFC114')
                LOCAL_NAME = TRIM('CFC114')
-               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
             CASE ('CFC115')
                LOCAL_NAME = TRIM('CFC115')
-               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
             CASE ('HCFC141b')
                LOCAL_NAME = TRIM('HCFC141b')
-               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
             CASE ('HCFC142b')
                LOCAL_NAME = TRIM('HCFC142b')
-               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
             CASE ('H2402')
                LOCAL_NAME = TRIM('C2BR2F4')
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
             CASE ('OCS')
                LOCAL_NAME = TRIM('OCS')
-               CALL SFCMR_READ( am_I_Root,  Input_Opt, 
+               CALL SFCMR_READ( am_I_Root,  Input_Opt,
      &                          LOCAL_NAME, ID,        iMR=OCS_MR )
             CASE ('H2')
                LOCAL_NAME = TRIM('H2')
-               CALL SFCMR_READ( am_I_Root,  Input_Opt, 
+               CALL SFCMR_READ( am_I_Root,  Input_Opt,
      &                          LOCAL_NAME, ID,        iMR=H2_MR )
             CASE DEFAULT
                LOCAL_NAME = TRIM(TRAC_EMIT(I))
-               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
+               CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID )
          END SELECT
       ENDDO
 
@@ -5047,33 +5049,42 @@
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IoError
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN   ) :: am_I_Root          ! Root CPU? 
+      LOGICAL,            INTENT(IN   ) :: am_I_Root          ! Root CPU?
       TYPE(OptInput),     INTENT(IN   ) :: Input_Opt          ! Input options
-      CHARACTER(LEN=*),   INTENT(IN   ) :: iName              ! species name 
-      INTEGER,            INTENT(IN   ) :: iID                ! species ID 
+      CHARACTER(LEN=*),   INTENT(IN   ) :: iName              ! species name
+      INTEGER,            INTENT(IN   ) :: iID                ! species ID
       REAL(fp), OPTIONAL, INTENT(IN   ) :: iMR                ! fixed MR
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  05 Dec 2014 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
+! !DEFINED PARAMETERS
 !
-      INTEGER            :: I, N, NX, IOS, AS
-      INTEGER            :: IU_FILE
-      CHARACTER(LEN=30)  :: FM 
       ! Max. number of lines in ascii files. Monthly values btw 1950-2100 = 1800
       INTEGER, PARAMETER :: MAXLINES = 3000
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL            :: FileExists
+      INTEGER            :: I, N, NX, IOS, AS
+      INTEGER            :: IU_FILE
       REAL(fp)           :: SCALEFAC, TMPYR, TMPMR
+
+      ! Arrays
       REAL(fp)           :: YR(MAXLINES), MR(MAXLINES)
-      CHARACTER(LEN=255) :: FILENAME, DBGMSG
+
+      ! Strings
+      CHARACTER(LEN=30)  :: FM
+      CHARACTER(LEN=255) :: FILENAME, DBGMSG, DUMMY, FileMsg
 
       !=================================================================
       ! SFCMR_READ begins here!
@@ -5091,51 +5102,76 @@
 
          ! Construct file name
          FILENAME = TRIM(MONTREAL_FILE_ROOT)//TRIM(iName)//'_boundary'
-        
+
+         !--------------------------------------------------------------
+         ! In dry-run mode, print file path to dryrun log and exit.
+         ! Otherwise, print file path to stdout and continue.
+         !--------------------------------------------------------------
+
+         ! Test if the file exists
+         INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+
+         ! Test if the file exists and define an output string
+         IF ( FileExists ) THEN
+            FileMsg = 'UCX (SFCMR_READ): Opening'
+         ELSE
+            FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+         ENDIF
+
+         ! Write to stdout for both regular and dry-run simulations
+         IF ( Input_Opt%AmIRoot ) THEN
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+ 300        FORMAT( a, ' ', a )
+         ENDIF
+
+         ! For dry-run simulations, return to calling program
+         IF ( Input_Opt%DryRun ) RETURN
+
+         !--------------------------------------------------------------
+         ! Read data from the file
+         !--------------------------------------------------------------
+
          IF ( doPrint ) THEN
             WRITE(DBGMSG,'(a,a,a,a)') ' ### UCX: Reading ',
      &           TRIM(iNAME), ' from ', TRIM( FILENAME )
             CALL DEBUG_MSG( TRIM(DBGMSG) )
-         ENDIF      
-   
+         ENDIF
+
          ! Get a free LUN
-         IU_FILE = findFreeLUN()      
-   
+         IU_FILE = findFreeLUN()
+
          ! Initialize values
          IOS = 1
          NX  = 0  ! number of values
-   
-         ! Open file
-         OPEN( IU_FILE, FILE=TRIM( FILENAME ), IOSTAT=IOS )
-         IF ( IOS /= 0 ) THEN
-            WRITE(6,*) 'UCX: FAILED TO FIND ', TRIM(FILENAME)
-             CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
-         ENDIF      
-   
+
+         ! Open the file for reading
+         OPEN(IU_FILE, FILE=TRIM( FILENAME ),
+     &        STATUS='OLD', FORM='FORMATTED')
+
          ! First line not important
-         READ(IU_FILE,*,IOSTAT=IOS)
+         READ(IU_FILE, '(a)', IOSTAT=IOS) DUMMY
          IF ( IOS /= 0 ) THEN
             WRITE(6,*) 'UCX: READ ERROR L1 IN ', TRIM(FILENAME)
              CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
          ENDIF
-         
+
          ! Second line contains scaling factor
          READ(IU_FILE,101,IOSTAT=IOS) SCALEFAC
-   
+
 101      FORMAT(E7.1)
-   
+
          ! Third and fourth line also to be ignored
          DO I=1,2
-            READ(IU_FILE,*,IOSTAT=IOS)
+            READ(IU_FILE, '(a)', IOSTAT=IOS) DUMMY
             IF ( IOS /= 0 ) THEN
                !WRITE(6,*) 'UCX: READ ERROR LX IN ', TRIM(FILENAME)
-               WRITE(6,'(a,I4,a,a,a,I4)') 'UCX: READ ERROR ', I-3, 
+               WRITE(6,'(a,I4,a,a,a,I4)') 'UCX: READ ERROR ', I-3,
      &             ' IN ', TRIM(FILENAME), '. Error code: ', IOS
                 CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
             ENDIF
          ENDDO
- 
-         ! Not necessary to specify the format 
+
+         ! Not necessary to specify the format
          !! C2BR2F4 has a different format.
          !IF ( TRIM(iName) == 'C2BR2F4' ) THEN
          !   FM = "(F7.2,F8.2)"
@@ -5143,22 +5179,25 @@
          !   !FM = "(F7.2,F11.2)"
          !   FM = "(F7.2,F12.2)"
          !ENDIF
-   
-         ! Read until end of file 
+
+         ! Read until end of file
          DO
             ! Read values into temporary buffer
             READ(IU_FILE,*,IOSTAT=IOS) TMPYR, TMPMR
-   
+            IF ( INDEX( FILENAME, 'CH311_boundary' ) > 0 ) THEN
+               print*, '### ', tmpyr, tmpmr
+            endif
+
             ! Error?
             IF ( IOS > 0 ) THEN
-               WRITE(6,'(a,I4,a,a,a,I4)') 'UCX: READ ERROR ', NX, 
+               WRITE(6,'(a,I4,a,a,a,I4)') 'UCX: READ ERROR ', NX,
      &             ' IN ', TRIM(FILENAME), '. Error code: ', IOS
                 CALL IOERROR( IOS, IU_FILE, 'UCX_MOD:SFCMR_READ')
             ENDIF
-   
+
             ! End of file?
             IF ( IOS < 0 ) EXIT
-   
+
             ! Increase counter and pass data to buffer
             NX = NX + 1
             IF ( NX > MAXLINES ) THEN
@@ -5189,7 +5228,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SFCMR(N)%MR'//TRIM(iName) )
 
       SFCMR(N)%NAME  = TRIM(iName)
-      SFCMR(N)%ID    = iID 
+      SFCMR(N)%ID    = iID
       SFCMR(N)%NX    = NX
       SFCMR(N)%YR(:) = YR(1:NX)
       SFCMR(N)%MR(:) = MR(1:NX)
@@ -5212,7 +5251,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SFCMR_GET( TRAC_NAME, YEAR, MONTH ) RESULT( MR ) 
+      FUNCTION SFCMR_GET( TRAC_NAME, YEAR, MONTH ) RESULT( MR )
 !
 ! !USES:
 !
@@ -5220,14 +5259,14 @@
 ! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=*), INTENT(IN) :: TRAC_NAME          ! species name
-      INTEGER,          INTENT(IN) :: YEAR               ! desired year 
+      INTEGER,          INTENT(IN) :: YEAR               ! desired year
       INTEGER,          INTENT(IN) :: MONTH              ! desired month
 !
 ! !INPUT/OUTPUT VARIABLES:
 !
-      REAL(fp)                     :: MR 
+      REAL(fp)                     :: MR
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  05 Dec 2014 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -5249,10 +5288,10 @@
       MR = 0.0_fp
 
       ! In the SFCMR structure, the date is stored as decimal year/month
-      ! value referring to the mid-month, e.g. January 1990 is 1990.04, 
+      ! value referring to the mid-month, e.g. January 1990 is 1990.04,
       ! July 1990 is 1990.54, etc.
       YRMT = REAL(YEAR,4) + ( (MONTH-1) * DECMT ) + MIDMT
-  
+
       ! Get index to desired SFCMR object
       N = -1
       DO I = 1, NSFCMR
@@ -5290,12 +5329,12 @@
       IF ( IDX < 0 ) RETURN
 
       ! Get mixing ratio
-      MR = SFCMR(N)%MR(IDX) * SFCMR(N)%SCAL 
+      MR = SFCMR(N)%MR(IDX) * SFCMR(N)%SCAL
 
       IF ( doPrint ) THEN
          WRITE(MSG,'(a,E16.4)') ' ### UCX: Retrieved value: ', MR
          CALL DEBUG_MSG( TRIM(MSG) )
-      ENDIF      
+      ENDIF
 
       END FUNCTION SFCMR_GET
 !EOC
@@ -5307,7 +5346,7 @@
 ! !IROUTINE: noxcoeff_init
 !
 ! !DESCRIPTION: Subroutine NOXCOEFF\_INIT initializes the NOX 2D interpolation
-! values. 
+! values.
 !\\
 !\\
 ! !INTERFACE:
@@ -5318,20 +5357,20 @@
 !
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
+      USE FILE_MOD,           ONLY : IoError
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN) :: am_I_Root          ! Root CPU? 
+      LOGICAL,          INTENT(IN) :: am_I_Root          ! Root CPU?
       TYPE(OptInput),   INTENT(IN) :: Input_Opt          ! Input options
       TYPE(GrdState),   INTENT(IN) :: State_Grid         ! Grid State object
 !
 ! !OUTPUT VARIABLES:
 !
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  05 Dec 2014 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -5339,13 +5378,17 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
+      LOGICAL            :: LPRT, FileExists
       INTEGER            :: I, AS, IOS
       INTEGER            :: IMON, ITRAC, ILEV
       INTEGER            :: IU_FILE
+
+      ! Strings
       CHARACTER(LEN=255) :: NOX_FILE
       CHARACTER(LEN=255) :: TARG_TRAC
       CHARACTER(LEN=255) :: DBGMSG
-      LOGICAL            :: LPRT
+      CHARACTER(LEN=255) :: FileMsg
 
       !=================================================================
       ! NOXCOEFF_INIT begins here!
@@ -5354,9 +5397,65 @@
       ! Copy fields from INPUT_OPT
       LPRT = Input_Opt%LPRT
 
+      !=================================================================
+      ! In dry-run mode, print file paths to dryrun log and exit.
+      !=================================================================
+      IF ( Input_Opt%DryRun ) THEN
+
+         ! Loop over months and tracers
+         DO IMON  = 1,12
+            DO ITRAC = 1,6
+
+               ! Pick tracer name
+               SELECT CASE (ITRAC)
+                  CASE ( 1 )
+                  TARG_TRAC = 'O'
+                  CASE ( 2 )
+                     TARG_TRAC = 'O1D'
+                  CASE ( 3 )
+                     TARG_TRAC = 'JNO'
+                  CASE ( 4 )
+                     TARG_TRAC = 'JNO2'
+                  CASE ( 5 )
+                     TARG_TRAC = 'JNO3'
+                  CASE ( 6 )
+                     TARG_TRAC = 'JN2O'
+               END SELECT
+
+               ! Create file name for each tracer and month
+               WRITE( NOx_File, '(a,a,a,I0.2,a)' )
+     &              TRIM(NOON_FILE_ROOT),
+     &              TRIM(TARG_TRAC), '_', IMON, '.dat'
+
+               ! Test if the file exists
+               INQUIRE( FILE=TRIM( NOx_File ), EXIST=FileExists )
+
+               ! Test if the file exists and define an output string
+               IF ( FileExists ) THEN
+                  FileMsg = 'UCX (SFCMR_READ): Opening'
+               ELSE
+                  FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+               ENDIF
+
+                ! Write to stdout for both regular and dry-run simulations
+                IF ( Input_Opt%AmIRoot ) THEN
+                   WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NOx_File )
+ 300               FORMAT( a, ' ', a )
+               ENDIF
+            ENDDO
+         ENDDO
+
+         ! exit without doing any computation (dry-run only)
+         RETURN
+      ENDIF
+
+      !=================================================================
+      ! If this is a regular simulation, then read data from files
+      !=================================================================
+
       ! Number of latitude levels of NOXCOEFF array. Data is only
       ! available for 2x25 and 4x5. Use 2x25 for any different grid
-      ! and map NOx coeffs onto simulation grid when calling 
+      ! and map NOx coeffs onto simulation grid when calling
       ! GET_NOXCOEFF.
       IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' .or.
      &     TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
@@ -5375,17 +5474,17 @@
          NOXLAT(I) = NOXLAT(I-1) + 2e+0_fp
       ENDDO
       ! Overshoot to make sure that a latitude of 90.0 will be properl
-      ! matched onto JJNOXCOEFF. 
-      NOXLAT(JJNOXCOEFF+1) = 90.5e+0_fp 
+      ! matched onto JJNOXCOEFF.
+      NOXLAT(JJNOXCOEFF+1) = 90.5e+0_fp
 
-      ! Initialize the NOXCOEFF array. This array holds monthly NOx 
+      ! Initialize the NOXCOEFF array. This array holds monthly NOx
       ! coefficients on 51 levels and for 6 species.
       ALLOCATE(NOXCOEFF(JJNOXCOEFF,UCX_NLEVS,6,12), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXCOEFF' )
       NOXCOEFF = 0.0e+0_fp
 
       ! Fill array
-      DO IMON  = 1,12 
+      DO IMON  = 1,12
       DO ITRAC = 1,6
          SELECT CASE (ITRAC)
             CASE ( 1 )
@@ -5408,18 +5507,34 @@
          IU_FILE = findFreeLUN()
 
          IOS = 1
-         OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS) 
+
+         ! Test if the file exists
+         INQUIRE( FILE=TRIM( NOx_File ), EXIST=FileExists )
+
+         ! Define an output string
+         IF ( FileExists ) THEN
+            FileMsg = 'UCX (SFCMR_READ): Opening'
+         ELSE
+            FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+         ENDIF
+
+         ! Print the name of the file being read to stdout (bmy, 10/23/19)
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( NOx_File )
+         ENDIF
+
+         OPEN( IU_FILE,FILE=TRIM(NOX_FILE),STATUS='OLD',IOSTAT=IOS)
          IF ( IOS /= 0 ) THEN
             WRITE(6,*) 'UCX_MOD: Could not read ', TRIM(NOX_FILE)
             CALL IOERROR( IOS, IU_FILE,'UCX_MOD:NOXCOEFF_INIT')
          ENDIF
-  
+
          IF (LPRT) THEN
-            WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
+            WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ',
      &        TRIM( NOX_FILE )
             CALL DEBUG_MSG( TRIM(DBGMSG) )
          ENDIF
- 
+
          ! Read in data
          DO ILEV = 1,UCX_NLEVS
 
@@ -5428,7 +5543,7 @@
      &            NOXCOEFF(:,ILEV,ITRAC,IMON)
  110           FORMAT(46E10.3)
             ELSE
-               ! Use 2x25 as default 
+               ! Use 2x25 as default
                READ(IU_FILE, 120, IOSTAT=IOS )
      &            NOXCOEFF(:,ILEV,ITRAC,IMON)
  120           FORMAT(91E10.3)
@@ -5452,7 +5567,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_jjnox 
+! !IROUTINE: get_jjnox
 !
 ! !DESCRIPTION: Subroutine GET\_JJNOX maps grid box at location IISIM, JJSIM of
 ! the simulation grid onto the latitude grid of the NOXCOEFF array. JJNOX can
@@ -5473,15 +5588,15 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,          INTENT(IN) :: IISIM    ! Latitude index on simulation grid 
-      INTEGER,          INTENT(IN) :: JJSIM    ! Latitude index on simulation grid 
+      INTEGER,          INTENT(IN) :: IISIM    ! Latitude index on simulation grid
+      INTEGER,          INTENT(IN) :: JJSIM    ! Latitude index on simulation grid
       TYPE(GrdState),   INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !OUTPUT VARIABLES:
 !
       INTEGER                      :: JJNOX    ! Latitude index on NOXCOEFF grid
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  05 Dec 2014 - C. Keller - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -5490,7 +5605,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: I
-      REAL(fp)              :: LAT 
+      REAL(fp)              :: LAT
 
       !=================================================================
       ! GET_JJNOX begins here!
@@ -5508,7 +5623,7 @@
          LAT = State_Grid%YMid( IISIM, JJSIM )
 
          ! Loop over all latitudes of the NOx grid until we reach the grid
-         ! box where the simulation latitude sits in. 
+         ! box where the simulation latitude sits in.
          DO I = 1,JJNOXCOEFF
             IF ( LAT < NOXLAT(I+1) ) THEN
                JJNOX = I
@@ -5556,11 +5671,11 @@
       TYPE(DgnState), INTENT(IN) :: State_Diag  ! Diagnostics State object
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  04 Apr 2013 - S. D. Eastham - Initial version
 !  21 Jun 2016 - R. Yantosca   - Now declare species ID's during INIT phase
 !  21 Jun 2016 - R. Yantosca   - Remove reference to tracerid_mod.F
-!  24 Jun 2016 - R. Yantosca   - Bug fix: get advected species index for H2 
+!  24 Jun 2016 - R. Yantosca   - Bug fix: get advected species index for H2
 !  20 Sep 2016 - R. Yantosca   - Now avoid using SIND, convert the argument
 !                                to radians and use the SIN function instead
 !  03 Nov 2017 - R. Yantosca   - Now accept State_Diag as an argument
@@ -5571,8 +5686,9 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
+      LOGICAL            :: FileExists
       INTEGER            :: N, AS
-      CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
       INTEGER            :: JIN, JOUT
       REAL(fp)           :: JMIN_IN, JMAX_IN, JDIF_IN
       REAL(fp)           :: JMIN_OUT,JMAX_OUT,JDIF_OUT
@@ -5589,6 +5705,9 @@
       LOGICAL            :: LOCSEMIS
       LOGICAL            :: LN2OEMIS
       LOGICAL            :: LBREMIS
+
+      ! Strings
+      CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC, FileMsg, FileName
 
       ! Return code
       INTEGER :: RC
@@ -5694,19 +5813,19 @@
             RETURN
          ENDIF
 
-         WRITE( NOON_FILE_ROOT,'(a,a)') 
-     &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
+         WRITE( NOON_FILE_ROOT,'(a,a)')
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
      &        'UCX_201403/Init2D/Noontime.nc'
 
-         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
-     &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
+         WRITE( MONTREAL_FILE_ROOT,'(a,a)')
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
      &        'UCX_201904/Montreal_fix.nc'
 
-      ! For ASCII input, use 2x25 grid for all other grids than 4x5. 
+      ! For ASCII input, use 2x25 grid for all other grids than 4x5.
       ! This is ok for the NOx coeffs which can be regridded on the fly
-      ! from 2x25 onto any other grid. This won't work for the 2D 
-      ! boundary conditions, but those have been checked in the logical 
-      ! check above (USE2DDATA). 
+      ! from 2x25 onto any other grid. This won't work for the 2D
+      ! boundary conditions, but those have been checked in the logical
+      ! check above (USE2DDATA).
       ELSE
 
          IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
@@ -5714,15 +5833,15 @@
          ELSE
             GRIDSPEC = 'Grid2x25/InitCFC_'
          ENDIF
-         WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
-     &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
+         WRITE(   NOON_FILE_ROOT,'(a,a,a)')
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
 #if defined( MODEL_GEOS )
      &        'UCX_201710/NoonTime/', TRIM(GRIDSPEC)
 #else
      &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
 #endif
-         WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
-     &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
+         WRITE( MONTREAL_FILE_ROOT,'(a,a)')
+     &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
 #if defined( MODEL_GEOS )
 !!!     &      'UCX_201710/Montreal/'
      &      'UCX_201902/Montreal/'
@@ -5730,12 +5849,72 @@
      &      'UCX_201403/Montreal/'
 #endif
       ENDIF
-  
+
+      !=================================================================
+      ! In dry-run mode, print file path to dryrun log and return.
+      !=================================================================
+      IF ( Input_Opt%DryRun ) THEN
+
+         ! Loop over 2 files
+         DO N = 1, 2
+
+            ! Pick one file or the other
+            IF ( N == 1 ) THEN
+               FileName = Noon_File_Root
+            ELSE
+               FileName = Montreal_File_Root
+            ENDIF
+
+            ! Test if the file exists and define an output string
+            INQUIRE( FILE=TRIM( FileName ), EXIST=FileExists )
+            IF ( FileExists ) THEN
+               FileMsg = 'UCX (SFCMR_READ): Opening'
+            ELSE
+               FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+            ENDIF
+
+            ! Write to stdout for the dry-run simulation
+            IF ( Input_Opt%AmIRoot ) THEN
+               WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( FileName )
+ 300           FORMAT( a, ' ', a )
+            ENDIF
+         ENDDO
+
+         ! Exit without doing any computation (dry-run only)
+         RETURN
+      ENDIF
+
+      !=================================================================
+      ! For regular simulations, read data from files
+      !=================================================================
+
+      ! Write the status of Noon_File_Root to stdout
+      INQUIRE( FILE=TRIM( Noon_File_Root ), EXIST=FileExists )
+      IF ( FileExists ) THEN
+         FileMsg = 'UCX (SFCMR_READ): Opening'
+      ELSE
+         FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+      ENDIF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( Noon_File_Root )
+      ENDIF
+
+      ! Write the status of Montreal_File_Root to stdout
+      INQUIRE( FILE=TRIM( Montreal_File_Root ), EXIST=FileExists )
+      IF ( FileExists ) THEN
+         FileMsg = 'UCX (SFCMR_READ): Opening'
+      ELSE
+         FileMsg = 'UCX (SFCMR_READ): REQUIRED FILE NOT FOUND'
+      ENDIF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( Montreal_File_Root )
+      ENDIF
+
       IF ( LPRT ) THEN
          WRITE(DBGMSG,'(a,a)') '### UCX: Reading O1D/O3P from ',
      &     TRIM(NOON_FILE_ROOT)
          CALL DEBUG_MSG( TRIM(DBGMSG) )
-         WRITE(DBGMSG,'(a,a)') 
+         WRITE(DBGMSG,'(a,a)')
      &     '### UCX: Setting long-lived species BCs from ',
      &     TRIM(MONTREAL_FILE_ROOT)
          CALL DEBUG_MSG( TRIM(DBGMSG) )
@@ -5749,31 +5928,31 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_LATS' )
 
       ! Set input pressure levels (hPa)
-      UCX_PLEVS = (/ 0.2200e+00_fp, 0.2600e+00_fp, 
+      UCX_PLEVS = (/ 0.2200e+00_fp, 0.2600e+00_fp,
      &               0.3100e+00_fp, 0.3600e+00_fp,
-     &               0.4300e+00_fp, 0.5100e+00_fp, 
+     &               0.4300e+00_fp, 0.5100e+00_fp,
      &               0.6000e+00_fp, 0.7100e+00_fp,
-     &               0.8400e+00_fp, 0.9900e+00_fp, 
+     &               0.8400e+00_fp, 0.9900e+00_fp,
      &               1.1700e+00_fp, 1.3800e+00_fp,
-     &               1.6300e+00_fp, 1.9300e+00_fp, 
+     &               1.6300e+00_fp, 1.9300e+00_fp,
      &               2.2800e+00_fp, 2.6900e+00_fp,
-     &               3.1800e+00_fp, 3.7600e+00_fp, 
+     &               3.1800e+00_fp, 3.7600e+00_fp,
      &               4.4400e+00_fp, 5.2500e+00_fp,
-     &               6.2000e+00_fp, 7.3200e+00_fp, 
+     &               6.2000e+00_fp, 7.3200e+00_fp,
      &               8.6500e+00_fp, 1.0220e+01_fp,
-     &               1.2070e+01_fp, 1.4260e+01_fp, 
+     &               1.2070e+01_fp, 1.4260e+01_fp,
      &               1.6850e+01_fp, 1.9910e+01_fp,
-     &               2.3520e+01_fp, 2.7780e+01_fp, 
+     &               2.3520e+01_fp, 2.7780e+01_fp,
      &               3.2820e+01_fp, 3.8770e+01_fp,
-     &               4.5810e+01_fp, 5.4110e+01_fp, 
+     &               4.5810e+01_fp, 5.4110e+01_fp,
      &               6.3930e+01_fp, 7.5220e+01_fp,
-     &               8.9220e+01_fp, 1.0540e+02_fp, 
+     &               8.9220e+01_fp, 1.0540e+02_fp,
      &               1.2451e+02_fp, 1.4710e+02_fp,
-     &               1.7377e+02_fp, 2.0529e+02_fp, 
+     &               1.7377e+02_fp, 2.0529e+02_fp,
      &               2.4252e+02_fp, 2.8650e+02_fp,
-     &               3.3847e+02_fp, 3.9985e+02_fp, 
+     &               3.3847e+02_fp, 3.9985e+02_fp,
      &               4.7237e+02_fp, 5.5804e+02_fp,
-     &               6.5924e+02_fp, 7.7880e+02_fp, 
+     &               6.5924e+02_fp, 7.7880e+02_fp,
      &               9.2004e+02_fp /)
 
       ! Set input latitude edges (degrees)
@@ -5789,7 +5968,7 @@
       ! surface area density (cm2 SLA/cm3 air)
       SLA_VA = (8.406e-8_fp)*(10.e+0_fp**(12.e+0_fp*0.751e+0_fp))
 
-      ! Factor to convert effective radius to 
+      ! Factor to convert effective radius to
       ! liquid radius (unitless)
       SLA_RR = EXP(-0.173e+0_fp)
 
@@ -5810,7 +5989,7 @@
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = id_CH4
          TRAC_EMIT(N_EMIT) = 'CH4'
-      ENDIF 
+      ENDIF
 
       IF (LCFCEMIS) THEN
          ! R-11/12/113/114/115
@@ -5889,7 +6068,7 @@
          N_EMIT = N_EMIT + 1
          IDT_EMIT( N_EMIT) = id_N2O
          TRAC_EMIT(N_EMIT) = 'N2O'
-      ENDIF 
+      ENDIF
 
       IF (LBREMIS) THEN
          N_EMIT = N_EMIT + 1
@@ -5932,27 +6111,27 @@
      &                   NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RAD_AER' )
       RAD_AER = 0e+0_fp
-      
+
       ALLOCATE( KG_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
      &                  NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'KG_AER' )
       KG_AER = 0e+0_fp
-      
+
       ALLOCATE( SAD_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
      &                   NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SAD_AER' )
       SAD_AER = 0e+0_fp
-      
+
       ALLOCATE( NDENS_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
      &                     NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDENS_AER' )
       NDENS_AER = 0e+0_fp
-      
+
       ALLOCATE( RHO_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
      &                   NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_AER' )
       RHO_AER = 0e+0_fp
-            
+
       ! Mass fraction of species contained in liquid aerosol
       ! Indices: 1 - SO4
       !          2 - HNO3
@@ -5975,7 +6154,7 @@
       AERFRACIND(5) = id_HBr
       AERFRACIND(6) = id_HOBr
       AERFRACIND(7) = id_H2O
-    
+
       ! H2SO4 photolysis rate at the top of the chemgrid
       ALLOCATE( SO4_TOPPHOT( State_Grid%NX,State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_TOPPHOT' )
@@ -6037,12 +6216,12 @@
       ! This is advantagous in an MPI environment where we try to avoid file
       ! I/O during runtime as much as possible.
       IF ( Input_Opt%LBASICEMIS .AND. .NOT. UCXNETCDF ) THEN
-         CALL SFCMR_INIT ( am_I_Root, Input_Opt ) 
+         CALL SFCMR_INIT ( am_I_Root, Input_Opt )
       ENDIF
 
       ! Initialize NOXCOEFF arrays
       IF ( .NOT. UCXNETCDF ) THEN
-         CALL NOXCOEFF_INIT( am_I_Root, Input_Opt, State_Grid ) 
+         CALL NOXCOEFF_INIT( am_I_Root, Input_Opt, State_Grid )
       ENDIF
 
       END SUBROUTINE INIT_UCX
@@ -6060,12 +6239,12 @@
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_UCX ( am_I_Root )
-! 
+!
 ! !INPUT ARGUMENTS:
 !
       LOGICAL, INTENT(IN)     :: am_I_Root
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  04 Apr 2013 - S. D. Eastham - Initial version
 !  13 Apr 2013 - S. D. Eastham - Added PSC arrays
 !EOP
@@ -6106,7 +6285,7 @@
       ! This is to allow CLEANUP_UCX to fully reset the internal state.
       NSFCMR = 0
 
-      ! Cleanup the NOx coeff arrays 
+      ! Cleanup the NOx coeff arrays
       IF ( ALLOCATED( NOXCOEFF ) ) DEALLOCATE( NOXCOEFF )
       IF ( ALLOCATED( NOXLAT   ) ) DEALLOCATE( NOXLAT   )
 

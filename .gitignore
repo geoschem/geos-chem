@@ -13,7 +13,6 @@ diffs
 bak
 misc
 test
-GCHP
 GIGC
 *.pp.*
 *.pdb
@@ -22,3 +21,6 @@ GIGC
 *.ppk
 *.log
 bin/*
+build/
+*___.h
+*___.rc

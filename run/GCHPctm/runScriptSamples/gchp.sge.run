@@ -1,0 +1,76 @@
+#!/bin/bash
+#$ -l h_rt=01:00:00
+#$ -l h_vmem=50G
+#$ -l h_stack=10G
+#$ -pe ompi* 6
+#$ -cwd
+
+# This sample script is bare bones. See the SLURM sample scripts for
+# examples of more options.
+#
+# Warning: This script has not been testing in an SGE environment
+
+echo "This run using $NSLOTS cores on these hosts:"
+cat $PE_HOSTFILE
+
+# Define GEOS-Chem log file
+log="gchp.log"
+
+# Make sure GCHP output restart file does not exist with the original name
+# used by MAPL. Its present will cause GCHP run to fail. The output restart
+# file is renamed after a successful run, but a file with the original name
+# may persist if the previous run was unsuccessful.
+if [[ -e gcchem_internal_checkpoint ]]; then
+    rm gcchem_internal_checkpoint
+fi
+
+# Always remove cap_restart if not doing a multi-segmented run.        
+if [[ -e cap_restart ]]; then
+   rm cap_restart
+fi
+
+# Sync all config files with settings in runConfig.sh                           
+./runConfig.sh > ${log}
+if [[ $? == 0 ]]; then
+
+    # Source your environment file. This requires first setting the gchp.env
+    # symbolic link using script setEnvironment in the run directory. 
+    # Be sure gchp.env points to the same file for both compilation and 
+    # running. You can copy or adapt sample environment files located in 
+    # ./envSamples subdirectory.
+    gchp_env=$(readlink -f gchp.env)
+    if [ ! -f ${gchp_env} ] 
+    then
+       echo "ERROR: gchp.rc symbolic link is not set!"
+       echo "Copy or adapt an environment file from the ./envSamples "
+       echo "subdirectory prior to running. Then set the gchp.env "
+       echo "symbolic link to point to it using ./setEnvironment."
+       echo "Exiting."
+       exit 1
+    fi
+    echo " " >> ${log}
+    echo "WARNING: You are using environment settings in ${gchp_env}" >> ${log}
+    source ${gchp_env} >> ${log}
+
+    echo '===> Run started at' `date` >> $log
+
+    # Run the code
+    mpirun ./geos >> $log
+
+    # Rename the restart (checkpoint) file for clarity and to enable reuse as
+    # a restart file. MAPL cannot read in a file with the same name as the
+    # output checkpoint filename configured in GCHP.rc.
+    if [ -f cap_restart ]; then
+       restart_datetime=$(echo $(cat cap_restart) | sed 's/ /_/g')
+       mv gcchem_internal_checkpoint gcchem_internal_checkpoint.restart.${restart_datetime}.nc4
+    fi
+ 
+    echo '===> Run ended at' `date` >> $log
+
+else
+    cat $log
+fi
+
+trap times EXIT
+
+

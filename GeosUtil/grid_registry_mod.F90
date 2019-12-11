@@ -42,7 +42,7 @@ MODULE Grid_Registry_Mod
 ! !PRIVATE TYPES:
 !
   ! Module variables
-  REAL(f4), ALLOCATABLE, TARGET :: Area(:,:)  ! Surface area 
+  REAL(f4), ALLOCATABLE, TARGET :: Area(:,:)  ! Surface area
   REAL(f8), ALLOCATABLE, TARGET :: Time(:  )  ! Time
   REAL(f8), ALLOCATABLE, TARGET :: HyAm(:  )  ! Hybrid Ap at level midpoint
   REAL(f8), ALLOCATABLE, TARGET :: HyBm(:  )  ! Hybrid B  at level midpoint
@@ -82,16 +82,16 @@ CONtAINS
 !
     USE ErrCode_Mod
     USE GC_Grid_Mod
-    USE Pressure_Mod   
+    USE Pressure_Mod
     USE Registry_Mod,   ONLY : Registry_AddField
     USE State_Grid_Mod, ONLY : GrdState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 !
@@ -129,7 +129,7 @@ CONtAINS
 
     ! Allocate
     ALLOCATE( Area( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'GRID_AREA', 0, RC )  
+    CALL GC_CheckVar( 'GRID_AREA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Initialize
@@ -184,7 +184,7 @@ CONtAINS
     Desc     = 'Time'
     Units    = 'minutes since YYYY-MM-DD hh:mm:ss UTC'
 
-    ! Allocate 
+    ! Allocate
     ALLOCATE( Time( 1 ), STAT=RC )
     CALL GC_CheckVar( 'GRID_TIME', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -320,7 +320,7 @@ CONtAINS
     CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
-                            Variable     = Variable,                         & 
+                            Variable     = Variable,                         &
                             Description  = Desc,                             &
                             Units        = Units,                            &
                             DimNames     = 'z',                              &
@@ -534,7 +534,7 @@ CONtAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Cleanup_Grid_Registry 
+! !IROUTINE: Cleanup_Grid_Registry
 !
 ! !DESCRIPTION: Deallocates all module variables.
 !\\
@@ -548,11 +548,11 @@ CONtAINS
     USE ErrCode_Mod
     USE Registry_Mod, ONLY : Registry_Destroy
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
@@ -674,7 +674,7 @@ CONtAINS
 ! !IROUTINE: Print_Grid
 !
 ! !DESCRIPTION: Print information about all the registered variables
-!  contained within the gc\_grid\_mod.F90 module. This is basically a wrapper 
+!  contained within the gc\_grid\_mod.F90 module. This is basically a wrapper
 !  for routine REGISTRY\_PRINT in registry\_mod.F90.
 !\\
 !\\
@@ -689,7 +689,7 @@ CONtAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?  
+    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?
     LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
 !
 ! !OUTPUT PARAMETERS:
@@ -746,7 +746,7 @@ CONtAINS
 !
 ! !DESCRIPTION: Return metadata and/or a pointer to the data for any
 !  variable contained within the GRID registry by searching for its name.
-!  This is basically a wrapper for routine REGISTRY\_LOOKUP in 
+!  This is basically a wrapper for routine REGISTRY\_LOOKUP in
 !  registry\_mod.F90.
 !\\
 !\\
@@ -764,7 +764,7 @@ CONtAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root       ! Is this the root CPU? 
+    LOGICAL,             INTENT(IN)  :: am_I_Root       ! Is this the root CPU?
     CHARACTER(LEN=*),    INTENT(IN)  :: Variable        ! Variable name
 !
 ! !OUTPUT PARAMETERS:
@@ -816,7 +816,7 @@ CONtAINS
     !=======================================================================
     CALL Registry_Lookup( am_I_Root    = am_I_Root,                          &
                           Registry     = Registry,                           &
-                          State        = State,                              & 
+                          State        = State,                              &
                           Variable     = Variable,                           &
                           Description  = Description,                        &
                           Dimensions   = Dimensions,                         &

@@ -5,16 +5,16 @@
 #
 # !MODULE: definitions_i3.rc
 #
-# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 I3 filename, 
-#  variables, and attributes for use with the ncCode* scripts.  Also defines 
-#  the names of the files where Fortran code will be written to. 
+# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 I3 filename,
+#  variables, and attributes for use with the ncCode* scripts.  Also defines
+#  the names of the files where Fortran code will be written to.
 #\\
 #\\
 # !REMARKS:
 #  This file has been customized to generate GEOS-Chem Fortran code that
-#  will read data from a GEOS-5.7.2 I3 met field file. 
+#  will read data from a GEOS-5.7.2 I3 met field file.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  01 Feb 2012 - R. Yantosca - Initial version
 #------------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ netCDF FileHandle   = fId
 netCDF FileName     = GEOS572.YYYYMMDD.I3.4x5.nc
 
 
-### !DIMENSIONS:     
+### !DIMENSIONS:
 lon                 = State_Grid%NX
 lat                 = State_Grid%NY
 lev                 = State_Grid%NZ

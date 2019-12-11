@@ -1,12 +1,9 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1343546.svg)](https://doi.org/10.5281/zenodo.1343546) [![Build
-Status](https://travis-ci.org/JiaweiZhuang/geos-chem.svg?branch=travis_ci)](https://travis-ci.org/JiaweiZhuang/geos-chem)
+Status](https://travis-ci.org/JiaweiZhuang/geos-chem.svg?branch=travis_ci)](https://travis-ci.org/JiaweiZhuang/geos-chem) [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/geoschem/geos-chem/blob/master/LICENSE.txt)
 
-# README for the GEOS-Chem Source code repository
+# README for the GEOS-Chem source code repository
 
-This repository (https://github.com/gcst/geos-chem) contains the source code for the GEOS-Chem model of atmospheric chemistry and composition. 
-
-## We have migrated from Bitbucket to Github!
-As of June 2018, we have migrated the GEOS-Chem source code repository to back Github.  Going forward, please make sure to clone or pull code updates ONLY from this repository.
+This repository (https://github.com/geoschem/geos-chem) contains the source code for the GEOS-Chem model of atmospheric chemistry and composition. 
 
 ## GEOS-Chem Development
 
@@ -45,24 +42,32 @@ We have also generated a concept DOI, which will always point to the current sta
 
 ### Web site
 The __GEOS-Chem web site__ is a good place to get started.  It will point you to many important GEOS-Chem resources.
-* http://www.geos-chem.org
+
+  * http://www.geos-chem.org
 
 ### Online user's manual
 You can find the __The GEOS-Chem User's Guide__ online here:
-* http://manual.geos-chem.org
+
+  * http://manual.geos-chem.org
 
 ### Wiki
 The most up-to-date information about GEOS-Chem is posted on the __GEOS-Chem wiki__.  Here you will find information about technical issues, bug fixes, and other pertinent topics.
-* http://wiki-geos.chem.org
+
+  * http://wiki-geos.chem.org
 
 ## GEOS-Chem run directories
-To generate GEOS-Chem run directories, please clone the [__geos-chem-unittest__](https://github.com/geoschem/geos-chem-unittest) repository and follow the instructions as listed on this GEOS-Chem wiki page: http://wiki.seas.harvard.edu/geos-chem/index.php/Creating_GEOS-Chem_run_directories
+To generate GEOS-Chem run directories, please clone the [__geos-chem-unittest__](https://github.com/geoschem/geos-chem-unittest) repository and follow the instructions as listed on the [Creating GEOS-Chem run directories wiki page](http://wiki.seas.harvard.edu/geos-chem/index.php/Creating_GEOS-Chem_run_directories).
 
 ## Support 
 We encourage GEOS-Chem users to use the Github issue tracker attached to this repository to report  bugs or technical issues with the GEOS-Chem code.
 
-You are also invited to direct GEOS-Chem support requests to the GEOS-Chem Support Team at geos-chem-support@as.harvard.edu.
+You are also invited to direct GEOS-Chem support requests to the GEOS-Chem Support Team at geos-chem-support@g.harvard.edu.
+
+## License
+
+GEOS-Chem (and related software) is distributed under the MIT license. Please see the license documents LICENSE.txt and AUTHORS.txt in the root folder.
+
 
 14 Nov 2018
 GEOS-Chem Support Team
-geos-chem-support@as.harvard.edu
+geos-chem-support@g.harvard.edu

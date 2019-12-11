@@ -1,4 +1,4 @@
-List of GEOS-Chem developers (24 Jun 2019)
+List of Developers for GEOS-Chem, GCPy, and Related Software (24 Jul 2019)
 ===============================================================================
 
 Peter Adams

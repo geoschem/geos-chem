@@ -5,24 +5,24 @@
 !
 ! !MODULE: hemcox_dustginoux_mod.F90
 !
-! !DESCRIPTION: Paul GINOUX dust source function.  This subroutine updates 
-!  the surface mixing ratio of dust aerosols for NDSTBIN size bins.  The 
-!  uplifting of dust depends in space on the source function, and in time 
-!  and space on the soil moisture and surface wind speed (10 meters).  Dust 
+! !DESCRIPTION: Paul GINOUX dust source function.  This subroutine updates
+!  the surface mixing ratio of dust aerosols for NDSTBIN size bins.  The
+!  uplifting of dust depends in space on the source function, and in time
+!  and space on the soil moisture and surface wind speed (10 meters).  Dust
 !  is uplifted if the wind speed is greater than a threshold velocity which
-!  is calculated with the formula of Marticorena et al.  (JGR, v.102, 
-!  pp 23277-23287, 1997).  To run this subroutine you need the source 
-!  function which can be obtained by contacting Paul Ginoux at 
-!  ginoux@rondo.gsfc.nasa.gov/  If you are not using GEOS DAS met fields, 
+!  is calculated with the formula of Marticorena et al.  (JGR, v.102,
+!  pp 23277-23287, 1997).  To run this subroutine you need the source
+!  function which can be obtained by contacting Paul Ginoux at
+!  ginoux@rondo.gsfc.nasa.gov/  If you are not using GEOS DAS met fields,
 !  you will most likely need to adapt the adjusting parameter.
 !\\
 !\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
 ! utilities.
 !\\
-!\\ 
+!\\
 ! References:
-! 
+!
 ! \begin{enumerate}
 ! \item Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
 !        and S.-J. Lin, "Sources and distributions of dust aerosols simulated
@@ -34,7 +34,7 @@
 ! \end{enumerate}
 !
 ! !AUTHOR:
-!  Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
+!  Paul Ginoux (ginoux@rondo.gsfc.nasa.gov)
 !
 ! !INTERFACE:
 !
@@ -44,7 +44,7 @@ MODULE HCOX_DustGinoux_Mod
 !
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
-  USE HCO_State_Mod,  ONLY : HCO_State 
+  USE HCO_State_Mod,  ONLY : HCO_State
   USE HCOX_State_Mod, ONLY : Ext_State
 
   IMPLICIT NONE
@@ -73,7 +73,7 @@ MODULE HCOX_DustGinoux_Mod
 !  29 Sep 2014 - R. Yantosca - Now use F90 free-format indentation
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
-!  25 Jan 2019 - M. Sulprizio- Add instance wrapper   
+!  25 Jan 2019 - M. Sulprizio- Add instance wrapper
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,27 +89,27 @@ MODULE HCOX_DustGinoux_Mod
    INTEGER              :: ExtNrAlk = -1     ! Extension number  for DustAlk
    INTEGER, ALLOCATABLE :: HcoIDs    (:)     ! HEMCO species IDs for DustGinoux
    INTEGER, ALLOCATABLE :: HcoIDsAlk (:)     ! HEMCO species IDs for DustAlk
-   INTEGER,  POINTER    :: IPOINT    (:)     ! 1=sand, 2=silt, 3=clay 
-   REAL,     POINTER    :: FRAC_S    (:)     !  
-   REAL,     POINTER    :: DUSTDEN   (:)     ! dust density     [kg/m3] 
-   REAL,     POINTER    :: DUSTREFF  (:)     ! effective radius [um] 
+   INTEGER,  POINTER    :: IPOINT    (:)     ! 1=sand, 2=silt, 3=clay
+   REAL,     POINTER    :: FRAC_S    (:)     !
+   REAL,     POINTER    :: DUSTDEN   (:)     ! dust density     [kg/m3]
+   REAL,     POINTER    :: DUSTREFF  (:)     ! effective radius [um]
    REAL(hp), POINTER    :: FLUX(:,:,:)
    REAL(hp), POINTER    :: FLUX_ALK(:,:,:)
-   
-   ! Source functions (get from HEMCO core) 
+
+   ! Source functions (get from HEMCO core)
    REAL(hp), POINTER    :: SRCE_SAND(:,:) => NULL()
    REAL(hp), POINTER    :: SRCE_SILT(:,:) => NULL()
    REAL(hp), POINTER    :: SRCE_CLAY(:,:) => NULL()
 
    ! Transfer coefficient (grid-dependent)
-   REAL(dp)             :: CH_DUST 
+   REAL(dp)             :: CH_DUST
 
    TYPE(MyInst), POINTER :: NextInst => NULL()
   END TYPE MyInst
 
   ! Pointer to instances
   TYPE(MyInst), POINTER  :: AllInst => NULL()
-   
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_DustGinoux_Run
 !
-! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Run is the driver routine 
+! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Run is the driver routine
 ! for the Paul Ginoux dust source function HEMCO extension.
 !\\
 !\\
@@ -131,7 +131,7 @@ CONTAINS
 !
     USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
     USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
-    USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd 
+    USE HCO_FluxArr_Mod,  ONLY : HCO_EmisAdd
     USE HCO_Clock_Mod,    ONLY : HcoClock_First
 !
 ! !INPUT PARAMETERS:
@@ -192,7 +192,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVED scalars
-!    LOGICAL, SAVE     :: FIRST = .TRUE. 
+!    LOGICAL, SAVE     :: FIRST = .TRUE.
 
     ! Scalars
     INTEGER           :: I, J, N, M, tmpID
@@ -214,7 +214,7 @@ CONTAINS
     ! HCOX_DUSTGINOUX_RUN begins here!
     !=======================================================================
 
-    ! Return if extension is disabled 
+    ! Return if extension is disabled
     IF ( ExtState%DustGinoux <= 0 ) RETURN
 
     ! Enter
@@ -224,14 +224,14 @@ CONTAINS
     ! Get instance
     Inst   => NULL()
     CALL InstGet ( ExtState%DustGinoux, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
+    IF ( RC /= HCO_SUCCESS ) THEN
        WRITE(MSG,*) 'Cannot find DustGinoux instance Nr. ', ExtState%DustGinoux
        CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
        RETURN
     ENDIF
-    
+
     ! Set gravity at earth surface (cm/s^2)
-    G       = HcoState%Phys%g0 * 1.0d2 
+    G       = HcoState%Phys%g0 * 1.0d2
 
     ! Emission timestep [s]
     DTSRCE  = HcoState%TS_EMIS
@@ -246,7 +246,7 @@ CONTAINS
     Arr2D    => NULL()
 
     !=================================================================
-    ! Point to DUST source functions 
+    ! Point to DUST source functions
     !=================================================================
     !IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
 
@@ -275,10 +275,10 @@ CONTAINS
     DO N = 1, Inst%NBINS
 
        !====================================================================
-       ! Threshold velocity as a function of the dust density and the 
-       ! diameter from Bagnold (1941), valid for particles larger 
+       ! Threshold velocity as a function of the dust density and the
+       ! diameter from Bagnold (1941), valid for particles larger
        ! than 10 um.
-       ! 
+       !
        ! u_ts0 = 6.5*sqrt(dustden(n)*g0*2.*dustreff(n))
        !
        ! Threshold velocity from Marticorena and Bergametti
@@ -299,17 +299,17 @@ CONTAINS
        ! This appears to be a problem.  (tdf, 4/2/04)
        !====================================================================
 
-       ! [m/s] 
+       ! [m/s]
        U_TS0  = 129.d-5 * SQRT( ALPHA ) * SQRT( BETA ) / SQRT( GAMMA )
 
        ! Index used to select the source function (1=sand, 2=silt, 3=clay)
        M = Inst%IPOINT(N)
 
-       ! Loop over grid boxes 
-       DO J = 1, HcoState%NY 
+       ! Loop over grid boxes
+       DO J = 1, HcoState%NY
        DO I = 1, HcoState%NX
 
-          ! Fraction of emerged surfaces 
+          ! Fraction of emerged surfaces
           ! (subtract lakes, coastal ocean,...)
           CW = 1.d0
 
@@ -333,7 +333,7 @@ CONTAINS
 
           ! Get source function
           SELECT CASE( M )
-             CASE( 1 ) 
+             CASE( 1 )
                 SRCE_P = Inst%SRCE_SAND(I,J)
              CASE( 2 )
                 SRCE_P = Inst%SRCE_SILT(I,J)
@@ -369,7 +369,7 @@ CONTAINS
     ! Error check
     IF ( ERR ) THEN
        RC = HCO_FAIL
-       RETURN 
+       RETURN
     ENDIF
 
     ! Redistribute dust emissions across bins (L. Zhang, 6/26/15)
@@ -381,11 +381,11 @@ CONTAINS
      DO J=1,HcoState%NY
      DO I=1,HcoState%NX
         SELECT CASE( N )
-           CASE( 1 ) 
+           CASE( 1 )
               Inst%FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.0766d0
            CASE( 2 )
               Inst%FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.1924d0
-           CASE( 3 ) 
+           CASE( 3 )
               Inst%FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3491d0
            CASE( 4 )
               Inst%FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3819d0
@@ -396,18 +396,18 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     !=======================================================================
-    ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
+    ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS
     !=======================================================================
     DO N = 1, Inst%NBINS
        IF ( Inst%HcoIDs(N) > 0 ) THEN
 
           ! Add flux to emission array
-          CALL HCO_EmisAdd( am_I_Root,      HcoState, Inst%FLUX(:,:,N), & 
+          CALL HCO_EmisAdd( am_I_Root,      HcoState, Inst%FLUX(:,:,N), &
                             Inst%HcoIDs(N), RC,       ExtNr=Inst%ExtNr   )
           IF ( RC /= HCO_SUCCESS ) THEN
              WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-             RETURN 
+             RETURN
           ENDIF
 
        ENDIF
@@ -433,10 +433,10 @@ CONTAINS
     !=======================================================================
     ! Cleanup & quit
     !=======================================================================
-    
+
     ! Nullify pointers
     Inst    => NULL()
-    
+
     ! Leave w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
@@ -447,7 +447,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_DustGinoux_Init 
+! !IROUTINE: HCOX_DustGinoux_Init
 !
 ! !DESCRIPTION: Subroutine HcoX\_DustGinoux\_Init initializes the HEMCO
 ! DUSTGINOUX extension.
@@ -475,7 +475,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller   - Now a HEMCO extension
-!  26 Sep 2014 - R. Yantosca - Updated for TOMAS 
+!  26 Sep 2014 - R. Yantosca - Updated for TOMAS
 !  29 Sep 2014 - R. Yantosca - Now initialize NBINS from HcoState%N_DUST_BINS
 !EOP
 !------------------------------------------------------------------------------
@@ -513,7 +513,7 @@ CONTAINS
     ENDIF
     ! Also fill Inst%ExtNr
     Inst%ExtNr = ExtNr
-    
+
     ! Check for dust alkalinity option
     Inst%ExtNrAlk = GetExtNr( HcoState%Config%ExtList, 'DustAlk' )
 
@@ -592,18 +592,18 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
     ENDIF
 
-    ! Allocate vectors holding bin-specific informations 
-    ALLOCATE ( Inst%IPOINT  (Inst%NBINS) ) 
-    ALLOCATE ( Inst%FRAC_S  (Inst%NBINS) ) 
-    ALLOCATE ( Inst%DUSTDEN (Inst%NBINS) ) 
-    ALLOCATE ( Inst%DUSTREFF(Inst%NBINS) ) 
+    ! Allocate vectors holding bin-specific informations
+    ALLOCATE ( Inst%IPOINT  (Inst%NBINS) )
+    ALLOCATE ( Inst%FRAC_S  (Inst%NBINS) )
+    ALLOCATE ( Inst%DUSTDEN (Inst%NBINS) )
+    ALLOCATE ( Inst%DUSTREFF(Inst%NBINS) )
     ALLOCATE ( Inst%FLUX    (HcoState%NX,HcoState%NY,Inst%NBINS) )
     ALLOCATE ( Inst%FLUX_ALK(HcoState%NX,HcoState%NY,Inst%NBINS) )
-    
+
     ! Allocate arrays
-    ALLOCATE ( Inst%SRCE_SAND ( HcoState%NX, HcoState%NY ), & 
-               Inst%SRCE_SILT ( HcoState%NX, HcoState%NY ), & 
-               Inst%SRCE_CLAY ( HcoState%NX, HcoState%NY ), & 
+    ALLOCATE ( Inst%SRCE_SAND ( HcoState%NX, HcoState%NY ), &
+               Inst%SRCE_SILT ( HcoState%NX, HcoState%NY ), &
+               Inst%SRCE_CLAY ( HcoState%NX, HcoState%NY ), &
                STAT = AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR(HcoState%Config%Err,'Allocation error', RC )
@@ -617,7 +617,7 @@ CONTAINS
     Inst%SRCE_SILT = 0.0_hp
     Inst%SRCE_CLAY = 0.0_hp
 
-    
+
     !=======================================================================
     ! Setup for simulations that use 4 dust bins (w/ or w/o TOMAS)
     !=======================================================================
@@ -646,14 +646,14 @@ CONTAINS
     ! Setup for TOMAS simulations using more than 4 dust bins
     !
     ! from Ginoux:
-    ! The U.S. Department of Agriculture (USDA) defines particles 
-    ! with a radius between 1 um and 25 um as silt, and below 1 um 
+    ! The U.S. Department of Agriculture (USDA) defines particles
+    ! with a radius between 1 um and 25 um as silt, and below 1 um
     ! as clay [Hillel, 1982]. Mineralogical silt particles are mainly
-    ! composed of quartz, but they are often coated with strongly 
-    ! adherent clay such that their physicochemical properties are 
+    ! composed of quartz, but they are often coated with strongly
+    ! adherent clay such that their physicochemical properties are
     ! similar to clay [Hillel, 1982].
-    ! 
-    ! SRCE_FUNC Source function                              
+    !
+    ! SRCE_FUNC Source function
     ! for 1: Sand, 2: Silt, 3: Clay
     !=======================================================================
     IF ( Inst%NBINS == HcoState%MicroPhys%nBins ) THEN
@@ -697,7 +697,7 @@ CONTAINS
                                 HcoState%MicroPhys%BinBound(N+1) )    &
                       /   Inst%DUSTDEN(N) * 6.d0/HcoState%Phys%PI )**( 0.333d0 )
        ENDDO
-        
+
        !--------------------------------------------------------------------
        ! Set up the FRAC_S array
        !--------------------------------------------------------------------
@@ -727,7 +727,7 @@ CONTAINS
 
        !---------------------------------------------------
        ! TOMAS simulations with 30 or 40 size bins
-       !---------------------------------------------------        
+       !---------------------------------------------------
        Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  1 )  = 1.05d-10
        Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  2 )  = 6.28d-10
        Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  3 )  = 3.42d-09
@@ -762,7 +762,7 @@ CONTAINS
 # endif
 
     ELSE
-         
+
        ! Stop w/ error message
        CALL HCO_ERROR( HcoState%Config%Err, 'Wrong number of TOMAS dust bins!', RC )
 
@@ -781,13 +781,13 @@ CONTAINS
 
     !=======================================================================
     ! Leave w/ success
-    !=======================================================================    
+    !=======================================================================
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
 
     ! Nullify pointers
     Inst    => NULL()
 
-    CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
+    CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
   END SUBROUTINE HcoX_DustGinoux_Init
 !EOC
@@ -819,7 +819,7 @@ CONTAINS
     !=======================================================================
     ! HCOX_DUSTGINOUX_FINAL begins here!
     !=======================================================================
- 
+
     CALL InstRemove ( ExtState%DustGinoux )
 
 
@@ -843,19 +843,19 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(MyInst),    POINTER        :: Inst      ! Instance    
-    TYPE(HCO_State), POINTER        :: HcoState  ! Hemco state 
+    TYPE(MyInst),    POINTER        :: Inst      ! Instance
+    TYPE(HCO_State), POINTER        :: HcoState  ! Hemco state
 !
 ! !RETURN VALUE:
 !
     REAL*8 :: CH_DUST
 !
 ! !REMARKS:
-!  The logic in the #ifdefs may need to be cleaned up later on.  We have 
+!  The logic in the #ifdefs may need to be cleaned up later on.  We have
 !  just replicated the existing code in pre-HEMCO versions of dust_mod.F.
 !
 ! !REVISION HISTORY:
-!  11 Dec 2013 - C. Keller   - Initial version 
+!  11 Dec 2013 - C. Keller   - Initial version
 !  25 Sep 2014 - R. Yantosca - Updated for TOMAS
 !  24 Aug 2017 - M. Sulprizio- Remove support for GRID1x1
 !EOP
@@ -890,7 +890,7 @@ CONTAINS
 #endif
 
     ENDIF
-      
+
   END FUNCTION HCOX_DustGinoux_GetChDust
 !EOC
 !------------------------------------------------------------------------------
@@ -898,14 +898,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -915,7 +915,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -924,11 +924,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -945,21 +945,21 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
-! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+! !DESCRIPTION: Subroutine InstCreate creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -972,7 +972,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -988,7 +988,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -1005,7 +1005,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -1029,18 +1029,18 @@ CONTAINS
 !BOP
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+! !DESCRIPTION: Subroutine InstRemove creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( Instance ) 
+  SUBROUTINE InstRemove ( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: Instance 
+    INTEGER                         :: Instance
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -1056,21 +1056,21 @@ CONTAINS
     ! InstRemove begins here!
     !=================================================================
 
-    ! Init 
+    ! Init
     PrevInst => NULL()
     Inst     => NULL()
-    
+
     ! Get instance. Also archive previous instance.
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
-   
+    IF ( ASSOCIATED(Inst) ) THEN
+
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
-        
+
           ! Free pointer
-          IF ( ASSOCIATED( Inst%SRCE_SAND ) ) DEALLOCATE( Inst%SRCE_SAND ) 
+          IF ( ASSOCIATED( Inst%SRCE_SAND ) ) DEALLOCATE( Inst%SRCE_SAND )
           IF ( ASSOCIATED( Inst%SRCE_SILT ) ) DEALLOCATE( Inst%SRCE_SILT )
           IF ( ASSOCIATED( Inst%SRCE_CLAY ) ) DEALLOCATE( Inst%SRCE_CLAY )
 
@@ -1083,15 +1083,15 @@ CONTAINS
           IF ( ASSOCIATED( Inst%FLUX_ALK  ) ) DEALLOCATE( Inst%FLUX_ALK  )
           IF ( ALLOCATED ( Inst%HcoIDs    ) ) DEALLOCATE( Inst%HcoIDs    )
           IF ( ALLOCATED ( Inst%HcoIDsALK ) ) DEALLOCATE( Inst%HcoIDsALK )
-          
+
           PrevInst%NextInst => Inst%NextInst
        ELSE
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_DustGinoux_Mod

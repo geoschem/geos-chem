@@ -6,11 +6,12 @@
 ! !MODULE: depo_mercury_mod.F
 !
 ! !DESCRIPTION: Module DEPO\_MERCURY\_MOD contains routines to handle
-!  deposition fluxes for mercury. 
+!  deposition fluxes for mercury.
 !
-! !INTERFACE: 
+! !INTERFACE:
 !
       MODULE DEPO_MERCURY_MOD
+#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -35,7 +36,7 @@
       PUBLIC :: CLEANUP_DEPO_MERCURY
 !
 ! !PUBLIC DATA MEMBERS:
-!  
+!
       PUBLIC :: DD_HG2, DD_HGP, WD_HG2, WD_HGP
       PUBLIC :: HG2mth_wd, HG0mth_dd, HG2mth_dd
       PUBLIC :: LHGSNOW
@@ -47,13 +48,19 @@
       REAL(fp),  ALLOCATABLE :: HG0mth_dd(:,:)
       REAL(fp),  ALLOCATABLE :: HG2mth_dd(:,:)
       REAL(fp),  ALLOCATABLE :: HG2mth_wd(:,:)
-      REAL(fp),  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
+      REAL(fp),  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:),
      &                          HgIIwetGEOS(:,:)
 !
 ! !PRIVATE DATA MEMBERS:
 !
       CHARACTER(LEN=255)   :: GTMM_RST_FILE
       LOGICAL              :: LHGSNOW
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
+!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Initial version
@@ -79,14 +86,14 @@
       ! them from tracerid_mod.f.  The tracerid_mod.f module is going
       ! to be removed for the FlexChem implementation. (bmy, 4/26/16)
       !-----------------------------------------------------------------
-      
-      ! Scalars for Hg indexing 
+
+      ! Scalars for Hg indexing
       INTEGER          :: N_Hg_CATS
       INTEGER          :: id_Hg0
       INTEGER          :: id_Hg2
 
       ! Pointers for Hg Indexing
-      ! NOTE: Because these are SAVEd pointers (by virtue of being 
+      ! NOTE: Because these are SAVEd pointers (by virtue of being
       ! module variables) we can set these to NULL here. (bmy, 4/29/16)
       INTEGER, POINTER :: Hg0_Id_List (:) => NULL()
       INTEGER, POINTER :: Hg2_Id_List (:) => NULL()
@@ -103,24 +110,24 @@
 !
 ! !IROUTINE: add_Hg2_dd
 !
-! !DESCRIPTION: Subroutine ADD\_Hg2\_DD computes the amount of Hg(II) dry 
-!  deposited out of the atmosphere into the column array DD\_Hg2. 
+! !DESCRIPTION: Subroutine ADD\_Hg2\_DD computes the amount of Hg(II) dry
+!  deposited out of the atmosphere into the column array DD\_Hg2.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE ADD_Hg2_DD( I, J, HG_CAT, DRY_Hg2 )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,  INTENT(IN) :: I, J      ! Grid box lon & lat indices
       INTEGER,  INTENT(IN) :: Hg_Cat    ! Hg category number
-      REAL(fp), INTENT(IN) :: DRY_Hg2   ! Hg(II) dry deposited out of the 
+      REAL(fp), INTENT(IN) :: DRY_Hg2   ! Hg(II) dry deposited out of the
                                         !  atmosphere [kg]
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
-!  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
+!  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now
 !        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
@@ -134,7 +141,7 @@
       IF ( Hg_Cat > 0 ) THEN
          DD_Hg2(I,J,Hg_Cat) = DD_Hg2(I,J,Hg_Cat) + DRY_Hg2
       ENDIF
-     
+
       END SUBROUTINE ADD_Hg2_DD
 !EOC
 !------------------------------------------------------------------------------
@@ -144,24 +151,24 @@
 !
 ! !IROUTINE: add_Hg2_wd
 !
-! !DESCRIPTION: Subroutine ADD\_Hg2\_WD computes the amount of Hg(II) wet 
-!  scavenged out of the atmosphere into the column array WD\_Hg2. 
+! !DESCRIPTION: Subroutine ADD\_Hg2\_WD computes the amount of Hg(II) wet
+!  scavenged out of the atmosphere into the column array WD\_Hg2.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE ADD_Hg2_WD( I, J, Hg_Cat, WET_Hg2 )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,   INTENT(IN) :: I, J      ! Grid box lon & lat indices
       INTEGER,   INTENT(IN) :: Hg_Cat    ! Hg category number
-      REAL(fp),  INTENT(IN) :: WET_Hg2   ! Hg(II) scavenged out of the 
+      REAL(fp),  INTENT(IN) :: WET_Hg2   ! Hg(II) scavenged out of the
                                          !  atmosphere [kg]
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
-!  (1 ) WD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
+!  (1 ) WD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now
 !        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
@@ -185,24 +192,24 @@
 !
 ! !IROUTINE: add_HgP_dd
 !
-! !DESCRIPTION: Subroutine ADD\_HgP\_DD computes the amount of HgP dry 
-!  deposited out of the atmosphere into the column array DD\_HgP. 
+! !DESCRIPTION: Subroutine ADD\_HgP\_DD computes the amount of HgP dry
+!  deposited out of the atmosphere into the column array DD\_HgP.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE ADD_HgP_DD( I, J, Hg_Cat, DRY_HgP )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,  INTENT(IN) :: I, J      ! Grid box lon & lat indices
       INTEGER,  INTENT(IN) :: Hg_Cat    ! Hg category number
-      REAL(fp), INTENT(IN) :: DRY_HgP   ! HgP dry deposited out of the 
+      REAL(fp), INTENT(IN) :: DRY_HgP   ! HgP dry deposited out of the
                                         !  atmosphere [kg]
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
-!  (1 ) DD_HgP is now a 3-D array.  Also pass N via the argument list. Now 
+!  (1 ) DD_HgP is now a 3-D array.  Also pass N via the argument list. Now
 !        call GET_HgP_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
@@ -226,24 +233,24 @@
 !
 ! !IROUTINE: add_HgP_wd
 !
-! !DESCRIPTION: Subroutine ADD\_HgP\_WD computes the amount of HgP wet 
-!  scavenged out of the atmosphere into the column array WD\_HgP. 
+! !DESCRIPTION: Subroutine ADD\_HgP\_WD computes the amount of HgP wet
+!  scavenged out of the atmosphere into the column array WD\_HgP.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE ADD_HgP_WD( I, J, Hg_Cat, WET_HgP )
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,  INTENT(IN) :: I, J      ! Grid box lon & lat indices
       INTEGER,  INTENT(IN) :: Hg_Cat    ! Hg category number
-      REAL(fp), INTENT(IN) :: WET_HgP   ! HgP scavenged out of the 
+      REAL(fp), INTENT(IN) :: WET_HgP   ! HgP scavenged out of the
                                         !  atmosphere [kg]
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
-!  (1 ) WD_HgP is now a 3-D array.  Also pass N via the argument list. Now 
+!  (1 ) WD_HgP is now a 3-D array.  Also pass N via the argument list. Now
 !        call GET_HgP_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
@@ -257,7 +264,7 @@
       IF ( Hg_Cat > 0 ) THEN
          WD_HgP(I,J,Hg_Cat) = WD_HgP(I,J,Hg_Cat) + WET_HgP
       ENDIF
-      
+
       END SUBROUTINE ADD_HgP_WD
 !EOC
 !------------------------------------------------------------------------------
@@ -270,9 +277,9 @@
 ! !DESCRIPTION: Subroutine ADD\_Hg2\_SNOWPACKS adds Hg2 deposition to snowpack.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
-      SUBROUTINE ADD_HG2_SNOWPACK( I, J, Hg_Cat, DEP_Hg2, 
+      SUBROUTINE ADD_HG2_SNOWPACK( I, J, Hg_Cat, DEP_Hg2,
      &                             State_Met, State_Chm, State_Diag )
 !
 ! !USES:
@@ -281,9 +288,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
-#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03
-#endif
       USE Time_Mod,           ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
@@ -326,10 +331,10 @@
 !
       ! Local variables
       INTEGER  :: NN
-      LOGICAL  :: IS_SNOW_OR_ICE 
+      LOGICAL  :: IS_SNOW_OR_ICE
       REAL(fp) :: FRAC_SNOW_OR_ICE
       REAL(fp) :: FRAC_O
-      REAL(fp) :: DT 
+      REAL(fp) :: DT
 
       ! Pointers
       REAL(fp), POINTER :: SNOW_HG_OC(:,:,:)
@@ -358,7 +363,7 @@
 
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
-     &                        State_Met%FRSEAICE(I,J)  + 
+     &                        State_Met%FRSEAICE(I,J)  +
      &                        State_Met%FRLANDIC(I,J), 1e+0_fp)
       IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0e+0_fp )
 
@@ -367,9 +372,9 @@
 
       ! Check if there is snow on the ground, or if this is sea ice
       IF ( IS_SNOW_OR_ICE ) THEN
-    
+
          ! Add 60% of deposition to surface (i.e. assume 40% accumulates
-         ! in surface) multiplied by the fraction of the box that is 
+         ! in surface) multiplied by the fraction of the box that is
          ! snow or ice (i.e. 1 for all met fields but MERRA and GEOS-5.7.x)
          SNOW_HG_OC(I,J,NN) = SNOW_HG_OC(I,J,NN) +
      &                        FRAC_O * FRAC_SNOW_OR_ICE *
@@ -396,38 +401,36 @@
      7                               FRAC_SNOW_OR_ICE
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
-#if defined( BPCH_DIAG )
 !----------------------------------------------------------------------------
 ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
 !
-! NOTE: Archiving to AD03(I,J,21,1) causes the slot #4 of the PL-HG2-$ 
+! NOTE: Archiving to AD03(I,J,21,1) causes the slot #4 of the PL-HG2-$
 ! diagnostic to yield different results when comparing a GEOS-5 Hg simulation
 ! done on a single processor to one done with multi-processors.  (In other
 ! words, the unit test result is "yellow").  The magnitude of the differences
 ! are very small, and on the order of numerical noise.
-! 
-! We have traced this behavior to the call to ADD_Hg2_SNOWPACK for HgP from 
-! routine NFCLDMX (in GeosCore/convection_mod.f).  We hypothesize that this 
+!
+! We have traced this behavior to the call to ADD_Hg2_SNOWPACK for HgP from
+! routine NFCLDMX (in GeosCore/convection_mod.f).  We hypothesize that this
 ! issue may have two causes: (1) updating the AD03 array (which is 2-D) from
-! within a 3-D parallel loop, and (2) possible numerical roundoff when 
-! casting the REAL*8 value to REAL*4.  
+! within a 3-D parallel loop, and (2) possible numerical roundoff when
+! casting the REAL*8 value to REAL*4.
 !
 ! The results of the simulation in the tracer restart files are identical,
-! so technically, the GEOS-5 Hg simulations pass the unit test. 
+! so technically, the GEOS-5 Hg simulations pass the unit test.
 !
 ! It is probably not possible to avoid the numerical differences in slot #4
-! of the PL-HG2-$ diagnostic without redesiging the diagnostics.  For the 
+! of the PL-HG2-$ diagnostic without redesiging the diagnostics.  For the
 ! time being, we will leave the code as-is but just note that differences
 ! will occur in this diagnostic.
-! 
+!
 !    -- Bob Yantosca (22 Apr 2016)
 !
          ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
          IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   +
      &                                    FRAC_SNOW_OR_ICE *
-     &                                    MAX(DEP_HG2, 0e+0_fp) 
+     &                                    MAX(DEP_HG2, 0e+0_fp)
 !----------------------------------------------------------------------------
-#endif
 
          !--------------------------------------------------------------
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -436,7 +439,7 @@
          ! NOTE: Units are now kg/s
          !--------------------------------------------------------------
          IF ( State_Diag%Archive_FluxHg2HgPfromAirToSnow ) THEN
-            State_Diag%FluxHg2HgPfromAirToSnow(I,J) = 
+            State_Diag%FluxHg2HgPfromAirToSnow(I,J) =
      &      State_Diag%FluxHg2HgPfromAirToSnow(I,J) +
      &         ( FRAC_SNOW_OR_ICE * MAX( DEP_HG2, 0e+0_fp ) ) !/ DT
          ENDIF
@@ -458,12 +461,12 @@
 !
 ! !IROUTINE: reset_hg_dep_arrays
 !
-! !DESCRIPTION: Subroutine RESET\_Hg\_DEP\_ARRAYS resets the wet and dry 
-!  deposition arrays for Hg(II) and Hg(p) to zero. This allows us to call 
-!  OCEAN\_MERCURY\_FLUX and LAND\_MERCURY\_FLUX in any order in MERCURY\_MOD. 
+! !DESCRIPTION: Subroutine RESET\_Hg\_DEP\_ARRAYS resets the wet and dry
+!  deposition arrays for Hg(II) and Hg(p) to zero. This allows us to call
+!  OCEAN\_MERCURY\_FLUX and LAND\_MERCURY\_FLUX in any order in MERCURY\_MOD.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE RESET_HG_DEP_ARRAYS
 !
@@ -494,11 +497,11 @@
 !  fluxes and store deposition fluxes for continuous runs.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE MAKE_GTMM_RESTART( am_I_Root, Input_Opt, State_Grid,
      &                              NYMD, NHMS, TAU, RC )
-! 
+!
 ! !USES:
 !
       USE BPCH2_MOD
@@ -510,7 +513,7 @@
       USE TIME_MOD,            ONLY : GET_CT_DYN, GET_CT_CHEM
       USE State_Grid_Mod,      ONLY : GrdState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,        INTENT(IN)   :: NYMD        ! Year-Month-Date
       INTEGER,        INTENT(IN)   :: NHMS        ! and Hour-Min-Sec
@@ -547,7 +550,7 @@
       !=================================================================
       ! MAKE_GTMM_RESTART begins here!
       !=================================================================
-    
+
       ! Assume success
       RC = GC_SUCCESS
 
@@ -582,11 +585,11 @@
       ! Total Hg(0) dry deposition
       !---------------------------
       ARRAY(:,:,1) = HG0mth_dd
-    
-      CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,         
-     &     HALFPOLAR, CENTER180, CATEGORY, N,                     
-     &     UNIT,      TAU,       TAU,      RESERVED,              
-     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,                
+
+      CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &     HALFPOLAR, CENTER180, CATEGORY, N,
+     &     UNIT,      TAU,       TAU,      RESERVED,
+     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &     JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
       !---------------------------
@@ -594,10 +597,10 @@
       !---------------------------
       ARRAY(:,:,1) = HG2mth_dd
 
-      CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,         
-     &     HALFPOLAR, CENTER180, CATEGORY, N,                     
-     &     UNIT,      TAU,       TAU,      RESERVED,              
-     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,                
+      CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &     HALFPOLAR, CENTER180, CATEGORY, N,
+     &     UNIT,      TAU,       TAU,      RESERVED,
+     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &     JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
       !---------------------------
@@ -606,15 +609,15 @@
       CATEGORY  = 'WETDLS-$'
       ARRAY(:,:,1) = HG2mth_wd
 
-      CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,        
-     &     HALFPOLAR, CENTER180, CATEGORY, N,                    
+      CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
+     &     HALFPOLAR, CENTER180, CATEGORY, N,
      &     UNIT,      TAU,       TAU,      RESERVED,
-     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,                
+     &     State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-    
+
       ! Close file
       CLOSE( IU_FILE )
-    
+
       END SUBROUTINE MAKE_GTMM_RESTART
 !EOC
 !------------------------------------------------------------------------------
@@ -624,18 +627,18 @@
 !
 ! !IROUTINE: read_gtmm_restart
 !
-! !DESCRIPTION: Subroutine READ\_GTMM\_RESTART reads dry and wet deposition 
+! !DESCRIPTION: Subroutine READ\_GTMM\_RESTART reads dry and wet deposition
 !  for mercury from GTMM restart.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE READ_GTMM_RESTART( am_I_Root,   Input_Opt,
      &                              State_Chm,   State_Grid,
-     &                              YYYYMMDD,    HHMMSS,     
-     &                              Hg0dryGEOS,  HgIIdryGEOS, 
+     &                              YYYYMMDD,    HHMMSS,
+     &                              Hg0dryGEOS,  HgIIdryGEOS,
      &                              HgIIwetGEOS, RC           )
-! 
+!
 ! !USES:
 !
       USE BPCH2_MOD,            ONLY : OPEN_BPCH2_FOR_READ
@@ -665,7 +668,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
       REAL(fp), DIMENSION(State_Grid%NX, State_Grid%NY)   :: Hg0dryGEOS
       REAL(fp), DIMENSION(State_Grid%NX, State_Grid%NY)   :: HgIIdryGEOS
-      REAL(fp), DIMENSION(State_Grid%NX, State_Grid%NY)   :: HgIIwetGEOS     
+      REAL(fp), DIMENSION(State_Grid%NX, State_Grid%NY)   :: HgIIwetGEOS
 !
 ! !REMAKRS:
 !  NOTE: THIS ROUTINE WILL HAVE TO BE UPDATED TO CONVERT TO NETCDF FORMAT!!!
@@ -682,7 +685,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: IOS, I, IU_FILE, J, L, NN, N_gtmm
-      INTEGER               :: NCOUNT(State_Chm%nAdvect) 
+      INTEGER               :: NCOUNT(State_Chm%nAdvect)
       REAL*4                :: FLUX(State_Grid%NX,State_Grid%NY)
       CHARACTER(LEN=255)    :: FILENAME
 
@@ -695,9 +698,9 @@
       REAL(fp)              :: ZTAU0,     ZTAU1
       CHARACTER(LEN=20)     :: MODELNAME
       CHARACTER(LEN=40)     :: CATEGORY
-      CHARACTER(LEN=40)     :: UNIT     
+      CHARACTER(LEN=40)     :: UNIT
       CHARACTER(LEN=40)     :: RESERVED
-  
+
       !=================================================================
       ! READ_GTMM_RESTART begins here!
       !=================================================================
@@ -710,14 +713,14 @@
 
       ! Copy input file name to a local variable
       FILENAME = TRIM( Input_Opt%RUN_DIR ) // TRIM( GTMM_RST_FILE )
-    
+
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
-    
+
       ! Echo some input to the screen
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         WRITE( 6, 100   ) 
+         WRITE( 6, 100   )
          WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
  100     FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
  110     FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
@@ -725,62 +728,62 @@
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
-    
+
       !=================================================================
       ! Read concentrations -- store in the TRACER array
       !=================================================================
-      DO 
-         READ( IU_FILE, IOSTAT=IOS )                              
+      DO
+         READ( IU_FILE, IOSTAT=IOS )
      &        MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-       
+
          ! IOS < 0 is end-of-file, so exit
          IF ( IOS < 0 ) EXIT
-       
+
          ! IOS > 0 is a real I/O error -- print error message
          IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:1' )
-       
-         READ( IU_FILE, IOSTAT=IOS )                               
-     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,  
-     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,    
+
+         READ( IU_FILE, IOSTAT=IOS )
+     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
+     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,
      &        NSKIP
-       
+
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:2' )
-       
-         READ( IU_FILE, IOSTAT=IOS )                               
+
+         READ( IU_FILE, IOSTAT=IOS )
      &        ( ( FLUX(I,J), I=1,NI ), J=1,NJ )
-       
+
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_rst:3' )
-       
+
          !==============================================================
          ! Assign data from the TRACER array to the STT array.
          !==============================================================
-       
-         ! Process dry deposition data 
-         IF ( CATEGORY(1:8) == 'DRYD-FLX' ) THEN 
-          
+
+         ! Process dry deposition data
+         IF ( CATEGORY(1:8) == 'DRYD-FLX' ) THEN
+
             ! Make sure array dimensions are of global size
             ! (NI=State_Grid%NX; NJ=State_Grid%NY, NL=State_Grid%NZ),
             ! or stop the run
             CALL CHECK_DIMENSIONS( NI, NJ, NL, State_Grid )
-          
+
             ! Save into arrays
             IF ( ANY( Hg0_Id_List == NTRACER ) ) THEN
-             
+
                !----------
                ! Hg(0)
                !----------
-             
+
                ! Get the Hg category #
-               NN              = Hg0_Cat(NTRACER) 
+               NN              = Hg0_Cat(NTRACER)
 
                ! Store ocean Hg(0) in Hg0aq array
                Hg0dryGEOS(:,:) = FLUX(:,:)
-             
+
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
-             
+
             ELSE IF ( ANY( Hg2_Id_List == NTRACER ) ) THEN
-             
+
                !----------
                ! Hg(II)
                !----------
@@ -790,15 +793,15 @@
 
                ! Store ocean Hg(II) in Hg2_aq array
                HgIIdryGEOS(:,:) = FLUX(:,:)
-             
+
                ! Increment NCOUNT
                NCOUNT(NTRACER)  = NCOUNT(NTRACER) + 1
-             
+
             ENDIF
          ENDIF
-       
+
          ! Process wet deposition data
-         IF ( CATEGORY(1:8) == 'WETDLS-$' ) THEN 
+         IF ( CATEGORY(1:8) == 'WETDLS-$' ) THEN
 
             ! Make sure array dimensions are of global size
             ! (NI=State_Grid%NX; NJ=State_Grid%NY, NL=State_Grid%NZ),
@@ -809,29 +812,29 @@
             NL = 1
             ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             CALL CHECK_DIMENSIONS( NI, NJ, NL, State_Grid )
-          
+
             IF ( ANY( Hg2_Id_List == NTRACER ) ) THEN
-             
+
                !----------
                ! Hg(II)
                !----------
-             
+
                ! Get the Hg category #
                NN               = Hg2_Cat(NTRACER)
-             
+
                ! Store ocean Hg(II) in Hg2_aq array
                HgIIwetGEOS(:,:) = FLUX(:,:)
-             
+
                ! Increment NCOUNT
                NCOUNT(NTRACER)  = NCOUNT(NTRACER) + 1
-             
+
             ENDIF
          ENDIF
       ENDDO
-    
+
       ! Close file
-      CLOSE( IU_FILE )      
-    
+      CLOSE( IU_FILE )
+
       END SUBROUTINE READ_GTMM_RESTART
 !EOC
 !------------------------------------------------------------------------------
@@ -841,21 +844,20 @@
 !
 ! !IROUTINE: update_dep
 !
-! !DESCRIPTION: Subroutine UPDATE\_DEP update the monthly average for wet and 
+! !DESCRIPTION: Subroutine UPDATE\_DEP update the monthly average for wet and
 !  dry deposition of Hg0 and Hg2 for mercury from GTMM restart.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE UPDATE_DEP( NN )
-! 
+!#ifdef BPCH_DIAG
+!      USE DIAG_MOD,     ONLY : AD38, AD39, AD44
+!#endif
+!
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE DIAG_MOD,     ONLY : AD38,   AD39
-      USE DIAG_MOD,     ONLY : AD44
-#endif
-      USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM 
+      USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -876,24 +878,22 @@
       ! UPDATE_DEP begins here!
       !=================================================================
 
-      ! counter variables 
+      ! counter variables
       SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1e-32_fp
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1e-32_fp
 
-#if defined( BPCH_DIAG )
-      ! Hg2 total wet deposition at the surface
-      HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) + 
-     &                          SUM(AD39(:,:,:,NN), DIM=3) )
-     &                      / SCALEDYN
-
-      ! Hg0 total dry deposition at the surface
-      N         = id_Hg0
-      HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
-
-      ! Hg2 total dry deposition at the surface
-      N         = id_Hg2
-      HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
-#endif
+!      ! Hg2 total wet deposition at the surface
+!      HG2mth_wd = HG2mth_wd + ( SUM(AD38(:,:,:,NN), DIM=3) +
+!     &                          SUM(AD39(:,:,:,NN), DIM=3) )
+!     &                      / SCALEDYN
+!
+!      ! Hg0 total dry deposition at the surface
+!      N         = id_Hg0
+!      HG0mth_dd = HG0mth_dd + AD44(:,:,N,1) / SCALECHEM
+!
+!      ! Hg2 total dry deposition at the surface
+!      N         = id_Hg2
+!      HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
 
       END SUBROUTINE UPDATE_DEP
 !EOC
@@ -904,13 +904,13 @@
 !
 ! !IROUTINE: check_dimensions
 !
-! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS makes sure that the dimensions of 
+! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS makes sure that the dimensions of
 !  the Hg restart file extend to cover the entire grid.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
-      SUBROUTINE CHECK_DIMENSIONS( NI, NJ, NL, State_Grid ) 
+      SUBROUTINE CHECK_DIMENSIONS( NI, NJ, NL, State_Grid )
 !
 ! !USES:
 !
@@ -934,7 +934,7 @@
 
       ! Error check longitude dimension: NI must equal State_Grid%NX
       IF ( NI /= State_Grid%NX ) THEN
-         WRITE( 6, 100 ) 
+         WRITE( 6, 100 )
  100     FORMAT( 'ERROR reading in Hg restart file', /
      &           'Wrong number of longitudes encountered', /
      &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
@@ -946,17 +946,17 @@
 
       ! Error check latitude dimension: NJ must equal State_Grid%NY
       IF ( NJ /= State_Grid%NY ) THEN
-         WRITE( 6, 110 ) 
+         WRITE( 6, 110 )
  110     FORMAT( 'ERROR reading in Hg restart file', /
      &           'Wrong number of latitudes encountered', /
      &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          CALL GEOS_CHEM_STOP
       ENDIF
-      
+
       ! Error check vertical dimension: NL must equal State_Grid%NZ
       IF ( NL /= 1 ) THEN
-         WRITE( 6, 120 ) 
+         WRITE( 6, 120 )
  120     FORMAT( 'ERROR reading in Hg restart file', /
      &           'Wrong number of vertical encountered', /
      &           'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
@@ -973,11 +973,11 @@
 !
 ! !IROUTINE: init_depo_mercury
 !
-! !DESCRIPTION: Subroutine INIT\_DEPO\_MERCURY initialize deposition arrays 
+! !DESCRIPTION: Subroutine INIT\_DEPO\_MERCURY initialize deposition arrays
 !  for mercury.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE INIT_DEPO_MERCURY( am_I_Root,  Input_Opt, State_Chm,
      &                              State_Grid, RC         )
@@ -1032,9 +1032,9 @@
 
       ! GTMM restart file name
       GTMM_RST_FILE = Input_Opt%GTMM_RST_FILE
-    
+
       !================================================================
-      ! Initialize local Hg indexing variables.  These used to be 
+      ! Initialize local Hg indexing variables.  These used to be
       ! contained in tracerid_mod.F, but tracerid_mod.F is going
       ! to be removed with the FlexChem implementation (bmy, 4/26/16)
       !================================================================
@@ -1065,9 +1065,9 @@
 
          ! Define local id_Hg0 and id_Hg2 flags
          SELECT CASE( TRIM( SpcInfo%Name ) )
-            CASE( 'Hg0' ) 
+            CASE( 'Hg0' )
                id_Hg0 = SpcInfo%ModelId
-            CASE( 'Hg2' ) 
+            CASE( 'Hg2' )
                id_Hg2 = SpcInfo%ModelId
             CASE DEFAULT
                ! Do nothing
@@ -1112,11 +1112,11 @@
          ALLOCATE( HG0mth_dd( State_Grid%NX, State_Grid%NY ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
          HG0mth_dd = 0e+0_fp
-         
+
          ALLOCATE( HG2mth_dd( State_Grid%NX, State_Grid%NY ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_dd' )
          HG2mth_dd = 0e+0_fp
-         
+
          ALLOCATE( HG2mth_wd( State_Grid%NX, State_Grid%NY ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG2mth_wd' )
          HG2mth_wd = 0e+0_fp
@@ -1135,7 +1135,7 @@
 ! !DESCRIPTION: Subroutine CLEANUP\_DEPO\_MERCURY deallocate all arrays
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE:
 !
       SUBROUTINE CLEANUP_DEPO_MERCURY
 !
@@ -1154,7 +1154,7 @@
       IF ( ALLOCATED( HG0mth_dd   ) ) DEALLOCATE( HG0mth_dd   )
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )
-      
+
       ! Free pointers
       Hg0_Id_List => NULL()
       Hg2_Id_List => NULL()
@@ -1164,6 +1164,6 @@
       IF ( ASSOCIATED( Hg2_Cat ) ) DEALLOCATE( Hg2_CAT )
 
       END SUBROUTINE CLEANUP_DEPO_MERCURY
-
-      END MODULE DEPO_MERCURY_MOD
 !EOC
+#endif
+      END MODULE DEPO_MERCURY_MOD

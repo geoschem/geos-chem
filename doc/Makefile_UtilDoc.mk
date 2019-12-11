@@ -5,7 +5,7 @@
 #
 # !IROUTINE: Makefile_UtilDoc.mk (in doc subdirectory)
 #
-# !DESCRIPTION: This Makefile fragment contains commands to build the 
+# !DESCRIPTION: This Makefile fragment contains commands to build the
 #  documentation for the GEOS-Chem utility modules.  It is inlined into
 #  the Makefile (in the doc subdirectory) by an "include" command.
 #\\
@@ -20,11 +20,11 @@
 # You must have the LaTeX utilities (latex, dvips, dvipdf) installed
 # on your system in order to build the documentation.
 #
-# !REVISION HISTORY: 
+# !REVISION HISTORY:
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_2.*"
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
-#  03 Apr 2012 - M. Payer    - Added *.F90 so that grid_mod.F90 and 
+#  03 Apr 2012 - M. Payer    - Added *.F90 so that grid_mod.F90 and
 #                              regrid_a2a_mod.F90 are included
 #  15 Jan 2014 - R. Yantosca - Now only create *.pdf output
 #  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
@@ -63,7 +63,7 @@ DVI1 := GC_v11-02_Utility_Modules.dvi
 PDF1 := GC_v11-02_Utility_Modules.pdf
 
 # Make commands
-utildoc: 
+utildoc:
 	rm -f $(TEX1)
 	./protex -sfp $(SRC1) > $(TEX1)
 	latex $(TEX1)
