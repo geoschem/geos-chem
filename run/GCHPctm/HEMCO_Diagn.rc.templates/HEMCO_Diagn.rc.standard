@@ -325,8 +325,8 @@ EmisNH3_Ship       NH3    0      10  -1   2   kg/m2/s  NH3_emission_flux_from_sh
 #####  NO emissions                                                       #####
 ###############################################################################
 EmisNO_Total       NO     -1     -1  -1   3   kg/m2/s  NO_emission_flux_from_all_sectors
-EmisNO_Aircraft    NO     0      20  -1   3   kg/m2/s  NO_emission_flux_from_anthropogenic
-EmisNO_Anthro      NO     0      1   -1   3   kg/m2/s  NO_emission_flux_from_biomass_burning
+EmisNO_Aircraft    NO     0      20  -1   3   kg/m2/s  NO_emission_flux_from_aircraft
+EmisNO_Anthro      NO     0      1   -1   3   kg/m2/s  NO_emission_flux_from_anthropogenic
 EmisNO_BioBurn     NO     111    -1  -1   2   kg/m2/s  NO_emission_flux_from_biomass_burning
 EmisNO_Lightning   NO     103    -1  -1   3   kg/m2/s  NO_emission_flux_from_lightning
 EmisNO_Ship        NO     102    -1  -1   2   kg/m2/s  NO_emission_flux_from_ships
