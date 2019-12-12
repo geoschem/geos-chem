@@ -3006,7 +3006,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Looks at the input arguments to determine if the user
 !  has selected to do a GEOS-Chem dry-run.  If so, then the proper
-!  fields of Input_Opt will be populated accordingly, and the dry-run
+!  fields of Input\_Opt will be populated accordingly, and the dry-run
 !  log file will be opened.
 !\\
 !\\
@@ -3107,7 +3107,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Looks at the input arguments to determine if the user
 !  has selected to do a GEOS-Chem dry-run.  If so, then the proper
-!  fields of Input_Opt will be populated accordingly.
+!  fields of Input\_Opt will be populated accordingly.
 !\\
 !\\
 ! !INTERFACE:
