@@ -23,7 +23,6 @@ endif()
 add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	aero_drydep.F
 	aerosol_mod.F
-	bromocarb_mod.F
 	carbon_mod.F
 	chemistry_mod.F90
 	cldice_HBrHOBr_rxn.F

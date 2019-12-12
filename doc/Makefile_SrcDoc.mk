@@ -133,7 +133,6 @@ $(CORE)/toms_mod.F                    \
 $(CORE)/flexchem_mod.F90              \
 $(KPP)/Standard/gckpp_HetRates.F90    \
 $(CORE)/ucx_mod.F                     \
-$(CORE)/bromocarb_mod.F               \
 $(CORE)/cldice_HBrHOBr_rxn.F          \
 $(CORE)/strat_chem_mod.F90            \
 $(CORE)/linoz_mod.F                   \
