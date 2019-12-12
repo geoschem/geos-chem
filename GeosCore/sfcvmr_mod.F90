@@ -28,44 +28,44 @@
 !\\
 ! !INTERFACE:
 !
-MODULE SFCVMR_MOD
+MODULE SfcVmr_Mod
 !
 ! !USES:
 !
-    USE PhysConstants       ! Physical constants
-    USE inquireMod,    ONLY : findFreeLUN
-    USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
-    USE HCO_ERROR_MOD
-    USE CMN_SIZE_MOD
+  USE PhysConstants       ! Physical constants
+  USE Precision_Mod       ! For GEOS-Chem Precision (fp)
+  USE HCO_Error_Mod       ! HEMCO error handling variables & functions
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-    PRIVATE :: fixSfcVMR_Init
-    PUBLIC  :: fixSfcVMR_Run
-    PUBLIC  :: fixSfcVMR_Final
+  PUBLIC  :: FixSfcVmr_Run
+  PUBLIC  :: FixSfcVmr_Final
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: FixSfcVmr_Init
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version.
-!  16 Aug 2019 - C. Keller  - Now read 2D fields with boundary concentrations
-!                             via HEMCO. Applicable to any species.
-!  02 Oct 2019 - T. Sherwen - Updates to documentation
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
+  ! Linked list type
   TYPE :: SfcMrObj
-     CHARACTER(LEN=63)       :: FldName        ! Field name
-     INTEGER                 :: SpcID          ! ID in species database
-     TYPE(SfcMrObj), POINTER :: Next => NULL() ! Next element in list
+     CHARACTER(LEN=63)         :: FldName        ! Field name
+     INTEGER                   :: SpcID          ! ID in species database
+     TYPE(SfcMrObj), POINTER   :: Next           ! Next element in list
   END TYPE SfcMrObj
 
   ! Heat of linked list with SfcMrObj objects
-  TYPE(SfcMrObj), POINTER :: SfcMrHead => NULL()
+  TYPE(SfcMrObj),    POINTER   :: SfcMrHead => NULL()
 
   ! Field prefix
   CHARACTER(LEN=63), PARAMETER :: Prefix = 'SfcVMR_'
@@ -76,22 +76,19 @@ CONTAINS
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
-! !IROUTINE: FIXSFCVMR_Init
 !
-! !DESCRIPTION: Subroutine FIXSFCVMR_Init initializes the SfcMr objects.
+! !IROUTINE: FixSfcVmr_Init
+!
+! !DESCRIPTION: Subroutine FixSfcVmr_Init initializes the SfcMr objects.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE fixSfcVMR_Init( am_I_Root, Input_Opt, State_Met, State_Grid, &
-                             State_Chm, RC )
+  SUBROUTINE FixSfcVmr_Init( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE CMN_SIZE_MOD
-    USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
@@ -102,43 +99,59 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid State object
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state
+    TYPE(MetState),   INTENT(IN)     :: State_Met   ! Met state
+    TYPE(GrdState),   INTENT(IN)     :: State_Grid  ! Grid State object
+    TYPE(ChmState),   INTENT(IN)     :: State_Chm   ! Chemistry state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt   ! Input opts
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)    :: RC          ! Failure or success
 !
 ! !REVISION HISTORY:
 !  16 Aug 2019 - C. Keller   - Updated version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    ! Loop indices
-    Integer                 :: N
-    TYPE(Species), POINTER  :: SpcInfo
-    REAL(hp)                :: Arr2D(State_Grid%NX,State_Grid%NY)
-    CHARACTER(LEN=63)       :: FldName
+    ! Scalars
     LOGICAL                 :: FOUND
-    TYPE(SfcMrObj), POINTER :: iSfcMrObj => NULL()
+    INTEGER                 :: N
+
+    ! Strings
+    CHARACTER(LEN=63)       :: FldName
+    CHARACTER(LEN=255)      :: ErrMsg
+    CHARACTER(LEN=255)      :: ThisLoc
+
+    ! Arrays
+    REAL(hp)                :: Arr2D(State_Grid%NX,State_Grid%NY)
+
+    ! Pointers
+    TYPE(Species),  POINTER :: SpcInfo
+    TYPE(SfcMrObj), POINTER :: iSfcMrObj
 
     !=================================================================
     ! FIXSFCVMR_Init begins here!
     !=================================================================
 
-    ! Verbose
-    IF ( am_I_Root ) THEN
-       WRITE(6,*) '--- Initialize surface boundary conditions from input file ---'
-    ENDIF
+    ! Initialize
+    RC        = HCO_SUCCESS
+    ErrMsg    = ''
+    ThisLoc   = ' --> at fixSfcVMR_Init (in module GeosCore/sfcvmr_mod.F90)'
+    iSfcMrObj => NULL()
+    SpcInfo   => NULL()
 
-    ! Assume success
-    RC = GC_SUCCESS
+    ! Verbose
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) 
+ 100   FORMAT('--- Initialize surface boundary conditions from input file ---')
+    ENDIF
 
     ! Head of linked list
     SfcMrHead => NULL()
@@ -149,45 +162,57 @@ CONTAINS
        SpcInfo => State_Chm%SpcData(N)%Info
 
        ! Check if file exists
-       FldName = TRIM(Prefix)//TRIM(SpcInfo%Name)
-       CALL HCO_EvalFld( am_I_Root, HcoState, Trim(FldName), Arr2D, RC, FOUND=FOUND )
+       FldName = TRIM( Prefix ) // TRIM( SpcInfo%Name )
+       CALL HCO_EvalFld( Input_Opt%amIRoot, HcoState, TRIM(FldName),         &
+                         Arr2D,             RC,       FOUND=FOUND           )
        IF ( RC /= HCO_SUCCESS ) THEN
-          RC = GC_FAILURE
-          EXIT
+          ErrMsg = 'Could not find field : ' // TRIM( FldName )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
        ! Add to linked list if necessary
        IF ( FOUND ) THEN
+
            ! Must have positive, non-zero MW
            IF ( SpcInfo%emMW_g <= 0.0_fp ) THEN
-               WRITE(6,*) 'Cannot use surface boundary condition for species '//TRIM(SpcInfo%Name)//' due to invalid MW'
-               RC = GC_FAILURE
-               EXIT
+              ErrMsg = 'Cannot use surface boundary condition for species '  &
+                     // TRIM(SpcInfo%Name) // ' due to invalid MW!'
+              CALL GC_Error( ErrMsg, RC, ThisLoc )
+              RETURN
            ENDIF
+
            ! Create new object, add to list
-           ALLOCATE(iSfcMrObj)
+           ALLOCATE( iSfcMrObj, STAT=RC )
+           CALL GC_CheckVar( 'sfcvmr_mod.F90:iSfcMrObj', 0, RC )
+           IF ( RC /= HCO_SUCCESS ) RETURN
+
            iSfcMrObj%SpcID   =  N
            iSfcMrObj%FldName =  TRIM(Prefix)//TRIM(SpcInfo%Name)
            iSfcMrObj%Next    => SfcMrHead
            SfcMrHead         => iSfcMrObj
-           IF ( am_I_Root ) THEN
-               WRITE(6,*) '--> '//TRIM(SpcInfo%Name)//': Will use prescribed surface boundary conditions from field '//TRIM(iSfcMrObj%FldName)
+           IF ( Input_Opt%amIRoot ) THEN
+              WRITE( 6, 110 ) TRIM( SpcInfo%Name ), TRIM( iSfcMrObj%FldName )
+ 110          FORMAT( '--> ', a, ' will use prescribed surface boundary ',   &
+                      'conditions from field ', a )
            ENDIF
+
+           ! Free the pointer
            iSfcMrObj => NULL()
        ENDIF
-       RC = GC_SUCCESS
+
+       ! Indicate success
+       RC = HCO_SUCCESS
     ENDDO
 
-    ! Error check
-    IF ( RC == GC_FAILURE ) RETURN
+    ! Exit if unsuccessful
+    IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Verbose
-    IF ( am_I_Root ) THEN
-       WRITE(6,*) '--- Finished initializing surface boundary conditions ---'
+    ! If successful, print message
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 120 )
+ 120   FORMAT( '--- Finished initializing surface boundary conditions ---' )
     ENDIF
-
-    ! Return with success
-    RC = GC_SUCCESS
 
   END SUBROUTINE fixSfcVMR_Init
 !EOC
@@ -196,7 +221,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: FIXSFCVMR_Run
+! !IROUTINE: FixSfcVmr_Run
 !
 ! !DESCRIPTION: Subroutine FIXSFCVMR_Run fixes the VMR of selected species
 ! throughout the PBL to observed values.
@@ -204,14 +229,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE fixSfcVMR_Run( am_I_Root, Input_Opt, State_Met, State_Grid, &
-                            State_Chm, RC )
+  SUBROUTINE FixSfcVmr_Run( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
@@ -230,57 +252,62 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(GrdState),   INTENT(IN   )  :: State_Grid  ! Grid State object
-    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry State object
+    TYPE(GrdState),   INTENT(IN)     :: State_Grid  ! Grid State object
+    TYPE(MetState),   INTENT(IN)     :: State_Met   ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    TYPE(ChmState),   INTENT(INOUT)  :: State_Chm   ! Chemistry State object
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt   ! Input Options object
+    INTEGER,          INTENT(INOUT)  :: RC          ! Failure or success
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version
-!  16 Jun 2016 - J. Sheng    - Added tracer index retriever
-!  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
-!  16 Aug 2019 - C. Keller   - Updated version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    ! Loop indices
-    Integer                     :: I, J, L, MONTH
-    ! Species index
-    Integer                     :: id_Spc
-    ! Saved (main) scalars
-    LOGICAL,          SAVE      :: FIRST         = .TRUE.
+    ! SAVEd scalars
+    LOGICAL,        SAVE     :: FIRST = .TRUE.
+
+    ! Scalars
+    INTEGER                  :: I, J, L, MONTH
+    INTEGER                  :: id_Spc
+
     ! Strings
-    CHARACTER(LEN=255)          :: LOC = 'fixSfcVMR_Run (sfcvmr_mod.F90)'
+    CHARACTER(LEN=255)       :: ErrMsg
+    CHARACTER(LEN=255)       :: ThisLoc
 
-    ! Pointer to the species array
-    Real(fp),    Pointer       :: Spc(:,:,:,:)
-    ! Species information
-    TYPE(Species), POINTER     :: SpcInfo
-    ! Species information
-    REAL(hp)                   :: Arr2D(State_Grid%NX,State_Grid%NY)
+    ! Arrays
+    REAL(hp)                 :: Arr2D(State_Grid%NX,State_Grid%NY)
+
     ! Linked list
-    TYPE(SfcMrObj), POINTER    :: iObj => NULL()
+    Real(fp),       POINTER  :: Spc(:,:,:,:)   ! Ptr to species array
+    TYPE(Species),  POINTER  :: SpcInfo        ! Ptr to species database
+    TYPE(SfcMrObj), POINTER  :: iObj           ! Linked list
 
-    !=================================================================
+    !=======================================================================
     ! FIXSFCVMR_Run begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Assume success
-    RC        = GC_SUCCESS
+    RC        = HCO_SUCCESS
+    ErrMsg    = ''
+    ThisLoc   = ' -> at FixSfcVmrRun (in module GeosCore/sfcvmr_mod.F90)'
 
     ! Initialize object if needed
     IF ( FIRST ) THEN
-       CALL fixSfcVMR_Init( am_I_Root, Input_Opt, State_Met, State_Grid, &
-                            State_Chm, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       CALL FixSfcVMR_Init( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in routine "FixSfcVmrInit"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       
+       ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
 
@@ -289,11 +316,17 @@ CONTAINS
 
     ! Loop over all objects
     iObj => SfcMrHead
-    DO WHILE( ASSOCIATED(iObj) )
+    DO WHILE( ASSOCIATED( iObj ) )
 
        ! Get concentration for this species
-       CALL HCO_EvalFld( am_I_Root, HcoState, Trim(iObj%FldName), Arr2D, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL HCO_EvalFld( Input_Opt%amIRoot,  HcoState,                       &
+                         Trim(iObj%FldName), Arr2D,    RC                   )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Could not get surface VMR for species: '//               &
+                   TRIM( iObj%FldName ) // '!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
        ! Set mixing ratio in PBL
        SpcInfo => State_Chm%SpcData(iObj%SpcID)%Info
@@ -303,9 +336,9 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             IF ( State_Met%F_UNDER_PBLTOP(I,J,L) >0e+0_fp ) THEN
-                Spc(I,J,L,id_Spc) = Arr2d(I,J)*1.0e-9 / &
-                                    ( AIRMW / SpcInfo%emMW_g )
+             IF ( State_Met%F_UNDER_PBLTOP(I,J,L) > 0.0_fp ) THEN
+                Spc(I,J,L,id_Spc) = ( Arr2d(I,J) * 1.0e-9_fp      )          &
+                                  / ( AIRMW      / SpcInfo%emMW_g )
              ENDIF  ! end selection of PBL boxes
           ENDDO
           ENDDO
@@ -320,60 +353,57 @@ CONTAINS
     ! Free pointer
     Spc => NULL()
 
-    ! Return w/ success
-    RC = GC_SUCCESS
-
-  END SUBROUTINE fixSfcVMR_Run
+  END SUBROUTINE FixSfcVmr_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: FIXSFCVMR_Final
+! !IROUTINE: FixSfcVmr_Final
 !
 ! !DESCRIPTION: Subroutine FIXSFCVMR_Final cleans up the FixSfcMR linked list.
 !\\
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE fixSfcVMR_Final( am_I_Root, RC )
+    SUBROUTINE FixSfcVmr_Final( RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
 !
-! !INPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+    INTEGER, INTENT(OUT) :: RC          ! Failure or success
 !
 ! !REVISION HISTORY:
 !  16 Aug 2019 - C. Keller   - Updated version
+!  See the Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Pointers
+    TYPE(SfcMrObj), POINTER :: iObj
+    TYPE(SfcMrObj), POINTER :: iObjNext
 
-    ! Linked list
-    TYPE(SfcMrObj), POINTER :: iObj     => NULL()
-    TYPE(SfcMrObj), POINTER :: iObjNext => NULL()
+    ! Initialize
+    RC       = GC_SUCCESS
+    iObj     => NULL()
+    iObjNext => NULL()
 
-    ! Loop over all objects
+    ! Loop over all objects and deallocate
     iObj => SfcMrHead
-    DO WHILE( ASSOCIATED(iObj) )
-        iObjNext => iObj%Next
+    DO WHILE( ASSOCIATED( iObj ) )
+        iObjNext  => iObj%Next
         iObj%Next => NULL()
-        DEALLOCATE(iObj)
+        IF ( ASSOCIATED( iObj ) ) DEALLOCATE(iObj)
         iObj => iObjNext
     ENDDO
 
-    ! Return w/ success
-    RC = GC_SUCCESS
-
-  END SUBROUTINE fixSfcVMR_Final
+  END SUBROUTINE FixSfcVmr_Final
 !EOC
-END MODULE SFCVMR_MOD
+END MODULE SfcVmr_Mod

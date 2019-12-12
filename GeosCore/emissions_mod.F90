@@ -161,7 +161,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE Time_Mod,           ONLY : Get_Ts_Emis
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-    Use sfcVMR_Mod,         Only : fixSfcVMR_Run
+    Use SfcVmr_Mod,         Only : FixSfcVmr_Run
 #ifdef BPCH_DIAG
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
     USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
@@ -349,8 +349,7 @@ CONTAINS
 
        ! Set other (non-UCX) fixed VMRs
        If ( Input_Opt%LEMIS ) Then
-          CALL FixSfcVMR_Run( am_I_Root, Input_Opt, State_Met, &
-                             State_Grid, State_Chm, RC          )
+          CALL FixSfcVMR_Run( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
