@@ -138,6 +138,7 @@
 #endif
 
 #ifdef APM
+      !-----------------------------------------------------------------
       ! For APM aerosol microphysics simulation,
       ! see apm_driv_mod.f for more information
       !-----------------------------------------------------------------
@@ -515,7 +516,6 @@
             ErrMsg = 'Error encountered in "Init_TaggedDiagList"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
-
 
          !###  Print diagnostic lists if needed for debugging
          IF ( prtDebug ) CALL Print_DiagList( am_I_Root, Diag_List, RC )
@@ -1274,7 +1274,7 @@
             ENDIF
 
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
-            ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
+            ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity
             ! in the stratosphere
             !
             ! NOTE: Specific humidity may change in SET_H2O_TRAC and
