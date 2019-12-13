@@ -1679,7 +1679,7 @@ NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./MainDataDir/NOAA_
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 (pre 1970) (CMIP6_SFC_CH4) ---
 #==============================================================================
-CMIP6_Sfc_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none CH4 ./MainDataDir/CMIP6/v2019-09/CMIP6_GHG_surface_VMR_1750_2014_for_CH4.nc CH4
+#CMIP6_Sfc_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none CH4 ./MainDataDir/CMIP6/v2019-09/CMIP6_GHG_surface_VMR_1750_2014_for_CH4.nc
 
 #==============================================================================
 # --- Surface VMR (SfcVMR) ---
