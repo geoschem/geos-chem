@@ -130,8 +130,8 @@ done
 # Ask user to select meteorology source
 #-----------------------------------------------------------------
 printf "\nChoose meteorology source:\n"
-printf "  1. GEOS-FP\n"
-printf "  2. MERRA2\n"
+printf "  1. GEOS-FP (0.25x0.125)\n"
+printf "  2. MERRA2 (0.5x0.625)\n"
 valid_met=0
 while [ "${valid_met}" -eq 0 ]
 do
