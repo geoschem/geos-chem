@@ -1318,9 +1318,9 @@ SOILNOX_NO  kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none SOIL_NOx ./MainDataDir/O
 #CH3I_SEAWATER kg/m3 Y Y F1985-%m2-01T00:00:00 none none CH3I_OCEAN ./MainDataDir/CH3I/v2014-07/ocean_ch3i.geos.4x5.nc
 DMS_SEAWATER   kg/m3 Y Y F1985-%m2-01T00:00:00 none none DMS_OCEAN  ./MainDataDir/DMS/v2015-07/DMS_lana.geos.1x1.nc
 ACET_SEAWATER  kg/m3 N Y -                     none none ACET       ./MainDataDir/ACET/v2014-07/ACET_seawater.generic.1x1.nc
-ALD2_SEAWATER  kg/m3 Y Y F1985-%m2-01T00:00:00 none none ALD2       ./MainDataDir/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc
-MENO3_SEAWATER kg/m3 Y Y F1985-%m2-01T00:00:00 none none MENO3      ./MainDataDir/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
-ETNO3_SEAWATER kg/m3 Y Y F1985-%m2-01T00:00:00 none none ETNO3      ./MainDataDir/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+ALD2_SEAWATER  kg/m3 Y Y F2006-%m2-01T00:00:00 none none ALD2       ./MainDataDir/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc
+MENO3_SEAWATER kg/m3 Y Y F2006-%m2-01T00:00:00 none none MENO3      ./MainDataDir/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+ETNO3_SEAWATER kg/m3 Y Y F2006-%m2-01T00:00:00 none none ETNO3      ./MainDataDir/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
 
 #==============================================================================
 # --- SOILNOX emissions (Extension 104) ---
