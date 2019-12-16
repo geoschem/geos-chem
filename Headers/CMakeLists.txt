@@ -5,6 +5,7 @@ add_library(Headers STATIC EXCLUDE_FROM_ALL
 	CMN_O3_mod.F
 	CMN_SIZE_mod.F
 	diaglist_mod.F90
+	dictionary_m.F90
 	taggeddiaglist_mod.F90
 	errcode_mod.F90
 	input_opt_mod.F90

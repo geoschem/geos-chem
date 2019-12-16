@@ -1077,7 +1077,7 @@ CONTAINS
 !\\
 !\\
 ! !INTERFACE:
-  !
+!
   SUBROUTINE WordWrapPrint( Text, LineWidth, Delimiter )
 !
 ! !INPUT PARAMETERS:

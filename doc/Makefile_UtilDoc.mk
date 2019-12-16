@@ -22,13 +22,7 @@
 #
 # !REVISION HISTORY:
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
-#  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_2.*"
-#  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
-#  03 Apr 2012 - M. Payer    - Added *.F90 so that grid_mod.F90 and
-#                              regrid_a2a_mod.F90 are included
-#  15 Jan 2014 - R. Yantosca - Now only create *.pdf output
-#  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
-#  18 Nov 2016 - R. Yantosca - Now use protex -sfp to increment chapters
+#  See the Gitk browser for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

@@ -22,9 +22,7 @@
 #
 # !REVISION HISTORY:
 #  08 Jul 2014 - R. Yantosca - Initial version
-#  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
-#  10 Jul 2015 - R. Yantosca - Use ./protex to avoid problems on some systems
-#  18 Nov 2016 - R. Yantosca - Now use protex -spf to update chapters
+#  See the Gitk browser for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

@@ -864,7 +864,7 @@ CONTAINS
           WRITE(MSG,*) 'Number of original levels: ', nlev
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Number of output levels: ', SIZE(Lct%Dct%Dta%V3(1)%Val,3)
-          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ELSE
        WRITE(MSG,*) 'Vertical regridding failed: ',TRIM(Lct%Dct%cName)
@@ -1253,4 +1253,3 @@ CONTAINS
   END SUBROUTINE INFLATE
 !EOC
 END MODULE HCO_Interp_Mod
-

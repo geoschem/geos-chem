@@ -76,6 +76,7 @@ MODULE HCO_CLOCK_MOD
   PUBLIC :: HcoClock_NewMonth
   PUBLIC :: HcoClock_NewDay
   PUBLIC :: HcoClock_NewHour
+  PUBLIC :: HcoClock_New3Hour
   PUBLIC :: HcoClock_First
   PUBLIC :: HcoClock_Rewind
   PUBLIC :: HcoClock_CalcDOY
@@ -598,11 +599,11 @@ CONTAINS
           WRITE(MSG,110) Clock%ThisYear, Clock%ThisMonth, &
                          Clock%ThisDay,  Clock%ThisHour,  &
                          Clock%ThisMin,  Clock%ThisSec
-          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1=' ')
+          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
           WRITE(MSG,120) Clock%ThisWD
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,130) EmisTime
-          CALL HCO_MSG(MSG,SEP2=' ')
+          CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2=' ')
        ELSEIF ( EmisTime ) THEN
           WRITE(MSG,140) Clock%ThisYear, Clock%ThisMonth, &
                          Clock%ThisDay,  Clock%ThisHour,  &
@@ -1222,6 +1223,48 @@ CONTAINS
     ENDIF
 
   END FUNCTION HcoClock_NewHour
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HcoClock_New3Hour
+!
+! !DESCRIPTION: Function HcoClock\_New3Hour returns TRUE if this is a new
+! 3-hour timestep, FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HcoClock_New3Hour( Clock, EmisTime ) RESULT ( New3Hour )
+!
+! !INPUT ARGUMENTS:
+!
+    TYPE(HcoClock),  POINTER    :: Clock
+    LOGICAL,         INTENT(IN) :: EmisTime
+!
+! !RETURN VALUE:
+!
+    LOGICAL  :: New3Hour
+!
+! !REVISION HISTORY:
+!  08 Dec 2019 - M. Sulprizio- Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: HHMMSS
+
+    ! Compute hour-minute-second variable
+    HHMMSS = Clock%ThisHour * 10000 + Clock%ThisMin * 100 + Clock%ThisSec
+
+    ! Read 3-hourly fields as hour 0, 3, 6, 9, 12, 15, 18 UTC
+    New3Hour = ( MOD( HHMMSS, 030000 ) == 0 )
+
+  END FUNCTION HcoClock_New3Hour
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

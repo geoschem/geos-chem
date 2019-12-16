@@ -256,6 +256,12 @@ CONTAINS
     NX = HcoState%NX
     NY = HcoState%NY
 
+    ! Verbose
+    IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+       WRITE(MSG,*) 'Processing container: ', TRIM(Lct%Dct%cName)
+       CALL HCO_MSG( HcoState%Config%Err, MSG, SEP1='-' )
+    ENDIF
+
     ! ----------------------------------------------------------------
     ! Parse source file name. This will replace all tokens ($ROOT,
     ! ($YYYY), etc., with valid values.
@@ -424,8 +430,8 @@ CONTAINS
 
        ! Verbose mode
        IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-          WRITE(MSG,*) '- Reading from existing stream: ', TRIM(srcFile)
-          CALL HCO_MSG(MSG,SEP1='-')
+          WRITE(MSG,*) 'Reading from existing stream: ', TRIM(srcFile)
+          CALL HCO_MSG( HcoState%Config%Err, MSG )
        ENDIF
 
     ! To open a new file:
@@ -434,8 +440,8 @@ CONTAINS
 
        ! Verbose mode
        IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-          WRITE(MSG,*) '- Opening file: ', TRIM(srcFile)
-          CALL HCO_MSG(MSG,SEP1='-')
+          WRITE(MSG,*) 'Opening file: ', TRIM(srcFile)
+          CALL HCO_MSG( HcoState%Config%Err, MSG )
        ENDIF
 
        ! Also write to standard output
@@ -1556,11 +1562,11 @@ CONTAINS
 
     ! verbose mode
     IF ( verb ) THEN
-       write(MSG,'(A30,I14)') '# time slices found: ', nTime
+       write(MSG,*) 'Number of time slices found: ', nTime
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        IF ( nTime > 0 ) THEN
-          write(MSG,'(A30,f14.0,f14.0)') '# time slice range: ', &
-                                     availYMDhm(1), availYMDhm(nTime)
+          write(MSG,*) 'Time slice range : ', &
+                       availYMDhm(1), availYMDhm(nTime)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ENDIF
@@ -1735,6 +1741,32 @@ CONTAINS
              tidx1 = 1
           ELSE
              tidx1 = nTime
+          ENDIF
+       ENDIF
+
+       ! -------------------------------------------------------------
+       ! If we are dealing with 3-hourly or hourly data, select all timesteps
+       ! -------------------------------------------------------------
+
+       ! Hour flag is -1: wildcard
+       IF ( Lct%Dct%Dta%ncHrs(1) == -1 .AND. nTime == 8 ) THEN
+          tidx1 = 1
+          tidx2 = nTime
+
+          ! verbose mode
+          IF ( verb ) THEN
+             WRITE(MSG,*) 'Data is 3-hourly. Entire day will be read.'
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+          ENDIF
+       ENDIF
+       IF ( Lct%Dct%Dta%ncHrs(1) == -1 .AND. nTime == 24 ) THEN
+          tidx1 = 1
+          tidx2 = nTime
+
+          ! verbose mode
+          IF ( verb ) THEN
+             WRITE(MSG,*) 'Data is hourly. Entire day will be read.'
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
        ENDIF
 
@@ -2836,6 +2868,7 @@ CONTAINS
     INTEGER :: origYr,  origMt, origDy, origHr
     LOGICAL :: hasFile, hasYr,  hasMt,  hasDy, hasHr
     LOGICAL :: nextTyp
+    CHARACTER(LEN=255)  :: MSG
     CHARACTER(LEN=1023) :: srcFileOrig
 
     ! maximum # of iterations for file search
@@ -2847,6 +2880,12 @@ CONTAINS
 
     ! Initialize to input string
     srcFile = Lct%Dct%Dta%ncFile
+
+    ! verbose mode
+    IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
+       WRITE(MSG,*) 'Parsing source file and replacing tokens'
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+    ENDIF
 
     ! Get preferred dates (to be passed to parser)
     CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &

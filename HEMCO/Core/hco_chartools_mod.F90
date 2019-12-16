@@ -871,7 +871,7 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER             :: IOS
-    CHARACTER(LEN=2047) :: DUM
+    CHARACTER(LEN=4095) :: DUM
 
     !=================================================================
     ! GetNextLine begins here
@@ -889,9 +889,24 @@ CONTAINS
        IF ( TRIM(DUM) == ''      ) CYCLE
        IF ( DUM(1:1)  == HCO_CMT ) CYCLE
 
-       ! If we get here, exit loop
-       LINE = DUM
-       EXIT
+       ! Make sure that character string DUM is not longer than LINE
+       IF ( LEN_TRIM(DUM) > LEN(LINE) ) THEN
+          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+          WRITE( 6, * ) ' Line is too long - cannot copy into output argument '
+          WRITE( 6, * ) TRIM(DUM)
+          WRITE( 6, * ) ' '
+          WRITE( 6, * ) ' To fix this, increase length of argument `LINE` in '
+          WRITE( 6, * ) ' the subprogram which is calling '
+          WRITE( 6, * ) ' HCO_ReadLine (hco_chartools_mod.F90)'
+          RC = HCO_FAIL
+          RETURN
+          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       ELSE
+          ! If we get here, exit loop
+          LINE = DUM
+          EXIT
+       ENDIF
+
     ENDDO
 
     ! Return w/ success

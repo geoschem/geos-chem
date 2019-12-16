@@ -1134,14 +1134,7 @@ CONTAINS
     IF ( Tolerance < 0 ) THEN
        CALL GetExtOpt ( HcoConfig, CoreNr, 'Unit tolerance', &
                         OptValInt=Tolerance, FOUND=FOUND, RC=RC )
-
        IF ( .NOT. FOUND ) Tolerance = 0
-
-       ! Verbose mode: write to log file
-       IF ( HCO_IsVerb(HcoConfig%Err,2) ) THEN
-          WRITE(MSG,*) 'Unit tolerance set to ', Tolerance
-          CALL HCO_MSG(HcoConfig%Err,MSG,SEP1=' ',SEP2=' ')
-       ENDIF
     ENDIF
 
     ! Return

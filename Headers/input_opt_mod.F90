@@ -108,7 +108,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LSOA
      LOGICAL                     :: LMPOA
      LOGICAL                     :: LSVPOA
-     LOGICAL                     :: LOMOC
      LOGICAL                     :: LDUST
      LOGICAL                     :: LDEAD
      LOGICAL                     :: LSSALT
@@ -142,19 +141,9 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LBIOFUEL
      LOGICAL                     :: LOTDLOC
      LOGICAL                     :: LSOILNOX
-     LOGICAL                     :: LWARWICK_VSLS
-     LOGICAL                     :: LSSABr2
-     LOGICAL                     :: LFIX_PBL_BRO
      LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
-     LOGICAL                     :: LOCSEMIS
-     LOGICAL                     :: LCFCEMIS
-     LOGICAL                     :: LCLEMIS
-     LOGICAL                     :: LBREMIS
-     LOGICAL                     :: LN2OEMIS
-     LOGICAL                     :: LBASICEMIS
      LOGICAL                     :: LSETH2O
-     INTEGER                     :: CFCYEAR
 
      !----------------------------------------
      ! CO MENU fields
@@ -612,7 +601,6 @@ CONTAINS
     Input_Opt%LSOA                   = .FALSE.
     Input_Opt%LMPOA                  = .FALSE.
     Input_Opt%LSVPOA                 = .FALSE.
-    Input_Opt%LOMOC                  = .FALSE.
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LDSTUP                 = .FALSE.
@@ -639,19 +627,9 @@ CONTAINS
     Input_Opt%HcoConfigFile          = ''
     Input_Opt%TS_EMIS                = 0
     Input_Opt%LSOILNOX               = .FALSE.
-    Input_Opt%LWARWICK_VSLS          = .FALSE.
-    Input_Opt%LSSABr2                = .FALSE.
-    Input_Opt%LFIX_PBL_BRO           = .FALSE.
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
-    Input_Opt%LOCSEMIS               = .FALSE.
-    Input_Opt%LCFCEMIS               = .FALSE.
-    Input_Opt%LCLEMIS                = .FALSE.
-    Input_Opt%LBREMIS                = .FALSE.
-    Input_Opt%LN2OEMIS               = .FALSE.
-    Input_Opt%LBASICEMIS             = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
-    Input_Opt%CFCYEAR                = 0
 
     !----------------------------------------
     ! CO MENU fields

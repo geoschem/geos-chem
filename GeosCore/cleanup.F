@@ -47,6 +47,7 @@
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
+      USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
 #ifdef BPCH_DIAG
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
@@ -137,6 +138,9 @@
       ! Cleanup HEMCO
       !=================================================================
       CALL EMISSIONS_FINAL( am_I_Root, ERROR, RC )
+
+      ! Cleanup surface mixing concentration module
+      CALL FixSfcVmr_Final( RC )
 
       !=================================================================
       ! Call cleanup routines from individual F90 modules

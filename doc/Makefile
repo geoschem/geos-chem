@@ -22,21 +22,7 @@
 #
 # !REVISION HISTORY:
 #  16 Sep 2009 - R. Yantosca - Initial version
-#  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
-#                              display the help screen options
-#  19 Nov 2009 - R. Yantosca - Now build documentation for Makefiles in the
-#                              GeosUtil and GeosCore subdirectories
-#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
-#  28 Jan 2010 - R. Yantosca - Now add the Makefiles in the GeosTomas and
-#                              ISORROPIA subdirs to the documentation
-#  27 Aug 2010 - R. Yantosca - Brought up to date for newly documented code
-#  31 Aug 2010 - R. Yantosca - Add documentation for GTMM routines
-#  14 Sep 2010 - R. Yantosca - Now split make commands into include files
-#  20 Aug 2013 - R. Yantosca - Remove GeosTomas directory, that is obsolete
-#  09 Jul 2014 - R. Yantosca - Now build HEMCO documentation
-#  21 Jul 2014 - R. Yantosca - Now look for HEMCO modules in subdirectories
-#  10 Jul 2015 - R. Yantosca - Added GCRT directory
-#  18 Nov 2016 - R. Yantosca - Updated for v11-01
+#  See the Gitk browser for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -74,7 +60,7 @@ include $(ROOT)/Makefile_header.mk
 
 .PHONY: doc docclean help
 
-doc: utildoc srcdoc diagsdoc hemcodoc makedoc
+doc: utildoc srcdoc historydoc hemcodoc makedoc
 
 clean:
 	@echo "===> Making clean in directory: doc <==="
@@ -95,8 +81,7 @@ include ./Makefile_UtilDoc.mk
 # Commands to build the "core" modules documentation
 include ./Makefile_SrcDoc.mk
 
-# Commands to build the diagnostic modules documentation
-#include ./Makefile_DiagsDoc.mk
+# Commands to build the History modules documentation
 include ./Makefile_HistoryDoc.mk
 
 # Commands to build the HEMCO documentation

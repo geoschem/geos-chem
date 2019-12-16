@@ -983,9 +983,7 @@ MODULE GCKPP_HETRATES
 ! !DESCRIPTION: Function CloudHet calculates the loss frequency (1/s) of gas
 !  species due to heterogeneous chemistry on clouds in a partially cloudy grid
 !  cell. The function uses the "entrainment limited uptake" equations of
-!  Holmes et al. (2018).
-!  Both liquid and ice water clouds are treated.
-!
+!  Holmes et al. (2018). Both liquid and ice water clouds are treated.
 !\\
 !\\
 ! !INTERFACE:
@@ -2047,7 +2045,7 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: N2O5_InorgOrg
 !
-! !DESCRIPTION: Function N2O5_inorg_org computes the GAMMA reaction probability
+! !DESCRIPTION: Function N2O5\_inorg\_org computes the GAMMA reaction probability
 !     for N2O5 loss in inorganic (sulfate-nitrate-ammonium-sea salt) aerosols
 !     with organic coatings, based on the recommendation of McDuffie (2018) JGR.
 !     The inorganic core is based on Bertram and Thornton ACP (2009).
@@ -2134,8 +2132,8 @@ MODULE GCKPP_HETRATES
       ! Total H2O (organic + inorganic), cm3(H2O)/cm3(air)
       H2Ototal = H2Oinorg + H2Oorg
 
-      ! Ratio of organic to total (organic+inorganic) volumes when dry, unitless
-      volRatioDry = safe_div((volOrg - H2Oorg), (volTotal - H2Ototal), 0e+0_fp)
+      ! Ratio of inorganic to total (organic+inorganic) volumes when dry, unitless
+      volRatioDry = safe_div((volInorg - H2Oinorg), (volTotal - H2Ototal), 0e+0_fp)
 
       ! Particle radius, cm
       ! Derived from spherical geometry
@@ -2260,13 +2258,13 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: ClNO2_BT
 !
-! !DESCRIPTION: Function ClNO2_BT computes the PHI production yield of ClNO2
-!     from N2O5 loss in sulfate-nitrate-ammonium (SNA) aerosols based on the
-!     recommendation of Bertram and Thornton (2009) ACP
-!     In this implementation, we assume that SNA and sea salt aerosol are externally mixed,
-!     so [Cl-] = 10% SALA in SNA. We do this because the surface area of sea salt (coarse and fine)
-!     is calculated separately from the surface area of SNA
-!
+! !DESCRIPTION: Function ClNO2\_BT computes the PHI production yield of ClNO2
+!  from N2O5 loss in sulfate-nitrate-ammonium (SNA) aerosols based on the
+!  recommendation of Bertram and Thornton (2009) ACP.
+!  In this implementation, we assume that SNA and sea salt aerosol are
+!  externally mixed, so [Cl-] = 10% SALA in SNA. We do this because the
+!  surface area of sea salt (coarse and fine) is calculated separately from
+!  the surface area of SNA.
 !\\
 !\\
 ! !INTERFACE:
@@ -2294,11 +2292,8 @@ MODULE GCKPP_HETRATES
 !
 ! !DEFINED PARAMETERS:
 !
-!      ! Parameters from Bertram and Thornton (2009) ACP
-       REAL(fp), parameter :: k2k3  = 1e+0_fp / 4.5e+2_fp
-
-!------------------------------------------------------------------------------
-
+      ! Parameters from Bertram and Thornton (2009) ACP
+      REAL(fp), parameter :: k2k3  = 1e+0_fp / 4.5e+2_fp
 
       ! Initialize
       PHI     = 0.0_fp

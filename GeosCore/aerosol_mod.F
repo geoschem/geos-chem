@@ -417,30 +417,22 @@
       ! Get spatial and seasonally varying OM/OC from Philip et al. (2014)
       ! or use default global mean values recommended by Aerosols WG
       !=================================================================
-      IF ( Input_Opt%LOMOC ) THEN
 
-         ! Get pointer to OM/OC for current month from HEMCO
-         MONTH = GET_MONTH()
-         IF      ( MONTH == 12 .or. MONTH == 1  .or. MONTH == 2  ) THEN
-            FieldName = 'OMOC_DJF'
-         ELSE IF ( MONTH == 3  .or. MONTH == 4  .or. MONTH == 5  ) THEN
-            FieldName = 'OMOC_MAM'
-         ELSE IF ( MONTH == 6  .or. MONTH == 7  .or. MONTH == 8  ) THEN
-            FieldName = 'OMOC_JJA'
-         ELSE IF ( MONTH == 9  .or. MONTH == 10 .or. MONTH == 11 ) THEN
-            FieldName = 'OMOC_SON'
-         ENDIF
-         CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, OMOC, RC,
-     &                    FOUND=FND )
+      ! Attempt to get pointer to OM/OC for current month from HEMCO
+      MONTH = GET_MONTH()
+      IF      ( MONTH == 12 .or. MONTH == 1  .or. MONTH == 2  ) THEN
+         FieldName = 'OMOC_DJF'
+      ELSE IF ( MONTH == 3  .or. MONTH == 4  .or. MONTH == 5  ) THEN
+         FieldName = 'OMOC_MAM'
+      ELSE IF ( MONTH == 6  .or. MONTH == 7  .or. MONTH == 8  ) THEN
+         FieldName = 'OMOC_JJA'
+      ELSE IF ( MONTH == 9  .or. MONTH == 10 .or. MONTH == 11 ) THEN
+         FieldName = 'OMOC_SON'
+      ENDIF
+      CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, OMOC, RC,
+     &                 FOUND=FND )
 
-         ! Trap potential errors
-         IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
-            ErrMsg= 'Cannot find seasonal OM/OC field ' //
-     &             TRIM(FIELDNAME) // '. Please add a corresponding ' //
-     &            'entry to the HEMCO configuration file.'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
+      IF ( RC == HCO_SUCCESS .AND. FND ) THEN
 
          ! Set OM/OC using spatially and seasonally varying data from
          ! Philip et al. (2014)

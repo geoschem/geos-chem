@@ -6700,7 +6700,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)            :: OH_MOLEC_CM3
+      REAL(fp)            :: OH_MOLEC_CM3, MolecRatio
 
       !=================================================================
       ! GET_OH begins here!
@@ -6712,10 +6712,14 @@
          ! Coupled simulation
          !---------------------
 
-         ! Take OH from State_Chm%Species [molec/cm3]
          ! OH is defined only in the chemistry grid
          IF ( State_Met%InChemGrid(I,J,L) ) THEN
+
+            ! Get OH from State_Chm%Species [v/v] converted to [molec/cm3]
+            MolecRatio = State_Chm%SpcData(id_OH)%Info%MolecRatio
             OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH)
+     &                     * State_Met%AIRDEN(I,J,L) * 1e+3_fp * AVO
+     &                     / ( AIRMW * MolecRatio )
          ELSE
             OH_MOLEC_CM3 = 0e+0_fp
          ENDIF

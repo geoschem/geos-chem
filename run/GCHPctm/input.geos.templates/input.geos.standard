@@ -193,19 +193,9 @@ Turn on PBL Mixing?     : T
 %%% EMISSIONS MENU %%%  :
 Turn on emissions?      : T
 HEMCO Input file        : HEMCO_Config.rc
- => 1ppt MBL BRO Sim.?  : F
 Switches for UCX        :---
  => Use CH4 emissions?  : F
- => Turn on surface BCs :---
-    => CH4?             : F
-    => OCS?             : T
-    => CFCs?            : T
-    => Cl species?      : T
-    => Br species?      : F
-    => N2O?             : T
- => Set initial glob MRs:---
-    => strat. H2O?      : T
- => CFC emission year   : 0
+ => Set init. strat. H2O: T
 ------------------------+------------------------------------------------------
 %%% AEROSOL MENU %%%    :
 Online SULFATE AEROSOLS : T
@@ -214,7 +204,6 @@ Online CARBON  AEROSOLS : T
  => Use Brown Carbon?   : F
 Online COMPLEX SOA      : F
  => Semivolatile POA?   : F
-Spatial & seasonal OM/OC: F
 Online DUST    AEROSOLS : T
  => Acidic uptake ?     : F
 Online SEASALT AEROSOLS : T
@@ -258,7 +247,7 @@ Overhead O3 for FAST-JX :---
 Gamma HO2               : 0.2
 ------------------------+------------------------------------------------------
 %%% PHOTOLYSIS MENU %%% :
-FAST-JX directory       : {DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2019-06/
+FAST-JX directory       : {DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2019-10/
 ------------------------+------------------------------------------------------
 %%% RADIATION MENU %%%  :
 AOD Wavelength (nm)     : 550

@@ -249,14 +249,24 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF ( State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
-    IF ( State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
-    IF ( State_Diag%Archive_JVal           ) State_Diag%JVal           = 0.0_f4
-    IF ( State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
-    IF ( State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
-    IF ( State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
-    IF ( State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
-    IF ( State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_Loss           ) State_Diag%Loss           = 0.0_f4
+    IF (State_Diag%Archive_Prod           ) State_Diag%Prod           = 0.0_f4
+    IF (State_Diag%Archive_JVal           ) State_Diag%JVal           = 0.0_f4
+    IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
+    IF (State_Diag%Archive_ProdCOfromCH4  ) State_Diag%ProdCOfromCH4  = 0.0_f4
+    IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
+    IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
+    IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_KppDiags) THEN
+       IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
+       IF (State_Diag%Archive_KppJacCounts) State_Diag%KppJacCounts   = 0.0_f4
+       IF (State_Diag%Archive_KppTotSteps ) State_Diag%KppTotSteps    = 0.0_f4
+       IF (State_Diag%Archive_KppAccSteps ) State_Diag%KppAccSteps    = 0.0_f4
+       IF (State_Diag%Archive_KppRejSteps ) State_Diag%KppRejSteps    = 0.0_f4
+       IF (State_Diag%Archive_KppLuDecomps) State_Diag%KppLuDecomps   = 0.0_f4
+       IF (State_Diag%Archive_KppSubsts   ) State_Diag%KppSubsts      = 0.0_f4
+       IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
+    ENDIF
 
     ! Keep track of the boxes where it is local noon in the JNoonFrac
     ! diagnostic. When time-averaged, this will be the fraction of time
@@ -891,7 +901,55 @@ CONTAINS
 !       totnumLU = totnumLU + ISTATUS(6)
 !#endif
 
+       !------------------------------------------------------------------
+       ! HISTORY: Archive KPP solver diagnostics
+       !------------------------------------------------------------------
+       IF ( State_Diag%Archive_KppDiags ) THEN
+
+          ! # of integrator calls
+          IF ( State_Diag%Archive_KppIntCounts ) THEN
+             State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
+          ENDIF
+
+          ! # of times Jacobian was constructed
+          IF ( State_Diag%Archive_KppJacCounts ) THEN
+             State_Diag%KppJacCounts(I,J,L) = ISTATUS(2)
+          ENDIF
+
+          ! # of internal timesteps
+          IF ( State_Diag%Archive_KppTotSteps ) THEN
+             State_Diag%KppTotSteps(I,J,L) = ISTATUS(3)
+          ENDIF
+
+          ! # of accepted internal timesteps
+          IF ( State_Diag%Archive_KppTotSteps ) THEN
+             State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
+          ENDIF
+
+          ! # of rejected internal timesteps
+          IF ( State_Diag%Archive_KppTotSteps ) THEN
+             State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
+          ENDIF
+
+          ! # of LU-decompositions
+          IF ( State_Diag%Archive_KppLuDecomps ) THEN
+             State_Diag%KppLuDecomps(I,J,L) = ISTATUS(6)
+          ENDIF
+
+          ! # of forward and backwards substitutions
+          IF ( State_Diag%Archive_KppSubsts ) THEN
+             State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
+          ENDIF
+
+          ! # of singular-matrix decompositions
+          IF ( State_Diag%Archive_KppSmDecomps ) THEN
+             State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
+          ENDIF
+       ENDIF
+
+       !------------------------------------------------------------------
        ! Try another time if it failed
+       !------------------------------------------------------------------
        IF ( IERR < 0 ) THEN
 
           ! Reset first time step and start concentrations
@@ -902,8 +960,67 @@ CONTAINS
           VAR = C(1:NVAR)
           FIX = C(NVAR+1:NSPEC)
           CALL Update_RCONST( )
-          CALL Integrate( TIN,    TOUT,    ICNTRL,      &
-                          RCNTRL, ISTATUS, RSTATE, IERR )
+          CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
+                          RCNTRL, ISTATUS, RSTATE, IERR                     )
+
+          !------------------------------------------------------------------
+          ! HISTORY: Archive KPP solver diagnostics
+          ! This time, add to the existing value
+          !------------------------------------------------------------------
+          IF ( State_Diag%Archive_KppDiags ) THEN
+
+             ! # of integrator calls
+             IF ( State_Diag%Archive_KppIntCounts ) THEN
+                State_Diag%KppIntCounts(I,J,L) =                             &
+                State_Diag%KppIntCounts(I,J,L) + ISTATUS(1)
+             ENDIF
+
+             ! # of times Jacobian was constructed
+             IF ( State_Diag%Archive_KppJacCounts ) THEN
+                State_Diag%KppJacCounts(I,J,L) =                             &
+                State_Diag%KppJacCounts(I,J,L) + ISTATUS(2)
+             ENDIF
+
+             ! # of internal timesteps
+             IF ( State_Diag%Archive_KppTotSteps ) THEN
+                State_Diag%KppTotSteps(I,J,L) =                              &
+                State_Diag%KppTotSteps(I,J,L) + ISTATUS(3)
+             ENDIF
+
+             ! # of accepted internal timesteps
+             IF ( State_Diag%Archive_KppTotSteps ) THEN
+                State_Diag%KppAccSteps(I,J,L) =                              &
+                State_Diag%KppAccSteps(I,J,L) + ISTATUS(4)
+             ENDIF
+
+             ! # of rejected internal timesteps
+             IF ( State_Diag%Archive_KppTotSteps ) THEN
+                State_Diag%KppRejSteps(I,J,L) =                              &
+                State_Diag%KppRejSteps(I,J,L) + ISTATUS(5)
+             ENDIF
+
+             ! # of LU-decompositions
+             IF ( State_Diag%Archive_KppLuDecomps ) THEN
+                State_Diag%KppLuDecomps(I,J,L) =                             &
+                State_Diag%KppLuDecomps(I,J,L) + ISTATUS(6)
+             ENDIF
+
+             ! # of forward and backwards substitutions
+             IF ( State_Diag%Archive_KppSubsts ) THEN
+                State_Diag%KppSubsts(I,J,L) =                                &
+                State_Diag%KppSubsts(I,J,L) + ISTATUS(7)
+             ENDIF
+
+             ! # of singular-matrix decompositions
+             IF ( State_Diag%Archive_KppSmDecomps ) THEN
+                State_Diag%KppSmDecomps(I,J,L) =                             &
+                State_Diag%KppSmDecomps(I,J,L) + ISTATUS(8)
+             ENDIF
+          ENDIF
+
+          !------------------------------------------------------------------
+          ! Exit upon the second failure
+          !------------------------------------------------------------------
           IF ( IERR < 0 ) THEN
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
@@ -919,11 +1036,15 @@ CONTAINS
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
              ENDIF
 #else
-             CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
+              CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
 #endif
           ENDIF
 
        ENDIF
+
+       !--------------------------------------------------------------------
+       ! Continue upon successful return...
+       !--------------------------------------------------------------------
 
        ! Copy VAR and FIX back into C (mps, 2/24/16)
        C(1:NVAR)       = VAR(:)

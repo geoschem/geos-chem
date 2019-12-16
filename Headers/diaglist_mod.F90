@@ -17,7 +17,8 @@
 !  diagnostic list that are in collections not turned on in HISTORY.rc,
 !  thereby preventing their analogous State\_Diag array initialization
 !  in GEOS-Chem.
-!
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE DiagList_Mod

@@ -18,6 +18,7 @@
 ! \item Month: update every month (monthly data)
 ! \item Day: update every day (daily data)
 ! \item Hour: update every hour (hourly data)
+! \item Hour3: update every 3 hours (3-hourly data)
 ! \item Once: update only once (time-invariant data)
 ! \item Always: update every time step
 ! \end{itemize}
@@ -129,6 +130,8 @@ CONTAINS
     ! which is called from Config_ReadCont (hco_config_mod.F90).
     IF     ( Dct%Dta%UpdtFlag == HCO_UFLAG_ALWAYS ) THEN
        intv = 1
+    ELSEIF ( Dct%Dta%UpdtFlag == HCO_UFLAG_3HR ) THEN
+       intv = 7
     ELSEIF ( Dct%Dta%ncHrs(1) /= Dct%Dta%ncHrs(2) ) THEN
        intv = 2
     ELSEIF ( Dct%Dta%ncDys(1) /= Dct%Dta%ncDys(2) ) THEN
@@ -189,6 +192,8 @@ CONTAINS
        CALL DtCont_Add( HcoState%ReadLists%Month,  Dct )
     ELSEIF ( intv == 5 ) THEN
        CALL DtCont_Add( HcoState%ReadLists%Year,   Dct )
+    ELSEIF (intv == 7 ) THEN
+       CALL DtCont_Add( HcoState%ReadLists%Hour3,  Dct )
     ELSE
        CALL DtCont_Add( HcoState%ReadLists%Once,   Dct )
     ENDIF
@@ -196,7 +201,7 @@ CONTAINS
     ! Verbose
     IF ( Verb ) THEN
        WRITE(MSG,*) 'New container set to ReadList:'
-       CALL HCO_MSG(HcoState%Config%Err, MSG,SEP1='-')
+       CALL HCO_MSG(HcoState%Config%Err, MSG)
        CALL HCO_PrintDataCont( HcoState, Dct, 3 )
     ENDIF
 
@@ -227,6 +232,7 @@ CONTAINS
     USE HCO_CLOCK_MOD, ONLY : HcoClock_NewMonth
     USE HCO_CLOCK_MOD, ONLY : HcoClock_NewDay
     USE HCO_CLOCK_MOD, ONLY : HcoClock_NewHour
+    USE HCO_CLOCK_MOD, ONLY : HcoClock_New3Hour
     USE HCO_CLOCK_MOD, ONLY : HcoClock_First
 !
 ! !INPUT PARAMETERS:
@@ -280,7 +286,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from year-list if it's a new year
+    ! Read content from year list if it's a new year
     IF ( HcoClock_NewYear( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading year list!'
@@ -290,7 +296,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from month-list if it's a new month
+    ! Read content from month list if it's a new month
     IF ( HcoClock_NewMonth( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading month list!'
@@ -300,7 +306,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from day-list if it's a new day
+    ! Read content from day list if it's a new day
     IF ( HcoClock_NewDay( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading day list!'
@@ -310,13 +316,23 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
-    ! Read content from hour-list if it's a new hour
+    ! Read content from hour list if it's a new hour
     IF ( HcoClock_NewHour( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
        IF ( Verb ) THEN
           WRITE(MSG,*) 'Now reading hour list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    ! Read content from 3-hour list if it's a new hour
+    IF ( HcoClock_New3Hour( HcoState%Clock, .FALSE. ) .OR. RdAll ) THEN
+       IF ( Verb ) THEN
+          WRITE(MSG,*) 'Now reading 3-hour list!'
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
+       ENDIF
+       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour3, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -506,7 +522,7 @@ CONTAINS
           ! Verbose mode
           IF ( verb ) THEN
              MSG = 'Remove data array of ' // TRIM(Lct%Dct%cName)
-             CALL HCO_MSG( MSG )
+             CALL HCO_MSG( HcoState%Config%Err, MSG )
           ENDIF
        ENDIF
 
@@ -667,6 +683,9 @@ CONTAINS
     ALLOCATE ( ReadLists%Hour )
     NULLIFY ( ReadLists%Hour  )
 
+    ALLOCATE ( ReadLists%Hour3 )
+    NULLIFY ( ReadLists%Hour3  )
+
     ALLOCATE ( ReadLists%Always )
     NULLIFY ( ReadLists%Always  )
 
@@ -692,7 +711,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Print( HcoState, ReadLists, verb )
+  SUBROUTINE ReadList_Print( am_I_Root, HcoState, ReadLists, verb )
 !
 ! !USES:
 !
@@ -700,6 +719,7 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS
 !
+    LOGICAL,         INTENT(IN)    :: am_I_Root
     TYPE(HCO_State), POINTER       :: HcoState
     TYPE(RdList),    POINTER       :: ReadLists
     INTEGER,         INTENT(IN)    :: verb   ! verbose number
@@ -721,35 +741,39 @@ CONTAINS
     IF ( .NOT. HCO_IsVerb(HcoState%Config%Err,verb) ) RETURN
 
     ! Print content of all lists
-    IF ( ASSOCIATED(ReadLists) ) THEN
+    IF ( ASSOCIATED(ReadLists) .and. am_I_Root ) THEN
 
-       WRITE(MSG,*) 'Content of one-time list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of one-time list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Once, verb )
 
-       WRITE(MSG,*) 'Content of year-list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of year list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Year, verb )
 
-       WRITE(MSG,*) 'Content of month-list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of month list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Month, verb )
 
-       WRITE(MSG,*) 'Content of day-list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of day list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Day, verb )
 
-       WRITE(MSG,*) 'Content of hour-list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of 3-hour list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
+       CALL HCO_PrintList ( HcoState, ReadLists%Hour3, verb )
+
+       WRITE(MSG,*) 'Contents of hour list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Hour, verb )
 
-       WRITE(MSG,*) 'Content of always-to-read list:'
-       CALL HCO_MSG(MSG,SEP1='=')
+       WRITE(MSG,*) 'Contents of always-to-read list:'
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
        CALL HCO_PrintList ( HcoState, ReadLists%Always, verb )
 
     ELSE
        WRITE(MSG,*) 'ReadList not defined yet!!'
-       CALL HCO_MSG(MSG,SEP1='=')
+       CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
     ENDIF
 
   END SUBROUTINE ReadList_Print
@@ -814,7 +838,7 @@ CONTAINS
     Next => NULL()
 
     ! Search for the given container
-    DO I = 1,6
+    DO I = 1,7
 
        ! Select list to be used
        IF ( I == 1 ) This => HcoState%ReadLists%Once
@@ -823,6 +847,7 @@ CONTAINS
        IF ( I == 4 ) This => HcoState%ReadLists%Day
        IF ( I == 5 ) This => HcoState%ReadLists%Hour
        IF ( I == 6 ) This => HcoState%ReadLists%Always
+       IF ( I == 7 ) This => HcoState%ReadLists%Hour3
 
        ! Initialize working variables
        FOUND = .FALSE.
@@ -865,6 +890,7 @@ CONTAINS
           IF ( I == 4 ) HcoState%ReadLists%Day    => Next
           IF ( I == 5 ) HcoState%ReadLists%Hour   => Next
           IF ( I == 6 ) HcoState%ReadLists%Always => Next
+          IF ( I == 7 ) HcoState%ReadLists%Hour3  => Next
 
        ! - Otherwise, just pop out this container from list
        ELSE
@@ -941,6 +967,7 @@ CONTAINS
        CALL ListCont_Cleanup ( ReadLists%Month,  RemoveDct )
        CALL ListCont_Cleanup ( ReadLists%Day,    RemoveDct )
        CALL ListCont_Cleanup ( ReadLists%Hour,   RemoveDct )
+       CALL ListCont_Cleanup ( ReadLists%Hour3,  RemoveDct )
        CALL ListCont_Cleanup ( ReadLists%Always, RemoveDct )
 
        ! Remove ReadList

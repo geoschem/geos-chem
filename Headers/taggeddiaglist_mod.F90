@@ -5,8 +5,9 @@
 !
 ! !MODULE: taggeddiaglist_mod.F90
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: Module taggeddiaglist\_mod
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE TaggedDiagList_Mod
@@ -90,7 +91,7 @@ CONTAINS
 !
 ! !IROUTINE: Init_TaggedDiagList
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Subroutine Init\_TaggedDiagList
 !\\
 !\\
 ! !INTERFACE:
@@ -248,8 +249,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Return information about a TaggedDiagList option, such
 !  if name is found and information about that named object. Info includes
-!  if is wildcard, a list of wildcards, # of wildcards, a list of
-!  non-wildcard tags, or # of non-wildcard tags.
+!  if is wildcard, a list of wildcards, number of wildcards, a list of
+!  non-wildcard tags, or number of non-wildcard tags.
 !\\
 !\\
 ! !INTERFACE:

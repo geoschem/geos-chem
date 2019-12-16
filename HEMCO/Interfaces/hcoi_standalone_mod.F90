@@ -1086,7 +1086,7 @@ CONTAINS
     CHARACTER(LEN=255)    :: LOC
     CHARACTER(LEN=  1)    :: COL
     CHARACTER(LEN=255)    :: MyGridFile, ThisLoc
-    CHARACTER(LEN=2047)   :: DUM,        ErrMsg,  Msg
+    CHARACTER(LEN=4095)   :: DUM,        ErrMsg,  Msg
 
     !=================================================================
     ! SET_GRID begins here
@@ -2550,20 +2550,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !%%%% Chlorophyll concentration %%%%%
-    IF ( ExtState%CHLR%DoUse ) THEN
-       Name = 'CHLR'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%CHLR,               &
-                        TRIM( Name ), RC,       FIRST=FIRST                 )
-       IF ( RC == HCO_SUCCESS ) THEN
-          ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
-                   '" for the HEMCO standalone simulation!'
-          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
-          CALL HCO_Leave( HcoState%Config%Err, RC )
-          RETURN
-       ENDIF
-    ENDIF
-
     !%%%%% Photolysis values %%%%%
     IF ( ExtState%JNO2%DoUse ) THEN
        Name = 'JNO2'
@@ -3020,7 +3006,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Looks at the input arguments to determine if the user
 !  has selected to do a GEOS-Chem dry-run.  If so, then the proper
-!  fields of Input_Opt will be populated accordingly, and the dry-run
+!  fields of Input\_Opt will be populated accordingly, and the dry-run
 !  log file will be opened.
 !\\
 !\\
@@ -3121,7 +3107,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Looks at the input arguments to determine if the user
 !  has selected to do a GEOS-Chem dry-run.  If so, then the proper
-!  fields of Input_Opt will be populated accordingly.
+!  fields of Input\_Opt will be populated accordingly.
 !\\
 !\\
 ! !INTERFACE:

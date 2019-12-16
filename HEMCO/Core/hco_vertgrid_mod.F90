@@ -263,11 +263,11 @@ CONTAINS
     ! Verbose
     IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,1) ) THEN
        WRITE(MSG,*) ' HEMCO vertical sigma-hybrid coordinates: '
-       CALL HCO_MSG(HcoConfig%Err,MSG,SEP1='-')
-       WRITE(MSG,*) 'Ap [Pa] (first and last): ', zGrid%Ap(1), zGrid%Ap(nz+1)
+       CALL HCO_MSG(HcoConfig%Err,MSG)
+       WRITE(MSG,*) 'Ap [Pa]       (first and last): ', zGrid%Ap(1), zGrid%Ap(nz+1)
        CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,*) 'Bp [unitless] (first and last): ', zGrid%Bp(1), zGrid%Bp(nz+1)
-       CALL HCO_MSG(HcoConfig%Err,MSG)
+       CALL HCO_MSG(HcoConfig%Err,MSG,SEP2='-')
     ENDIF
 
     ! Return w/ success

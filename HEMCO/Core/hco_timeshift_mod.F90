@@ -101,6 +101,7 @@ CONTAINS
     INTEGER                        :: SHFT, IDX
     CHARACTER(LEN=255)             :: MSG
     CHARACTER(LEN=255)             :: iShift
+    CHARACTER(LEN=255)             :: tShift
     CHARACTER(LEN=255), PARAMETER  :: LOC = 'TimeShift_Set (hco_tShift_mod.F90)'
 
     !======================================================================
@@ -117,51 +118,57 @@ CONTAINS
     iShift = TRIM(ADJUSTL(Shift))
 
     ! Parse time iShift and write to desired slot:
-    ! Year and month are placed in slot 1. Years are
-    ! converted to months.
     IDX = INDEX( TRIM(iShift), 'year' )
     IF( IDX < 0 ) IDX = INDEX( TRIM(iShift), 'yr' )
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
-       Dta%tShift(1) = Dta%tShift(1) + &
-                             ( SHFT * 12 )
+       Dta%tShift(1) = Dta%tShift(1) + SHFT
+       WRITE(tShift,*) Dta%tShift(1), ' years'
     ENDIF
 
     IDX = INDEX( TRIM(iShift), 'month' )
     IF( IDX < 0 ) IDX = INDEX( TRIM(iShift), 'mt' )
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
-       Dta%tShift(1) = Dta%tShift(1) + SHFT
+       Dta%tShift(2) = Dta%tShift(2) + SHFT
+       WRITE(tShift,*) Dta%tShift(2), ' months'
     ENDIF
 
-    ! Days, Hours, and minutes are placed in slot 2.
-    ! All values are converted to seconds.
     IDX = INDEX( TRIM(iShift), 'day' )
     IF( IDX < 0 ) IDX = INDEX( TRIM(iShift), 'dy' )
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
-       Dta%tShift(2) = Dta%tShift(2) + ( SHFT * 86400 )
-
+       Dta%tShift(3) = Dta%tShift(3) + SHFT
+       WRITE(tShift,*) Dta%tShift(3), ' days'
     ENDIF
 
     IDX = INDEX( TRIM(iShift), 'hour' )
     IF( IDX < 0 ) IDX = INDEX( TRIM(iShift), 'hr' )
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
-       Dta%tShift(2) = Dta%tShift(2) + ( SHFT * 3600 )
-
+       Dta%tShift(4) = Dta%tShift(4) + SHFT
+       WRITE(tShift,*) Dta%tShift(4), ' hours'
     ENDIF
 
     IDX = INDEX( TRIM(iShift), 'min' )
     IF( IDX < 0 ) IDX = INDEX( TRIM(iShift), 'mn' )
     IF ( IDX > 1 ) THEN
        READ( iShift(1:(IDX-1)), * ) SHFT
-       Dta%tShift(2) = Dta%tShift(2) + ( SHFT * 60 )
+       Dta%tShift(5) = Dta%tShift(5) + SHFT
+       WRITE(tShift,*) Dta%tShift(5), ' minutes'
+    ENDIF
 
+    IDX = INDEX( TRIM(iShift), 'sec' )
+    IF ( IDX > 1 ) THEN
+       READ( iShift(1:(IDX-1)), * ) SHFT
+       Dta%tShift(6) = Dta%tShift(6) + SHFT
+       WRITE(tShift,*) Dta%tShift(6), ' seconds'
     ENDIF
 
     ! Error: cannot shift data if we use weekday data
-    IF ( Dta%tShift(1) /= 0 .OR. Dta%tShift(2) /= 0 ) THEN
+    IF ( Dta%tShift(1) /= 0 .OR. Dta%tShift(2) /= 0 .or. &
+         Dta%tShift(3) /= 0 .OR. Dta%tShift(4) /= 0 .or. &
+         Dta%tShift(5) /= 0 .OR. Dta%tShift(6) /= 0 ) THEN
        IF (   Dta%ncDys(1) == -10 .OR. &
             ( Dta%ncDys(1) == 1 .AND. Dta%ncDys(2) == 7 ) ) THEN
           WRITE(MSG,*) 'Time shift not supported for weekday data: ', &
@@ -173,10 +180,8 @@ CONTAINS
 
     ! verbose mode
     IF ( HCO_IsVerb(HcoConfig%Err,2) ) THEN
-       WRITE(MSG,*) 'Will shift time stamp of field ', TRIM(Dta%ncFile), ': '
-       CALL HCO_MSG(HcoConfig%Err,MSG)
-       WRITE(MSG,*) 'Time shift (months, seconds): ', Dta%tShift(1), &
-                                                      Dta%tShift(2)
+       WRITE(MSG,*) 'Will shift time stamp of field ', TRIM(Dta%ncPara), &
+                    ': ', TRIM(tShift)
        CALL HCO_MSG(HcoConfig%Err,MSG)
     ENDIF
 
@@ -229,7 +234,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                        :: nYr, nMt, nDy, nHr, nMn
-    INTEGER                        :: oYr, oMt, oDy
+    INTEGER                        :: oYr, oMt, oDy, oHr, oMn
     INTEGER                        :: SHFT, IDX
     INTEGER                        :: YYYYMMDD, HHMMSS
     REAL(dp)                       :: TimeShift, DAY, UTC, JD
@@ -246,7 +251,11 @@ CONTAINS
 
     ! Nothing to do if time shift is zero
     IF ( Lct%Dct%Dta%tShift(1) == 0 .AND. &
-         Lct%Dct%Dta%tShift(2) == 0        ) RETURN
+         Lct%Dct%Dta%tShift(2) == 0 .AND. &
+         Lct%Dct%Dta%tShift(3) == 0 .AND. &
+         Lct%Dct%Dta%tShift(4) == 0 .AND. &
+         Lct%Dct%Dta%tShift(5) == 0 .AND. &
+         Lct%Dct%Dta%tShift(6) == 0 ) RETURN
 
     ! Mirror values
     nYr = MAX(Yr,1)
@@ -259,46 +268,106 @@ CONTAINS
     oYr = nYr
     oMt = nMt
     oDy = nDy
+    oHr = nHr
+    oMn = nMn
 
-    ! Get time shift in days
-    TimeShift = REAL(Lct%Dct%Dta%tShift(2),dp) / 86400.0_dp
+    ! Apply minute time shift
+    IF ( ABS(Lct%Dct%Dta%tShift(5)) > 0 ) THEN
+       nMn = nMn + Lct%Dct%Dta%tShift(5)
+    ENDIF
 
-    ! Add monthly time shift
-    IF ( Lct%Dct%Dta%tShift(1) > 0 ) THEN
-       nMt = nMt + Lct%Dct%Dta%tShift(1)
-       ! Make sure new value is within 1-12. Also
-       ! adjust year accordingly
-       IF ( nMt > 12 ) THEN
-          DO WHILE ( nMt > 12 )
-             nMt = nMt - 12
-             nYr = nYr + 1
-          ENDDO
-       ELSEIF( nMt <= 0 ) THEN
-          DO WHILE ( nMt < 1 )
-             nMt = nMt + 12
-             nYr = nYr - 1
-          ENDDO
+    ! Make sure new minute value is within 0-59 and adjust hour accordingly
+    IF ( nMn > 59 ) THEN
+       DO WHILE ( nMn > 59 )
+          nMn = nMn - 60
+          nHr = nHr + 1
+       ENDDO
+    ELSEIF( nMn < 0 ) THEN
+       DO WHILE ( nMn < 1 )
+          nMn = nMn + 60
+          nHr = nHr - 1
+       ENDDO
+    ENDIF
+
+    ! Apply hour time shift
+    IF ( ABS(Lct%Dct%Dta%tShift(4)) > 0 ) THEN
+       nHr = nHr + Lct%Dct%Dta%tShift(4)
+    ENDIF
+
+    ! Make sure new hour value is within 0-23 and adjust day accordingly
+    IF ( nHr > 23 ) THEN
+       DO WHILE ( nHr > 23 )
+          nHr = nHr - 24
+          nDy = nDy + 1
+       ENDDO
+    ELSEIF( nHr < 0 ) THEN
+       DO WHILE ( nHr < 1 )
+          nHr = nHr + 24
+          nDy = nDy - 1
+       ENDDO
+    ENDIF
+
+    ! Apply day time shift
+    IF ( ABS(Lct%Dct%Dta%tShift(3)) > 0 ) THEN
+       nDy = nDy + Lct%Dct%Dta%tShift(3)
+    ENDIF
+
+    ! Make sure new day is within ndays in month and adjust month accordingly
+    IF ( nDy > 28 .AND. oMt == 2 .AND. MOD( oYr, 4 ) /= 0 ) THEN
+       nDy = nDy - 28
+       nMt = nMt + 1
+    ELSEIF ( nDy > 29 .AND. oMt == 2 .AND. MOD( oYr, 4 ) == 0) THEN
+       nDy = nDy - 29
+       nMt = nMt + 1
+    ELSEIF ( nDy > 30 .AND. &
+           ( oMt == 4 .OR. oMt == 6 .OR. oMt == 9 .OR. oMt == 11 ) ) THEN
+       nDy = nDy - 30
+       nMt = nMt + 1
+    ELSEIF ( nDy > 31 .AND. &
+           ( oMt == 1 .OR. oMt == 3  .OR. oMt == 5 .OR. oMt == 7 .OR. &
+             oMt == 8 .OR. oMt == 10 .OR. oMt == 12 ) ) THEN
+       nDy = nDy - 31
+       nMt = nMt + 1
+    ELSEIF ( nDy <= 0 ) THEN
+       IF ( oMt == 3 ) THEN
+          IF ( MOD( oYr, 4 ) == 0 ) THEN
+             nDy = nDy + 29
+          ELSE
+             nDy = nDy + 28
+          ENDIF
+          nMt = nMt - 1
+       ELSEIF ( oMt == 5 .OR. oMt == 7 .OR. oMt == 10 .OR. oMt == 12 ) THEN
+          nDy = nDy + 30
+          nMt = nMt - 1
+       ELSEIF ( oMt == 1. .OR. oMt == 2 .OR. oMt == 4 .OR. oMt == 6 .OR. &
+                oMt == 8  .OR. oMt == 9 .OR. oMt == 11 ) THEN
+          nDy = nDy + 31
+          nMt = nMt - 1
        ENDIF
     ENDIF
 
-    ! Get current date as Julian day.
-    UTC = ( REAL(nHr,dp) / 24.0_dp    ) + &
-          ( REAL(nMn,dp) / 1440.0_dp  ) + &
-          ( REAL(0  ,dp) / 86400.0_dp )
-    DAY = REAL(nDy,dp) + UTC
-    JD  = JULDAY( nYr, nMt, DAY )
+    ! Apply month time shift
+    IF ( ABS(Lct%Dct%Dta%tShift(2)) > 0 ) THEN
+       nMt = nMt + Lct%Dct%Dta%tShift(2)
+    ENDIF
 
-    ! Add time shift in seconds
-    JD = JD + TimeShift
+    ! Make sure new month is within 1-12 and adjust year accordingly
+    IF ( nMt > 12 ) THEN
+       DO WHILE ( nMt > 12 )
+          nMt = nMt - 12
+          nYr = nYr + 1
+       ENDDO
+    ELSEIF( nMt <= 0 ) THEN
+       DO WHILE ( nMt < 1 )
+          nMt = nMt + 12
+          nYr = nYr - 1
+       ENDDO
+    ENDIF
 
-    ! Translate back into dates.
-    CALL CALDATE( JD, YYYYMMDD, HHMMSS )
-    nYr = FLOOR ( MOD( YYYYMMDD, 100000000) / 1.0e4_dp )
-    nMt = FLOOR ( MOD( YYYYMMDD, 10000    ) / 1.0e2_dp )
-    nDy = FLOOR ( MOD( YYYYMMDD, 100      ) / 1.0e0_dp )
-
-    nHr = FLOOR ( MOD(   HHMMSS, 1000000  ) / 1.0e4_dp )
-    nMn = FLOOR ( MOD(   HHMMSS, 10000    ) / 1.0e2_dp )
+    ! Apply year time shift
+    IF ( ABS(Lct%Dct%Dta%tShift(1)) > 0 ) THEN
+       nYr = nYr + Lct%Dct%Dta%tShift(1)
+    ENDIF
 
     ! Eventually cap time shift for the same day.
     IF ( HcoState%Options%TimeShiftCap ) THEN
@@ -329,21 +398,20 @@ CONTAINS
 
     ! verbose mode
     IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-       WRITE(MSG,*) 'Adjusted time stamp of field ', TRIM(Lct%Dct%cName), ': '
+       WRITE(MSG,*) 'Adjusted time stamp of field ', TRIM(Lct%Dct%cName)
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-       WRITE(MSG,*) 'Time shift (months, seconds): ', Lct%Dct%Dta%tShift(1), &
-                                                      Lct%Dct%Dta%tShift(2)
+       WRITE(MSG,*) 'Time shift (YMDhms): ', Lct%Dct%Dta%tShift
        CALL HCO_MSG(HcoState%Config%Err,MSG)
-       WRITE(MSG,'(a27,i4.4,a1,i2.2,a1,i2.2,a1,i2.2,a1,i2.2)') 'Original Yr/Mt/Dy-Hr:Mn = ',Yr,'/',Mt,'/',Dy,'-',Hr,':',Mn
+       WRITE(MSG,'(a27,i4.4,a1,i2.2,a1,i2.2,a1,i2.2,a1,i2.2)') 'Original Yr/Mt/Dy-Hr:Mn = ',oYr,'/',oMt,'/',oDy,'-',oHr,':',oMn
        CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 
     ! Add back to output values
-    IF ( Yr >  0 ) Yr = nYr
-    IF ( Mt >  0 ) Mt = nMt
-    IF ( Dy >  0 ) Dy = nDy
-    IF ( Hr > -1 ) Hr = nHr
-    IF ( Mn > -1 ) Mn = nMn
+    Yr = nYr
+    Mt = nMt
+    Dy = nDy
+    Hr = nHr
+    Mn = nMn
 
     ! verbose mode
     IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
