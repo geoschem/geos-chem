@@ -138,6 +138,7 @@
 #endif
 
 #ifdef APM
+      !-----------------------------------------------------------------
       ! For APM aerosol microphysics simulation,
       ! see apm_driv_mod.f for more information
       !-----------------------------------------------------------------
@@ -515,7 +516,6 @@
             ErrMsg = 'Error encountered in "Init_TaggedDiagList"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
-
 
          !###  Print diagnostic lists if needed for debugging
          IF ( prtDebug ) CALL Print_DiagList( am_I_Root, Diag_List, RC )
@@ -1274,7 +1274,7 @@
             ENDIF
 
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant and,
-            ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity 
+            ! if LUCX=T and LSETH2O=F and LACTIVEH2O=T, update specific humidity
             ! in the stratosphere
             !
             ! NOTE: Specific humidity may change in SET_H2O_TRAC and
@@ -2215,6 +2215,26 @@
          ENDIF
 #endif
 
+
+
+         !=================================================================
+         !     ***** C O P Y   I - 3   F I E L D S *****
+         !
+         !     The I-3 fields at the end of an outer timestep (every 3 hours)
+         !     become the fields at the beginning of the next timestep.
+         !     This update must occur before writing History. (wbd1 12/03/19)   
+         !=================================================================
+
+         IF ( notDryRun ) THEN
+            IF ((mod(get_hour(), 3) .eq. 0) .AND. 
+     &                                     (get_minute() .eq. 0)) THEN
+               CALL Copy_I3_Fields( State_Met )
+               IF ( prtDebug ) THEN
+                  CALL Debug_Msg( '### MAIN: after COPY_I3_FIELDS' )
+               ENDIF
+            ENDIF
+         ENDIF
+
          !--------------------------------------------------------------
          !            ***** H I S T O R Y   W R I T E *****
          !--------------------------------------------------------------
@@ -2246,20 +2266,6 @@
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
          !==============================================================
       ENDDO
-
-      !=================================================================
-      !     ***** C O P Y   I - 3   F I E L D S *****
-      !
-      !     The I-3 fields at the end of this outer timestep
-      !     become the fields at the beginning of the next timestep
-      !=================================================================
-      IF ( notDryRun ) THEN
-         CALL Copy_I3_Fields( State_Met )
-         IF ( prtDebug ) THEN
-            CALL Debug_Msg( '### MAIN: after COPY_I3_FIELDS' )
-         ENDIF
-      ENDIF
-
       ENDDO
 
       !=================================================================
@@ -2742,7 +2748,7 @@
 !
 ! !DESCRIPTION: Looks at the input arguments to determine if the user
 !  has selected to do a GEOS-Chem dry-run.  If so, then the proper
-!  fields of Input_Opt will be populated accordingly, and the dry-run
+!  fields of Input\_Opt will be populated accordingly, and the dry-run
 !  log file will be opened.
 !\\
 !\\
@@ -2843,7 +2849,7 @@
 !
 ! !DESCRIPTION: Looks at the input arguments to determine if the user
 !  has selected to do a GEOS-Chem dry-run.  If so, then the proper
-!  fields of Input_Opt will be populated accordingly.
+!  fields of Input\_Opt will be populated accordingly.
 !\\
 !\\
 ! !INTERFACE:

@@ -3618,10 +3618,14 @@ CONTAINS
       CALL AirQnt( am_I_Root, Input_Opt, State_Chm, State_Grid, State_Met, &
                    RC,        update_mixing_ratio=.FALSE. )
 
-      ! Also read in I3 fields at t+3hours for this timestep
+   ENDIF
+
+   ! Read in I3 fields at t+3hours for this timestep
+   IF ( ITS_TIME_FOR_I3() .and. .not. ITS_TIME_FOR_EXIT() ) THEN
+
       D = GET_I3_TIME()
       CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
-
+      
       ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
       ! and compute avg dry pressure near polar caps
       CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
@@ -3629,23 +3633,6 @@ CONTAINS
 
       ! Compute avg moist pressure near polar caps
       CALL AvgPole( State_Grid, State_Met%PS2_WET )
-
-   ELSE
-
-      IF ( ITS_TIME_FOR_I3() .and. .not. ITS_TIME_FOR_EXIT() ) THEN
-
-         D = GET_I3_TIME()
-         CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
-
-         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-         ! and compute avg dry pressure near polar caps
-         CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
-         CALL AvgPole( State_Grid, State_Met%PS2_DRY )
-
-         ! Compute avg moist pressure near polar caps
-         CALL AvgPole( State_Grid, State_Met%PS2_WET )
-
-      ENDIF
 
    ENDIF
 
@@ -3860,10 +3847,6 @@ CONTAINS
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-            ! Apply minimum value threshold where input conc is very low
-            IF ( Ptr3D(I,J,L) < SMALL_NUM ) THEN
-                 Ptr3D(I,J,L) = SMALL_NUM
-            ENDIF
             State_Chm%Species(I,J,L,N) = Ptr3D(I,J,L) * MW_g / AIRMW
          ENDDO
          ENDDO
@@ -4550,7 +4533,6 @@ CONTAINS
    CHARACTER(LEN=255)   :: MSG                ! message
    CHARACTER(LEN=255)   :: v_name             ! variable name
    REAL(fp)             :: MW_g               ! species molecular weight
-   REAL(fp)             :: SMALL_NUM          ! small number threshold
    CHARACTER(LEN=16)    :: STAMP
 
    ! Temporary arrays and pointers
@@ -4577,9 +4559,6 @@ CONTAINS
 
    ! Name of this routine
    LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F)'
-
-   ! Set minimum value threshold for [mol/mol]
-   SMALL_NUM = 1.0e-30_fp
 
    !=================================================================
    ! Read species concentrations from NetCDF [mol/mol] and

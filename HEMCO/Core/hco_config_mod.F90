@@ -465,17 +465,18 @@ CONTAINS
 
     ! Init
     CALL HCO_ENTER ( HcoState%Config%Err, 'SetReadList (hco_config_mod.F90)', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *,'Error in HCO_ENTER called from HEMCO SetReadList'
+       RETURN
+    ENDIF
 
     ! Return w/ error if configuration file hasn't been read yet!
     IF ( .NOT. ASSOCIATED(HcoState%Config) ) THEN
-       MSG = 'HEMCO configuration object in HEMCO state is empty!'
-       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
+       PRINT *,'HEMCO configuration object in HEMCO state is empty! Error in HEMCO SetReadList.'
        RETURN
     ENDIF
     IF ( .NOT. HcoState%Config%ConfigFileRead ) THEN
-       MSG = 'HEMCO configuration file not read!'
-       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
+       PRINT *,'HEMCO configuration file not read! Error in HEMCO SetReadList.'
        RETURN
     ENDIF
 
@@ -484,29 +485,44 @@ CONTAINS
 
        ! Initialize ReadList
        CALL ReadList_Init ( am_I_Root, HcoState%ReadLists, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in HCO_ENTER called from HEMCO SetReadList'
+          RETURN
+       ENDIF
 
        ! Prepare data in buffer. This call identifies all base fields
        ! that have to be read by this CPU. It also kicks out base
        ! fields for emissions with an invalid species ID (if any) or
        ! if there are other base fields with higher priority.
        CALL RegisterPrepare ( am_I_Root, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in RegisterPrepare called from HEMCO SetReadList'
+          RETURN
+       ENDIF
 
        ! Register base emissions. In this step, we also redefine the
        ! list UnqScalIDs to make sure that only those scale factors
        ! will be registered that are effectively used in the next step.
        CALL Register_Base( am_I_Root, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in Register_Base called from HEMCO SetReadList'
+          RETURN
+       ENDIF
 
        ! Register scale factors based upon UnqScalIDs.
        CALL Register_Scal( am_I_Root, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in Register_Scal called from HEMCO SetReadList'
+          RETURN
+       ENDIF
 
        ! Create cIDList which allows quick access to all data containers
        ! based on their container IDs cID
        CALL cIDList_Create ( am_I_Root, HcoState, HcoState%Config%ConfigList, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in cIDList_Create called from HEMCO SetReadlist'
+          RETURN
+       ENDIF
 
        ! Don't need internal lists anymore.
        CALL ScalID_Cleanup   ( HcoState%Config%ScalIDList   )
@@ -2520,7 +2536,10 @@ CONTAINS
 
     ! Enter
     CALL HCO_ENTER ( HcoState%Config%Err, 'Register_Base (hco_config_mod.F90)', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *,'Error in HCO_ENTER called from Register_Base'
+       RETURN
+    ENDIF
 
     ! Initialize
     Lct => NULL()
@@ -2590,7 +2609,10 @@ CONTAINS
        ! container IDs. Beforehand, add scale factor IDs to internal
        ! list of used scale factors (UnqScalIDs).
        CALL ScalID_Register ( Lct%Dct, HcoState%Config, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in ScaleID_Register called from Register_Base'
+          RETURN
+       ENDIF
 
        ! Get target ID of this container. The targetID corresponds
        ! to the container ID cID into which emissions data of the
@@ -2604,7 +2626,10 @@ CONTAINS
        ! ID, emission category and hierarchy, ext. number, scale
        ! factors, and update frequency.
        CALL Get_targetID( am_I_Root, HcoState, Lct, targetID, RC)
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in Get_targetID called from Register_Base'
+          RETURN
+       ENDIF
 
        ! verbose
        IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
@@ -2633,7 +2658,10 @@ CONTAINS
        ! Register container in ReadList. Containers will be listed
        ! in the reading lists sorted by cID.
        CALL ReadList_Set( am_I_Root, HcoState, Lct%Dct, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in ReadList_Set called from Register_Base'
+          RETURN
+       ENDIF
 
        ! Print some information if verbose mode is on
        IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
@@ -3650,7 +3678,8 @@ CONTAINS
     IF ( cID <= 0 ) THEN
        WRITE ( strID, * ) ScalID
        MSG = 'Cannot find ScalID' // TRIM(strID)
-       CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
+       PRINT *,'cID negative for in HEMCO Get_cID'
+       PRINT *, TRIM(MSG)
        RETURN
     ENDIF
 
@@ -3770,11 +3799,17 @@ CONTAINS
        IF ( Dct%Scal_cID(N) < 0 ) CYCLE
 
        CALL ScalID2List( HcoConfig%ScalIDList, Dct%Scal_cID(N), RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in ScaleID2List called from HEMCO ScalID_Register (1)'
+          RETURN
+       ENDIF
+ 
        ! Replace scale factor ID with container ID.
        CALL Get_cID ( Dct%Scal_cID(N), HcoConfig, cID, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in Get_cID called from HEMCO ScalID_Register (1)'
+          RETURN
+       ENDIF
        Dct%Scal_cID(N) = cID
 
     ENDDO
@@ -3782,16 +3817,28 @@ CONTAINS
     ! Also check for level scale factor IDs
     IF ( Dct%levScalID1 > 0 ) THEN
        CALL ScalID2List( HcoConfig%ScalIDList, Dct%levScalID1, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in ScalID2List called from HEMCO ScalID_Register (2)'
+          RETURN
+       ENDIF
        CALL Get_cID ( Dct%levScalID1, HcoConfig, cID, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in Get_cID called from HEMCO ScalID_Register (2)'
+          RETURN
+       ENDIF
        Dct%levScalID1 = cID
     ENDIF
     IF ( Dct%levScalID2 > 0 ) THEN
        CALL ScalID2List( HcoConfig%ScalIDList, Dct%levScalID2, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in ScaleID2List called from HEMCO ScalID_Register (3)'
+          RETURN
+       ENDIF
        CALL Get_cID ( Dct%levScalID2, HcoConfig, cID, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *,'Error in Get_cID called from HEMCO ScalID_Register (3)'
+          RETURN
+       ENDIF
        Dct%levScalID2 = cID
     ENDIF
 

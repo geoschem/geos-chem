@@ -256,28 +256,46 @@ CONTAINS
 
     ! Enter
     CALL HCO_Enter( HcoState%Config%Err, 'HCO_INIT (hco_driver_mod.F90)', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in HCO_Enter called from HCO_Init"
+       RETURN
+    ENDIF
 
     ! Initialize time slice pointers
     CALL tIDx_Init( HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in tIDx_Init called from HCO_Init"
+       RETURN
+    ENDIF
 
     ! Initialize HEMCO Clock
     HcoState%Clock => NULL()
     CALL HcoClock_Init( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in HcoClock_Init called from HCO_Init"
+       RETURN
+    ENDIF
 
     ! Initialize the HEMCO diagnostics
     CALL HcoDiagn_Init( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in HcoDiagn_Init called from HCO_Init"
+       RETURN
+    ENDIF
 
     ! Set ReadList based upon the content of the configuration file.
     CALL SetReadList ( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in SetReadList called from HCO_Init"
+       RETURN
+    ENDIF
 
     ! Define universal scale factor for each HEMCO species
     CALL Hco_ScaleInit ( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in Hco_ScaleInit called from HCO_Init"
+       RETURN
+    ENDIF
 
     ! Leave w/ success
     CALL HCO_LEAVE ( HcoState%Config%Err, RC )

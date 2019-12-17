@@ -356,7 +356,9 @@ CONTAINS
     ENDDO
 
     ! Print Species Database to JSON format
-    CALL SpcData_To_JSON( am_I_Root, SpcData, RC )
+    IF ( am_I_Root ) THEN
+       CALL SpcData_To_JSON( am_I_Root, SpcData, RC )
+    ENDIF
 
     ! Deallocate temporary work arrays
     CALL Cleanup_Work_Arrays()

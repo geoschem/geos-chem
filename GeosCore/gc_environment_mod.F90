@@ -830,7 +830,7 @@ CONTAINS
     ! POPs (bpch)
     CALL Init_Diag53( State_Grid )
 
-#ifndef ESMF_
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !

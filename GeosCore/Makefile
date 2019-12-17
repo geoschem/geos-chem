@@ -376,9 +376,6 @@ aerosol_mod.o               : aerosol_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               tomas_mod.o             ucx_mod.o
 
-bromocarb_mod.o             : bromocarb_mod.F         dao_mod.o              \
-                              pbl_mix_mod.o
-
 carbon_mod.o                : carbon_mod.F                                   \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o                                  \
@@ -400,7 +397,6 @@ chemistry_mod.o             : chemistry_mod.F90                              \
 
 cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
-                              bromocarb_mod.o                                \
                               carbon_mod.o            co2_mod.o              \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag_mod.o              diag03_mod.o           \
@@ -478,7 +474,7 @@ dust_mod.o                  : dust_mod.F                                     \
                               hco_interface_mod.o
 
 emissions_mod.o             : emissions_mod.F90                              \
-                              bromocarb_mod.o         carbon_mod.o           \
+                                                      carbon_mod.o           \
                               co2_mod.o               global_ch4_mod.o       \
                               hcoi_gc_main_mod.o      mercury_mod.o          \
                               sulfate_mod.o           tomas_mod.o            \

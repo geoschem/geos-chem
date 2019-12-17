@@ -3,10 +3,10 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !IROUTINE: Makefile_DiagsDoc.mk (in doc subdirectory)
+# !IROUTINE: Makefile_HistoryDoc.mk (in doc subdirectory)
 #
 # !DESCRIPTION: This Makefile fragment contains commands to build the
-#  documentation for the GEOS-Chem diagnostics modules.  It is inlined into
+#  documentation for the GEOS-Chem History modules.  It is inlined into
 #  the Makefile (in the doc subdirectory) by an "include" command.
 #\\
 #\\
@@ -22,6 +22,7 @@
 #
 # !REVISION HISTORY:
 #  12 Jul 2017 - R. Yantosca - Initial version
+#  See the Gitk browser for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -43,7 +44,7 @@ DVI3 := GC_v11-02_History_Modules.dvi
 PDF3 := GC_v11-02_History_Modules.pdf
 
 # Make commands
-diagsdoc:
+historydoc:
 	rm -f $(TEX3)
 	./protex -sfp $(SRC3) > $(TEX3)
 	latex $(TEX3)
