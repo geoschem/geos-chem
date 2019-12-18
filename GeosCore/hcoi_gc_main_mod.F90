@@ -2928,6 +2928,12 @@ CONTAINS
     ! If emissions are turned off, do not read emissions data
     !-----------------------------------------------------------------------
     IF ( .NOT. Input_Opt%LEMIS ) THEN
+
+       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+       Print*, '% Emissions are set to false in input.geos so emissions %'
+       Print*, '% data will not be read by HEMCO (hcoi_gc_main_mod.F90) %'
+       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+
        OptName = 'EMISSIONS : false'
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
@@ -2952,12 +2958,19 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           RETURN
        ENDIF
+
     ENDIF
 
     !-----------------------------------------------------------------------
     ! If chemistry is turned off, do not read chemistry input data
     !-----------------------------------------------------------------------
     IF ( .NOT. Input_Opt%LCHEM ) THEN
+
+       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+       Print*, '% Chemistry is set to false in input.geos so chemistry  %'
+       Print*, '% data will not be read by HEMCO (hcoi_gc_main_mod.F90) %'
+       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+
        OptName = 'CHEMISTRY_INPUT : false'
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
@@ -2968,6 +2981,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
           RETURN
        ENDIF
+
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -2977,48 +2991,64 @@ CONTAINS
     ! fullchem and aerosol-only simulations that have chemistry switched on.
     !-----------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-       IF ( Input_Opt%LCHEM ) THEN
-          OptName = 'UVALBEDO : true'
-       ELSE
-          OptName = 'UVALBEDO : false'
-       ENDIF
-    ELSE
-       OptName = 'UVALBEDO : false'
-    ENDIF
-    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "AddExtOpt( UVALBEDO )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
+       CALL GetExtOpt( HcoConfig, -999, 'UVALBEDO',           &
+                       OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "GetExtOpt( UVALBEDO )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          RETURN
+       ENDIF
+       IF ( .not. FOUND ) THEN
+          ErrMsg = 'UVALBEDO not found in HEMCO_Config.rc file!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       IF ( .not. LTMP ) THEN
+          ErrMsg = 'UVALBEDO is set to false in HEMCO_Config.rc ' // &
+                   'but should be set to true for this simulation.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
     !-----------------------------------------------------------------------
     ! PSC STATE (for UCX)
     !-----------------------------------------------------------------------
-#ifdef ESMF_
-    OptName = 'STATE_PSC : false'
-#else
+#if !defined( ESMF_ )
     IF ( Input_Opt%LUCX ) THEN
-       OptName = 'STATE_PSC : true'
-    ELSE
-       OptName = 'STATE_PSC : false'
+
+       CALL GetExtOpt( HcoConfig, -999, 'STATE_PSC',          &
+                       OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "GetExtOpt( STATE_PSC )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          RETURN
+       ENDIF
+       IF ( .not. FOUND ) THEN
+          ErrMsg = 'STATE_PSC not found in HEMCO_Config.rc file!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       IF ( .not. LTMP ) THEN
+          ErrMsg = 'STATE_PSC is set to false in HEMCO_Config.rc ' // &
+                   'but should be set to true for this simulation.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 #endif
-    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "AddExtOpt(  STATE_PSC )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
 
 #ifdef ESMF_
-    ! Also check that HEMCO_RESTART is not set
+    !-----------------------------------------------------------------------
+    ! Also check that HEMCO_RESTART is not set in ESMF
+    !-----------------------------------------------------------------------
     CALL GetExtOpt( HcoConfig,       -999,        'HEMCO_RESTART',           &
                     OptValBool=LTMP, FOUND=FOUND,  RC=HMRC                  )
 
@@ -3029,7 +3059,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
-
     If ( FOUND .and. LTMP ) Then
        ErrMsg = 'Error encountered in "ESMF HEMCO_RESTART"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
@@ -3038,55 +3067,46 @@ CONTAINS
 #endif
 
     !-----------------------------------------------------------------------
-    ! GMI linear stratospheric chemistry
-    !
-    ! Set stratospheric chemistry toggle according to options in the
-    ! input.geos file.
-    !-----------------------------------------------------------------------
-    IF ( Input_Opt%LSCHEM .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       IF ( Input_Opt%LUCX ) THEN
-          OptName = 'GMI_PROD_LOSS : true'
-       ELSE
-          OptName = 'UCX_PROD_LOSS : true'
-       ENDIF
-    ELSE
-       OptName = 'GMI_PROD_LOSS : false'
-       OptName = 'UCX_PROD_LOSS : false'
-    ENDIF
-    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "AddExtOpt( PROD_LOSS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
     ! TOMS/SBUV overhead O3 columns
     !
     ! Do not read in the TOMS/SBUV O3 columns unless running a mercury
     ! simulation. We will instead use the O3 columns from the GEOS-FP
     ! or MERRA-2 met fields.
     !-----------------------------------------------------------------------
-    ! Disable TOMS/SBUV O3 no matter what it is set to in the
-    ! HEMCO configuration file unless it is a mercury simulation done
-    ! with photo-reducible HgII(aq) to UV-B radiation turned on (jaf)
-    IF ( Input_Opt%ITS_A_MERCURY_SIM .and.   &
-         Input_Opt%LKRedUV ) THEN
-       OptName = 'TOMS_SBUV_O3 : true'
-    ELSE
-       OptName = 'TOMS_SBUV_O3 : false'
-    ENDIF
-    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC    )
-
-    ! Trap potential errors
+    CALL GetExtOpt( HcoConfig, -999, 'TOMS_SBUV_O3',       &
+                    OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
-       ErrMsg = 'Error encountered in "AddExtOpt( TOMS_SBUV_O )"!'
+       ErrMsg = 'Error encountered in "GetExtOpt( TOMS_SBUV_O3 )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
+    ENDIF
+
+    IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LKRedUV ) THEN
+
+       IF ( .not. FOUND ) THEN
+          ErrMsg = 'TOMS_SBUV_O3 not found in HEMCO_Config.rc file ' // &
+                   'but is required for this simulation.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       IF ( .not. LTMP ) THEN
+          ErrMsg = 'TOMS_SBUV_O3 is set to false in HEMCO_Config.rc ' // &
+                   'but should be set to true for this simulation.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ELSE
+
+       IF ( LTMP ) THEN
+          ErrMsg = 'TOMS_SBUV_O3 is set to true in HEMCO_Config.rc ' // &
+                   'but should be set to false for this simulation. '// &
+                   'O3 columns are obtained from met fields instead.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -3096,23 +3116,29 @@ CONTAINS
     ! input.geos file, then we will also toggle the OCEAN_Hg
     ! collection so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       IF ( Input_Opt%LDYNOCEAN ) THEN
-          OptName = 'OCEAN_Hg : true'
-       ELSE
-          OptName = 'OCEAN_Hg : false'
-       ENDIF
-    ELSE
-       OptName = 'OCEAN_Hg : false'
-    ENDIF
-    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC  )
+    IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LDYNOCEAN ) THEN
 
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "AddExtOpt( OCEAN_Hg )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
+       CALL GetExtOpt( HcoConfig, -999, 'OCEAN_Hg',           &
+                       OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "GetExtOpt( OCEAN_Hg )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          RETURN
+       ENDIF
+       IF ( .not. FOUND ) THEN
+          ErrMsg = 'OCEAN_Hg not found in HEMCO_Config.rc file!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       IF ( .not. LTMP ) THEN
+          ErrMsg = 'OCEAN_Hg is set to false in HEMCO_Config.rc ' // &
+                   'but LDYNOCEAN is true in input.geos.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -3123,18 +3149,28 @@ CONTAINS
     ! collection so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LRAD .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       OptName = 'RRTMG : true'
-    ELSE
-       OptName = 'RRTMG : false'
-    ENDIF
-    CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC  )
 
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "AddExtOpt( RRTMG )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
+       CALL GetExtOpt( HcoConfig, -999, 'RRTMG',              &
+                       OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
+
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "GetExtOpt( RRTMG )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          RETURN
+       ENDIF
+       IF ( .not. FOUND ) THEN
+          ErrMsg = 'RRTMG not found in HEMCO_Config.rc file!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       IF ( .not. LTMP ) THEN
+          ErrMsg = 'RRTMG is set to false in HEMCO_Config.rc ' // &
+                   'but should be set to false for this simulation.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
     ! Return w/ success
