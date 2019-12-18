@@ -263,7 +263,10 @@ CONTAINS
     ! For error handling
     CALL HCO_ENTER ( HcoState%Config%Err, &
                     'ReadList_Read (hco_readlist_mod.F90)', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in HCO_ENTER called from HEMCO ReadList_Read"
+       RETURN
+    ENDIF
 
     ! Verbose mode
     verb = HCO_IsVerb( HcoState%Config%Err, 1 )
@@ -283,7 +286,10 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Once, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *, "Error in ReadList_Fill (1) called from HEMCO ReadList_Read"
+          RETURN
+       ENDIF
     ENDIF
 
     ! Read content from year list if it's a new year
@@ -293,7 +299,10 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Year, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *, "Error in ReadList_Fill (2) called from HEMCO ReadList_Read"
+          RETURN
+       ENDIF
     ENDIF
 
     ! Read content from month list if it's a new month
@@ -303,7 +312,10 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Month, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *, "Error in ReadList_Fill (3) called from HEMCO ReadList_Read"
+          RETURN
+       ENDIF
     ENDIF
 
     ! Read content from day list if it's a new day
@@ -313,7 +325,10 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Day, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *, "Error in ReadList_Fill (4) called from HEMCO ReadList_Read"
+          RETURN
+       ENDIF
     ENDIF
 
     ! Read content from hour list if it's a new hour
@@ -323,7 +338,10 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *, "Error in ReadList_Fill (5) called from HEMCO ReadList_Read"
+          RETURN
+       ENDIF
     ENDIF
 
     ! Read content from 3-hour list if it's a new hour
@@ -333,7 +351,10 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
        CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour3, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *, "Error in ReadList_Fill (6) called from HEMCO ReadList_Read"
+          RETURN
+       ENDIF
     ENDIF
 
     ! Always add/update content from always-list
@@ -342,7 +363,10 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
     CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Always, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in called ReadList_Fill (7) from HEMCO ReadList_Read"
+       RETURN
+    ENDIF
 
     ! Update counter
     HcoState%ReadLists%Counter = HcoState%ReadLists%Counter + 1
@@ -433,7 +457,10 @@ CONTAINS
     ! For error handling
     CALL HCO_ENTER (HcoState%Config%Err,&
                    'ReadList_Fill (hco_readlist_mod.F90)', RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in HCO_ENTER called from HEMCO ReadList_Fill"
+       RETURN
+    ENDIF
 
     ! Verbose mode?
     verb = HCO_IsVerb ( HcoState%Config%Err, 2 )
@@ -468,14 +495,22 @@ CONTAINS
           ! Read from other source if it's not a netCDF file
           IF ( .NOT. Lct%Dct%Dta%NcRead ) THEN
              CALL HCOIO_ReadOther ( am_I_Root, HcoState, Lct, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
+             IF ( RC /= HCO_SUCCESS ) THEN
+                PRINT *, "Error in HCOIO_ReadOther called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+                RETURN
+             ENDIF
 
           ! Read from netCDF file otherwise
           ELSE
 
              ! Read data
              CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
+             IF ( RC /= HCO_SUCCESS ) THEN
+                PRINT *, "Error in HCOIO_DATAREAD called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+                RETURN
+             ENDIF
+
+
           ENDIF
 
           ! We now have touched this data container
@@ -494,11 +529,18 @@ CONTAINS
           ! 'HOURLY_GRID' time index collection type defined in
           ! hco_tidx_mod.
           CALL tIDx_Assign ( HcoState, Lct%Dct, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( RC /= HCO_SUCCESS ) THEN
+             PRINT *, "Error in tIDx_Assign called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+             RETURN
+          ENDIF
 
           ! Container is now read to be passed to emissions list.
           CALL EmisList_Pass( am_I_Root, HcoState, Lct, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          IF ( RC /= HCO_SUCCESS ) THEN
+             PRINT *, "Error in EmisList_Pass called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+             RETURN
+          ENDIF
+
        ENDIF
 
        ! Advance to next container
@@ -507,7 +549,10 @@ CONTAINS
 
     ! Make sure that all netCDF files are closed
     CALL HCOIO_CloseAll ( am_I_Root, HcoState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( RC /= HCO_SUCCESS ) THEN
+       PRINT *, "Error in HCOIO_CloseAll called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
+       RETURN
+    ENDIF
 
     ! Second loop to clean up all data that is not used in EmisList.
     ! This cannot be done within EmisList_Pass since it is possible
