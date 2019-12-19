@@ -1,0 +1,171 @@
+#------------------------------------------------------------------------------
+#     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+#          Harvard University Atmospheric Chemistry Modeling Group            !
+#------------------------------------------------------------------------------
+#
+# !DESCRIPTION: Resource file for the GEOSCHEMchem Gridded Component.
+#
+# !REVISION HISTORY:
+#  06 Oct 2009 - P. Le Sager - Initial
+#  06 Dec 2009 - da Silva    - Converted from NAMELIST to ESMF Config
+#  13 Apr 2010 - R. Yantosca - Added dimension info and tracer names
+#  07 Nov 2012 - R. Yantosca - Added placeholder fields for input.geos
+#  26 Feb 2013 - R. Yantosca - Added MAX_DEP for Input_Opt
+#  19 Mar 2013 - R. Yantosca - Added LINOZ fields for Input_Opt
+#  19 Mar 2013 - R. Yantosca - MAX_TRCS should be 53, not 54
+#  01 Aug 2014 - M. Long-sca - MAX_TRCS & MAX_DIAG set to 130 & 80, resp.
+#  07 Jun 2018 - C.Keller/K.E.Knowland - Change LLSTRAT from 59 to 40, add Calc_VUD_online
+#------------------------------------------------------------------------------
+
+#
+# %%% Start date/time                %%%
+# %%% Used by ut_GEOSCHEM in sandbox %%%
+#
+UTC_START_DATE:       20050701
+UTC_START_TIME:       000000
+
+#
+# %%% End date/time                  %%%
+# %%% Used by ut_GEOSCHEM in sandbox %%%
+#
+UTC_END_DATE:         20050702
+UTC_END_TIME:         000000
+
+#
+# %%% Timesteps [sec] %%%
+#
+DYNAMICS_TIMESTEP:    1800
+CHEMISTRY_TIMESTEP:   1800
+
+#
+# %%% Placeholder fields for Input_Opt object %%%
+#
+MAX_DIAG:             80
+MAX_TRCS:             130
+MAX_MEMB:             15
+MAX_FAMS:             20
+MAX_DEP:              55
+LINOZ_NFIELDS:         7
+LINOZ_NLAT            18
+LINOZ_NLEVELS:        25
+LINOZ_NMONTHS:        12
+
+# Maximum level used for chemistry. If not extending to the top of the atmosphere,
+# production and loss rates from an offline GMI simulation will be applied to the 
+# remaining levels (based on GEOS-Chem's linearized stratospheric chemistry scheme). 
+# It is recommended to do full chemistry over the entire column, so that LLSTRAT = LM.
+# This is the default.
+#LLSTRAT:              72
+
+#
+# FAST-JX options:
+# LLFASTJX are the number of levels used for FAST-JX. The default value for a simulation
+# on 72 model levels is 601, and 1201 if running on 132 model levels. 
+# FJX_EXTRAL_ITERMAX (defaults: 1 and 5 for 72 and 132 model levels, respectively) and 
+# FJX_EXTRAL_ERR (default = 1) are fine tuning parameter that can be used
+# to get more control over the FAST-JX calculations. Increase FJX_EXTRAL_ITERMAX if 
+# you encounter problems with FAST-JX, e.g. at 132 model levels.
+#LLFASTJX:             601 
+#FJX_EXTRAL_ITERMAX:   1 
+#FJX_EXTRAL_ERR:       1
+
+#
+# %%% Run phases (1 or 2. 2 recommended) %%% 
+#
+RUN_PHASES:        2
+
+#
+# %%% Stop if KPP integration fails (default: 1) %%% 
+#
+KPP_STOP_IF_FAIL:  0
+
+#
+# %%% Compute vertical updraft velocity (used for
+# %%% wet scavenging) from online values. If set to
+# %%% false (default), a value of 5 m/s and 10 m/s
+# %%% is used over water and land, respectively.
+#
+Calc_VUD_online: 0
+
+#
+# %%% HEMCO configuration file %%%
+#
+HEMCO_CONFIG:         HEMCO_Config.rc
+
+#
+# %%% Log file names for redirecting stdout %%%
+#
+STDOUT_LOGFILE:       PET%%%%%.GEOSCHEMchem.log
+STDOUT_LOGLUN:        6
+
+#
+# %%% Initialize all concentrations to zero? ###
+#
+INIT_ZERO:            0
+
+#
+# %%% Use archived convection fields? %%% 
+#
+ARCHIVED_CONV:        0
+
+#
+# %%% Tuning parameter to reduce washout efficiency 
+# %%% of convective large-scale precip.
+# %%% Use at own risk: the effects of setting this 
+# %%% parameter to a value between 0.0 and 1.0 are 
+# %%% untested! 
+#
+### cakelle2, 20180828: bug fix, changed from -999.0 to 1.0 
+Convective_precip_correction: 1.0
+
+#
+# %%% Cap polar tropopause at 200hPa (default=yes)? %%% 
+#
+Cap_polar_tropopause: 0
+
+#
+# %%% Ozonopause value in ppb. If set to <= 0.0, the 
+# %%% GEOS-5 tropopause will be used (default) 
+#
+Use_ozonopause: -999.0
+
+#
+# %%% Prescribe stratospheric H2O
+#
+Prescribe_strat_H2O: 1
+
+#
+# %%% Read initial conditions from external file
+# %%% instead of internal state
+#
+INIT_SPC_FROM_FILE: 0
+INIT_SPC_FILE: /discover/nobackup/cakelle2/GEOS_CF/v11-02e/GC_v1102e/21_v11-02e_UCX_PL/GEOSChem_restart.201308010000.edit.nc 
+
+USE_GMI_MESO: 0
+GMI_TEMPLATE: /discover/nobackup/cakelle2/data/GMI/gmi.clim.%spc.geos5.2x25.esmf.nc
+
+#
+# %%% Use GMI P/L for O3 (default=no)? %%%
+#
+Use_GMI_O3_PL:        0
+
+# Options to nudge O3 between level ANAO3L1 and ANAO3L4. If the flag Use_ANA_O3 is set to 1, GEOS-Chem ozone is nudged to 
+# the analysis field taken from the file specified in ANAO3TMPL. Nudging is performed between levels ANAO3L1 and ANAO3L4
+# (level numbers go from 1 = surface to top of atmosphere).
+# As 'blending factor' it uses the value specified in ANAO3FR, with a smooth vertical transition between zero and full nudging 
+# between levels ANAO3L1 to ANAO3L2 (lower boundary), and ANAO3L3 to ANAO3L4 (upper boundary), respectively. If the flag 
+# 'Use_PCHEM_O3' is enabled, it will use the internal PCHEM O3 to do the nudging instead of the field provided in ANAO3TMPL. 
+# Use_ANA_O3 must still be enabled in this case.
+# A nuding attempt is made every three hours (0130, 0430, ...) at the beginning of phase one of GEOS-Chem. If using ANAO3TMPL,
+# it will look for variable 'O3' in that file, and the units of the field are assumed to be kg/kg (total air). This field
+# must be on native GEOS vertical levels (i.e. level 1 = top of atmosphere).
+# If no file is found for a given time step, nudging is skipped. Diagnostics 'ANA_O3_INC' outputs the ozone increments added to 
+# the GEOS-Chem ozone field.
+Use_ANA_O3: 0
+ANAO3TMPL: /discover/nobackup/projects/gmao/yotc/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4
+ANAO3L1: 38
+ANAO3L2: 40
+ANAO3L3: 72
+ANAO3L4: 72
+ANAO3FR: 0.2
+Use_PCHEM_O3: 0

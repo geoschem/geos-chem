@@ -1,0 +1,277 @@
+------------------------+------------------------------------------------------
+%%% SIMULATION MENU %%% :
+Start YYYYMMDD, hhmmss  : 20160701 000000
+End   YYYYMMDD, hhmmss  : 20160701 010000
+Run directory           : ./
+Root data directory     : /discover/nobackup/cakelle2/data
+Met field               : geosfp
+Simulation name         : benchmark
+Turn on debug printout? : F
+------------------------+------------------------------------------------------
+%%% TIMESTEP MENU %%%   :
+Tran/conv timestep [sec]: 600
+Chem/emis timestep [sec]: 1200
+------------------------+------------------------------------------------------
+%%% ADVECTED SPECIES MENU %%%:
+Species name            : NO
+Species name            : O3
+Species name            : PAN
+Species name            : CO
+Species name            : ALK4
+Species name            : ISOP
+Species name            : HNO3
+Species name            : H2O2
+Species name            : ACET
+Species name            : MEK
+Species name            : ALD2
+Species name            : RCHO
+Species name            : MVK
+Species name            : MACR
+Species name            : NPMN
+Species name            : PPN
+Species name            : R4N2
+Species name            : PRPE
+Species name            : C3H8
+Species name            : CH2O
+Species name            : C2H6
+Species name            : N2O5
+Species name            : HNO4
+Species name            : MP
+Species name            : DMS
+Species name            : SO2
+Species name            : SO4
+Species name            : SO4s
+Species name            : MSA
+Species name            : NH3
+Species name            : NH4
+Species name            : NIT
+Species name            : NITs
+Species name            : BCPI
+Species name            : OCPI
+Species name            : BCPO
+Species name            : OCPO
+Species name            : DST1
+Species name            : DST2
+Species name            : DST3
+Species name            : DST4
+Species name            : SALA
+Species name            : SALC
+Species name            : Br2
+Species name            : Br
+Species name            : BrO
+Species name            : HOBr
+Species name            : HBr
+Species name            : BrNO2
+Species name            : BrNO3
+Species name            : CHBr3
+Species name            : CH2Br2
+Species name            : CH3Br
+Species name            : MPN
+Species name            : ISOPND
+Species name            : ISOPNB
+Species name            : MOBA
+Species name            : PROPNN
+Species name            : HAC
+Species name            : GLYC
+Species name            : MVKN
+Species name            : MACRN
+Species name            : MAP
+Species name            : NO2
+Species name            : NO3
+Species name            : HNO2
+Species name            : BENZ
+Species name            : TOLU
+Species name            : XYLE
+Species name            : MTPA
+Species name            : LIMO
+Species name            : MTPO
+Species name            : TSOG1
+Species name            : TSOG2
+Species name            : TSOG3
+Species name            : TSOG0
+Species name            : TSOA1
+Species name            : TSOA2
+Species name            : TSOA3
+Species name            : TSOA0
+Species name            : ASOG1
+Species name            : ASOG2
+Species name            : ASOG3
+Species name            : ASOAN
+Species name            : ASOA1
+Species name            : ASOA2
+Species name            : ASOA3
+Species name            : SOAP
+Species name            : SOAS
+Species name            : EOH
+Species name            : MGLY
+Species name            : GLYX
+Species name            : ACTA
+Species name            : HPALD
+Species name            : DHDN
+Species name            : ETHLN
+Species name            : HCOOH
+Species name            : IEPOXA
+Species name            : IEPOXB
+Species name            : IEPOXD
+Species name            : ISN1
+Species name            : RIPA
+Species name            : RIPB
+Species name            : RIPD
+Species name            : IMAE
+Species name            : SOAIE
+Species name            : SOAME
+Species name            : SOAGX
+Species name            : SOAMG
+Species name            : LVOC
+Species name            : LVOCOA
+Species name            : ISN1OG
+Species name            : ISN1OA
+Species name            : MONITS
+Species name            : MONITU
+Species name            : HONIT
+Species name            : IONITA
+Species name            : MONITA
+Species name            : INDIOL
+Species name            : IPMN
+Species name            : HC187
+Species name            : N2O
+Species name            : OCS
+Species name            : CH4
+Species name            : BrCl
+Species name            : HCl
+Species name            : CCl4
+Species name            : CH3Cl
+Species name            : CH3CCl3
+Species name            : CFC113
+Species name            : CFC114
+Species name            : CFC115
+Species name            : HCFC123
+Species name            : HCFC141b
+Species name            : HCFC142b
+Species name            : CFC11
+Species name            : CFC12
+Species name            : HCFC22
+Species name            : H1211
+Species name            : H1301
+Species name            : H2402
+Species name            : Cl
+Species name            : ClO
+Species name            : HOCl
+Species name            : ClNO3
+Species name            : ClNO2
+Species name            : ClOO
+Species name            : OClO
+Species name            : Cl2
+Species name            : Cl2O2
+Species name            : H2O
+Species name            : BrSALA
+Species name            : BrSALC
+Species name            : CHCl3
+Species name            : CH2Cl2
+Species name            : CH3I
+Species name            : CH2I2
+Species name            : CH2ICl
+Species name            : CH2IBr
+Species name            : HOI
+Species name            : I2
+Species name            : IBr
+Species name            : ICl
+Species name            : I
+Species name            : IO
+Species name            : HI
+Species name            : OIO
+Species name            : INO
+Species name            : IONO
+Species name            : IONO2
+Species name            : I2O2
+Species name            : I2O3
+Species name            : I2O4
+Species name            : ISALA
+Species name            : ISALC
+Species name            : AERI
+Species name            : pFe
+Species name            : MENO3
+Species name            : ETNO3
+Species name            : IPRNO3
+Species name            : NPRNO3
+------------------------+------------------------------------------------------
+%%% TRANSPORT MENU %%%  :
+Turn on Transport       : T
+ => Fill Negative Values: T
+ => IORD, JORD, KORD    : 3  3  7
+------------------------+------------------------------------------------------
+%%% CONVECTION MENU %%% :
+Turn on Cloud Conv?     : T
+Turn on PBL Mixing?     : F
+ => Use non-local PBL?  : F
+------------------------+------------------------------------------------------
+%%% EMISSIONS MENU %%%  :
+Turn on emissions?      : T
+HEMCO Input file        : HEMCO_Config.rc
+Switches for UCX        :---
+ => Use CH4 emissions?  : F
+ => Set init. strat. H2O: F
+------------------------+------------------------------------------------------
+%%% AEROSOL MENU %%%    :
+Online SULFATE AEROSOLS : T
+ => Metal cat. SO2 ox.? : T
+Online CARBON  AEROSOLS : T
+ => Use Brown Carbon?   : F
+Online COMPLEX SOA      : T
+ => Semivolatile POA?   : F
+Online DUST    AEROSOLS : T
+ => Acidic uptake ?     : F
+Online SEASALT AEROSOLS : T
+ => SALA radius bin [um]: 0.01 0.5
+ => SALC radius bin [um]: 0.5  8.0
+ => MARINE ORG AEROSOLS : F
+Settle strat. aerosols  : T
+Online PSC AEROSOLS     : T
+Allow homogeneous NAT?  : T
+NAT supercooling req.(K): 3.0
+Ice supersaturation req.: 1.2
+Perform PSC het. chem.? : T
+Calc. strat. aero. OD?  : T
+Enhance BC Absorption?  : T
+ => hydrophilic BC      : 1.5
+ => hydrophobic BC      : 1.0
+Photolyse nitrate aer.? : F
+ => NITs Jscale (JHNO3) : 0.0
+ => NIT  Jscale (JHNO3) : 0.0
+ => % channel A (HONO)  : 66.667
+ => % channel B (NO2)   : 33.333
+------------------------+------------------------------------------------------
+%%% DEPOSITION MENU %%% :
+Turn on Dry Deposition? : T
+Turn on Wet Deposition? : T
+Turn on CO2 Effect?     : F
+CO2 level               : 600.0
+Reference CO2 level     : 380.0
+Diag alt above sfc [m]  : 10
+------------------------+------------------------------------------------------
+%%% CHEMISTRY MENU %%%  :
+Turn on Chemistry?      : T
+Use linear. strat. chem?: T
+ => Use Linoz for O3?   : T
+Use UCX strat. chem?    : T
+Active strat. H2O?      : T
+Overhead O3 for FAST-JX :---
+ => Online O3 from model: T
+ => O3 from met fields  : T
+ => TOMS/SBUV O3        : F
+Gamma HO2               : 0.2
+------------------------+------------------------------------------------------
+%%% PHOTOLYSIS MENU %%% :
+FAST-JX directory       : /discover/nobackup/ewlundgr/data/ExtData/CHEM_INPUTS/FAST_JX/v2019-10/
+------------------------+------------------------------------------------------
+%%% RADIATION MENU %%%  :
+AOD Wavelength (nm)     : 550
+Turn on RRTMG?          : F
+Calculate LW fluxes?    : F
+Calculate SW fluxes?    : F
+Clear-sky flux?         : F
+All-sky flux?           : F
+Radiation Timestep [sec]: 10800
+------------------------+------------------------------------------------------
+END OF FILE             :
+------------------------+------------------------------------------------------
