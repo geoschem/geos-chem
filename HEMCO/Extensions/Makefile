@@ -177,7 +177,7 @@ hcox_lightnox_mod.o         : hcox_lightnox_mod.F90           \
                               hcox_state_mod.o                \
                               hcox_tools_mod.o
 
-hcox_megan_mod.o            : hcox_megan_mod.F                \
+hcox_megan_mod.o            : hcox_megan_mod.F90              \
                               hcox_state_mod.o
 
 hcox_paranox_mod.o          : hcox_paranox_mod.F90            \
