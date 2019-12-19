@@ -163,7 +163,10 @@ CONTAINS
     ! Update data, as specified in ReadList.
     IF ( Phase /= 2 ) THEN
        CALL ReadList_Read( am_I_Root, HcoState, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       IF ( RC /= HCO_SUCCESS ) THEN
+          PRINT *, "Error in ReadList_Read called from hco_run"
+          RETURN
+       ENDIF
 
        ! If we are reading timezone data (i.e. offsets from UTC in hours)
        ! from a file, then we need to initialize the TIMEZONES pointer
