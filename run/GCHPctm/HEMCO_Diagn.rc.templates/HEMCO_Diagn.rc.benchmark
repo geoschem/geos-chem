@@ -776,36 +776,36 @@ InvLIGHTNOX_NO       NO     103  -1  -1  3   kg/m2/s  NO_emission_flux_from_ligh
 #
 # Comment out species obtained from OFFLINE_BIOGENICVOC by default
 #=============================
-#InvMEGAN_ALD2        ALD2   108   -1 -1  2   kgC/m2/s  ALD2_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_C2H4        C2H4   108   -1 -1  2   kgC/m2/s  C2H4_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_EOH         EOH    108   -1 -1  2   kgC/m2/s  EOH_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ISOP        ISOP   108   -1 -1  2   kgC/m2/s  ISOP_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_LIMO        LIMO   108   -1 -1  2   kgC/m2/s  LIMO_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_MTPA        MTPA   108   -1 -1  2   kgC/m2/s  MTPA_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_MTPO        MTPO   108   -1 -1  2   kgC/m2/s  MTPO_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_PRPE        PRPE   108   -1 -1  2   kgC/m2/s  PRPE_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_SESQ        SESQ   108   -1 -1  2   kgC/m2/s  SESQ_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_SOAP        SOAP   108   -1 -1  2   kgC/m2/s  SOAP_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_SOAS        SOAS   108   -1 -1  2   kgC/m2/s  SOAS_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ACET        ACET   108   -1 -1  2   kgC/m2/s  ACET_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ACET_MONO   -1     108   -1 -1  2   kgC/m2/s  Acetone_from_monoterpenes_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ACET_MBOX   -1     108   -1 -1  2   kgC/m2/s  Acetone_from_methyl_butenol_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ACET_DIRECT -1     108   -1 -1  2   kgC/m2/s  Direct_acetone_biogenic_emission_flux_from_MEGAN_extension
-InvMEGAN_MOH         MOH    108  -1  -1  2   kgC/m2/s  Methanol_emission_flux_from_MEGAN_extension
-InvMEGAN_APIN        -1     108  -1  -1  2   kgC/m2/s  Alpha_pinene_emission_flux_from_MEGAN_extension
-InvMEGAN_BPIN        -1     108  -1  -1  2   kgC/m2/s  Beta_pinene_acid_emission_flux_from_MEGAN_extension
-InvMEGAN_SABI        -1     108  -1  -1  2   kgC/m2/s  Sabinene_emission_flux_from_MEGAN_extension
-InvMEGAN_MYRC        -1     108  -1  -1  2   kgC/m2/s  Mycrene_emission_flux_from_MEGAN_extension
-InvMEGAN_CARE        -1     108  -1  -1  2   kgC/m2/s  3_Carene_emission_flux_from_MEGAN_extension
-InvMEGAN_OCIM        -1     108  -1  -1  2   kgC/m2/s  Ocimene_emission_flux_from_MEGAN_extension
-InvMEGAN_OMON        -1     108  -1  -1  2   kgC/m2/s  Other_monoterpene_emission_flux_from_MEGAN_extension
-InvMEGAN_MONX        -1     108  -1  -1  2   kgC/m2/s  Total_monoterpene_emission_flux_from_MEGAN_extension
-InvMEGAN_FARN        -1     108  -1  -1  2   kgC/m2/s  alpha_Farnesene_emission_flux_from_MEGAN_extension
-InvMEGAN_BCAR        -1     108  -1  -1  2   kgC/m2/s  beta_caryophyllene_emission_flux_from_MEGAN_extension
-InvMEGAN_OSQT        -1     108  -1  -1  2   kgC/m2/s  Other_sesquiterpenes_emission_flux_from_MEGAN_extension
-InvMEGAN_MBOX        -1     108  -1  -1  2   kgC/m2/s  Methyl_butenol_emission_flux_from_MEGAN_extension
-InvMEGAN_FAXX        -1     108  -1  -1  2   kgC/m2/s  Formic_acid_emission_flux_from_MEGAN_extension
-InvMEGAN_AAXX        -1     108  -1  -1  2   kgC/m2/s  Acetic_acid_emission_flux_from_MEGAN_extension
+#InvMEGAN_ALD2        ALD2   108   -1 -1  2   kg/m2/s  ALD2_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_C2H4        C2H4   108   -1 -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_EOH         EOH    108   -1 -1  2   kg/m2/s  EOH_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ISOP        ISOP   108   -1 -1  2   kg/m2/s  ISOP_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_LIMO        LIMO   108   -1 -1  2   kg/m2/s  LIMO_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_MTPA        MTPA   108   -1 -1  2   kg/m2/s  MTPA_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_MTPO        MTPO   108   -1 -1  2   kg/m2/s  MTPO_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_PRPE        PRPE   108   -1 -1  2   kg/m2/s  PRPE_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_SESQ        SESQ   108   -1 -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_SOAP        SOAP   108   -1 -1  2   kg/m2/s  SOAP_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_SOAS        SOAS   108   -1 -1  2   kg/m2/s  SOAS_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ACET        ACET   108   -1 -1  2   kg/m2/s  ACET_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ACET_MONO   -1     108   -1 -1  2   kg/m2/s  Acetone_from_monoterpenes_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ACET_MBOX   -1     108   -1 -1  2   kg/m2/s  Acetone_from_methyl_butenol_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ACET_DIRECT -1     108   -1 -1  2   kg/m2/s  Direct_acetone_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_MOH          MOH    108  -1  -1  2   kg/m2/s  Methanol_emission_flux_from_MEGAN_extension
+InvMEGAN_APIN         -1     108  -1  -1  2   kg/m2/s  Alpha_pinene_emission_flux_from_MEGAN_extension
+InvMEGAN_BPIN         -1     108  -1  -1  2   kg/m2/s  Beta_pinene_acid_emission_flux_from_MEGAN_extension
+InvMEGAN_SABI         -1     108  -1  -1  2   kg/m2/s  Sabinene_emission_flux_from_MEGAN_extension
+InvMEGAN_MYRC         -1     108  -1  -1  2   kg/m2/s  Mycrene_emission_flux_from_MEGAN_extension
+InvMEGAN_CARE         -1     108  -1  -1  2   kg/m2/s  3_Carene_emission_flux_from_MEGAN_extension
+InvMEGAN_OCIM         -1     108  -1  -1  2   kg/m2/s  Ocimene_emission_flux_from_MEGAN_extension
+InvMEGAN_OMON         -1     108  -1  -1  2   kg/m2/s  Other_monoterpene_emission_flux_from_MEGAN_extension
+InvMEGAN_MONX         -1     108  -1  -1  2   kg/m2/s  Total_monoterpene_emission_flux_from_MEGAN_extension
+InvMEGAN_FARN         -1     108  -1  -1  2   kg/m2/s  alpha_Farnesene_emission_flux_from_MEGAN_extension
+InvMEGAN_BCAR         -1     108  -1  -1  2   kg/m2/s  beta_caryophyllene_emission_flux_from_MEGAN_extension
+InvMEGAN_OSQT         -1     108  -1  -1  2   kg/m2/s  Other_sesquiterpenes_emission_flux_from_MEGAN_extension
+InvMEGAN_MBOX         -1     108  -1  -1  2   kg/m2/s  Methyl_butenol_emission_flux_from_MEGAN_extension
+InvMEGAN_FAXX         -1     108  -1  -1  2   kg/m2/s  Formic_acid_emission_flux_from_MEGAN_extension
+InvMEGAN_AAXX         -1     108  -1  -1  2   kg/m2/s  Acetic_acid_emission_flux_from_MEGAN_extension
 
 #=============================
 # GFED Extension

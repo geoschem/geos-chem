@@ -4466,8 +4466,10 @@ CONTAINS
                        Hier      = -1,                    &
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
-                       OutUnit   = 'kgC/m2/s',            &
-                       AutoFill  = 0,                     &
+                       OutUnit   = 'kg/m2/s',             &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4479,8 +4481,10 @@ CONTAINS
                        Hier      = -1,                    &
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
-                       OutUnit   = 'kgC/m2/s',            &
-                       AutoFill  = 0,                     &
+                       OutUnit   = 'kg/m2/s',             &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4492,8 +4496,10 @@ CONTAINS
                        Hier      = -1,                    &
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
-                       OutUnit   = 'kgC/m2/s',            &
-                       AutoFill  = 0,                     &
+                       OutUnit   = 'kg/m2/s',             &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4505,8 +4511,10 @@ CONTAINS
                        Hier      = -1,                    &
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
-                       OutUnit   = 'kgC/m2/s',            &
-                       AutoFill  = 0,                     &
+                       OutUnit   = 'kg/m2/s',             &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4518,8 +4526,10 @@ CONTAINS
                        Hier      = -1,                    &
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
-                       OutUnit   = 'kgC/m2/s',            &
-                       AutoFill  = 0,                     &
+                       OutUnit   = 'kg/m2/s',             &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4532,7 +4542,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4545,7 +4557,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4558,7 +4572,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4571,7 +4587,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4584,7 +4602,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4597,7 +4617,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4610,7 +4632,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4623,7 +4647,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4636,7 +4662,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4649,7 +4677,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4662,7 +4692,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4675,7 +4707,9 @@ CONTAINS
                        HcoID     = -1,                    &
                        SpaceDim  = 2,                     &
                        OutUnit   = 'kg/m2/s',             &
-                       AutoFill  = 0,                     &
+                       OutOper   = 'Mean',                &
+                       AutoFill  = 1,                     &
+                       COL       = HcoState%Diagn%HcoDiagnIDManual, &
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
