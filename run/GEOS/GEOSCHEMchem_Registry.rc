@@ -1,0 +1,324 @@
+#
+# This the GEOS-CHEM Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva   First Version
+#  30Jun2012  Nielsen    For Ganymed
+#  10Oct2012  Yantosca   Updated for GEOS-Chem v9-01-03, which has new
+#                        Bromine compounds as advected tracers & species
+#  25Sep2013  Keller     Updated for GEOS-Chem v9-02l (NOx and Ox not lumped anymore, Isoprene                         update) 
+# See git history for rest of revision history
+#
+# -----------------------------------------------------------------
+
+# GCHP only:
+#  COMP_NAME: GIGCchem
+# GEOS-5 has different grid comp name:
+  COMP_NAME: GEOSCHEMCHEM
+#---
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  MAPL_REGISTRY_VERSION: 1.00
+
+#				------------
+#				Import State
+#				------------
+
+<ImportSpec name="GEOSCHEMCHEM", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,default,long_name">
+# -------------------|-------------|-----|---|----|---|---|-----|------|----| --------------------------
+#  Short	     |  	   |	 | V |Item|Intervl| Sub | Def  | No | 	Long
+#  Name 	     |   Units     | Dim |Loc|Type| R | A |Tiles| ault | Rst| 	Name
+# -------------------|-------------|-----|---|----|---|---|-----|------|----| --------------------------
+# NOTE: GCHP does not have column No Rst
+#======================
+# Both GCHP and GEOS-5 (but needed to add No Rst column to GCHP entries)
+#======================
+  AIRDENS            |   kg/m3     | xyz | C |    |   |   |	|      |    | air_density
+  AREA               |     m2	   | xy  |   |    |   |   |	|      |    | agrid_cell_area
+  FRLAKE             |     1	   | xy  |   |    |   |   |	|      |    | fraction_of_lake
+  FRLAND             |     1	   | xy  |   |    |   |   |	|      |    | fraction_of_land
+  FRLANDICE          |     1	   | xy  |   |    |   |   |	|      |    | fraction_of_land_ice
+  FROCEAN            |     1	   | xy  |   |    |   |   |	|      |    | fraction_of_ocean
+  LAI                |     1	   | xy  |   |    |   |   |	|      |    | leaf area index
+  SNOMAS             |   kg/m2     | xy  |   |    |   |   |	|      |    | snow_mass
+  TAUCLI             |     1	   | xyz | C |    |   |   |	|      |    | optical_thickness_for_ice_clouds
+  TAUCLW             |     1	   | xyz | C |    |   |   |	|      |    | optical_thickness_for_liquid_clouds 
+  TROPP              |    hPa	   | xy  |   |    |   |   |	|      |    | tropopause_pressure_based_on_blended_estimate
+  TS                 |     K	   | xy  |   |    |   |   |	|      |    | surface_skin_temperature
+  U10M               |    m/s	   | xy  |   |    |   |   |	|      |    | 10-meter_eastward_wind
+  USTAR              |    m/s	   | xy  |   |    |   |   |	|      |    | surface_velocity_scale
+  V10M               |    m/s	   | xy  |   |    |   |   |	|      |    | 10-meter_northward_wind
+  OMEGA              |  Pas-1      | xyz | C |    |   |   |     |      |    | vertical_pressure_velocity
+#==============
+# GEOS-5 only:
+#==============
+  ALBVF              |     1	   | xy  |   |    |   |   |	|      |    | surface_albedo_for_visible_diffuse
+  CLDTT              |     1	   | xy  |   |    |   |   |	|      |    | total_cloud_area_fraction
+  ASNOW              |     1	   | xy  |   |    |   |   |	|      |    | fractional_area_of_land_snowcover
+  WET1               |     1	   | xy  |   |    |   |   |	|      |    | surface_soil_wetness
+  WET2               |     1	   | xy  |   |    |   |   |	|      |    | root_soil_wetness
+  SH                 |    W/m2     | xy  |   |    |   |   |	|      |    | sensible_heat_flux_from_turbulence
+  LHFX               |    W/m2     | xy  |   |    |   |   |	|      |    | latent_heat_flux_from_turbulence 
+  LWI                |     1	   | xy  |   |    |   |   |	|      |    | land-ocean-ice_mask
+  ITY                |     1	   | xy  |   |    |   |   |	|      |    | land type index
+  DRPAR              |    W/m2     | xy  |   |    |   |   |	|      |    | surface_downwelling_par_beam_flux
+  DFPAR              |    W/m2     | xy  |   |    |   |   |	|      |    | surface_downwelling_par_diffuse_flux
+  ZPBL               |     m	   | xy  |   |    |   |   |	|      |    | planetary_boundary_layer_height
+  PPBL               |     Pa      | xy  |   |    |   |   |	|      |    | pbltop_pressure
+  PS                 |     Pa	   | xy  |   |    |   |   |	|      |    | surface_ressure
+  SWNDSRF            |    W/m2     | xy  |   |    |   |   |	|      |    | surface_net_downward_shortwave_flux
+  SNOWDP             |    m        | xy  |   |    |   |   |	|      |    | snow_depth
+  T2M                |     K	   | xy  |   |    |   |   |	|      |    | 2-meter-air_temperature
+  T10M               |     K	   | xy  |   |    |   |   |	|      |    | 10-meter-air_temperature
+  Z0H                |     m	   | xy  |   |    |   |   |	|      |    | surface_roughness_for_heat
+  ZLE                |     m	   | xyz | E |    |   |   |	|      |    | geopotential_height
+  FCLD               |     1	   | xyz | C |    |   |   |	|      |    | cloud_fraction_for_radiation
+  CNV_MFC            |  kg/m2/s    | xyz | E |    |   |   |	|      |    | cumulative_mass_flux
+  CNV_CVW            |   hPa/s     | xyz | C |    |   |   |	|      |    | updraft_vertical_velocity
+  DQIDT              |  kg/kg/s    | xyz | C |    |   |   |	|      |    | total_ice_water_tendency_due_to_moist
+  DQLDT              |  kg/kg/s    | xyz | C |    |   |   |	|      |    | total_liq_water_tendency_due_to_moist
+  DQDT               |  kg/kg/s    | xyz | C |    |   |   |	|      |    | specific_humidity_tendency_due_to_moist
+  DQRL               |  kg/kg/s    | xyz | C |    |   |   |	|      |    | large_scale_rainwater_source 
+  PFL_LSAN           |  kg/m2/s    | xyz | E |    |   |   |	|      |    | 3D_flux_of_liquid_nonconvective_precipitation 
+  PFI_LSAN           |  kg/m2/s    | xyz | E |    |   |   |	|      |    | 3D_flux_of_ice_nonconvective_precipitation 
+  CNV_MFD            |  kg/m2/s    | xyz | C |    |   |   |	|      |    | detraining_mass_flux
+  PLE                |     Pa	   | xyz | E |    |   |   |	|      |    | air_pressure_layer_interfaces
+  DELP               |     Pa	   | xyz | C |    |   |   |	|      |    | pressure_thickness 
+  RH2                |     1	   | xyz | C |    |   |   |	|      |    | Rel_Hum_after_moist
+  Q                  |   kg/kg     | xyz | C |    |   |   |	|      |    | specific_humidity
+  QITOT              |   kg/kg     | xyz | C |    |   |   |	|      |    | ice mixing ratio
+  QLTOT              |   kg/kg     | xyz | C |    |   |   |	|      |    | water mixing ratio
+  T                  |     K	   | xyz | C |    |   |   |	|      |    | air_temperature
+  REV_CN             |  kg/kg/s    | xyz | C |    |   |   |	|      |    | evaporation_of_convective_precipitation
+  REV_LS             |  kg/kg/s    | xyz | C |    |   |   |	|      |    | evaporation_of_nonanvil_large_scale_precipitation
+  REV_AN             |  kg/kg/s    | xyz | C |    |   |   |	|      |    | evaporation_of_anvil_precipitation
+  DQRC               |  kg/kg/s    | xyz | C |    |   |   |	|      |    | convective_rainwater_source 
+  PFI_CN             |  kg/m2/s    | xyz | E |    |   |   |	|      |    | 3D_flux_of_ice_convective_precipitation
+  PFL_CN             |  kg/m2/s    | xyz | E |    |   |   |	|      |    | 3D_flux_of_liquid_convective_precipitation
+  U                  |  ms-1       | xyz | C |    |   |   |     |      |    | eastward_wind 
+  V                  |  ms-1       | xyz | C |    |   |   |     |      |    | northward_wind
+  CNV_FRC            |      1      | xy  |   |    |   |   |     |      | x  | convective_fraction 
+  BYNCY              |      1      | xyz | C |    |   |   |     |      |    | buoyancy
+  Q10M               |   kg/kg     | xy  |   |    |   |   |	|      |    | 10m_specific_humidity
+  Q2M                |   kg/kg     | xy  |   |    |   |   |	|      |    | 2m_specific_humidity
+  LFR                |   s-1km-2   | xy  |   |    |   |   |     |      |    | lightning_flash_rate_density
+  LFR_OFFLINE        |   s-1km-2   | xy  |   |    |   |   |     |      |    | lightning_flash_rate_density_from_offline_source
+  CCTH               |      m      | xy  |   |    |   |   |     |      |    | convective_cloud_top_height
+  XLAIMULTI          | cm2_cm-2    | xyz | E |    |   |   |	|      | LAI_by_
+#===========
+# GCHP only:
+#===========
+#  ALBD               |     1	   | xy  |   |    |   |   |	|      | surface_albedo_for_visible_diffuse
+#  CLDF               |     1	   | xyz | C |    |   |   |	|      | 
+#  CLDFRC             |     1	   | xy  |   |    |   |   |	|      | 
+#  CMFMC              |     1	   | xyz | E |    |   |   |	|      | 
+#  DQRCU              |     1	   | xyz | C |    |   |   |	|      | 
+#  DQRLSAN            |     1	   | xyz | C |    |   |   |	|      | 
+## DryPLE             |     1      | xyz | E |    |   |   |     |      |
+#  DTRAIN             |     1	   | xyz | C |    |   |   |	|      | 
+#  EFLUX              |     1	   | xy  |   |    |   |   |	|      | 
+#  EVAP               |     1	   | xy  |   |    |   |   |	|      | 
+#  FRSEAICE           |     1	   | xy  |   |    |   |   |	|      | 
+#  FRSNO              |     1	   | xy  |   |    |   |   |	|      | 
+#  GRN                |     1	   | xy  |   |    |   |   |	|      | 
+#  GWETROOT           |     1	   | xy  |   |    |   |   |	|      | 
+#  GWETTOP            |     1	   | xy  |   |    |   |   |	|      | 
+#  HFLUX              |     1	   | xy  |   |    |   |   |	|      | 
+#  OPTDEP             |     1	   | xyz | C |    |   |   |	|      | 
+#  PARDF              |     1	   | xy  |   |    |   |   |	|      | 
+#  PARDR              |     1	   | xy  |   |    |   |   |	|      | 
+#  PBLH               |     1	   | xy  |   |    |   |   |	|      | 
+#  PFICU              |     1	   | xyz | E |    |   |   |	|      | 
+#  PFILSAN            |     1	   | xyz | E |    |   |   |	|      | 
+#  PFLCU              |     1	   | xyz | E |    |   |   |	|      | 
+#  PFLLSAN            |     1	   | xyz | E |    |   |   |	|      | 
+#  PHIS               |     1	   | xy  |   |    |   |   |	|      | 
+## PLE                |     1      | xyz | E |    |   |   |     |      |
+#  PS1                |     1	   | xy  | E |    |   |   |	|      | 
+#  PS2                |     1	   | xy  | E |    |   |   |	|      | 
+#  QI                 |     1	   | xyz | C |    |   |   |	|      | 
+#  QL                 |     1	   | xyz | C |    |   |   |	|      | 
+#  RADLWG             |     1	   | xy  |   |    |   |   |	|      | 
+#  RADSWG             |     1	   | xy  |   |    |   |   |	|      | 
+#  REEVAPCN           |     1	   | xyz | C |    |   |   |	|      | 
+#  REEVAPLS           |     1	   | xyz | C |    |   |   |	|      | 
+#  RH                 |     1	   | xyz | C |    |   |   |	|      | 
+#  SEAICE00           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE10           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE20           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE30           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE40           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE50           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE60           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE70           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE80           |     1	   | xy  |   |    |   |   |	|      | 
+#  SEAICE90           |     1	   | xy  |   |    |   |   |	|      | 
+#  SLP                |     1	   | xy  |   |    |   |   |	|      | 
+#  SNODP              |     1	   | xy  |   |    |   |   |	|      | 
+#  SPHU1              |     1	   | xyz | C |    |   |   |	|      | 
+#  SPHU2              |     1	   | xyz | C |    |   |   |	|      | 
+#  TMPU1              |     1	   | xyz | C |    |   |   |	|      | 
+#  TMPU2              |     1	   | xyz | C |    |   |   |	|      | 
+#  TO3                |     1	   | xy  |   |    |   |   |	|      | 
+#  TSKIN              |     1	   | xy  |   |    |   |   |	|      | 
+#  ULL                |     1	   | xyz | C |    |   |   |	|      | 
+#  VLL                |     1	   | xyz | C |    |   |   |	|      | 
+#  Z0                 |     1	   | xy  |   |    |   |   |	|      | 
+# -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
+</ImportSpec>
+
+#				------------
+#				Export State
+#				------------
+
+<ExportSpec name="GEOSCHEMCHEM", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,long_name">
+# --------------------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+#  Short	                  |		   |     | V |Item|Intervl| Sub |	     Long
+#  Name 	                  |   Units	   | Dim |Loc|Type| R | A |Tiles|	     Name
+# --------------------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+#======================
+# Both GCHP and GEOS-5:
+#======================
+#  O3PPMV	                  | ppmv	   | xyz | C |    |   |   |	| ozone_volume_mixing_ratio_in_ppm
+#  OX_TEND	                  | kg kg-1 s-1    | xyz | C |    |   |   |	| tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry
+  H2O_TEND                       | kg kg-1 s-1    | xyz | C |    |   |   |     | Tendency_of_water_vapor_mixing_ratio_due_to_chemistry
+  GCCTO3                         | dobsons        | xy  |   |    |   |   |     | Ozone_(O3,_MW_=_48.00_g_mol-1)_total_column_density 
+  GCCTTO3                        | dobsons        | xy  |   |    |   |   |     | Ozone_(O3,_MW_=_48.00_g_mol-1)_tropospheric_column_density
+#===========	                  
+# GCHP only:	                  
+#===========	                  
+## OX                             | mol mol-1      | xyz | C |    |   |   |     | ozone_volume_mixing_ratio
+#  O3_EXP                         | kg kg-1        | xyz | C |    |   |   |     | ozone_mass_mixing_ratio
+#  DEPVEL_O3                      |                | xy  |   |    |   |   |     |
+#  DEPFLUX_O3                     |                | xy  |   |    |   |   |     |
+#  WETDEP_LOSS_H2O2               |                | xy  |   |    |   |   |     |
+#=============
+# GEOS-5 only:
+#=============
+#  OX		                  | mol mol-1      | xyz | C |    |   |   |	| ozone_volume_mixing_ratio
+#  O3		                  | kg kg-1	   | xyz | C |    |   |   |	| ozone_mass_mixing_ratio
+  SOILNO_PULSE                    | 1              | xy  |   |    |   |   |     | Soilnox_pulse 
+  LIGHTNING_TOTAL_FLASHRATE       | 1 min-1 km-2   | xy  |   |    |   |   |     | Lightning_flashrate
+  LIGHTNING_INTRACLOUD_FLASHRATE  | 1 min-1 km-2   | xy  |   |    |   |   |     | Lightning_intracloud_flashrate
+  LIGHTNING_CLOUDGROUND_FLASHRATE | 1 min-1 km-2   | xy  |   |    |   |   |     | Lightning_cloudground_flashrate
+  LIGHTNING_CLOUD_TOP             | 1              | xy  |   |    |   |   |     | Lightning_convective_cloud_top_level
+  CHEMTOP                         | 1              | xy  |   |    |   |   |     | Chemgrid_top
+  CHEM_TROPP                      | Pa             | xy  |   |    |   |   |     | Chemistry_tropopause
+  AIRMASS                         | kg             | xyz | C |    |   |   |     | Mass_of_air
+  BOXHEIGHT                       | m              | xyz | C |    |   |   |     | Grid_box_height
+  CONV_CLDTOP                     | 1              | xy  |   |    |   |   |     | Convective_cloud_top
+  O3_MASS                         | kg m-2         | xyz | C |    |   |   |     | O3_grid_cell_mass_per_area 
+  OH_reactivity                   | s-1            | xyz | C |    |   |   |     | Total_OH_loss_rate
+  AOD550_CLOUD                    | 1              | xy  |   |    |   |   |     | Cloud_optical_depth
+  AOD550_DUST                     | 1              | xy  |   |    |   |   |     | Dust_optical_depth_at_550nm
+  AOD550_SULFATE                  | 1              | xy  |   |    |   |   |     | Sulfate_optical_depth_at_550nm
+  AOD550_BC                       | 1              | xy  |   |    |   |   |     | Black_carbon_optical_depth_at_550nm
+  AOD550_OC                       | 1              | xy  |   |    |   |   |     | Organic_carbon_optical_depth_at_550nm
+  AOD550_SALA                     | 1              | xy  |   |    |   |   |     | Accumulation_mode_sea_salt_optical_depth_at_550nm
+  AOD550_SALC                     | 1              | xy  |   |    |   |   |     | Coarse_mode_sea_salt_optical_depth_at_550nm
+  AOD550_DST1                     | 1              | xy  |   |    |   |   |     | Dust_bin1_optical_depth_at_550nm
+  AOD550_DST2                     | 1              | xy  |   |    |   |   |     | Dust_bin2_optical_depth_at_550nm
+  AOD550_DST3                     | 1              | xy  |   |    |   |   |     | Dust_bin3_optical_depth_at_550nm
+  AOD550_DST4                     | 1              | xy  |   |    |   |   |     | Dust_bin4_optical_depth_at_550nm
+  AOD550_DST5                     | 1              | xy  |   |    |   |   |     | Dust_bin5_optical_depth_at_550nm
+  AOD550_DST6                     | 1              | xy  |   |    |   |   |     | Dust_bin6_optical_depth_at_550nm
+  AOD550_DST7                     | 1              | xy  |   |    |   |   |     | Dust_bin7_optical_depth_at_550nm
+  NO2_TROPCOLUMN                  | molec cm-2     | xy  |   |    |   |   |     | NO2_tropospheric_column
+  NO2_TOTCOLUMN                   | molec cm-2     | xy  |   |    |   |   |     | NO2_total_column
+  NO2_PBL_FRAC                    | 1              | xy  |   |    |   |   |     | Fraction_surfaceNO2_vs_total_tropNO2
+  NO2_sensitivity                 | 1              | xyz | C |    |   |   |     | NO2_sensitivity
+  NO_sensitivity                  | 1              | xyz | C |    |   |   |     | NO_sensitivity
+  NOy                             | mol mol-1      | xyz | C |    |   |   |     | Reactive_nitrogen_=_NO_NO2_HNO3_HNO4_HONO_2xN2O5_PAN_OrganicNitrates_AerosolNitrates
+  Bry                             | mol mol-1      | xyz | C |    |   |   |     | Inorganic_bromine_=_2xBr2_Br_BrO_HOBr_HBr_BrNO2_BrNO3_BrCl_IBr
+  Cly                             | mol mol-1      | xyz | C |    |   |   |     | Inorganic_chlorine_=_Cl_ClO_OClO_ClOO_HOCl_HCl_ClNO2_ClNO3_BrCl_ICl_2xCl2_2xCl2O2
+  OrganicCl                       | mol mol-1      | xyz | C |    |   |   |     | 4CCl4_H1211_3CFC11_3CFC113_2CFC114_CFC115_2CFC12_3CH3CCl3_CH3Cl_2HCFC141b_HCFC142b_HCFC22_2HCFC123_3CHCl3_2CH2Cl2_CH2ICl
+  DryDepRa2m                      | s cm-1         | xy  |   |    |   |   |     | 2_meter_aerodynamic_resistance 
+  DryDepRa10m                     | s cm-1         | xy  |   |    |   |   |     | 10_meter_aerodynamic_resistance 
+  MoninObukhov                    | m              | xy  |   |    |   |   |     | Monin_Obukhov_length 
+  CH4pseudoFlux                   | kg m-2 s-1     | xy  |   |    |   |   |     | CH4_pseudo_flux_to_balance_chemistry 
+  KppError                        | 1              | xyz | C |    |   |   |     | KPP_error_count_per_grid_box 
+  CH4_EMIS_RICE                   | kg m-2 s-1     | xy  |   |    |   |   |     | CH4_emis_rice
+  CH4_EMIS_WETLAND                | kg m-2 s-1     | xy  |   |    |   |   |     | CH4_emis_wetland
+  GCC_AIRNUMDEN                   | mol cm-3       | xyz | C |    |   |   |     | GEOS-Chem_dry_air_density
+  GCC_AIRVOL                      | km3            | xyz | C |    |   |   |     | GEOS-Chem_chemistry_box_volume
+  LightningPotential              | 1              | xy  |   |    |   |   |     | Lightning_potential 
+  AerSurfAreaDust                 | cm2 cm-3       | xyz | C |    |   |   |     | Mineral_dust_surface_area
+  AerSurfAreaStratLiquid          | cm2 cm-3       | xyz | C |    |   |   |     | Stratospheric_liquid_aerosol_surface_area
+  AerSurfAreaPolarStratCloud      | cm2 cm-3       | xyz | C |    |   |   |     | PSC_cloud_type_surface_area
+  AerNumDensityStratLiquid        | # cm-3         | xyz | C |    |   |   |     | Stratospheric_liquid_aerosol_number_density 
+  AerNumDensityStratParticulate   | # cm-3         | xyz | C |    |   |   |     | PSC_cloud_type_number_density
+  O3concAfterChem                 | molec cm-3     | xyz | C |    |   |   |     | Ozone_number_density_after_chemistry
+  RO2concAfterChem                | molec cm-3     | xyz | C |    |   |   |     | Peroxy_radical_number_density_ater_chemistry
+  OHconcAfterChem                 | molec cm-3     | xyz | C |    |   |   |     | OH_number_density_after_chemistry
+  OH_AirMassWgt                   | molec cm-3     | xy  |   |    |   |   |     | Vertically_integrated_OH_number_density_weighted_by_air_mass
+  NOx_tau                         | s              | xyz | C |    |   |   |     | NOx_chemical_lifetime_against_OH
+  NO2toNOx                        | 1              | xyz | C |    |   |   |     | NO2_to_NOx_ratio
+  FJX_EXTRAL_NLEVS                | 1              | xy  |   |    |   |   |     | FAST-JX_EXTRAL_layers 
+  FJX_EXTRAL_NITER                | 1              | xy  |   |    |   |   |     | FAST-JX_EXTRAL_iterations
+  GCD_SUNCOS                      | 1              | xy  |   |    |   |   |     | GEOS-Chem_cosine_of_solar_zenith_angle 
+  GCD_SZA                         | degrees        | xy  |   |    |   |   |     | GEOS-Chem_solar_zenith_angle
+  GCD_YMIDR                       | radians        | xy  |   |    |   |   |     | GEOS-Chem_lat_midpoints
+# --------------------------------|----------------|-----|---|----|---|---|-----|---------------------------------
+</ExportSpec>
+#                               --------------
+#                               Internal State
+#                               --------------
+#
+# Note: 1) For friendlies, use "D" for dynamics, "T" for turbulence, "C" for convection, S=self (adds to export); leave blank otherwise
+#       2) If quantity requires no restart, put an 'x' in the No Rst column
+#       3) RO = Alkoxy radical, RO2 = Organic peroxy radical
+<InternalSpec name="GEOSCHEMCHEM", cols="short_name,units,dims,vlocation,stat,refresh_interval,averaging_interval,num_subtiles,default,norestart,halowidth,friendlyto,long_name">
+# ----------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+#  Short          |            |     | V |Item|Intervl| Sub | Def  | No | Ha | Friends |            Long
+#  Name           |   Units    | Dim |Loc|Type| R | A |Tiles| ault | Rst| lo |         |            Name
+# ----------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+#======================
+# Both GCHP and GEOS-5:
+#======================
+ GCCTROPP         |    Pa      | xy  |   |    |   |   |     |      |    |    | S       | tropopause_pressure_used_in_GEOS-Chem
+#================================================================================================
+# Both GCHP and GEOS-5, but GEOS-5 does not have default values specified so commenting out GCHP:
+#================================================================================================
+#STATE_PSC        | 1          | xyz | C |    |   |   |     |0.0   |    |    | S       | polar_stratospheric_clouds
+ STATE_PSC        | 1          | xyz | C |    |   |   |     |      |    |    | S       | polar_stratospheric_clouds
+ DryDepNitrogen   | cm-2s-1    | xy  |   |    |   |   |     |      |    |    | S       | dry_deposited_nitrogen
+ WetDepNitrogen   | cm-2s-1    | xy  |   |    |   |   |     |      |    |    | S       | wet_deposited_nitrogen
+#PFACTOR          | 1          | xy  |   |    |   |   |     |1.0   |    |    | S       | soilnox_pfactor_restart
+ PFACTOR          | 1          | xy  |   |    |   |   |     |      |    |    | S       | soilnox_pfactor_restart 
+#DRYPERIOD        | 1          | xy  |   |    |   |   |     |0.0   |    |    | S       | soilnox_dryperiod_restart
+ DRYPERIOD        | 1          | xy  |   |    |   |   |     |      |    |    | S       | soilnox_dryperiod_restart
+#GWET_PREV        | 1          | xy  |   |    |   |   |     |0.0   |    |    | S       | soilnox_gwet_prev_restart
+ GWET_PREV        | 1          | xy  |   |    |   |   |     |      |    |    | S       | soilnox_gwet_prev_restart
+#DEP_RESERVOIR    | kg m-3     | xy  |   |    |   |   |     |1e-4  |    |    | S       | soilnox_dep_reservoir_restart
+ DEP_RESERVOIR    | kg m-3     | xy  |   |    |   |   |     |      |    |    | S       | soilnox_dep_reservoir_restart
+#T_DAVG           | 1          | xy  |   |    |   |   |     |273.1 |    |    | S       | megan_t_davg_restart
+ T_DAVG           | K          | xy  |   |    |   |   |     |      |    |    | S       | megan_t_davg_restart
+#T_PREVDAY        | 1          | xy  |   |    |   |   |     |273.1 |    |    | S       | megan_t_prevday_restart
+ T_PREVDAY        | K          | xy  |   |    |   |   |     |      |    |    | S       | megan_t_prevday_restart
+#LAI_PREVDAY      | 1          | xy  |   |    |   |   |     |      |    |    | S       | megan_lai_prevday_restart
+ LAI_PREVDAY      | 1          | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_lai_prevday_restart
+#PARDR_DAVG       | Wm-2       | xy  |   |    |   |   |     |      |    |    | S       | megan_pardr_davg_restart
+ PARDR_DAVG       | W/m2       | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_pardr_davg_restart
+#PARDF_DAVG       | Wm-2       | xy  |   |    |   |   |     |      |    |    | S       | megan_pardf_davg_restart
+ PARDF_DAVG       | W/m2       | xy  |   |    |   |   |     |0.0   |    |    | S       | megan_pardf_davg_restart
+#================
+# GEOS-5 only:
+#================
+ H2O2AfterChem    |   vv-1     | xyz | C |    |   |   |     |      |    |    | S       | soluble_fraction_H2O2
+ SO2AfterChem     |   vv-1     | xyz | C |    |   |   |     |      |    |    | S       | soluble_fraction_SO2
+ KPPHvalue        |   1        | xyz | C |    |   |   |     |      |    |    | S       | HSAVE_for_KPP 
+ SESQ_CARBDENS    | kgCm-3     | xyz | C |    |   |   |     |      |    |    | S       | sesquiterpene_conc_restart
+ Iso_Hplus        | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_H+_concentration
+ Iso_sulfate      | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_sulfate_concentration
+ Iso_nitrate      | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_Na+_concentration
+ Iso_bisulfate    | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_bisulfate_concentration
+### the following are not needed
+# Iso_acidpur      | molL-1     | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_acid
+# Iso_pH           |   1        | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_aerosol_pH
+# Iso_water        | ugm-3      | xyz | C |    |   |   |     |0.0   |    |    | S       | Isorropia_aerosol_water_concentration
+# ----------------|------------|-----|---|----|---|---|-----|------|----|----|---------|---------------------------------
+</InternalSpec>
