@@ -285,6 +285,9 @@ EmisMGLY_Anthro    MGLY   0      1   -1   3   kg/m2/s  MGLY_emission_flux_from_a
 ###############################################################################
 EmisMOH_Total      MOH    -1     -1  -1   3   kg/m2/s  MOH_emission_flux_from_all_sectors
 EmisMOH_Anthro     MOH    0      1   -1   3   kg/m2/s  MOH_emission_flux_from_anthropogenic
+EmisMOH_BioBurn    MOH    111    -1  -1   2   kg/m2/s  MOH_emission_flux_from_biomass_burning
+EmisMOH_Biogenic   MOH    108    -1  -1   2   kg/m2/s  MOH_emission_flux_from_biogenic_sources
+EmisMOH_Ocean      MOH    101    -1  -1   2   kg/m2/s  MOH_emission_flux_from_ocean
 EmisMOH_Ship       MOH    0      10  -1   2   kg/m2/s  MOH_emission_flux_from_ships
 
 ###############################################################################
@@ -594,7 +597,9 @@ InvCEDS_CH2O         CH2O   0    1   5   2   kg/m2/s  CH2O_emission_flux_from_CE
 InvCEDS_CH4          CH4    0    1   5   2   kg/m2/s  CH4_emission_flux_from_CEDS_inventory
 InvCEDS_CO           CO     0    1   5   2   kg/m2/s  CO_emission_flux_from_CEDS_inventory
 InvCEDS_CO2          CO2    0    1   5   2   kg/m2/s  CO2_emission_flux_from_CEDS_inventory
-InvCEDS_EOH          EOH    0    1   5   2   kg/m2/s  EOH_emission_flux_from_CEDS_inventor
+InvCEDS_MOH          MOH    0    1   5   2   kg/m2/s  MOH_emission_flux_from_CEDS_inventory
+InvCEDS_EOH          EOH    0    1   5   2   kg/m2/s  EOH_emission_flux_from_CEDS_inventory
+InvCEDS_ROH          ROH    0    1   5   2   kg/m2/s  ROH_emission_flux_from_CEDS_inventory
 InvCEDS_HCOOH        HCOOH  0    1   5   2   kg/m2/s  HCOOH_emission_flux_from_CEDS_inventory
 InvCEDS_MEK          MEK    0    1   5   2   kg/m2/s  MEK_emission_flux_from_CEDS_inventory
 InvCEDS_NH3          NH3    0    1   5   2   kg/m2/s  NH3_emission_flux_from_CEDS_inventory
@@ -751,6 +756,7 @@ InvSeaFlux_DMS       DMS    101  -1  -1  2   kg/m2/s  DMS_emission_flux_from_Sea
 InvSeaFlux_CH3I      CH3I   101  -1  -1  2   kg/m2/s  CH3I_emission_flux_from_SeaFlux_extension
 InvSeaFlux_ETNO3     ETNO3  101  -1  -1  2   kg/m2/s  ETNO3_emission_flux_from_SeaFlux_extension
 InvSeaFlux_MENO3     MENO3  101  -1  -1  2   kg/m2/s  MENO3_emission_flux_from_SeaFlux_extension
+InvSeaFlux_MOH       MOH    101  -1  -1  2   kg/m2/s  MOH_emission_flux_from_SeaFlux_extension
 
 #=============================
 # PARANOX extension
@@ -764,6 +770,42 @@ InvPARANOX_O3        O3     102  -1  -1  2   kg/m2/s  O3_emission_flux_from_PARA
 # LIGHTNOX extension
 #=============================
 InvLIGHTNOX_NO       NO     103  -1  -1  3   kg/m2/s  NO_emission_flux_from_lightning_extension
+
+#=============================
+# MEGAN Extension
+#
+# Comment out species obtained from OFFLINE_BIOGENICVOC by default
+#=============================
+#InvMEGAN_ALD2        ALD2   108   -1 -1  2   kgC/m2/s  ALD2_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_C2H4        C2H4   108   -1 -1  2   kgC/m2/s  C2H4_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_EOH         EOH    108   -1 -1  2   kgC/m2/s  EOH_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ISOP        ISOP   108   -1 -1  2   kgC/m2/s  ISOP_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_LIMO        LIMO   108   -1 -1  2   kgC/m2/s  LIMO_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_MTPA        MTPA   108   -1 -1  2   kgC/m2/s  MTPA_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_MTPO        MTPO   108   -1 -1  2   kgC/m2/s  MTPO_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_PRPE        PRPE   108   -1 -1  2   kgC/m2/s  PRPE_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_SESQ        SESQ   108   -1 -1  2   kgC/m2/s  SESQ_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_SOAP        SOAP   108   -1 -1  2   kgC/m2/s  SOAP_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_SOAS        SOAS   108   -1 -1  2   kgC/m2/s  SOAS_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ACET        ACET   108   -1 -1  2   kgC/m2/s  ACET_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ACET_MONO   -1     108   -1 -1  2   kgC/m2/s  Acetone_from_monoterpenes_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ACET_MBOX   -1     108   -1 -1  2   kgC/m2/s  Acetone_from_methyl_butenol_biogenic_emission_flux_from_MEGAN_extension
+#InvMEGAN_ACET_DIRECT -1     108   -1 -1  2   kgC/m2/s  Direct_acetone_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_MOH         MOH    108  -1  -1  2   kgC/m2/s  Methanol_emission_flux_from_MEGAN_extension
+InvMEGAN_APIN        -1     108  -1  -1  2   kgC/m2/s  Alpha_pinene_emission_flux_from_MEGAN_extension
+InvMEGAN_BPIN        -1     108  -1  -1  2   kgC/m2/s  Beta_pinene_acid_emission_flux_from_MEGAN_extension
+InvMEGAN_SABI        -1     108  -1  -1  2   kgC/m2/s  Sabinene_emission_flux_from_MEGAN_extension
+InvMEGAN_MYRC        -1     108  -1  -1  2   kgC/m2/s  Mycrene_emission_flux_from_MEGAN_extension
+InvMEGAN_CARE        -1     108  -1  -1  2   kgC/m2/s  3_Carene_emission_flux_from_MEGAN_extension
+InvMEGAN_OCIM        -1     108  -1  -1  2   kgC/m2/s  Ocimene_emission_flux_from_MEGAN_extension
+InvMEGAN_OMON        -1     108  -1  -1  2   kgC/m2/s  Other_monoterpene_emission_flux_from_MEGAN_extension
+InvMEGAN_MONX        -1     108  -1  -1  2   kgC/m2/s  Total_monoterpene_emission_flux_from_MEGAN_extension
+InvMEGAN_FARN        -1     108  -1  -1  2   kgC/m2/s  alpha_Farnesene_emission_flux_from_MEGAN_extension
+InvMEGAN_BCAR        -1     108  -1  -1  2   kgC/m2/s  beta_caryophyllene_emission_flux_from_MEGAN_extension
+InvMEGAN_OSQT        -1     108  -1  -1  2   kgC/m2/s  Other_sesquiterpenes_emission_flux_from_MEGAN_extension
+InvMEGAN_MBOX        -1     108  -1  -1  2   kgC/m2/s  Methyl_butenol_emission_flux_from_MEGAN_extension
+InvMEGAN_FAXX        -1     108  -1  -1  2   kgC/m2/s  Formic_acid_emission_flux_from_MEGAN_extension
+InvMEGAN_AAXX        -1     108  -1  -1  2   kgC/m2/s  Acetic_acid_emission_flux_from_MEGAN_extension
 
 #=============================
 # GFED Extension
@@ -780,6 +822,7 @@ InvGFED_CH2O         CH2O   111  -1  -1  2   kg/m2/s  CH2O_emission_flux_from_GF
 InvGFED_CO           CO     111  -1  -1  2   kg/m2/s  CO_emission_flux_from_GFED_extension
 InvGFED_EOH          EOH    111  -1  -1  2   kg/m2/s  EOH_emission_flux_from_GFED_extension
 InvGFED_MEK          MEK    111  -1  -1  2   kg/m2/s  MEK_emission_flux_from_GFED_extension
+InvGFED_MOH          MOH    111  -1  -1  2   kg/m2/s  MOH_emission_flux_from_GFED_extension
 InvGFED_MTPA         MTP    111  -1  -1  2   kg/m2/s  MTPA_emission_flux_from_GFED_extension
 InvGFED_NAP          NAP    111  -1  -1  2   kg/m2/s  NAP_emission_flux_from_GFED_extension
 InvGFED_NH3          NH3    111  -1  -1  2   kg/m2/s  NH3_emission_flux_from_GFED_extension
