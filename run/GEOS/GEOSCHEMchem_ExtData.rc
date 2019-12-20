@@ -682,25 +682,25 @@ NOAA_GMD_CH4       'v/v'        N   N %y4-%m2-01T00:00:00    none     none    SF
 #SfcVMR_CHCl3       'ppbv'       N   N -                      none     none    CHCl3           /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
 
 # New in 12.7.0:
-SfcVMR_CH3Cl    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
-SfcVMR_CH2Cl2   ppbv N Y F%y4-%m2-01T00:00:00 none none CH2Cl2   /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
-SfcVMR_CHCl3    ppbv N Y F%y4-%m2-01T00:00:00 none none CHCl3    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
-SfcVMR_CH3Br    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Br    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
-SfcVMR_CCl4     v/v  N Y F%y4-%m2-01T00:00:00 none none CCl4     /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC113   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC113   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC114   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC114   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC115   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC115   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC11    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC11    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CFC12    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC12    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_CH3CCl3  v/v  N Y F%y4-%m2-01T00:00:00 none none CH3CCl3  /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_H1211    v/v  N Y F%y4-%m2-01T00:00:00 none none H1211    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_H1301    v/v  N Y F%y4-%m2-01T00:00:00 none none H1301    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_HCFC141b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC141b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_HCFC142b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC142b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_HCFC22   v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC22   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_N2O      v/v  N Y F%y4-%m2-01T00:00:00 none none N2O      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
-SfcVMR_OCS      ppbv N Y -                    none none OCS      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_OCS.nc
-SfcVMR_H2       ppbv N Y -                    none none H2       /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_H2.nc
+SfcVMR_CH3Cl    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+SfcVMR_CH2Cl2   ppbv N Y F%y4-%m2-01T00:00:00 none none CH2Cl2   /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+SfcVMR_CHCl3    ppbv N Y F%y4-%m2-01T00:00:00 none none CHCl3    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+SfcVMR_CH3Br    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Br    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+SfcVMR_CCl4     v/v  N Y F%y4-%m2-01T00:00:00 none none CCl4     /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_CFC113   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC113   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_CFC114   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC114   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_CFC115   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC115   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_CFC11    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC11    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_CFC12    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC12    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_CH3CCl3  v/v  N Y F%y4-%m2-01T00:00:00 none none CH3CCl3  /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_H1211    v/v  N Y F%y4-%m2-01T00:00:00 none none H1211    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_H1301    v/v  N Y F%y4-%m2-01T00:00:00 none none H1301    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_HCFC141b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC141b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_HCFC142b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC142b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_HCFC22   v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC22   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_N2O      v/v  N Y F%y4-%m2-01T00:00:00 none none N2O      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.2x25.nc
+SfcVMR_OCS      ppbv N Y -                    none none OCS      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_OCS.2x25.nc
+SfcVMR_H2       ppbv N Y -                    none none H2       /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_H2.2x25.nc
 
 ###############################################################################
 ###
