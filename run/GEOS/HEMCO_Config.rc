@@ -1,3 +1,4 @@
+d 
 #------------------------------------------------------------------------------
 #                  Harvard-NASA Emissions Component (HEMCO)                   !
 #------------------------------------------------------------------------------
@@ -139,7 +140,6 @@ Warnings:                    1
     --> OMOC_RATIO             :       true
     --> GMD_SFC_CH4            :       true
     --> CMIP6_SFC_CH4          :       false
-# OLSON and MODIS read via MAPL not HEMCO in GEOS
     --> OLSON_LANDMAP          :       false
     --> YUAN_MODIS_LAI         :       false
     --> RRTMG                  :       false
@@ -214,21 +214,20 @@ Warnings:                    1
     --> Scaling_SOAP           :       0.013
     --> hydrophilic BC         :       0.2
     --> hydrophilic OC         :       0.5
-##---- Conflicting ext 115 -----
-## GEOS - comment out for now. Need to do HEMCO diff.
+115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
+116     MarinePOA              : off   MOPO/MOPI
+# Volcano previously in GEOS. Ext 115 conflicts with DustAlk. Should be 117 now.
+# Do all these options still work? Can this be replaced with CTM version?
 #115     AeroCom_Volcano        : on    SO2/SO4
 #    --> AeroCom_Table          :       ./ExtData/AeroCom/sfc/volcanic_v4/Aerocom.so2_volcanic.$YYYY$MM$DD.rc
 #    --> Scaling_SO2            :       0.95
 #    --> Scaling_SO4            :       0.05
 #    --> Cat_Eruptive           :       61
 #    --> Cat_Degassing          :       62
-## GC - comment out for now
-#115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
-##-------------
-116     MarinePOA              : off   MOPO/MOPI
-117     Volcano                : off   SO2
+# Volano extension in CTM:
+117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
-    --> Volcano_Table          :       $ROOT/VOLCANO/v2019-08/$YYYY/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
+    --> Volcano_Table          :       /discover/nobackup/ewlundgr/data/ExtData/VOLCANO/v2019-08/$YYYY/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true

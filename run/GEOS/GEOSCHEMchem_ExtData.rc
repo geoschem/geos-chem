@@ -1,5 +1,5 @@
 Ext_AllowExtrap: .true.
-DEBUG_LEVEL: 1
+DEBUG_LEVEL: 0
 #
 PrimaryExports%%
 # -----------|--------------|-----|---|----------------------|--------|-------|----------------------------------------   
@@ -505,8 +505,8 @@ QFED_CH4_FT   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    bi
 DMS_SEAWATER    'kg/m3'         Y    Y 1985-%m2-01T00:00:00 none     none    DMS_OCEAN         /discover/nobackup/cakelle2/data/OCEAN/DMS_lana.geos.1x1.esmf.nc
 ACET_SEAWATER   'kg/m3'         N    Y -  		    none     none    ACET	       /discover/nobackup/cakelle2/data/OCEAN/ACET_seawater.generic.1x1.esmf.nc
 ALD2_SEAWATER   'kg/m3'         Y    Y 1985-%m2-01T00:00:00 none     none    ALD2              /discover/nobackup/cakelle2/data/OCEAN/ALD2_seawater.geos.2x25.esmf.nc
-MENO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    MENO3             /discover/nobackup/ewlundgr/data/ExtData/HEMCO/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
-ETNO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    ETNO3             /discover/nobackup/ewlundgr/data/ExtData/HEMCO/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+MENO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    MENO3             /discover/nobackup/ewlundgr/data/ExtData/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+ETNO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    ETNO3             /discover/nobackup/ewlundgr/data/ExtData/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
 
 #==============================================================================
 # --- Soil NOx emissions (Extension 104) ---
