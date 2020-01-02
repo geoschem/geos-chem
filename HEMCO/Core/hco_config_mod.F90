@@ -3678,7 +3678,7 @@ CONTAINS
     IF ( cID <= 0 ) THEN
        WRITE ( strID, * ) ScalID
        MSG = 'Cannot find ScalID' // TRIM(strID)
-       PRINT *,'cID negative for in HEMCO Get_cID'
+       PRINT *,'cID negative in HEMCO Get_cID'
        PRINT *, TRIM(MSG)
        RETURN
     ENDIF

@@ -98,7 +98,7 @@
   TMPU2              |     1	   | xyz | C |    |   |   |	|      | 
   FLASH_DENS         |     1       | xy  |   |    |   |   |     |      | lightning_flash_density
   CONV_DEPTH         |     1       | xy  |   |    |   |   |     |      | convective_cloud_depth
-  XLAIMULTI          | cm2_cm-2      | xyz | E |    |   |   |	|      | LAI_by_type 
+  XLAIMULTI          | cm2_cm-2    | xyz | E |    |   |   |	|      | LAI_by_type 
 # -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
 </ImportSpec>
 

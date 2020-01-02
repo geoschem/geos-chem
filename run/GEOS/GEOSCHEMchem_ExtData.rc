@@ -1,0 +1,782 @@
+Ext_AllowExtrap: .true.
+DEBUG_LEVEL: 1
+#
+PrimaryExports%%
+# -----------|--------------|-----|---|----------------------|--------|-------|----------------------------------------   
+#  Import    |              |	  |Rgr|_______ Refresh ______|____ Factors ___|___________ External File __________
+#  Name      |     Units    |Clim |Mth|     Time Template    | Offset | Scale |     Variable    |      Template
+# -----------|--------------|-----|---|----------------------|--------|-------|-----------------|----------------------   
+
+###############################################################################
+###
+### GEOS-ONLY EMISSION FIELDS - not in GC 12.7.0 CTM HEMCO_Config.rc
+###
+###############################################################################
+
+# OMI-HTAP SO2 emissions (OMI_HTAP_SO2)
+OMI_HTAP_SO2_ENERGY    'kg_m-2_s-1' Y Y 2017-%m2-01T00:00:00   none     none    sanl2           /discover/nobackup/cakelle2/data/OMI_HTAP/htapv2.2.emisso2.elevated.x3600y1800t12.2017.integrate.nc4
+OMI_HTAP_SO2_NONENERGY 'kg_m-2_s-1' Y Y 2017-%m2-01T00:00:00   none     none    sanl1           /discover/nobackup/cakelle2/data/OMI_HTAP/htapv2.2.emisso2.surface.x3600y1800t12.2017.integrate.nc4
+
+# Emissions not in HEMCO_Config.rc
+RETRO_ALK4__A  'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/butanes_kgC.esmf.nc
+RETRO_ALK4__B  'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/pentanes_kgC.esmf.nc
+RETRO_ALK4__C  'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/hexanes_kgC.esmf.nc
+RETRO_ACET     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/ketones_kgC.esmf.nc
+RETRO_ALD2     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/alkanals_kgC.esmf.nc
+RETRO_PRPE     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/propene_kgC.esmf.nc
+RETRO_C3H8     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/propane_kgC.esmf.nc
+RETRO_CH2O     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/methanal.esmf.nc
+RETRO_BENZ     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/benzene_kgC.esmf.nc
+RETRO_TOLU     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/toluene_kgC.esmf.nc
+RETRO_XYLE     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/xylene_kgC.esmf.nc
+RETRO_C2H4     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/ethene_kgC.esmf.nc
+RETRO_C2H2     'kg_m-2_s-1'     Y    Y 2000-%m2-01T00:00:00   none     none    emission_flux     /discover/nobackup/cakelle2/data/ethyne_kgC.esmf.nc
+CH4_GAS__1B2a  'kg_m2_s-1'      N    Y -  		    none     none    ch4_1B2a	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_GAS__1B2b  'kg_m2_s-1'      N    Y -  		    none     none    ch4_1B2b	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_COAL__1B1  'kg_m2_s-1'      N    Y -  		    none     none    ch4_1B1	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_LIVESTOCK__4A 'kg_m2_s-1'   N    Y -  		    none     none    ch4_4A	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_LIVESTOCK__4B 'kg_m2_s-1'   N    Y -  		    none     none    ch4_4B	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_WASTE__6A_6C 'kg_m2_s-1'    N    Y -  		    none     none    ch4_6A_6C         /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_WASTE__6B  'kg_m2_s-1'      N    Y -  		    none     none    ch4_6B	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_BIOFUEL__1A4 'kg_m2_s-1'    N    Y -  		    none     none    ch4_1A4	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_OTHER__1A1_1A2 'kg_m2_s-1'  N    Y -  		    none     none    ch4_1A1_1A2       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_OTHER__1A3a_c_d_e 'kg_m2_s-1' N    Y -  		    none     none    ch4_1A3a_c_d_e    /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_OTHER__1A3b 'kg_m2_s-1'     N    Y -  		    none     none    ch4_1A3b	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_OTHER__2   'kg_m2_s-1'      N    Y -  		    none     none    ch4_2	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_OTHER__7A  'kg_m2_s-1'      N    Y -  		    none     none    ch4_7A	       /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_SOILABSORBTION 'kg_m2_s-1'  N    Y -  		    none     none    CH4	       /discover/nobackup/cakelle2/data/CH4/soilabs.geos.2x25.esmf.nc
+CH4_TERMITES       'kg_m2_s-1'  N    Y -  		    none     none    CH4	       /discover/nobackup/cakelle2/data/CH4/termites.geos.2x25.esmf.nc
+CH4_WETL           'kg_m2_s-1'  N    Y %y4-%m2-01T00:00:00  none     none    ch4_wl            /discover/nobackup/lott/g5input/lpj_wetlands/lpj_merra2.ch4_wetlands.x576_y361.t14.%y4.nc 1980-01-01T00:00:00P0001-00-00T00:00:00
+#CH4_WETL       'kg_m-2_s-1'     N    Y 2013-%m2-01T00:00:00   none     none    ch4_wl          /discover/nobackup/lott/g5input/lpj_wetlands/lpj_merra2.ch4_wetlands.x576_y361.t14.2013.nc 
+CH4_RICE           'kg_m2_s-1'  N    Y -  		    none     none    ch4_4C_4D         /discover/nobackup/cakelle2/data/CH4/v42_CH4.0.1x0.1.2008.esmf.nc
+CH4_GWET_YR        '1'          N    N -  		    none     none    GWETTOP	       /discover/nobackup/cakelle2/data/CH4/GWETTOP.annual.geos5.2x25.esmf.nc
+CH4_GWET_MT        '1'          Y    N 2011-%m2-01T00:00:00   none     none    GWETTOP	       /discover/nobackup/cakelle2/data/CH4/GWETTOP.monthly.geos5.2x25.esmf.nc
+CH4_MEAN_T         '1'          N    N -  		    none     none    TSKIN	       /discover/nobackup/cakelle2/data/CH4/TSKIN.annual.geos5.2x25.esmf.nc
+CH4_WETFRAC        '1'          N    N -  		    none     none    WETFRAC	       /discover/nobackup/cakelle2/data/CH4/Wetfrac.2x25.esmf.nc
+CH4_LITTER_C       'kg_m2_s-1'  N    Y -  		    none     none    CARBON	       /discover/nobackup/cakelle2/data/CH4/Carbon_litter.2x25.esmf.nc
+CH4_SOIL_C         'kg_m2_s-1'  N    Y -  		    none     none    CARBON	       /discover/nobackup/cakelle2/data/CH4/Carbon_soil.2x25.esmf.nc
+
+# --- Analyzed tracer field increments ---
+INC_O3          'mol/mol'    N   N -		           none     1.0e-6  ozone		/dev/null 
+
+###############################################################################
+###
+### Meteorology data
+###
+###############################################################################
+
+#==============================================================================
+# --- Fields for lightning emissions (Extension 103) ---
+# These fields are stored in State_Met, along with the other met fields
+#==============================================================================
+
+# NOTE: These names differ from names used in CTM
+
+LFR_OFFLINE            'km-2s-1' Y N 2017-%m2-01T00:00:00 none none LDENS /discover/nobackup/projects/gmao/geos_cf_dev/gcc_inputs/OFFLINE_LIGHTNING/FLASH_CTH_MERRA2_0.5x0.625_2017_%m2_mean.nc4
+CCTH                         'm' Y N 2017-%m2-01T00:00:00 none none CTH   /discover/nobackup/projects/gmao/geos_cf_dev/gcc_inputs/OFFLINE_LIGHTNING/FLASH_CTH_MERRA2_0.5x0.625_2017_%m2_mean.nc4
+
+###############################################################################
+###
+### Land data
+###
+###############################################################################
+
+#==============================================================================
+# Olson land types
+#==============================================================================
+OLSON00 '1' N F;0  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON01 '1' N F;1  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON02 '1' N F;2  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON03 '1' N F;3  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON04 '1' N F;4  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON05 '1' N F;5  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON06 '1' N F;6  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON07 '1' N F;7  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON08 '1' N F;8  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON09 '1' N F;9  - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON10 '1' N F;10 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON11 '1' N F;11 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON12 '1' N F;12 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON13 '1' N F;13 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON14 '1' N F;14 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON15 '1' N F;15 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON16 '1' N F;16 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON17 '1' N F;17 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON18 '1' N F;18 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON19 '1' N F;19 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON20 '1' N F;20 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON21 '1' N F;21 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON22 '1' N F;22 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON23 '1' N F;23 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON24 '1' N F;24 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON25 '1' N F;25 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON26 '1' N F;26 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON27 '1' N F;27 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON28 '1' N F;28 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON29 '1' N F;29 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON30 '1' N F;30 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON31 '1' N F;31 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON32 '1' N F;32 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON33 '1' N F;33 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON34 '1' N F;34 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON35 '1' N F;35 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON36 '1' N F;36 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON37 '1' N F;37 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON38 '1' N F;38 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON39 '1' N F;39 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON40 '1' N F;40 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON41 '1' N F;41 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON42 '1' N F;42 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON43 '1' N F;43 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON44 '1' N F;44 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON45 '1' N F;45 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON46 '1' N F;46 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON47 '1' N F;47 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON48 '1' N F;48 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON49 '1' N F;49 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON50 '1' N F;50 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON51 '1' N F;51 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON52 '1' N F;52 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON53 '1' N F;53 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON54 '1' N F;54 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON55 '1' N F;55 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON56 '1' N F;56 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON57 '1' N F;57 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON58 '1' N F;58 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON59 '1' N F;59 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON60 '1' N F;60 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON61 '1' N F;61 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON62 '1' N F;62 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON63 '1' N F;63 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON64 '1' N F;64 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON65 '1' N F;65 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON66 '1' N F;66 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON67 '1' N F;67 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON68 '1' N F;68 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON69 '1' N F;69 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON70 '1' N F;70 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON71 '1' N F;71 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+OLSON72 '1' N F;72 - none none OLSON /discover/nobackup/cakelle2/data/GCHP_data/Olson_2001_Land_Map.2x25.nc
+
+#==============================================================================
+# Yuan-processed MODIS Leaf Area Index
+#==============================================================================
+# Use file with land type stored as 3rd dimension to speed up file read
+XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI /gpfsm/dnb31/ewlundgr/data/ExtData/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+
+###############################################################################
+###
+### HEMCO Base Emissions (Update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# --- APEI Canada (APEI) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- NEI2011 USA hourly (NEI2011_HOURLY) ---
+# Hourly NEI011 is turned off by default in HEMCO_Config.rc; fill out this section if turning on
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- NEI2011 USA monthly mean (NEI2011_MONMEAN) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- MIX v1.1 Asia (MIX) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- DICE-Africa emission inventory (DICE_Africa) ---
+#==============================================================================
+
+# NOTE: This is a different set than used in CTM
+
+# Scale factors convert from g/m2/yr to kg/m2/s for non-VOCs and g/m2/yr to kgC/m2/s for VOCs
+
+DICE_ENERGY_CO     'g_m-2_s-1'   N    Y -     none 3.171e-11 CO   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_NO     'g_m-2_s-1'   N    Y -     none 3.171e-11 NO   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_SO2    'g_m-2_s-1'   N    Y -     none 3.171e-11 SO2  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_BCPI   'g_m-2_s-1'   N    Y -     none 3.171e-11 BC   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_OCPI   'g_m-2_s-1'   N    Y -     none 3.171e-11 OC   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_ALK4   'g_m-2_s-1'   N    Y -     none 2.815e-11 ALK4 /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_ACET   'g_m-2_s-1'   N    Y -     none 1.966e-11 ACET /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_MEK    'g_m-2_s-1'   N    Y -     none 2.111e-11 MEK  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_ALD2   'g_m-2_s-1'   N    Y -     none 1.728e-11 ALD2 /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_RCHO   'g_m-2_s-1'   N    Y -     none 3.171e-11 RCHO /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_CH2O   'g_m-2_s-1'   N    Y -     none 3.171e-11 CH2O /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_BENZ   'g_m-2_s-1'   N    Y -     none 2.923e-11 BENZ /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_TOLU   'g_m-2_s-1'   N    Y -     none 2.891e-11 TOLU /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_XYLE   'g_m-2_s-1'   N    Y -     none 2.868e-11 XYLE /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_C2H6   'g_m-2_s-1'   N    Y -     none 2.531e-11 C2H6 /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_ENERGY_C3H8   'g_m-2_s-1'   N    Y -     none 2.589e-11 C3H8 /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-energy-2013.nc
+DICE_INDUSTRY_CO    'g_m-2_s-1'   N    Y -     none 3.171e-11 CO    /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_NO    'g_m-2_s-1'   N    Y -     none 3.171e-11 NO    /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_SO2   'g_m-2_s-1'   N    Y -     none 3.171e-11 SO2   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_BCPI  'g_m-2_s-1'   N    Y -     none 3.171e-11 BC    /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_OCPI  'g_m-2_s-1'   N    Y -     none 3.171e-11 OC    /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_PRPE  'g_m-2_s-1'   N    Y -     none 2.713e-11 PRPE  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_CH2O  'g_m-2_s-1'   N    Y -     none 3.171e-11 CH2O  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_C2H6  'g_m-2_s-1'   N    Y -     none 2.531e-11 C2H6  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_TOLU  'g_m-2_s-1'   N    Y -     none 2.891e-11 TOLU  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_HCOOH 'g_m-2_s-1'   N    Y -     none 3.171e-11 HCOOH /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_INDUSTRY_NH3   'g_m-2_s-1'   N    Y -     none 3.171e-11 NH3   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-industry-2013.nc
+DICE_TRAFFIC_CO    'g_m-2_s-1'   N    Y -     none 3.171e-11 CO   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_NO    'g_m-2_s-1'   N    Y -     none 3.171e-11 NO   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_SO2   'g_m-2_s-1'   N    Y -     none 3.171e-11 SO2  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_BCPI  'g_m-2_s-1'   N    Y -     none 3.171e-11 BC   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_OCPI  'g_m-2_s-1'   N    Y -     none 3.171e-11 OC   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_ALK4  'g_m-2_s-1'   N    Y -     none 2.815e-11 ALK4 /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_ISOP  'g_m-2_s-1'   N    Y -     none 2.793e-11 ISOP /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_ACET  'g_m-2_s-1'   N    Y -     none 1.966e-11 ACET /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_MEK   'g_m-2_s-1'   N    Y -     none 2.111e-11 MEK  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_ALD2  'g_m-2_s-1'   N    Y -     none 1.728e-11 ALD2 /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_RCHO  'g_m-2_s-1'   N    Y -     none 3.171e-11 RCHO /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_PRPE  'g_m-2_s-1'   N    Y -     none 2.713e-11 PRPE /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_CH2O  'g_m-2_s-1'   N    Y -     none 3.171e-11 CH2O /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_BENZ  'g_m-2_s-1'   N    Y -     none 2.923e-11 BENZ /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_TOLU  'g_m-2_s-1'   N    Y -     none 2.891e-11 TOLU /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_TRAFFIC_XYLE  'g_m-2_s-1'   N    Y -     none 2.868e-11 XYLE /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-traffic-2013.nc
+DICE_RESIDENTIAL_CO    'g_m-2_s-1'   N    Y -     none 3.171e-11 CO    /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_NO    'g_m-2_s-1'   N    Y -     none 3.171e-11 NO    /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_SO2   'g_m-2_s-1'   N    Y -     none 3.171e-11 SO2   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_BCPI  'g_m-2_s-1'   N    Y -     none 3.171e-11 BC    /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_OCPI  'g_m-2_s-1'   N    Y -     none 3.171e-11 OC    /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_ALK4  'g_m-2_s-1'   N    Y -     none 2.815e-11 ALK4  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_PRPE  'g_m-2_s-1'   N    Y -     none 2.713e-11 PRPE  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_CH2O  'g_m-2_s-1'   N    Y -     none 3.171e-11 CH2O  /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_HCOOH 'g_m-2_s-1'   N    Y -     none 3.171e-11 HCOOH /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+DICE_RESIDENTIAL_NH3   'g_m-2_s-1'   N    Y -     none 3.171e-11 NH3   /discover/nobackup/cakelle2/data/DICE/merged/DICE-Africa-residential-2013.nc
+
+#==============================================================================
+# --- CEDS (CEDS) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- EDGAR v4.3 (EDGARv43) ---
+# EDGARv4.3 is off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- NAP Anthropogenic (EDGAR_NAP) ---
+# EDGAR_NAP is off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+EDGAR_NAP      'kgC_m-2_s-1'    N    Y -                      none     none    BENZ            /discover/nobackup/cakelle2/data/EDGAR2_1985_FF_IND.360x180.nc
+
+#==============================================================================
+# --- Wiedinmyer et al. 2014 global trash (TRASH) ---
+#==============================================================================
+
+# NOTE: These are included in the EDGARv43 (not TRASH) in CTM
+
+# Scale factors convert from kg/m2/s to kgC/m2/s for VOCs
+TRASH_CO    'kg_m-2_s-1'   N    Y -           none    none   CO    /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_NO    'kg_m-2_s-1'   N    Y -           none    none   NO    /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_SO2   'kg_m-2_s-1'   N    Y -           none    none   SO2   /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_NH3   'kg_m-2_s-1'   N    Y -           none    none   NH3   /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_ACET  'kg_m-2_s-1'   N    Y -           none    0.620  ACET  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_ISOP  'kg_m-2_s-1'   N    Y -           none    0.881  ISOP  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_MEK   'kg_m-2_s-1'   N    Y -           none    0.666  MEK   /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_ALD2  'kg_m-2_s-1'   N    Y -           none    0.545  ALD2  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_MVK   'kg_m-2_s-1'   N    Y -           none    none   MVK   /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_PRPE  'kg_m-2_s-1'   N    Y -           none    0.855  PRPE  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_CH2O  'kg_m-2_s-1'   N    Y -           none    none   CH2O  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_HAC   'kg_m-2_s-1'   N    Y -           none    none   HAC   /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_GLYC  'kg_m-2_s-1'   N    Y -           none    none   GLYC  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_BENZ  'kg_m-2_s-1'   N    Y -           none    0.922  BENZ  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_TOLU  'kg_m-2_s-1'   N    Y -           none    0.912  TOLU  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_XYLE  'kg_m-2_s-1'   N    Y -           none    0.904  XYLE  /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_HCOOH 'kg_m-2_s-1'   N    Y -           none    none   HCOOH /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_BCPI  'kg_m-2_s-1'   N    Y -           none    none   BC    /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+TRASH_OCPI  'kg_m-2_s-1'   N    Y -           none    none   OC    /discover/nobackup/cakelle2/data/TrashBurn_v2_generic.01x01.2000.nc
+
+#==============================================================================
+# --- HTAP v2 (HTAP) ---
+# HTAP is off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+HTAP_NO_IND    'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_no		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NO_INDUSTRY_2010.generic.01x01.nc 
+HTAP_NO_POW    'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_no		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NO_ENERGY_2010.generic.01x01.nc 
+HTAP_NO_TRA    'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_no		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NO_TRANSPORT_2010.generic.01x01.nc 
+HTAP_NO_RES    'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_no		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NO_RESIDENTIAL_2010.generic.01x01.nc 
+HTAP_CO_IND    'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_co		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_CO_INDUSTRY_2010.generic.01x01.nc 
+HTAP_CO_POW    'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_co		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_CO_ENERGY_2010.generic.01x01.nc 
+HTAP_CO_TRA    'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_co		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_CO_TRANSPORT_2010.generic.01x01.nc 
+HTAP_CO_RES    'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_co		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_CO_RESIDENTIAL_2010.generic.01x01.nc 
+HTAP_SO2_IND   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_so2		 /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_SO2_INDUSTRY_2010.generic.01x01.nc 
+HTAP_SO2_POW   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_so2		 /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_SO2_ENERGY_2010.generic.01x01.nc 
+HTAP_SO2_TRA   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_so2		 /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_SO2_TRANSPORT_2010.generic.01x01.nc 
+HTAP_SO2_RES   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_so2		 /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_SO2_RESIDENTIAL_2010.generic.01x01.nc 
+HTAP_BCPI_IND  'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_bc		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_BC_INDUSTRY_2010.generic.01x01.nc 
+HTAP_BCPI_POW  'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_bc		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_BC_ENERGY_2010.generic.01x01.nc 
+HTAP_BCPI_TRA  'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_bc		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_BC_TRANSPORT_2010.generic.01x01.nc 
+HTAP_BCPI_RES  'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_bc		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_BC_RESIDENTIAL_2010.generic.01x01.nc 
+HTAP_OCPI_IND  'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_oc		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_OC_INDUSTRY_2010.generic.01x01.nc 
+HTAP_OCPI_POW  'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_oc		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_OC_ENERGY_2010.generic.01x01.nc 
+HTAP_OCPI_TRA  'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_oc		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_OC_TRANSPORT_2010.generic.01x01.nc 
+HTAP_OCPI_RES  'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_oc		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_OC_RESIDENTIAL_2010.generic.01x01.nc 
+HTAP_NH3_IND   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_nh3	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NH3_INDUSTRY_2010.generic.01x01.nc 
+HTAP_NH3_POW   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_nh3	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NH3_ENERGY_2010.generic.01x01.nc 
+HTAP_NH3_TRA   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_nh3	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NH3_TRANSPORT_2010.generic.01x01.nc 
+HTAP_NH3_AGR   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_nh3	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NH3_AGRICULTURE_2010.generic.01x01.nc 
+HTAP_NH3_RES   'kg_m-2_s-1'     Y    Y 2010-%m2-01T00:00:00   none     none    emi_nh3	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NH3_RESIDENTIAL_2010.generic.01x01.nc 
+HTAP_NO_SHIP   'kg_m-2_s-1'     N    Y -  		    none     none    emi_no	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_NO_SHIPS_2010.generic.01x01.nc 
+HTAP_CO_SHIP   'kg_m-2_s-1'     N    Y -  		    none     none    emi_co	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_CO_SHIPS_2010.generic.01x01.nc 
+HTAP_SO2_SHIP  'kg_m-2_s-1'     N    Y -  		    none     none    emi_so2		/discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_SO2_SHIPS_2010.generic.01x01.nc 
+HTAP_BCPI_SHIP 'kg_m-2_s-1'     N    Y -  		    none     none    emi_bc	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_BC_SHIPS_2010.generic.01x01.nc 
+HTAP_OCPI_SHIP 'kg_m-2_s-1'     N    Y -  		    none     none    emi_oc	       /discover/nobackup/cakelle2/data/HTAP/EDGAR_HTAP_OC_SHIPS_2010.generic.01x01.nc 
+
+#==============================================================================
+# --- GEIA (GEIA_NH3) ---
+#==============================================================================
+GEIA_NH3_NATU  'kg_m-2_s-1'     Y    Y 1990-%m2-01T00:00:00   none     none    NH3_NATU	       /discover/nobackup/cakelle2/data/NH3.gen.1x1.nc
+
+#==============================================================================
+# --- Arctic seabirds (SEABIRD_NH3) ---
+#==============================================================================
+SEABIRD_NH3    'kg_m-2_s-1'     Y    Y 1990-%m2-01T00:00:00   none     none    NH3_SEABIRDS    /discover/nobackup/cakelle2/data/NH3_Arctic_seabirds.nc
+
+#==============================================================================
+# --- POET EOH (POET_EOH) ---
+#==============================================================================
+POET_EOH       'kgC_m-2_s-1'    N    Y -                      none     none    EOH             /discover/nobackup/cakelle2/data/POET_EOH.geos.2x25.esmf.nc
+
+#==============================================================================
+# --- 2010 Global C2H6 fossil fuel and biofuel (TZOMPASOSA_C2H6) ---
+#==============================================================================
+C2H6_2010_anthro  'kgC_m-2_s-1' Y    Y 2010-%m2-01T00:00:00   none   none    ANTHR_C2H6        /discover/nobackup/cakelle2/data/C2H6_global_anth_biof.2010.2x25.nc
+C2H6_2010_biofuel 'kgC_m-2_s-1' Y    Y 2010-%m2-01T00:00:00   none   none    BIOFUEL_C2H6      /discover/nobackup/cakelle2/data/C2H6_global_anth_biof.2010.2x25.nc
+
+#==============================================================================
+# --- Xiao et al., JGR, 2008 (XIAO_C3H8) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- Very-short-lived bromocarbon (LIANG_BROMOCARB) ---
+#==============================================================================
+LIANG_CHBr3    'kg_m2_s-1'      N    Y -  		    none     none    CHBr3_emission    /discover/nobackup/cakelle2/data/Bromocarb_Liang2010.gen.1x1.nc
+LIANG_CH2Br2   'kg_m2_s-1'      N    Y -  		    none     none    CH2Br2_emission   /discover/nobackup/cakelle2/data/Bromocarb_Liang2010.gen.1x1.nc
+
+#==============================================================================
+# --- Very-short-lived iodocarbon (ORDONEZ_IODOCARB) ---
+#==============================================================================
+ORDONEZ_CH3I   'kg_m-2_s-1'     Y    Y 2012-%m2-01T00:00:00   none     none    CH3I            /home/cakelle2/data/ORDONEZ/CH3I_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
+ORDONEZ_CH2I2   'kg_m-2_s-1'    Y    Y 2012-%m2-01T00:00:00   none     none    CH2I2           /home/cakelle2/data/ORDONEZ/CH2I2_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
+ORDONEZ_CH2ICL   'kg_m-2_s-1'   Y    Y 2012-%m2-01T00:00:00   none     none    CH2ICl          /home/cakelle2/data/ORDONEZ/CH2ICl_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
+ORDONEZ_CH2IBR   'kg_m-2_s-1'   Y    Y 2012-%m2-01T00:00:00   none     none    CH2IBr          /home/cakelle2/data/ORDONEZ/CH2IBr_monthly_emissions_Ordonez_2012_COARDS.esmf.nc
+
+#==============================================================================
+# --- Ship emissions (SHIP) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- AEIC aircraft (AEIC) ---
+#==============================================================================
+# kg -> kgC scale factor is applied in HEMCO and therefore is unnecessary in ExtData.rc
+AEIC_NO        'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    NO2	       /discover/nobackup/cakelle2/data/AEIC.72L.gen.1x1.nc
+AEIC_CO        'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    CO 	       /discover/nobackup/cakelle2/data/AEIC.72L.gen.1x1.nc
+AEIC_SO2       'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    FUELBURN	       /discover/nobackup/cakelle2/data/AEIC.72L.gen.1x1.nc
+AEIC_ACET      'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    HC 	       /discover/nobackup/cakelle2/data/AEIC.72L.gen.1x1.nc
+### 132 LEVELS ###
+#AEIC_NO        'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    NO2	       /discover/nobackup/cakelle2/data/AEIC.132L.gen.1x1.nc
+#AEIC_CO        'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    CO 	       /discover/nobackup/cakelle2/data/AEIC.132L.gen.1x1.nc
+#AEIC_SO2       'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    FUELBURN	       /discover/nobackup/cakelle2/data/AEIC.132L.gen.1x1.nc
+#AEIC_ACET      'kg_m-2_s-1'     Y    Y 2005-%m2-01T00:00:00   none     none    HC 	       /discover/nobackup/cakelle2/data/AEIC.132L.gen.1x1.nc
+### END 132 LEVELS ###
+
+#==============================================================================
+# --- Emissions from decaying plants (DECAYING_PLANTS) ---
+#==============================================================================
+ALD2_SEN        'kgC/m2/s'      Y    Y 2006-%m2-01T00:00:00 none     none    HET_RESP          /discover/nobackup/cakelle2/data/resp.geos.2x25.esmf.nc
+
+#==============================================================================
+# --- RCP 3PD future emissions scenarios (RCP_3PD) ---
+# RCP_3PD is off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- RCP 45 future emissions scenarios (RCP_45) ---
+# RCP_45 is off by default in HEMCO_Config.rc
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- RCP 60 future emissions scenarios (RCP_60) ---
+# RCP_60 is off by default in HEMCO_Config.rc
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- RCP 85 future emissions scenarios (RCP_85) ---
+# RCP_85 is off by default in HEMCO_Config.rc
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- QFED2 biomass burning (QFED2) ---
+# QFED2 is off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- GFAS biomass burning (GFAS) ---
+# GFAS is off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- QFED biomass burning (QFED) ---
+#==============================================================================
+QFED_ACET_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.61984 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_acet.006.%y4%m2%d2.nc4
+QFED_ALD2_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.54484 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ald2.006.%y4%m2%d2.nc4
+QFED_ALK4_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.82588 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_alk4.006.%y4%m2%d2.nc4
+QFED_BCPI_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
+QFED_OCPI_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
+QFED_C2H6_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.79814 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c2h6.006.%y4%m2%d2.nc4
+QFED_C3H8_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.81633 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h8.006.%y4%m2%d2.nc4
+QFED_CH2O_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ch2o.006.%y4%m2%d2.nc4
+QFED_CO_SFC    'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_co.006.%y4%m2%d2.nc4
+QFED_MEK_SFC   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.66565 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_mek.006.%y4%m2%d2.nc4
+QFED_NH3_SFC   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4
+QFED_NO_SFC    'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_no.006.%y4%m2%d2.nc4
+QFED_SO2_SFC   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
+QFED_C3H6_SFC  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.85551 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h6.006.%y4%m2%d2.nc4
+QFED_CH4_SFC   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ch4.006.%y4%m2%d2.nc4
+QFED_ACET_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.61984 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_acet.006.%y4%m2%d2.nc4
+QFED_ALD2_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.54484 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ald2.006.%y4%m2%d2.nc4
+QFED_ALK4_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.82588 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_alk4.006.%y4%m2%d2.nc4
+QFED_BCPI_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
+QFED_OCPI_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
+QFED_C2H6_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.79814 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c2h6.006.%y4%m2%d2.nc4
+QFED_C3H8_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.81633 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h8.006.%y4%m2%d2.nc4
+QFED_CH2O_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ch2o.006.%y4%m2%d2.nc4
+QFED_CO_FT    'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_co.006.%y4%m2%d2.nc4
+QFED_MEK_FT   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.66565 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_mek.006.%y4%m2%d2.nc4
+QFED_NH3_FT   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4
+QFED_NO_FT    'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_no.006.%y4%m2%d2.nc4
+QFED_SO2_FT   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
+QFED_C3H6_FT  'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none      0.85551 biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_c3h6.006.%y4%m2%d2.nc4
+QFED_CH4_FT   'kg_m-2_s-1'     N    Y %y4-%m2-%d1T12:00:00   none     none    biomass	       /discover/nobackup/projects/gmao/share/dao_ops/fvInput_nc3/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_ch4.006.%y4%m2%d2.nc4
+
+#==============================================================================
+# --- Anthropogenic dust emissions (AFCID)---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- Offline dust emissions (OFFLINE_DUST)---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- Offline biogenic VOC emissions (OFFLINE_BIOGENICVOC) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- Offline sea salt emissions (OFFLINE_SEASALT) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- Offline soil NOx emissions (OFFLINE_SOILNOX) ---
+#==============================================================================
+# Not used in GEOS
+
+###############################################################################
+###
+### HEMCO Extension Data (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# --- Seawater concentrations for oceanic emissions (Extension 101) ---
+# CH3I_SEAWATER is commented out by default in HEMCO_Config.rc in CTM
+#==============================================================================
+DMS_SEAWATER    'kg/m3'         Y    Y 1985-%m2-01T00:00:00 none     none    DMS_OCEAN         /discover/nobackup/cakelle2/data/OCEAN/DMS_lana.geos.1x1.esmf.nc
+ACET_SEAWATER   'kg/m3'         N    Y -  		    none     none    ACET	       /discover/nobackup/cakelle2/data/OCEAN/ACET_seawater.generic.1x1.esmf.nc
+ALD2_SEAWATER   'kg/m3'         Y    Y 1985-%m2-01T00:00:00 none     none    ALD2              /discover/nobackup/cakelle2/data/OCEAN/ALD2_seawater.geos.2x25.esmf.nc
+MENO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    MENO3             /discover/nobackup/ewlundgr/data/ExtData/HEMCO/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+ETNO3_SEAWATER  'kg/m3'         Y    Y 2006-%m2-01T00:00:00 none     none    ETNO3             /discover/nobackup/ewlundgr/data/ExtData/HEMCO/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+
+#==============================================================================
+# --- Soil NOx emissions (Extension 104) ---
+# Off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+SOILNOX_FERT      'kg/m3'       N    Y 2000-%m2-%d2T00:00:00  none     none    FERT	       /discover/nobackup/cakelle2/data/soilNOx.fert_res.generic.05x05.nc
+SOILNOX_LANDK1     '1'          N    N -  		    none     none    LANDFRAC_K01      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK2     '1'          N    N -  		    none     none    LANDFRAC_K02      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK3     '1'          N    N -  		    none     none    LANDFRAC_K03      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK4     '1'          N    N -  		    none     none    LANDFRAC_K04      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK5     '1'          N    N -  		    none     none    LANDFRAC_K05      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK6     '1'          N    N -  		    none     none    LANDFRAC_K06      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK7     '1'          N    N -  		    none     none    LANDFRAC_K07      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK8     '1'          N    N -  		    none     none    LANDFRAC_K08      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK9     '1'          N    N -  		    none     none    LANDFRAC_K09      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK10    '1'          N    N -  		    none     none    LANDFRAC_K10      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK11    '1'          N    N -  		    none     none    LANDFRAC_K11      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK12    '1'          N    N -  		    none     none    LANDFRAC_K12      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK13    '1'          N    N -  		    none     none    LANDFRAC_K13      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK14    '1'          N    N -  		    none     none    LANDFRAC_K14      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK15    '1'          N    N -  		    none     none    LANDFRAC_K15      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK16    '1'          N    N -  		    none     none    LANDFRAC_K16      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK17    '1'          N    N -  		    none     none    LANDFRAC_K17      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK18    '1'          N    N -  		    none     none    LANDFRAC_K18      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK19    '1'          N    N -  		    none     none    LANDFRAC_K19      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK20    '1'          N    N -  		    none     none    LANDFRAC_K20      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK21    '1'          N    N -  		    none     none    LANDFRAC_K21      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK22    '1'          N    N -  		    none     none    LANDFRAC_K22      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK23    '1'          N    N -  		    none     none    LANDFRAC_K23      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK24    '1'          N    N -  		    none     none    LANDFRAC_K24      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_ARID       '1'          N    N -  		    none     none    ARID	       /discover/nobackup/cakelle2/data/soilNOx.climate.generic.05x05.nc
+SOILNOX_NONARID    '1'          N    N -  		    none     none    NON_ARID	       /discover/nobackup/cakelle2/data/soilNOx.climate.generic.05x05.nc
+
+#==============================================================================
+# --- Dust emissions using DEAD model (Extension 105) ---
+# Off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+DEAD_EF_GEO          '1'        N    N -  		    none     none    EF_GEO	       /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
+DEAD_LF_DRY          '1'        N    N -  		    none     none    LF_DRY	       /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
+DEAD_MF_CACO3        '1'        N    N -  		    none     none    MF_CaCO3	       /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
+DEAD_MF_CLY          '1'        N    N -  		    none     none    MF_CLY	       /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
+DEAD_MF_SND          '1'        N    N -  		    none     none    MF_SND	       /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
+DEAD_GOC_SRC         '1'        N    N -  		    none     none    GOC_SRC	       /discover/nobackup/cakelle2/data/GOCART_src_fn.esmf.2x25.nc
+DEAD_VAI             '1'        Y    N 1985-%m2-01T00:00:00   none     none    VAI	       /discover/nobackup/cakelle2/data/dst_tvbds.esmf.2x25.nc
+
+#==============================================================================
+# --- Sea salt emissions (Extension 107)
+# Off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- MEGAN biogenic emissions (Extension 108 and 109)
+# Off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+MEGAN_AEF_ISOP  'kgC/m2/s'      N    Y -  		    none     none    AEF_ISOPRENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_MBOX  'kgC/m2/s'      N    Y -  		    none     none    AEF_MBO	       /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_BPIN  'kgC/m2/s'      N    Y -  		    none     none    AEF_BETA_PINENE   /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_CARE  'kgC/m2/s'      N    Y -  		    none     none    AEF_CARENE        /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_LIMO  'kgC/m2/s'      N    Y -  		    none     none    AEF_LIMONENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_OCIM  'kgC/m2/s'      N    Y -  		    none     none    AEF_OCIMENE       /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_SABI  'kgC/m2/s'      N    Y -  		    none     none    AEF_SABINENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+CLM4_PFT_BARE      '1'          N    N -  		    none     none    PFT_BARE	       /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	 
+CLM4_PFT_NDLF_EVGN_TMPT_TREE '1' N    N - 		     none     none    PFT_NDLF_EVGN_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_NDLF_EVGN_BORL_TREE '1' N    N - 		     none     none    PFT_NDLF_EVGN_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_NDLF_DECD_BORL_TREE '1' N    N - 		     none     none    PFT_NDLF_DECD_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_EVGN_TROP_TREE '1' N    N - 		     none     none    PFT_BDLF_EVGN_TROP_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_EVGN_TMPT_TREE '1' N    N - 		     none     none    PFT_BDLF_EVGN_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_TROP_TREE '1' N    N - 		     none     none    PFT_BDLF_DECD_TROP_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_TMPT_TREE '1' N    N - 		     none     none    PFT_BDLF_DECD_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_BORL_TREE '1' N    N - 		     none     none    PFT_BDLF_DECD_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_EVGN_SHRB      '1' N    N - 		     none     none    PFT_BDLF_EVGN_SHRB      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_TMPT_SHRB '1' N    N - 		     none     none    PFT_BDLF_DECD_TMPT_SHRB /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_BORL_SHRB '1' N    N - 		     none     none    PFT_BDLF_DECD_BORL_SHRB /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_C3_ARCT_GRSS        '1' N    N - 		     none     none    PFT_C3_ARCT_GRSS        /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_C3_NARC_GRSS        '1' N    N - 		     none     none    PFT_C3_NARC_GRSS        /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_C4_GRSS             '1' N    N - 		     none     none    PFT_C4_GRSS	      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_CROP                '1' N    N - 		     none     none    PFT_CROP  	      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+MEGAN_ORVC       'kgC/m2/s'      Y    Y 1999-%m2-01T00:00:00 none     none    OCPI                    /discover/nobackup/cakelle2/data/NVOC.geos.1x1.esmf.nc
+
+#==============================================================================
+# --- GFED biomass burning emissions (Extension 111)
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- FINN v1.5 biomass burning emissions (Extension 114)
+# FINN is off by default in HEMCO_Config.rc in CTM
+#==============================================================================
+# Not used in GEOS
+
+###############################################################################
+###
+### HEMCO Non-Emissions Data (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# --- Time zones (offset to UTC) ---
+#==============================================================================
+TIMEZONES     NA  N V - none none  UTC_OFFSET /discover/nobackup/cakelle2/data/timezones_esmf.2x25.nc
+
+#==============================================================================
+# --- UV albedo (UVALBEDO) ---
+#==============================================================================
+UV_ALBEDO          '1'          Y   N 1985-%m2-01T00:00:00   none     none    UVALBD	      /discover/nobackup/cakelle2/data/uvalbedo.geos.2x25.nc
+
+#==============================================================================
+# --- Stratospheric Bry data from the CCM model (CCM_STRAT_Bry) ---
+#==============================================================================
+GEOSCCM_Br_DAY     '1'          Y   N 2005-%m2-01T00:00:00   none     none    BR  	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.day.esmf.nc
+GEOSCCM_Br2_DAY    '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRCL	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.day.esmf.nc
+GEOSCCM_BrO_DAY    '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRO 	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.day.esmf.nc
+GEOSCCM_BrNO3_DAY  '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRONO2	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.day.esmf.nc
+GEOSCCM_HBr_DAY    '1'          Y   N 2005-%m2-01T00:00:00   none     none    HBR 	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.day.esmf.nc
+GEOSCCM_HOBr_DAY   '1'          Y   N 2005-%m2-01T00:00:00   none     none    HOBR	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.day.esmf.nc
+GEOSCCM_Br_NIGHT   '1'          Y   N 2005-%m2-01T00:00:00   none     none    BR  	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.night.esmf.nc
+GEOSCCM_Br2_NIGHT  '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRCL	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.night.esmf.nc
+GEOSCCM_BrO_NIGHT  '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRO 	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.night.esmf.nc
+GEOSCCM_BrNO3_NIGHT '1'         Y   N 2005-%m2-01T00:00:00   none     none    BRONO2	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.night.esmf.nc
+GEOSCCM_HBr_NIGHT  '1'          Y   N 2005-%m2-01T00:00:00   none     none    HBR 	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.night.esmf.nc
+GEOSCCM_HOBr_NIGHT '1'          Y   N 2005-%m2-01T00:00:00   none     none    HOBR	      /discover/nobackup/cakelle2/data/Bry/GEOSCCM_Bry.2007.night.esmf.nc
+
+### 132 LEVELS ###
+#GEOSCCM_Br_DAY     '1'          Y   N 2005-%m2-01T00:00:00   none     none    BR  	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.day.esmf.nc
+#GEOSCCM_Br2_DAY    '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRCL	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.day.esmf.nc
+#GEOSCCM_BrO_DAY    '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRO 	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.day.esmf.nc
+#GEOSCCM_BrNO3_DAY  '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRONO2	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.day.esmf.nc
+#GEOSCCM_HBr_DAY    '1'          Y   N 2005-%m2-01T00:00:00   none     none    HBR 	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.day.esmf.nc
+#GEOSCCM_HOBr_DAY   '1'          Y   N 2005-%m2-01T00:00:00   none     none    HOBR	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.day.esmf.nc
+#GEOSCCM_Br_NIGHT   '1'          Y   N 2005-%m2-01T00:00:00   none     none    BR  	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.night.esmf.nc
+#GEOSCCM_Br2_NIGHT  '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRCL	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.night.esmf.nc
+#GEOSCCM_BrO_NIGHT  '1'          Y   N 2005-%m2-01T00:00:00   none     none    BRO 	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.night.esmf.nc
+#GEOSCCM_BrNO3_NIGHT '1'         Y   N 2005-%m2-01T00:00:00   none     none    BRONO2	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.night.esmf.nc
+#GEOSCCM_HBr_NIGHT  '1'          Y   N 2005-%m2-01T00:00:00   none     none    HBR 	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.night.esmf.nc
+#GEOSCCM_HOBr_NIGHT '1'          Y   N 2005-%m2-01T00:00:00   none     none    HOBR	      /discover/nobackup/cakelle2/data/Bry_132L/132_lvl_GEOSCCM_Bry.2007.night.esmf.nc
+### END 132 LEVELS ###
+
+#==============================================================================
+#--- Archived GMI OH concentrations (GMI_STRAT_OH) ---
+#==============================================================================
+STRAT_OH           '1'          Y   N 2005-%m2-01T00:00:00   none     none    species	      /discover/nobackup/cakelle2/data/GMI/gmi.clim.OH.geos5.2x25.esmf.nc
+
+### 132 LEVELS ###
+#STRAT_OH           '1'          Y   N 2005-%m2-01T00:00:00   none     none    species	      /discover/nobackup/cakelle2/data/GMI_132L/132_lvl_gmi.clim.OH.geos5.2x25.esmf.nc
+### END132 LEVELS ###
+
+#==============================================================================
+#--- GMI chemistry: prod/loss rates (GMI_PROD_LOSS) ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- Spatially varying OM/OC (OMOC_RATIO) ---
+#==============================================================================
+OMOC_DJF           '1'          N   N -                      none     none    OMOC            /discover/nobackup/cakelle2/data/OMOC/OMOC.DJF.01x01.nc
+OMOC_MAM           '1'          N   N -                      none     none    OMOC            /discover/nobackup/cakelle2/data/OMOC/OMOC.MAM.01x01.nc
+OMOC_JJA           '1'          N   N -                      none     none    OMOC            /discover/nobackup/cakelle2/data/OMOC/OMOC.JJA.01x01.nc
+OMOC_SON           '1'          N   N -                      none     none    OMOC            /discover/nobackup/cakelle2/data/OMOC/OMOC.SON.01x01.nc
+
+#==============================================================================
+# --- NOAA GMD monthly mean surface CH4 (GMD_SFC_CH4) ---
+#==============================================================================
+NOAA_GMD_CH4       'v/v'        N   N %y4-%m2-01T00:00:00    none     none    SFC_CH4         /discover/nobackup/cakelle2/data/NOAA_GMD/monthly.gridded.surface.methane.1979-2020.1x1.nc
+
+#==============================================================================
+# --- Surface VMR (SfcVMR) ---
+#==============================================================================
+
+# Previously used in GEOS, pre-12.7.0:
+#SfcVMR_CH3Cl       'ppbv'       N   N -                      none     none    CH3Cl           /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
+#SfcVMR_CH2Cl2      'ppbv'       N   N -                      none     none    CH2Cl2          /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
+#SfcVMR_CHCl3       'ppbv'       N   N -                      none     none    CHCl3           /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
+
+# New in 12.7.0:
+SfcVMR_CH3Cl    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
+SfcVMR_CH2Cl2   ppbv N Y F%y4-%m2-01T00:00:00 none none CH2Cl2   /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
+SfcVMR_CHCl3    ppbv N Y F%y4-%m2-01T00:00:00 none none CHCl3    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
+SfcVMR_CH3Br    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Br    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
+SfcVMR_CCl4     v/v  N Y F%y4-%m2-01T00:00:00 none none CCl4     /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_CFC113   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC113   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_CFC114   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC114   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_CFC115   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC115   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_CFC11    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC11    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_CFC12    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC12    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_CH3CCl3  v/v  N Y F%y4-%m2-01T00:00:00 none none CH3CCl3  /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_H1211    v/v  N Y F%y4-%m2-01T00:00:00 none none H1211    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_H1301    v/v  N Y F%y4-%m2-01T00:00:00 none none H1301    /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_HCFC141b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC141b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_HCFC142b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC142b /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_HCFC22   v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC22   /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_N2O      v/v  N Y F%y4-%m2-01T00:00:00 none none N2O      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
+SfcVMR_OCS      ppbv N Y -                    none none OCS      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_OCS.nc
+SfcVMR_H2       ppbv N Y -                    none none H2       /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_H2.nc
+
+###############################################################################
+###
+### HEMCO Scale Factors (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# --- annual scale factors ---
+#==============================================================================
+LIQFUEL_THISYR       '1'        N    N -  		    none     none    COscalar	       /discover/nobackup/cakelle2/data/AnnualScalar.gen.1x1.2010.nc
+LIQFUEL_1985         '1'        N    N -  		    none     none    COscalar	       /discover/nobackup/cakelle2/data/AnnualScalar.gen.1x1.1985.nc
+
+# --- ODIAC annual scale factor
+ODIAC_ANNUALSCALE_2010  '1'          Y   N 2016-%m2-01T00:00:00   none     none    land            /discover/nobackup/cakelle2/data/ODIAC/scale_factors/odiac2017_1x1d_scale_2010_to_2016.nc
+ODIAC_ANNUALSCALE_2013  '1'          Y   N 2013-%m2-01T00:00:00   none     none    land            /discover/nobackup/cakelle2/data/ODIAC/scale_factors/odiac2017_1x1d_scale_2013_to_2016.nc
+
+# OMI NO2 annual scale factor
+OMINO2_SCALE_2010to2017 '1'          N   N -                      none     none    TroposphericNO2 /discover/nobackup/cakelle2/data/OMINO2/OMI_trno2_2010to2017_01x01.nc
+
+# --- Population density scale factor
+GPW_SCALE_2013to2017    '1'          N   N -                      none     none    PopulationDens  /discover/nobackup/cakelle2/data/GPW/gpw-v4-population-density-rev10_2013to2017.01x01.nc
+
+#==============================================================================
+# --- monthly scale factors ---
+#==============================================================================
+
+# --- HTAP monthly scale factors
+HTAP_MONTHLY_CO_TRANSPORT    '1' Y N 2010-%m2-01T00:00:00 none none emi_co     /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_CO_TRANSPORT_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_CO_INDUSTRY     '1' Y N 2010-%m2-01T00:00:00 none none emi_co     /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_CO_INDUSTRY_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_CO_ENERGY       '1' Y N 2010-%m2-01T00:00:00 none none emi_co     /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_CO_ENERGY_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_CO_RESIDENTIAL  '1' Y N 2010-%m2-01T00:00:00 none none emi_co     /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_CO_RESIDENTIAL_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_NO_TRANSPORT    '1' Y N 2010-%m2-01T00:00:00 none none emi_no     /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_NO_TRANSPORT_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_NO_INDUSTRY     '1' Y N 2010-%m2-01T00:00:00 none none emi_no     /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_NO_INDUSTRY_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_NO_ENERGY       '1' Y N 2010-%m2-01T00:00:00 none none emi_no     /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_NO_ENERGY_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_NO_RESIDENTIAL  '1' Y N 2010-%m2-01T00:00:00 none none emi_no     /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_NO_RESIDENTIAL_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_SO2_TRANSPORT   '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_TRANSPORT_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_SO2_INDUSTRY    '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_INDUSTRY_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_SO2_ENERGY      '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_ENERGY_2010.generic.01x01.monthly_scal.nc
+HTAP_MONTHLY_SO2_RESIDENTIAL '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_RESIDENTIAL_2010.generic.01x01.monthly_scal.nc
+
+#==============================================================================
+# --- Diurnal scale factors ---
+#==============================================================================
+# Not used in GEOS
+
+#==============================================================================
+# --- Seasonal scale factors ---
+#==============================================================================
+
+# --- From Bromocarbons ---
+BROMOCARB_SEASON     '1'        Y    N 2000-%m2-01T00:01:00   none     none    CHXBRY_scale      /discover/nobackup/cakelle2/data/BromoCarb_Season.esmf.nc
+
+#==============================================================================
+# --- NEI 2005 scale factors ---
+#==============================================================================
+# Not used in GEOS
+
+###############################################################################
+###
+### Masks (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# Country/region masks
+#==============================================================================
+DEAD_SFC_TYP  NA  N V - none none  SFC_TYP    /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc
+AF_MASK       NA  N V - none none  LANDMASK   /discover/nobackup/cakelle2/data/DICE/mask/AF_LANDMASK.025x025.nc
+
+%%
+
+DerivedExports%%
+# ---------|---------|--------------------------------------------|
+#  Export  | Primary |_________________ Mask _____________________|
+#  Name    |  Name   |    Name    |           Expression          |
+# ---------|---------|------------|-------------------------------|
+# ---------|---------|------------|-------------------------------|
+%%

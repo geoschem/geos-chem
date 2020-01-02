@@ -484,10 +484,10 @@ CONTAINS
     CHARACTER(LEN=60)             :: rstFile, landTypeStr, importName
     INTEGER                       :: restartAttr
     CHARACTER(LEN=ESMF_MAXSTR)    :: HistoryConfigFile ! HISTORY config file
+    INTEGER                       :: T
 
 #if !defined( MODEL_GEOS )
     TYPE(MAPL_MetaComp),  POINTER :: STATE => NULL()
-    INTEGER                       :: T
 #endif
 
 #if defined( MODEL_GEOS )
@@ -1666,6 +1666,8 @@ CONTAINS
                                                             __RC__ )
     ENDIF ! ArchivedConv 
 
+#endif
+
     ! OLSON
     DO T = 1, NSURFTYPE
        landTypeInt = T-1
@@ -1678,8 +1680,6 @@ CONTAINS
           DIMS               = MAPL_DimsHorzOnly,                   &
                                                             __RC__ )
     ENDDO
-
-#endif
 
     ! Set HEMCO services
     ! --------------------
