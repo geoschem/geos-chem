@@ -163,7 +163,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_3D_Dp( am_I_Root, HcoState, Arr3D, HcoID, &
+  SUBROUTINE HCO_EmisAdd_3D_Dp( HcoState,  Arr3D,    HcoID, &
                                 RC,        ExtNr,    Cat,   Hier,  &
                                 MinDiagnLev )
 !
@@ -177,7 +177,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )           :: am_I_Root
     INTEGER,         INTENT(IN   )           :: HcoID
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
@@ -224,7 +223,7 @@ CONTAINS
     ENDIF
 
     ! Eventually add universal scale factor
-    CALL HCO_ScaleArr( am_I_Root, HcoState, HcoID, Arr3D, RC )
+    CALL HCO_ScaleArr( HcoState, HcoID, Arr3D, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
@@ -232,8 +231,8 @@ CONTAINS
        HcoState%Spc(HcoID)%Emis%Val(:,:,:) + Arr3D(:,:,:)
 
     ! Check for diagnostics
-    CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr, Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr3D=Arr3D,          &
+    CALL DiagnCheck( HcoState,   ExtNr=ExtNr, Cat=Cat, &
+                     Hier=Hier,  HcoID=HcoID, Arr3D=Arr3D, &
                      MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -258,7 +257,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_3D_Sp ( am_I_Root, HcoState, Arr3D, HcoID, &
+  SUBROUTINE HCO_EmisAdd_3D_Sp ( HcoState,  Arr3D,    HcoID, &
                                  RC,        ExtNr,    Cat,   Hier,  &
                                  MinDiagnLev )
 !
@@ -272,7 +271,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )           :: am_I_Root
     INTEGER,         INTENT(IN   )           :: HcoID
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
@@ -319,7 +317,7 @@ CONTAINS
     ENDIF
 
     ! Eventually add universal scale factor
-    CALL HCO_ScaleArr( am_I_Root, HcoState, HcoID, Arr3D, RC )
+    CALL HCO_ScaleArr( HcoState, HcoID, Arr3D, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
@@ -327,8 +325,8 @@ CONTAINS
        HcoState%Spc(HcoID)%Emis%Val(:,:,:) + Arr3D(:,:,:)
 
     ! Check for diagnostics
-    CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr,   Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr3Dsp=Arr3D,          &
+    CALL DiagnCheck( HcoState,   ExtNr=ExtNr, Cat=Cat, &
+                     Hier=Hier,  HcoID=HcoID, Arr3Dsp=Arr3D, &
                      MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -353,7 +351,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_2D_Dp( am_I_Root, HcoState, Arr2D, HcoID, &
+  SUBROUTINE HCO_EmisAdd_2D_Dp( HcoState,  Arr2D,    HcoID, &
                                 RC,        ExtNr,    Cat,   Hier,  &
                                 MinDiagnLev )
 !
@@ -365,7 +363,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )           :: am_I_Root
     INTEGER,         INTENT(IN   )           :: HcoID
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
@@ -412,7 +409,7 @@ CONTAINS
     ENDIF
 
     ! Eventually add universal scale factor
-    CALL HCO_ScaleArr( am_I_Root, HcoState, HcoID, Arr2D, RC )
+    CALL HCO_ScaleArr( HcoState, HcoID, Arr2D, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
@@ -420,8 +417,8 @@ CONTAINS
        HcoState%Spc(HcoID)%Emis%Val(:,:,1) + Arr2D(:,:)
 
     ! Check for diagnostics
-    CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr, Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr2D=Arr2D,          &
+    CALL DiagnCheck( HcoState,   ExtNr=ExtNr, Cat=Cat, &
+                     Hier=Hier,  HcoID=HcoID, Arr2D=Arr2D, &
                      MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -446,7 +443,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EmisAdd_2D_Sp( am_I_Root, HcoState, Arr2D, HcoID, &
+  SUBROUTINE HCO_EmisAdd_2D_Sp( HcoState,  Arr2D,    HcoID, &
                                 RC,        ExtNr,    Cat,   Hier,  &
                                 MinDiagnLev )
 !
@@ -459,7 +456,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )           :: am_I_Root
     INTEGER,         INTENT(IN   )           :: HcoID
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
@@ -506,7 +502,7 @@ CONTAINS
     ENDIF
 
     ! Eventually add universal scale factor
-    CALL HCO_ScaleArr( am_I_Root, HcoState, HcoID, Arr2D, RC )
+    CALL HCO_ScaleArr( HcoState, HcoID, Arr2D, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
@@ -514,8 +510,8 @@ CONTAINS
        HcoState%Spc(HcoID)%Emis%Val(:,:,1) + Arr2D(:,:)
 
     ! Check for diagnostics
-    CALL DiagnCheck( am_I_Root, HcoState,    ExtNr=ExtNr,   Cat=Cat, &
-                     Hier=Hier, HcoID=HcoID, Arr2Dsp=Arr2D,          &
+    CALL DiagnCheck( HcoState,   ExtNr=ExtNr, Cat=Cat, &
+                     Hier=Hier,  HcoID=HcoID, Arr2Dsp=Arr2D, &
                      MinDiagnLev=MinDiagnLev, RC=RC     )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -610,7 +606,7 @@ CONTAINS
     ENDIF
 
     ! Eventually add universal scale factor
-    CALL HCO_ScaleArr( .FALSE., HcoState, HcoID, iVal, RC )
+    CALL HCO_ScaleArr( HcoState, HcoID, iVal, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
@@ -708,7 +704,7 @@ CONTAINS
     ENDIF
 
     ! Eventually add universal scale factor
-    CALL HCO_ScaleArr( .FALSE., HcoState, HcoID, iVal, RC )
+    CALL HCO_ScaleArr( HcoState, HcoID, iVal, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add array
@@ -964,7 +960,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCheck( am_I_Root, HcoState, ExtNr,   Cat,     &
+  SUBROUTINE DiagnCheck( HcoState,  ExtNr,    Cat,     &
                          Hier,      HcoID,    Arr3D,   Arr3Dsp, &
                          Arr2D,     Arr2Dsp,  MinDiagnLev,  RC   )
 !
@@ -974,7 +970,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )           :: am_I_Root
     INTEGER,         INTENT(IN   )           :: HcoID
     INTEGER,         INTENT(IN   ), OPTIONAL :: ExtNr
     INTEGER,         INTENT(IN   ), OPTIONAL :: Cat
@@ -1052,32 +1047,32 @@ CONTAINS
 
        ! 3D HP array
        IF ( PRESENT(Arr3D) ) THEN
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
-                             Hier=HR, HcoID=HcoID, AutoFill=1,      &
+          CALL Diagn_Update( HcoState, ExtNr=XT,    Cat=CT,     &
+                             Hier=HR,  HcoID=HcoID, AutoFill=1, &
                              Array3D=Arr3D, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! 3D SP array
        IF ( PRESENT(Arr3Dsp) ) THEN
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
-                             Hier=HR, HcoID=HcoID, AutoFill=1,      &
+          CALL Diagn_Update( HcoState, ExtNr=XT,    Cat=CT,     &
+                             Hier=HR,  HcoID=HcoID, AutoFill=1, &
                              Array3D=Arr3Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! 2D HP array
        IF ( PRESENT(Arr2D) ) THEN
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
-                             Hier=HR, HcoID=HcoID, AutoFill=1,      &
+          CALL Diagn_Update( HcoState, ExtNr=XT,    Cat=CT,     &
+                             Hier=HR,  HcoID=HcoID, AutoFill=1, &
                              Array2D=Arr2D, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! 2D SP array
        IF ( PRESENT(Arr2Dsp) ) THEN
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=XT, Cat=CT, &
-                             Hier=HR, HcoID=HcoID, AutoFill=1,      &
+          CALL Diagn_Update( HcoState, ExtNr=XT,    Cat=CT,     &
+                             Hier=HR,  HcoID=HcoID, AutoFill=1, &
                              Array2D=Arr2Dsp, MinDiagnLev=MinDiagnLev, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF

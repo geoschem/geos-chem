@@ -322,7 +322,7 @@
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE Init_CMN_FJX( am_I_Root, Input_Opt, State_Grid, RC )
+      SUBROUTINE Init_CMN_FJX( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -332,7 +332,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
@@ -341,14 +340,7 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  21 Feb 2014 - M. Sulprizio- Renamed from Set_CMN_FJX_MOD to Init_CMN_FJX.
-!                              We now set several variables here that depend on
-!                              LLPAR, since LLPAR is no longer a parameter and
-!                              can't be used to define a parameter.
-!  29 Dec 2017 - C. Keller   - Initialize RNAMES to empty strings.
-!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
-!  23 Mar 2018 - E. Lundgren - Move NWVSELECT, WVSELECT, and STRWVSELECT to
-!                              Input_Opt since read in from input.geos
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,23 +525,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Cleanup_CMN_FJX( am_I_Root, RC )
+      SUBROUTINE Cleanup_CMN_FJX( RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
 !
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  21 Feb 2014 - M. Sulprizio- Initial version
-!  10 Aug 2018 - H.P. Lin    - Add missing allocations for RRTMG
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

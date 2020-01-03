@@ -189,7 +189,7 @@ MODULE Species_Mod
 !
 ! !REVISION HISTORY:
 !  28 Feb 2014 - C. Keller   - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,11 +210,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SpcData_Init( am_I_Root, nSpecies, SpecDB, RC )
+  SUBROUTINE SpcData_Init( Input_Opt, nSpecies, SpecDB, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,              INTENT(IN)    :: am_I_Root    ! root CPU?
+    TYPE(OptInput),       INTENT(IN)    :: Input_Opt    ! Input Options object
     INTEGER,              INTENT(IN)    :: nSpecies     ! # of species
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -224,7 +228,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -277,7 +281,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,7 +330,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Create( am_I_Root,      ThisSpc,       ModelID,             &
+  SUBROUTINE Spc_Create( Input_Opt,      ThisSpc,       ModelID,             &
                          DryDepID,       Name,          FullName,            &
                          Formula,                                            &
                          MW_g,           EmMW_g,        MolecRatio,          &
@@ -347,11 +351,12 @@ CONTAINS
 ! !USES:
 !
     USE CharPak_Mod,        ONLY : To_UpperCase
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW,      AVO
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt        ! Input Options object
     INTEGER,          OPTIONAL    :: ModelID          ! Model ID number
     INTEGER,          OPTIONAL    :: DryDepID         ! Drydep ID number
     CHARACTER(LEN=*), OPTIONAL    :: Name             ! Short name of species
@@ -434,7 +439,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
-!   See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1059,11 +1064,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Print( am_I_Root, ThisSpc, RC )
+  SUBROUTINE Spc_Print( Input_Opt, ThisSpc, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(Species),    POINTER       :: ThisSpc      ! Object w/ species info
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1076,7 +1085,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Jul 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1084,7 +1093,7 @@ CONTAINS
     !=====================================================================
     ! Spc_Create begins here!
     !=====================================================================
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
 
        !-------------------------
        ! Print general info
@@ -1274,7 +1283,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Sep 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -235,8 +235,7 @@ MODULE State_Chm_Mod
 !
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Initial version, based on "gc_type2_mod.F90"
-!  See the subsequent Git history with the gitk browser!
-!EOP
+!  See the Gitk browser for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -264,8 +263,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Chm( am_I_Root,  Input_Opt, State_Chm,               &
-                             State_Grid, RC                                 )
+  SUBROUTINE Init_State_Chm( Input_Opt, State_Chm, State_Grid, RC )
 !
 ! !USES:
 !
@@ -279,7 +277,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -297,7 +294,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Renamed from gc_type2_mod.F90
-!  See the subsequent Git history with the Gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -465,8 +462,7 @@ CONTAINS
     IF ( ASSOCIATED( SpcDataLocal ) ) THEN
         State_Chm%SpcData => SpcDataLocal
     ELSE
-        CALL Init_Species_Database( am_I_Root = am_I_Root,                   &
-                                    Input_Opt = Input_Opt,                   &
+        CALL Init_Species_Database( Input_Opt = Input_Opt,                   &
                                     SpcData   = State_Chm%SpcData,           &
                                     RC        = RC                           )
 
@@ -518,7 +514,7 @@ CONTAINS
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,
     ! but for certain other simulations (tagO3, tagCO), advected species
     ! can have prod and loss diagnostic entries.
-    CALL GetNumProdLossSpecies( am_I_Root, Input_Opt, State_Chm, RC )
+    CALL GetNumProdLossSpecies( Input_Opt, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "GetNumProdLossSpecies"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -719,7 +715,7 @@ CONTAINS
     !=======================================================================
     ! Set up the species mapping vectors
     !=======================================================================
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
        WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
        WRITE( 6,'(  a)' ) '  #  Species Name'
@@ -741,7 +737,7 @@ CONTAINS
           State_Chm%Map_Advect(C) = ThisSpc%ModelId
 
           ! Print to screen
-          IF ( am_I_Root ) THEN
+          IF ( Input_Opt%amIRoot ) THEN
              WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name
           ENDIF
 
@@ -849,7 +845,7 @@ CONTAINS
     ! Set up the mapping for PRODUCTION AND LOSS DIAGNOSTIC SPECIES
     !-----------------------------------------------------------------------
     IF ( State_Chm%nProd > 0 .or. State_Chm%nLoss > 0 ) THEN
-       CALL MapProdLossSpecies( am_I_Root, Input_Opt, State_Chm, RC )
+       CALL MapProdLossSpecies( Input_Opt, State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "MapProdLossSpecies"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -865,7 +861,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Chm%Species', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%Species = 0.0_fp
-    CALL Register_ChmField( am_I_Root, chmID, State_Chm%Species, State_Chm, RC )
+    CALL Register_ChmField( Input_Opt, chmID, State_Chm%Species, State_Chm, RC )
     CALL GC_CheckVar( 'State_Chm%Species', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -877,7 +873,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Chm%BoundaryCond', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%BoundaryCond = 0.0_fp
-    CALL Register_ChmField( am_I_Root, chmID, State_Chm%BoundaryCond, &
+    CALL Register_ChmField( Input_Opt, chmID, State_Chm%BoundaryCond, &
                             State_Chm, RC )
     CALL GC_CheckVar( 'State_Chm%BoundaryCond', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -954,7 +950,7 @@ CONTAINS
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroArea,     &
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%AeroArea,     &
                                   State_Chm, RC,    Ncat=N )
           CALL GC_CheckVar( 'State_Chm%AeroArea', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1008,7 +1004,7 @@ CONTAINS
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroRadi,      &
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%AeroRadi,      &
                                   State_Chm, RC,    Ncat=N                  )
           CALL GC_CheckVar( 'State_Chm%AeroRadi', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1062,7 +1058,7 @@ CONTAINS
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroArea,   &
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%WetAeroArea,   &
                                   State_Chm, RC,    Ncat=N                  )
           CALL GC_CheckVar( 'State_Chm%WetAeroArea', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1116,7 +1112,7 @@ CONTAINS
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroRadi,   &
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%WetAeroRadi,   &
                                   State_Chm, RC,    Ncat=N )
           CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1170,7 +1166,7 @@ CONTAINS
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroH2O,   &
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%AeroH2O,   &
                                   State_Chm, RC,    Ncat=N )
           CALL GC_CheckVar( 'State_Chm%AeroH2O', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1204,7 +1200,7 @@ CONTAINS
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%GammaN2O5,     &
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%GammaN2O5,     &
                                   State_Chm, RC,    Ncat=N )
           CALL GC_CheckVar( 'State_Chm%GammaN2O5', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1218,7 +1214,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%OMOC_POA', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%OMOC_POA = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OMOC_POA,            &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OMOC_POA,         &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%OMOC_POA', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1228,7 +1224,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%OMOC_OPOA', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%OMOC_OPOA = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OMOC_OPOA,            &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OMOC_OPOA,        &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%OMOC_OPOA', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1241,7 +1237,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%phSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%phSav = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%phSav,            &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%phSav,            &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%phSav', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1254,7 +1250,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%HplusSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%HplusSav = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%HplusSav,         &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%HplusSav,         &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%HplusSav', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1267,7 +1263,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%WaterSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%WaterSav = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%WaterSav,         &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%WaterSav,         &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%WaterSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1280,7 +1276,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SulRatSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SulRatSav = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SulRatSav,        &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SulRatSav,        &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%SulRatSav', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1293,7 +1289,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%NaRatSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%NaRatSav = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%NaRatSav,         &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%NaRatSav,         &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%NaRatSav', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1306,7 +1302,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%AcidPurSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%AcidPurSav = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%AcidPurSav,       &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%AcidPurSav,       &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%AcidPurSav', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1319,7 +1315,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%BiSulSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%BisulSav = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%BisulSav,         &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%BisulSav,         &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%BiSulSav', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1332,7 +1328,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%pHCloud', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%pHCloud = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%pHCloud,          &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%pHCloud,          &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%pHCloud', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1346,7 +1342,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%isCloud', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%isCloud = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%isCloud,          &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%isCloud,          &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%isCloud', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1361,14 +1357,14 @@ CONTAINS
 
        ! Register accumulation mode as category 1
        chmId = 'SSAlkAccum'
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SSAlk,            &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SSAlk,            &
                                State_Chm, RC,    nCat=1                     )
        CALL GC_CheckVar( 'State-Chm%SSAlk', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Register coarse mode as category 1
        chmId = 'SSAlkCoarse'
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SSAlk,            &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SSAlk,            &
                                State_Chm, RC,    nCat=2                     )
        CALL GC_CheckVar( 'State_Chm%SSAlk', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1381,7 +1377,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%HSO3_AQ = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%HSO3_AQ,          &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%HSO3_AQ,          &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1394,7 +1390,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SO3_AQ', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SO3_AQ = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SO3_AQ,           &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SO3_AQ,           &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%SO3_AQ', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1407,7 +1403,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%fupdateHOBr = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%fupdateHOBr,     &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%fupdateHOBr,     &
                                State_Chm, RC                               )
        CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1420,7 +1416,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%DryDepNitrogen', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepNitrogen = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepNitrogen,   &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%DryDepNitrogen,   &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%DryDepNitrogen', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1433,7 +1429,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%WetDepNitrogen = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetDepNitrogen,   &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%WetDepNitrogen,   &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1451,7 +1447,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%H2O2AfterChem = 0.0_fp
-    CALL Register_ChmField( am_I_Root, chmID, State_Chm%H2O2AfterChem,    &
+    CALL Register_ChmField( Input_Opt, chmID, State_Chm%H2O2AfterChem,    &
                             State_Chm, RC                                )
     CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -1464,7 +1460,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%SO2AfterChem = 0.0_fp
-    CALL Register_ChmField( am_I_Root, chmID, State_Chm%SO2AfterChem,     &
+    CALL Register_ChmField( Input_Opt, chmID, State_Chm%SO2AfterChem,     &
                             State_Chm, RC                                )
     CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -1482,7 +1478,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%KPPHvalue', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%KPPHvalue = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%KPPHvalue,        &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%KPPHvalue,        &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%KPPHvalue', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1502,7 +1498,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%STATE_PSC', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%STATE_PSC = 0.0_f4
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%STATE_PSC,        &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%STATE_PSC,        &
                             State_Chm, RC )
        CALL GC_CheckVar( 'State_Chm%STATE_PSC', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1550,7 +1546,7 @@ CONTAINS
                 RETURN
           END SELECT
 
-          CALL Register_ChmField( am_I_Root, chmID, State_Chm%KHETI_SLA, &
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%KHETI_SLA, &
                                   State_Chm, RC,    Ncat=N )
           CALL GC_CheckVar( 'State_Chm%KHETISLA', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1638,7 +1634,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%OceanHg0', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%OceanHg0 = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OceanHg0,      &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OceanHg0,      &
                                State_Chm, RC                             )
        CALL GC_CheckVar( 'State_Chm%OceanHg0', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1651,7 +1647,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%OceanHg2', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%OceanHg2 = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OceanHg2,      &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OceanHg2,      &
                                State_Chm, RC                             )
        CALL GC_CheckVar( 'State_Chm%OceanHg2', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1664,7 +1660,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%OceanHgP', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%OceanHgP = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OceanHgP,      &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%OceanHgP,      &
                                State_Chm, RC                             )
        CALL GC_CheckVar( 'State_Chm%OceanHgP', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1677,7 +1673,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SnowHgOcean', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SnowHgOcean = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgOcean,   &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SnowHgOcean,   &
                                State_Chm, RC                             )
        CALL GC_CheckVar( 'State_Chm%SnowHgOcean', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1690,7 +1686,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SnowHgLand', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SnowHgLand = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgLand,    &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SnowHgLand,    &
                                State_Chm, RC                             )
        CALL GC_CheckVar( 'State_Chm%SnowHgLand', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1704,7 +1700,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SnowHgOceanStored', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SnowHgOceanStored = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgOceanStored, &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SnowHgOceanStored, &
                                State_Chm, RC                             )
        CALL GC_CheckVar( 'State_Chm%SnowHgOceanStored', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1718,7 +1714,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SnowHgLandStored = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgLandStored, &
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%SnowHgLandStored, &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1738,7 +1734,7 @@ CONTAINS
         CALL GC_CheckVar( 'State_Chm%DryDepSav', 0, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%DryDepSav = 0.0_fp
-        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepSav,       &
+        CALL Register_ChmField( Input_Opt, chmID, State_Chm%DryDepSav,       &
                                 State_Chm, RC                               )
         CALL GC_CheckVar( 'State_Chm%DryDepSav', 1, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
@@ -1772,7 +1768,7 @@ CONTAINS
         CALL GC_CheckVar( 'State_Chm%PSO4s', 0, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%PSO4s = 0.0_fp
-        CALL Register_ChmField( am_I_Root, chmID, State_Chm%PSO4s,           &
+        CALL Register_ChmField( Input_Opt, chmID, State_Chm%PSO4s,           &
                                 State_Chm, RC                               )
         CALL GC_CheckVar( 'State_Chm%PSO4s', 1, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
@@ -1783,7 +1779,7 @@ CONTAINS
         CALL GC_CheckVar( 'State_Chm%QQ3D', 0, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%QQ3D = 0.0_fp
-        CALL Register_ChmField( am_I_Root, chmID, State_Chm%QQ3D,            &
+        CALL Register_ChmField( Input_Opt, chmID, State_Chm%QQ3D,            &
                                 State_Chm, RC                               )
         CALL GC_CheckVar( 'State_Chm%QQ3D', 1, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
@@ -1792,12 +1788,12 @@ CONTAINS
     !=======================================================================
     ! Print out the list of registered fields
     !=======================================================================
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the State_Chm object:' )
+10     FORMAT( /, 'Registered variables contained within the State_Chm object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
-    CALL Registry_Print( am_I_Root   = am_I_Root,             &
+    CALL Registry_Print( Input_Opt   = Input_Opt,             &
                          Registry    = State_Chm%Registry,    &
                          ShortFormat = .TRUE.,                &
                          RC          = RC                    )
@@ -1817,7 +1813,7 @@ CONTAINS
     ThisSpc => NULL()
 
     ! Echo output
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        print*, REPEAT( '#', 79 )
     ENDIF
 
@@ -1841,15 +1837,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_State_Chm( am_I_Root, State_Chm, RC )
+  SUBROUTINE Cleanup_State_Chm( State_Chm, RC )
 !
 ! !USES:
 !
     USE Species_Database_Mod, ONLY : Cleanup_Species_Database
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1860,12 +1852,10 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC           ! Return code
 !
 ! !REMARKS:
-!  For now the am_I_Root and RC arguments are not used.  We include these
-!  for consistency and also to facilitate future expansion. (bmy, 10/16/12)
 !
 ! !REVISION HISTORY:
 !  15 Oct 2012 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2332,7 +2322,7 @@ CONTAINS
     ! The variable state_chm_mod.F90 nChmState keeps track of the # of chemistry
     ! states initialized in the system. (hplin, 8/3/18)
     IF ( nChmState == 1 ) THEN
-       CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
+       CALL Cleanup_Species_Database( State_Chm%SpcData, RC )
        CALL GC_CheckVar( 'State_Chm%SpcData', 3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2343,7 +2333,7 @@ CONTAINS
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
-    CALL Registry_Destroy( am_I_Root, State_Chm%Registry, RC )
+    CALL Registry_Destroy( State_Chm%Registry, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object State_Chm%Registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2373,7 +2363,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Metadata_State_Chm( am_I_Root,  metadataID, Found,      &
+  SUBROUTINE Get_Metadata_State_Chm( Input_Opt,  metadataID, Found,      &
                                      RC,         Desc,       Units,      &
                                      PerSpecies, Rank,       Type,       &
                                      VLoc )
@@ -2381,11 +2371,12 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,        ONLY : To_UpperCase
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt   ! Input Options object
     CHARACTER(LEN=*),    INTENT(IN)  :: metadataID  ! State_Chm field name
 !
 ! !OUTPUT PARAMETERS:
@@ -2403,7 +2394,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Oct 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3102,30 +3093,30 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_ChmField_R4_3D( am_I_Root,  metadataID, Ptr2Data,  &
+  SUBROUTINE Register_ChmField_R4_3D( Input_Opt,  metadataID, Ptr2Data,  &
                                       State_Chm,  RC )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL(f4),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-
     INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3151,7 +3142,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,         &
+    CALL Get_Metadata_State_Chm( Input_Opt, metadataID,  Found,  RC,         &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
 
@@ -3180,7 +3171,7 @@ CONTAINS
        onEdges = ( vLoc == VLocationEdge )
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Chm%Registry,            &
                                State        = State_Chm%State,               &
                                Variable     = metadataID,                    &
@@ -3227,16 +3218,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_ChmField_Rfp_2D( am_I_Root, metadataID, Ptr2Data,  &
+  SUBROUTINE Register_ChmField_Rfp_2D( Input_Opt, metadataID, Ptr2Data,  &
                                        State_Chm, RC )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! State_Chm field ID
     REAL(fp),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
@@ -3249,7 +3241,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3275,7 +3267,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,         &
+    CALL Get_Metadata_State_Chm( Input_Opt, metadataID,  Found,  RC,         &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
 
@@ -3304,7 +3296,7 @@ CONTAINS
        ENDIF
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Chm%Registry,            &
                                State        = State_Chm%State,               &
                                Variable     = metadataID,                    &
@@ -3349,16 +3341,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_ChmField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,  &
+  SUBROUTINE Register_ChmField_Rfp_3D( Input_Opt, metadataID, Ptr2Data,  &
                                        State_Chm, RC )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! State_Chm field ID
     REAL(fp),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
@@ -3371,7 +3364,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3397,7 +3390,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,         &
+    CALL Get_Metadata_State_Chm( Input_Opt, metadataID,  Found,  RC,         &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
 
@@ -3426,7 +3419,7 @@ CONTAINS
        ENDIF
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Chm%Registry,            &
                                State        = State_Chm%State,               &
                                Variable     = metadataID,                    &
@@ -3464,7 +3457,7 @@ CONTAINS
           ENDIF
 
           ! Add field to registry
-          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
                                   Registry     = State_Chm%Registry ,        &
                                   State        = State_Chm%State,            &
                                   Variable     = thisSpcName,                &
@@ -3515,16 +3508,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_ChmField_Rfp_4D( am_I_Root,  metadataID, Ptr2Data,     &
+  SUBROUTINE Register_ChmField_Rfp_4D( Input_Opt,  metadataID, Ptr2Data,     &
                                        State_Chm,  RC,         Ncat         )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root         ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt         ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! State_Chm field id
     REAL(fp),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
@@ -3541,7 +3535,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3566,7 +3560,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,         &
+    CALL Get_Metadata_State_Chm( Input_Opt, metadataID,  Found,  RC,         &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
 
@@ -3605,7 +3599,7 @@ CONTAINS
           thisSpcDesc = TRIM( Desc       ) // ' ' // TRIM( SpcInfo%Name )
 
           ! Add field to registry
-          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
                                   Registry     = State_Chm%Registry ,        &
                                   State        = State_Chm%State,            &
                                   Variable     = thisSpcName,                &
@@ -3634,7 +3628,7 @@ CONTAINS
     ELSE IF ( PRESENT(Ncat) ) THEN
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Chm%Registry ,           &
                                State        = State_Chm%State,               &
                                Variable     = metadataID ,                   &
@@ -3708,7 +3702,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  07 Oct 2016 - M. Long     - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3805,17 +3799,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetNumProdLossSpecies( am_I_Root, Input_Opt, State_Chm, RC )
+  SUBROUTINE GetNumProdLossSpecies( Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
     USE GcKpp_Monitor,    ONLY : Fam_Names
     USE GcKpp_Parameters, ONLY : nFam
     USE Input_Opt_Mod,    ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3830,7 +3820,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3916,17 +3906,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MapProdLossSpecies( am_I_Root, Input_Opt, State_Chm, RC )
+  SUBROUTINE MapProdLossSpecies( Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
     USE GcKpp_Monitor,    ONLY : Fam_Names
     USE GcKpp_Parameters, ONLY : nFam
     USE Input_Opt_Mod,    ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3941,7 +3927,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

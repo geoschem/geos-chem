@@ -90,7 +90,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_TOMAS_Jeagle_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_TOMAS_Jeagle_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -100,7 +100,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root   ! root CPU?
     TYPE(Ext_State),  POINTER       :: ExtState    ! Extension Options object
     TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state object
 !
@@ -275,8 +274,7 @@ CONTAINS
     DO K = 1, HcoState%MicroPhys%nBins
 
        ! Add mass to the HEMCO data structure (jkodros)
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%TC2(:,:,:,K), &
-                         Inst%HcoIDs(K), RC)
+       CALL HCO_EmisAdd( HcoState, Inst%TC2(:,:,:,K), Inst%HcoIDs(K), RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALT', RC )
           RETURN
@@ -297,8 +295,7 @@ CONTAINS
        !print*, 'JACK HCO ID: ', HcoID
 
        ! Add number to the HEMCO data structure
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%TC1(:,:,:,K), &
-                         HcoID, RC)
+       CALL HCO_EmisAdd( HcoState, Inst%TC1(:,:,:,K), HcoID, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALT', RC )
           RETURN
@@ -330,8 +327,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_TOMAS_Jeagle_Init( am_I_Root, HcoState,     &
-                                      ExtName,   ExtState, RC )
+  SUBROUTINE HCOX_TOMAS_Jeagle_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -341,7 +337,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState    ! HEMCO state object
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState    ! Extension options object

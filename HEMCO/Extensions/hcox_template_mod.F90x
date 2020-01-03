@@ -82,7 +82,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_<yourname>_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_<yourname>_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -90,7 +90,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(Ext_State), POINTER       :: ExtState    ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -156,8 +155,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_<yourname>_Init( am_I_Root, HcoState, ExtName, &
-                                   ExtState,  RC                  )
+  SUBROUTINE HCOX_<yourname>_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -168,7 +166,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName    ! Extension name
     TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
@@ -238,7 +235,7 @@ CONTAINS
     ENDDO
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use emissions extension <yourname>:'
        CALL HCO_MSG( HcoState%Config%Err,  MSG )
 

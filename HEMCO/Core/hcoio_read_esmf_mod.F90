@@ -52,7 +52,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOIO_Read_ESMF( am_I_Root, HcoState, Lct, RC )
+  SUBROUTINE HCOIO_Read_ESMF( HcoState, Lct, RC )
 !
 ! !USES:
 !
@@ -64,7 +64,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState
     TYPE(ListCont),   POINTER        :: Lct
 !

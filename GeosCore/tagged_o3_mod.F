@@ -512,7 +512,7 @@
          ENDIF
 
          ! Get pointer to O3 production
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'O3_PROD', P24H, RC )
+         CALL HCO_GetPtr( HcoState, 'O3_PROD', P24H, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to O3_PROD!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -520,7 +520,7 @@
          ENDIF
 
          ! Get pointer to O3 loss
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'O3_LOSS', L24H, RC )
+         CALL HCO_GetPtr( HcoState, 'O3_LOSS', L24H, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to O3_LOSS!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )

@@ -133,7 +133,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Volcano_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_Volcano_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -141,7 +141,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(Ext_State), POINTER       :: ExtState    ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -207,7 +206,7 @@ CONTAINS
     ! Read/update the volcano data
     ! (will be done only if this is a new day)
     !----------------------------------------------
-    CALL ReadVolcTable( am_I_Root, HcoState, ExtState, Inst, RC )
+    CALL ReadVolcTable( HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "ReadVolcTable"!'
        CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
@@ -221,8 +220,8 @@ CONTAINS
     IF ( .not. HcoState%Options%IsDryRun ) THEN
 
        ! Emit volcanos into SO2degas and SO2erupt arrays [kg S/m2/s]
-       CALL EmitVolc( am_I_Root, HcoState, ExtState,                         &
-                      Inst,      SO2degas, SO2erupt, RC                     )
+       CALL EmitVolc( HcoState, ExtState, Inst, &
+                      SO2degas, SO2erupt, RC    )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "EmitVolc"!'
           CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
@@ -240,8 +239,8 @@ CONTAINS
           iFlx = SO2degas * Inst%SpcScl(N)
 
           ! Apply user-defined scaling (if any) for this species
-          CALL HCOX_Scale( am_I_Root, HcoState,                              &
-                           iFlx,      TRIM(Inst%SpcScalFldNme(N)), RC       )
+          CALL HCOX_Scale( HcoState, iFlx, &
+                           TRIM(Inst%SpcScalFldNme(N)), RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "HCOX_Scale (degassing)"!'
              CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
@@ -249,9 +248,8 @@ CONTAINS
           ENDIF
 
           ! Add degassing emissions into the HEMCO state
-          CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,              &
-                            Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,  &
-                            Cat=Inst%CatDegas                               )
+          CALL HCO_EmisAdd( HcoState, iFlx, Inst%SpcIDs(N), &
+                            RC, ExtNr=Inst%ExtNr, Cat=Inst%CatDegas )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "HCO_EmisAdd" (degassing)!'
              CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
@@ -266,8 +264,8 @@ CONTAINS
           iFlx = SO2erupt * Inst%SpcScl(N)
 
           ! Apply user-defined scaling (if any) for this species
-          CALL HCOX_Scale( am_I_Root, HcoState,                              &
-                           iFlx, TRIM(Inst%SpcScalFldNme(N)), RC            )
+          CALL HCOX_Scale( HcoState, iFlx, &
+                           TRIM(Inst%SpcScalFldNme(N)), RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "HCOX_Scale" (eruptive"!'
              CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
@@ -275,9 +273,8 @@ CONTAINS
           ENDIF
 
           ! Add eruptive emissions to the HEMCO state
-          CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,              &
-                            Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,  &
-                            Cat=Inst%CatErupt                               )
+          CALL HCO_EmisAdd( HcoState, iFlx, Inst%SpcIDs(N), &
+                            RC, ExtNr=Inst%ExtNr, Cat=Inst%CatErupt )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "HCO_EmisAdd" (eruptive)!'
              CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
@@ -312,8 +309,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Volcano_Init( am_I_Root, HcoState, ExtName,                &
-                                ExtState,  RC                               )
+  SUBROUTINE HCOX_Volcano_Init( HcoState, ExtName,ExtState, RC )
 !
 ! !USES:
 !
@@ -324,7 +320,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName    ! Extension name
     TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
@@ -438,7 +433,7 @@ CONTAINS
     IF ( FOUND ) Inst%CatErupt = Dum
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use emissions extension `Volcano`:'
        CALL HCO_MSG( HcoState%Config%Err,  MSG )
 
@@ -510,7 +505,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadVolcTable( am_I_Root, HcoState, ExtState, Inst, RC )
+  SUBROUTINE ReadVolcTable( HcoState, ExtState, Inst, RC )
 !
 ! !USES:
 !
@@ -523,7 +518,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root
     TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -562,7 +556,7 @@ CONTAINS
     IF ( HcoClock_NewDay( HcoState%Clock, EmisTime=.TRUE. ) ) THEN
 
        ! Get current year, month, day
-       CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cYYYY=YYYY, cMM=MM, cDD=DD, RC=RC )
+       CALL HcoClock_Get ( HcoState%Clock, cYYYY=YYYY, cMM=MM, cDD=DD, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
 #if defined( MODEL_GEOS )
@@ -591,7 +585,7 @@ CONTAINS
        ENDIF
 
        ! Write file status to stdout and the HEMCO log
-       IF ( am_I_Root ) THEN
+       IF ( Hcostate%amIRoot ) THEN
           WRITE( 6,   300 ) TRIM( FileMsg ), TRIM( ThisFile )
           WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
           CALL HCO_MSG( HcoState%Config%Err, MSG )
@@ -626,7 +620,7 @@ CONTAINS
        ! Get number of volcano records
        nVolc = 0
        DO
-          CALL GetNextLine( am_I_Root, LUN, ThisLine, EOF, RC )
+          CALL GetNextLine( LUN, ThisLine, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( EOF ) EXIT
 
@@ -688,7 +682,7 @@ CONTAINS
 
           N = 0
           DO
-             CALL GetNextLine( am_I_Root, LUN, ThisLine, EOF, RC )
+             CALL GetNextLine( LUN, ThisLine, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
 
@@ -748,7 +742,7 @@ CONTAINS
 
        ! Get grid box indeces for each location
        IF ( nVolc > 0 ) THEN
-          CALL HCO_GetHorzIJIndex( am_I_Root, HcoState, nVolc, VolcLon, &
+          CALL HCO_GetHorzIJIndex( HcoState, nVolc, VolcLon, &
                                    VolcLat, Inst%VolcIdx, Inst%VolcJdx, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -780,7 +774,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EmitVolc( am_I_Root, HcoState, ExtState, Inst, SO2d, SO2e, RC )
+  SUBROUTINE EmitVolc( HcoState, ExtState, Inst, SO2d, SO2e, RC )
 !
 ! !USES:
 !
@@ -788,7 +782,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root
     TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -849,7 +842,7 @@ CONTAINS
     ENDIF
 
     ! Get current hour, minute and save as hhmmss
-    CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cH=HH, cM=MN, RC=RC )
+    CALL HcoClock_Get ( HcoState%Clock, cH=HH, cM=MN, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     hhmmss = HH*10000 + MN*100
 

@@ -58,9 +58,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Init( am_I_Root,  Input_Opt, State_Chm,                &
-                             State_Grid, State_Met, RC,                       &
-                             HcoConfig                                       )
+  SUBROUTINE Emissions_Init( Input_Opt, State_Chm, State_Grid, State_Met,  &
+                             RC,        HcoConfig )
 !
 ! !USES:
 !
@@ -75,7 +74,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )          :: am_I_Root  ! root CPU?
     TYPE(ChmState),  INTENT(IN   )          :: State_Chm  ! Chemistry state
     TYPE(GrdState),  INTENT(IN   )          :: State_Grid ! Grid state
     TYPE(MetState),  INTENT(IN   )          :: State_Met  ! Met state
@@ -117,9 +115,8 @@ CONTAINS
                            Ind_('GlobSH90dayTracer'  ) > 0 )
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
-    CALL HCOI_GC_Init( am_I_Root,  Input_Opt, State_Chm,                      &
-                       State_Grid, State_Met, RC,                             &
-                       HcoConfig=HcoConfig                                   )
+    CALL HCOI_GC_Init( Input_Opt, State_Chm, State_Grid, State_Met, &
+                       RC,        HcoConfig=HcoConfig )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -143,7 +140,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Run( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
+  SUBROUTINE Emissions_Run( Input_Opt, State_Chm, State_Diag, &
                             State_Grid, State_Met, EmisTime,  Phase, RC   )
 !
 ! !USES:
@@ -173,7 +170,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,        INTENT(IN   )  :: EmisTime   ! Emissions in this time step
     INTEGER,        INTENT(IN   )  :: Phase      ! Run phase
     TYPE(GrdState), INTENT(IN   )  :: State_Grid ! Grid State object
@@ -224,7 +220,7 @@ CONTAINS
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the
     ! HEMCO data list, phase 2 will perform the emission calculations.
-    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+    CALL HCOI_GC_Run( Input_Opt, State_Chm, State_Grid, &
                       State_Met, EmisTime,  Phase,     RC          )
 
     ! Trap potential errors
@@ -243,7 +239,7 @@ CONTAINS
     ! are correctly treated.
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-       CALL EmissCarbon( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
+       CALL EmissCarbon( Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -255,8 +251,7 @@ CONTAINS
 
 #if defined ( TOMAS )
     ! Call TOMAS emission routines (JKodros 6/2/15)
-    CALL EmissCarbonTomas( am_I_Root,  Input_Opt, State_Chm, &
-                           State_Grid, State_Met, RC )
+    CALL EmissCarbonTomas( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -265,8 +260,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL EmissSulfateTomas( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, RC )
+    CALL EmissSulfateTomas( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -282,8 +276,8 @@ CONTAINS
     ! (as of GEOS-Chem 12.0.2) are now added via HEMCO, and diagnostics for
     ! these quantities are saved out via HEMCO diagnostics. (bmy, 10/18/18)
     IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL EmissCO2( am_I_Root,  Input_Opt,  State_Chm,                     &
-                      State_Diag, State_Grid, State_Met, RC                 )
+       CALL EmissCO2( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                      State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -304,7 +298,7 @@ CONTAINS
     ! diagnostics output. (bmy, mps, 10/19/18)
     IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
        ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-       CALL EmissCh4( am_I_Root, Input_Opt, State_Met, RC )
+       CALL EmissCh4( Input_Opt, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -317,8 +311,8 @@ CONTAINS
 #ifdef BPCH_DIAG
     ! For mercury, use old emissions code for now
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EmissMercury( am_I_Root,  Input_Opt,  State_Chm,                 &
-                          State_Diag, State_Grid, State_Met, RC             )
+       CALL EmissMercury( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                          State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -333,7 +327,7 @@ CONTAINS
     ! object into the State_Diag object.  This will allow us to save these
     ! fields to netCDF output via HISTORY. (bmy, 10/15/18)
     IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-       CALL GetPopsDiagsFromHemco( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL GetPopsDiagsFromHemco( Input_Opt, State_Diag, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -365,8 +359,7 @@ CONTAINS
     IF ( doMaintainMixRatio ) THEN
 
        ! Compute the surface flux needed to restore the total burden
-       CALL MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
-                              State_Grid, State_Met, RC )
+       CALL MMR_Compute_Flux( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
     ENDIF
 
@@ -385,7 +378,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Final( am_I_Root, Error, RC )
+  SUBROUTINE Emissions_Final( Error, RC )
 !
 ! !USES:
 !
@@ -394,7 +387,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root  ! root CPU?
     LOGICAL, INTENT(IN)  :: Error      ! Cleanup arrays after crash?
 !
 ! !OUTPUT PARAMETERS:
@@ -420,7 +412,7 @@ CONTAINS
     ThisLoc = ' -> at HCOI_GC_Final (in module GeosCore/hcoi_gc_final_mod.F90)'
 
     ! Finalize HEMCO
-    CALL HCOI_GC_Final( am_I_Root, Error, RC )
+    CALL HCOI_GC_Final( Error, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -443,7 +435,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
+  SUBROUTINE MMR_Compute_Flux( Input_Opt, State_Chm, &
                                State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -463,7 +455,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -527,7 +518,7 @@ CONTAINS
     !=======================================================================
     ! Convert species units to v/v dry
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,               &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,       &
                             State_Grid, State_Met, 'v/v dry', RC,           &
                             OrigUnit=OrigUnit                               )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -603,7 +594,7 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
                             State_Met, OrigUnit,  RC                     )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'

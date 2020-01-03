@@ -143,7 +143,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SeaFlux_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_SeaFlux_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -154,7 +154,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
     TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
@@ -236,18 +235,18 @@ CONTAINS
 
        ! Get seawater concentration of given compound (from HEMCO core).
        ContName = TRIM(Inst%OcSpecs(OcID)%OcDataName)
-       CALL HCO_EvalFld ( am_I_Root, HcoState, ContName, SeaConc, RC )
+       CALL HCO_EvalFld ( HcoState, ContName, SeaConc, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Calculate oceanic source (kg/m2/s) as well as the deposition
        ! velocity (1/s).
-       CALL Calc_SeaFlux ( am_I_Root, HcoState, ExtState, Inst, &
-                           SOURCE,    SINK,     SeaConc,        &
-                           OcID,      HcoID,    RC               )
+       CALL Calc_SeaFlux ( HcoState, ExtState, Inst,    &
+                           SOURCE,   SINK,     SeaConc, &
+                           OcID,     HcoID,    RC       )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Set flux in HEMCO object [kg/m2/s]
-       CALL HCO_EmisAdd ( am_I_Root, HcoState, SOURCE, HcoID, RC, ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd ( HcoState, SOURCE, HcoID, RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(Inst%OcSpecs(OcID)%OcSpcName)
           CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -265,11 +264,11 @@ CONTAINS
        ! Eventually add to dry deposition diagnostics
        ContName = 'DRYDEP_VEL_' // TRIM(HcoState%Spc(HcoID)%SpcName)
        Arr2D    => SINK
-       CALL Diagn_Update( am_I_Root, HcoState,      &
+       CALL Diagn_Update( HcoState,                 &
                           cName   = TRIM(ContName), &
                           Array2D = Arr2D,          &
                           COL     = -1,             &
-                          RC      = RC               )
+                          RC      = RC              )
        Arr2D => NULL()
     ENDDO !SpcID
 
@@ -300,9 +299,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Calc_SeaFlux( am_I_Root, HcoState, ExtState, &
-                           Inst,      SOURCE,   SINK,     &
-                           SeaConc,   OcID,     HcoID, RC  )
+  SUBROUTINE Calc_SeaFlux( HcoState, ExtState,           &
+                           Inst,     SOURCE,   SINK,     &
+                           SeaConc,  OcID,     HcoID, RC )
 !
 ! !USES:
 !
@@ -313,7 +312,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root           ! root CPU?
     INTEGER,         INTENT(IN   ) :: OcID                ! ocean species ID
     INTEGER,         INTENT(IN   ) :: HcoID               ! HEMCO species ID
     TYPE(HCO_State), POINTER       :: HcoState            ! Output obj
@@ -545,7 +543,7 @@ CONTAINS
           SINK(I,J) = KG / DEP_HEIGHT
 
           ! Check validity of value
-          CALL HCO_CheckDepv( am_I_Root, HcoState, SINK(I,J), RC )
+          CALL HCO_CheckDepv( HcoState, SINK(I,J), RC )
 
        ENDIF !Over ocean
     ENDDO !I
@@ -638,7 +636,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SeaFlux_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_SeaFlux_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -647,7 +645,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root    ! root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState     ! Hemco State obj.
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName      ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState       ! Ext. obj.
@@ -694,7 +691,7 @@ CONTAINS
     ENDIF
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use air-sea flux emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-' )
        MSG = '   - Use species:'
@@ -855,7 +852,7 @@ CONTAINS
        ENDDO !J
 
        ! verbose
-       IF ( Inst%OcSpecs(I)%HcoID > 0 .AND. am_I_Root ) THEN
+       IF ( Inst%OcSpecs(I)%HcoID > 0 .AND. HcoState%amIRoot ) THEN
           WRITE(MSG,*) '   - ', &
                TRIM(Inst%OcSpecs(I)%OcSpcName), Inst%OcSpecs(I)%HcoID
           CALL HCO_MSG(HcoState%Config%Err,MSG)

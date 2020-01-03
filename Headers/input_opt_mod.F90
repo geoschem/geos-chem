@@ -415,7 +415,7 @@ MODULE Input_Opt_Mod
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -456,7 +456,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Nov 2012 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -947,15 +947,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Input_Opt_Advect( am_I_Root, Input_Opt, RC )
+  SUBROUTINE Set_Input_Opt_Advect( Input_Opt, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -971,7 +967,7 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  26 Jan 2018 - M. Sulprizio- Initial version
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1018,15 +1014,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )
+  SUBROUTINE Cleanup_Input_Opt( Input_Opt, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1038,7 +1030,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Nov 2012 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

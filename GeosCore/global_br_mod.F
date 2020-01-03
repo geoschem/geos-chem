@@ -98,7 +98,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_Br( am_I_Root, Input_Opt, State_Grid,
+      SUBROUTINE GET_GLOBAL_Br( Input_Opt, State_Grid,
      &                          State_Met, THISMONTH, RC )
 !
 ! !USES:
@@ -115,7 +115,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
@@ -176,7 +175,7 @@
       IF ( FIRST ) THEN
 
          ! Initialize arrays
-         CALL INIT_GLOBAL_BR( am_I_Root, State_Grid, RC )
+         CALL INIT_GLOBAL_BR( State_Grid, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -196,7 +195,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the the GEOS-Chem Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'Br_GC', Br_GC,  RC )
+         CALL HCO_GetPtr( HcoState, 'Br_GC', Br_GC,  RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -213,7 +212,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the GEOS-Chem BrO from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'BrO_GC', BrO_GC, RC )
+         CALL HCO_GetPtr( HcoState, 'BrO_GC', BrO_GC, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -232,8 +231,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root,  HcoState,
-     &                   'Br_TOMCAT', Br_TOMCAT, RC )
+         CALL HCO_GetPtr( HcoState, 'Br_TOMCAT', Br_TOMCAT, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -250,8 +248,7 @@
          !-----------------------------------------------------------------
 
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
-         CALL HCO_GetPtr( am_I_Root,   HcoState,
-     &                   'BrO_TOMCAT', BrO_TOMCAT, RC )
+         CALL HCO_GetPtr( HcoState, 'BrO_TOMCAT', BrO_TOMCAT, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -270,7 +267,7 @@
       !-----------------------------------------------------------------
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'Br_GMI', Br_GMI, RC )
+      CALL HCO_GetPtr( HcoState, 'Br_GMI', Br_GMI, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -287,7 +284,7 @@
       !-----------------------------------------------------------------
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'BrO_GMI', BrO_GMI, RC )
+      CALL HCO_GetPtr( HcoState, 'BrO_GMI', BrO_GMI, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -336,7 +333,7 @@
 !$OMP END PARALLEL DO
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'JBrO', JBrO, RC )
+      CALL HCO_GetPtr( HcoState, 'JBrO', JBrO, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -364,7 +361,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_Br( am_I_Root, State_Grid, RC )
+      SUBROUTINE INIT_GLOBAL_Br( State_Grid, RC )
 !
 ! !USES:
 !
@@ -373,7 +370,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
@@ -474,15 +470,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_GLOBAL_Br( am_I_Root, RC )
+      SUBROUTINE CLEANUP_GLOBAL_Br( RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !

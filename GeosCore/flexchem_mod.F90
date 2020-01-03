@@ -316,8 +316,8 @@ CONTAINS
        ENDIF
 
        ! Compute aerosol concentrations
-       CALL AEROSOL_CONC( am_I_Root,  Input_Opt,  State_Chm,                 &
-                          State_Diag, State_Grid, State_Met, RC             )
+       CALL AEROSOL_CONC( Input_Opt,  State_Chm, State_Diag, &
+                          State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -378,9 +378,8 @@ CONTAINS
 
     ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
-    CALL RDAER( am_I_Root,  Input_Opt,  State_Chm,      &
-                State_Diag, State_Grid, State_Met, RC,  &
-                MONTH,      YEAR,       WAVELENGTH )
+    CALL RDAER( Input_Opt, State_Chm, State_Diag, State_Grid, State_Met, RC,  &
+                MONTH,     YEAR,       WAVELENGTH )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

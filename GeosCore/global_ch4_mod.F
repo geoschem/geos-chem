@@ -39,65 +39,7 @@
 !
 ! !REVISION HISTORY:
 !  17 Jan 2001- J. Wang, B. Duncan, R. Yantosca -- Initial version
-!  (1 ) Merged routines from jsw's CH4 code  into "global_ch4_mod.f"
-!        (bmy, 1/16/01)
-!  (2 ) XNUMOL_CH4 and TCH4 have to be public - all other variables can
-!        be made private, so as not to conflict with other common-block
-!        definitions (bmy, 1/17/01)
-!  (3 ) Minor fixes from jsw added (jsw, bmy, 2/17/01)
-!  (4 ) Removed some F90 module references from EMISSCH4 (bmy, 3/20/01)
-!  (5 ) Eliminate obsolete commented-out code (bmy, 4/20/01)
-!  (6 ) Updated comments (bmy, 9/4/01)
-!  (7 ) Fixes for binary punch file in READ_COPROD (bmy, 9/26/01)
-!  (8 ) Removed obsolete code from READ_COPROD (bmy, 10/24/01)
-!  (9 ) Minor bug fixes for compilation on ALPHA (bmy, 11/15/01)
-!  (10) Eliminate obsolete code from 11/01 (bmy, 2/27/02)
-!  (11) Now eliminate PS from the arg list to CH4_AVGTP (4/11/02)
-!  (12) Now divide module header into MODULE PRIVATE, MODULE VARIABLES, and
-!        MODULE ROUTINES sections.  Updated comments (bmy, 5/28/02)
-!  (13) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!  (14) Now reference "file_mod.f".  Also removed obsolete code. (bmy, 6/27/02)
-!  (15) Now references "pressure_mod.f" (bmy, 8/21/02)
-!  (16) Now reference AD and T from "dao_mod.f".  Now reference "error_mod.f".
-!        Remove obsolete code from various routines.  Remove reference to
-!        header file "comtrid.h" -- it's not used. (bmy, 11/6/02)
-!  (17) Minor bug fix in FORMAT statements (bmy, 3/23/03)
-!  (18) Now references "grid_mod.f" and "time_mod.f" (bmy, 3/27/03)
-!  (19) Updates to GET_GLOBAL_CH4 (bmy, 7/1/03)
-!  (20) Now references "directory_mod.f", "tracer_mod.f", and "diag_oh_mod.f"
-!        (bmy, 7/20/04)
-!  (21) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (22) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (23) Updated CH4 simulation (kjw, cph, ccarouge, 10/1/09)
-!  (24) Added modifications for MERRA (bmy, 8/13/10)
-!  08 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x
-!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  12 Feb 2014 - K. Wecht    - Add modifications for 0.25 x 0.3125 NA grid
-!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the
-!                              code out with #ifdef blocks so it can be used)
-!  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
-!  09 Sep 2014 - C. Keller   - Implemented HEMCO for emissions.
-!  16 Sep 2014 - C. Keller   - Now also get chemical fields (OH and CH4 prod)
-!                              through HEMCO. Removed READ_COPROD and
-!                              READ_CH4LOSS (now obsolete)
-!  16 Sep 2014 - C. Keller   - Removed all references to Clarisa's OH clima-
-!                              tology (not used anywhere)
-!  14 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  04 Mar 2015 - R. Yantosca - Now use REAL(f4) for HCO_GetPtr pointer args
-!  06 Jan 2016 - E. Lundgren - Use global physical parameters
-!  16 Jun 2016 - M. Sulprizio- Now define IDTCH4 locally
-!  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  16 Jun 2017 - M. Sulprizio- Remove routines CH4_AVGTP, GET_CH4_ANTHRO, and
-!                              GET_CH4_BIOG - they are not used anymore
-!  18 Oct 2017 - M. Sulprizio- Remove CH4_BUDGET code. It did not work anymore
-!                              and was in need of rewriting. This information
-!                              can be calculated using GEOS-Chem output.
+!  See the Gitk browser for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -156,8 +98,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSCH4( am_I_Root, Input_Opt,
-     &                     State_Met, RC )
+      SUBROUTINE EMISSCH4( Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
@@ -169,7 +110,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
@@ -188,37 +128,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) EMISSCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) GLOBASEAEMIS, GLOBSEAEMIS are diagnostics by jsw.
-!  (4 ) Do not multiply CO emissions by 1.28 anymore (jsw, bmy, 2/12/01)
-!  (5 ) Renamed input files to CH4_monthly.geos.{RES} and
-!        CH4_aseasonal.geos.{RES}. (bmy, 2/12/01)
-!  (6 ) Add reference to "CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
-!  (7 ) Removed references to "biofuel_mod.f" and "biomass_mod.f"; these
-!        weren't necessary (bmy, 3/20/01)
-!  (8 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Now use IU_FILE
-!        instead of IUNIT as the file unit #. (bmy, 6/27/02)
-!  (9 ) Now reference BXHEIGHT and SUNCOS from "dao_mod.f".  Remove reference
-!        to header file "comtrid.h" -- it's not used.  Make FIRSTEMISS a local
-!        SAVEd variable.  Also use MONTH from "CMN" instead of the variable
-!        LMN. (bmy, 11/15/02)
-!  (10) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid_mod.f".
-!        Now use function GET_MONTH and GET_TS_EMIS from "time_mod.f".
-!        Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
-!        I0 and J0 are now local variables. (bmy, 3/27/03)
-!  (11) Now reference STT from "tracer_mod.f".  Now reference DATA_DIR from
-!        "directory_mod.f". (bmy, 7/20/04)
-!  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (13) Add non-local PBL capability (ccc, 8/31/09)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  11 Apr 2014 - R. Yantosca - Remove call to INIT_GLOBAL_CH4
-!  09 Sep 2014 - C. Keller   - Implemented HEMCO
-!  11 Sep 2015 - E. Lundgren - Remove area-dependency (except for global mass
-!                              sums) by outputting diagnostics as kg/m2 not kg
-!  11 Sep 2015 - E. Lundgren - Remove State_Chm from arg list since not used
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -236,7 +146,6 @@
 
       ! For fields from Input_Opt
       LOGICAL                  :: ITS_A_CH4_SIM
-      LOGICAL                  :: LPRT
       LOGICAL                  :: prtDebug
       LOGICAL, SAVE            :: FIRST = .TRUE.
 
@@ -257,10 +166,9 @@
 
       ! Copy values from Input_Opt
       ITS_A_CH4_SIM  = Input_Opt%ITS_A_CH4_SIM
-      LPRT           = Input_Opt%LPRT
 
       ! Do we have to print debug output?
-      prtDebug       = ( LPRT .and. am_I_Root )
+      prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
       ! Exit with error if we can't find the HEMCO state object
       IF ( .NOT. ASSOCIATED( HcoState ) ) THEN
@@ -272,7 +180,7 @@
       ! Emission timestep
       DTSRCE = HcoState%TS_EMIS
 
-      IF ( ITS_A_CH4_SIM .and. LPRT ) THEN
+      IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
          print*,'BEGIN SUBROUTINE: EMISSCH4'
       ENDIF
 
@@ -302,7 +210,7 @@
       ! Oil
       !-------------------
       DgnName = 'CH4_OIL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -324,7 +232,7 @@
       ! Gas
       !-------------------
       DgnName = 'CH4_GAS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -347,7 +255,7 @@
       ! Coal
       !-------------------
       DgnName = 'CH4_COAL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -369,7 +277,7 @@
       ! Livestock
       !-------------------
       DgnName = 'CH4_LIVESTOCK'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -391,7 +299,7 @@
       ! Landfills
       !-------------------
       DgnName = 'CH4_LANDFILLS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -413,7 +321,7 @@
       ! Wastewater
       !-------------------
       DgnName = 'CH4_WASTEWATER'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -435,7 +343,7 @@
       ! Rice
       !-------------------
       DgnName = 'CH4_RICE'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -457,7 +365,7 @@
       ! Other anthropogenic
       !-------------------
       DgnName = 'CH4_ANTHROTHER'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -478,9 +386,8 @@
       !-------------------
       ! Biomass burning
       !-------------------
-!      DgnName = 'BIOMASS_CH4'
       DgnName = 'CH4_BIOMASS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -502,7 +409,7 @@
       ! Wetland
       !-------------------
       DgnName = 'CH4_WETLAND'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -524,7 +431,7 @@
       ! Global seeps
       !-------------------
       DgnName = 'CH4_SEEPS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -546,7 +453,7 @@
       ! Lakes
       !-------------------
       DgnName = 'CH4_LAKES'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -568,7 +475,7 @@
       ! Termites
       !-------------------
       DgnName = 'CH4_TERMITES'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -590,7 +497,7 @@
       ! Soil absorption (those are negative!)
       !-------------------
       DgnName = 'CH4_SOILABSORB'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -634,7 +541,7 @@
          WRITE(*,*) 'Soil absorb  : ', SUM(CH4_EMIS(:,:,15))
       ENDIF
 
-      IF ( ITS_A_CH4_SIM .and. LPRT ) THEN
+      IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
          print*,'END SUBROUTINE: EMISSCH4'
       ENDIF
 
@@ -707,37 +614,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CHEMCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) Updated comments (jsw, bmy, 2/12/01)
-!  (4 ) LD43 is already declared in CMN_DIAG; don't redefine it (bmy, 11/15/01)
-!  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!  (6 ) Now reference AD from "dao_mod.f".  Now reference GEOS_CHEM_STOP from
-!        "error_mod.f"  Now make FIRSTCHEM a local SAVEd variable.  Now
-!        reference ALBD from "dao_mod.f".  Now use MONTH and JDATE from "CMN"
-!        instead of LMN and LDY. (bmy, 11/15/02)
-!  (7 ) Remove NYMDb, NYMDe from the arg list.  Now use functions GET_MONTH,
-!        GET_NYMDb, GET_NYMDe, GET_MONTH, GET_DAY from the new "time_mod.f"
-!        (bmy, 3/27/03)
-!  (8 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (9 ) Remove reference to BPCH2_MOD, it's not needed (bmy, 10/3/05)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
-!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the
-!                              code out with #ifdef blocks so it can be used)
-!  23 Jul 2014 - R. Yantosca - Remove reference to obsolete CMN_mod.F
-!  23 Jul 2014 - R. Yantosca - Reference ITS_IN_THE_CHEMGRID (chemgrid_mod.F)
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  17 Sep 2014 - C. Keller   - Now use HEMCO to get CH4 loss and OH conc. field.
-!  06 Jan 2016 - E. Lundgren - Use global physical parameters
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -816,7 +693,7 @@
 
          ! Import CH4 loss frequencies from HEMCO. The target will be
          ! updated automatically by HEMCO (ckeller, 9/16/2014)
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_LOSS', CH4LOSS, RC )
+         CALL HCO_GetPtr( HcoState, 'CH4_LOSS', CH4LOSS, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -833,7 +710,7 @@
       IF ( FIRSTCHEM ) THEN
 
          ! Get pointer to GLOBAL_OH
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', BOH, RC )
+         CALL HCO_GetPtr( HcoState, 'GLOBAL_OH', BOH, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -843,7 +720,7 @@
          ENDIF
 
          ! Get pointer to GLOBAL_Cl
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_Cl', BCl, RC )
+         CALL HCO_GetPtr( HcoState, 'GLOBAL_Cl', BCl, RC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -984,19 +861,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_DECAY is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the
-!                              code out with #ifdef blocks so it can be used)
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  16 Jun 2017 - M. Sulprizio- Add loss of CH4 by Cl
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1171,17 +1036,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_OHSAVE is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) Now call DO_DIAG_OH_CH4 to pass OH diagnostic info to the
-!        "diag_oh_mod.f" (bmy, 7/20/04)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  14 Dec 2017 - M. Sulprizio- Parallelize DO loop
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1353,21 +1208,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_STRAT is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
-!        (bmy, 1/16/01)
-!  (3 ) Removed LMN from the arg list and made it a local variable.  Now use
-!        functions GET_MONTH and GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
-!  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root and RC
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  24 Mar 2015 - E. Lundgren - Now pass Input_Opt to Check_STT
-!  06 Jan 2016 - E. Lundgren - Use global physical parameters
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  14 Dec 2017 - M. Sulprizio- Parallelize DO loop
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1504,11 +1345,7 @@
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm args
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1599,15 +1436,7 @@
 !  This routine is called from GC_INIT_EXTRA (in GeosCore/input_mod.f)
 !
 ! !REVISION HISTORY:
-!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the
-!                              code out with #ifdef blocks so it can be used
-!  11 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
-!  16 Jun 2016 - M. Sulprizio- Now define IDT_CH4 locally
-!  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
-!  20 Jun 2016 - R. Yantosca - Now stop run if id_CH4 is undefined
-!  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1666,25 +1495,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_GLOBAL_CH4( am_I_Root, RC )
+      SUBROUTINE CLEANUP_GLOBAL_CH4( RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  12 Feb 2014 - K. Wecht    - Disable CH4 budget diagnostic (bracket the
-!                              code out with #ifdef blocks so it can be used)
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

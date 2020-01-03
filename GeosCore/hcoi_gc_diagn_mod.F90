@@ -83,7 +83,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Diagn_Init( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+  SUBROUTINE HCOI_GC_Diagn_Init( Input_Opt, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -94,10 +94,6 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -149,7 +145,7 @@ CONTAINS
     !%%%%  sure that routine DIAGN_CH4 is outside the BPCH_DIAG #if     %%%%
     !%%%%  block.  -- Bob Yantosca (25 Jan 2018)                        %%%%
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    CALL Diagn_CH4( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_CH4( Input_Opt, HcoState, ExtState, RC )
 
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -165,7 +161,7 @@ CONTAINS
     !%%%%  sure that routine DIAGN_Hg is outside the BPCH_DIAG #if      %%%%
     !%%%%  block.  -- Bob Yantosca (25 Jan 2018)                        %%%%
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    CALL Diagn_Hg( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_Hg( Input_Opt, HcoState, ExtState, RC )
 
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -181,7 +177,7 @@ CONTAINS
     !%%%%  to Diagn_POPs outside of the #ifdef BPCH_DIAG block.         %%%%
     !%%%%    -- Bob Yantosca (09 Oct 2018)                              %%%%
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    CALL Diagn_POPs( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_POPs( Input_Opt, HcoState, ExtState, RC )
 
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -194,11 +190,11 @@ CONTAINS
     !=======================================================================
     ! Define manual diagnostics
     !=======================================================================
-    CALL Diagn_Dust    ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_Dust    ( Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 #ifdef TOMAS
-    CALL Diagn_TOMAS   ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_TOMAS   ( Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
 #endif
@@ -220,7 +216,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_CH4( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+  SUBROUTINE Diagn_CH4( Input_Opt, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -230,10 +226,6 @@ CONTAINS
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : Ind_
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -301,8 +293,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_OIL'
-       CALL Diagn_Create( am_I_Root,                                         &
-                          HcoState  = HcoState,                              &
+       CALL Diagn_Create( HcoState  = HcoState,                              &
                           cName     = TRIM( DiagnName ),                     &
                           ExtNr     = ExtNr,                                 &
                           Cat       = Cat,                                   &
@@ -333,8 +324,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_GAS'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -364,8 +354,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_COAL'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -395,8 +384,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_LIVESTOCK'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -426,8 +414,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_LANDFILLS'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -457,8 +444,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_WASTEWATER'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -488,8 +474,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_RICE'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -519,8 +504,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_ANTHROTHER'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -550,8 +534,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_BIOMASS'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -581,8 +564,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_WETLAND'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -612,8 +594,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_SEEPS'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -643,8 +624,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_LAKES'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -674,8 +654,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_TERMITES'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -705,8 +684,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_SOILABSORB'
-       CALL Diagn_Create( am_I_Root,                     &
-                          HcoState  = HcoState,          &
+       CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &
                           Cat       = Cat,               &
@@ -736,7 +714,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Dust( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+  SUBROUTINE Diagn_Dust( Input_Opt, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -745,10 +723,6 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -846,8 +820,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,                     &
-                             HcoState  = HcoState,          &
+          CALL Diagn_Create( HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &
                              ExtNr     = ExtNr,             &
                              Cat       = Cat,               &
@@ -887,8 +860,7 @@ CONTAINS
              IF ( RC /= HCO_SUCCESS ) RETURN
 
              ! Create diagnostic container
-             CALL Diagn_Create( am_I_Root,                     &
-                                HcoState  = HcoState,          &
+             CALL Diagn_Create( HcoState  = HcoState,          &
                                 cName     = TRIM( DiagnName ), &
                                 ExtNr     = ExtNr,             &
                                 Cat       = -1,                &
@@ -924,7 +896,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_POPs( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+  SUBROUTINE Diagn_POPs( Input_Opt, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -932,10 +904,6 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -999,8 +967,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'GCPOPS_POPG_SOURCE'
-       CALL Diagn_Create( am_I_Root,                                         &
-                          HcoState  = HcoState,                              &
+       CALL Diagn_Create( HcoState  = HcoState,                              &
                           cName     = TRIM( DiagnName ),                     &
                           ExtNr     = ExtNr,                                 &
                           Cat       = -1,                                    &
@@ -1030,8 +997,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'GCPOPS_POPPOCPO_SOURCE'
-       CALL Diagn_Create( am_I_Root,                                         &
-                          HcoState  = HcoState,                              &
+       CALL Diagn_Create( HcoState  = HcoState,                              &
                           cName     = TRIM( DiagnName ),                     &
                           ExtNr     = ExtNr,                                 &
                           Cat       = -1,                                    &
@@ -1062,8 +1028,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'GCPOPS_POPPBCPO_SOURCE'
-       CALL Diagn_Create( am_I_Root,                                         &
-                          HcoState  = HcoState,                              &
+       CALL Diagn_Create( HcoState  = HcoState,                              &
                           cName     = TRIM(DiagnName),                       &
                           ExtNr     = ExtNr,                                 &
                           Cat       = -1,                                    &
@@ -1131,8 +1096,7 @@ CONTAINS
           ENDIF
 
           ! Create manual diagnostics
-          CALL Diagn_Create( am_I_Root,                                      &
-                             HcoState  = HcoState,                           &
+          CALL Diagn_Create( HcoState  = HcoState,                           &
                              cName     = TRIM( DiagnName ),                  &
                              ExtNr     = ExtNr,                              &
                              Cat       = -1,                                 &
@@ -1171,7 +1135,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Hg( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+  SUBROUTINE Diagn_Hg( Input_Opt, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -1180,10 +1144,6 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1231,8 +1191,7 @@ CONTAINS
     ! Create diagnostic container
     DiagnName = 'HG0_ARTISANAL'
     Cat       = 8
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM(DiagnName),                          &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1253,8 +1212,7 @@ CONTAINS
     ! Create diagnostic container
     DiagnName = 'HG0_NATURAL'
     Cat       = CATEGORY_NATURAL
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM(DiagnName),                          &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1276,8 +1234,7 @@ CONTAINS
 
     ! Create diagnostic container
     DiagnName = 'HG0_ANTHRO'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM(DiagnName),                          &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1298,8 +1255,7 @@ CONTAINS
     ! Create diagnostic container
     IF ( HcoID > 0 ) THEN
        DiagnName = 'HG2_ANTHRO'
-       CALL Diagn_Create( am_I_Root,                                         &
-                          HcoState  = HcoState,                              &
+       CALL Diagn_Create( HcoState  = HcoState,                              &
                           cName     = TRIM(DiagnName),                       &
                           ExtNr     = ExtNr,                                 &
                           Cat       = Cat,                                   &
@@ -1321,8 +1277,7 @@ CONTAINS
     ! Create diagnostic container
     IF ( HcoID > 0 ) THEN
        DiagnName = 'HGP_ANTHRO'
-       CALL Diagn_Create( am_I_Root,                                         &
-                          HcoState  = HcoState,                              &
+       CALL Diagn_Create( HcoState  = HcoState,                              &
                           cName     = TRIM(DiagnName),                       &
                           ExtNr     = ExtNr,                                 &
                           Cat       = Cat,                                   &
@@ -1356,8 +1311,7 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'BIOMASS_HG0'
-       CALL Diagn_Create( am_I_Root,                                         &
-                          HcoState  = HcoState,                              &
+       CALL Diagn_Create( HcoState  = HcoState,                              &
                           cName     = TRIM(DiagnName),                       &
                           ExtNr     = ExtNr,                                 &
                           Cat       = Cat,                                   &
@@ -1388,7 +1342,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_TOMAS( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+  SUBROUTINE Diagn_TOMAS( Input_Opt, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -1398,10 +1352,6 @@ CONTAINS
     USE HCO_State_Mod,      ONLY : HCO_GetHcoID
     USE HCOX_State_Mod,     ONLY : Ext_State
     USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1450,8 +1400,7 @@ CONTAINS
     ExtNr     = 0
     Cat       = CATEGORY_ANTHRO
     DiagnName = 'BCPI_ANTH'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1477,8 +1426,7 @@ CONTAINS
     ExtNr     = 0
     Cat       = CATEGORY_ANTHRO
     DiagnName = 'BCPO_ANTH'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1504,8 +1452,7 @@ CONTAINS
     Extnr     = 0
     Cat       = CATEGORY_ANTHRO
     DiagnName = 'OCPI_ANTH'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1531,8 +1478,7 @@ CONTAINS
     ExtNr     = 0
     Cat       = CATEGORY_ANTHRO
     DiagnName = 'OCPO_ANTH'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1571,8 +1517,7 @@ CONTAINS
     ! %%%%% BPCI from BIOB (Category ? or species BCPI_bb)  %%%%%
     !-----------------------------------------------------------------
     DiagnName = 'BCPI_BB'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1596,8 +1541,7 @@ CONTAINS
     ! %%%%% BPCO from BIOB (Category ? or species BCPO_bb)  %%%%%
     !-----------------------------------------------------------------
     DiagnName = 'BCPO_BB'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1621,8 +1565,7 @@ CONTAINS
     ! %%%%% OCPI from BIOB (Category ? or species OCPI_bb)  %%%%%
     !-----------------------------------------------------------------
     DiagnName = 'OCPI_BB'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1646,8 +1589,7 @@ CONTAINS
     ! %%%%% OCPO from BIOB (Category ? or species OCPI_bb)  %%%%%
     !-----------------------------------------------------------------
     DiagnName = 'OCPO_BB'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1673,8 +1615,7 @@ CONTAINS
     ExtNr     = 0
     Cat       = CATEGORY_ANTHRO
     DiagnName = 'SO4_ANTH'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1700,8 +1641,7 @@ CONTAINS
     ExtNr     = 0
     Cat       = CATEGORY_ANTHRO
     DiagnName = 'CO_ANTH'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &
@@ -1738,8 +1678,7 @@ CONTAINS
 
     ! Create diagnostic container
     DiagnName = 'BIOGENIC_SOAS'
-    CALL Diagn_Create( am_I_Root,                                            &
-                       HcoState  = HcoState,                                 &
+    CALL Diagn_Create( HcoState  = HcoState,                                 &
                        cName     = TRIM( DiagnName ),                        &
                        ExtNr     = ExtNr,                                    &
                        Cat       = Cat,                                      &

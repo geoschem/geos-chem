@@ -82,7 +82,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_write_std( am_I_Root,   HcoState, ForceWrite,  &
+  SUBROUTINE HCOIO_write_std( HcoState, ForceWrite,  &
                               RC,          PREFIX,   UsePrevTime, &
                               OnlyIfFirst, COL                     )
 !
@@ -112,7 +112,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,                    INTENT(IN   ) :: am_I_Root   ! root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object
     LOGICAL,                    INTENT(IN   ) :: ForceWrite  ! Write all diagnostics?
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
@@ -223,13 +222,13 @@ CONTAINS
        DoWrite = .TRUE.
        EOI     = .FALSE.
     ELSE
-       DoWrite = DiagnCollection_IsTimeToWrite( am_I_Root, HcoState, PS )
+       DoWrite = DiagnCollection_IsTimeToWrite( HcoState, PS )
        EOI     = .TRUE.
     ENDIF
 
     ! Create current time stamps (to be used to archive time stamps)
-    CALL HcoClock_Get(am_I_Root,HcoState%Clock,sYYYY=YYYY,sMM=MM,&
-                      sDD=DD,sH=h,sM=m,sS=s,RC=RC)
+    CALL HcoClock_Get( HcoState%Clock,sYYYY=YYYY,sMM=MM,&
+                       sDD=DD,sH=h,sM=m,sS=s,RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
     lymd = YYYY*10000 + MM*100 + DD
     lhms = h   *10000 + m *100 + s
@@ -275,7 +274,7 @@ CONTAINS
 
              ! Get next diagnostics in list. This will return the next
              ! diagnostics container that contains content.
-             CALL Diagn_Get ( am_I_Root, HcoState, EOI, &
+             CALL Diagn_Get ( HcoState, EOI, &
                               ThisDiagn, FLAG, RC, COL=PS )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( FLAG /= HCO_SUCCESS ) EXIT
@@ -309,7 +308,7 @@ CONTAINS
     ! Construct filename: diagnostics will be written into file
     ! PREFIX.YYYYMMDDhm.nc, where PREFIX is the input argument or
     ! (if not present) obtained from the HEMCO configuration file.
-    CALL ConstructTimeStamp ( am_I_Root, HcoState, PS, PrevTime, &
+    CALL ConstructTimeStamp ( HcoState, PS, PrevTime, &
                               YYYY, MM, DD, h, m, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -696,8 +695,7 @@ CONTAINS
 
        ! Get next diagnostics in list. This will return the next
        ! diagnostics container that contains content.
-       CALL Diagn_Get ( am_I_Root, HcoState, EOI, &
-                        ThisDiagn, FLAG, RC, COL=PS )
+       CALL Diagn_Get ( HcoState, EOI, ThisDiagn, FLAG, RC, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 
@@ -824,7 +822,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConstructTimeStamp ( am_I_Root, HcoState, PS, PrevTime, Yr, Mt, Dy, hr, mn, RC )
+  SUBROUTINE ConstructTimeStamp ( HcoState, PS, PrevTime, Yr, Mt, Dy, hr, mn, RC )
 !
 ! !USES:
 !
@@ -834,7 +832,6 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )    :: am_I_Root    ! Root CPU?
     TYPE(HCO_State), POINTER          :: HcoState     ! HEMCO state obj
     INTEGER,         INTENT(IN   )    :: PS           ! collecion ID
     LOGICAL,         INTENT(IN   )    :: PrevTime     ! Use previous time?
@@ -875,11 +872,11 @@ CONTAINS
     ! Use HEMCO clock to create timestamp used in filename. Use previous
     ! time step if this option is selected.
     IF ( .NOT. PrevTime ) THEN
-       CALL HcoClock_Get(am_I_Root,HcoState%Clock,sYYYY=Y2,sMM=M2,&
+       CALL HcoClock_Get(HcoState%Clock,sYYYY=Y2,sMM=M2,&
                          sDD=D2,sH=h2,sM=n2,sS=s2,RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSE
-       CALL HcoClock_Get(am_I_Root,HcoState%Clock,pYYYY=Y2,pMM=M2,&
+       CALL HcoClock_Get(HcoState%Clock,pYYYY=Y2,pMM=M2,&
                          pDD=D2,pH=h2,pM=n2,pS=s2,RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF

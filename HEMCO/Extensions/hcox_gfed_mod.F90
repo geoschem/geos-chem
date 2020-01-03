@@ -207,17 +207,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_GFED_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_GFED_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
     USE HCO_Calc_Mod,     ONLY : HCO_EvalFld
     USE HCO_EmisList_Mod, ONLY : HCO_GetPtr
     USE HCO_FluxArr_MOD,  ONLY : HCO_EmisAdd
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -299,28 +295,28 @@ CONTAINS
     !IF ( FIRST ) THEN
 
     IF ( Inst%IsGFED4 ) THEN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_SAVA', Inst%GFED_SAVA, RC )
+          CALL HCO_EvalFld ( HcoState, 'GFED_SAVA', Inst%GFED_SAVA, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_BORF', Inst%GFED_BORF, RC )
+          CALL HCO_EvalFld ( HcoState, 'GFED_BORF', Inst%GFED_BORF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_TEMP', Inst%GFED_TEMP, RC )
+          CALL HCO_EvalFld ( HcoState, 'GFED_TEMP', Inst%GFED_TEMP, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_DEFO', Inst%GFED_DEFO, RC )
+          CALL HCO_EvalFld ( HcoState, 'GFED_DEFO', Inst%GFED_DEFO, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_PEAT', Inst%GFED_PEAT, RC )
+          CALL HCO_EvalFld ( HcoState, 'GFED_PEAT', Inst%GFED_PEAT, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_AGRI', Inst%GFED_AGRI, RC )
+          CALL HCO_EvalFld ( HcoState, 'GFED_AGRI', Inst%GFED_AGRI, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Also point to scale factors if needed
        IF ( Inst%DoDay ) THEN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_FRAC_DAY', &
+          CALL HCO_EvalFld ( HcoState, 'GFED_FRAC_DAY', &
                              Inst%DAYSCAL,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
        IF ( Inst%Do3Hr ) THEN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_FRAC_3HOUR', &
+          CALL HCO_EvalFld ( HcoState, 'GFED_FRAC_3HOUR', &
                              Inst%HRSCAL,    RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -437,7 +433,7 @@ CONTAINS
        END SELECT
 
        ! Check for masking
-       CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(Inst%SpcScalFldNme(N)), RC )
+       CALL HCOX_SCALE( HcoState, SpcArr, TRIM(Inst%SpcScalFldNme(N)), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
 !==============================================================================
@@ -510,12 +506,12 @@ CONTAINS
 !
 !       ! Add flux to HEMCO emission array
 !       ! Now 3D flux (mps, 3/10/17)
-!       CALL HCO_EmisAdd( am_I_Root, HcoState,   SpcArr3D, HcoIDs(N), &
+!       CALL HCO_EmisAdd( HcoState,   SpcArr3D, HcoIDs(N), &
 !                         RC,        ExtNr=ExtNr )
 !==============================================================================
 
        ! Add flux to HEMCO emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, SpcArr, Inst%HcoIDs(N), RC, ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, SpcArr, Inst%HcoIDs(N), RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(Inst%HcoIDs(N))%SpcName)
           CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -546,8 +542,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_GFED_Init ( am_I_Root, HcoState, ExtName, &
-                              ExtState,  RC                  )
+  SUBROUTINE HCOX_GFED_Init ( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -558,7 +553,6 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState    ! Options object
 !
@@ -759,7 +753,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Prompt to log file
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use GFED extension'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        WRITE(MSG,*) '   - Use GFED-4              : ', Inst%IsGFED4
@@ -883,7 +877,7 @@ CONTAINS
              Matched    = .TRUE.
 
              ! Verbose
-             IF ( am_I_Root ) THEN
+             IF ( HcoState%amIRoot ) THEN
                 MSG = '   - Emit GFED species ' // TRIM(GFED_SPEC_NAME(M)) // &
                       '     as model species ' // TRIM(Inst%SpcNames(N))
                 CALL HCO_MSG(HcoState%Config%Err,MSG )

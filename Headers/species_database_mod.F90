@@ -57,7 +57,7 @@ MODULE Species_Database_Mod
 !
 ! !REVISION HISTORY:
 !  28 Aug 2015 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,7 +93,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Species_Database( am_I_Root, Input_Opt, SpcData, RC )
+  SUBROUTINE Init_Species_Database( Input_Opt, SpcData, RC )
 !
 ! !USES:
 !
@@ -103,7 +103,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -137,7 +136,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Jul 2015 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,7 +211,7 @@ CONTAINS
     HgP_CAT       = 0
 
     ! Copy values from Input_Opt
-    prtDebug      = ( Input_Opt%LPRT .and. am_I_Root )
+    prtDebug      = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Store the list unique GEOS-Chem species names in work arrays for use
     ! below.  This is the combined list of advected species (from input.geos)
@@ -220,10 +219,10 @@ CONTAINS
     ! duplicates removed.  Also stores the corresponding indices in the
     ! KPP VAR and FIX arrays.  For simulations that do not use KPP, the
     ! unique species list is the list of advected species from input.geos.
-    CALL Unique_Species_Names( am_I_Root, Input_Opt, nSpecies, RC )
+    CALL Unique_Species_Names( Input_Opt, nSpecies, RC )
 
     ! Initialize the species vector
-    CALL SpcData_Init( am_I_Root, nSpecies, SpcData, RC )
+    CALL SpcData_Init( Input_Opt, nSpecies, SpcData, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        PRINT*, '### Could not initialize species vector!'
        CALL EXIT( -999 )
@@ -240,8 +239,7 @@ CONTAINS
        CALL TranUc( NameAllCaps )
 
        ! Get species info, now write into local variable
-       CALL Spc_Info( am_I_Root       = am_I_Root,                           &
-                      iName           = TRIM(NameAllCaps),                   &
+       CALL Spc_Info( iName           = TRIM(NameAllCaps),                   &
                       Input_Opt       = Input_Opt,                           &
                       KppSpcId        = KppSpcId(N),                         &
                       oFullName       = FullName,                            &
@@ -297,7 +295,7 @@ CONTAINS
        IF ( TRIM(Name) == 'POx' ) Name = 'POX'
        IF ( TRIM(Name) == 'LOx' ) Name = 'LOX'
        IF ( TRIM(FullName) == '' ) FullName = TRIM(Name)
-       CALL Spc_Create( am_I_Root      = am_I_Root,                          &
+       CALL Spc_Create( Input_Opt      = Input_Opt,                          &
                         ThisSpc        = SpcData(N)%Info,                    &
                         ModelID        = N,                                  &
                         KppSpcId       = KppSpcId(N),                        &
@@ -351,13 +349,13 @@ CONTAINS
 
        ! Print info about each species
        ! testing only
-       IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
+       IF ( prtDebug ) CALL Spc_Print( Input_Opt, SpcData(N)%Info, RC )
 
     ENDDO
 
     ! Print Species Database to JSON format
-    IF ( am_I_Root ) THEN
-       CALL SpcData_To_JSON( am_I_Root, SpcData, RC )
+    IF ( Input_Opt%amIRoot ) THEN
+       CALL SpcData_To_JSON( Input_Opt, SpcData, RC )
     ENDIF
 
     ! Deallocate temporary work arrays
@@ -378,7 +376,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,           &
+  SUBROUTINE Spc_Info( iName,           Input_Opt,                           &
                        KppSpcId,        oFullName,      oFormula,            &
                        oMW_g,           oEmMW_g,        oMolecRatio,         &
                        oBackgroundVV,   oHenry_K0,      oHenry_CR,           &
@@ -403,7 +401,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
     CHARACTER(LEN=*),  INTENT(IN)  :: iName            ! Short name of species
     TYPE(OptInput),    OPTIONAL    :: Input_Opt        ! Input Options object
     INTEGER,           INTENT(IN)  :: KppSpcId         ! KPP ID
@@ -461,8 +458,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  14 Sep 2018 - C. Keller   - Created standalone subroutine so that species
 !                              info can be queried independently.
-!  23 Oct 2018 - R. Yantosca - Cosmetic changes (consistent indentation)
-!  10 Apr 2019 - R. Yantosca - DHDC should photolyze, not DHDN
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5955,16 +5951,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Species_Database( am_I_Root, SpcData, RC )
+  SUBROUTINE Cleanup_Species_Database( SpcData, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Species_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5978,6 +5970,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Jul 2015 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6023,6 +6016,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6056,18 +6050,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Unique_Species_Names( am_I_Root, Input_Opt, nSpecies, RC )
+  SUBROUTINE Unique_Species_Names( Input_Opt, nSpecies, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE GcKpp_Monitor,      ONLY : Spc_Names
     USE GcKpp_Parameters,   ONLY : NFIX, NSPEC, NVAR
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
@@ -6082,8 +6075,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  09 May 2016 - R. Yantosca - Initial version
-!  02 Aug 2016 - M. Sulprizio- Add KppSpcId; Also only set KppVarId if loop
-!                              indexis <= NVAR.
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6272,7 +6264,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 May 2016 - R. Yantosca - Initial version
-!  05 Jul 2018 - H.P. Lin    - Add missing KppSpcId
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6299,19 +6291,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SpcData_To_JSON( am_I_Root, SpcData, RC )
-
+  SUBROUTINE SpcData_To_JSON( Input_Opt, SpcData, RC )
+!
+! !USES:
+!
     USE ErrCode_Mod
-    USE Species_Mod, ONLY : Species, SpcPtr
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Species_Mod,   ONLY : Species, SpcPtr
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,      INTENT(IN)  :: am_I_Root    ! Are we on the root CPU
-    TYPE(SpcPtr), POINTER     :: SpcData(:)   ! GEOS-Chem Species Database
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
+    TYPE(SpcPtr),   POINTER     :: SpcData(:)   ! GEOS-Chem Species Database
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,      INTENT(OUT) :: RC           ! Success or failure
+    INTEGER,        INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REMARKS:
 !  This routine can be used to generate JSON output for use with Python
@@ -6326,6 +6321,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Feb 2019 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

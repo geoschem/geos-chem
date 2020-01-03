@@ -119,7 +119,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SeaSalt_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_SeaSalt_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -129,7 +129,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
     TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
@@ -246,7 +245,7 @@ CONTAINS
 
     ! If the marine POA option is on, get the HEMCO pointer to MODIS CHLR
     IF ( HcoState%MarinePOA ) THEN
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'MODIS_CHLR', Inst%CHLR, RC )
+       CALL HCO_EvalFld ( HcoState, 'MODIS_CHLR', Inst%CHLR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           WRITE(MSG,*) 'Cannot find MODIS CHLR data for marine POA'
           CALL HCO_ERROR(HcoState%Config%Err, MSG, RC)
@@ -336,9 +335,9 @@ CONTAINS
                    !              array to store only the current
                    !              Dry Radius bin. [kg]
                    SALT_NR = ( Inst%SRRC(R,N) * A_M2 * W10M**3.41d0 )
-                   CALL EMIT_SSABr2( am_I_Root, ExtState,  HcoState, Inst, &
+                   CALL EMIT_SSABr2( ExtState,  HcoState, Inst,            &
                                      I, J,      Inst%RRMID(R,N), SALT_NR,  &
-                                     BR2_NR,    RC                    )
+                                     BR2_NR,    RC                         )
                    IF ( RC /= HCO_SUCCESS ) THEN
                       ERR = .TRUE.
                       EXIT
@@ -456,8 +455,8 @@ CONTAINS
     IF ( Inst%IDTSALA > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALA, Inst%IDTSALA, &
-                         RC,        ExtNr=Inst%ExtNrSS )
+       CALL HCO_EmisAdd( HcoState, FLUXSALA, Inst%IDTSALA, &
+                         RC,       ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALA', RC )
           RETURN
@@ -468,8 +467,8 @@ CONTAINS
     IF ( Inst%IDTSALC > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALC, Inst%IDTSALC, &
-                         RC,        ExtNr=Inst%ExtNrSS )
+       CALL HCO_EmisAdd( HcoState, FLUXSALC, Inst%IDTSALC, &
+                         RC,       ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALC', RC )
           RETURN
@@ -481,8 +480,8 @@ CONTAINS
     IF ( Inst%CalcBr2 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBr2, Inst%IDTBr2, &
-                         RC,        ExtNr=Inst%ExtNrSS )
+       CALL HCO_EmisAdd( HcoState, FLUXBr2, Inst%IDTBr2, &
+                         RC,       ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXBr2', RC )
           RETURN
@@ -498,16 +497,16 @@ CONTAINS
        FluxBrSalC = Inst%BrContent * FluxSalC
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBrSalA, Inst%IDTBrSalA, &
-                         RC,        ExtNr=Inst%ExtNrSS )
+       CALL HCO_EmisAdd( HcoState, FLUXBrSalA, Inst%IDTBrSalA, &
+                         RC,       ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXBrSalA', RC )
           RETURN
        ENDIF
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXBrSalC, Inst%IDTBrSalC, &
-                         RC,        ExtNr=Inst%ExtNrSS )
+       CALL HCO_EmisAdd( HcoState, FLUXBrSalC, Inst%IDTBrSalC, &
+                         RC,       ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXBrSalC', RC )
           RETURN
@@ -519,8 +518,8 @@ CONTAINS
     IF ( Inst%IDTMOPO > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPO, Inst%IDTMOPO, &
-                         RC,        ExtNr=Inst%ExtNrSS )
+       CALL HCO_EmisAdd( HcoState, FLUXMOPO, Inst%IDTMOPO, &
+                         RC,       ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXMOPO', RC )
           RETURN
@@ -532,8 +531,8 @@ CONTAINS
     IF ( Inst%IDTMOPI > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMOPI, Inst%IDTMOPI, &
-                         RC,        ExtNr=Inst%ExtNrSS )
+       CALL HCO_EmisAdd( HcoState, FLUXMOPI, Inst%IDTMOPI, &
+                         RC,       ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXMOPI', RC )
           RETURN
@@ -562,7 +561,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SeaSalt_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_SeaSalt_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -573,7 +572,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState    ! HEMCO state object
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState    ! Options object
@@ -721,7 +719,7 @@ CONTAINS
     Inst%WindScale = tmpScale
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use sea salt aerosol emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
 
@@ -978,8 +976,7 @@ CONTAINS
     ! to the respective density arrays filled by the run method of this
     ! module.
     !=======================================================================
-    CALL Diagn_Create ( am_I_Root,                          &
-                        HcoState   = HcoState,              &
+    CALL Diagn_Create ( HcoState   = HcoState,              &
                         cName      = 'SEASALT_DENS_FINE',   &
                         ExtNr      = Inst%ExtNrSS,          &
                         Cat        = -1,                    &
@@ -989,12 +986,11 @@ CONTAINS
                         OutUnit    = 'number_dens',         &
                         AutoFill   = 0,                     &
                         Trgt2D     = Inst%NDENS_SALA,       &
-                        COL = HcoState%Diagn%HcoDiagnIDManual,      &
+                        COL = HcoState%Diagn%HcoDiagnIDManual, &
                         RC         = RC                      )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create ( am_I_Root,                          &
-                        HcoState   = HcoState,              &
+    CALL Diagn_Create ( HcoState   = HcoState,              &
                         cName      = 'SEASALT_DENS_COARSE', &
                         ExtNr      = Inst%ExtNrSS,          &
                         Cat        = -1,                    &
@@ -1011,8 +1007,7 @@ CONTAINS
     ! Create marine density diagnostics only if marine POA enabled
     IF ( HcoState%MarinePOA ) THEN
 
-       CALL Diagn_Create ( am_I_Root,                          &
-                           HcoState   = HcoState,              &
+       CALL Diagn_Create ( HcoState   = HcoState,              &
                            cName      = 'SEASALT_DENS_PHOBIC', &
                            ExtNr      = Inst%ExtNrSS,         &
                            Cat        = -1,                    &
@@ -1026,8 +1021,7 @@ CONTAINS
                            RC         = RC                      )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL Diagn_Create ( am_I_Root,                          &
-                           HcoState   = HcoState,              &
+       CALL Diagn_Create ( HcoState   = HcoState,              &
                            cName      = 'SEASALT_DENS_PHILIC', &
                            ExtNr      = Inst%ExtNrSS,          &
                            Cat        = -1,                    &
@@ -1107,7 +1101,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emit_SsaBr2( am_I_Root,  ExtState, HcoState, Inst, &
+  SUBROUTINE Emit_SsaBr2(  ExtState, HcoState, Inst, &
                           ilon, ilat, rmid, p_kgsalt, br2_emiss_kg, RC )
 !
 ! !USE:
@@ -1116,7 +1110,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root ! root CPU?
     TYPE(Ext_State), POINTER        :: ExtState  ! Module options
     TYPE(HCO_State), POINTER        :: HcoState  ! Output obj
     TYPE(MyInst),    POINTER        :: Inst      ! Instance
@@ -1203,7 +1196,7 @@ CONTAINS
     ENDIF
 
     ! store the month
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM=month, RC=RC )
+    CALL HcoClock_Get( HcoState%Clock, cMM=month, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! --------------------------------------------

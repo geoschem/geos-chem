@@ -82,7 +82,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_WRITE_ESMF ( am_I_Root, HcoState, RC, OnlyIfFirst, COL )
+  SUBROUTINE HCOIO_WRITE_ESMF ( HcoState, RC, OnlyIfFirst, COL )
 !
 ! !USES:
 !
@@ -95,7 +95,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,                    INTENT(IN   ) :: am_I_Root   ! root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object
     LOGICAL,          OPTIONAL, INTENT(IN   ) :: OnlyIfFirst !
     INTEGER,          OPTIONAL, INTENT(IN   ) :: COL         ! Collection Nr.
@@ -155,8 +154,7 @@ CONTAINS
        ! Get next diagnostics in list. This will return the next
        ! diagnostics container that contains content to be written
        ! out on this time step.
-       CALL Diagn_Get ( am_I_Root, HcoState, EOI, &
-                        ThisDiagn, FLAG, RC, COL=PS )
+       CALL Diagn_Get ( HcoState, EOI, ThisDiagn, FLAG, RC, COL=PS )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( FLAG /= HCO_SUCCESS ) EXIT
 

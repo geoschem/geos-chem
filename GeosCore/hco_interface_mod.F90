@@ -78,7 +78,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SetHcoTime( am_I_Root, TimeForEmis, RC )
+  SUBROUTINE SetHcoTime( TimeForEmis, RC )
 !
 ! !USES:
 !
@@ -89,7 +89,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root
     LOGICAL,         INTENT(IN   ) :: TimeForEmis
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -120,7 +119,7 @@ CONTAINS
     cSec     = GET_SECOND()
     cDOY     = GET_DAY_OF_YEAR()
 
-    CALL HcoClock_Set ( am_I_Root,  HcoState, cYr, cMt, cDy, cHr, &
+    CALL HcoClock_Set ( HcoState, cYr, cMt, cDy, cHr, &
                         cMin, cSec, cDoy, IsEmisTime=TimeForEmis, RC=RC )
 
   END SUBROUTINE SetHcoTime
@@ -261,7 +260,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetHcoDiagn ( am_I_Root, DiagnName, StopIfNotFound, RC, &
+  SUBROUTINE GetHcoDiagn ( DiagnName, StopIfNotFound, RC, &
                            Ptr2D,     Ptr3D,     COL, AutoFill        )
 !
 ! !USES:
@@ -272,7 +271,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)           :: am_I_Root      ! Are we on the root CPU?
     CHARACTER(LEN=*), INTENT(IN)           :: DiagnName      ! Name of diagnostics
     LOGICAL,          INTENT(IN)           :: StopIfNotFound ! Stop if diagnostics
                                                              ! does not exist?
@@ -325,8 +323,8 @@ CONTAINS
     ! Get diagnostics by name. Search all diagnostics, i.e. both AutoFill
     ! and manually filled diagnostics. Also include those with a manual
     ! output interval.
-    CALL Diagn_Get( am_I_Root,   HcoState, .FALSE., DgnCont,         &
-                    FLAG,        RC,        cName=TRIM(DiagnName),   &
+    CALL Diagn_Get( HcoState,    .FALSE., DgnCont,                 &
+                    FLAG,        RC,      cName=TRIM(DiagnName),   &
                     AutoFill=AF, COL=PS                            )
 
     ! Trap potential errors

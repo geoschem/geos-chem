@@ -7149,7 +7149,7 @@ C     and get the nucleation rate and critical cluster size
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE AERO_DIADEN( am_I_Root,  LEV, Input_Opt, State_Chm,
+      SUBROUTINE AERO_DIADEN( LEV, Input_Opt, State_Chm,
      &                        State_Grid, State_Met, DIA, DENSITY,
      &                        RC )
 
@@ -7184,7 +7184,6 @@ C     and get the nucleation rate and critical cluster size
       IMPLICIT NONE
 
       ! Arguments
-      LOGICAL,           INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       INTEGER,           INTENT(IN)    :: LEV
       TYPE(OptInput),    INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry State object
@@ -7220,7 +7219,7 @@ C     and get the nucleation rate and critical cluster size
       ! Convert species units to [kg] for this routine.
       ! NOTE: For complete area-independence, species units will need to be
       !       mixing ratio or mass per unit area in TOMAS
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
+      CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, 'kg',
      &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -7307,7 +7306,7 @@ C     and get the nucleation rate and critical cluster size
       ENDIF
 
       ! Convert species units back to original unit
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
+      CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,

@@ -4878,11 +4878,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_UCX ( am_I_Root )
-!
-! !INPUT ARGUMENTS:
-!
-      LOGICAL, INTENT(IN)     :: am_I_Root
+      SUBROUTINE CLEANUP_UCX ( )
 !
 ! !REVISION HISTORY:
 !  04 Apr 2013 - S. D. Eastham - Initial version

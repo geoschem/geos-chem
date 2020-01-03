@@ -42,10 +42,7 @@ MODULE History_Netcdf_Mod
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
-!  16 Aug 2017 - R. Yantosca - Reorder placement of routines
-!  16 Aug 2017 - R. Yantosca - Rename History_Expand_Date to Expand_Date_Time
-!  29 May 2019 - R. Yantosca - IndexVarList is now PRIVATE to the routine
-!                              History_Netcdf_Define
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -66,7 +63,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Close( am_I_Root, Container, RC )
+  SUBROUTINE History_Netcdf_Close( Container, RC )
 !
 ! !USES:
 !
@@ -75,10 +72,6 @@ CONTAINS
     USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE Ncdf_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -93,6 +86,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Aug 2017 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,22 +167,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Define( am_I_Root, Container, RC )
+  SUBROUTINE History_Netcdf_Define( Input_Opt, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistContainer_Mod,   ONLY : HistContainer, HistContainer_Print
     USE HistItem_Mod,        ONLY : HistItem,      HistItem_Print
-    USE JulDay_Mod,          ONLY : CalDate
     USE History_Util_Mod
+    USE Input_Opt_Mod,       ONLY : OptInput
+    USE JulDay_Mod,          ONLY : CalDate
     USE MetaHistItem_Mod,    ONLY : MetaHistItem
     USE Ncdf_Mod
     USE Registry_Params_Mod, ONLY : KINDVAL_F4
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt   ! Input options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -202,17 +197,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
-!  14 Aug 2017 - R. Yantosca - Call History_Netcdf_Close from 1 level higher
-!  21 Aug 2017 - R. Yantosca - Now get yyyymmdd & hhmmms from the Container
-!  24 Aug 2017 - R. Yantosca - Now can save data on vertical interfaces
-!  28 Aug 2017 - R. Yantosca - Now make sure AREA is written as REAL(f4)
-!  28 Aug 2017 - R. Yantosca - Replace "TBD" in units w/ species units
-!  30 Aug 2017 - R. Yantosca - Now print file write info only on the root CPU
-!  11 Jul 2018 - R. Yantosca - Avoid roundoff errors when computing the
-!                              file reference date and time
-!  29 May 2019 - R. Yantosca - IndexVarList is now local to this routine,
-!                              we compute it for each collection so that we
-!                              can apply the collection subset window
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -372,7 +357,7 @@ CONTAINS
        ELSE
 
           ! Echo info about the file we are creating
-          IF ( am_I_Root ) THEN
+          IF ( Input_Opt%amIRoot ) THEN
              WRITE( 6, 100 ) TRIM( Container%Name ),                         &
                              Container%ReferenceYmd,                         &
                              Container%ReferenceHms
@@ -434,7 +419,7 @@ CONTAINS
 
        ! Define the linked list of index variables (IndexVarList) that
        ! have the same dimension subsets as the current container
-       CALL IndexVarList_Create( am_I_Root, Container, IndexVarList, RC )
+       CALL IndexVarList_Create( Input_Opt, Container, IndexVarList, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "History_NetCdf_Init"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -494,7 +479,7 @@ CONTAINS
                            FormulaTerms = VarFormula                        )
 
           ! Debug print
-          !CALL HistItem_Print( am_I_Root, Current%Item, RC )
+          !CALL HistItem_Print( Current%Item, RC )
 
           ! Go to next entry in the list of HISTORY ITEMS
           Current => Current%Next
@@ -629,7 +614,7 @@ CONTAINS
        !--------------------------------------------------------------------
        Container%IsFileDefined = .TRUE.
 
-       CALL IndexVarList_Destroy( am_I_Root, IndexVarList, RC )
+       CALL IndexVarList_Destroy( IndexVarList, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error returned from "History_Netcdf_Cleanup"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -653,7 +638,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Netcdf_Write( am_I_Root, Container, RC )
+  SUBROUTINE History_Netcdf_Write( Input_Opt, Container, RC )
 !
 ! !USES:
 !
@@ -661,12 +646,13 @@ CONTAINS
     USE HistItem_Mod,       ONLY : HistItem
     USE HistContainer_Mod,  ONLY : HistContainer
     USE History_Util_Mod
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE M_Netcdf_Io_Write,  ONLY : NcWr
     USE MetaHistItem_Mod,   ONLY : MetaHistItem
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -683,9 +669,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
-!  18 Sep 2017 - R. Yantosca - Elapsed time is now in seconds, but keep the
-!                              time vector in minutes since the ref date/time
-!  11 Jul 2018 - R. Yantosca - Pass args in seconds to COMPUTE_ELAPSED_TIME
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -765,13 +749,11 @@ CONTAINS
     ! Convert to minutes since the reference time
     Container%TimeStamp = Container%TimeStamp / SECONDS_PER_MINUTE
 
-#if defined( DEBUG )
     ! Debug output
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%LPRT .and. Input_opt%amIRoot ) THEN
        WRITE( 6, 110 ) TRIM( Container%name ), Container%TimeStamp
 110    FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
     ENDIF
-#endif
 
     !=======================================================================
     ! Write the time stamp to the netCDF File
@@ -971,6 +953,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1098,6 +1081,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1311,7 +1295,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE IndexVarList_Create( am_I_Root, Container, IndexVarList, RC )
+  SUBROUTINE IndexVarList_Create( Input_Opt, Container, IndexVarList, RC )
 !
 ! !USES:
 !
@@ -1319,11 +1303,12 @@ CONTAINS
     USE Grid_Registry_Mod, ONLY : Lookup_Grid
     USE HistContainer_Mod, ONLY : HistContainer
     USE HistItem_Mod
+    USE Input_Opt_Mod,     ONLY : OptInput
     USE MetaHistItem_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root    ! Are we on the root core?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt    ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1339,9 +1324,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
-!  25 Aug 2017 - R. Yantosca - Added index arrays for data on level edges
-!  29 May 2019 - R. Yantosca - Now accept Container, IndexVarList arguments,
-!                              so that we can subset the data region
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1463,7 +1446,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Look up one of the index fields from gc_grid_mod.F90
        !---------------------------------------------------------------------
-       CALL Lookup_Grid( am_I_Root    = am_I_Root,                           &
+       CALL Lookup_Grid( Input_Opt    = Input_Opt,                           &
                          Variable     = RegistryName(N),                     &
                          Description  = Description,                         &
                          Dimensions   = Dimensions,                          &
@@ -1496,7 +1479,7 @@ CONTAINS
        !---------------------------------------------------------------------
        ! Create a HISTORY ITEM for this index field
        !---------------------------------------------------------------------
-       CALL HistItem_Create( am_I_Root      = am_I_Root,                     &
+       CALL HistItem_Create( Input_Opt      = Input_Opt,                     &
                              Item           = Item,                          &
                              Id             = N,                             &
                              ContainerId    = 0,                             &
@@ -1525,12 +1508,12 @@ CONTAINS
 
        !### Debug: Print full info about this HISTORY ITEM
        !### You can leave this commented out unless you are debugging
-       !CALL HistItem_Print( am_I_Root, Item, RC )
+       !CALL HistItem_Print( Item, RC )
 
        !---------------------------------------------------------------------
        ! Add this item to the Dimension list
        !---------------------------------------------------------------------
-       CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,                      &
+       CALL MetaHistItem_AddNew( Input_Opt    = Input_Opt,                   &
                                  Node      = IndexVarList,                   &
                                  Item      = Item,                           &
                                  RC        = RC                             )
@@ -1559,16 +1542,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE IndexVarList_Destroy( am_I_Root, IndexVarList, RC )
+  SUBROUTINE IndexVarList_Destroy( IndexVarList, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE MetaHistItem_Mod,  ONLY: MetaHistItem_Destroy
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)  :: am_I_Root    ! Are we on the root core?
+    USE MetaHistItem_Mod,  ONLY : MetaHistItem_Destroy
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1581,7 +1560,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
-!  29 May 2019 - R. Yantosca - Renamed from History_Netcdf_Cleanup
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1601,7 +1580,7 @@ CONTAINS
     !=======================================================================
     ! Destroy the METAHISTORY ITEM list of index variables for netCDF
     !=======================================================================
-    CALL MetaHistItem_Destroy( am_I_Root, IndexVarList, RC )
+    CALL MetaHistItem_Destroy( IndexVarList, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot deallocate the "IndexVarList" META HISTORY ITEM!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1640,6 +1619,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Jun 2019 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -333,7 +333,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETTLEDUST( am_I_Root,  Input_Opt,  State_Chm,
+      SUBROUTINE SETTLEDUST( Input_Opt,  State_Chm,
      &                       State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
@@ -358,7 +358,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
@@ -441,7 +440,7 @@
       ENDDO
 
       ! Dust settling
-      CALL DRY_SETTLING( am_I_Root,  Input_Opt,
+      CALL DRY_SETTLING( Input_Opt%amIRoot,  Input_Opt,
      &                   State_Chm,  State_Diag,
      &                   State_Grid, State_Met,
      &                   id_DUST1,   id_DUST1-1+IBINS,

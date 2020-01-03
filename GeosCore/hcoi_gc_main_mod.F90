@@ -130,8 +130,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Init( am_I_Root,  Input_Opt, State_Chm,                  &
-                           State_Grid, State_Met, RC,        HcoConfig       )
+  SUBROUTINE HCOI_GC_Init( Input_Opt, State_Chm, State_Grid, &
+                           State_Met, RC,        HcoConfig )
 !
 ! !USES:
 !
@@ -162,7 +162,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
     TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state
     TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )          :: State_Met  ! Met state
@@ -216,7 +215,7 @@ CONTAINS
     id_POPG  = Ind_('POPG')
 
     ! Create a splash page
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
        WRITE( 6, 100   ) 'HEMCO: Harvard-NASA Emissions Component'
        WRITE( 6, 101   ) 'You are using HEMCO version ', ADJUSTL(HCO_VERSION)
@@ -255,6 +254,9 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
     ENDIF
 
+    ! Is this the root CPU?
+    iHcoConfig%amIRoot = Input_Opt%amIRoot
+
     ! Met and grid parameters
     iHcoConfig%MetField = Input_Opt%MetField
     iHcoConfig%GridRes  = State_Grid%GridRes
@@ -275,9 +277,12 @@ CONTAINS
     !---------------------------------------
     ! Phase 1: read settings and switches
     !---------------------------------------
-    CALL Config_ReadFile( am_I_Root,               iHcoConfig,               &
-                          Input_Opt%HcoConfigFile, 1,          HMRC,         &
-                          IsDryRun=Input_Opt%DryRun                         )
+    CALL Config_ReadFile( Input_Opt%amIRoot,        &
+                          iHcoConfig,               &
+                          Input_Opt%HcoConfigFile,  &
+                          1,                        &
+                          HMRC,                     &
+                          IsDryRun=Input_Opt%DryRun )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -287,8 +292,7 @@ CONTAINS
     ENDIF
 
     ! Check settings
-    CALL CheckSettings( am_I_Root, iHcoConfig, Input_Opt,                    &
-                        State_Met, State_Chm,  HMRC                         )
+    CALL CheckSettings( iHcoConfig, Input_Opt, State_Met, State_Chm,  HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -301,7 +305,7 @@ CONTAINS
     !---------------------------------------
     ! Open logfile
     !---------------------------------------
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC )
 
        ! Trap potential errors
@@ -316,9 +320,12 @@ CONTAINS
     !---------------------------------------
     ! Phase 2: read fields
     !---------------------------------------
-    CALL Config_ReadFile( am_I_Root,               iHcoConfig,               &
-                          Input_Opt%HcoConfigFile, 2,            HMRC,       &
-                          IsDryRun=Input_Opt%DryRun                         )
+    CALL Config_ReadFile( Input_Opt%amIRoot,        &
+                          iHcoConfig,               &
+                          Input_Opt%HcoConfigFile,  &
+                          2,                        &
+                          HMRC,                     &
+                          IsDryRun=Input_Opt%DryRun )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -341,8 +348,7 @@ CONTAINS
     ! species can be defined, e.g. those not transported in GEOS-Chem
     ! (e.g. SESQ) or tagged species (e.g. specialty simulations).
     !-----------------------------------------------------------------------
-    CALL SetHcoSpecies ( am_I_Root, Input_Opt, State_Chm,                    &
-                         HcoState,  nHcoSpc,   1,         HMRC              )
+    CALL SetHcoSpecies ( Input_Opt, State_Chm, HcoState,  nHcoSpc, 1, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -359,7 +365,7 @@ CONTAINS
     ! state object.  Links the HEMCO configuration file object
     ! iHcoConfig to HcoState%Config.
     !-----------------------------------------------------------------------
-    CALL HcoState_Init( am_I_Root, HcoState, iHcoConfig, nHcoSpc, HMRC      )
+    CALL HcoState_Init( HcoState, iHcoConfig, nHcoSpc, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -374,8 +380,7 @@ CONTAINS
     ! Register species. This will define all species properties
     ! (names, molecular weights, etc.) of the HEMCO species.
     !-----------------------------------------------------------------------
-    CALL SetHcoSpecies ( am_I_Root, Input_Opt, State_Chm,                    &
-                         HcoState,  nHcoSpc,   2,         HMRC              )
+    CALL SetHcoSpecies ( Input_Opt, State_Chm, HcoState, nHcoSpc, 2, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -390,7 +395,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set the HEMCO grid
     !-----------------------------------------------------------------------
-    CALL SetHcoGrid( am_I_Root, State_Grid, State_Met, HcoState, RC )
+    CALL SetHcoGrid( State_Grid, State_Met, HcoState, RC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -452,7 +457,7 @@ CONTAINS
     ! step. This also initializes the HEMCO clock as well as the
     ! HEMCO emissions diagnostics collection.
     !=======================================================================
-    CALL HCO_Init( am_I_Root, HcoState, HMRC                                )
+    CALL HCO_Init( HcoState, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -491,7 +496,7 @@ CONTAINS
     ! Initialize all HEMCO extensions. This also selects the required
     ! met fields used by each extension.
     !=======================================================================
-    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
+    CALL HCOX_Init( HcoState, ExtState, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -507,9 +512,7 @@ CONTAINS
     ! configuration file (e.g. HEMCO_Diagn.rc), and then exit
     !=======================================================================
     IF ( Input_Opt%DryRun ) THEN
-       CALL DiagnFileOpen( am_I_Root, HcoState%Config, N,                   &
-                           RC,        IsDryRun=.TRUE.                      )
-
+       CALL DiagnFileOpen( HcoState%Config, N, RC, IsDryRun=.TRUE. )
        RETURN
     ENDIF
 
@@ -572,8 +575,7 @@ CONTAINS
     ! Here, we need to make sure that these pointers are properly
     ! connected.
     !-----------------------------------------------------------------------
-    CALL ExtState_InitTargets( am_I_Root, HcoState, ExtState, State_Grid,    &
-                               HMRC )
+    CALL ExtState_InitTargets( HcoState, ExtState, State_Grid, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -590,8 +592,7 @@ CONTAINS
     IF ( DoDiagn ) THEN
 
        ! Set up traditional GEOS-Chem NDxx diagnostics for emissions
-       CALL HCOI_GC_Diagn_Init( am_I_Root, Input_Opt,                        &
-                                HcoState,  ExtState,  HMRC                  )
+       CALL HCOI_GC_Diagn_Init( Input_Opt, HcoState, ExtState, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -627,8 +628,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid,       &
-                          State_Met, EmisTime,  Phase,     RC               )
+  SUBROUTINE HCOI_GC_Run( Input_Opt, State_Chm, State_Grid,  &
+                          State_Met, EmisTime,  Phase,  RC )
 !
 ! !USES:
 !
@@ -650,7 +651,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,          INTENT(IN   )  :: EmisTime   ! Is this an emission time step?
     INTEGER,          INTENT(IN   )  :: Phase      ! Run phase (see remarks)
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
@@ -708,7 +708,7 @@ CONTAINS
     ! Make sure HEMCO time is in sync with simulation time
     ! This is now done in main.F
     !=======================================================================
-    CALL SetHcoTime( am_I_Root, EmisTime, HMRC                             )
+    CALL SetHcoTime( EmisTime, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -725,8 +725,7 @@ CONTAINS
     ! be true if this is an emission time step AND emissions have not yet
     ! been calculated for that time step.
     !=======================================================================
-    CALL HcoClock_Get( am_I_Root,             HcoState%Clock,                &
-                       IsEmisTime=IsEmisTime, RC=HMRC                       )
+    CALL HcoClock_Get( HcoState%Clock, IsEmisTime=IsEmisTime, RC=HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -769,7 +768,7 @@ CONTAINS
     ! At Phase 0, the pressure field is not known yet.
     !=======================================================================
     IF ( Phase /= 0 .and. notDryRun ) THEN
-       CALL GridEdge_Set( am_I_Root, State_Grid, State_Met, HcoState, HMRC  )
+       CALL GridEdge_Set( State_Grid, State_Met, HcoState, HMRC  )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -811,7 +810,7 @@ CONTAINS
     ! phase 2 will calculate the emissions. Emissions will be written into
     ! the corresponding flux arrays in HcoState.
     !=======================================================================
-    CALL HCO_Run( am_I_Root, HcoState, Phase, HMRC, IsEndStep )
+    CALL HCO_Run( HcoState, Phase, HMRC, IsEndStep )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -827,8 +826,8 @@ CONTAINS
     ! Get met fields from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
     IF ( ( Phase == 0 .or. PHASE == 1 ) .and. notDryRun ) THEN
-       CALL Get_Met_Fields( am_I_Root,  Input_Opt, State_Chm,               &
-                            State_Grid, State_Met, Phase,     RC           )
+       CALL Get_Met_Fields( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            Phase,     RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Get_Met_Fields"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -840,8 +839,7 @@ CONTAINS
     ! Get fields from GEOS-Chem restart file (GEOS-Chem "Classic" only)
     !=======================================================================
     IF ( Phase == 0 .and. notDryRun ) THEN
-       CALL Get_GC_Restart( am_I_Root,  Input_Opt, State_Chm,               &
-                            State_Grid, State_Met, RC                      )
+       CALL Get_GC_Restart( Input_Opt, State_Chm, State_Grid, State_Met, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Get_GC_Restart"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -855,8 +853,8 @@ CONTAINS
     IF ( State_Grid%NestedGrid        .and.                                 &
          (Phase == 0 .or. PHASE == 1) .and. notDryRun ) THEN
        IF ( Input_Opt%LTRAN ) THEN
-          CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm,   &
-                                       State_Grid, State_Met, RC           )
+          CALL Get_Boundary_Conditions( Input_Opt, State_Chm,  &
+                                        State_Grid, State_Met, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Get_Boundary_Conditions"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -881,8 +879,8 @@ CONTAINS
        ! connected.
        !--------------------------------------------------------------------
        IF ( notDryRun ) THEN
-          CALL ExtState_SetFields( am_I_Root, State_Chm, State_Met,          &
-                                   HcoState,  ExtState,  HMRC               )
+          CALL ExtState_SetFields( State_Chm, State_Met, &
+                                   HcoState,  ExtState,  HMRC )
 
           ! Trap potential errors
           IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -893,9 +891,9 @@ CONTAINS
              RETURN
           ENDIF
 
-          CALL ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,      &
-                                      State_Grid, State_Met, HcoState,       &
-                                      ExtState,   HMRC                      )
+          CALL ExtState_UpdateFields( Input_Opt, State_Chm,            &
+                                      State_Grid, State_Met, HcoState, &
+                                      ExtState,   HMRC )
 
           ! Trap potential errors
           IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -911,7 +909,7 @@ CONTAINS
        ! Run HCO extensions. Emissions will be added to corresponding
        ! flux arrays in HcoState.
        !====================================================================
-       CALL HCOX_Run( am_I_Root, HcoState, ExtState, HMRC                   )
+       CALL HCOX_Run( HcoState, ExtState, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -929,7 +927,7 @@ CONTAINS
        ! (Diagn_Create).
        !====================================================================
        IF ( DoDiagn .and. notDryRun ) THEN
-          CALL HcoDiagn_AutoUpdate( am_I_Root, HcoState, HMRC               )
+          CALL HcoDiagn_AutoUpdate( HcoState, HMRC )
 
           ! Trap potential errors
           IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -953,7 +951,7 @@ CONTAINS
        !====================================================================
        ! Emissions are now done for this time step
        !====================================================================
-       CALL HcoClock_EmissionsDone( am_I_Root, HcoState%Clock, HMRC         )
+       CALL HcoClock_EmissionsDone( HcoState%Clock, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -989,7 +987,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Final( am_I_Root, Error, RC )
+  SUBROUTINE HCOI_GC_Final( Error, RC )
 !
 ! !USES:
 !
@@ -1001,7 +999,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU
     LOGICAL, INTENT(IN)  :: Error       ! Cleanup after exit?
 !
 ! !OUTPUT PARAMETERS:
@@ -1039,7 +1036,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Cleanup HEMCO core
     !-----------------------------------------------------------------------
-    CALL HCO_Final( am_I_Root, HcoState, Error, HMRC )
+    CALL HCO_Final( HcoState, Error, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1054,7 +1051,7 @@ CONTAINS
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields.
     !-----------------------------------------------------------------------
-    CALL HCOX_Final( am_I_Root, HcoState, ExtState, HMRC )
+    CALL HCOX_Final( HcoState, ExtState, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1130,7 +1127,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, Restart, RC )
+  SUBROUTINE HCOI_GC_WriteDiagn( Input_Opt, Restart, RC )
 !
 ! !USES:
 !
@@ -1140,7 +1137,6 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   ) :: am_I_Root    ! Root CPU?
     TYPE(OptInput), INTENT(IN   ) :: Input_Opt    ! Input options
     LOGICAL,        INTENT(IN   ) :: Restart      ! write restart (enforced)?
 !
@@ -1180,7 +1176,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Make sure HEMCO time is in sync
     !-----------------------------------------------------------------------
-    CALL SetHcoTime ( am_I_Root, .FALSE., HMRC )
+    CALL SetHcoTime ( .FALSE., HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1194,7 +1190,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Write diagnostics
     !-----------------------------------------------------------------------
-    CALL HcoDiagn_Write( am_I_Root, HcoState, RESTART, HMRC )
+    CALL HcoDiagn_Write( HcoState, RESTART, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1224,8 +1220,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_InitTargets( am_I_Root,  HcoState, ExtState, &
-                                   State_Grid, RC )
+  SUBROUTINE ExtState_InitTargets( HcoState, ExtState, State_Grid, RC )
 !
 ! !USES:
 !
@@ -1235,7 +1230,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1444,8 +1438,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields( am_I_Root, State_Chm, State_Met,            &
-                                 HcoState,  ExtState,  RC                   )
+  SUBROUTINE ExtState_SetFields( State_Chm, State_Met, HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -1457,10 +1450,6 @@ CONTAINS
 #ifdef ESMF_
     USE HCOI_Esmf_Mod,  ONLY : HCO_SetExtState_ESMF
 #endif
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1510,9 +1499,8 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! SZAFACT
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%SZAFACT,         &
-                    'SZAFACT_FOR_EMIS', HMRC,     FIRST,                    &
-                     HCO_SZAFACT                                           )
+    CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
+                     HMRC,     FIRST,            HCO_SZAFACT )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1523,9 +1511,8 @@ CONTAINS
     ENDIF
 
     ! JNO2
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%JNO2,             &
-                    'JNO2_FOR_EMIS',    HMRC,     FIRST,                     &
-                     JNO2                                                   )
+    CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
+                     HMRC,     FIRST,         JNO2 )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1536,9 +1523,8 @@ CONTAINS
     ENDIF
 
     ! JOH
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%JOH,              &
-                    'JOH_FOR_EMIS',     HMRC,     FIRST,                     &
-                     JOH                                                    )
+    CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
+                     HMRC,     FIRST,        JOH )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1549,10 +1535,8 @@ CONTAINS
     ENDIF
 
     ! Frac of PBL
-    CALL ExtDat_Set( am_I_Root,             HcoState,                        &
-                     ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS',           &
-                     HMRC,                  FIRST,                           &
-                     HCO_FRAC_OF_PBL                                        )
+    CALL ExtDat_Set( HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS', &
+                     HMRC,     FIRST,                HCO_FRAC_OF_PBL )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1567,9 +1551,8 @@ CONTAINS
     ! ----------------------------------------------------------------------
 
     ! U10M
-    CALL ExtDat_Set( am_I_Root,      HcoState, ExtState%U10M,                &
-                    'U10M_FOR_EMIS',  HMRC   , FIRST,                        &
-                     State_Met%U10M                                         )
+    CALL ExtDat_Set( HcoState, ExtState%U10M, 'U10M_FOR_EMIS', &
+                     HMRC,     FIRST,         State_Met%U10M )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1580,9 +1563,8 @@ CONTAINS
     ENDIF
 
     ! V10M
-    CALL ExtDat_Set( am_I_Root,      HcoState, ExtState%V10M,                &
-                    'V10M_FOR_EMIS', HMRC,     FIRST,                        &
-                     State_Met%V10M                                         )
+    CALL ExtDat_Set( HcoState, ExtState%V10M, 'V10M_FOR_EMIS', &
+                     HMRC,     FIRST,         State_Met%V10M )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1594,9 +1576,8 @@ CONTAINS
     ENDIF
 
     ! ALBD
-    CALL ExtDat_Set( am_I_Root,      HcoState, ExtState%ALBD,                &
-                    'ALBD_FOR_EMIS', HMRC,     FIRST,                        &
-                     State_Met%ALBD                                         )
+    CALL ExtDat_Set( HcoState, ExtState%ALBD, 'ALBD_FOR_EMIS', &
+                     HMRC,     FIRST,         State_Met%ALBD )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1607,9 +1588,8 @@ CONTAINS
     ENDIF
 
     ! WLI
-    CALL ExtDat_Set( am_I_Root,     HcoState, ExtState%WLI,                  &
-                    'WLI_FOR_EMIS', HMRC,     FIRST,                         &
-                     State_Met%LWI                                          )
+    CALL ExtDat_Set( HcoState, ExtState%WLI, 'WLI_FOR_EMIS', &
+                     HMRC,     FIRST,        State_Met%LWI )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1619,9 +1599,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL ExtDat_Set( am_I_Root,     HcoState, ExtState%T2M,                  &
-                    'T2M_FOR_EMIS', HMRC,     FIRST,                         &
-                     State_Met%TS                                           )
+    CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M_FOR_EMIS', &
+                     HMRC,     FIRST,        State_Met%TS )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1632,9 +1611,8 @@ CONTAINS
     ENDIF
 
     ! TSKIN
-    CALL ExtDat_Set( am_I_Root,       HcoState, ExtState%TSKIN,              &
-                    'TSKIN_FOR_EMIS', HMRC,     FIRST,                       &
-                     State_Met%TSKIN                                        )
+    CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TSKIN_FOR_EMIS', &
+                     HMRC,     FIRST,          State_Met%TSKIN )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1645,9 +1623,8 @@ CONTAINS
     ENDIF
 
     ! GWETROOT
-    CALL ExtDat_Set( am_I_Root,          HcoState, ExtState%GWETROOT,        &
-                    'GWETROOT_FOR_EMIS', HMRC,     FIRST,                    &
-                     State_Met%GWETROOT                                     )
+    CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT_FOR_EMIS', &
+                     HMRC,     FIRST,             State_Met%GWETROOT )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1658,9 +1635,8 @@ CONTAINS
     ENDIF
 
     ! GWETTOP
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%GWETTOP,          &
-                    'GWETTOP_FOR_EMIS', HMRC,     FIRST,                     &
-                    State_Met%GWETTOP                                       )
+    CALL ExtDat_Set( HcoState, ExtState%GWETTOP, 'GWETTOP_FOR_EMIS', &
+                     HMRC,     FIRST,            State_Met%GWETTOP )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1670,9 +1646,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL ExtDat_Set( am_I_Root,       HcoState, ExtState%USTAR,              &
-                    'USTAR_FOR_EMIS', HMRC,     FIRST,                       &
-                     State_Met%USTAR                                        )
+    CALL ExtDat_Set( HcoState, ExtState%USTAR, 'USTAR_FOR_EMIS', &
+                     HMRC,     FIRST,          State_Met%USTAR )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1683,9 +1658,8 @@ CONTAINS
     ENDIF
 
     ! Z0
-    CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%Z0,                    &
-                    'Z0_FOR_EMIS', HMRC,     FIRST,                          &
-                     State_Met%Z0                                           )
+    CALL ExtDat_Set( HcoState, ExtState%Z0, 'Z0_FOR_EMIS', &
+                     HMRC,     FIRST,       State_Met%Z0 )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1695,9 +1669,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL ExtDat_Set( am_I_Root,       HcoState, ExtState%PARDR,              &
-                    'PARDR_FOR_EMIS', HMRC,     FIRST,                       &
-                     State_Met%PARDR                                        )
+    CALL ExtDat_Set( HcoState, ExtState%PARDR, 'PARDR_FOR_EMIS', &
+                     HMRC,     FIRST,          State_Met%PARDR )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1708,9 +1681,8 @@ CONTAINS
     ENDIF
 
     ! PARDF
-    CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%PARDF,             &
-                    'PARDF_FOR_EMIS',  HMRC, FIRST,                          &
-                     State_Met%PARDF                                        )
+    CALL ExtDat_Set( HcoState, ExtState%PARDF, 'PARDF_FOR_EMIS', &
+                     HMRC, FIRST,              State_Met%PARDF )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1721,9 +1693,8 @@ CONTAINS
     ENDIF
 
     ! PSC2_WET
-    CALL ExtDat_Set( am_I_Root,          HcoState, ExtState%PSC2_WET,        &
-                    'PSC2_WET_FOR_EMIS', HMRC,     FIRST,                    &
-                     State_Met%PSC2_WET                                     )
+    CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS', &
+                     HMRC,     FIRST,             State_Met%PSC2_WET )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1734,9 +1705,8 @@ CONTAINS
     ENDIF
 
     ! RADSWG
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%RADSWG,           &
-                    'RADSWG_FOR_EMIS',  HMRC,     FIRST,                     &
-                     State_Met%SWGDN                                        )
+    CALL ExtDat_Set( HcoState, ExtState%RADSWG, 'RADSWG_FOR_EMIS', &
+                     HMRC,     FIRST,           State_Met%SWGDN )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1747,9 +1717,8 @@ CONTAINS
     ENDIF
 
     ! FRCLND
-    CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%FRCLND,            &
-                    'FRCLND_FOR_EMIS', HMRC,     FIRST,                      &
-                     State_Met%FRCLND                                       )
+    CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS', &
+                     HMRC,     FIRST,           State_Met%FRCLND )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1760,9 +1729,8 @@ CONTAINS
     ENDIF
 
     ! CLDFRC
-    CALL ExtDat_Set( am_I_Root,          HcoState, ExtState%CLDFRC,          &
-                     'CLDFRC_FOR_EMIS',  HMRC,     FIRST,                    &
-                     State_Met%CLDFRC                                       )
+    CALL ExtDat_Set( HcoState, ExtState%CLDFRC, 'CLDFRC_FOR_EMIS', &
+                     HMRC,     FIRST,           State_Met%CLDFRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1774,9 +1742,8 @@ CONTAINS
 
     ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%SNOWHGT,          &
-                    'SNOWHGT_FOR_EMIS', HMRC,     FIRST,                     &
-                     State_Met%SNOMAS                                       )
+    CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOWHGT_FOR_EMIS', &
+                     HMRC,     FIRST,            State_Met%SNOMAS )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1787,9 +1754,8 @@ CONTAINS
     ENDIF
 
     ! SNOWDP is in m
-    CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%SNODP,             &
-                    'SNODP_FOR_EMIS',  HMRC,    FIRST,                       &
-                     State_Met%SNODP                                        )
+    CALL ExtDat_Set( HcoState, ExtState%SNODP, 'SNODP_FOR_EMIS', &
+                     HMRC,    FIRST,           State_Met%SNODP )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1800,9 +1766,8 @@ CONTAINS
     ENDIF
 
     ! FRLAND
-    CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%FRLAND,            &
-                    'FRLAND_FOR_EMIS', HMRC,     FIRST,                      &
-                     State_Met%FRLAND                                       )
+    CALL ExtDat_Set( HcoState, ExtState%FRLAND, 'FRLAND_FOR_EMIS', &
+                     HMRC,     FIRST,           State_Met%FRLAND )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1813,9 +1778,8 @@ CONTAINS
     ENDIF
 
     ! FROCEAN
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%FROCEAN,          &
-                    'FROCEAN_FOR_EMIS', HMRC,     FIRST,                     &
-                     State_Met%FROCEAN                                      )
+    CALL ExtDat_Set( HcoState, ExtState%FROCEAN, 'FROCEAN_FOR_EMIS', &
+                     HMRC,     FIRST,            State_Met%FROCEAN )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1826,9 +1790,8 @@ CONTAINS
     ENDIF
 
     ! FRLAKE
-    CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%FRLAKE,            &
-                    'FRLAKE_FOR_EMIS', HMRC,     FIRST,                      &
-                     State_Met%FRLAKE                                       )
+    CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE_FOR_EMIS', &
+                     HMRC,     FIRST,           State_Met%FRLAKE )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1839,9 +1802,8 @@ CONTAINS
     ENDIF
 
     ! FRLANDIC
-    CALL ExtDat_Set( am_I_Root,          HcoState, ExtState%FRLANDIC,        &
-                    'FRLANDIC_FOR_EMIS', HMRC,     FIRST,                    &
-                     State_Met%FRLANDIC                                     )
+    CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC_FOR_EMIS', &
+                     HMRC,     FIRST,             State_Met%FRLANDIC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1852,9 +1814,8 @@ CONTAINS
     ENDIF
 
     ! LAI
-    CALL ExtDat_Set( am_I_Root,      HcoState, ExtState%LAI,                 &
-                    'LAI_FOR_EMIS',  HMRC,     FIRST,                        &
-                     State_Met%MODISLAI  )
+    CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS', &
+                     HMRC,     FIRST,        State_Met%MODISLAI )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1865,9 +1826,9 @@ CONTAINS
     ENDIF
 
     ! Convective fractions
-    CALL ExtDat_Set( am_I_Root,         HcoState,        ExtState%CNV_FRC,   &
-                    'CNV_FRC_FOR_EMIS', HMRC,            FIRST,              &
-                     State_Met%CNV_FRC, NotFillOk=.TRUE.                    )
+    CALL ExtDat_Set( HcoState, ExtState%CNV_FRC,  'CNV_FRC_FOR_EMIS', &
+                     HMRC,     FIRST,             State_Met%CNV_FRC,  &
+                     NotFillOk=.TRUE. )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1882,9 +1843,9 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! CNV_MFC
-    CALL ExtDat_Set( am_I_Root,         HcoState,        ExtState%CNV_MFC,   &
-                    'CNV_MFC_FOR_EMIS', HMRC,            FIRST,              &
-                     State_Met%CMFMC,   OnLevEdge=.TRUE.                    )
+    CALL ExtDat_Set( HcoState,  ExtState%CNV_MFC, 'CNV_MFC_FOR_EMIS', &
+                     HMRC,      FIRST,            State_Met%CMFMC,    &
+                     OnLevEdge=.TRUE. )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1894,9 +1855,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%TK,                    &
-                    'TK_FOR_EMIS', HMRC,     FIRST,                          &
-                     State_Met%T                                            )
+    CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS', &
+                     HMRC,     FIRST,       State_Met%T )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1907,9 +1867,8 @@ CONTAINS
     ENDIF
 
     ! Air mass [kg/grid box]
-    CALL ExtDat_Set( am_I_Root,     HcoState, ExtState%AIR,                  &
-                    'AIR_FOR_EMIS', HMRC,     FIRST,                         &
-                     State_Met%AD                                           )
+    CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS', &
+                     HMRC,     FIRST,        State_Met%AD )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1920,9 +1879,8 @@ CONTAINS
     ENDIF
 
     ! AIRVOL_FOR_EMIS
-    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%AIRVOL,           &
-                    'AIRVOL_FOR_EMIS',  HMRC,     FIRST,                     &
-                     State_Met%AIRVOL                                       )
+    CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS', &
+                     HMRC,     FIRST,           State_Met%AIRVOL )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1933,9 +1891,8 @@ CONTAINS
     ENDIF
 
     ! Dry air density [kg/m3]
-    CALL ExtDat_Set( am_I_Root, HcoState, ExtState%AIRDEN,                   &
-                    'AIRDEN',   HMRC,     FIRST,                             &
-                     State_Met%AIRDEN                                       )
+    CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN', &
+                     HMRC,     FIRST,           State_Met%AIRDEN )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1946,9 +1903,8 @@ CONTAINS
     ENDIF
 
     ! Tropopause level
-    CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%TropLev,          &
-                    'TropLev',         HMRC,     FIRST,                     &
-                     State_Met%TropLev                                     )
+    CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev', &
+                     HMRC,     FIRST,            State_Met%TropLev )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1963,8 +1919,8 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( id_O3 > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_O3)
-       CALL ExtDat_Set( am_I_Root,          HcoState, ExtState%O3,           &
-                       'HEMCO_O3_FOR_EMIS', HMRC,     FIRST,         Trgt3D )
+       CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
+                        HMRC,     FIRST,       Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1979,8 +1935,8 @@ CONTAINS
 
     IF ( id_NO2 > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_NO2)
-       CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%NO2,         &
-                       'HEMCO_NO2_FOR_EMIS', HMRC,     FIRST,        Trgt3D )
+       CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
+                        HMRC,     FIRST,        Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1995,8 +1951,8 @@ CONTAINS
 
     IF ( id_NO > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_NO)
-       CALL ExtDat_Set( am_I_Root,          HcoState, ExtState%NO,           &
-                       'HEMCO_NO_FOR_EMIS', HMRC,     FIRST,         Trgt3D )
+       CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
+                        HMRC,     FIRST,       Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2011,8 +1967,8 @@ CONTAINS
 
     IF ( id_HNO3 > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_HNO3)
-       CALL ExtDat_Set( am_I_Root,            HcoState, ExtState%HNO3,       &
-                       'HEMCO_HNO3_FOR_EMIS', HMRC,     FIRST,       Trgt3D )
+       CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
+                        HMRC,     FIRST,         Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2027,8 +1983,8 @@ CONTAINS
 
     IF ( id_POPG > 0 ) THEN
        Trgt3D => State_Chm%Species(:,:,:,id_POPG)
-       CALL ExtDat_Set( am_I_Root,            HcoState, ExtState%POPG,       &
-                       'HEMCO_POPG_FOR_EMIS', HMRC,     FIRST,       Trgt3D )
+       CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
+                        HMRC,     FIRST,         Trgt3D )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2046,9 +2002,8 @@ CONTAINS
     ! ----------------------------------------------------------------------
 
     ! DRY_TOTN
-    CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%DRY_TOTN,       &
-                    'DRY_TOTN_FOR_EMIS',  HMRC,     FIRST,                   &
-                     State_Chm%DryDepNitrogen                               )
+    CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS', &
+                     HMRC,     FIRST,             State_Chm%DryDepNitrogen )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2059,9 +2014,8 @@ CONTAINS
     ENDIF
 
     ! WET_TOTN
-    CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%WET_TOTN,       &
-                    'WET_TOTN_FOR_EMIS',  HMRC,     FIRST,                   &
-                     State_Chm%WetDepNitrogen                               )
+    CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
+                     HMRC,     FIRST,             State_Chm%WetDepNitrogen )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2092,7 +2046,7 @@ CONTAINS
     ! ----------------------------------------------------------------
 #ifdef ESMF_
     ! IF ( FIRST ) THEN
-    CALL HCO_SetExtState_ESMF ( am_I_Root, HcoState, ExtState, RC )
+    CALL HCO_SetExtState_ESMF ( HcoState, ExtState, RC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2126,7 +2080,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields( am_I_Root,  Input_Opt, State_Chm,  &
+  SUBROUTINE ExtState_UpdateFields( Input_Opt,  State_Chm,             &
                                     State_Grid, State_Met, HcoState,   &
                                     ExtState,   RC )
 !
@@ -2146,7 +2100,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input options
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
@@ -2214,8 +2167,7 @@ CONTAINS
 
     ! SUNCOS
     IF ( ExtState%SUNCOS%DoUse ) THEN
-       CALL HCO_GetSUNCOS( am_I_Root,               HcoState,                &
-                           ExtState%SUNCOS%Arr%Val, 0,        HMRC          )
+       CALL HCO_GetSUNCOS( HcoState, ExtState%SUNCOS%Arr%Val, 0, HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2305,7 +2257,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GridEdge_Set( am_I_Root, State_Grid, State_Met, HcoState, RC )
+  SUBROUTINE GridEdge_Set( State_Grid, State_Met, HcoState, RC )
 !
 ! !USES:
 !
@@ -2318,7 +2270,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
@@ -2390,8 +2341,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Calculate vertical grid properties
     !-----------------------------------------------------------------------
-    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,  ZSFC,                &
-                           TK,        BXHEIGHT, PEDGE, HMRC                )
+    CALL HCO_CalcVertGrid( HcoState, PSFC,  ZSFC, TK, BXHEIGHT, PEDGE, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2419,8 +2369,8 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     ! Use the met field PBL field to initialize HEMCO
-    CALL HCO_SetPBLm( am_I_Root, HcoState,         FldName='PBL_HEIGHT',     &
-                      PBLM=PBLM, DefVal=1000.0_hp, RC=HMRC                  )
+    CALL HCO_SetPBLm( HcoState, FldName='PBL_HEIGHT', &
+                      PBLM=PBLM, DefVal=1000.0_hp, RC=HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2478,8 +2428,7 @@ CONTAINS
 ! needs to be done after initialization of the HEMCO state object.
 ! !INTERFACE:
 !
-  SUBROUTINE SetHcoSpecies( am_I_Root, Input_Opt, State_Chm,                 &
-                            HcoState,  nSpec,     Phase,     RC             )
+  SUBROUTINE SetHcoSpecies( Input_Opt, State_Chm, HcoState, nSpec, Phase, RC )
 !
 ! !USES:
 !
@@ -2492,7 +2441,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )   :: am_I_Root  ! Are we on the root CPU
     INTEGER,          INTENT(IN   )   :: Phase      ! 1=Init, 2=Run
     TYPE(ChmState),   INTENT(IN   )   :: State_Chm  ! Chemistry State object
 !
@@ -2582,7 +2530,7 @@ CONTAINS
        IF ( PHASE == 2 ) THEN
 
           ! Verbose
-          IF ( am_I_Root ) THEN
+          IF ( Input_Opt%amIRoot ) THEN
              Msg = 'Registering HEMCO species:'
              CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
@@ -2626,7 +2574,7 @@ CONTAINS
              HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_pKa  ! [1    ]
 
              ! Write to logfile
-             IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
+             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, N )
 
              ! Free pointer memory
              SpcInfo => NULL()
@@ -2649,7 +2597,7 @@ CONTAINS
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
 
              ! Write to logfile
-             IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
+             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG(  HcoState, N )
           ENDIF
 
           !------------------------------------------------------------------
@@ -2691,12 +2639,12 @@ CONTAINS
                 HcoState%Spc(M)%HenryPKa   = 0.0_hp
 
                 ! Write to log file
-                IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, M )
+                IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, M )
              ENDDO
           ENDIF
 
           ! Add line to log-file
-          IF ( am_I_Root ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          IF ( Input_Opt%amIRoot ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
        ENDIF ! Phase = 2
 
     !-----------------------------------------------------------------
@@ -2729,7 +2677,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SetHcoGrid( am_I_Root, State_Grid, State_Met, HcoState, RC )
+  SUBROUTINE SetHcoGrid( State_Grid, State_Met, HcoState, RC )
 !
 ! !USES:
 !
@@ -2742,7 +2690,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
 !
@@ -2815,7 +2762,7 @@ CONTAINS
     ENDDO
 
     ! Define the vertical grid
-    CALL HCO_VertGrid_Define( am_I_Root, HcoState%Config,                    &
+    CALL HCO_VertGrid_Define( HcoState%Config,                               &
                               zGrid      = HcoState%Grid%zGrid,              &
                               nz         = State_Grid%NZ,                    &
                               Ap         = Ap,                               &
@@ -2863,8 +2810,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CheckSettings( am_I_Root, HcoConfig, Input_Opt,                 &
-                            State_Met, State_Chm, RC                        )
+  SUBROUTINE CheckSettings( HcoConfig, Input_Opt, State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -2879,7 +2825,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     TYPE(ConfigObj),  POINTER        :: HcoConfig  ! HEMCO config obj
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state
@@ -2937,7 +2882,7 @@ CONTAINS
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
 
        OptName = 'EMISSIONS : false'
-       CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
+       CALL AddExtOpt( HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2951,7 +2896,7 @@ CONTAINS
        ! This will make sure that none of the extensions will be initialized
        ! and none of the input data related to any of the extensions will be
        ! used.
-       CALL SetExtNr( am_I_Root, HcoConfig, -999, RC=HMRC                   )
+       CALL SetExtNr( HcoConfig, -999, RC=HMRC                   )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2974,7 +2919,7 @@ CONTAINS
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
 
        OptName = 'CHEMISTRY_INPUT : false'
-       CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
+       CALL AddExtOpt( HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
 
        ! Trap potential errors
        IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -3399,7 +3344,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE Get_Met_Fields( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+ SUBROUTINE Get_Met_Fields( Input_Opt, State_Chm, State_Grid, &
                             State_Met, Phase,     RC )
 !
 ! ! USES:
@@ -3418,7 +3363,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-   LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
    TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
    TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
    INTEGER,          INTENT(IN   )          :: Phase      ! Run phase
@@ -3514,17 +3458,16 @@ CONTAINS
       v_name = 'TMPU1'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Met%TMPU1 = Ptr3D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize TMPU1    from restart file'
          ENDIF
       ELSE
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'TMPU1    not found in restart, keep as value at t=0'
          ENDIF
       ENDIF
@@ -3540,17 +3483,16 @@ CONTAINS
       v_name = 'SPHU1'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Met%SPHU1 = Ptr3D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize SPHU1    from restart file'
          ENDIF
       ELSE
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'SPHU1    not found in restart, keep as value at t=0'
          ENDIF
       ENDIF
@@ -3566,17 +3508,16 @@ CONTAINS
       v_name = 'PS1WET'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr2D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Met%PS1_WET = Ptr2D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize PS1_WET  from restart file'
          ENDIF
       ELSE
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'PS1_WET  not found in restart, keep as value at t=0'
          ENDIF
       ENDIF
@@ -3592,17 +3533,16 @@ CONTAINS
       v_name = 'PS1DRY'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr2D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Met%PS1_DRY = Ptr2D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize PS1_DRY  from restart file'
          ENDIF
       ELSE
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'PS1_DRY  not found in restart, keep as value at t=0'
          ENDIF
       ENDIF
@@ -3618,17 +3558,16 @@ CONTAINS
       v_name = 'DELPDRY'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Met%DELP_DRY = Ptr3D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize DELP_DRY from restart file'
          ENDIF
       ELSE
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
          ENDIF
       ENDIF
@@ -3648,12 +3587,12 @@ CONTAINS
       ! to allow initialization of floating pressures
       State_Met%PSC2_WET = State_Met%PS1_WET
       State_Met%PSC2_DRY = State_Met%PS1_DRY
-      CALL Set_Floating_Pressures( am_I_Root, State_Grid, State_Met, RC )
+      CALL Set_Floating_Pressures( Input_Opt%amIRoot, State_Grid, State_Met, RC )
 
       ! Call AIRQNT to compute initial air mass quantities
       ! Do not update initial tracer concentrations since not read
       ! from restart file yet (ewl, 10/28/15)
-      CALL AirQnt( am_I_Root, Input_Opt, State_Chm, State_Grid, State_Met, &
+      CALL AirQnt( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, State_Met, &
                    RC,        update_mixing_ratio=.FALSE. )
 
    ENDIF
@@ -3692,7 +3631,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE Get_GC_Restart( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+ SUBROUTINE Get_GC_Restart( Input_Opt, State_Chm, State_Grid, &
                             State_Met, RC )
 !
 ! !USES:
@@ -3720,7 +3659,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-   LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
@@ -3851,8 +3789,8 @@ CONTAINS
       Ptr3D => Temp3D
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D,     RC,       FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), &
+                       Ptr3D,    RC,       FOUND=FOUND )
 
       ! Check if species data is in file
       IF ( FOUND ) THEN
@@ -3871,7 +3809,7 @@ CONTAINS
 
          ! Print the min & max of each species as it is read from
          ! the restart file in mol/mol
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
                             MINVAL( Ptr3D ), MAXVAL( Ptr3D )
 120         FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
@@ -3917,7 +3855,8 @@ CONTAINS
                                             * MW_g / AIRMW
 
                ! Print to log if debugging is on
-               IF ( am_I_Root .AND. I == 1 .AND. J == 1 .AND. L == 1 ) THEN
+               IF ( Input_Opt%amIRoot .AND. &
+                    I == 1 .AND. J == 1 .AND. L == 1 ) THEN
                   WRITE( 6, 140 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
 140               FORMAT('Species ', i3, ', ', a9, &
                          ': Use background = ', es15.9)
@@ -4056,12 +3995,12 @@ CONTAINS
    State_Chm%Spc_Units = 'kg/kg dry'
 
    ! If in debug mode, print out species min and max in [molec/cm3]
-   IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
+   IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
 
       ! Convert units
       PRINT *, " "
       PRINT *, "Species min and max in molec/cm3"
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
+      CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,   &
                               State_Grid, State_Met, 'molec/cm3', &
                               RC,         OrigUnit=OrigUnit )
 
@@ -4084,7 +4023,7 @@ CONTAINS
       ENDDO
 
       ! Convert units back
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+      CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                               State_Grid, State_Met, OrigUnit,  RC )
 
       ! Trap error
@@ -4105,13 +4044,12 @@ CONTAINS
       v_name = 'KPP_HVALUE'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Chm%KPPHvalue = Ptr3D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize KPP H-value from restart file'
             WRITE(6,160) MINVAL( State_Chm%KPPHvalue(:,:,:) ), &
                          MAXVAL( State_Chm%KPPHvalue(:,:,:) )
@@ -4119,7 +4057,7 @@ CONTAINS
          ENDIF
       ELSE
          State_Chm%KPPHvalue = 0e+0_fp
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'KPP_HVALUE     not found in restart, set to zero'
          ENDIF
       ENDIF
@@ -4138,13 +4076,12 @@ CONTAINS
       v_name = 'WETDEP_N'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr2D,     RC,       FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Chm%WetDepNitrogen = Ptr2D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize wet deposited nitrogen from restart file'
             WRITE(6,170) MINVAL( State_Chm%WetDepNitrogen(:,:) ), &
                          MAXVAL( State_Chm%WetDepNitrogen(:,:) )
@@ -4152,7 +4089,7 @@ CONTAINS
          ENDIF
       ELSE
          State_Chm%WetDepNitrogen = 0e+0_fp
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'WETDEP_N       not found in restart, set to zero'
          ENDIF
       ENDIF
@@ -4164,13 +4101,12 @@ CONTAINS
       v_name = 'DRYDEP_N'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr2D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Chm%DryDepNitrogen = Ptr2D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
             WRITE(6,180) MINVAL( State_Chm%DryDepNitrogen(:,:) ), &
                          MAXVAL( State_Chm%DryDepNitrogen(:,:) )
@@ -4178,7 +4114,7 @@ CONTAINS
          ENDIF
       ELSE
          State_Chm%DryDepNitrogen = 0e+0_fp
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'DRYDEP_N       not found in restart, set to zero'
          ENDIF
       ENDIF
@@ -4198,13 +4134,12 @@ CONTAINS
       v_name = 'H2O2_AFTERCHEM'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Chm%H2O2AfterChem = Ptr3D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize H2O2 from restart file'
             WRITE(6,190) MINVAL( State_Chm%H2O2AfterChem(:,:,:) ), &
                          MAXVAL( State_Chm%H2O2AfterChem(:,:,:) )
@@ -4212,7 +4147,7 @@ CONTAINS
          ENDIF
       ELSE
          State_Chm%H2O2AfterChem = 0e+0_fp
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'H2O2_AFTERCHEM not found in restart, set to zero'
          ENDIF
       ENDIF
@@ -4224,13 +4159,12 @@ CONTAINS
       v_name = 'SO2_AFTERCHEM'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D, RC, FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Chm%SO2AfterChem = Ptr3D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
             WRITE(6,200) MINVAL( State_Chm%SO2AfterChem(:,:,:) ), &
                          MAXVAL( State_Chm%SO2AfterChem(:,:,:) )
@@ -4238,7 +4172,7 @@ CONTAINS
          ENDIF
       ELSE
          State_Chm%SO2AfterChem = 0e+0_fp
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'SO2_AFTERCHEM  not found in restart, set to zero'
          ENDIF
       ENDIF
@@ -4257,20 +4191,19 @@ CONTAINS
       v_name = 'STATE_PSC'
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D,     RC,       FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
          State_Chm%STATE_PSC = Ptr3D
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE(6,*) 'Initialize PSC from restart for UCX'
             WRITE(6,210) MINVAL( State_Chm%STATE_PSC(:,:,:) ), &
                          MAXVAL( State_Chm%STATE_PSC(:,:,:) )
 210         FORMAT( 12x, ' STATE_PSC: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
-         IF ( am_I_Root ) THEN
+         IF ( Input_OPt%amIRoot ) THEN
 #ifdef ESMF_
             ! ExtData and HEMCO behave ambiguously - if the file was found
             ! but was full of zeros throughout the domain of interest, it
@@ -4320,8 +4253,7 @@ CONTAINS
          v_name = 'OCEAN_' // TRIM( HgSpc )
 
          ! Get variable from HEMCO and store in local array
-         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                          Ptr2D, RC, FOUND=FOUND )
+         CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
@@ -4380,7 +4312,7 @@ CONTAINS
                         '_'      // TRIM( Hg_Cat_Name(N) )
 
                ! Get variable from HEMCO and store in local array
-               CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+               CALL HCO_GetPtr( HcoState, TRIM(v_name), &
                                 Ptr2D, RC, FOUND=FOUND )
 
                ! Check if variable is in file
@@ -4446,8 +4378,7 @@ CONTAINS
             ENDIF
 
             ! Get variable from HEMCO and store in local array
-            CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                             Ptr2D, RC, FOUND=FOUND )
+            CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr2D, RC, FOUND=FOUND )
 
             ! Check if variable is in file
             IF ( FOUND ) THEN
@@ -4505,7 +4436,7 @@ CONTAINS
    !=================================================================
 
    ! Mark end of section in log
-   IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
+   IF ( Input_Opt%LPRT .AND. Input_Opt%amIRoot ) THEN
       CALL DEBUG_MSG('### DONE GET_GC_RESTART')
    ENDIF
    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -4525,7 +4456,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
+ SUBROUTINE Get_Boundary_Conditions( Input_Opt, State_Chm, &
                                      State_Grid, State_Met, RC )
 !
 ! ! USES:
@@ -4543,7 +4474,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-   LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
    TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
    TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
 !
@@ -4632,8 +4562,7 @@ CONTAINS
       Ptr3D => Temp3D
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D,     RC,       FOUND=FOUND )
+      CALL HCO_GetPtr( HcoState, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
 
       ! Check if BCs are found
       IF ( FOUND ) THEN

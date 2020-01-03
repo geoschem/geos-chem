@@ -653,7 +653,7 @@
 
          CALL APM_INIT(Input_Opt%CHEM_INPUTS_DIR)
 
-         CALL Init_APM3D( am_I_Root, Input_Opt, State_Grid, RC )
+         CALL Init_APM3D( Input_Opt, State_Grid, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in routine "Init_APM3D"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1944,9 +1944,9 @@
 
             ! Archive aerosol mass and PM2.5 diagnostics
             IF ( State_Diag%Archive_AerMass ) THEN
-               CALL Set_AerMass_Diagnostic( am_I_Root,  Input_Opt,
-     &                                      State_Chm,  State_Diag,
-     &                                      State_Grid, State_Met, RC )
+               CALL Set_AerMass_Diagnostic( Input_Opt,  State_Chm, 
+     &                                      State_Diag, State_Grid, 
+     &                                      State_Met,  RC )
             ENDIF
 
             ! Trap potential errors
@@ -1972,7 +1972,7 @@
             ENDIF
 
             ! Update each HISTORY ITEM from its data source
-            CALL History_Update( am_I_Root, RC )
+            CALL History_Update( Input_Opt, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2442,7 +2442,7 @@
 #ifdef APM
       ! Clean up arrays for APM microphysics, etc.
       CALL CLEANUP_APMARRAYS()
-      CALL CLEANUP_APM3D( am_I_Root, Input_Opt, RC )
+      CALL CLEANUP_APM3D( Input_Opt, RC )
 #endif
 
 !-----------------------------------------------------------------------------

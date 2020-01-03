@@ -37,7 +37,7 @@
 !
 ! !REVISION HISTORY:
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -55,16 +55,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_CMN_O3( am_I_Root, State_Grid, RC )
+      SUBROUTINE Init_CMN_O3( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
@@ -73,7 +74,7 @@
 !
 ! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -107,23 +108,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Cleanup_CMN_O3( am_I_Root, RC )
+      SUBROUTINE Cleanup_CMN_O3( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC        ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

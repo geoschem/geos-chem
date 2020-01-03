@@ -319,42 +319,42 @@
          ! Get offline oxidant fields from HEMCO (mps, 9/18/14)
          IF ( FIRSTCHEM ) THEN
 
-            CALL HCO_GetPtr( aIR, HcoState, 'O3', O3m, RC )
+            CALL HCO_GetPtr( HcoState, 'O3', O3m, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to O3!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'PH2O2', PH2O2m, RC )
+            CALL HCO_GetPtr( HcoState, 'PH2O2', PH2O2m, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg =  'Cannot get pointer to PH2O2!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'JH2O2', JH2O2,  RC )
+            CALL HCO_GetPtr( HcoState, 'JH2O2', JH2O2,  RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to JH2O2!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH',  OH,    RC )
+            CALL HCO_GetPtr( HcoState, 'GLOBAL_OH',  OH,    RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_OH!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_NO3', NO3,   RC )
+            CALL HCO_GetPtr( HcoState, 'GLOBAL_NO3', NO3,   RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_NO3!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
+            CALL HCO_GetPtr( HcoState, 'GLOBAL_HNO3', HNO3, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_HNO3!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1056,8 +1056,7 @@
       ! READ IN HEMCO EMISSIONS
       !================================================================
       DgnName = 'SO4_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
-     &  Ptr3D=Ptr3D )
+      CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
       IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
@@ -2490,8 +2489,8 @@
       IF ( FIRST ) THEN
 
          ! Sea salt density, fine mode
-         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE',
-     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
+         CALL GetHcoDiagn( 'SEASALT_DENS_FINE', StopIfNotFound=.FALSE.,
+     &                     RC=RC, Ptr2D=NDENS_SALA )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN
@@ -2501,8 +2500,8 @@
          ENDIF
 
          ! Sea salt density, coarse mode
-         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE',
-     &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
+         CALL GetHcoDiagn( 'SEASALT_DENS_COARSE',StopIfNotFound=.FALSE.,
+     &                     RC=RC, Ptr2D=NDENS_SALC )
 
          ! Trap potential errors
          IF ( RC /= HCO_SUCCESS ) THEN

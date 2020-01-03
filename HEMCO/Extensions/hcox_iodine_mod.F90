@@ -85,7 +85,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Iodine_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_Iodine_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -94,7 +94,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
     TYPE(Ext_State), POINTER       :: ExtState   ! Module options
 !
@@ -285,8 +284,8 @@ CONTAINS
     IF ( Inst%CalcHOI ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXHOI, Inst%IDTHOI, &
-                         RC,        ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, FLUXHOI, Inst%IDTHOI, &
+                         RC,       ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXHOI', RC )
           RETURN
@@ -298,8 +297,8 @@ CONTAINS
     IF ( Inst%CalcI2 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXI2, Inst%IDTI2, &
-                         RC,        ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, FLUXI2, Inst%IDTI2, &
+                         RC,       ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXI2', RC )
           RETURN
@@ -329,7 +328,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Iodine_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_Iodine_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -340,7 +339,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState    ! HEMCO state object
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState    ! Options object
@@ -432,7 +430,7 @@ CONTAINS
     Inst%CalcHOI = ( Inst%CalcHOI .AND. Inst%IDTHOI > 0 )
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use inorganic iodine emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-')
 

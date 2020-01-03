@@ -1011,7 +1011,7 @@ CONTAINS
 
        ! Day
        FIELDNAME = TRIM(PREFIX) // '_DAY'
-       CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrDay(N)%MR, RC )
+       CALL HCO_GetPtr( HcoState, FIELDNAME, BrPtrDay(N)%MR, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1025,7 +1025,7 @@ CONTAINS
 
        ! Night
        FIELDNAME = TRIM(PREFIX) // '_NIGHT'
-       CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrNight(N)%MR, RC )
+       CALL HCO_GetPtr( HcoState, FIELDNAME, BrPtrNight(N)%MR, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1137,8 +1137,7 @@ CONTAINS
        ENDIF
 
        ! Get pointer from HEMCO
-       CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
-                        PLVEC(N)%PROD, RC,       FOUND=FND )
+       CALL HCO_GetPtr( HcoState, FIELDNAME, PLVEC(N)%PROD, RC, FOUND=FND )
 
        ! Trap potential errors
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
@@ -1167,8 +1166,7 @@ CONTAINS
        ENDIF
 
        ! Get pointer from HEMCO
-       CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
-                        PLVEC(N)%LOSS, RC,       FOUND=FND )
+       CALL HCO_GetPtr( HcoState, FIELDNAME, PLVEC(N)%LOSS, RC, FOUND=FND )
 
        ! Trap potential errors
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
@@ -1192,8 +1190,7 @@ CONTAINS
     ENDDO !N
 
     ! Get pointer to STRAT_OH
-    CALL HCO_GetPtr( am_I_Root, HcoState, 'STRAT_OH', &
-                     STRAT_OH,  RC,        FOUND=FND )
+    CALL HCO_GetPtr( HcoState, 'STRAT_OH', STRAT_OH,  RC, FOUND=FND )
 
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN

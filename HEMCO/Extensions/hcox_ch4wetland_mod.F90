@@ -142,7 +142,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_CH4WETLAND_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_CH4WETLAND_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -154,7 +154,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
     TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
@@ -219,13 +218,13 @@ CONTAINS
     !IF ( HcoClock_First( HcoState%Clock, .TRUE.) ) THEN
 
        IF ( Inst%DoWetland ) THEN
-          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_WETFRAC',  Inst%WETFRAC,  RC )
+          CALL HCO_EvalFld( HcoState, 'CH4_WETFRAC',  Inst%WETFRAC,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_LITTER_C', Inst%LITTER_C, RC )
+          CALL HCO_EvalFld( HcoState, 'CH4_LITTER_C', Inst%LITTER_C, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_SOIL_C',   Inst%SOIL_C,   RC )
+          CALL HCO_EvalFld( HcoState, 'CH4_SOIL_C',   Inst%SOIL_C,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_MEAN_T',   Inst%MEAN_T,   RC )
+          CALL HCO_EvalFld( HcoState, 'CH4_MEAN_T',   Inst%MEAN_T,   RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. Inst%DoDiagn ) THEN
              CALL DiagnCont_Find ( HcoState%Diagn, -1,-1,-1,-1,-1, &
@@ -236,11 +235,11 @@ CONTAINS
 
        ! Fields required by rice emissions
        IF ( Inst%DoRice ) THEN
-          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_RICE',    Inst%RICE,         RC )
+          CALL HCO_EvalFld( HcoState, 'CH4_RICE',    Inst%RICE,         RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_GWET_YR', Inst%GWET_ANNUAL,  RC )
+          CALL HCO_EvalFld( HcoState, 'CH4_GWET_YR', Inst%GWET_ANNUAL,  RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld( am_I_Root, HcoState, 'CH4_GWET_MT', Inst%GWET_MONTHLY, RC )
+          CALL HCO_EvalFld( HcoState, 'CH4_GWET_MT', Inst%GWET_MONTHLY, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( .NOT. Inst%DoDiagn ) THEN
              CALL DiagnCont_Find ( HcoState%Diagn, -1,-1,-1,-1,-1, &
@@ -258,13 +257,13 @@ CONTAINS
 
     ! If turned on, calculate wetland emissions
     IF ( Inst%DoWetland ) THEN
-       CALL WETLAND_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4wtl, RC )
+       CALL WETLAND_EMIS( HcoState, ExtState, Inst, CH4wtl, RC )
     ENDIF
 
     ! If turned on, calculate rice emissions. Previously calculated
     ! wetland emissions may be subtracted!
     IF ( Inst%DoRice ) THEN
-       CALL RICE_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4rce, RC )
+       CALL RICE_EMIS( HcoState, ExtState, Inst, CH4rce, RC )
     ENDIF
 
     ! ---------------------------------------------------------------
@@ -279,12 +278,12 @@ CONTAINS
     ! Eventually update manual diagnostics
     IF ( Inst%DoDiagn ) THEN
        IF ( Inst%DoWetland ) THEN
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+          CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                              cName=TRIM(DiagnWtl), Array2D=CH4wtl, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
        IF ( Inst%DoRice ) THEN
-          CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+          CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                              cName=TRIM(DiagnRce), Array2D=CH4rce, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -302,12 +301,12 @@ CONTAINS
        CH4tmp = CH4wtl * Inst%SpcScal(N)
 
        ! Check for masking
-       CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
+       CALL HCOX_SCALE ( HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Add emissions
-       CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
-                          ExtNr=Inst%ExtNr, Cat=Inst%CatWetland )
+       CALL HCO_EmisAdd( HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
+                         ExtNr=Inst%ExtNr, Cat=Inst%CatWetland )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! --- Rice emissions
@@ -315,12 +314,12 @@ CONTAINS
        CH4tmp = CH4rce * Inst%SpcScal(N)
 
        ! Check for masking
-       CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
+       CALL HCOX_SCALE( HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Add emissions
-       CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
-                          ExtNr=Inst%ExtNr, Cat=Inst%CatRice )
+       CALL HCO_EmisAdd( HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
+                         ExtNr=Inst%ExtNr, Cat=Inst%CatRice )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO
 
@@ -343,14 +342,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE WETLAND_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4wtl, RC )
+  SUBROUTINE WETLAND_EMIS( HcoState, ExtState, Inst, CH4wtl, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
     TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
@@ -613,14 +611,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RICE_EMIS ( am_I_Root, HcoState, ExtState, Inst, CH4rce, RC )
+  SUBROUTINE RICE_EMIS( HcoState, ExtState, Inst, CH4rce, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! root CPU?
     TYPE(HCO_State), POINTER       :: HcoState   ! Output obj
     TYPE(Ext_State), POINTER       :: ExtState  ! Module options
 !
@@ -698,7 +695,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_CH4WETLAND_INIT( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_CH4WETLAND_INIT( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -709,7 +706,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root    ! root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState     ! Hemco State obj.
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName      ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState     ! Ext. obj.
@@ -821,7 +817,7 @@ CONTAINS
     IF ( FOUND ) Inst%CatRice = Dum
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use wetland flux emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-' )
        WRITE(MSG,*) 'Use wetlands         : ', Inst%DoWetland

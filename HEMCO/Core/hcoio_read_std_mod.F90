@@ -109,7 +109,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_read_std( am_I_Root, HcoState, Lct, RC )
+  SUBROUTINE HCOIO_read_std( HcoState, Lct, RC )
 !
 ! !USES:
 !
@@ -142,7 +142,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
     TYPE(ListCont),   POINTER        :: Lct        ! HEMCO list container
 !
@@ -266,7 +265,7 @@ CONTAINS
     ! Parse source file name. This will replace all tokens ($ROOT,
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
-    CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
+    CALL SrcFile_Parse( HcoState, Lct, srcFile, FOUND, RC )
 
     ! Handle found or not in the standard way if HEMCO is in regular run mode.
     IF ( .NOT. HcoState%Options%isDryRun ) THEN
@@ -466,7 +465,7 @@ CONTAINS
     ! also calculated in GET_TIMEIDX and returned as variables wgt1
     ! and wgt2, respectively.
     ! ----------------------------------------------------------------
-    CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct,      &
+    CALL GET_TIMEIDX ( HcoState,  Lct,                &
                        ncLun,     tidx1,    tidx2,    &
                        wgt1,      wgt2,     oYMDhm1,  &
                        YMDhma,    YMDhm1,   RC        )
@@ -666,7 +665,7 @@ CONTAINS
           ! levels of the grid. Some of these assumptions are rather arbitrary.
           ! IsModelLev will stay True if is was set so in NC_ISMODELLEVEL
           ! above. (ckeller, 9/29/15)
-          CALL ModelLev_Check( am_I_Root, HcoState, nlev, IsModelLevel, RC )
+          CALL ModelLev_Check( HcoState, nlev, IsModelLevel, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Set level indeces to be read
@@ -718,7 +717,7 @@ CONTAINS
     ! Check for arbitrary additional dimension. Will return -1 if not
     ! set.
     ! ----------------------------------------------------------------
-    CALL GetArbDimIndex( am_I_Root, HcoState, ncLun, Lct, ArbIdx, RC )
+    CALL GetArbDimIndex( HcoState, ncLun, Lct, ArbIdx, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -783,7 +782,7 @@ CONTAINS
           ELSE
              Direction = +1
           ENDIF
-          CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile2, &
+          CALL SrcFile_Parse ( HcoState,  Lct, srcFile2, &
                                FOUND, RC, Direction = Direction )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -797,7 +796,7 @@ CONTAINS
           ! Define time stamp to be read. Use this call only
           ! to get the datetime of the first time slice (YMDhm1).
           ! All other values will be ignored and reset below.
-          CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct,     &
+          CALL GET_TIMEIDX ( HcoState,  Lct,               &
                              ncLun2,    tidx1,    tidx2,   &
                              wgt1,      wgt2,     oYMDhm2, &
                              YMDhmb,    YMDhm1,   RC       )
@@ -888,8 +887,8 @@ CONTAINS
              Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGEAVG       ) THEN
 
        ! cYr is the current simulation year
-       CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
-                          cYYYY=cYr, cMM=cMt, cDD=cDy, cH=cHr, RC=RC )
+       CALL HcoClock_Get( HcoState%Clock, cYYYY=cYr, cMM=cMt, cDD=cDy, &
+                          cH=cHr, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Determine year range to be read:
@@ -922,7 +921,7 @@ CONTAINS
           DO iYear = Yr1, Yr2
 
              ! Get file name for this year
-             CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile2, &
+             CALL SrcFile_Parse ( HcoState, Lct, srcFile2, &
                                   FOUND, RC, Year=iYear )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -938,7 +937,7 @@ CONTAINS
              CALL NC_OPEN ( TRIM(srcFile2), ncLun2 )
 
              ! Define time stamp to be read.
-             CALL GET_TIMEIDX ( am_I_Root, HcoState, Lct,     &
+             CALL GET_TIMEIDX ( HcoState,  Lct,               &
                                 ncLun2,    tidx1,    tidx2,   &
                                 wgt1,      wgt2,     oYMDhm2, &
                                 YMDhmb,    YMDhm1,   RC,      &
@@ -990,7 +989,7 @@ CONTAINS
           ncArr = ncArr / REAL(nYears,sp)
 
           ! Verbose
-          IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,1) ) THEN
+          IF ( HcoState%amIRoot .AND. HCO_IsVerb(HcoState%Config%Err,1) ) THEN
              WRITE(MSG,110) TRIM(Lct%Dct%cName), Yr1, Yr2
              CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDIF
@@ -1135,16 +1134,16 @@ CONTAINS
        ncMt  = FLOOR( MOD( oYMDhm1, 1.0e8_dp  ) / 1.0e6_dp )
 
        IF ( ncYr == 0 ) THEN
-          CALL HcoClock_Get( am_I_Root, HcoState%Clock, cYYYY = ncYr, RC=RC )
+          CALL HcoClock_Get( HcoState%Clock, cYYYY = ncYr, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
        IF ( ncMt == 0 ) THEN
-          CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM   = ncMt, RC=RC )
+          CALL HcoClock_Get( HcoState%Clock, cMM   = ncMt, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
        ! Verbose mode
-       IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
+       IF ( HcoState%amIRoot .and. HCO_IsVerb(HcoState%Config%Err,3) ) THEN
           WRITE(MSG,*) 'Unit conversion settings: '
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) '- Species MW         : ', MW_g
@@ -1367,7 +1366,7 @@ CONTAINS
           ENDIF
 
           ! Interpolate onto edges
-          CALL SigmaMidToEdges ( am_I_Root, HcoState, SigLev, SigEdge, RC )
+          CALL SigmaMidToEdges ( HcoState, SigLev, SigEdge, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Sigma levels are not needed anymore
@@ -1385,7 +1384,7 @@ CONTAINS
        ENDIF ! nlev>1
 
        ! Now do the regridding
-       CALL HCO_MESSY_REGRID ( am_I_Root, HcoState,     NcArr,   &
+       CALL HCO_MESSY_REGRID ( HcoState,  NcArr,                 &
                                LonEdge,   LatEdge,      SigEdge, &
                                Lct,       IsModelLevel, RC        )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1402,8 +1401,7 @@ CONTAINS
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
-       CALL REGRID_MAPA2A ( am_I_Root, HcoState, NcArr, &
-                            LonEdge,   LatEdge,  Lct,   RC )
+       CALL REGRID_MAPA2A ( HcoState, NcArr, LonEdge, LatEdge, Lct, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDIF
@@ -1414,13 +1412,13 @@ CONTAINS
     IF ( HcoState%Options%Field2Diagn ) THEN
        IF ( Lct%Dct%Dta%SpaceDim == 3 .AND. ASSOCIATED(Lct%Dct%Dta%V3) ) THEN
           IF ( ASSOCIATED(Lct%Dct%Dta%V3(1)%Val) ) THEN
-             CALL Diagn_Update ( am_I_Root, HcoState, cName=TRIM(Lct%Dct%cName), &
+             CALL Diagn_Update ( HcoState, cName=TRIM(Lct%Dct%cName), &
                                  Array3D=Lct%Dct%Dta%V3(1)%Val, COL=-1, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
        ELSEIF ( Lct%Dct%Dta%SpaceDim == 2 .AND. ASSOCIATED(Lct%Dct%Dta%V2) ) THEN
           IF ( ASSOCIATED(Lct%Dct%Dta%V2(1)%Val) ) THEN
-             CALL Diagn_Update ( am_I_Root, HcoState, cName=TRIM(Lct%Dct%cName), &
+             CALL Diagn_Update ( HcoState, cName=TRIM(Lct%Dct%cName), &
                                  Array2D=Lct%Dct%Dta%V2(1)%Val, COL=-1, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
@@ -1469,9 +1467,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_TIMEIDX( am_I_Root, HcoState, Lct,     &
+  SUBROUTINE GET_TIMEIDX( HcoState,  Lct,               &
                           ncLun,     tidx1,    tidx2,   &
-                          wgt1,      wgt2,     oYMDhm,   &
+                          wgt1,      wgt2,     oYMDhm,  &
                           YMDhm,     YMDhm1,   RC,      &
                           Year )
 !
@@ -1482,7 +1480,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )            :: am_I_Root ! Root CPU?
     TYPE(HCO_State),  POINTER                  :: HcoState  ! HcoState object
     TYPE(ListCont),   POINTER                  :: Lct       ! List container
     INTEGER,          INTENT(IN   )            :: ncLun     ! open ncLun
@@ -1584,8 +1581,8 @@ CONTAINS
     ! simulation date is outside of the data range given in the
     ! configuration file.
     ! ----------------------------------------------------------------
-    CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
-                               prefMt, prefDy, prefHr, prefMn, RC )
+    CALL HCO_GetPrefTimeAttr ( HcoState, Lct, &
+                               prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Eventually force preferred year to passed value
@@ -1866,7 +1863,7 @@ CONTAINS
           ! Interpolate between dates
           IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_INTER ) THEN
 
-             CALL GetIndex2Interp( am_I_Root,  HcoState,  Lct, nTime, &
+             CALL GetIndex2Interp( HcoState,   Lct,       nTime,      &
                                    availYMDhm, prefYMDhm, origYMDhm,  &
                                    tidx1,      tidx2,     wgt1,       &
                                    wgt2,       RC                   )
@@ -2381,14 +2378,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetIndex2Interp ( am_I_Root, HcoState,   Lct,       &
+  SUBROUTINE GetIndex2Interp ( HcoState,  Lct,                   &
                                nTime,     availYMDhm,            &
                                prefYMDhm, origYMDhm,  tidx1,     &
                                tidx2,     wgt1,       wgt2,  RC   )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root
     TYPE(HCO_State),  POINTER       :: HcoState
     TYPE(ListCont),   POINTER       :: Lct
     INTEGER,          INTENT(IN)    :: nTime
@@ -2821,7 +2817,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC, &
+  SUBROUTINE SrcFile_Parse ( HcoState, Lct, srcFile, FOUND, RC, &
                              Direction, Year )
 !
 ! !USES:
@@ -2833,7 +2829,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState   ! HEMCO state object
     TYPE(ListCont),   POINTER                 :: Lct        ! HEMCO list container
     INTEGER,          INTENT(IN   ), OPTIONAL :: Direction  ! Look for file in
@@ -2888,25 +2883,25 @@ CONTAINS
     ENDIF
 
     ! Get preferred dates (to be passed to parser)
-    CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
-                               prefMt, prefDy, prefHr, prefMn, RC )
+    CALL HCO_GetPrefTimeAttr ( HcoState, Lct, &
+                               prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Make sure dates are not negative
     IF ( prefYr <= 0 ) THEN
-       CALL HcoClock_Get( am_I_Root, HcoState%Clock, cYYYY = prefYr, RC = RC )
+       CALL HcoClock_Get( HcoState%Clock, cYYYY = prefYr, RC = RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( prefMt <= 0 ) THEN
-       CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM   = prefMt, RC = RC )
+       CALL HcoClock_Get( HcoState%Clock, cMM   = prefMt, RC = RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( prefDy <= 0 ) THEN
-       CALL HcoClock_Get( am_I_Root, HcoState%Clock, cDD   = prefDy, RC = RC )
+       CALL HcoClock_Get( HcoState%Clock, cDD   = prefDy, RC = RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( prefHr <  0 ) THEN
-       CALL HcoClock_Get( am_I_Root, HcoState%Clock, cH    = prefHr, RC = RC )
+       CALL HcoClock_Get( HcoState%Clock, cH    = prefHr, RC = RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -3133,11 +3128,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SigmaMidToEdges ( am_I_Root, HcoState, SigMid, SigEdge, RC )
+  SUBROUTINE SigmaMidToEdges ( HcoState, SigMid, SigEdge, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root       ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState        ! HEMCO state obj
     REAL(hp),         POINTER                 :: SigMid(:,:,:)   ! sigma levels
 !
@@ -3251,7 +3245,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetArbDimIndex( am_I_Root, HcoState, Lun, Lct, ArbIdx, RC )
+  SUBROUTINE GetArbDimIndex( HcoState, Lun, Lct, ArbIdx, RC )
 !
 ! !USES:
 !
@@ -3261,7 +3255,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),  POINTER                 :: HcoState
     INTEGER,          INTENT(IN   )           :: Lun
     TYPE(ListCont),   POINTER                 :: Lct
@@ -3357,7 +3350,7 @@ CONTAINS
     ENDIF
 
     ! Verbose
-    IF ( am_I_Root .AND. HCO_IsVerb( HcoState%Config%Err, 2 ) ) THEN
+    IF ( HcoState%amIRoot .AND. HCO_IsVerb( HcoState%Config%Err, 2 ) ) THEN
        WRITE(MSG,*) 'Additional dimension ', TRIM(Lct%Dct%Dta%ArbDimName), ' in ', &
           TRIM(Lct%Dct%Dta%ncFile), ': use index ', ArbIdx, ' (set: ', Lct%Dct%Dta%ArbDimVal, ')'
        CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -3388,14 +3381,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_ReadOther ( am_I_Root, HcoState, Lct, RC )
+  SUBROUTINE HCOIO_ReadOther( HcoState, Lct, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMTERS:
 !
-    LOGICAL,         INTENT(IN   )    :: am_I_Root
     TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -3427,12 +3419,12 @@ CONTAINS
 
     ! Read an ASCII file as country values
     IF ( INDEX( TRIM(Lct%Dct%Dta%ncFile), '.txt' ) > 0 ) THEN
-       CALL HCOIO_ReadCountryValues ( am_I_Root, HcoState, Lct, RC )
+       CALL HCOIO_ReadCountryValues( HcoState, Lct, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Directly read from configuration file otherwise
     ELSE
-       CALL HCOIO_ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+       CALL HCOIO_ReadFromConfig( HcoState, Lct, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -3453,7 +3445,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_ReadCountryValues ( am_I_Root, HcoState, Lct, RC )
+  SUBROUTINE HCOIO_ReadCountryValues ( HcoState, Lct, RC )
 !
 ! !USES:
 !
@@ -3464,7 +3456,6 @@ CONTAINS
 !
 ! !INPUT PARAMTERS:
 !
-    LOGICAL,         INTENT(IN   )    :: am_I_Root
     TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -3545,7 +3536,7 @@ CONTAINS
        IF ( NLINE == 0 ) THEN
 
           ! Get pointer to mask. Convert to integer
-          CALL HCO_GetPtr ( am_I_Root, HcoState, TRIM(LINE), CNTR, RC )
+          CALL HCO_GetPtr( HcoState, TRIM(LINE), CNTR, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           ALLOCATE( CIDS(HcoState%NX, HcoState%NY), STAT=IOS )
           IF ( IOS /= 0 ) THEN
@@ -3590,7 +3581,7 @@ CONTAINS
        ID1  = ID2+1
        ID2  = LEN(LINE)
        LINE = LINE(ID1:ID2)
-       CALL GetDataVals( am_I_Root, HcoState, Lct, LINE, Vals, RC )
+       CALL GetDataVals( HcoState, Lct, LINE, Vals, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Check data / array dimensions
@@ -3677,7 +3668,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_ReadFromConfig ( am_I_Root, HcoState, Lct, RC )
+  SUBROUTINE HCOIO_ReadFromConfig( HcoState, Lct, RC )
 !
 ! !USES:
 !
@@ -3685,7 +3676,6 @@ CONTAINS
 !
 ! !INPUT PARAMTERS:
 !
-    LOGICAL,         INTENT(IN   )    :: am_I_Root
     TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -3723,7 +3713,7 @@ CONTAINS
     !-------------------------------------------------------------------
     ! Get data values for this time step.
     !-------------------------------------------------------------------
-    CALL GetDataVals ( am_I_Root, HcoState, Lct, Lct%Dct%Dta%ncFile, Vals, RC )
+    CALL GetDataVals( HcoState, Lct, Lct%Dct%Dta%ncFile, Vals, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-------------------------------------------------------------------
@@ -3743,7 +3733,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Fill array: 1.0 within grid box, 0.0 outside.
-       CALL FillMaskBox ( am_I_Root, HcoState, Lct, Vals, RC )
+       CALL FillMaskBox( HcoState, Lct, Vals, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Data is 2D
@@ -3814,7 +3804,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_CloseAll ( am_I_Root, HcoState, RC )
+  SUBROUTINE HCOIO_CloseAll( HcoState, RC )
 !
 ! !USES:
 !
@@ -3824,7 +3814,6 @@ CONTAINS
 !
 ! !INPUT PARAMTERS:
 !
-    LOGICAL,         INTENT(IN   )    :: am_I_Root
     TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -3969,7 +3958,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetDataVals ( am_I_Root, HcoState, Lct, ValStr, Vals, RC )
+  SUBROUTINE GetDataVals ( HcoState, Lct, ValStr, Vals, RC )
 !
 ! !USES:
 !
@@ -3981,7 +3970,6 @@ CONTAINS
 !
 ! !INPUT PARAMTERS:
 !
-    LOGICAL,          INTENT(IN   )   :: am_I_Root
     TYPE(HCO_State),  POINTER         :: HcoState    ! HEMCO state
     CHARACTER(LEN=*), INTENT(IN   )   :: ValStr
 !
@@ -4046,7 +4034,7 @@ CONTAINS
 
     ! Evaluate math expression if string starts with 'MATH:'
     IF ( IsMath ) THEN
-       CALL ReadMath ( am_I_Root, HcoState, Lct, ValStr, FileVals, N, RC )
+       CALL ReadMath ( HcoState, Lct, ValStr, FileVals, N, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Use regular string parser otherwise
@@ -4068,8 +4056,8 @@ CONTAINS
 
     ! Get the preferred times, i.e. the preferred year, month, day,
     ! or hour (as specified in the configuration file).
-    CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
-                               prefMt, prefDy, prefHr, prefMn, RC )
+    CALL HCO_GetPrefTimeAttr( HcoState, Lct, &
+                              prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -4375,14 +4363,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FillMaskBox ( am_I_Root, HcoState, Lct, Vals, RC )
+  SUBROUTINE FillMaskBox ( HcoState, Lct, Vals, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMTERS:
 !
-    LOGICAL,          INTENT(IN   )   :: am_I_Root
     TYPE(HCO_State),  POINTER         :: HcoState    ! HEMCO state
     REAL(hp)        , POINTER         :: Vals(:)
 !
@@ -4508,7 +4495,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadMath ( am_I_Root, HcoState, Lct, ValStr, Vals, N, RC )
+  SUBROUTINE ReadMath( HcoState, Lct, ValStr, Vals, N, RC )
 !
 ! !USES:
 !
@@ -4518,7 +4505,6 @@ CONTAINS
 !
 ! !INPUT PARAMTERS:
 !
-    LOGICAL,          INTENT(IN   )   :: am_I_Root
     TYPE(HCO_State),  POINTER         :: HcoState    ! HEMCO state
     TYPE(ListCont),   POINTER         :: Lct
     CHARACTER(LEN=*), INTENT(IN   )   :: ValStr
@@ -4581,14 +4567,14 @@ CONTAINS
     func = ValStr(6:STRL)
 
     ! Get preferred time stamps
-    CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
-                               prefMt, prefDy, prefHr, prefMn, RC )
+    CALL HCO_GetPrefTimeAttr( HcoState, Lct, &
+                              prefYr, prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get some other current time stamps
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cS=prefS, cH=cHr, &
+    CALL HcoClock_Get( HcoState%Clock,  cS=prefS,     cH=cHr, &
                        cWEEKDAY=prefWD, cDOY=prefDOY, LMD=LMD,      &
-                       nSteps=nSteps, RC=RC )
+                       nSteps=nSteps,   RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! GetPrefTimeAttr can return -999 for hour. In this case set to current

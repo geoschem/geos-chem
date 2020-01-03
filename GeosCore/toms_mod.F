@@ -231,7 +231,7 @@
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns [dobsons]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS_O3_COL', TOMS, RC )
+      CALL HCO_GetPtr( HcoState, 'TOMS_O3_COL', TOMS, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: TOMS_O3_COL'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -241,7 +241,7 @@
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns first day [dobsons]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS1_O3_COL', TOMS1, RC )
+      CALL HCO_GetPtr( HcoState, 'TOMS1_O3_COL', TOMS1, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: TOMS1_O3_COL!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -251,7 +251,7 @@
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns last day [dobsons]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS2_O3_COL', TOMS2, RC )
+      CALL HCO_GetPtr( HcoState, 'TOMS2_O3_COL', TOMS2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: TOMS2_O3_COL!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -261,7 +261,7 @@
       !-----------------------------------------------------------------
       ! Read d(TOMS)/dt, 1st half of the month [dobsons/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'DTOMS1_O3_COL', DTOMS1, RC)
+      CALL HCO_GetPtr( HcoState, 'DTOMS1_O3_COL', DTOMS1, RC)
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: DTOMS1_O3_COL'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -271,7 +271,7 @@
       !-----------------------------------------------------------------
       ! Read d(TOMS)/dt, 2nd half of the month [dobsons/day]
       !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState,'DTOMS2_O3_COL', DTOMS2, RC )
+      CALL HCO_GetPtr( HcoState,'DTOMS2_O3_COL', DTOMS2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to field: DTOMS2_O3_COL!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -584,15 +584,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_TOMS( am_I_Root, RC )
+      SUBROUTINE CLEANUP_TOMS( RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !

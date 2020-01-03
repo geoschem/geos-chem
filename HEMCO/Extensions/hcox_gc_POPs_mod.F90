@@ -140,7 +140,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_GC_POPs_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_GC_POPs_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -151,7 +151,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(Ext_State),  POINTER       :: ExtState    ! Options for POPs sim
     TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state
 !
@@ -277,9 +276,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! am I root?
-    aIR = am_I_Root
-
     DEL_H   = ExtState%POP_DEL_H
     KOA_298 = ExtState%POP_KOA
     KBC_298 = ExtState%POP_KBC
@@ -290,19 +286,19 @@ CONTAINS
     !=======================================================================
     IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'TOT_POP',     Inst%POP_TOT_EM, RC )
+       CALL HCO_GetPtr( HcoState, 'TOT_POP',     Inst%POP_TOT_EM, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OC',   Inst%C_OC,       RC )
+       CALL HCO_GetPtr( HcoState, 'GLOBAL_OC',   Inst%C_OC,       RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_BC',   Inst%C_BC,       RC )
+       CALL HCO_GetPtr( HcoState, 'GLOBAL_BC',   Inst%C_BC,       RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'SURF_POP',    Inst%POP_SURF,   RC )
+       CALL HCO_GetPtr( HcoState, 'SURF_POP',    Inst%POP_SURF,   RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       CALL HCO_GetPtr( aIR, HcoState, 'SOIL_CARBON', Inst%F_OC_SOIL,  RC )
+       CALL HCO_GetPtr( HcoState, 'SOIL_CARBON', Inst%F_OC_SOIL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Convert F_OC_SOIL from kg/m2 to fraction
@@ -503,7 +499,7 @@ CONTAINS
 
        ! Add flux to emissions array
        Arr3D => Inst%EPOP_OC(:,:,:)
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, Inst%IDTPOPPOCPO, &
+       CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTPOPPOCPO, &
                          RC, ExtNr=Inst%ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -519,7 +515,7 @@ CONTAINS
 
        ! Add flux to emissions array
        Arr3D => Inst%EPOP_BC(:,:,:)
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, Inst%IDTPOPPBCPO, &
+       CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTPOPPBCPO, &
                          RC, ExtNr=Inst%ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -535,7 +531,7 @@ CONTAINS
 
        ! Add flux to emissions array
        Arr3D => Inst%EPOP_G(:,:,:)
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, Inst%IDTPOPG, &
+       CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTPOPG, &
                          RC, ExtNr=Inst%ExtNr )
        Arr3D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -550,73 +546,73 @@ CONTAINS
     !----------------------
 
     Inst%DiagnName = 'AD53_POPG_SOIL'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%EMIS_SOIL, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_POPG_LAKE'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%EMIS_LAKE, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_POPG_LEAF'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%EMIS_LEAF, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_SOIL2AIR'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FLUX_SOIL2AIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_AIR2SOIL'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FLUX_AIR2SOIL, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_LAKE2AIR'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FLUX_LAKE2AIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_AIR2LAKE'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FLUX_AIR2LAKE, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_LEAF2AIR'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FLUX_LEAF2AIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_AIR2LEAF'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FLUX_AIR2LEAF, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_SOILAIR_FUG'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FUG_SOILAIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_LAKEAIR_FUG'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FUG_LAKEAIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     Inst%DiagnName = 'AD53_LEAFAIR_FUG'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(Inst%DiagnName), &
                        Array2D=Inst%FUG_LEAFAIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1823,7 +1819,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_GC_POPs_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_GC_POPs_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -1832,7 +1828,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState    ! Module options
     TYPE(HCO_State),  POINTER        :: HcoState    ! Hemco state
@@ -1888,7 +1883,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use GC_POPs emissions module (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG )
 

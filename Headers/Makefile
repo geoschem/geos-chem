@@ -213,6 +213,7 @@ physconstants.o        : physconstants.F          \
 registry_mod.o         : registry_mod.F90         \
                          charpak_mod.o            \
                          errcode_mod.o            \
+                         input_opt_mod.o          \
                          precision_mod.o          \
                          registry_params_mod.o
 
@@ -221,6 +222,7 @@ registry_params_mod.o  : registry_params_mod.F90 \
 
 species_mod.o          : species_mod.F90          \
                          charpak_mod.o            \
+                         input_opt_mod.o          \
                          physconstants.o          \
                          precision_mod.o
 

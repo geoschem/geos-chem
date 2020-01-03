@@ -324,7 +324,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION tIDx_GetIndx ( am_I_Root, HcoState, Dta, I, J ) RESULT ( Indx )
+  FUNCTION tIDx_GetIndx ( HcoState, Dta, I, J ) RESULT ( Indx )
 !
 ! !USES:
 !
@@ -334,7 +334,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN) :: am_I_Root ! Longitude index of interest
     TYPE(HCO_State), POINTER    :: HcoState  ! Hemco state
     TYPE(FileData),  POINTER    :: Dta       ! File data object
     INTEGER,         INTENT(IN) :: I         ! Longitude index of interest
@@ -385,7 +384,7 @@ CONTAINS
        ! local time effects, hence just point to the time slice
        ! of current UTC time. Add one since hour starts at 0.
        CASE ( 241 )
-          CALL HcoClock_Get( am_I_Root, HcoState%Clock, cH=HH, RC=RC )
+          CALL HcoClock_Get( HcoState%Clock, cH=HH, RC=RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           Indx = HH + 1
 
@@ -724,9 +723,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPrefTimeAttr( am_I_Root, HcoState, Lct,    &
-                                  readYr,    readMt,   readDy, &
-                                  readHr,    readMn,   RC       )
+  SUBROUTINE HCO_GetPrefTimeAttr( HcoState, Lct,            &
+                                  readYr,   readMt, readDy, &
+                                  readHr,   readMn, RC       )
 !
 ! !USES:
 !
@@ -738,7 +737,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root ! preferred year
     TYPE(HCO_State), POINTER       :: HcoState  ! List container
     TYPE(ListCont),  POINTER       :: Lct       ! List container
 !
@@ -775,7 +773,7 @@ CONTAINS
     RC = HCO_SUCCESS
 
     ! Get current time
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock,                   &
+    CALL HcoClock_Get( HcoState%Clock,                              &
                        cYYYY    = cYr, cMM = cMt, cDD = cDy,        &
                        cWEEKDAY = cWd, cH  = cHr, cM  = cMn,        &
                        sYYYY    = sYr, RC = RC )
@@ -821,7 +819,7 @@ CONTAINS
 
        ! Eventually shift reference time by amount specified
        ! in HEMCO configuration file
-       CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+       CALL TimeShift_Apply ( HcoState, Lct, &
                               readYr, readMt, readDy, readHr, readMn, RC )
 
        ! Don't need below
@@ -844,7 +842,7 @@ CONTAINS
 
        ! Eventually shift reference time by amount specified
        ! in HEMCO configuration file
-       CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+       CALL TimeShift_Apply ( HcoState, Lct, &
                               readYr, readMt, readDy, readHr, readMn, RC )
 
        ! Don't need below
@@ -903,7 +901,7 @@ CONTAINS
 
     ! Eventually shift reference time by amount specified
     ! in HEMCO configuration file
-    CALL TimeShift_Apply ( am_I_Root, HcoState, Lct, &
+    CALL TimeShift_Apply ( HcoState, Lct, &
                            readYr, readMt, readDy, readHr, readMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

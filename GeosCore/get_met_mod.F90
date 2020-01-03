@@ -106,8 +106,7 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr2D, RC, TIDX=T, &
-                     FOUND=FND )
+    CALL HCO_GetPtr( HcoState, v_name, Ptr2D, RC, TIDX=T, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
@@ -194,8 +193,7 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, TIDX=T, &
-                     FOUND=FND )
+    CALL HCO_GetPtr( HcoState, v_name, Ptr3D, RC, TIDX=T, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
@@ -282,8 +280,7 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, TIDX=T, &
-                     FOUND=FND )
+    CALL HCO_GetPtr( HcoState, v_name, Ptr3D, RC, TIDX=T, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN

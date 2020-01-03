@@ -2285,7 +2285,7 @@
       ! CCl4 [ppb]
       !-------------------------------
       FieldName = 'TES_CLIM_CCL4'
-      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CCL4CLIM,  RC )
+      CALL HCO_GetPtr( HcoState, FieldName, CCL4CLIM,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2296,7 +2296,7 @@
       ! CFC11 [ppb]
       !-------------------------------
       FieldName = 'TES_CLIM_CFC11'
-      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC11CLIM, RC )
+      CALL HCO_GetPtr( HcoState, FieldName, CFC11CLIM, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2307,7 +2307,7 @@
       ! CFC12 [ppb]
       !-------------------------------
       FieldName = 'TES_CLIM_CFC12'
-      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC12CLIM, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, CFC12CLIM, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2318,7 +2318,7 @@
       ! CFC22 [ppb]
       !-------------------------------
       FieldName = 'TES_CLIM_CFC22'
-      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC22CLIM, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, CFC22CLIM, RC  )
 
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
@@ -2330,7 +2330,7 @@
       ! CH4 [ppb]
       !-------------------------------
       FieldName = 'TES_CLIM_CH4'
-      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CH4CLIM,   RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, CH4CLIM,   RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2341,7 +2341,7 @@
       ! N2O [ppb]
       !-------------------------------
       FieldName = 'TES_CLIM_N2O'
-      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, N2OCLIM,   RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, N2OCLIM,   RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2352,8 +2352,7 @@
       ! Diffuse Near-IR albedo [1]
       !-------------------------------
       FieldName = 'MODIS_ALBDFNIR'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_ALBDFNIR, RC  )
+      CALL HCO_GetPtr( HcoStat, FieldName, MODIS_ALBDFNIR, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2364,8 +2363,7 @@
       ! Diffuse visible albedo [1]
       !-------------------------------
       FieldName = 'MODIS_ALBDFVIS'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_ALBDFVIS, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_ALBDFVIS, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2376,8 +2374,7 @@
       ! Direct Near-IR albedo [1]
       !-------------------------------
       FieldName = 'MODIS_ALBDRNIR'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_ALBDRNIR, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_ALBDRNIR, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2388,8 +2385,7 @@
       ! Direct visible albedo [1]
       !-------------------------------
       FieldName = 'MODIS_ALBDRVIS'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_ALBDRVIS, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_ALBDRVIS, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2400,8 +2396,7 @@
       ! MODIS emissivity, band 1 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_01'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_01, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_01, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2412,8 +2407,7 @@
       ! MODIS emissivity, band 2 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_02'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_02, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_02, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2424,8 +2418,7 @@
       ! MODIS emissivity, band 3 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_03'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_03, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_03, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2436,8 +2429,7 @@
       ! MODIS emissivity, band 4 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_04'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_04, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_04, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2448,8 +2440,7 @@
       ! MODIS emissivity, band 5 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_05'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_05, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_05, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2460,8 +2451,7 @@
       ! MODIS emissivity, band 6 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_06'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_06, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_06, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2472,8 +2462,7 @@
       ! MODIS emissivity, band 7 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_07'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_07, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_07, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2484,8 +2473,7 @@
       ! MODIS emissivity, band 8 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_08'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_08, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_08, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2496,8 +2484,7 @@
       ! MODIS emissivity, band 9 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_09'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_09, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_09, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2508,8 +2495,7 @@
       ! MODIS emissivity, band 10 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_10'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_10, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_10, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2520,8 +2506,7 @@
       ! MODIS emissivity, band 11 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_11'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_11, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_11, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2532,8 +2517,7 @@
       ! MODIS emissivity, band 12 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_12'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_12, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_12, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2544,8 +2528,7 @@
       ! MODIS emissivity, band 13 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_13'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_13, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_13, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2556,8 +2539,7 @@
       ! MODIS emissivity, band 14 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_14'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_14, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_14, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2568,8 +2550,7 @@
       ! MODIS emissivity, band 15 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_15'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_15, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_15, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2580,8 +2561,7 @@
       ! MODIS emissivity, band 16 [1]
       !-------------------------------
       FieldName = 'MODIS_EMISSIVITY_16'
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                 FieldName, MODIS_EMISS_16, RC  )
+      CALL HCO_GetPtr( HcoState, FieldName, MODIS_EMISS_16, RC  )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2714,15 +2694,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Cleanup_RRTMG_Rad_Transfer( am_I_Root, RC )
+      SUBROUTINE Cleanup_RRTMG_Rad_Transfer( RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root core?
 !
 ! !OUTPUT PARAMETERS:
 !

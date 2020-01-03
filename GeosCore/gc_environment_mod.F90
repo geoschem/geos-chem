@@ -611,8 +611,7 @@ CONTAINS
     ! Initialize "carbon_mod.F"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LCARB ) THEN
-       CALL Init_Carbon( am_I_Root,  Input_Opt,  State_Chm,                  &
-                         State_Diag, State_Grid, RC                         )
+       CALL Init_Carbon( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in ""!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -664,8 +663,7 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or.                        &
          Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
-       CALL Init_Aerosol( am_I_Root,  Input_Opt,  State_Chm,                 &
-                          State_Diag, State_Grid, RC                        )
+       CALL Init_Aerosol( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Aerosol"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

@@ -666,7 +666,7 @@ MODULE State_Diag_Mod
 !
 ! !REVISION HISTORY:
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -702,7 +702,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Diag( am_I_Root,  Input_Opt, State_Chm, &
+  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm, &
                               State_Grid, Diag_List, State_Diag, RC )
 !
 ! !USES:
@@ -712,7 +712,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
@@ -731,7 +730,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -749,7 +748,7 @@ CONTAINS
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
     INTEGER                :: nHygGrth, nRad,    nDryAlt
-    LOGICAL                :: EOF,      Found,   Found2
+    LOGICAL                :: EOF,      Found,   Found2,  am_I_Root
 
     !=======================================================================
     ! Initialize
@@ -765,6 +764,7 @@ CONTAINS
 
     ! Save shadow variables from Input_Opt
     Is_UCX    = Input_Opt%LUCX
+    am_I_Root = Input_Opt%amIRoot
 
     ! Shorten grid parameters for readability
     IM        = State_Grid%NX ! # latitudes
@@ -1362,7 +1362,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Write header
     !------------------------------------------------------------------------
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
     WRITE( 6, 10 )
  10 FORMAT( /, 'Allocating the following fields of the State_Diag object:' )
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1373,15 +1373,15 @@ CONTAINS
     !------------------------------------------------------------------------
     arrayID = 'State_Diag%SpeciesRst'
     diagID  = 'SpeciesRst'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( Input_Opt%amIRoot ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%SpeciesRst( IM, JM, LM, nSpecies ), STAT=RC )
        CALL GC_CheckVar( arrayId, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SpeciesRst = 0.0_f8
        State_Diag%Archive_SpeciesRst = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesRst, &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesRst, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1391,7 +1391,7 @@ CONTAINS
     !------------------------------------------------------------------------
     arrayID = 'State_Diag%SpeciesBC'
     diagID  = 'SpeciesBC'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%SpeciesBC( IM, JM, LM, nSpecies ), STAT=RC )
@@ -1399,7 +1399,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SpeciesBC = 0.0_f8
        State_Diag%Archive_SpeciesBC = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesBC, &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesBC, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1409,7 +1409,7 @@ CONTAINS
     !------------------------------------------------------------------------
     arrayID = 'State_Diag%SpeciesConc'
     diagID  = 'SpeciesConc'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
@@ -1417,7 +1417,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SpeciesConc = 0.0_f8
        State_Diag%Archive_SpeciesConc = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesConc,   &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesConc,   &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1427,7 +1427,7 @@ CONTAINS
     !------------------------------------------------------------------------
     arrayID = 'State_Diag%FracOfTimeInTrop'
     diagID  = 'FracOfTimeInTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%FracOfTimeInTrop( IM, JM, LM ), STAT=RC )
@@ -1435,7 +1435,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%FracOfTimeInTrop = 0.0_f4
        State_Diag%Archive_FracOfTimeInTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%FracOfTimeInTrop,                 &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1446,7 +1446,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%BudgetEmisDryDepFull'
     diagID  = 'BudgetEmisDryDepFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetEmisDryDepFull( IM, JM, nAdvect ), STAT=RC )
@@ -1454,7 +1454,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetEmisDryDepFull = 0.0_f8
        State_Diag%Archive_BudgetEmisDryDepFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetEmisDryDepFull,             &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1463,7 +1463,7 @@ CONTAINS
     ! Trop-only emissions
     arrayID = 'State_Diag%BudgetEmisDryDepTrop'
     diagID  = 'BudgetEmisDryDepTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetEmisDryDepTrop( IM, JM, nAdvect ), STAT=RC )
@@ -1471,7 +1471,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetEmisDryDepTrop = 0.0_f8
        State_Diag%Archive_BudgetEmisDryDepTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetEmisDryDepTrop,             &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1480,7 +1480,7 @@ CONTAINS
     ! PBL-only emissions
     arrayID = 'State_Diag%BudgetEmisDryDepPBL'
     diagID  = 'BudgetEmisDryDepPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetEmisDryDepPBL( IM, JM, nAdvect ), STAT=RC )
@@ -1488,7 +1488,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetEmisDryDepPBL = 0.0_f8
        State_Diag%Archive_BudgetEmisDryDepPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetEmisDryDepPBL,              &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1506,7 +1506,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%BudgetTransportFull'
     diagID  = 'BudgetTransportFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetTransportFull( IM, JM, nAdvect ), STAT=RC )
@@ -1514,7 +1514,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetTransportFull = 0.0_f8
        State_Diag%Archive_BudgetTransportFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetTransportFull,              &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1523,7 +1523,7 @@ CONTAINS
     ! Trop-only transport
     arrayID = 'State_Diag%BudgetTransportTrop'
     diagID  = 'BudgetTransportTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetTransportTrop( IM, JM, nAdvect ), STAT=RC )
@@ -1531,7 +1531,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetTransportTrop = 0.0_f8
        State_Diag%Archive_BudgetTransportTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetTransportTrop,              &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1540,7 +1540,7 @@ CONTAINS
     ! PBL-only transport
     arrayID = 'State_Diag%BudgetTransportPBL'
     diagID  = 'BudgetTransportPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetTransportPBL( IM, JM, nAdvect ), STAT=RC )
@@ -1548,7 +1548,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetTransportPBL = 0.0_f8
        State_Diag%Archive_BudgetTransportPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetTransportPBL,               &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1566,7 +1566,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%BudgetMixingFull'
     diagID  = 'BudgetMixingFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetMixingFull( IM, JM, nAdvect ), STAT=RC )
@@ -1574,7 +1574,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetMixingFull = 0.0_f8
        State_Diag%Archive_BudgetMixingFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                          &
+       CALL Register_DiagField( Input_Opt, diagID,                          &
                                 State_Diag%BudgetMixingFull,                &
                                 State_Chm, State_Diag, RC                  )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1583,7 +1583,7 @@ CONTAINS
     ! Trop-only mixing
     arrayID = 'State_Diag%BudgetMixingTrop'
     diagID  = 'BudgetMixingTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetMixingTrop( IM, JM, nAdvect ), STAT=RC )
@@ -1591,7 +1591,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetMixingTrop = 0.0_f8
        State_Diag%Archive_BudgetMixingTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetMixingTrop,                 &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1600,7 +1600,7 @@ CONTAINS
     ! PBL-only mixing
     arrayID = 'State_Diag%BudgetMixingPBL'
     diagID  = 'BudgetMixingPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetMixingPBL( IM, JM, nAdvect ), STAT=RC )
@@ -1608,7 +1608,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetMixingPBL = 0.0_f8
        State_Diag%Archive_BudgetMixingPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetMixingPBL,                  &
                                 State_Chm, State_Diag, RC                    )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1626,7 +1626,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%BudgetConvectionFull'
     diagID  = 'BudgetConvectionFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetConvectionFull( IM, JM, nAdvect ), STAT=RC )
@@ -1634,7 +1634,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetConvectionFull = 0.0_f8
        State_Diag%Archive_BudgetConvectionFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetConvectionFull,             &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1643,7 +1643,7 @@ CONTAINS
     ! Trop-only convection
     arrayID = 'State_Diag%BudgetConvectionTrop'
     diagID  = 'BudgetConvectionTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetConvectionTrop( IM, JM, nAdvect ), STAT=RC )
@@ -1651,7 +1651,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetConvectionTrop = 0.0_f8
        State_Diag%Archive_BudgetConvectionTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetConvectionTrop,             &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1660,7 +1660,7 @@ CONTAINS
     ! PBL-only convection
     arrayID = 'State_Diag%BudgetConvectionPBL'
     diagID  = 'BudgetConvectionPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetConvectionPBL( IM, JM, nAdvect ), STAT=RC )
@@ -1668,7 +1668,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetConvectionPBL = 0.0_f8
        State_Diag%Archive_BudgetConvectionPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetConvectionPBL,              &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1686,7 +1686,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%BudgetChemistryFull'
     diagID  = 'BudgetChemistryFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetChemistryFull( IM, JM, nAdvect ), STAT=RC )
@@ -1694,7 +1694,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetChemistryFull = 0.0_f8
        State_Diag%Archive_BudgetChemistryFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetChemistryFull,              &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1703,7 +1703,7 @@ CONTAINS
     ! Trop-only chemistry
     arrayID = 'State_Diag%BudgetChemistryTrop'
     diagID  = 'BudgetChemistryTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetChemistryTrop( IM, JM, nAdvect ), STAT=RC )
@@ -1711,7 +1711,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetChemistryTrop = 0.0_f8
        State_Diag%Archive_BudgetChemistryTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetChemistryTrop,              &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1720,7 +1720,7 @@ CONTAINS
     ! PBL-only chemistry
     arrayID = 'State_Diag%BudgetChemistryPBL'
     diagID  = 'BudgetChemistryPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetChemistryPBL( IM, JM, nAdvect ), STAT=RC )
@@ -1728,7 +1728,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetChemistryPBL = 0.0_f8
        State_Diag%Archive_BudgetChemistryPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetChemistryPBL,               &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1746,7 +1746,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%BudgetWetDepFull'
     diagID  = 'BudgetWetDepFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetWetDepFull( IM, JM, nWetDep ), STAT=RC )
@@ -1754,7 +1754,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetWetDepFull = 0.0_f8
        State_Diag%Archive_BudgetWetDepFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetWetDepFull,                 &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1763,7 +1763,7 @@ CONTAINS
     ! Trop-only wet deposition
     arrayID = 'State_Diag%BudgetWetDepTrop'
     diagID  = 'BudgetWetDepTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetWetDepTrop( IM, JM, nWetDep ), STAT=RC )
@@ -1771,7 +1771,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetWetDepTrop = 0.0_f8
        State_Diag%Archive_BudgetWetDepTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetWetDepTrop,                 &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1780,7 +1780,7 @@ CONTAINS
     ! PBL-only wet deposition
     arrayID = 'State_Diag%BudgetWetDepPBL'
     diagID  = 'BudgetWetDepPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%BudgetWetDepPBL( IM, JM, nWetDep ), STAT=RC )
@@ -1788,7 +1788,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetWetDepPBL = 0.0_f8
        State_Diag%Archive_BudgetWetDepPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%BudgetWetDepPBL,                  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1806,9 +1806,9 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepChm'
     diagID  = 'DryDepChm'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     ! Also turn on this diagnostic array if outputting total dry dep flux
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, 'DryDep', Found2, RC )
     IF ( Found .OR. Found2 ) THEN
        IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepChm( IM, JM, nDryDep ), STAT=RC )
@@ -1816,7 +1816,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepChm = 0.0_f4
        State_Diag%Archive_DryDepChm = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepChm,     &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepChm,     &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1826,9 +1826,9 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepMix'
     diagID  = 'DryDepMix'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     ! Also turn on this diagnostic array if outputting total dry dep flux
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, 'DryDep', Found2, RC )
     IF ( Found .OR. Found2 ) THEN
        IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepMix( IM, JM, nDryDep ), STAT=RC )
@@ -1836,7 +1836,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepMix = 0.0_f4
        State_Diag%Archive_DryDepMix = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepMix,     &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepMix,     &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1846,7 +1846,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDep'
     diagID  = 'DryDep'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDep( IM, JM, nDryDep ), STAT=RC )
@@ -1854,7 +1854,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDep = 0.0_f4
        State_Diag%Archive_DryDep = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDep,        &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDep,        &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1864,7 +1864,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepVel'
     diagID  = 'DryDepVel'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
 #if defined( MODEL_GEOS )
     ! DryDepVel is needed by some other diagnostics, always use with GEOS-5
     Found = .TRUE.
@@ -1876,7 +1876,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepVel = 0.0_f4
        State_Diag%Archive_DryDepVel = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel,     &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepVel,     &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1887,7 +1887,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepRa2m'
     diagID  = 'DryDepRa2m'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     ! DryDepRa2m is needed by some other diagnostics; always use with GEOS-5
     Found = .TRUE.
     IF ( Found ) THEN
@@ -1897,7 +1897,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepRa2m = 0.0_f4
        State_Diag%Archive_DryDepRa2m = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepRa2m,    &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepRa2m,    &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1907,7 +1907,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDepRa10m'
     diagID  = 'DryDepRa10m'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     ! DryDepRa10m is needed by some other diagnostics; always use with GEOS-5
     Found = .TRUE.
     IF ( Found ) THEN
@@ -1917,7 +1917,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepRa10m = 0.0_f4
        State_Diag%Archive_DryDepRa10m = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepRa10m,   &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%DryDepRa10m,   &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1927,7 +1927,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%MoninObukhov'
     diagID  = 'MoninObukhov'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     ! ckeller hack: always add to make sure that we can compute 2M
     ! concentrations
     IF ( Found ) THEN
@@ -1937,7 +1937,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%MoninObukhov = 0.0_f4
        State_Diag%Archive_MoninObukhov = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%MoninObukhov,  &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%MoninObukhov,  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1947,7 +1947,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%Bry'
     diagID  = 'Bry'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%Bry( IM, JM, LM ), STAT=RC )
@@ -1955,7 +1955,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%Bry = 0.0_f4
        State_Diag%Archive_Bry = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%Bry,  &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%Bry,  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1966,7 +1966,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%AdvFluxZonal'
     diagID  = 'AdvFluxZonal'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%AdvFluxZonal( IM, JM, LM, nAdvect ), STAT=RC )
@@ -1974,7 +1974,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AdvFluxZonal = 0.0_f4
        State_Diag%Archive_AdvFluxZonal = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxZonal,  &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%AdvFluxZonal,  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1984,7 +1984,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%AdvFluxMerid'
     diagID  = 'AdvFluxMerid'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%AdvFluxMerid( IM, JM, LM, nAdvect ), STAT=RC )
@@ -1992,7 +1992,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AdvFluxMerid = 0.0_f4
        State_Diag%Archive_AdvFluxMerid = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxMerid,  &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%AdvFluxMerid,  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2002,7 +2002,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%AdvFluxVert'
     diagID  = 'AdvFluxVert'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
@@ -2010,7 +2010,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AdvFluxVert = 0.0_f4
        State_Diag%Archive_AdvFluxVert = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxVert,   &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%AdvFluxVert,   &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2020,7 +2020,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%PBLMixFrac'
     diagID  = 'PBLMixFrac'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%PBLMixFrac( IM, JM, LM ), STAT=RC )
@@ -2028,7 +2028,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%PBLMixFrac = 0.0_f4
        State_Diag%Archive_PBLMixFrac = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PBLMixFrac,    &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PBLMixFrac,    &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2038,7 +2038,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%PBLFlux'
     diagID  = 'PBLFlux'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%PBLFlux( IM, JM, LM, nAdvect ), STAT=RC )
@@ -2046,7 +2046,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%PBLFlux = 0.0_f4
        State_Diag%Archive_PBLFlux = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PBLFlux,       &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PBLFlux,       &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2056,7 +2056,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%CloudConvFlux'
     diagID  = 'CloudConvFlux'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%CloudConvFlux( IM, JM, LM, nAdvect ), STAT=RC )
@@ -2064,7 +2064,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%CloudConvFlux = 0.0_f4
        State_Diag%Archive_CloudConvFlux = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%CloudConvFlux, &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%CloudConvFlux, &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2074,7 +2074,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%WetLossConvFrac'
     diagID  = 'WetLossConvFrac'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%WetLossConvFrac( IM, JM, LM, nWetDep ), STAT=RC )
@@ -2082,7 +2082,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WetLossConvFrac = 0.0_f4
        State_Diag%Archive_WetLossConvFrac = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,                           &
+       CALL Register_DiagField( Input_Opt, diagID,                           &
                                 State_Diag%WetLossConvFrac,                  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -2093,7 +2093,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%WetLossConv'
     diagID  = 'WetLossConv'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%WetLossConv( IM, JM, LM, nWetDep ), STAT=RC )
@@ -2101,7 +2101,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WetLossConv = 0.0_f4
        State_Diag%Archive_WetLossConv = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetLossConv,   &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WetLossConv,   &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2111,7 +2111,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%WetLossLS'
     diagID  = 'WetLossLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%WetLossLS( IM, JM, LM, nWetDep ), STAT=RC )
@@ -2119,7 +2119,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WetLossLS = 0.0_f4
        State_Diag%Archive_WetLossLS = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetLossLS,     &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WetLossLS,     &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2129,7 +2129,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%PrecipFracLS'
     diagID  = 'PrecipFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%PrecipFracLS( IM, JM, LM ), STAT=RC )
@@ -2137,7 +2137,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%PrecipFracLS = 0.0_f4
        State_Diag%Archive_PrecipFracLS = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%PrecipFracLS,  &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%PrecipFracLS,  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2147,7 +2147,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%RainFracLS'
     diagID  = 'RainFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%RainFracLS( IM, JM, LM, nWetDep ), STAT=RC )
@@ -2155,7 +2155,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%RainFracLS = 0.0_f4
        State_Diag%Archive_RainFracLS = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%RainFracLS,    &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%RainFracLS,    &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2165,7 +2165,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%WashFracLS'
     diagID  = 'WashFracLS'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%WashFracLS( IM, JM, LM, nWetDep ), STAT=RC )
@@ -2173,7 +2173,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WashFracLS = 0.0_f4
        State_Diag%Archive_WashFracLS = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracLS,    &
+       CALL Register_DiagField( Input_Opt, diagID, State_Diag%WashFracLS,    &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -2190,7 +2190,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PbFromRnDecay'
        diagID  = 'PbFromRnDecay'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PbFromRnDecay( IM, JM, LM ), STAT=RC )
@@ -2198,7 +2198,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PbFromRnDecay = 0.0_f4
           State_Diag%Archive_PbFromRnDecay = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%PbFromRnDecay,                 &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2210,7 +2210,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadDecay'
        diagID  = 'RadDecay'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadDecay( IM, JM, LM, nSpecies ), STAT=RC )
@@ -2218,7 +2218,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadDecay = 0.0_f4
           State_Diag%Archive_RadDecay = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadDecay,   &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%RadDecay,   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -2246,7 +2246,7 @@ CONTAINS
 
           ! Exit if any of the above are in the diagnostic list
           ! Force an exact string match to avoid namespace confusion
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+          CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE. )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -2291,14 +2291,14 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Populate the index arrays for RRTMG
-       CALL Init_RRTMG_Indices( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL Init_RRTMG_Indices( Input_Opt, State_Diag, RC )
 
        !--------------------------------------------------------------------
        ! RRTMG: All-sky LW rad @ surface
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadAllSkyLWSurf'
        diagID  = 'RadAllSkyLWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
@@ -2306,7 +2306,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWSurf = 0.0_f4
           State_Diag%Archive_RadAllSkyLWSurf = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RadAllSkyLWSurf,               &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2317,7 +2317,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadAllSkyLWTOA'
        diagID  = 'RadAllSkyLWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
@@ -2325,7 +2325,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWTOA = 0.0_f4
           State_Diag%Archive_RadAllSkyLWTOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RadAllSkyLWTOA,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2336,7 +2336,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadAllSkySWSurf'
        diagID  = 'RadAllSkySWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
@@ -2344,7 +2344,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWSurf = 0.0_f4
           State_Diag%Archive_RadAllSkySWSurf = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RadAllSkySWSurf,               &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2355,7 +2355,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadAllSkySWTOA'
        diagID  = 'RadAllSkySWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
@@ -2363,7 +2363,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWTOA = 0.0_f4
           State_Diag%Archive_RadAllSkySWTOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RadAllSkySWTOA,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2374,7 +2374,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadClrSkyLWSurf'
        diagID  = 'RadClrSkyLWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
@@ -2382,7 +2382,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWSurf = 0.0_f4
           State_Diag%Archive_RadClrSkyLWSurf = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RadClrSkyLWSurf,               &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2393,7 +2393,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadClrSkyLWTOA'
        diagID  = 'RadClrSkyLWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
@@ -2401,7 +2401,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWTOA = 0.0_f4
           State_Diag%Archive_RadClrSkyLWTOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RadClrSkyLWTOA,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2412,7 +2412,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadClrSkySWSurf'
        diagID  = 'RadClrSkySWSurf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
@@ -2420,7 +2420,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWSurf = 0.0_f4
           State_Diag%Archive_RadClrSkySWSurf = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RadClrSkySWSurf,               &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2431,7 +2431,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadClrSkySWTOA'
        diagID  = 'RadClrSkySWTOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
@@ -2439,7 +2439,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWTOA = 0.0_f4
           State_Diag%Archive_RadClrSkySWTOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RadClrSkySWTOA,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2480,7 +2480,7 @@ CONTAINS
 
           ! Exit if any of the above are in the diagnostic list
           ! Force an exact string match to avoid namespace confusion
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+          CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE. )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -2507,7 +2507,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RxnRate'
        diagID  = 'RxnRate'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RxnRate( IM, JM, LM, NREACT ), STAT=RC )
@@ -2515,7 +2515,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RxnRate = 0.0_f4
           State_Diag%Archive_RxnRate = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%RxnRate,   &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%RxnRate,   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -2533,7 +2533,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%OHreactivity'
        diagID  = 'OHreactivity'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%OHreactivity( IM, JM, LM ), STAT=RC )
@@ -2541,7 +2541,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%OHreactivity = 0.0_f4
           State_Diag%Archive_OHreactivity = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%OHreactivity,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2555,7 +2555,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%JVal'
        diagID  = 'JVal'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%JVal( IM, JM, LM, nPhotol+2 ), STAT=RC )
@@ -2563,7 +2563,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%JVal = 0.0_f4
           State_Diag%Archive_JVal = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%JVal,       &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%JVal,       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -2576,7 +2576,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%JNoon'
        diagID  = 'JNoon'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%JNoon( IM, JM, LM, nPhotol+2 ), STAT=RC )
@@ -2584,7 +2584,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%JNoon = 0.0_f4
           State_Diag%Archive_JNoon = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%JNoon,  &
+          CALL Register_DiagField( Input_Opt, diagID,     State_Diag%JNoon,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -2593,7 +2593,7 @@ CONTAINS
        ! Must be saved in conjunction with State_Diag%JNoon
        arrayID = 'State_Diag%JNoonFrac'
        diagID  = 'JNoonFrac'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%JNoonFrac( IM, JM ), STAT=RC )
@@ -2601,7 +2601,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%JNoonFrac = 0.0_f4
           State_Diag%Archive_JNoonFrac = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%JNoonFrac,                     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2612,7 +2612,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%UVFluxDiffuse'
        diagID  = 'UVFluxDiffuse'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM, W_ ), STAT=RC )
@@ -2620,7 +2620,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxDiffuse = 0.0_f4
           State_Diag%Archive_UVFluxDiffuse = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%UVFluxDiffuse,                 &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2631,7 +2631,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%UVFluxDirect'
        diagID  = 'UVFluxDirect'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM, W_ ), STAT=RC )
@@ -2639,7 +2639,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxDirect = 0.0_f4
           State_Diag%Archive_UVFluxDirect = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%UVFluxDirect,                  &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2650,7 +2650,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%UVFluxNet'
        diagID  = 'UVFluxNet'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM, W_ ), STAT=RC )
@@ -2658,7 +2658,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxNet = 0.0_f4
           State_Diag%Archive_UVFluxNet = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxNet, &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%UVFluxNet, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -2668,7 +2668,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%HO2concAfterChem'
        diagID  = 'HO2concAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%HO2concAfterChem( IM, JM, LM ), STAT=RC )
@@ -2676,7 +2676,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%HO2concAfterChem = 0.0_f4
           State_Diag%Archive_HO2concAfterChem = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%HO2concAfterChem,              &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2687,7 +2687,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%O1DconcAfterChem'
        diagID  = 'O1DconcAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%O1DconcAfterChem( IM, JM, LM ), STAT=RC )
@@ -2695,7 +2695,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%O1DconcAfterChem = 0.0_f4
           State_Diag%Archive_O1DconcAfterChem = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%O1DconcAfterChem,              &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2706,7 +2706,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%O3PconcAfterChem'
        diagID  = 'O3PconcAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%O3PconcAfterChem( IM, JM, LM ), STAT=RC )
@@ -2714,7 +2714,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%O3PconcAfterChem = 0.0_f4
           State_Diag%Archive_O3PconcAfterChem = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%O3PconcAfterChem,              &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2725,7 +2725,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromHOBrInCloud'
        diagID  = 'ProdSO4fromHOBrInCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromHOBrInCloud( IM, JM, LM ), STAT=RC )
@@ -2733,7 +2733,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromHOBrInCloud = 0.0_f4
           State_Diag%Archive_ProdSO4fromHOBrInCloud = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromHOBrInCloud,        &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2744,7 +2744,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromSRHOBr'
        diagID  = 'ProdSO4fromSRHOBr'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromSRHOBr( IM, JM, LM ), STAT=RC )
@@ -2752,7 +2752,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromSRHOBr = 0.0_f4
           State_Diag%Archive_ProdSO4fromSRHOBr = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromSRHOBr,             &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2763,7 +2763,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassASOA'
        diagID  = 'AerMassASOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassASOA( IM, JM, LM ), STAT=RC )
@@ -2771,7 +2771,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassASOA = 0.0_f4
           State_Diag%Archive_AerMassASOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassASOA,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2782,7 +2782,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassINDIOL'
        diagID  = 'AerMassINDIOL'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassINDIOL( IM, JM, LM ), STAT=RC )
@@ -2790,7 +2790,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassINDIOL = 0.0_f4
           State_Diag%Archive_AerMassINDIOL = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassINDIOL,                 &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2801,7 +2801,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassISN1OA'
        diagID  = 'AerMassISN1OA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassISN1OA( IM, JM, LM ), STAT=RC )
@@ -2809,7 +2809,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassISN1OA = 0.0_f4
           State_Diag%Archive_AerMassISN1OA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassISN1OA,                 &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2820,7 +2820,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassLVOCOA'
        diagID  = 'AerMassLVOCOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassLVOCOA( IM, JM, LM ), STAT=RC )
@@ -2828,7 +2828,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassLVOCOA = 0.0_f4
           State_Diag%Archive_AerMassLVOCOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassLVOCOA,                 &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2839,7 +2839,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassOPOA'
        diagID  = 'AerMassOPOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassOPOA( IM, JM, LM ), STAT=RC )
@@ -2847,7 +2847,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassOPOA = 0.0_f4
           State_Diag%Archive_AerMassOPOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassOPOA,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2858,7 +2858,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassPOA'
        diagID  = 'AerMassPOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassPOA( IM, JM, LM ), STAT=RC )
@@ -2866,7 +2866,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassPOA = 0.0_f4
           State_Diag%Archive_AerMassPOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassPOA,                    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2877,7 +2877,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassSOAGX'
        diagID  = 'AerMassSOAGX'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSOAGX( IM, JM, LM ), STAT=RC )
@@ -2885,7 +2885,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSOAGX = 0.0_f4
           State_Diag%Archive_AerMassSOAGX = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassSOAGX,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2896,7 +2896,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassSOAIE'
        diagID  = 'AerMassSOAIE'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSOAIE( IM, JM, LM ), STAT=RC )
@@ -2904,7 +2904,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSOAIE = 0.0_f4
           State_Diag%Archive_AerMassSOAIE = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassSOAIE,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2915,7 +2915,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassSOAME'
        diagID  = 'AerMassSOAME'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSOAME( IM, JM, LM ), STAT=RC )
@@ -2923,7 +2923,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSOAME = 0.0_f4
           State_Diag%Archive_AerMassSOAME = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassSOAME,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2934,7 +2934,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassSOAMG'
        diagID  = 'AerMassSOAMG'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSOAMG( IM, JM, LM ), STAT=RC )
@@ -2942,7 +2942,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSOAMG = 0.0_f4
           State_Diag%Archive_AerMassSOAMG = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassSOAMG,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2953,7 +2953,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassTSOA'
        diagID  = 'AerMassTSOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassTSOA( IM, JM, LM ), STAT=RC )
@@ -2961,7 +2961,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassTSOA = 0.0_f4
           State_Diag%Archive_AerMassTSOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassTSOA,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2972,7 +2972,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%BetaNO'
        diagID  = 'BetaNO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%BetaNO( IM, JM, LM ), STAT=RC )
@@ -2980,7 +2980,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%BetaNO = 0.0_f4
           State_Diag%Archive_BetaNO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%BetaNO,                        &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2991,7 +2991,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%TotalBiogenicOA'
        diagID  = 'TotalBiogenicOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%TotalBiogenicOA( IM, JM, LM ), STAT=RC )
@@ -2999,7 +2999,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%TotalBiogenicOA = 0.0_f4
           State_Diag%Archive_TotalBiogenicOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%TotalBiogenicOA,               &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3010,7 +3010,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%KppIntCounts'
        diagID  = 'KppIntCounts'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppIntCounts( IM, JM, LM ), STAT=RC )
@@ -3018,7 +3018,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppIntCounts = 0.0_f4
           State_Diag%Archive_KppIntCounts = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppIntCounts,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3029,7 +3029,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%KppJacCounts'
        diagID  = 'KppJacCounts'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppJacCounts( IM, JM, LM ), STAT=RC )
@@ -3037,7 +3037,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppJacCounts = 0.0_f4
           State_Diag%Archive_KppJacCounts = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppJacCounts,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3048,7 +3048,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%KppTotSteps'
        diagID  = 'KppTotSteps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppTotSteps( IM, JM, LM ), STAT=RC )
@@ -3056,7 +3056,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppTotSteps = 0.0_f4
           State_Diag%Archive_KppTotSteps = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppTotSteps,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3067,7 +3067,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%KppAccSteps'
        diagID  = 'KppAccSteps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppAccSteps( IM, JM, LM ), STAT=RC )
@@ -3075,7 +3075,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppAccSteps = 0.0_f4
           State_Diag%Archive_KppAccSteps = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppAccSteps,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3086,7 +3086,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%KppRejSteps'
        diagID  = 'KppRejSteps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppRejSteps( IM, JM, LM ), STAT=RC )
@@ -3094,7 +3094,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppRejSteps = 0.0_f4
           State_Diag%Archive_KppRejSteps = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppRejSteps,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3105,7 +3105,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%KppLuDecomps'
        diagID  = 'KppLuDecomps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppLuDecomps( IM, JM, LM ), STAT=RC )
@@ -3113,7 +3113,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppLuDecomps = 0.0_f4
           State_Diag%Archive_KppLuDecomps = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppLuDecomps,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3124,7 +3124,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%KppSubsts'
        diagID  = 'KppSubsts'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppSubsts( IM, JM, LM ), STAT=RC )
@@ -3132,7 +3132,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppSubsts = 0.0_f4
           State_Diag%Archive_KppSubsts = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppSubsts,                     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3143,7 +3143,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%KppSmDecomps'
        diagID  = 'KppSmDecomps'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppSmDecomps( IM, JM, LM ), STAT=RC )
@@ -3151,7 +3151,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppSmDecomps = 0.0_f4
           State_Diag%Archive_KppSmDecomps = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppSmDecomps,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3163,7 +3163,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%CH4pseudoFlux'
        diagID  = 'CH4pseudoFlux'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%CH4pseudoFlux( IM, JM ), STAT=RC )
@@ -3171,7 +3171,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%CH4pseudoFlux = 0.0_f4
           State_Diag%Archive_CH4pseudoFlux = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%CH4pseudoFlux,                 &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3182,7 +3182,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%KppError'
        diagID  = 'KppError'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%KppError( IM, JM, LM ), STAT=RC )
@@ -3190,7 +3190,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%KppError = 0.0_f4
           State_Diag%Archive_KppError = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%KppError,                      &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3284,7 +3284,7 @@ CONTAINS
 
           ! Exit if any of the above are in the diagnostic list
           ! Force an exact string match to avoid namespace confusion
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+          CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE. )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -3314,7 +3314,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%DryDepRaALT1'
        diagID  = 'DryDepRa' // TRIM( TmpHT )
-       CALL Check_DiagList( am_I_Root,  Diag_List, 'DryDepRaALT1', Found, RC )
+       CALL Check_DiagList( Input_Opt,  Diag_List, 'DryDepRaALT1', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%DryDepRaALT1( IM, JM ), STAT=RC )
@@ -3322,7 +3322,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%DryDepRaALT1 = 0.0_f4
           State_Diag%Archive_DryDepRaALT1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%DryDepRaALT1,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3334,7 +3334,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%DryDepVelForALT1'
        diagID  = 'DryDepVelFor' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepVelForALT1',        &
+       CALL Check_DiagList( Input_Opt, Diag_List, 'DryDepVelForALT1',        &
                             Found,     RC                                   )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3343,7 +3343,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%DryDepVelForALT1 = 0.0_f4
           State_Diag%Archive_DryDepVelForALT1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%DryDepVelForALT1,              &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3354,7 +3354,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%SpeciesConcALT1'
        diagID  = 'SpeciesConc' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List, 'SpeciesConcALT1',         &
+       CALL Check_DiagList( Input_Opt, Diag_List, 'SpeciesConcALT1',         &
                             Found,     RC                                   )
        IF ( Found ) THEN
           IF (am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3363,7 +3363,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%SpeciesConcALT1 = 0.0_f4
           State_Diag%Archive_SpeciesConcALT1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%SpeciesConcALT1,               &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3394,7 +3394,7 @@ CONTAINS
 
           ! Exit if any of the above are in the diagnostic list
           ! Force an exact string match to avoid namespace confusion
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+          CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE. )
 
           ! Halt with an error message if any of the following quantities
@@ -3426,7 +3426,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%OHconcAfterChem'
        diagID  = 'OHconcAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
 #if defined( MODEL_GEOS )
        Found = .TRUE. ! Always add - needed for NOx diagnostics in GEOS-5
 #endif
@@ -3437,7 +3437,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%OHconcAfterChem = 0.0_f4
           State_Diag%Archive_OHconcAfterChem = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%OHconcAfterChem,               &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3446,7 +3446,7 @@ CONTAINS
 #if defined( MODEL_GEOS )
        arrayID = 'State_Diag%O3concAfterChem'
        diagID  = 'O3concAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        Found = .TRUE. ! Always add - needed for NOx diagnostics
        IF ( Found ) THEN
           if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3455,7 +3455,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%O3concAfterChem = 0.0_f4
           State_Diag%Archive_O3concAfterChem = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%O3concAfterChem,               &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3463,7 +3463,7 @@ CONTAINS
 
        arrayID = 'State_Diag%RO2concAfterChem'
        diagID  = 'RO2concAfterChem'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        Found = .TRUE. ! Always add - needed for NOx diagnostics
        IF ( Found ) THEN
           if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3472,7 +3472,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RO2concAfterChem = 0.0_f4
           State_Diag%Archive_RO2concAfterChem = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%RO2concAfterChem,               &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3494,7 +3494,7 @@ CONTAINS
 
        ! Exit if any of the above are in the diagnostic list
        ! Force an exact string match to avoid namespace confusion
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID,                    &
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID,                    &
                             Found,     RC,        exact=.TRUE. )
        IF ( Found ) THEN
           ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '       // &
@@ -3521,7 +3521,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%AODDust'
        diagID  = 'AODDust'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDust( IM, JM, LM ), STAT=RC )
@@ -3529,7 +3529,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODDust = 0.0_f4
           State_Diag%Archive_AODDust = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODDust,    &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODDust,    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3540,7 +3540,7 @@ CONTAINS
        arrayID = 'State_Diag%AODDustWL1'
        TmpWL   = RadWL(1)                           ! Workaround for ifort 17
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm' ! to avoid seg faults
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL1', Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, 'AODDustWL1', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL1( IM, JM, LM, NDUST ), STAT=RC )
@@ -3548,7 +3548,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODDustWL1 = 0.0_f4
           State_Diag%Archive_AODDustWL1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AODDustWL1,                    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3560,7 +3560,7 @@ CONTAINS
        arrayID = 'State_Diag%AODDustWL2'
        TmpWL   = RadWL(2)
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL2', Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, 'AODDustWL2', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL2( IM, JM, LM, NDUST ), STAT=RC )
@@ -3568,7 +3568,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODDustWL2 = 0.0_f4
           State_Diag%Archive_AODDustWL2 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AODDustWL2,                    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3580,7 +3580,7 @@ CONTAINS
        arrayID = 'State_Diag%AODDustWL3'
        TmpWL   = RadWL(3)
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL3', Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, 'AODDustWL3', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL3( IM, JM, LM, NDUST ), STAT=RC )
@@ -3588,7 +3588,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODDustWL3 = 0.0_f4
           State_Diag%Archive_AODDustWL3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AODDustWL3,                    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3600,7 +3600,7 @@ CONTAINS
        arrayID = 'State_Diag%AODHygWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL1', Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, 'AODHygWL1', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL1( IM, JM, LM, nHygGrth ), STAT=RC )
@@ -3608,7 +3608,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODHygWL1 = 0.0_f4
           State_Diag%Archive_AODHygWL1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODHygWL1,  &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODHygWL1,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3619,7 +3619,7 @@ CONTAINS
        arrayID = 'State_Diag%AODHygWL2'
        TmpWL   = RadWL(2)
        diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL2', Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, 'AODHygWL2', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL2( IM, JM, LM, nHygGrth ), STAT=RC )
@@ -3627,7 +3627,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODHygWL2 = 0.0_f4
           State_Diag%Archive_AODHygWL2 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODHygWL2,  &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODHygWL2,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3638,7 +3638,7 @@ CONTAINS
        arrayID = 'State_Diag%AODHygWL3'
        TmpWL   = RadWL(3)
        diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL3', Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, 'AODHygWL3', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL3( IM, JM, LM, nHygGrth ), STAT=RC )
@@ -3646,7 +3646,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODHygWL3 = 0.0_f4
           State_Diag%Archive_AODHygWL3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODHygWL3,  &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODHygWL3,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3657,7 +3657,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSOAfromAqIsopWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List,  &
+       CALL Check_DiagList( Input_Opt, Diag_List,  &
                             'AODSOAfromAqIsopreneWL1', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3666,7 +3666,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSOAfromAqIsopWL1 = 0.0_f4
           State_Diag%Archive_AODSOAfromAqIsopWL1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AODSOAfromAqIsopWL1,           &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3678,7 +3678,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSOAfromAqIsopWL2'
        TmpWl   = RadWL(2)
        diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
+       CALL Check_DiagList( Input_Opt, Diag_List, &
                             'AODSOAfromAqIsopreneWL2', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3687,7 +3687,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSOAfromAqIsopWL2 = 0.0_f4
           State_Diag%Archive_AODSOAfromAqIsopWL2 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AODSOAfromAqIsopWL2,           &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3699,7 +3699,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSOAfromAqIsopWL3'
        TmpWl   = RadWL(3)
        diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
+       CALL Check_DiagList( Input_Opt, Diag_List, &
                             'AODSOAfromAqIsopreneWL3', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3708,7 +3708,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSOAfromAqIsopWL3 = 0.0_f4
           State_Diag%Archive_AODSOAfromAqIsopWL3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AODSOAfromAqIsopWL3,           &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3720,7 +3720,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSLAWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
+       CALL Check_DiagList( Input_Opt, Diag_List, &
                             'AODStratLiquidAerWL1', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3729,7 +3729,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSLAWL1 = 0.0_f4
           State_Diag%Archive_AODSLAWL1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODSLAWL1,  &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODSLAWL1,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3740,7 +3740,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSLAWL1'
        TmpWL   = RadWL(2)
        diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
+       CALL Check_DiagList( Input_Opt, Diag_List, &
                             'AODStratLiquidAerWL2', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3749,7 +3749,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSLAWL1 = 0.0_f4
           State_Diag%Archive_AODSLAWL1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODSLAWL1,  &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODSLAWL1,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3760,7 +3760,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSLAWL1'
        TmpWL   = RadWL(3)
        diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
+       CALL Check_DiagList( Input_Opt, Diag_List, &
                             'AODStratLiquidAerWL3', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3769,7 +3769,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSLAWL1 = 0.0_f4
           State_Diag%Archive_AODSLAWL1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODSLAWL1,  &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODSLAWL1,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3780,7 +3780,7 @@ CONTAINS
        arrayID = 'State_Diag%AODPSCWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
+       CALL Check_DiagList( Input_Opt, Diag_List, &
                             'AODPolarStratCloudWL1', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3789,7 +3789,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODPSCWL1 = 0.0_f4
           State_Diag%Archive_AODPSCWL1 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODPSCWL1,  &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AODPSCWL1,  &
                                    State_Chm, State_Diag, RC                )
        ENDIF
 
@@ -3799,7 +3799,7 @@ CONTAINS
        arrayID = 'State_Diag%AODPSCWL2'
        TmpWL   = RadWL(2)
        diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
+       CALL Check_DiagList( Input_Opt, Diag_List, &
                             'AODPolarStratCloudWL2', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3808,7 +3808,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODPSCWL2 = 0.0_f4
           State_Diag%Archive_AODPSCWL2 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AODPSCWL2,                     &
                                    State_Chm, State_Diag, RC                )
        ENDIF
@@ -3819,7 +3819,7 @@ CONTAINS
        arrayID = 'State_Diag%AODPSCWL3'
        TmpWL   = RadWL(3)
        diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
+       CALL Check_DiagList( Input_Opt, Diag_List, &
                             'AODPolarStratCloudWL3', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -3828,7 +3828,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODPSCWL3 = 0.0_f4
           State_Diag%Archive_AODPSCWL3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AODPSCWL3,                     &
                                    State_Chm, State_Diag, RC                )
        ENDIF
@@ -3838,7 +3838,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerHygGrowth'
        diagID  = 'AerHygroscopicGrowth'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerHygGrowth( IM, JM, LM, nHygGrth ), STAT=RC )
@@ -3846,7 +3846,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerHygGrowth = 0.0_f4
           State_Diag%Archive_AerHygGrowth = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerHygGrowth,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3857,7 +3857,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerSurfAreaDust'
        diagID  = 'AerSurfAreaDust'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerSurfAreaDust( IM, JM, LM ), STAT=RC)
@@ -3865,7 +3865,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerSurfAreaDust = 0.0_f4
           State_Diag%Archive_AerSurfAreaDust = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerSurfAreaDust,               &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3876,7 +3876,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerSurfAreaHyg'
        diagID  = 'AerSurfAreaHyg'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerSurfAreaHyg( IM, JM, LM, nHygGrth ), STAT=RC )
@@ -3884,7 +3884,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerSurfAreaHyg = 0.0_f4
           State_Diag%Archive_AerSurfAreaHyg = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerSurfAreaHyg,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3895,7 +3895,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerNumDenSLA'
        diagID  = 'AerNumDensityStratLiquid'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerNumDenSLA( IM, JM, LM ), STAT=RC )
@@ -3903,7 +3903,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerNumDenSLA = 0.0_f4
           State_Diag%Archive_AerNumDenSLA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerNumDenSLA,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3914,7 +3914,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerNumDenPSC'
        diagID  = 'AerNumDensityStratParticulate'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerNumDenPSC( IM, JM, LM ), STAT=RC )
@@ -3922,7 +3922,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerNumDenPSC = 0.0_f4
           State_Diag%Archive_AerNumDenPSC = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerNumDenPSC,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3933,7 +3933,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerAqVol'
        diagID  = 'AerAqueousVolume'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerAqVol( IM, JM, LM ), STAT=RC )
@@ -3941,7 +3941,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerAqVol = 0.0_f4
           State_Diag%Archive_AerAqVol = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%AerAqVol,   &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%AerAqVol,   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3951,7 +3951,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerSurfAreaSLA'
        diagID  = 'AerSurfAreaStratLiquid'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerSurfAreaSLA( IM, JM, LM ), STAT=RC )
@@ -3959,7 +3959,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerSurfAreaSLA = 0.0_f4
           State_Diag%Archive_AerSurfAreaSLA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerSurfAreaSLA,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3970,7 +3970,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerSurfAreaPSC'
        diagID  = 'AerSurfAreaPolarStratCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerSurfAreaPSC( IM, JM, LM ), STAT=RC )
@@ -3978,7 +3978,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerSurfAreaPSC = 0.0_f4
           State_Diag%Archive_AerSurfAreaPSC = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerSurfAreaPSC,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3990,7 +3990,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdBCPIfromBCPO'
        diagID  = 'ProdBCPIfromBCPO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdBCPIfromBCPO( IM, JM, LM ), STAT=RC )
@@ -3998,7 +3998,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdBCPIfromBCPO = 0.0_f4
           State_Diag%Archive_ProdBCPIfromBCPO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdBCPIfromBCPO,              &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4010,7 +4010,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdOCPIfromOCPO'
        diagID  = 'ProdOCPIfromOCPO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdOCPIfromOCPO( IM, JM, LM ), STAT=RC )
@@ -4018,7 +4018,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdOCPIfromOCPO = 0.0_f4
           State_Diag%Archive_ProdOCPIfromOCPO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdOCPIfromOCPO,              &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4029,7 +4029,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromH2O2inCloud'
        diagID  = 'ProdSO4fromH2O2inCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromH2O2inCloud( IM, JM, LM ), STAT=RC )
@@ -4037,7 +4037,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromH2O2inCloud = 0.0_f4
           State_Diag%Archive_ProdSO4fromH2O2inCloud = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromH2O2inCloud,        &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4048,7 +4048,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromO3inCloud'
        diagID  = 'ProdSO4fromO3inCloud'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromO3inCloud( IM, JM, LM ), STAT=RC )
@@ -4056,7 +4056,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromO3inCloud = 0.0_f4
           State_Diag%Archive_ProdSO4fromO3inCloud = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromO3inCloud,          &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4067,7 +4067,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromO2inCloudMetal'
        diagID  = 'ProdSO4fromO2inCloudMetal'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal(IM, JM, LM), STAT=RC )
@@ -4075,7 +4075,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromO2inCloudMetal = 0.0_f4
           State_Diag%Archive_ProdSO4fromO2inCloudMetal = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromO2inCloudMetal,     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4086,7 +4086,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSo4fromO3inSeaSalt'
        diagID  = 'ProdSo4fromO3inSeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSo4fromO3inSeaSalt( IM, JM, LM ), STAT=RC )
@@ -4094,7 +4094,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSo4fromO3inSeaSalt = 0.0_f4
           State_Diag%Archive_ProdSo4fromO3inSeaSalt = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSo4fromO3inSeaSalt,        &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4105,7 +4105,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromSRO3'
        diagID  = 'ProdSO4fromSRO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromSRO3( IM, JM, LM ), STAT=RC )
@@ -4113,7 +4113,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromSRO3 = 0.0_f4
           State_Diag%Archive_ProdSO4fromSRO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromSRO3,               &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4124,7 +4124,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromO3s'
        diagID  = 'ProdSO4fromO3s'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromO3s( IM, JM, LM ), STAT=RC )
@@ -4132,7 +4132,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromO3s = 0.0_f4
           State_Diag%Archive_ProdSO4fromO3s = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromO3s,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4143,7 +4143,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%LossHNO3onSeaSalt'
        diagID  = 'LossHNO3onSeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossHNO3onSeaSalt( IM, JM, LM ), STAT=RC )
@@ -4151,7 +4151,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossHNO3onSeaSalt = 0.0_f4
           State_Diag%Archive_LossHNO3onSeaSalt = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%LossHNO3onSeaSalt,             &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4162,7 +4162,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassBC'
        diagID  = 'AerMassBC'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassBC( IM, JM, LM ), STAT=RC )
@@ -4170,7 +4170,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassBC = 0.0_f4
           State_Diag%Archive_AerMassBC = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassBC,                     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4181,7 +4181,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassNH4'
        diagID  = 'AerMassNH4'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassNH4( IM, JM, LM ), STAT=RC )
@@ -4189,7 +4189,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassNH4 = 0.0_f4
           State_Diag%Archive_AerMassNH4 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassNH4,                    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4200,7 +4200,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassNIT'
        diagID  = 'AerMassNIT'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassNIT( IM, JM, LM ), STAT=RC )
@@ -4208,7 +4208,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassNIT = 0.0_f4
           State_Diag%Archive_AerMassNIT = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassNIT,                    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4219,7 +4219,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassSAL'
        diagID  = 'AerMassSAL'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSAL( IM, JM, LM ), STAT=RC )
@@ -4227,7 +4227,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSAL = 0.0_f4
           State_Diag%Archive_AerMassSAL = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassSAL,                    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4238,7 +4238,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassSO4'
        diagID  = 'AerMassSO4'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSO4( IM, JM, LM ), STAT=RC )
@@ -4246,7 +4246,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSO4 = 0.0_f4
           State_Diag%Archive_AerMassSO4 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%AerMassSO4,                    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4257,7 +4257,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%PM25'
        diagID  = 'PM25'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25( IM, JM, LM ), STAT=RC )
@@ -4265,7 +4265,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25 = 0.0_f4
           State_Diag%Archive_PM25 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%PM25,                          &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4277,7 +4277,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PM25ni'
        diagID  = 'PM25ni'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25ni( IM, JM, LM ), STAT=RC )
@@ -4285,7 +4285,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25ni = 0.0_f4
           State_Diag%Archive_PM25ni = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25ni,     &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25ni,     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4295,7 +4295,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PM25su'
        diagID  = 'PM25su'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25su( IM, JM, LM ), STAT=RC )
@@ -4303,7 +4303,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25su = 0.0_f4
           State_Diag%Archive_PM25su = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25su,     &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25su,     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4313,7 +4313,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PM25oc'
        diagID  = 'PM25oc'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25oc( IM, JM, LM ), STAT=RC )
@@ -4321,7 +4321,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25oc = 0.0_f4
           State_Diag%Archive_PM25oc = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25oc,     &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25oc,     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4331,7 +4331,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PM25bc'
        diagID  = 'PM25bc'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25bc( IM, JM, LM ), STAT=RC )
@@ -4339,7 +4339,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25bc = 0.0_f4
           State_Diag%Archive_PM25bc = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25bc,     &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25bc,     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4349,7 +4349,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PM25du'
        diagID  = 'PM25du'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25du( IM, JM, LM ), STAT=RC )
@@ -4357,7 +4357,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25du = 0.0_f4
           State_Diag%Archive_PM25du = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25du,     &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25du,     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4367,7 +4367,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PM25ss'
        diagID  = 'PM25ss'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25ss( IM, JM, LM ), STAT=RC )
@@ -4375,7 +4375,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25ss = 0.0_f4
           State_Diag%Archive_PM25ss = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25ss,     &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25ss,     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4385,7 +4385,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PM25soa'
        diagID  = 'PM25soa'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25soa( IM, JM, LM ), STAT=RC )
@@ -4393,7 +4393,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25soa = 0.0_f4
           State_Diag%Archive_PM25soa = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25soa,    &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%PM25soa,    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4404,7 +4404,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%TotalOA'
        diagID  = 'TotalOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%TotalOA( IM, JM, LM ), STAT=RC )
@@ -4412,7 +4412,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%TotalOA = 0.0_f4
           State_Diag%Archive_TotalOA = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%TotalOA,                       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4423,7 +4423,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%TotalOC'
        diagID  = 'TotalOC'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%TotalOC( IM, JM, LM ), STAT=RC )
@@ -4431,7 +4431,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%TotalOC = 0.0_f4
           State_Diag%Archive_TotalOC = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%TotalOC,                       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4501,7 +4501,7 @@ CONTAINS
 
           ! Exit if any of the above are in the diagnostic list
           ! Force an exact string match to avoid namespace confusion
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+          CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE.           )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -4525,7 +4525,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromGasPhase'
        diagID  = 'ProdSO4fromGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromGasPhase( IM, JM, LM ), STAT=RC )
@@ -4533,7 +4533,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromGasPhase = 0.0_f4
           State_Diag%Archive_ProdSO4fromGasPhase = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromGasPhase,           &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4544,7 +4544,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdMSAfromDMS'
        diagID  = 'ProdMSAfromDMS'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdMSAfromDMS( IM, JM, LM ), STAT=RC )
@@ -4552,7 +4552,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdMSAfromDMS = 0.0_f4
           State_Diag%Archive_ProdMSAfromDMS = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdMSAfromDMS,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4563,7 +4563,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO2fromDMS'
        diagID  = 'ProdSO2fromDMS'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO2fromDMS( IM, JM, LM ), STAT=RC )
@@ -4571,7 +4571,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO2fromDMS = 0.0_f4
           State_Diag%Archive_ProdSO2fromDMS = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO2fromDMS,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4582,7 +4582,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO2fromDMSandNO3'
        diagID  = 'ProdSO2fromDMSandNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO2fromDMSandNO3( IM, JM, LM ), STAT=RC )
@@ -4590,7 +4590,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO2fromDMSandNO3 = 0.0_f4
           State_Diag%Archive_ProdSO2fromDMSandNO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO2fromDMSandNO3,          &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4601,7 +4601,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO2fromDMSandOH'
        diagID  = 'ProdSO2fromDMSandOH'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO2fromDMSandOH( IM, JM, LM ), STAT=RC )
@@ -4609,7 +4609,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO2fromDMSandOH = 0.0_f4
           State_Diag%Archive_ProdSO2fromDMSandOH = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO2fromDMSandOH,           &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4644,7 +4644,7 @@ CONTAINS
 
           ! Exit if any of the above are in the diagnostic list
           ! Force an exact string match to avoid namespace confusion
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+          CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE.           )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -4678,7 +4678,7 @@ CONTAINS
 
        ! NOTE: Use "Loss_" as the search string so that other diagnostics
        ! such as "LossCH4byOH" won't be confused with this diagnostic.
-       CALL Check_DiagList( am_I_Root, Diag_List, 'Loss_', Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, 'Loss_', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%Loss( IM, JM, LM, nLoss ), STAT=RC )
@@ -4686,7 +4686,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%Loss = 0.0_f4
           State_Diag%Archive_Loss = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%Loss,       &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%Loss,       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4699,7 +4699,7 @@ CONTAINS
 
        ! NOTE: Use "Prod_" as the search string so that other diagnostics
        ! such as "ProdBCPIfromBCPO" won't be confused with this diagnostic.
-       CALL Check_DiagList( am_I_Root, Diag_List, 'Prod_', Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, 'Prod_', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%Prod( IM, JM, LM, nProd ), STAT=RC )
@@ -4707,7 +4707,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%Prod = 0.0_f4
           State_Diag%Archive_Prod = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID, State_Diag%Prod,       &
+          CALL Register_DiagField( Input_Opt, diagID, State_Diag%Prod,       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -4735,7 +4735,7 @@ CONTAINS
 
            ! Exit if any of the above are in the diagnostic list
            ! Force an exact string match to avoid namespace confusion
-           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+           CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                 Found,     RC,        exact=.TRUE.           )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '  // &
@@ -4761,7 +4761,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromOxidationOnDust'
        diagID  = 'ProdSO4fromOxidationOnDust'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromOxidationOnDust(IM,JM,LM), STAT=RC )
@@ -4769,7 +4769,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromOxidationOnDust = 0.0_f4
           State_Diag%Archive_ProdSO4fromOxidationOnDust = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromOxidationOnDust,    &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4780,7 +4780,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdNITfromHNO3uptakeOnDust'
        diagID  = 'ProdNITfromHNO3uptakeOnDust'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdNITfromHNO3uptakeOnDust(IM,JM,LM), STAT=RC )
@@ -4788,7 +4788,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdNITfromHNO3uptakeOnDust = 0.0_f4
           State_Diag%Archive_ProdNITfromHNO3uptakeOnDust = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdNITfromHNO3uptakeOnDust,   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4799,7 +4799,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromUptakeOfH2SO4g'
        diagID  = 'ProdSO4fromUptakeOfH2SO4g'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromUptakeOfH2SO4g(IM,JM,LM), STAT=RC )
@@ -4807,7 +4807,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromUptakeOfH2SO4g = 0.0_f4
           State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdSO4fromUptakeOfH2SO4g,     &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4838,7 +4838,7 @@ CONTAINS
 
            ! Exit if any of the above are in the diagnostic list
            ! Force an exact string match to avoid namespace confusion
-           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+           CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                 Found,     RC,        exact=.TRUE.           )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '   // &
@@ -4863,7 +4863,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%EmisPOPPOCPO'
        diagID  = 'EmisPOPPOCPO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisPOPPOCPO(IM,JM), STAT=RC )
@@ -4871,7 +4871,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisPOPPOCPO = 0.0_f4
           State_Diag%Archive_EmisPOPPOCPO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisPOPPOCPO,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4882,7 +4882,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%EmisPOPPBCPO'
        diagID  = 'EmisPOPPBCPO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisPOPPBCPO(IM,JM), STAT=RC )
@@ -4890,7 +4890,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisPOPPBCPO = 0.0_f4
           State_Diag%Archive_EmisPOPPBCPO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisPOPPBCPO,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4901,7 +4901,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%EmisPOPG'
        diagID  = 'EmisPOPG'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisPOPG(IM,JM), STAT=RC )
@@ -4909,7 +4909,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisPOPG = 0.0_f4
           State_Diag%Archive_EmisPOPG = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisPOPG,                      &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4920,7 +4920,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%EmisPOPGfromSoil'
        diagID  = 'EmisPOPGfromSoil'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisPOPGfromSoil(IM,JM), STAT=RC )
@@ -4928,7 +4928,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisPOPGfromSoil = 0.0_f4
           State_Diag%Archive_EmisPOPGfromSoil = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisPOPGfromSoil,              &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4939,7 +4939,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%EmisPOPGfromLake'
        diagID  = 'EmisPOPGfromLake'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisPOPGfromLake(IM,JM), STAT=RC )
@@ -4947,7 +4947,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisPOPGfromLake = 0.0_f4
           State_Diag%Archive_EmisPOPGfromLake = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisPOPGfromLake,              &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4958,7 +4958,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%EmisPOPGfromLeaf'
        diagID  = 'EmisPOPGfromLeaf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisPOPGfromLeaf(IM,JM), STAT=RC )
@@ -4966,7 +4966,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisPOPGfromLeaf = 0.0_f4
           State_Diag%Archive_EmisPOPGfromLeaf = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisPOPGfromLeaf,              &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4977,7 +4977,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FluxPOPGfromSoilToAir'
        diagID  = 'FluxPOPGfromSoilToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxPOPGfromSoilToAir(IM,JM), STAT=RC )
@@ -4985,7 +4985,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxPOPGfromSoilToAir = 0.0_f4
           State_Diag%Archive_FluxPOPGfromSoilToAir = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxPOPGfromSoilToAir,         &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -4996,7 +4996,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FluxPOPGfromAirToSoil'
        diagID  = 'FluxPOPGfromAirToSoil'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxPOPGfromAirToSoil(IM,JM), STAT=RC )
@@ -5004,7 +5004,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxPOPGfromAirToSoil = 0.0_f4
           State_Diag%Archive_FluxPOPGfromAirToSoil = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxPOPGfromAirToSoil,         &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5015,7 +5015,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FluxPOPGfromLakeToAir'
        diagID  = 'FluxPOPGfromLakeToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxPOPGfromLakeToAir(IM,JM), STAT=RC )
@@ -5023,7 +5023,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxPOPGfromLakeToAir = 0.0_f4
           State_Diag%Archive_FluxPOPGfromLakeToAir = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxPOPGfromLakeToAir,         &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5034,7 +5034,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FluxPOPGfromAirToLake'
        diagID  = 'FluxPOPGfromAirToLake'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxPOPGfromAirToLake(IM,JM), STAT=RC )
@@ -5042,7 +5042,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxPOPGfromAirToLake = 0.0_f4
           State_Diag%Archive_FluxPOPGfromAirToLake = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxPOPGfromAirToLake,         &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5053,7 +5053,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FluxPOPGfromLeafToAir'
        diagID  = 'FluxPOPGfromLeafToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxPOPGfromLeafToAir(IM,JM), STAT=RC )
@@ -5061,7 +5061,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxPOPGfromLeafToAir = 0.0_f4
           State_Diag%Archive_FluxPOPGfromLeafToAir = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxPOPGfromLeafToAir,         &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5072,7 +5072,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FluxPOPGfromAirToLeaf'
        diagID  = 'FluxPOPGfromAirToLeaf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxPOPGfromAirToLeaf(IM,JM), STAT=RC )
@@ -5080,7 +5080,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxPOPGfromAirToLeaf = 0.0_f4
           State_Diag%Archive_FluxPOPGfromAirToLeaf = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxPOPGfromAirToLeaf,         &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5091,7 +5091,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FugacitySoilToAir'
        diagID  = 'FugacitySoilToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FugacitySoilToAir(IM,JM), STAT=RC )
@@ -5099,7 +5099,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FugacitySoilToAir = 0.0_f4
           State_Diag%Archive_FugacitySoilToAir = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FugacitySoilToAir,             &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5110,7 +5110,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FugacityLakeToAir'
        diagID  = 'FugacityLakeToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FugacityLakeToAir(IM,JM), STAT=RC )
@@ -5118,7 +5118,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FugacityLakeToAir = 0.0_f4
           State_Diag%Archive_FugacityLakeToAir = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FugacityLakeToAir,             &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5129,7 +5129,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%FugacityLeafToAir'
        diagID  = 'FugacityLeafToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FugacityLeafToAir(IM,JM), STAT=RC )
@@ -5137,7 +5137,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FugacityLeafToAir = 0.0_f4
           State_Diag%Archive_FugacityLeafToAir = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FugacityLeafToAir,             &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5148,7 +5148,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%LossPOPPOCPObyGasPhase'
        diagID  = 'LossPOPPOCPObyGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossPOPPOCPObyGasPhase(IM,JM,LM), STAT=RC )
@@ -5156,7 +5156,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossPOPPOCPObyGasPhase = 0.0_f4
           State_Diag%Archive_LossPOPPOCPObyGasPhase = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%LossPOPPOCPObyGasPhase,        &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5167,7 +5167,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPOCPOfromGasPhase'
        diagID  = 'ProdPOPPOCPOfromGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPOCPOfromGasPhase(IM,JM,LM), STAT=RC )
@@ -5175,7 +5175,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPOCPOfromGasPhase = 0.0_f4
           State_Diag%Archive_ProdPOPPOCPOfromGasPhase = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPOCPOfromGasPhase,      &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5186,7 +5186,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%LossPOPPBCPObyGasPhase'
        diagID  = 'LossPOPPBCPObyGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossPOPPBCPObyGasPhase(IM,JM,LM), STAT=RC )
@@ -5194,7 +5194,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossPOPPBCPObyGasPhase = 0.0_f4
           State_Diag%Archive_LossPOPPBCPObyGasPhase = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%LossPOPPBCPObyGasPhase,        &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5205,7 +5205,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPBCPOfromGasPhase'
        diagID  = 'ProdPOPPBCPOfromGasPhase'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPBCPOfromGasPhase(IM,JM,LM), STAT=RC )
@@ -5213,7 +5213,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPBCPOfromGasPhase = 0.0_f4
           State_Diag%Archive_ProdPOPPBCPOfromGasPhase = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPBCPOfromGasPhase,      &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5224,7 +5224,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPGfromOH'
        diagID  = 'ProdPOPGfromOH'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPGfromOH(IM,JM,LM), STAT=RC )
@@ -5232,7 +5232,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPGfromOH = 0.0_f4
           State_Diag%Archive_ProdPOPGfromOH = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPGfromOH,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5243,7 +5243,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPOCPOfromO3'
        diagID  = 'ProdPOPPOCPOfromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPOCPOfromO3(IM,JM,LM), STAT=RC )
@@ -5251,7 +5251,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPOCPOfromO3 = 0.0_f4
           State_Diag%Archive_ProdPOPPOCPOfromO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPOCPOfromO3,            &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5262,7 +5262,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPOCPIfromO3'
        diagID  = 'ProdPOPPOCPIfromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPOCPIfromO3(IM,JM,LM), STAT=RC )
@@ -5270,7 +5270,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPOCPIfromO3 = 0.0_f4
           State_Diag%Archive_ProdPOPPOCPIfromO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPOCPIfromO3,            &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5281,7 +5281,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPBCPOfromO3'
        diagID  = 'ProdPOPPBCPOfromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPBCPOfromO3(IM,JM,LM), STAT=RC )
@@ -5289,7 +5289,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPBCPOfromO3 = 0.0_f4
           State_Diag%Archive_ProdPOPPBCPOfromO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPBCPOfromO3,            &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5300,7 +5300,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPBCPIfromO3'
        diagID  = 'ProdPOPPBCPIfromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPBCPIfromO3(IM,JM,LM), STAT=RC )
@@ -5308,7 +5308,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPBCPIfromO3 = 0.0_f4
           State_Diag%Archive_ProdPOPPBCPIfromO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPBCPIfromO3,            &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5319,7 +5319,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPOCPOfromNO3'
        diagID  = 'ProdPOPPOCPOfromNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPOCPOfromNO3(IM,JM,LM), STAT=RC )
@@ -5327,7 +5327,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPOCPOfromNO3 = 0.0_f4
           State_Diag%Archive_ProdPOPPOCPOfromNO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPOCPOfromNO3,           &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5338,7 +5338,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPOCPIfromNO3'
        diagID  = 'ProdPOPPOCPIfromNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPOCPIfromNO3(IM,JM,LM), STAT=RC )
@@ -5346,7 +5346,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPOCPIfromNO3 = 0.0_f4
           State_Diag%Archive_ProdPOPPOCPIfromNO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPOCPIfromNO3,           &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5357,7 +5357,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPBCPOfromNO3'
        diagID  = 'ProdPOPPBCPOfromNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPBCPOfromNO3(IM,JM,LM), STAT=RC )
@@ -5365,7 +5365,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPBCPOfromNO3 = 0.0_f4
           State_Diag%Archive_ProdPOPPBCPOfromNO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPBCPOfromNO3,           &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5376,7 +5376,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdPOPPBCPIfromNO3'
        diagID  = 'ProdPOPPBCPIfromNO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdPOPPBCPIfromNO3(IM,JM,LM), STAT=RC )
@@ -5384,7 +5384,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdPOPPBCPIfromNO3 = 0.0_f4
           State_Diag%Archive_ProdPOPPBCPIfromNO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdPOPPBCPIfromNO3,           &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5462,7 +5462,7 @@ CONTAINS
 
            ! Exit if any of the above are in the diagnostic list
            ! Force an exact string match to avoid namespace confusion
-           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+           CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                 Found,     RC,        exact=.TRUE.           )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -5487,7 +5487,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdCO2fromCO'
        diagID  = 'ProdCO2fromCO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdCO2fromCO(IM,JM,LM), STAT=RC )
@@ -5495,7 +5495,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdCO2fromCO = 0.0_f4
           State_Diag%Archive_ProdCO2fromCO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdCO2fromCO,                 &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5515,7 +5515,7 @@ CONTAINS
 
        ! Exit if any of the above are in the diagnostic list
        ! Force an exact string match to avoid namespace confusion
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID,                    &
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID,                    &
                             Found,     RC,        exact=.TRUE.              )
        IF ( Found ) THEN
           ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '       // &
@@ -5539,7 +5539,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%LossCH4byClinTrop'
        diagID  = 'LossCH4byClinTrop'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossCH4byClinTrop(IM,JM,LM), STAT=RC )
@@ -5547,7 +5547,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossCH4byClinTrop = 0.0_f4
           State_Diag%Archive_LossCH4byClinTrop = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%LossCH4byClinTrop,             &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5558,7 +5558,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%LossCH4byOHinTrop'
        diagID  = 'LossCH4byOHinTrop'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossCH4byOHinTrop(IM,JM,LM), STAT=RC )
@@ -5566,7 +5566,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossCH4byOHinTrop = 0.0_f4
           State_Diag%Archive_LossCH4byOHinTrop = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%LossCH4byOHinTrop,             &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5577,7 +5577,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%LossCH4inStrat'
        diagID  = 'LossCH4inStrat'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossCH4inStrat(IM,JM,LM), STAT=RC )
@@ -5585,7 +5585,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossCH4inStrat = 0.0_f4
           State_Diag%Archive_LossCH4inStrat = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%LossCH4inStrat,                &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5615,7 +5615,7 @@ CONTAINS
 
           ! Exit if any of the above are in the diagnostic list
           ! Force an exact string match to avoid namespace confusion
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+          CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE.           )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -5641,7 +5641,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdCOfromCH4'
        diagID  = 'ProdCOfromCH4'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdCOfromCH4(IM,JM,LM), STAT=RC )
@@ -5649,7 +5649,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdCOfromCH4 = 0.0_f4
           State_Diag%Archive_ProdCOfromCH4 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdCOfromCH4,             &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5660,7 +5660,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdCOfromNMVOC'
        diagID  = 'ProdCOfromNMVOC'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdCOfromNMVOC(IM,JM,LM), STAT=RC )
@@ -5668,7 +5668,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdCOfromNMVOC = 0.0_f4
           State_Diag%Archive_ProdCOfromNMVOC = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdCOfromNMVOC,             &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5695,7 +5695,7 @@ CONTAINS
 
           ! Exit if any of the above are in the diagnostic list
           ! Force an exact string match to avoid namespace confusion
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+          CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                Found,     RC,        exact=.TRUE.           )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -5720,14 +5720,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0anthro'
        diagID  = 'EmisHg0anthro'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg0anthro( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg0anthro = 0.0_f4
           State_Diag%Archive_EmisHg0anthro = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg0anthro,                 &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5738,14 +5738,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0biomass'
        diagID  = 'EmisHg0biomass'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg0biomass( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg0biomass = 0.0_f4
           State_Diag%Archive_EmisHg0biomass = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg0biomass,                &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5756,14 +5756,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0geogenic'
        diagID  = 'EmisHg0geogenic'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg0geogenic( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg0geogenic = 0.0_f4
           State_Diag%Archive_EmisHg0geogenic = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg0geogenic,               &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5774,14 +5774,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0land'
        diagID  = 'EmisHg0land'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg0land( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg0land = 0.0_f4
           State_Diag%Archive_EmisHg0land = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg0land,                   &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5792,14 +5792,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0ocean'
        diagID  = 'EmisHg0ocean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg0ocean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg0ocean = 0.0_f4
           State_Diag%Archive_EmisHg0ocean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg0ocean,                  &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5810,14 +5810,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0snow'
        diagID  = 'EmisHg0snow'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg0snow( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg0snow = 0.0_f4
           State_Diag%Archive_EmisHg0snow = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg0snow,                   &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5828,14 +5828,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0soil'
        diagID  = 'EmisHg0soil'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg0soil( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg0soil = 0.0_f4
           State_Diag%Archive_EmisHg0soil = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg0soil,              &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5846,14 +5846,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0vegetation'
        diagID  = 'EmisHg0vegetation'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg0vegetation( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg0vegetation = 0.0_f4
           State_Diag%Archive_EmisHg0vegetation = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg0vegetation,             &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5865,14 +5865,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg2HgPanthro'
        diagID  = 'EmisHg2HgPanthro'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg2HgPanthro( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg2HgPanthro = 0.0_f4
           State_Diag%Archive_EmisHg2HgPanthro = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg2HgPanthro,              &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5883,14 +5883,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg2snowToOcean'
        diagID  = 'EmisHg2snowToOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg2snowToOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg2snowToOcean = 0.0_f4
           State_Diag%Archive_EmisHg2snowToOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg2snowToOcean,            &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5901,14 +5901,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg2rivers'
        diagID  = 'EmisHg2rivers'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%EmisHg2rivers( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%EmisHg2rivers = 0.0_f4
           State_Diag%Archive_EmisHg2rivers = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%EmisHg2rivers,                 &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5919,14 +5919,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%FluxHg2HgPfromAirToSnow'
        diagID  = 'FluxHg2HgPfromAirToSnow'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxHg2HgPfromAirToSnow( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxHg2HgPfromAirToSnow = 0.0_f4
           State_Diag%Archive_FluxHg2HgPfromAirToSnow = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxHg2HgPfromAirToSnow,       &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5936,14 +5936,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%FluxHg0fromAirToOcean'
        diagID  = 'FluxHg0fromAirToOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxHg0fromAirToOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxHg0fromAirToOcean = 0.0_f4
           State_Diag%Archive_FluxHg0fromAirToOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxHg0fromAirToOcean,         &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5954,14 +5954,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%FluxHg0fromOceanToAir'
        diagID  = 'FluxHg0fromOceanToair'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxHg0fromOceanToAir( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxHg0fromOceanToAir = 0.0_f4
           State_Diag%Archive_FluxHg0fromOceanToAir = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxHg0fromOceantoAir,         &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5972,14 +5972,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%FluxHg2toDeepOcean'
        diagID  = 'FluxHg2toDeepOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxHg2toDeepOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxHg2toDeepOcean = 0.0_f4
           State_Diag%Archive_FluxHg2toDeepOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxHg2toDeepOcean,            &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5990,14 +5990,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%FluxOCtoDeepOcean'
        diagID  = 'FluxOCtoDeepOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxOCtoDeepOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxOCtoDeepOcean = 0.0_f4
           State_Diag%Archive_FluxOCtoDeepOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxOCtoDeepOcean,             &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6008,14 +6008,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%FluxHg2HgPfromAirToOcean'
        diagID  = 'FluxHg2HgPfromAirToOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%FluxHg2HgPfromAirToOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
           State_Diag%Archive_FluxHg2HgPfromAirToOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%FluxHg2HgPfromAirToOcean,      &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6026,14 +6026,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%MassHg0inOcean'
        diagID  = 'MassHg0inOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%MassHg0inOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%MassHg0inOcean = 0.0_f4
           State_Diag%Archive_MassHg0inOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%MassHg0inOcean,                &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6044,14 +6044,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%MassHg2inOcean'
        diagID  = 'MassHg2inOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%MassHg2inOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%MassHg2inOcean = 0.0_f4
           State_Diag%Archive_MassHg2inOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%MassHg2inOcean,                &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6062,14 +6062,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%MassHgPinOcean'
        diagID  = 'MassHgPinOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%MassHgPinOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%MassHgPinOcean = 0.0_f4
           State_Diag%Archive_MassHgPinOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%MassHgPinOcean,                &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6080,14 +6080,14 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%MassHgTotalInOcean'
        diagID  = 'MassHgTotalInOcean'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%MassHgTotalInOcean( IM, JM ), STAT=RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%MassHgTotalInOcean = 0.0_f4
           State_Diag%Archive_MassHgTotalInOcean = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%MassHgTotalInOcean,              &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6098,7 +6098,7 @@ CONTAINS
        !----------------------------------------------------------------
        arrayID = 'State_Diag%ConcBr'
        diagID  = 'ConcBr'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ConcBr( IM, JM, LM ), STAT=RC )
@@ -6106,7 +6106,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ConcBr = 0.0_f4
           State_Diag%Archive_ConcBr = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ConcBr,                        &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6117,7 +6117,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ConcBrO'
        diagID  = 'ConcBrO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ConcBrO( IM, JM, LM ), STAT=RC )
@@ -6125,7 +6125,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ConcBrO = 0.0_f4
           State_Diag%Archive_ConcBrO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ConcBrO,                       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6136,7 +6136,7 @@ CONTAINS
        !----------------------------------------------------------------
        arrayID = 'State_Diag%PolarConcBr'
        diagID  = 'PolarConcBr'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PolarConcBr( IM, JM, LM ), STAT=RC )
@@ -6144,7 +6144,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PolarConcBr = 0.0_f4
           State_Diag%Archive_PolarConcBr = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%PolarConcBr,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6155,7 +6155,7 @@ CONTAINS
        !----------------------------------------------------------------
        arrayID = 'State_Diag%PolarConcBrO'
        diagID  = 'PolarConcBrO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PolarConcBrO( IM, JM, LM ), STAT=RC )
@@ -6163,7 +6163,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PolarConcBrO = 0.0_f4
           State_Diag%Archive_PolarConcBrO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%PolarConcBrO,                  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6174,7 +6174,7 @@ CONTAINS
        !----------------------------------------------------------------
        arrayID = 'State_Diag%PolarConcO3'
        diagID  = 'PolarConcO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PolarConcO3( IM, JM, LM ), STAT=RC )
@@ -6182,7 +6182,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PolarConcO3 = 0.0_f4
           State_Diag%Archive_PolarConcO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%PolarConcO3,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6193,7 +6193,7 @@ CONTAINS
        !----------------------------------------------------------------
        arrayID = 'State_Diag%LossHg2bySeaSalt'
        diagID  = 'LossHg2bySeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossHg2bySeaSalt( IM, JM, LM ), STAT=RC )
@@ -6201,7 +6201,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossHg2bySeaSalt = 0.0_f4
           State_Diag%Archive_LossHg2bySeaSalt = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%LossHg2bySeaSalt,              &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6212,7 +6212,7 @@ CONTAINS
        !----------------------------------------------------------------
        arrayID = 'State_Diag%LossRateHg2bySeaSalt'
        diagID  = 'LossRateHg2bySeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossRateHg2bySeaSalt( IM, JM ), STAT=RC )
@@ -6220,7 +6220,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossRateHg2bySeaSalt = 0.0_f4
           State_Diag%Archive_LossRateHg2bySeaSalt = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%LossRateHg2bySeaSalt,          &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6231,7 +6231,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromBr'
        diagID  = 'ProdHg2fromBr'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromBr( IM, JM, LM ), STAT=RC )
@@ -6239,7 +6239,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromBr = 0.0_f4
           State_Diag%Archive_ProdHg2fromBr = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromBr,                 &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6250,7 +6250,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromBrY'
        diagID  = 'ProdHg2fromBrY'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromBrY( IM, JM, LM ), STAT=RC )
@@ -6258,7 +6258,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromBrY = 0.0_f4
           State_Diag%Archive_ProdHg2fromBrY = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromBrY,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6269,7 +6269,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromClY'
        diagID  = 'ProdHg2fromClY'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromClY( IM, JM, LM ), STAT=RC )
@@ -6277,7 +6277,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromClY = 0.0_f4
           State_Diag%Archive_ProdHg2fromClY = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromClY,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6288,7 +6288,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromHg0'
        diagID  = 'ProdHg2fromHg0'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromHg0( IM, JM, LM ), STAT=RC )
@@ -6296,7 +6296,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHg0 = 0.0_f4
           State_Diag%Archive_ProdHg2fromHg0 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromHg0,                &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6307,7 +6307,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromHgBrPlusBr2'
        diagID  = 'ProdHg2fromHgBrPlusBr2'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBr2( IM, JM, LM ), STAT=RC )
@@ -6315,7 +6315,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHgBrPlusBr2 = 0.0_f4
           State_Diag%Archive_ProdHg2fromHgBrPlusBr2 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromHgBrPlusBr2,        &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6326,7 +6326,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrBrO'
        diagID  = 'ProdHg2fromHgBrPlusBrBrO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrBrO( IM, JM, LM ),       &
@@ -6335,7 +6335,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHgBrPlusBrBrO = 0.0_f4
           State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromHgBrPlusBrBrO,      &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6346,7 +6346,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrClO'
        diagID  = 'ProdHg2fromHgBrPlusBrClO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrClO( IM, JM, LM ),       &
@@ -6355,7 +6355,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHgBrPlusBrClO = 0.0_f4
           State_Diag%Archive_ProdHg2fromHgBrPlusBrClO = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromHgBrPlusBrClO,      &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6366,7 +6366,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrHO2'
        diagID  = 'ProdHg2fromHgBrPlusBrHO2'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrHO2( IM, JM, LM ),       &
@@ -6375,7 +6375,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHgBrPlusBrHO2 = 0.0_f4
           State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromHgBrPlusBrHO2,      &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6386,7 +6386,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrNO2'
        diagID  = 'ProdHg2fromHgBrPlusBrNO2'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrNO2( IM, JM, LM ),       &
@@ -6395,7 +6395,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHgBrPlusBrNO2 = 0.0_f4
           State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromHgBrPlusBrNO2,      &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6406,7 +6406,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromHgBrPlusBrOH'
        diagID  = 'ProdHg2fromHgBrPlusBrOH'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrOH( IM, JM, LM ),        &
@@ -6415,7 +6415,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHgBrPlusBrOH = 0.0_f4
           State_Diag%Archive_ProdHg2fromHgBrPlusBrOH = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromHgBrPlusBrOH,       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6426,7 +6426,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromO3'
        diagID  = 'ProdHg2fromO3'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromO3( IM, JM, LM ), STAT=RC )
@@ -6434,7 +6434,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromO3 = 0.0_f4
           State_Diag%Archive_ProdHg2fromO3 = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromO3,                 &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6445,7 +6445,7 @@ CONTAINS
        !---------------------------------------------------------------------
        arrayID = 'State_Diag%ProdHg2fromOH'
        diagID  = 'ProdHg2fromOH'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdHg2fromOH( IM, JM, LM ), STAT=RC )
@@ -6453,7 +6453,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromOH = 0.0_f4
           State_Diag%Archive_ProdHg2fromOH = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ProdHg2fromOH,                 &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6464,7 +6464,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%ParticulateBoundHg'
        diagID  = 'ParticulateBoundHg'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ParticulateBoundHg( IM, JM, LM ), STAT=RC )
@@ -6472,7 +6472,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ParticulateBoundHg = 0.0_f4
           State_Diag%Archive_ParticulateBoundHg = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ParticulateBoundHg,            &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6483,7 +6483,7 @@ CONTAINS
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%ReactiveGaseousHg'
        diagID  = 'ReactiveGaseousHg'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ReactiveGaseousHg( IM, JM, LM ), STAT=RC )
@@ -6491,7 +6491,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ReactiveGaseousHg = 0.0_f4
           State_Diag%Archive_ReactiveGaseousHg = .TRUE.
-          CALL Register_DiagField( am_I_Root, diagID,                        &
+          CALL Register_DiagField( Input_Opt, diagID,                        &
                                    State_Diag%ReactiveGaseousHg,             &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -6597,7 +6597,7 @@ CONTAINS
 
            ! Exit if any of the above are in the diagnostic list
            ! Force an exact string match to avoid namespace confusion
-           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+           CALL Check_DiagList( Input_Opt, Diag_List, diagID,                 &
                                 Found,     RC,        exact=.TRUE.           )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
@@ -6627,7 +6627,7 @@ CONTAINS
     !!-------------------------------------------------------------------
     !arrayID = 'State_Diag%xxx'
     !diagID  = 'xxx'
-    !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    !CALL Check_DiagList( Input_Opt, Diag_List, diagID, Found, RC )
     !IF ( Found ) THEN
     !   IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
     !   ALLOCATE( State_Diag%xxx( IM, JM, LM, n ), STAT=RC ) ! Edits dims
@@ -6635,7 +6635,7 @@ CONTAINS
     !   IF ( RC /= GC_SUCCESS ) RETURN
     !   State_Diag%xxx = 0.0_f4
     !   State_Diag%Archive_xxx = .TRUE.
-    !   CALL Register_DiagField( am_I_Root, diagID, State_Diag%xxx, &
+    !   CALL Register_DiagField( Input_Opt, diagID, State_Diag%xxx, &
     !                            State_Chm, State_Diag, RC )
     !   IF ( RC /= GC_SUCCESS ) RETURN
     !ENDIF
@@ -6649,7 +6649,7 @@ CONTAINS
             'Registered variables contained within the State_Diag object:' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
-    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
+    CALL Registry_Print( Input_Opt   = Input_Opt,                            &
                          Registry    = State_Diag%Registry,                  &
                          ShortFormat = .TRUE.,                               &
                          RC          = RC                                   )
@@ -6766,11 +6766,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_State_Diag( am_I_Root, State_Diag, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+  SUBROUTINE Cleanup_State_Diag( State_Diag, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6782,7 +6778,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Jul 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8456,7 +8452,7 @@ CONTAINS
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
-    CALL Registry_Destroy( am_I_Root, State_Diag%Registry, RC )
+    CALL Registry_Destroy( State_Diag%Registry, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object State_Diag%Registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -8481,21 +8477,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Metadata_State_Diag( am_I_Root,  metadataID, Found,    &
+  SUBROUTINE Get_Metadata_State_Diag( Input_Opt,  metadataID, Found,    &
                                       RC,         Desc,       Units,    &
                                       TagId,      Rank,       Type,     &
                                       VLoc                             )
 !
 ! !USES:
 !
-    USE Charpak_Mod,         ONLY: StrSplit, To_UpperCase
-    USE DiagList_Mod,        ONLY: IsFullChem
+    USE Charpak_Mod,         ONLY : StrSplit, To_UpperCase
+    USE DiagList_Mod,        ONLY : IsFullChem
+    USE Input_Opt_Mod,       ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Is this the root CPU?
-    CHARACTER(LEN=*),    INTENT(IN)  :: metadataID ! State_Diag field ID
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt    ! Input Options object
+    CHARACTER(LEN=*),    INTENT(IN)  :: metadataID   ! State_Diag field ID
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -8513,7 +8510,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -9975,15 +9972,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_TagInfo( am_I_Root, tagID, State_Chm, Found,                &
+  SUBROUTINE Get_TagInfo( Input_Opt, tagID, State_Chm, Found,                &
                           RC,        N,     tagName,   nTags                )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput),     INTENT(IN)  :: Input_Opt   ! Input Options object
     CHARACTER(LEN=*),   INTENT(IN)  :: tagID       ! ID of tag (e.g. wildcard)
     TYPE(ChmState),     INTENT(IN)  :: State_Chm   ! Chemistry State object
     INTEGER,            OPTIONAL    :: N           ! index (1 to # tags)
@@ -9999,7 +9997,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Nov 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10291,15 +10289,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_NameInfo( am_I_Root, InName, OutName, RC )
+  SUBROUTINE Get_NameInfo( Input_Opt, InName, OutName, RC )
 !
 ! !USES:
 !
-    USE Charpak_Mod, ONLY : To_Uppercase
+    USE Charpak_Mod,   ONLY : To_Uppercase
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput),     INTENT(IN)  :: Input_Opt   ! Input Options object
     CHARACTER(LEN=*),   INTENT(IN)  :: InName      ! Name in HISTORY.rc
 !
 ! !OUTPUT PARAMETERS:
@@ -10311,7 +10310,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jan 2018 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10381,16 +10380,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_2D( am_I_Root, metadataID, Ptr2Data,      &
+  SUBROUTINE Register_DiagField_R4_2D( Input_Opt, metadataID, Ptr2Data,      &
                                        State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,        ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL(f4),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
@@ -10404,7 +10404,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10429,7 +10429,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+    CALL Get_Metadata_State_Diag( Input_Opt,   metadataID,  Found,  RC,      &
                                   desc=desc,   units=units, rank=rank,       &
                                   type=type,   vloc=vloc,   tagId=tagId     )
 
@@ -10458,7 +10458,7 @@ CONTAINS
     IF ( tagId /= '' ) THEN
 
        ! Get number of tags
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
+       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
                          nTags=nTags )
 
        ! Trap potential errors
@@ -10482,7 +10482,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the tag name
-          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
                             N=N, tagName=tagName )
 
           ! Trap potential errors
@@ -10499,7 +10499,7 @@ CONTAINS
           diagDesc = TRIM( Desc      ) // ' '  // TRIM( tagName )
 
           ! Add field to registry
-          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
                                   Registry     = State_Diag%Registry,        &
                                   State        = State_Diag%State,           &
                                   Variable     = diagName,                   &
@@ -10524,7 +10524,7 @@ CONTAINS
     ELSE
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Diag%Registry,           &
                                State        = State_Diag%State,              &
                                Variable     = MetadataID,                    &
@@ -10559,16 +10559,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_3D( am_I_Root, metadataID, Ptr2Data,      &
+  SUBROUTINE Register_DiagField_R4_3D( Input_Opt, metadataID, Ptr2Data,      &
                                        State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,        ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL(f4),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
@@ -10582,7 +10583,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10607,7 +10608,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+    CALL Get_Metadata_State_Diag( Input_Opt,   metadataID,  Found,  RC,      &
                                   desc=desc,   units=units, rank=rank,       &
                                   type=type,   vloc=vloc,                    &
                                   tagID=tagID                               )
@@ -10640,7 +10641,7 @@ CONTAINS
     IF ( tagID /= '' ) THEN
 
        ! Get the number of tags
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
+       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
                          nTags=nTags )
 
        ! Trap potential errors
@@ -10664,7 +10665,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the tag name
-          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
                             N=N, tagName=tagName )
 
           ! Trap potential errors
@@ -10681,7 +10682,7 @@ CONTAINS
           diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
           ! Add field to registry
-          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
                                   Registry     = State_Diag%Registry,        &
                                   State        = State_Diag%State,           &
                                   Variable     = diagName,                   &
@@ -10708,7 +10709,7 @@ CONTAINS
     ELSE
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Diag%Registry,           &
                                State        = State_Diag%State,              &
                                Variable     = metadataID,                    &
@@ -10744,16 +10745,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_4D( am_I_Root, metadataID, Ptr2Data,      &
+  SUBROUTINE Register_DiagField_R4_4D( Input_Opt, metadataID, Ptr2Data,      &
                                        State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,        ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root         ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt         ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! Name
     REAL(f4),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
@@ -10770,7 +10772,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10795,7 +10797,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+    CALL Get_Metadata_State_Diag( Input_Opt,   metadataID,  Found,  RC,      &
                                   desc=desc,   units=units, rank=rank,       &
                                   type=type,   vloc=vloc,   tagId=tagId     )
 
@@ -10823,7 +10825,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Assume always tagged if 4D, get number of tags
     !-----------------------------------------------------------------------
-    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,                &
+    CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,                &
                       nTags=nTags )
 
     ! Trap potential errors
@@ -10849,7 +10851,7 @@ CONTAINS
     DO N = 1, nTags
 
        ! Get the tag name
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
                          N=N, tagName=tagName )
 
        ! Trap potential errors
@@ -10866,7 +10868,7 @@ CONTAINS
        diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Diag%Registry,           &
                                State        = State_Diag%State,              &
                                Variable     = diagName,                      &
@@ -10902,16 +10904,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R8_2D( am_I_Root, metadataID, Ptr2Data,      &
+  SUBROUTINE Register_DiagField_R8_2D( Input_Opt, metadataID, Ptr2Data,      &
                                        State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,        ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL(f8),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
@@ -10925,7 +10928,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -10950,7 +10953,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+    CALL Get_Metadata_State_Diag( Input_Opt,   metadataID,  Found,  RC,      &
                                   desc=desc,   units=units, rank=rank,       &
                                   type=type,   vloc=vloc,   tagId=tagId     )
 
@@ -10979,7 +10982,7 @@ CONTAINS
     IF ( tagId /= '' ) THEN
 
        ! Get number of tags
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
+       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
                          nTags=nTags )
 
        ! Trap potential errors
@@ -11003,7 +11006,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the tag name
-          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
                             N=N, tagName=tagName )
 
           ! Trap potential errors
@@ -11020,7 +11023,7 @@ CONTAINS
           diagDesc = TRIM( Desc      ) // ' '  // TRIM( tagName )
 
           ! Add field to registry
-          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
                                   Registry     = State_Diag%Registry,        &
                                   State        = State_Diag%State,           &
                                   Variable     = diagName,                   &
@@ -11045,7 +11048,7 @@ CONTAINS
     ELSE
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Diag%Registry,           &
                                State        = State_Diag%State,              &
                                Variable     = MetadataID,                    &
@@ -11080,16 +11083,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R8_3D( am_I_Root, metadataID, Ptr2Data,      &
+  SUBROUTINE Register_DiagField_R8_3D( Input_Opt, metadataID, Ptr2Data,      &
                                        State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,        ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt       ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
     REAL(f8),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
@@ -11103,7 +11107,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -11128,7 +11132,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+    CALL Get_Metadata_State_Diag( Input_Opt,   metadataID,  Found,  RC,      &
                                   desc=desc,   units=units, rank=rank,       &
                                   type=type,   vloc=vloc,                    &
                                   tagID=tagID                               )
@@ -11161,7 +11165,7 @@ CONTAINS
     IF ( tagID /= '' ) THEN
 
        ! Get the number of tags
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
+       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
                          nTags=nTags )
 
        ! Trap potential errors
@@ -11185,7 +11189,7 @@ CONTAINS
        DO N = 1, nTags
 
           ! Get the tag name
-          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
                             N=N, tagName=tagName )
 
           ! Trap potential errors
@@ -11202,7 +11206,7 @@ CONTAINS
           diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
           ! Add field to registry
-          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+          CALL Registry_AddField( Input_Opt    = Input_Opt,                  &
                                   Registry     = State_Diag%Registry,        &
                                   State        = State_Diag%State,           &
                                   Variable     = diagName,                   &
@@ -11229,7 +11233,7 @@ CONTAINS
     ELSE
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Diag%Registry,           &
                                State        = State_Diag%State,              &
                                Variable     = metadataID,                    &
@@ -11265,16 +11269,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R8_4D( am_I_Root, metadataID, Ptr2Data,      &
+  SUBROUTINE Register_DiagField_R8_4D( Input_Opt, metadataID, Ptr2Data,      &
                                        State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,        ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root         ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt         ! Input Options object
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID        ! Name
     REAL(f8),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
@@ -11291,7 +11296,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Sep 2017 - E. Lundgren - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -11316,7 +11321,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Diag( am_I_Root,  metadataID,  Found,      RC,   &
+    CALL Get_Metadata_State_Diag( Input_Opt,  metadataID,  Found,      RC,   &
                                   desc=desc,  units=units, rank=rank,        &
                                   type=type,  vloc=vloc,   tagId=tagId      )
     ! Trap potential errors
@@ -11343,7 +11348,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Assume always tagged. Get number of tags.
     !-----------------------------------------------------------------------
-    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, nTags=nTags   )
+    CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, nTags=nTags   )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -11368,7 +11373,7 @@ CONTAINS
     DO N = 1, nTags
 
        ! Get the tag name
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
+       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
                          N=N, tagName=tagName )
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -11384,7 +11389,7 @@ CONTAINS
        diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
        ! Add field to registry
-       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+       CALL Registry_AddField( Input_Opt    = Input_Opt,                     &
                                Registry     = State_Diag%Registry,           &
                                State        = State_Diag%State,              &
                                Variable     = diagName,                      &
@@ -11422,7 +11427,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_RRTMG_Indices( am_I_Root, Input_Opt, State_Diag, RC )
+  SUBROUTINE Init_RRTMG_Indices( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -11432,7 +11437,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -11450,7 +11454,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Nov 2018 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -11555,7 +11559,7 @@ CONTAINS
     ENDDO
 
     ! Print to screen
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(/,a)' ) 'INIT_RRTMG_INDICES'
        WRITE( 6, '(  a)' ) '------------------'
        WRITE( 6, 110 ) 'Requested RRTMG fluxes : ', TRIM( FluxStr )

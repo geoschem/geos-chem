@@ -59,7 +59,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SCALE_sp2D( am_I_Root, HcoState, Arr, SCALENAME, RC )
+  SUBROUTINE HCOX_SCALE_sp2D( HcoState, Arr, SCALENAME, RC )
 !
 ! !USES:
 !
@@ -68,7 +68,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HcoState obj
     CHARACTER(LEN=*), INTENT(IN   )  :: SCALENAME   ! SCALE to be used
 !
@@ -94,7 +93,7 @@ CONTAINS
     IF ( TRIM(SCALENAME) /= TRIM(HCOX_NOSCALE) ) THEN
 
        ! Get mask field
-       CALL HCO_EvalFld ( am_I_Root, HcoState, TRIM(SCALENAME), SCAL, RC )
+       CALL HCO_EvalFld ( HcoState, TRIM(SCALENAME), SCAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Set array to zero outside of mask region
@@ -118,7 +117,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SCALE_sp3D( am_I_Root, HcoState, Arr, SCALENAME, RC )
+  SUBROUTINE HCOX_SCALE_sp3D( HcoState, Arr, SCALENAME, RC )
 !
 ! !USES:
 !
@@ -127,7 +126,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HcoState obj
     CHARACTER(LEN=*), INTENT(IN   )  :: SCALENAME   ! SCALE to be used
 !
@@ -154,7 +152,7 @@ CONTAINS
     IF ( TRIM(SCALENAME) /= TRIM(HCOX_NOSCALE) ) THEN
 
        ! Get mask field
-       CALL HCO_EvalFld ( am_I_Root, HcoState, TRIM(SCALENAME), SCAL, RC )
+       CALL HCO_EvalFld ( HcoState, TRIM(SCALENAME), SCAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Number of levels
@@ -183,7 +181,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SCALE_dp2D( am_I_Root, HcoState, Arr, SCALENAME, RC )
+  SUBROUTINE HCOX_SCALE_dp2D( HcoState, Arr, SCALENAME, RC )
 !
 ! !USES:
 !
@@ -192,7 +190,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HcoState obj
     CHARACTER(LEN=*), INTENT(IN   )  :: SCALENAME   ! SCALE to be used
 !
@@ -218,7 +215,7 @@ CONTAINS
     IF ( TRIM(SCALENAME) /= TRIM(HCOX_NOSCALE) ) THEN
 
        ! Get mask field
-       CALL HCO_EvalFld ( am_I_Root, HcoState, TRIM(SCALENAME), SCAL, RC )
+       CALL HCO_EvalFld ( HcoState, TRIM(SCALENAME), SCAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Set array to zero outside of mask region
@@ -243,7 +240,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SCALE_dp3D( am_I_Root, HcoState, Arr, SCALENAME, RC )
+  SUBROUTINE HCOX_SCALE_dp3D( HcoState, Arr, SCALENAME, RC )
 !
 ! !USES:
 !
@@ -252,7 +249,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HcoState obj
     CHARACTER(LEN=*), INTENT(IN   )  :: SCALENAME   ! SCALE to be used
 !
@@ -279,7 +275,7 @@ CONTAINS
     IF ( TRIM(SCALENAME) /= TRIM(HCOX_NOSCALE) ) THEN
 
        ! Get mask field
-       CALL HCO_EvalFld ( am_I_Root, HcoState, TRIM(SCALENAME), SCAL, RC )
+       CALL HCO_EvalFld ( HcoState, TRIM(SCALENAME), SCAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Number of levels

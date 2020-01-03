@@ -63,7 +63,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Run( am_I_Root, HcoState, Phase, RC, IsEndStep )
+  SUBROUTINE HCO_Run( HcoState, Phase, RC, IsEndStep )
 !
 ! !USES:
 !
@@ -76,7 +76,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! root CPU?
     INTEGER,         INTENT(IN   ) :: Phase       ! Run phase (1 or 2)
     LOGICAL,         INTENT(IN   ), OPTIONAL :: IsEndStep ! Last timestep of simulation?
 !
@@ -130,8 +129,7 @@ CONTAINS
     !--------------------------------------------------------------
     ! 1. Check if it's time for emissions
     !--------------------------------------------------------------
-    CALL HcoClock_Get ( am_I_Root,             HcoState%Clock,              &
-                        IsEmisTime=IsEmisTime, RC=RC                       )
+    CALL HcoClock_Get ( HcoState%Clock, IsEmisTime=IsEmisTime, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !--------------------------------------------------------------
@@ -140,7 +138,7 @@ CONTAINS
     ! call HcoDiagn_Write.  Skip if it is a GEOS-Chem "dry-run".
     !--------------------------------------------------------------
     IF ( HcoState%Options%HcoWritesDiagn .and. notDryRun ) THEN
-       CALL HcoDiagn_Write( am_I_Root, HcoState, .FALSE., RC )
+       CALL HcoDiagn_Write( HcoState, .FALSE., RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -162,7 +160,7 @@ CONTAINS
 
     ! Update data, as specified in ReadList.
     IF ( Phase /= 2 ) THEN
-       CALL ReadList_Read( am_I_Root, HcoState, RC )
+       CALL ReadList_Read( HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           PRINT *, "Error in ReadList_Read called from hco_run"
           RETURN
@@ -177,7 +175,7 @@ CONTAINS
        ! file has to be read in its entirety before the timezone data
        ! is loaded into a data container. (bmy, 2/23/15)
        IF ( HcoClock_First(HcoState%Clock,.FALSE.) ) THEN
-          CALL HcoClock_InitTzPtr( am_I_Root, HcoState, RC )
+          CALL HcoClock_InitTzPtr( HcoState, RC )
        ENDIF
 
     ENDIF
@@ -191,13 +189,13 @@ CONTAINS
     IF ( IsEmisTime .AND. Phase == 2 .and. notDryRun ) THEN
 
        ! Use emission data only
-       CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
+       CALL HCO_CalcEmis( HcoState, .FALSE., RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Use concentration data only
        ! This is currently not being used. Concentrations can be read
        ! through HEMCO but should be assembled manually.
-       !CALL HCO_CalcEmis( am_I_Root, HcoState, .TRUE., RC )
+       !CALL HCO_CalcEmis( HcoState, .TRUE., RC )
        !IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -222,7 +220,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Init( am_I_Root, HcoState, RC )
+  SUBROUTINE HCO_Init( HcoState, RC )
 !
 ! !USES:
 !
@@ -231,10 +229,6 @@ CONTAINS
     USE HCO_Clock_Mod,    ONLY : HcoClock_Init
     USE HCO_Config_Mod,   ONLY : SetReadList
     USE HCO_Scale_Mod,    ONLY : HCO_ScaleInit
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -273,28 +267,28 @@ CONTAINS
 
     ! Initialize HEMCO Clock
     HcoState%Clock => NULL()
-    CALL HcoClock_Init( am_I_Root, HcoState, RC )
+    CALL HcoClock_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        PRINT *, "Error in HcoClock_Init called from HCO_Init"
        RETURN
     ENDIF
 
     ! Initialize the HEMCO diagnostics
-    CALL HcoDiagn_Init( am_I_Root, HcoState, RC )
+    CALL HcoDiagn_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        PRINT *, "Error in HcoDiagn_Init called from HCO_Init"
        RETURN
     ENDIF
 
     ! Set ReadList based upon the content of the configuration file.
-    CALL SetReadList ( am_I_Root, HcoState, RC )
+    CALL SetReadList( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        PRINT *, "Error in SetReadList called from HCO_Init"
        RETURN
     ENDIF
 
     ! Define universal scale factor for each HEMCO species
-    CALL Hco_ScaleInit ( am_I_Root, HcoState, RC )
+    CALL Hco_ScaleInit( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        PRINT *, "Error in Hco_ScaleInit called from HCO_Init"
        RETURN
@@ -317,7 +311,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Final( am_I_Root, HcoState, ERROR, RC )
+  SUBROUTINE HCO_Final( HcoState, ERROR, RC )
 !
 ! !USES:
 !
@@ -332,7 +326,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! root CPU?
     LOGICAL,          INTENT(IN   ) :: ERROR      ! Cleanup because of crash?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -361,8 +354,8 @@ CONTAINS
 
     ! Write diagnostics if needed
     IF ( HcoState%Options%HcoWritesDiagn .AND. .NOT. ERROR ) THEN
-       CALL  HcoDiagn_Write( am_I_Root, HcoState, .FALSE., RC )
-       CALL  HcoDiagn_Write( am_I_Root, HcoState, .TRUE.,  RC )
+       CALL  HcoDiagn_Write( HcoState, .FALSE., RC )
+       CALL  HcoDiagn_Write( HcoState, .TRUE.,  RC )
     ENDIF
 
     CALL cIDList_Cleanup  ( HcoState                           )

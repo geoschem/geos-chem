@@ -134,7 +134,7 @@
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -153,7 +153,7 @@
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE Init_CMN_SIZE( am_I_Root, Input_Opt, RC )
+      SUBROUTINE Init_CMN_SIZE( Input_Opt, RC )
 !
 ! !USES:
 !
@@ -162,7 +162,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root     ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt     ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
@@ -171,7 +170,7 @@
 !
 ! !REVISION HISTORY:
 !  15 Oct 2012 - M. Long     - Initial version
-!  See the Git history with the gitk browser!
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,22 +204,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Cleanup_CMN_SIZE( am_I_Root, RC )
+      SUBROUTINE Cleanup_CMN_SIZE( RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
 !
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC        ! Success or failure?
 !
 ! !REVISION HISTORY:
-!   3 Dec 2012 - R. Yantosca - Initial version
+!  03 Dec 2012 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

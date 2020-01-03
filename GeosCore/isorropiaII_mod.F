@@ -347,7 +347,7 @@
             ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
                ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
-               CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
+               CALL HCO_GetPtr( HcoState, 'GLOBAL_HNO3', HNO3, RC )
                IF ( RC /= GC_SUCCESS ) THEN
                   ErrMsg =
      &              'Cannot get pointer to HEMCO field GLOBAL_HNO3!'
