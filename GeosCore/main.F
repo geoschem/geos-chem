@@ -2151,7 +2151,7 @@
             IF ( ITS_TIME_FOR_DIAG() ) THEN
 
                !### Debug
-               IF ( prtDebug ) CALL Debug_Msg( '### MAIN: b DIAGNOSTICS' )
+               IF ( prtDebug ) CALL Debug_Msg('### MAIN: b DIAGNOSTICS')
 
                ! Accumulate several diagnostic quantities
                CALL Diag1( am_I_Root,  Input_Opt, State_Chm,
@@ -2169,7 +2169,7 @@
 
                ! Planeflight diagnostic moved to be after chemistry, kyu
                !### Debug
-               IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a DIAGNOSTICS' )
+               IF ( prtDebug ) CALL Debug_Msg('### MAIN: a DIAGNOSTICS')
             ENDIF
 
             !------------------------------------------------------------
@@ -2205,7 +2205,7 @@
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG51' )
 
             !### After diagnostics
-            IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after TIMESERIES' )
+            IF ( prtDebug ) CALL Debug_Msg('### MAIN: after TIMESERIES')
 
 #ifdef USE_TIMERS
             CALL GEOS_Timer_End( "All diagnostics",              RC )

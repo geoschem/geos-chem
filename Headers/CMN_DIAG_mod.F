@@ -73,7 +73,6 @@
 #endif
 
 #ifdef RRTMG
-      INTEGER :: LD72
       INTEGER :: ND72
 #endif
 

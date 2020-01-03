@@ -251,14 +251,14 @@ MODULE Input_Opt_Mod
      ! DIAGNOSTIC MENU fields
      !----------------------------------------
      CHARACTER(LEN=255)          :: HistoryInputFile
-     INTEGER                     :: ND03,  LD03   ! Hg
-     INTEGER                     :: ND06,  LD06   ! TOMAS
-     INTEGER                     :: ND44,  LD44   ! TOMAS
-     INTEGER                     :: ND53,  LD53   ! POPs
-     INTEGER                     :: ND59,  LD59   ! TOMAS
-     INTEGER                     :: ND60,  LD60   ! TOMAS
-     INTEGER                     :: ND61,  LD61   ! TOMAS
-     INTEGER                     :: ND72,  LD72   ! RRTMG
+     INTEGER                     :: ND03   ! Hg
+     INTEGER                     :: ND06   ! TOMAS
+     INTEGER                     :: ND44   ! TOMAS
+     INTEGER                     :: ND53   ! POPs
+     INTEGER                     :: ND59   ! TOMAS
+     INTEGER                     :: ND60   ! TOMAS
+     INTEGER                     :: ND61   ! TOMAS
+     INTEGER                     :: ND72   ! RRTMG
 
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
@@ -779,15 +779,6 @@ CONTAINS
     Input_Opt%ND61                   = 0
     Input_Opt%ND65                   = 0
     Input_Opt%ND72                   = 0
-    Input_Opt%LD03                   = 0
-    Input_Opt%LD06                   = 0
-    Input_Opt%LD44                   = 0
-    Input_Opt%LD53                   = 0
-    Input_Opt%LD59                   = 0
-    Input_Opt%LD60                   = 0
-    Input_Opt%LD61                   = 0
-    Input_Opt%LD65                   = 0
-    Input_Opt%LD72                   = 0
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TCOUNT(:)              = 0
     Input_Opt%TMAX(:)	             = 0

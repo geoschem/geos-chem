@@ -158,9 +158,6 @@
 
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG3 (diag3.F)'
 
-      ! RRTMG
-      LOGICAL                  :: IS_GAS, IS_AD21, IS_DUST
-
       ! To point to the species database
       CHARACTER(LEN=31)        :: Name
       TYPE(Species), POINTER   :: SpcInfo

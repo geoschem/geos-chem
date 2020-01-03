@@ -4890,8 +4890,6 @@
       ! or if we have turned off this diagnostic
       IF ( .not. ( Input_Opt%DO_SAVE_PL .and. Input_Opt%NFAM > 0 )) THEN
          Input_Opt%DO_SAVE_PL         = .FALSE.
-         Input_Opt%DO_SAVE_O3         = .FALSE.
-         Input_Opt%DO_SAVE_PCO        = .FALSE.
          Input_Opt%ND65               = 0
       ENDIF
 
