@@ -593,6 +593,8 @@ DICE_CHARCOALPROD_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_A
 DICE_CHARCOALPROD_HAC   g/m2/yr  N Y - none 3.171e-11 HAC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_TOLU  g/m2/yr  N Y - none 2.891e-11 TOLU  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
+DICE_CHARCOALPROD_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
+
 DICE_CHARCOALPROD_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_OCPI  g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 
@@ -628,6 +630,7 @@ DICE_AGBURNING_CH2O  g/m2/yr  N Y - none 3.171e-11 CH2O  ./MainDataDir/DICE_Afri
 DICE_AGBURNING_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_HAC   g/m2/yr  N Y - none 3.171e-11 HAC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_GLYC  g/m2/yr  N Y - none 3.171e-11 GLYC  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
+DICE_AGBURNING_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_BENZ  g/m2/yr  N Y - none 2.923e-11 BENZ  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_TOLU  g/m2/yr  N Y - none 2.891e-11 TOLU  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_XYLE  g/m2/yr  N Y - none 2.868e-11 XYLE  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
@@ -644,6 +647,7 @@ DICE_CHARCOALUSE_PRPE  g/m2/yr  N Y - none 2.713e-11 PRPE  ./MainDataDir/DICE_Af
 DICE_CHARCOALUSE_CH2O  g/m2/yr  N Y - none 3.171e-11 CH2O  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
+DICE_CHARCOALUSE_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_OCPI  g/m2/yr  N Y - none 3.171e-11 OC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 
@@ -686,6 +690,7 @@ DICE_HOUSEFUELWOOD_CH2O  g/m2/yr  N Y - none 3.171e-11 CH2O  ./MainDataDir/DICE_
 DICE_HOUSEFUELWOOD_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_HAC   g/m2/yr  N Y - none 3.171e-11 HAC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_GLYC  g/m2/yr  N Y - none 3.171e-11 GLYC  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
+DICE_HOUSEFUELWOOD_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_BENZ  g/m2/yr  N Y - none 2.923e-11 BENZ  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_TOLU  g/m2/yr  N Y - none 2.891e-11 TOLU  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_XYLE  g/m2/yr  N Y - none 2.868e-11 XYLE  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
@@ -709,6 +714,7 @@ DICE_OTHERFUELWOOD_CH2O  g/m2/yr  N Y - none 3.171e-11 CH2O  ./MainDataDir/DICE_
 DICE_OTHERFUELWOOD_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_HAC   g/m2/yr  N Y - none 3.171e-11 HAC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_GLYC  g/m2/yr  N Y - none 3.171e-11 GLYC  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
+DICE_OTHERFUELWOOD_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_BENZ  g/m2/yr  N Y - none 2.923e-11 BENZ  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_TOLU  g/m2/yr  N Y - none 2.891e-11 TOLU  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_XYLE  g/m2/yr  N Y - none 2.868e-11 XYLE  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
@@ -820,13 +826,13 @@ CEDS_CH4_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH4_tra            ./
 CEDS_CH4_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH4_rco            ./MainDataDir/CEDS/v2018-08/%y4/CH4-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_CH4_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH4_slv            ./MainDataDir/CEDS/v2018-08/%y4/CH4-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_CH4_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH4_wst            ./MainDataDir/CEDS/v2018-08/%y4/CH4-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_EOH_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_agr           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_EOH_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_ene           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_EOH_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_ind           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_EOH_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_tra           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_EOH_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_rco           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_EOH_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_slv           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_EOH_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_wst           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_MOH_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_agr           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_MOH_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_ene           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_MOH_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_ind           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_MOH_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_tra           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_MOH_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_rco           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_MOH_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_slv           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_MOH_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none 0.521 EOH_wst           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_C2H6_AGR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_agr           ./MainDataDir/CEDS/v2018-08/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_C2H6_ENE   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_ene           ./MainDataDir/CEDS/v2018-08/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_C2H6_IND   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_ind           ./MainDataDir/CEDS/v2018-08/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
@@ -1099,7 +1105,7 @@ CEDS_SO2_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_shp           ./M
 CEDS_NH3_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_shp           ./MainDataDir/CEDS/v2018-08/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_BCPI_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_shp            ./MainDataDir/CEDS/v2018-08/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_OCPI_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_shp            ./MainDataDir/CEDS/v2018-08/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_EOH_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_shp           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_MOH_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_shp           ./MainDataDir/CEDS/v2018-08/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_C2H6_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_shp          ./MainDataDir/CEDS/v2018-08/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_C3H8_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_shp          ./MainDataDir/CEDS/v2018-08/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_C4H10_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_shp  ./MainDataDir/CEDS/v2018-08/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
@@ -1321,6 +1327,7 @@ ACET_SEAWATER  kg/m3 N Y -                     none none ACET       ./MainDataDi
 ALD2_SEAWATER  kg/m3 Y Y F2006-%m2-01T00:00:00 none none ALD2       ./MainDataDir/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc
 MENO3_SEAWATER kg/m3 Y Y F2006-%m2-01T00:00:00 none none MENO3      ./MainDataDir/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
 ETNO3_SEAWATER kg/m3 Y Y F2006-%m2-01T00:00:00 none none ETNO3      ./MainDataDir/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc
+MOH_SEAWATER   kgC/m3 Y Y F2005-01-01T00:00:00 none none MOH        ./MainDataDir/MOH/v2019-12/MOH_seawater.low.kgCm3.generic.1x1.nc
 
 #==============================================================================
 # --- SOILNOX emissions (Extension 104) ---

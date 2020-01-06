@@ -53,8 +53,10 @@ Warnings:                    1
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------
     --> GC_RESTART             :       false
-    --> GC_BCs                 :       false
+    --> STATE_PSC              :       false
     --> HEMCO_RESTART          :       false
+# ----- NESTED GRID FIELDS ------------------
+    --> GC_BCs                 :       false
 # ----- REGIONAL INVENTORIES ----------------
     --> APEI                   :       true
     --> NEI2011_HOURLY         :       false
