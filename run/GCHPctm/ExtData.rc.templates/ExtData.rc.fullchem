@@ -545,6 +545,7 @@ DICE_CARS_RCHO g/m2/yr N Y - none 3.171e-11 RCHO ./MainDataDir/DICE_Africa/v2016
 DICE_CARS_PRPE g/m2/yr N Y - none 2.713e-11 PRPE ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 DICE_CARS_CH2O g/m2/yr N Y - none 3.171e-11 CH2O ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 DICE_CARS_SO2  g/m2/yr N Y - none 3.171e-11 SO2  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
+DICE_CARS_C2H4 g/m2/yr N Y - none 3.171e-11 C2H4 ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 DICE_CARS_BENZ g/m2/yr N Y - none 2.923e-11 BENZ ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 DICE_CARS_TOLU g/m2/yr N Y - none 2.891e-11 TOLU ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
 DICE_CARS_XYLE g/m2/yr N Y - none 2.868e-11 XYLE ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-cars-2013-v01-4Oct2016.nc
@@ -577,6 +578,7 @@ DICE_BACKUPGEN_RCHO g/m2/yr  N Y - none 3.171e-11 RCHO ./MainDataDir/DICE_Africa
 DICE_BACKUPGEN_MVK  g/m2/yr  N Y - none 3.171e-11 MVK  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 DICE_BACKUPGEN_MACR g/m2/yr  N Y - none 3.171e-11 MACR ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 DICE_BACKUPGEN_CH2O g/m2/yr  N Y - none 3.171e-11 CH2O ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
+DICE_BACKUPGEN_C2H4 g/m2/yr  N Y - none 3.171e-11 C2H4 ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 DICE_BACKUPGEN_BENZ g/m2/yr  N Y - none 2.923e-11 BENZ ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 DICE_BACKUPGEN_TOLU g/m2/yr  N Y - none 2.891e-11 TOLU ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
 DICE_BACKUPGEN_XYLE g/m2/yr  N Y - none 2.868e-11 XYLE ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-generator-use-2013-v01-4Oct2016.nc
@@ -591,6 +593,8 @@ DICE_CHARCOALPROD_PRPE  g/m2/yr  N Y - none 2.713e-11 PRPE  ./MainDataDir/DICE_A
 DICE_CHARCOALPROD_CH2O  g/m2/yr  N Y - none 3.171e-11 CH2O  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_HAC   g/m2/yr  N Y - none 3.171e-11 HAC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
+DICE_CHARCOALPROD_C2H2  g/m2/yr  N Y - none 3.171e-11 C2H2  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
+DICE_CHARCOALPROD_C2H4  g/m2/yr  N Y - none 3.171e-11 C2H4  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_TOLU  g/m2/yr  N Y - none 2.891e-11 TOLU  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
 DICE_CHARCOALPROD_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-production-2013-v01-4Oct2016.nc
@@ -631,6 +635,8 @@ DICE_AGBURNING_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_Afri
 DICE_AGBURNING_HAC   g/m2/yr  N Y - none 3.171e-11 HAC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_GLYC  g/m2/yr  N Y - none 3.171e-11 GLYC  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
+DICE_AGBURNING_C2H2  g/m2/yr  N Y - none 3.171e-11 C2H2  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
+DICE_AGBURNING_C2H4  g/m2/yr  N Y - none 3.171e-11 C2H4  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_BENZ  g/m2/yr  N Y - none 2.923e-11 BENZ  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_TOLU  g/m2/yr  N Y - none 2.891e-11 TOLU  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
 DICE_AGBURNING_XYLE  g/m2/yr  N Y - none 2.868e-11 XYLE  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-crop-residue-use-2013-v01-4Oct2016.nc
@@ -646,6 +652,8 @@ DICE_CHARCOALUSE_NH3   g/m2/yr  N Y - none 3.171e-11 NH3   ./MainDataDir/DICE_Af
 DICE_CHARCOALUSE_PRPE  g/m2/yr  N Y - none 2.713e-11 PRPE  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_CH2O  g/m2/yr  N Y - none 3.171e-11 CH2O  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
+DICE_CHARCOALUSE_C2H2  g/m2/yr  N Y - none 2.531e-11 C2H2  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
+DICE_CHARCOALUSE_C2H4  g/m2/yr  N Y - none 2.531e-11 C2H4  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_HCOOH g/m2/yr  N Y - none 3.171e-11 HCOOH ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
 DICE_CHARCOALUSE_BCPI  g/m2/yr  N Y - none 3.171e-11 BC    ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-charcoal-use-2013-v01-4Oct2016.nc
@@ -691,6 +699,8 @@ DICE_HOUSEFUELWOOD_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_
 DICE_HOUSEFUELWOOD_HAC   g/m2/yr  N Y - none 3.171e-11 HAC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_GLYC  g/m2/yr  N Y - none 3.171e-11 GLYC  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
+DICE_HOUSEFUELWOOD_C2H2  g/m2/yr  N Y - none 3.171e-11 C2H2  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
+DICE_HOUSEFUELWOOD_C2H4  g/m2/yr  N Y - none 3.171e-11 C2H4  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_BENZ  g/m2/yr  N Y - none 2.923e-11 BENZ  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_TOLU  g/m2/yr  N Y - none 2.891e-11 TOLU  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_HOUSEFUELWOOD_XYLE  g/m2/yr  N Y - none 2.868e-11 XYLE  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc
@@ -715,6 +725,8 @@ DICE_OTHERFUELWOOD_C2H6  g/m2/yr  N Y - none 2.531e-11 C2H6  ./MainDataDir/DICE_
 DICE_OTHERFUELWOOD_HAC   g/m2/yr  N Y - none 3.171e-11 HAC   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_GLYC  g/m2/yr  N Y - none 3.171e-11 GLYC  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_MOH   g/m2/yr  N Y - none 3.171e-11 MOH   ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
+DICE_OTHERFUELWOOD_C2H2  g/m2/yr  N Y - none 3.171e-11 C2H2  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
+DICE_OTHERFUELWOOD_C2H4  g/m2/yr  N Y - none 3.171e-11 C2H4  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_BENZ  g/m2/yr  N Y - none 2.923e-11 BENZ  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_TOLU  g/m2/yr  N Y - none 2.891e-11 TOLU  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
 DICE_OTHERFUELWOOD_XYLE  g/m2/yr  N Y - none 2.868e-11 XYLE  ./MainDataDir/DICE_Africa/v2016-10/DICE-Africa-other-fuelwood-use-2013-v01-4Oct2016.nc
@@ -1359,9 +1371,34 @@ DEAD_VAI        1        Y Y 1985-%m2-01T00:00:00 none none VAI      ./MainDataD
 MODIS_CHLR  1 N Y F%y4-%m2-01T00:00:00 none none MODIS ./MainDataDir/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.%y4.nc
 
 #==============================================================================
-# --- MEGAN biogenic emissions (Extension 108 and 109)
-# Off by default. Use offline biogenic emissions above.
+# --- MEGAN biogenic emissions (Extension 108)
 #==============================================================================
+MEGAN_AEF_ISOP               kgC/m2/s N Y - none none AEF_ISOPRENE             ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_MBOX               kgC/m2/s N Y - none none AEF_MBO                  ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_APIN               kgC/m2/s N Y - none none AEF_ALPHA_PINENE         ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_BPIN               kgC/m2/s N Y - none none AEF_BETA_PINENE          ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_CARE               kgC/m2/s N Y - none none AEF_CARENE               ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_LIMO               kgC/m2/s N Y - none none AEF_LIMONENE             ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_MYRC               kgC/m2/s N Y - none none AEF_MYRCENE              ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_OCIM               kgC/m2/s N Y - none none AEF_OCIMENE              ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_SABI               kgC/m2/s N Y - none none AEF_SABINENE             ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+CLM4_PFT_BARE                1        N Y - none none PFT_BARE                 ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_NDLF_EVGN_TMPT_TREE 1        N Y - none none PFT_NDLF_EVGN_TMPT_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_NDLF_EVGN_BORL_TREE 1        N Y - none none PFT_NDLF_EVGN_BORL_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_NDLF_DECD_BORL_TREE 1        N Y - none none PFT_NDLF_DECD_BORL_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_BDLF_EVGN_TROP_TREE 1        N Y - none none PFT_BDLF_EVGN_TROP_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_BDLF_EVGN_TMPT_TREE 1        N Y - none none PFT_BDLF_EVGN_TMPT_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_BDLF_DECD_TROP_TREE 1        N Y - none none PFT_BDLF_DECD_TROP_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_BDLF_DECD_TMPT_TREE 1        N Y - none none PFT_BDLF_DECD_TMPT_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_BDLF_DECD_BORL_TREE 1        N Y - none none PFT_BDLF_DECD_BORL_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_BDLF_EVGN_SHRB      1        N Y - none none PFT_BDLF_EVGN_SHRB       ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_BDLF_DECD_TMPT_SHRB 1        N Y - none none PFT_BDLF_DECD_TMPT_SHRB  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_BDLF_DECD_BORL_SHRB 1        N Y - none none PFT_BDLF_DECD_BORL_SHRB  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_C3_ARCT_GRSS        1        N Y - none none PFT_C3_ARCT_GRSS         ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_C3_NARC_GRSS        1        N Y - none none PFT_C3_NARC_GRSS         ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_C4_GRSS             1        N Y - none none PFT_C4_GRSS              ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+CLM4_PFT_CROP                1        N Y - none none PFT_CROP                 ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
+MEGAN_ORVC                   1        Y Y F1990-%m2-01T00:00:00 none none OCPI ./MainDataDir/SOA/v2014-07/NVOC.geos.1x1.nc
 
 #==============================================================================
 # --- GFED biomass burning emissions (Extension 111)
