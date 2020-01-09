@@ -987,7 +987,7 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
 
-#if !defined(EXTERNAL_FORCING)
+#if !defined( MODEL_CESM )
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
@@ -1005,7 +1005,6 @@ CONTAINS
 
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
 #endif
 
        !====================================================================
@@ -1030,6 +1029,7 @@ CONTAINS
 
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
 #endif
        ENDIF
 
