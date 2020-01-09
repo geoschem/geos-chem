@@ -1786,6 +1786,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Hardwired for now (tmmf, 11/15/19)
       DATA_DIR = '/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/' //
      &  'data/ExtData/CHEM_INPUTS/FAST_JX/v2019-06/'
+      DATA_DIR = '/home/fritzt/FAST-JX/'
 #endif
 
       !=====================================================================
@@ -1922,7 +1923,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ENDDO
 
 #if defined( MODEL_CESM )
+      IF ( am_I_Root ) THEN
       CALL freeUnit(JXUnit)
+      ENDIF
 #endif
 
 #ifdef MODEL_GEOS
@@ -2484,6 +2487,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Hardwired for now (tmmf, 11/15/19)
       DATA_DIR = '/n/holylfs/EXTERNAL_REPOS/GEOS-CHEM/gcgrid/' //
      &  'data/ExtData/CHEM_INPUTS/FAST_JX/v2019-06/'
+      DATA_DIR = '/home/fritzt/FAST-JX/'
 #endif
 
       ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order

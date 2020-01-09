@@ -5421,7 +5421,9 @@
 
 #if defined( MODEL_CESM )
       ! Will fix this... eventually
-      WRITE(6,'(a)') ' --GC UCX CESM--> Skipping NOx data read in'
+      IF ( am_I_Root ) THEN
+          WRITE(6,'(a)') ' --GC UCX CESM--> Skipping NOx data read in'
+      ENDIF
       RETURN
 #endif
 

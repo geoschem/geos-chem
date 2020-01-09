@@ -231,6 +231,9 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#if defined( MODEL_CESM )
+    USE CAM_LOGFILE,        ONLY : iulog
+#endif
 
     IMPLICIT NONE
 !
@@ -376,7 +379,11 @@ CONTAINS
 
     STAMP = TIMESTAMP_STRING()
     IF ( am_I_Root ) THEN
+#if defined( MODEL_CESM )
+       WRITE( iulog, 10 ) STAMP
+#else
        WRITE( 6, 10 ) STAMP
+#endif
     ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
 
