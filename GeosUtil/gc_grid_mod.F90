@@ -561,32 +561,44 @@ CONTAINS
        State_Grid%YMid_R(I,J) = State_Grid%YMid(I,J) * PI_180
 
        ! Edges: approximate from neighboring mid points.
-       IF ( I == 1 ) THEN
-          TMP = RoundOff( lonCtr(I+1,J) / PI_180, 4 )
-          State_Grid%XEdge(I,J) = State_Grid%XMid(I,J) - &
-                                  ( ( TMP - State_Grid%XMid(I,J) ) / 2.0_f4 )
+       IF ( State_Grid%NX > 1 ) THEN
+           IF ( I == 1 ) THEN
+              TMP = RoundOff( lonCtr(I+1,J) / PI_180, 4 )
+              State_Grid%XEdge(I,J) = State_Grid%XMid(I,J) - &
+                                      ( ( TMP - State_Grid%XMid(I,J) ) / 2.0_f4 )
+           ELSE
+              State_Grid%XEdge(I,J) = ( State_Grid%XMid(I,J) + &
+                                          State_Grid%XMid(I-1,J) ) / 2.0_f4
+           ENDIF
        ELSE
-          State_Grid%XEdge(I,J) = ( State_Grid%XMid(I,J) + &
-                                      State_Grid%XMid(I-1,J) ) / 2.0_f4
+           State_Grid%XEdge(I,J) = State_Grid%XMid(I,J)
        ENDIF
 
-       IF ( J == 1 ) THEN
-          TMP = RoundOff( latCtr(I,J+1) / PI_180, 4 )
-          State_Grid%YEdge(I,J) = State_Grid%YMid(I,J) - &
-                                  ( ( TMP - State_Grid%YMid(I,J) ) / 2.0_f4 )
+       IF ( State_Grid%NY > 1 ) THEN
+           IF ( J == 1 ) THEN
+              TMP = RoundOff( latCtr(I,J+1) / PI_180, 4 )
+              State_Grid%YEdge(I,J) = State_Grid%YMid(I,J) - &
+                                      ( ( TMP - State_Grid%YMid(I,J) ) / 2.0_f4 )
+           ELSE
+              State_Grid%YEdge(I,J) = ( State_Grid%YMid(I,J) + &
+                                          State_Grid%YMid(I,J-1) ) / 2.0_f4
+           ENDIF
        ELSE
-          State_Grid%YEdge(I,J) = ( State_Grid%YMid(I,J) + &
-                                      State_Grid%YMid(I,J-1) ) / 2.0_f4
+           State_Grid%YEdge(I,J) = State_Grid%YMid(I,J)
        ENDIF
 
        ! Special treatment at uppermost edge
-       IF ( I == State_Grid%NX ) THEN
-          State_Grid%XEdge(I+1,J) = State_Grid%XMid(I,J) + &
-             ( ( State_Grid%XMid(I,J) - State_Grid%XMid(I-1,J) ) / 2.0_f4 )
+       IF ( State_Grid%NX > 1 ) THEN
+           IF ( I == State_Grid%NX ) THEN
+              State_Grid%XEdge(I+1,J) = State_Grid%XMid(I,J) + &
+                 ( ( State_Grid%XMid(I,J) - State_Grid%XMid(I-1,J) ) / 2.0_f4 )
+           ENDIF
        ENDIF
-       IF ( J == State_Grid%NY ) THEN
-          State_Grid%YEdge(I,J+1) = State_Grid%YMid(I,J) + &
-             ( ( State_Grid%YMid(I,J) - State_Grid%YMid(I,J-1) ) / 2.0_f4 )
+       IF ( State_Grid%NY > 1 ) THEN
+           IF ( J == State_Grid%NY ) THEN
+              State_Grid%YEdge(I,J+1) = State_Grid%YMid(I,J) + &
+                 ( ( State_Grid%YMid(I,J) - State_Grid%YMid(I,J-1) ) / 2.0_f4 )
+           ENDIF
        ENDIF
 
        ! Special quantities directly derived from State_Grid%YEdge
