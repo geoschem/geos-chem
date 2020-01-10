@@ -129,7 +129,7 @@
       PUBLIC  :: SET_HISTYR
       PUBLIC  :: GET_HISTYR
 !eml]
-#if defined( ESMF_ ) || defined( MODEL_ ) || defined( MODEL_CESM )
+#if defined( ESMF_ ) || defined( MODEL_ )
       PUBLIC  :: Accept_External_Date_Time
 #endif
 !
@@ -4647,7 +4647,7 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-#if defined( ESMF_ ) || defined( MODEL_ ) || defined( MODEL_CESM )
+#if defined( ESMF_ ) || defined( MODEL_ )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
