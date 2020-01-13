@@ -1636,7 +1636,7 @@
             DO X = 1, ND49_NI
 
                I = GET_I( X, State_Grid )
-               Q(X,Y,K) = State_Chm%phSav(I,J,L)
+               Q(X,Y,K) = State_Chm%phSav(I,J,L,1)
             ENDDO
             ENDDO
             ENDDO
@@ -1663,7 +1663,7 @@
             DO X = 1, ND49_NI
 
                I = GET_I( X, State_Grid )
-               Q(X,Y,K) = State_Chm%WaterSav(I,J,L)
+               Q(X,Y,K) = State_Chm%WaterSav(I,J,L,1)
 
             ENDDO
             ENDDO

@@ -1,0 +1,77 @@
+Binary file lib/libHCOX.a matches
+Binary file lib/libHeaders.a matches
+HEMCO/Extensions/hcox_seasalt_mod.F90:   INTEGER             :: IDTSALAAL         ! Fine SSA Alkalinity species ID
+HEMCO/Extensions/hcox_seasalt_mod.F90:    REAL(hp), TARGET       :: FLUXSALAAL(HcoState%NX,HcoState%NY)
+HEMCO/Extensions/hcox_seasalt_mod.F90:    FLUXSALAAL = 0.0_hp
+HEMCO/Extensions/hcox_seasalt_mod.F90:    IF ( Inst%IDTSALAAL > 0 ) THEN
+HEMCO/Extensions/hcox_seasalt_mod.F90:       FLUXSALAAL = FLUXSALA 
+HEMCO/Extensions/hcox_seasalt_mod.F90:       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALAAL, Inst%IDTSALAAL, &
+HEMCO/Extensions/hcox_seasalt_mod.F90:          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALAAL', RC)
+HEMCO/Extensions/hcox_seasalt_mod.F90:    Inst%IDTSALAAL = HcoIDsSS(5)
+HEMCO/Extensions/hcox_seasalt_mod.F90:                    ':', Inst%IDTSALAAL
+Binary file HEMCO/Extensions/hcox_seasalt_mod.o matches
+Binary file HEMCO/Interfaces/hemco_standalone.x matches
+halogen_id_salaal:GeosCore/seasalt_mod.F:      INTEGER               :: id_SALAAL
+halogen_id_salaal:GeosCore/seasalt_mod.F:      IF ( id_SALAAL > 0 ) THEN
+halogen_id_salaal:GeosCore/seasalt_mod.F:     &                    Spc(:,:,:,id_SALAAL), 5, RC )
+halogen_id_salaal:GeosCore/seasalt_mod.F:      id_SALAAL = Ind_('SALAAL')
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:      INTEGER                :: id_SALAAL, id_SALCAL
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:     &           (AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g)
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:            Spc(I,J,L,id_SALAAL) = AlkA
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:      MW_SAL1 =  State_Chm%SpcData(id_SALAAL)%Info%emMW_g
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:      write(*,*) "id_SALAAL"
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:      write(*,*) id_SALAAL
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:      write(*,*) "State_Chm%SpcData(id_SALAAL)%Info%emMw_g"
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:      write(*,*) State_Chm%SpcData(id_SALAAL)%Info%emMW_g
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:      ALK1 = State_Chm%Species(I,J,L,id_SALAAL) * State_Met%AD(I,J,L)/
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:     & ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g )
+halogen_id_salaal:GeosCore/#sulfate_mod.F#:      id_SALAAL= Ind_('SALAAL'   )
+halogen_id_salaal:GeosCore/isorropiaII_mod.F:      INTEGER, SAVE            :: id_SALAAL, id_SALCAL
+halogen_id_salaal:GeosCore/isorropiaII_mod.F:         id_SALAAL = Ind_('SALAAL')
+halogen_id_salaal:GeosCore/isorropiaII_mod.F:         IF ( id_SALAAL <= 0 ) THEN
+halogen_id_salaal:GeosCore/isorropiaII_mod.F:               IF (Spc(I,J,L,id_SALAAL) .GT. CONMIN) THEN
+halogen_id_salaal:GeosCore/isorropiaII_mod.F:                  AlkR = Spc(I,J,L,id_SALAAL) / Spc(I,J,L,id_SALA)
+halogen_id_salaal:GeosCore/sulfate_mod.F:      INTEGER                :: id_SALAAL, id_SALCAL
+halogen_id_salaal:GeosCore/sulfate_mod.F:     &           (AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g)
+halogen_id_salaal:GeosCore/sulfate_mod.F:            Spc(I,J,L,id_SALAAL) = AlkA
+halogen_id_salaal:GeosCore/sulfate_mod.F:      MW_SAL1 =  State_Chm%SpcData(id_SALAAL)%Info%emMW_g
+halogen_id_salaal:GeosCore/sulfate_mod.F:      write(*,*) "id_SALAAL"
+halogen_id_salaal:GeosCore/sulfate_mod.F:      write(*,*) id_SALAAL
+halogen_id_salaal:GeosCore/sulfate_mod.F:      write(*,*) "State_Chm%SpcData(id_SALAAL)%Info%emMw_g"
+halogen_id_salaal:GeosCore/sulfate_mod.F:      write(*,*) State_Chm%SpcData(id_SALAAL)%Info%emMW_g
+halogen_id_salaal:GeosCore/sulfate_mod.F:      ALK1 = State_Chm%Species(I,J,L,id_SALAAL) * State_Met%AD(I,J,L)/
+halogen_id_salaal:GeosCore/sulfate_mod.F:     & ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g )
+halogen_id_salaal:GeosCore/sulfate_mod.F:      id_SALAAL= Ind_('SALAAL'   )
+Headers/species_database_mod.F90:          CASE( 'SALA', 'SALAAL' )
+Headers/species_database_mod.F90:                CASE( 'SALAAL' )
+Binary file Headers/species_database_mod.o matches
+Binary file bin/hemco_standalone.x matches
+Binary file bin/geos matches
+Binary file GeosCore/isorropiaII_mod.o matches
+Binary file GeosCore/seasalt_mod.o matches
+Binary file GeosCore/sulfate_mod.o matches
+GeosCore/seasalt_mod.F:! !Increase NSALT to 6: SALA,SALC,SALACL,SALCCL,SALAAL,SALCAL, xnw 11/17/17
+GeosCore/seasalt_mod.F:      INTEGER               :: id_SALAAL
+GeosCore/seasalt_mod.F:      IF ( id_SALAAL > 0 ) THEN
+GeosCore/seasalt_mod.F:     &                    Spc(:,:,:,id_SALAAL), 5, RC )
+GeosCore/seasalt_mod.F:      id_SALAAL = Ind_('SALAAL')
+GeosCore/seasalt_mod.F:               CASE ( 'SALAAL' )
+Binary file GeosCore/geos matches
+GeosCore/isorropiaII_mod.F:      INTEGER, SAVE            :: id_SALAAL, id_SALCAL
+GeosCore/isorropiaII_mod.F:         id_SALAAL = Ind_('SALAAL')
+GeosCore/isorropiaII_mod.F:         IF ( id_SALAAL <= 0 ) THEN
+GeosCore/isorropiaII_mod.F:            CALL ERROR_STOP( 'SALAAL is an undefined species!', X )
+GeosCore/isorropiaII_mod.F:               IF (Spc(I,J,L,id_SALAAL) .GT. CONMIN) THEN
+GeosCore/isorropiaII_mod.F:                  AlkR = Spc(I,J,L,id_SALAAL) / Spc(I,J,L,id_SALA)
+GeosCore/sulfate_mod.F:      INTEGER                :: id_SALAAL, id_SALCAL
+GeosCore/sulfate_mod.F:     &           (AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g)
+GeosCore/sulfate_mod.F:            Spc(I,J,L,id_SALAAL) = AlkA
+GeosCore/sulfate_mod.F:      MW_SAL1 =  State_Chm%SpcData(id_SALAAL)%Info%emMW_g
+GeosCore/sulfate_mod.F:      write(*,*) "id_SALAAL"
+GeosCore/sulfate_mod.F:      write(*,*) id_SALAAL
+GeosCore/sulfate_mod.F:      write(*,*) "State_Chm%SpcData(id_SALAAL)%Info%emMw_g"
+GeosCore/sulfate_mod.F:      write(*,*) State_Chm%SpcData(id_SALAAL)%Info%emMW_g
+GeosCore/sulfate_mod.F:      ALK1 = State_Chm%Species(I,J,L,id_SALAAL) * State_Met%AD(I,J,L)/
+GeosCore/sulfate_mod.F:     & ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g )
+GeosCore/sulfate_mod.F:      id_SALAAL= Ind_('SALAAL'   )
+GeosCore/sulfate_mod.F:      write(*,*) id_salaal

@@ -4606,7 +4606,7 @@
 
          ! Number of tracers
 
-         NTRAC(05) = 20
+         NTRAC(05) = 21
 
          ! Loop over tracers
          DO T = 1, NTRAC(05)
@@ -4713,7 +4713,7 @@
                   FNAME(T,05) = 'Cloud pH'
                   UNIT (T,05) = 'unitless'
                   MWT  (T,05) = 0e0
-               CASE( 20  )
+               CASE( 21  )
                   NAME (T,05) = 'LHCl'       !xnw (02/26/18)
                   FNAME(T,05) = 'L(HCl) by alkalinity'
                   UNIT (T,05) = 'kg Cl'

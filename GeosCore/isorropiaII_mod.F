@@ -147,6 +147,7 @@
       USE State_Met_Mod,        ONLY : MetState
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+      USE PhysConstants,        ONLY : PI
       USE IsorropiaII_Main_Mod, ONLY : Isorropia
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,         ONLY : LD73,   ND73
@@ -950,7 +951,8 @@
                      AD73(I,J,L,4) =AD73(I,J,L,4) +
      &                              PHCl
                ENDIF
-           
+               ENDIF
+             
 #endif
 
       ENDDO

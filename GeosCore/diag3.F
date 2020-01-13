@@ -2095,17 +2095,17 @@
 
            ! Is this something that we want to output?
            ! Only output extra wavelengths if they are requested
-           IF (Input_Opt%NWVSELECT.eq.3) THEN
-               IS_AD21 = .TRUE.
-           ELSEIF (Input_Opt%NWVSELECT.eq.2) THEN
-               ! Exclude wavelength 3
-               IS_AD21 = ((N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST))).or.
-     &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
-           ELSEIF (Input_Opt%NWVSELECT.eq.1) THEN
-               ! Exclude wavelengths 2 and 3
-               IS_AD21 = ((N.le.(5 + 2*NRHAER + 1*(NRHAER+NDUST))).or.
-     &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
-           ENDIF
+!           IF (Input_Opt%NWVSELECT.eq.3) THEN
+!               IS_AD21 = .TRUE.
+!           ELSEIF (Input_Opt%NWVSELECT.eq.2) THEN
+!               ! Exclude wavelength 3
+!               IS_AD21 = ((N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST))).or.
+!     &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
+!           ELSEIF (Input_Opt%NWVSELECT.eq.1) THEN
+!               ! Exclude wavelengths 2 and 3
+!               IS_AD21 = ((N.le.(5 + 2*NRHAER + 1*(NRHAER+NDUST))).or.
+!     &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
+!           ENDIF
                
            ! Dust gets scaled differently
            IS_DUST = (((N.eq.4).or.(N.eq.5)).or.

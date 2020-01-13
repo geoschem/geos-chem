@@ -2412,6 +2412,29 @@
          RETURN
       ENDIF
 
+      ! Initialize using hardcoded organohalogen species?                                                                            
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'HCodedOrgHal', RC )                                                                       
+      IF ( RC /= GC_SUCCESS ) THEN                                                                                                   
+         CALL GC_Error( ErrMsg, RC, ThisLoc )                                                                                        
+         RETURN                                                                                                                      
+      ENDIF                                                                                                                          
+      READ( SUBSTRS(1:N), * ) Input_Opt%LHCodedOrgHal        
+
+      ! Initialize using CMIP6 monthly NetCDFs for organohalogen species?                                                            
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CMIP6OrgHal', RC )                                                                        
+      IF ( RC /= GC_SUCCESS ) THEN                                                                                                   
+         CALL GC_Error( ErrMsg, RC, ThisLoc )                                                                                        
+         RETURN                                                                                                                      
+      ENDIF                                                                                                                          
+      READ( SUBSTRS(1:N), * ) Input_Opt%LCMIP6OrgHal                                                                                           
+                                                                                                                                     
+      ! Separator line                                                                                                               
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 5', RC )                                                                        
+      IF ( RC /= GC_SUCCESS ) THEN                                                                                                   
+         CALL GC_Error( ErrMsg, RC, ThisLoc )                                                                                        
+         RETURN                                                                                                                      
+      ENDIF       
+
       !=================================================================
       ! Error check logical flags
       !=================================================================

@@ -321,7 +321,7 @@
          ! Now size ND05 for all vertical levels (bmy, 3/9/18)
          LD05 = MIN( ND05, State_Grid%NZ )
 
-         ALLOCATE( AD05( State_Grid%NX, State_Grid%NY, LD05, PD05 ),
+         ALLOCATE( AD05( State_Grid%NX, State_Grid%NY, LD05, PD05 + 1 ),
      &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
       ENDIF

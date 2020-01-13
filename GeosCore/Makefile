@@ -563,7 +563,6 @@ diag50_mod.o                : diag50_mod.F                                   \
                               pbl_mix_mod.o           aerosol_mod.o
 
 diag51_mod.o                : diag51_mod.F                                   \
-
                               pbl_mix_mod.o           
 
 diag51b_mod.o               : diag51b_mod.F                                  \
@@ -605,7 +604,6 @@ emissions_mod.o             : emissions_mod.F90                              \
                               diagnostics_mod.o       pops_mod.o
 
 exchange_mod.o              : exchange_mod.F                                 \
-
 	                      dao_mod.o
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
@@ -675,7 +673,6 @@ hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
                               hco_interface_mod.o                            \
                               diag_mod.o              diag53_mod.o           \
-
                               diag56_mod.o 
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
@@ -781,7 +778,6 @@ olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               hco_interface_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
-
                               tendencies_mod.o        diagnostics_mod.o      \
                               diag_mod.o              
 
@@ -790,7 +786,6 @@ pjc_pfix_window_mod.o       : pjc_pfix_window_mod.F
 pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
-
                               diag_mod.o              ocean_mercury_mod.o     
 
 pops_mod.o           	    : pops_mod.F    	                             \
@@ -818,6 +813,9 @@ set_global_ch4_mod.o        : set_global_ch4_mod.F90                         \
                               pbl_mix_mod.o
 
 set_prof_o3.o               : set_prof_o3.F                                   
+
+sfcvmr_mod.o                : sfcvmr_mod.F90                                 \
+                              pbl_mix_mod.o    
 
 
 strat_chem_mod.o            : strat_chem_mod.F90                             \

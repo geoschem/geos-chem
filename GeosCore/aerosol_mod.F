@@ -2734,7 +2734,8 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       SALC = 0.0_fp
 
-      ALLOCATE( ACL( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( ACL( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'aerosol_mod.F:ACL', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ACL = 0.0_fp

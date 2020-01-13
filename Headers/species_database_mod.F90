@@ -550,6 +550,7 @@ CONTAINS
     INTEGER             :: C !ramnarine 12/2018
     
     CHARACTER(LEN=8)    :: sMW
+    CHARACTER(LEN=31)   :: NameAllCaps
 
     ! Arrays
     REAL(fp)            :: DvzMinVal(2)
@@ -3130,29 +3131,48 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = Fullname,                     &
-                              MW_g          = 35.45_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_HygroGrowth= T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+
+             Name          = NameAllCaps
+             FullName      = Fullname
+             MW_g          = 35.45_fp
+             Is_Advected   = Is_Advected
+             Is_Gas        = F                            
+             Is_Drydep     = T                           
+             Is_HygroGrowth= T
+             Is_Wetdep     = T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+             
+
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppSpcId      = KppSpcId(N),                  &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = NameAllCaps,                  &
+!                              FullName      = Fullname,                     &
+!                              MW_g          = 35.45_fp,                     &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = F,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_HygroGrowth= T,                            &
+!                              Is_Wetdep     = T,                            &
+!                              Density       = 2200.0_fp,                    &
+!                              Radius        = Radius,                       &
+!                              DD_AeroDryDep = T,                            &
+!                              DD_F0         = 0.0_fp,                       &
+!                              DD_Hstar_old  = 0.0_fp,                       &
+!                              WD_AerScavEff = 1.0_fp,                       &
+!                              WD_KcScaleFac = KcScale,                      &
+!                              WD_RainoutEff = RainEff,                      &
+!                              RC            = RC )
 
           CASE( 'SALC', 'SALCAL' )
 
@@ -3203,30 +3223,49 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = Fullname,                     &
-                              MW_g          = 35.45_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HygroGrowth= T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_CoarseAer  = T,                            &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+
+             Name          = NameAllCaps
+             FullName      = Fullname
+             MW_g          = 35.45_fp
+             Is_Advected   = Is_Advected
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppSpcId      = KppSpcId(N),                  &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = NameAllCaps,                  &
+!                              FullName      = Fullname,                     &
+!                              MW_g          = 35.45_fp,                      &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = F,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_Wetdep     = T,                            &
+!                              Is_HygroGrowth= T,                            &
+!                              Density       = 2200.0_fp,                    &
+!                              Radius        = Radius,                       &
+!                              DD_AeroDryDep = T,                            &
+!                              DD_F0         = 0.0_fp,                       &
+!                              DD_Hstar_old  = 0.0_fp,                       &
+!                              WD_AerScavEff = 1.0_fp,                       &
+!                              WD_CoarseAer  = T,                            &
+!                              WD_KcScaleFac = KcScale,                      &
+!                              WD_RainoutEff = RainEff,                      &
+!                              RC            = RC )
 
           CASE( 'SO2' )
 

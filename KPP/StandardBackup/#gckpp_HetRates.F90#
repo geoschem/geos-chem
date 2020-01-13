@@ -621,14 +621,14 @@ MODULE GCKPP_HETRATES
       ! Proton activity [unitless] and H+ concentration [M]
       ! (assumed equivalent - for now):
 
-      H_PLUS = State_Chm%HplusSav(I,J,L,1)
+      H_PLUS = State_Chm%HplusSav(I,J,L)
 
       ! Sulfate concentration [M]:
       MSO4   = State_Chm%SulRatSav(I,J,L)
 
       ! Nitrate concentration [M]:
 
-      MNO3   = State_Chm%NaRatSav(I,J,L,1)
+      MNO3   = State_Chm%NaRatSav(I,J,L)
       ! Bisulfate (general acid) concentration [M]:
       MHSO4  = State_Chm%BisulSav(I,J,L)
 
@@ -640,7 +640,8 @@ MODULE GCKPP_HETRATES
       XRADI(1:State_Chm%nAero) = State_Chm%AeroRadi(I,J,L,:) ! Aerosol radius [cm]
       AClAREA = State_Chm%AClArea(I,J,L)      !Fine Cl- aerosol area [cm2/cm3]
       AClRADI = State_Chm%AClRadi(I,J,L)    !Fine Cl- aerosol radius [cm]
-      AWATER(:) = State_Chm%WaterSav(I,J,L,:) 
+      AWATER(:) = State_Chm%WaterSav(I,J,L,) 
+
 
       ! Aerosol area [cm2/cm3]
       XAREA(1:State_Chm%nAero) = State_Chm%AeroArea(I,J,L,:)
@@ -677,7 +678,7 @@ MODULE GCKPP_HETRATES
 
       ! Retrieve cloud pH and alkalinity
       pHCloud = State_Chm%pHCloud(I,J,L)
-      pHSSA(:) = State_Chm%pHSav(I,J,L,:)
+      pHSSA(:) = State_Chm%pHSav(I,J,L)
       ! Since we have Alk tracers, State_Chm%SSAlk may be removed in future
       ! Here still use State_Chm%SSAlk instead of Alk tracers, 
       ! to skip unit conversion. xnw 1/24/18
@@ -726,14 +727,6 @@ MODULE GCKPP_HETRATES
       ! Get the concentration of Cl-
       CALL Get_Halide_SSAConc(spcVec(Ind_('SALACL')), AClAREA,AClRADI, clConc_SALA)
       CALL Get_Halide_SSAConc(spcVec(Ind_('SALCCL')), xArea(12),xRadi(12), clConc_SALC)
-!      write(*,*) spcVec(Ind_('SALCCL'))
-      IF (spcVec(IND_('SALCCL')) .EQ. 0) THEN
-         write(*,*) I
-         write(*,*) J
-         write(*,*) L
-         write(*,*) IND_('SALCCL')
-      ENDIF
-!      write(*,*) clConc_SALC
       ! Get the concentration of NO3-
       CALL Get_Halide_SSAConc(spcVec(Ind_('NIT')), AClAREA,AClRADI,nitConc_SALA)
       CALL Get_Halide_SSAConc(spcVec(Ind_('NITs')), xArea(12),xRadi(12),nitConc_SALC)      
@@ -741,19 +734,16 @@ MODULE GCKPP_HETRATES
        CALL Get_Theta_Ice(spcVec(Ind_('HNO3')), spcVec(Ind_('HCl')), spcVec(Ind_('HBr')), TempK, hno3_th, hcl_th, hbr_th)
 
       ! Get the concentration of Br/Cl in clouds
-
-!      CALL Get_Halide_CldConc(spcVec(Ind_('HBr')),spcVec(Ind_('HCl')),&
-!                              VLiq, VIce, VAir, CLDFr, TempK, xArea(8),&
-!                              xRadi(8), brConc_Cld, clConc_Cld)
+      CALL Get_Halide_CldConc(spcVec(Ind_('HBr')),spcVec(Ind_('HCl')),&
+                              VLiq, VIce, VAir, CLDFr, TempK, xArea(8),&
+                              xRadi(8), brConc_Cld, clConc_Cld)
 
       ! Get the concentration of Br in sea-salt (in excess of any assumed
       ! baseline)
-
-!      CALL Get_Halide_SSAConc(spcVec(Ind_('BrSALA')),xArea(11),xRadi(11), &
-!                              brConc_SALA)
-
-!      CALL Get_Halide_SSAConc(spcVec(Ind_('BrSALC')),xArea(12),xRadi(12), &
-!                              brConc_SALC)
+      CALL Get_Halide_SSAConc(spcVec(Ind_('BrSALA')),xArea(11),xRadi(11), &
+                              brConc_SSA)
+      CALL Get_Halide_SSAConc(spcVec(Ind_('BrSALC')),xArea(12),xRadi(12), &
+                              brConc_SSC)
 
       !--------------------------------------------------------------------
       !  Get parameters for HOBr + S(IV)
@@ -783,7 +773,6 @@ MODULE GCKPP_HETRATES
       ! Calculate genuine first-order uptake reactions first
       HET(ind_HO2,    1) = HetHO2(        MW_HO2,    2E-1_fp)
       HET(ind_NO2,    1) = HetNO2(        MW_NO2,    1E-4_fp)
-      !write(*,*) aliq
       HET(ind_NO3,    1) = HetNO3(        MW_NO3,    1E-1_fp) + &
                            CloudHet( 'NO3', CldFr, Aliq, Aice, rLiq, rIce, TempK, XDenA )
       HET(ind_GLYX,   1) = HetGLYX(       MW_GLYX,   1E-1_fp)
@@ -1026,7 +1015,7 @@ MODULE GCKPP_HETRATES
          !----------------------------------------------------------------
          ! HOCl + HCl and HOCl + HBr (update: XW 2019-06-08) 
          !----------------------------------------------------------------
-         kITemp = HETHOCl_HCl(  0.52E2_fp, 0E+0_fp, Input_opt)
+         kITemp = HETHOCl_HCl(  0.52E2_fp, 0E+0_fp)
          kITemp = kITemp + &
                   HETHOCl_TCld( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, CldFr, &
                   hConc_Sul, hConc_LCl, hConc_ICl, clConc_CldA, clConc_CldC, clConc_Cldg, &
@@ -4239,7 +4228,7 @@ MODULE GCKPP_HETRATES
 
       ! Initialize
       kISum        = 0.0_fp
-      
+
       XStkCf = GAMMA_NO3(rAer, TK, clConc, X) * 0.01_fp
 
       ! Reaction rate for surface of aerosol
@@ -4462,16 +4451,15 @@ MODULE GCKPP_HETRATES
 
       H_X = H_K0_O3*dexp(H_CR_O3*(1.0e0_fp/T - 1.0e0_fp/H_O3_T))
       M_X = MW_O3 * 1e-3_fp
-      
-!      write(*,*) AWATER(X)
+
       WaterC = AWATER(X) / 18e12_fp !mol/cm3 air
-!      write(*,*) WaterC
+
       IF (X == 1) THEN
          Vol = AClAREA * AClRADI * 1.0e-3_fp / 3.0e0_fp !L/cm3 air 
       ELSE
          Vol = XAREA(12) * XRADI(12) * 1.0e-3_fp / 3.0e0_fp !L/cm3 air
       ENDIF
-      
+
       WaterC = WaterC / Vol !mol/L aerosol
 
       M_X = M_NO3
@@ -4491,15 +4479,8 @@ MODULE GCKPP_HETRATES
 
       H_X = 0.6e+0_fp !M atm-1
       H_X = H_X * con_atm_bar !M/bar
-!      write(*,*) k_tot
+
       l_r = dsqrt(D_l / k_tot)
-!      l_r = dsqrt(safe_div(d_l, k_tot, 1.0e-3_fp))
-
-!
-!      IF (K_Tot .EQ. 0.0) THEN
-!         K_tot = 1.0e-2_fp
-!      ENDIF
-
       gb = 4.0e0_fp * H_X * con_R * T * l_r * k_tot / cavg
 
       gb = gb * REACTODIFF_CORR( Radius, l_r)
@@ -4576,7 +4557,7 @@ MODULE GCKPP_HETRATES
 
       H_X = H_HOCl*dexp(-H_HOCl_E*(1.0e0_fp/T - 1.0e0_fp/H_HOCl_T))
 
-      l_r = dsqrt( D_l / k_tot )
+      l_r = dsqrt( D_1 / k_tot )
       gb_tot = 4.0e0_fp * H_X * con_R * T * l_r * k_tot / cavg
       gb_tot = gb_tot * REACTODIFF_CORR( Radius, l_r)
 
@@ -7718,7 +7699,6 @@ END SUBROUTINE GAMMA_N2O5_Cl
          VLiq = 0.e+0_fp
       ENDIF
 
-      ALiq = 3.e+0_fp * (VLiq/Vair) / rLiq
 
       !-----------------------------------------------
       ! Ice water clouds
@@ -7830,7 +7810,7 @@ END SUBROUTINE GAMMA_N2O5_Cl
 
       !V_tot = (VLiq/VAir) + ((VIce/VAir) / T2L) ! (cm3(liq)/cm3(air)
       V_tot = VLiq/VAir ! (cm3(liq)/cm3(air)
-      V_tot = SAFE_DIV(V_tot, CF, 0.e+0_fp) ! only consider in cloud
+      V_tot = SAFE_DIV(V_tot / CF, 0.e+0_fp) ! only consider in cloud
 
 
       IF (V_tot.lt.1.0e-20) THEN

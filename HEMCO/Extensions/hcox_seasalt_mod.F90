@@ -68,7 +68,10 @@ MODULE HCOX_SeaSalt_Mod
    INTEGER             :: IDTBrSALC         ! Br- in coarse sea salt aerosol
    LOGICAL             :: CalcBr2           ! Calculate Br2 SSA emissions?
    LOGICAL             :: CalcBrSalt        ! Calculate Br- content?
-
+   INTEGER             :: IDTSALACL         ! Fine aerosol Chloride species ID
+   INTEGER             :: IDTSALCCL         ! Coarse aerosol Chloride species ID 
+   INTEGER             :: IDTSALAAL         ! Fine SSA Alkalinity species ID
+   INTEGER             :: IDTSALCAL         ! Coarse SSA Alkalinity species ID
    ! Scale factors
    REAL*8              :: Br2Scale          ! Br2 scale factor 
    REAL*8              :: BrContent         ! Ratio of Br- to dry SSA (mass)
@@ -475,11 +478,11 @@ CONTAINS
     ENDIF
 
     ! SALA Chloride, xnw 10/13/17
-    IF ( IDTSALACL > 0 ) THEN
+    IF ( Inst%IDTSALACL > 0 ) THEN
        FLUXSALACL = FLUXSALA * 0.5504d0
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALACL, IDTSALACL, &
-                         RC,        ExtNr=ExtNrSS )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALACL, Inst%IDTSALACL, &
+                         RC,        ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALACL', RC)
           RETURN
@@ -487,11 +490,11 @@ CONTAINS
     ENDIF
 
     ! SALC Chloride, xnw 11/17/17
-    IF ( IDTSALCCL > 0 ) THEN
+    IF ( Inst%IDTSALCCL > 0 ) THEN
         FLUXSALCCL = FLUXSALC * 0.5504d0
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALCCL, IDTSALCCL, &
-                         RC,        ExtNr=ExtNrSS )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALCCL, Inst%IDTSALCCL, &
+                         RC,        ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALCCL', RC)
           RETURN
@@ -499,11 +502,11 @@ CONTAINS
     ENDIF
 
     ! SALA Alkalinity, xnw 11/30/17
-    IF ( IDTSALAAL > 0 ) THEN
+    IF ( Inst%IDTSALAAL > 0 ) THEN
        FLUXSALAAL = FLUXSALA 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALAAL, IDTSALAAL, &
-                         RC,        ExtNr=ExtNrSS )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALAAL, Inst%IDTSALAAL, &
+                         RC,        ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALAAL', RC)
           RETURN
@@ -511,11 +514,11 @@ CONTAINS
     ENDIF
 
     ! SALC Alkalinity, xnw 11/30/17
-    IF ( IDTSALCAL > 0 ) THEN
+    IF ( Inst%IDTSALCAL > 0 ) THEN
         FLUXSALCAL = FLUXSALC 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALCAL, IDTSALCAL, &
-                         RC,        ExtNr=ExtNrSS )
+       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSALCAL, Inst%IDTSALCAL, &
+                         RC,        ExtNr=Inst%ExtNrSS )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALCAL', RC)
           RETURN
@@ -729,10 +732,10 @@ CONTAINS
 
     Inst%IDTSALA = HcoIDsSS(1) 
     Inst%IDTSALC = HcoIDsSS(2)
-    IDTSALACL = HcoIDsSS(3)
-    IDTSALCCL = HcoIDsSS(4)
-    IDTSALAAL = HcoIDsSS(5)
-    IDTSALCAL = HcoIDsSS(6)
+    Inst%IDTSALACL = HcoIDsSS(3)
+    Inst%IDTSALCCL = HcoIDsSS(4)
+    Inst%IDTSALAAL = HcoIDsSS(5)
+    Inst%IDTSALCAL = HcoIDsSS(6)
     IF ( Inst%CalcBr2 ) Inst%IDTBR2 = HcoIDsSS(7)
     IF ( Inst%CalcBrSalt ) Inst%IDTBrSALA = HcoIDsSS(nSpcSS-1)
     IF ( Inst%CalcBrSalt ) Inst%IDTBrSALC = HcoIDsSS(nSpcSS)
@@ -807,16 +810,16 @@ CONTAINS
 
 
        WRITE(MSG,*) 'Accumulation Chloride: ', TRIM(SpcNamesSS(3)),  &
-                    ':', IDTSALACL
+                    ':', Inst%IDTSALACL
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) 'Coarse Chloride: ', TRIM(SpcNamesSS(4)),  &
-                    ':', IDTSALCCL
+                    ':', Inst%IDTSALCCL
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) 'Accumulation Alkalinity: ', TRIM(SpcNamesSS(5)),  &
-                    ':', IDTSALAAL
+                    ':', Inst%IDTSALAAL
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) 'Coarse Alkalinity: ', TRIM(SpcNamesSS(6)),  &
-                    ':', IDTSALCAL
+                    ':', Inst%IDTSALCAL
        CALL HCO_MSG(HcoState%Config%Err,MSG)   
  
        IF ( Inst%CalcBr2 ) THEN

@@ -390,7 +390,6 @@
          ! NOTE: For some reason the code chokes when we try
          ! to use a pointer, so we'll use a 2D array here.
          F       =  FSOL(I,J,:,:)
-         
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -416,6 +415,7 @@
             RC = EC
          ENDIF
          
+
 #if defined( BPCH_DIAG )
          !--------------------------------------------------------------
          ! ND14 (bpch) DIAGNOSTIC 
@@ -590,6 +590,7 @@
       USE WETSCAV_MOD,        ONLY : WASHOUT
       USE WETSCAV_MOD,        ONLY : LS_K_RAIN
       USE WETSCAV_MOD,        ONLY : LS_F_PRIME
+      USE UNITCONV_MOD
 !
 ! !INPUT PARAMETERS:
 !  
@@ -873,6 +874,18 @@
       ! Loop over only the advected species
       DO NA = 1, NC
 
+!wbd
+!         IF (I .EQ. 30) THEN
+!            IF (J .EQ. 12) THEN
+!               IF (NA .EQ. 164) THEN
+!                  write(*,*) "Start of loop (advected)"
+!                  CALL Print_Global_Species_Kg( am_I_Root, I, J, 12,
+!     &            'SALCCL', Input_Opt, State_Chm, State_Grid, State_Met,
+!     &            ThisLoc, RC)
+!               ENDIF
+!            ENDIF
+!         ENDIF
+
          ! Get the species ID (modelID) from the advected species ID
          IC       =  State_Chm%Map_Advect(NA)
 
@@ -977,6 +990,18 @@
                QC = Q(CLDBASE,IC) 
 
             ENDIF
+            
+!wbd
+!         IF (I .EQ. 30) THEN
+!            IF (J .EQ. 12) THEN
+!               IF (NA .EQ. 164) THEN
+!                  write(*,*) "End of Step 2"
+!                  CALL Print_Global_Species_Kg( am_I_Root, I, J, 12,
+!     &            'SALCCL', Input_Opt, State_Chm, State_Grid, State_Met,
+!     &            ThisLoc, RC)
+!               ENDIF
+!            ENDIF
+!         ENDIF
 
             !==================================================================
             ! (3)  A b o v e   C l o u d   B a s e
@@ -1036,10 +1061,26 @@
 !                  QC_PRES = QC * ( 1e+0_fp - F(K,IC) )
                   QC_PRES = QC * ( 1e+0_fp - F(K,NA) )
 
+                     IF (I .EQ. 30) THEN
+            IF (J .EQ. 12) THEN
+               IF (NA .EQ. 164) THEN
+                  !write(*,*) "QC_PRES  ", QC_PRES
+               ENDIF
+            ENDIF
+         ENDIF
+
+
                   ! Amount of QC lost to scavenging [kg/kg]
                   ! QC_SCAV = 0 for non-soluble species
 !                  QC_SCAV = QC * F(K,IC)
                   QC_SCAV = QC * F(K,NA)
+                     IF (I .EQ. 30) THEN
+            IF (J .EQ. 12) THEN
+               IF (NA .EQ. 164) THEN
+                  !write(*,*) "QC_SCAV  ", QC_SCAV
+               ENDIF
+            ENDIF
+         ENDIF
 
                   ! - - - - - - - - FOR SOLUBLE SPECIES ONLY - - - - - - - - - 
                   IF ( QC_SCAV > 0e+0_fp ) THEN 
@@ -1098,9 +1139,25 @@
                      ! The resuspension takes 1/2 the amount of the scavenged
                      ! aerosol (QC_SCAV) and adds that back to QC_PRES
                      QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
+                     IF (I .EQ. 30) THEN
+            IF (J .EQ. 12) THEN
+               IF (NA .EQ. 164) THEN
+                  !write(*,*) "QC_PRES  ", QC_PRES
+               ENDIF
+            ENDIF
+         ENDIF
+
                     
                      ! ... then we decrement QC_SCAV accordingly
                      QC_SCAV  = QC_SCAV * ( 1e+0_fp    - ALPHA2     )
+
+                     IF (I .EQ. 30) THEN
+            IF (J .EQ. 12) THEN
+               IF (NA .EQ. 164) THEN
+                  !write(*,*) "QC_SCAV  ", QC_SCAV
+               ENDIF
+            ENDIF
+         ENDIF
 
                   ENDIF
                   !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -1111,6 +1168,30 @@
                      QC   = ( CMFMC_BELOW * QC_PRES   + 
      &                       ENTRN       * Q(K,IC) ) / CMOUT
                   ENDIF
+
+         IF (I .EQ. 30) THEN
+            IF (J .EQ. 12) THEN
+               IF (NA .EQ. 164) THEN
+                  !write(*,*) "ENTRN  ", ENTRN
+                  !write(*,*) "CMOUT  ", CMOUT
+                  !write(*,*) "QC  ", QC
+                  !write(*,*) "Q(K, IC)  ", Q(K,IC)
+
+               ENDIF
+            ENDIF
+         ENDIF
+
+!wbd                  
+!         IF (I .EQ. 30) THEN
+!            IF (J .EQ. 12) THEN
+!               IF (NA .EQ. 164) THEN
+!         !write(*,*) "End of Step 3.1"
+!                  CALL Print_Global_Species_Kg( am_I_Root, I, J, 12,
+!     &            'SALCCL', Input_Opt, State_Chm, State_Grid, State_Met,
+!     &            ThisLoc, RC)
+!               ENDIF
+!            ENDIF
+!         ENDIF
 
                   !------------------------------------------------------------
                   ! (3.2)  M a s s   B a l a n c e   i n   L e v e l  ==> Q
@@ -1188,20 +1269,50 @@
                   T4      = -CMFMC_BELOW * Q(K,  IC)
                  
                   TSUM    = T1 + T2 + T3 + T4          
-                  
+                     IF (I .EQ. 30) THEN
+            IF (J .EQ. 12) THEN
+               IF (NA .EQ. 164) THEN
+                  !write(*,*) "TSUM  ", TSUM
+               ENDIF
+            ENDIF
+         ENDIF
+
                   DELQ    = ( SDT / BMASS(K) ) * TSUM    ! change in [kg/kg]
+
+                     IF (I .EQ. 30) THEN
+            IF (J .EQ. 12) THEN
+               IF (NA .EQ. 164) THEN
+                  !write(*,*) "DELQ  ", DELQ
+               ENDIF
+            ENDIF
+         ENDIF
+
 
                   ! If DELQ > Q then do not make Q negative!!!
                   IF ( Q(K,IC) + DELQ < 0 ) THEN
                      DELQ = -Q(K,IC)
                   ENDIF
+                  
+                                       IF (I .EQ. 30) THEN
+            IF (J .EQ. 12) THEN
+               IF (NA .EQ. 164) THEN
+                  !write(*,*) "Q(K,IC) 3.2 ", Q(K,IC)
+                  !write(*,*) "DELQ  ", DELQ
+               ENDIF
+            ENDIF
+         ENDIF
 
                   ! Increment the species array [kg/kg]
                   Q(K,IC) = Q(K,IC) + DELQ
-
+!wbd
+!                  IF (Q(K,IC) .EQ. 0) THEN
+!                     Q(K,IC) = 1.0e-30_fp
+                     !write(*,*) "0 encountered in convection"
+!                  ENDIF
+                  
                   ! Return if we encounter NInf
                   IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
-                     WRITE( 6, 200 )
+                     !WRITE( 6, 200 )
  200                 FORMAT( 'Infinity in DO_CLOUD_CONVECTION!' )
                      WRITE( 6, 255 ) K, IC, Q(K,IC) 
                      RC = GC_FAILURE
@@ -1223,6 +1334,17 @@
                   ! of the molecular weight of air including moisture
                   ! (ewl, 6/5/15)
                   T0_SUM = T0_SUM + T0 * SDT
+!wbd
+!         IF (I .EQ. 30) THEN
+!            IF (J .EQ. 12) THEN
+!               IF (NA .EQ. 164) THEN
+!         !write(*,*) "End of Step 3.2"
+!                  CALL Print_Global_Species_Kg( am_I_Root, I, J, 12,
+!     &            'SALCCL', Input_Opt, State_Chm, State_Grid, State_Met,
+!     &            ThisLoc, RC)
+!               ENDIF
+!            ENDIF
+!         ENDIF
 
                   !------------------------------------------------------------
                   ! (3.3)  N D 1 4   D i a g n o s t i c
@@ -1299,6 +1421,19 @@
                   ENDIF
                ENDIF
             ENDDO     ! End of loop over levels above cloud base
+
+!wbd
+!         IF (I .EQ. 30) THEN
+ !           IF (J .EQ. 12) THEN
+  !             IF (NA .EQ. 164) THEN
+   !      !write(*,*) "End of Step 3"
+    !              CALL Print_Global_Species_Kg( am_I_Root, I, J, 12,
+    ! &            'SALCCL', Input_Opt, State_Chm, State_Grid, State_Met,
+    ! &            ThisLoc, RC)
+    !           ENDIF
+    !        ENDIF
+    !     ENDIF
+
             
             !==================================================================
             ! (4)  B e l o w   C l o u d   B a s e
@@ -1334,7 +1469,7 @@
                   QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp  )
 
                   ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
-                  ! leaving grid box (K+1). 
+! leaving grid box (K+1). 
                   K_RAIN   = LS_K_RAIN( QDOWN )
                   F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN ) 
 
@@ -1510,6 +1645,17 @@
                   ENDIF
                ENDIF
             ENDDO     ! End of loop over levels below cloud base  
+!wbd
+!         IF (I .EQ. 30) THEN
+!            IF (J .EQ. 12) THEN
+!               IF (NA .EQ. 164) THEN
+!         write(*,*) "End of Step 4"
+!                  CALL Print_Global_Species_Kg( am_I_Root, I, J, 12,
+!     &            'SALCCL', Input_Opt, State_Chm, State_Grid, State_Met,
+!     &            ThisLoc, RC)
+!               ENDIF
+!            ENDIF
+!         ENDIF
 
             !==================================================================
             ! (5)  M e r c u r y   O c e a n   M o d e l   A r c h i v a l

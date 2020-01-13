@@ -258,13 +258,13 @@
       ENDIF
 
       !=================================================================
-      ! Accumulation mode Choloride wet settling
+      ! Accumulation mode Chloride wet settling
       !=================================================================
       IF ( id_SALACL > 0 ) THEN
-       CALL WET_SETTLING( am_I_Root,  Input_Opt, State_Met,
-     &                   State_Chm, State_Diag,
-     &                   Spc(:,:,:,id_SALACL), 3,
-     &                   RC         )
+
+       CALL WET_SETTLING( am_I_Root,  Input_Opt, State_Chm,
+     &                    State_Diag, State_Grid, State_Met,
+     &                    Spc(:,:,:,id_SALACL), 3, RC )
 
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
@@ -275,10 +275,9 @@
       ! Accumulation mode Alkalinity wet settling
       !=================================================================
       IF ( id_SALAAL > 0 ) THEN
-       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, State_Diag, 
-     &                   Spc(:,:,:,id_SALAAL), 5,
-     &                   RC         )
+       CALL WET_SETTLING( am_I_Root,  Input_Opt, State_Chm,
+     &                    State_Diag, State_Grid, State_Met,
+     &                    Spc(:,:,:,id_SALAAL), 5, RC )
 
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
@@ -302,10 +301,9 @@
       ! Coarse mode Choloride wet settling
       !=================================================================
       IF ( id_SALCCL > 0 ) THEN
-       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, State_Diag, 
-     &                   Spc(:,:,:,id_SALCCL), 4,
-     &                   RC         )
+       CALL WET_SETTLING( am_I_Root,  Input_Opt, State_Chm,
+     &                    State_Diag, State_Grid, State_Met,
+     &                    Spc(:,:,:,id_SALCCL), 4, RC )
 
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Cl' )
@@ -316,10 +314,9 @@
       ! Coarse mode Alkalinity wet settling
       !=================================================================
       IF ( id_SALCAL > 0 ) THEN
-       CALL WET_SETTLING( am_I_Root,          Input_Opt, State_Met,
-     &                   State_Chm, State_Diag, 
-     &                   Spc(:,:,:,id_SALCAL), 6,
-     &                   RC         )
+       CALL WET_SETTLING( am_I_Root,  Input_Opt, State_Chm,
+     &                    State_Diag, State_Grid, State_Met,
+     &                    Spc(:,:,:,id_SALCAL), 6, RC )
 
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Al' )
