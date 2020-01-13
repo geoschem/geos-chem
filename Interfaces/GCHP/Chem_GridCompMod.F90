@@ -3660,29 +3660,7 @@ CONTAINS
                 DO L = 1, State_Grid%NZ
                 DO J = 1, State_Grid%NY
                 DO I = 1, State_Grid%NX
-                   ! Special handling for MOH (mimicking GEOS-Chem Classic)
-                   IF ( TRIM( ThisSpc%Name ) == 'MOH' ) THEN
-                      ! Test for altitude (L < 9 is always in the trop)
-                      IF ( L <= 9 ) THEN
-                         ! Test for ocean/land boxes
-                         IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
-                            ! Continental boundary layer: 2 ppbv MOH
-                            State_Chm%Species(I,J,L,IND) = 2.000e-9_fp
-                         ELSE
-                            ! Marine boundary layer: 0.9 ppbv MOH
-                            State_Chm%Species(I,J,L,IND) = 0.900e-9_fp
-                         ENDIF
-                      ELSE
-                         ! Test for troposphere
-                         IF ( State_Met%InTroposphere(I,J,L) ) THEN
-                            ! Free troposphere: 0.6 ppbv MOH
-                            State_Chm%Species(I,J,L,IND) = 0.600e-9_fp 
-                         ELSE
-                            ! Strat/mesosphere:
-                            State_Chm%Species(I,J,L,IND) = 1.0E-30_FP 
-                         ENDIF
-                      ENDIF
-                   ELSEIF ( L > State_Grid%MaxChemLev .AND. &
+                   IF ( L > State_Grid%MaxChemLev .AND. &
                             ( .NOT. ThisSpc%Is_Advected ) ) THEN
                       ! For non-advected spc at L > MaxChemLev, use small number
                       State_Chm%Species(I,J,L,IND) = 1.0E-30_FP           
