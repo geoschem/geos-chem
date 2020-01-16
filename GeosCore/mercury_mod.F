@@ -170,41 +170,8 @@
 !       of O4 and BrO, Atmos. Meas. Tech., 4: 1241-1260.
 !
 ! !REVISION HISTORY:
-!  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use
-!        diagnostic arrays from "diag03_mod.f".  (eck, sas, bmy, 1/21/05)
-!  (2 ) Now references "pbl_mix_mod.f".  Remove FEMIS array and routine
-!        COMPUTE_FEMIS. (bmy, 2/15/05)
-!  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (6 ) Various updates added for tagged Hg sim. (eck, sas, cdh, bmy, 4/6/06)
-!  (7 ) Now includes LPREINDHG logical switch for preindustrial simulation
-!       (eds 7/30/08)
-!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
-!  01 Apr 2011 - H. Amos     - added LVEGEMIS, distinct from LGCAPEMIS
-!  27 Sep 2011 - H. Amos     - Remove LHg_WETDasHNO3 logical, it's obsolete
-!  01 Nov 2011 - Y. Zhang    - Add subroutines to do in plume reduction of Hg
-!  07 Feb 2012 - E. Corbitt  - Imported tagged tracers; renamed nt to geo.
-!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
-!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
-!  19 Apr 2012 - E. Corbitt  - Added LGCBROMINE to use GEOS-Chem bromine.
-!  03 Jun 2013 - C. Holmes   - Extensively rewritten for simplicity
-!  03 Jun 2013 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  12 Mar 2015 - R. Yantosca - Now get JNO2 from the HEMCO data structure
-!  12 Mar 2015 - R. Yantosca - Remove GET_GLOBAL_JNO2 routine
-!  10 Aug 2015 - J. Fisher   - Updated treatment of polar BrO chemistry
-!                              (orig. 29/11/11)
-!  05 Jan 2016 - E. Lundgren - Now use global dry air gas and Henry's Law consts
-!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with AVO / (emMW_g*1e-3)
-!                              where emMW_g is emitted MW from species database
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
-!                              MERRA; Also remove functions GET_VCLDF and
-!                              GET_LWC, they're no longer needed
-!  30 Aug 2018 - C. Thackray - Merged halogen chem options
+!  06 Dec 2004 - N. (Eckley) Selin - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,8 +324,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMMERCURY( am_I_Root,  Input_Opt,  State_Chm,
-     &                        State_Diag, State_Grid, State_Met, RC )
+      SUBROUTINE CHEMMERCURY( Input_Opt,  State_Chm, State_Diag,
+     &                        State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -397,7 +364,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -486,45 +452,7 @@
 !
 ! !REVISION HISTORY:
 !  01 Oct 1995 - R. Yantosca - Initial version
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  06 Dec 2004 - N. (Eckley) Selin - Initial version
-!  (1 ) Now references routine GET_PBL_MAX_L from "pbl_mix_mod.f".  Now
-!        references AD44 from "diag_mod.f".  Now sum the levels from T44 into
-!        the AD44 array.  Now references N_TRACERS from "tracer_mod.f".
-!        (bmy, 2/24/05)
-!  (2 ) Bug fix: Set T44 to 0e0 for single precision.  Now allow for zero
-!        dry deposition velocity.  Now call INIT_MERCURY from "input_mod.f"
-!        (bmy, 4/6/06)
-!  02 Apr 2013 - C. Holmes - CHEMMERCURY rewritten for clarity and easier
-!        maintainability. The chemistry and deposition for particle-bound
-!        mercury is now solved simultaneously with Hg(0) and gaseous Hg(II).
-!        The subroutine now uses a 4th-order Runge-Kutta method to solve
-!        the coupled chemistry. The subroutines CHEM_HG0_HG2 and CHEM_HGP
-!        are now obsolete.
-!  04 Apr 2013 - C. Holmes   - Use State_Met for met fields.
-!  03 Jun 2013 - R. Yantosca - Now use fields from Input_OPt instead of from
-!                              logical_mod.F and tracer_mod.F
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  23 Oct 2013 - R. Yantosca - Now pass objects to GET_GLOBAL_OH routine
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%AIRDEN(I,J,L)
-!  06 Nov 2014 - R. Yantosca - Now use State_Met%CLDF(I,J,L)
-!  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID_DRY.
-!                              Remove dependency on pressure_mod.
-!  12 Aug 2015 - R. Yantosca - Added support for MERRA2 meteorology
-!  05 Jan 2016 - E. Lundgren - Use Henry's constant from species database and
-!                              calculate dry air gas constant from global params
-!  25 Apr 2016 - R. Yantosca - Now pass Hg category # to ADD_Hg2_* routines
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
-!  11 Oct 2016 - R. Yantosca - Pass additional args to SET_OPTIONS_FROM_HEMCO
-!  30 Sep 2017 - C. Thackray - Brought in Horowitz 2017 chemistry
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  30 Nov 2017 - C. Thackray - Option to use offline ocean Hg concentrations
-!  02 Feb 2018 - C. Thackray - Made Hg2(aq) for red. temperature dependent
-!  10 Feb 2018 - C. Thackray - Switches for chem options
-!  30 Aug 2018 - C. Thackray - Merged halogen chem options
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -538,7 +466,7 @@
       LOGICAL            :: LDYNOCEAN
       LOGICAL            :: LGTMM
       LOGICAL            :: LNLPBL
-      LOGICAL            :: LPRT
+      LOGICAL            :: prtDebug
       INTEGER            :: NA, nAdvect
       INTEGER            :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
       REAL(fp)           :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
@@ -644,7 +572,7 @@
       LDYNOCEAN = Input_Opt%LDYNOCEAN
       LGTMM     = Input_Opt%LGTMM
       LNLPBL    = Input_Opt%LNLPBL
-      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
+      prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
       ! Initialize pointers
       Spc      => State_Chm%Species   ! Chemical species array [kg]
@@ -666,8 +594,7 @@
       ! be done in INIT_MERCURY because at that time the HEMCO configuration
       ! file has not been read yet. (bmy, 3/12/15)
       IF ( FIRST ) THEN
-         CALL SET_OPTIONS_FROM_HEMCO( am_I_Root, Input_Opt, State_Grid,
-     &                                RC )
+         CALL SET_OPTIONS_FROM_HEMCO( Input_Opt, State_Grid, RC )
 
          FIRST = .FALSE.
       ENDIF
@@ -684,24 +611,21 @@
 
          !-----------------------------------------------------------
          ! Some oxidants always required:
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH_trop',
-     &                    OH_trop,   RC                           )
+         CALL HCO_GetPtr( HcoState, 'GLOBAL_OH_trop', OH_trop, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_OH_trop!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH_strat',
-     &                    OH_strat,  RC                           )
+         CALL HCO_GetPtr( HcoState, 'GLOBAL_OH_strat', OH_strat, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_OH_strat!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3',
-     &                    O3,        RC                           )
+         CALL HCO_GetPtr( HcoState, 'GLOBAL_O3', O3, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_O3!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -709,62 +633,58 @@
          ENDIF
 
          ! Br and BrO not directly from HEMCO
-         CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Grid,
-     &                       State_Met, MONTH, RC)
+         CALL GET_GLOBAL_BR( Input_Opt, State_Grid, State_Met, &
+                             MONTH,     RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_BR!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
 
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
          !-------------------------------------------------------------
          ! Some oxidants only required by certain mechanisms:
          !-------------------------------------------------------------
          IF ( LHALOGENCHEM ) THEN
-            CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO2',
-     &           HEM_NO2, RC )
+            CALL HCO_GetPtr( HcoState,'GLOBAL_NO2', HEM_NO2, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_NO2!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO',
-     &           HEM_NO, RC )
+            CALL HCO_GetPtr( HcoState,'GLOBAL_NO', HEM_NO, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_NO!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HO2_trop',
-     &           HEM_HO2_trop, RC )
+            CALL HCO_GetPtr( HcoState,'GLOBAL_HO2_trop',
+     &                       HEM_HO2_trop, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_HO2_trop!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HO2_strat',
-     &           HEM_HO2_strat, RC )
+            CALL HCO_GetPtr( HcoState,'GLOBAL_HO2_strat',
+     &                       HEM_HO2_strat, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_HO2_strat!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_ClO',
-     &           HEM_CLO, RC )
+            CALL HCO_GetPtr( HcoState,'GLOBAL_ClO', HEM_CLO, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_ClO!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_Cl',
-     &           HEM_CL, RC )
+            CALL HCO_GetPtr( HcoState,'GLOBAL_Cl', HEM_CL, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_NO2!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -775,8 +695,7 @@
          !-------------------------------------------------------------
 
          IF ( LHGAQCHEM ) THEN
-            CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HOCl',
-     &           HEM_HOCL, RC )
+            CALL HCO_GetPtr( HcoState,'GLOBAL_HOCl', HEM_HOCL, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_HOCl!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -787,15 +706,14 @@
          !-------------------------------------------------------------
 
          IF ( LRED_JNO2 ) THEN
-            CALL HCO_GetPtr( am_I_Root, HcoState, 'JNO2', JNO2,  RC )
+            CALL HCO_GetPtr( HcoState, 'JNO2', JNO2,  RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to JNO2!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
 
-            CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_OA',
-     &        HEM_OA, RC )
+            CALL HCO_GetPtr( HcoState,'GLOBAL_OA', HEM_OA, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Cannot get pointer to GLOBAL_OA!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -815,19 +733,19 @@
 
       ! Compute diurnal scaling for OH
       CALL OHNO3TIME( State_Grid )
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a OHNO3TIME' )
+      IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMMERCURY: a OHNO3TIME' )
 
       ! Calculate the rate of sea salt aerosol uptake of Hg2
       IF ( LDYNSEASALT .AND. ITS_TIME_FOR_A3() ) THEN
          CALL CALC_HG2_SEASALT_LOSSRATE( State_Grid, State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a SEASALT_LOSSRATE' )
+         IF ( prtDebug ) 
+     &      CALL DEBUG_MSG( 'CHEMMERCURY: a SEASALT_LOSSRATE' )
       ENDIF
 
       ! Partition Hg(II) between gas and aerosol
-      CALL PARTITIONHG2( am_I_Root,  Input_Opt, State_Chm,
-     &                   State_Grid, RC )
+      CALL PARTITIONHG2( Input_Opt, State_Chm, State_Grid, RC )
 
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: before do loop' )
+      IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMMERCURY: before do loop' )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1619,15 +1537,14 @@
 !$OMP END PARALLEL DO
 
       ! Partition Hg(II) between gas and aerosol
-      CALL PARTITIONHG2( am_I_Root,  Input_Opt, State_Chm,
-     &                   State_Grid, RC )
+      CALL PARTITIONHG2( Input_Opt, State_Chm, State_Grid, RC )
 
       ! Free pointer memory
       Spc     => NULL()
       T       => NULL()
       SpcInfo => NULL()
 
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
+      IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMMERCURY: a CHEM_HgP' )
 
       END SUBROUTINE CHEMMERCURY
 !EOC
@@ -1677,8 +1594,8 @@
 !  4. Munthe, 1992
 !
 !  !REVISION HISTORY:
-!   19 November 2014 - H. Horowitz (HMH) - initial version finalized
-!   30 September 2017 - C. Thackray (cpt) - merged into v11
+!  19 November 2014 - H. Horowitz (HMH) - initial version finalized
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1948,7 +1865,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Jul 2006 - C. Holmes   - Initial version
-!  05 Jan 2016 - E. Lundgren - Use global physical parameters
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2207,11 +2124,8 @@
 !
 !  !REVISION HISTORY:
 !   21 Nov 2014 - H. Horowitz (HMH) - first version, copied from get_hgbry_rat
+!  See the Gitk browser for complete history
 !EOP
-!    10 Aug 2015 - H. Horowitz (HMH) - adding Br as 'Y', was missing.
-!    10 Dec 2016 - H. Horowitz (HMH) - changing to Ted Dibble revised rates
-!    30 Sep 2017 - C. Thackray (cpt) - merged into v11
-!    30 Aug 2018 - C. Thackray - smoothed T-dep of kNO2, kHO2
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -2382,15 +2296,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !  2. Horowitz et al. in prep
 !
 !  !REVISION HISTORY:
-!   03 May 2013 - E. Corbitt - initial version
-!   05 June 2014 - H. Horowitz (HMH) - revising format to be consistent
-!   20 Nov 2014 - H. Horowitz (HMH) - saving out separate rate constants for
-!      each pathway for comparison purposes! And fixing the reactions listed.
-!   10 Aug 2015 - H. Horowitz (HMH) - adding Cl as 'Y', was missing before.
-!     01 Mar 2016 - H. Horowitz (HMH) - saving out other reaction rates!
-!    10 Dec 2016 - H. Horowitz (HMH) - changing to Ted Dibble revised rates
-!    30 Sep 2017 - C. Thackray (cpt) - merged into v11
-!    30 Aug 2018 - C. Thackray - smoothed T-dep of kNO2, kHO2
+!  03 May 2013 - E. Corbitt - initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2544,8 +2451,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSMERCURY( am_I_Root,  Input_Opt,  State_Chm,
-     &                         State_Diag, State_Grid, State_Met, RC )
+      SUBROUTINE EMISSMERCURY( Input_Opt,  State_Chm, State_Diag,
+     &                         State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -2571,7 +2478,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -2590,20 +2496,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  03 Jun 2013 - N. (Eckley) Selin - Initial version
-!  (1 ) Now call OCEAN_MERCURY_FLUX from "ocean_mercury_mod.f" to compute
-!        the emissions of Hg0 from the ocean instead of reading it from disk.
-!        (sas, bmy, 1/20/05)
-!  (2 ) Now no longer call COMPUTE_FEMIS, since we can get the same information
-!        from routine GET_FRAC_OF_PBL in "pbl_mix_mod.f" (bmy, 2/22/05)
-!  (3 ) Now modified for new ocean mercury module. (cdh, sas, bmy, 4/6/06)
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  20 Jun 2014 - R. Yantosca - Now pass Input_Opt to VEGEMIS
-!  23 Jun 2014 - R. Yantosca - Now pass am_I_Root to OCEAN_MERCURY_FLUX
-!  05 Oct 2015 - E. Lundgren - Now convert tracer units to kg locally
-!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2618,9 +2511,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL           :: LDYNOCEAN
       LOGICAL           :: LGTMM
       LOGICAL           :: LNLPBL
-      LOGICAL           :: LPRT
       LOGICAL           :: LPREINDHG
       LOGICAL           :: LEMIS
+      LOGICAL           :: prtDebug
 
       ! Strings
       CHARACTER(LEN=255)   :: ErrMsg
@@ -2642,10 +2535,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LNLPBL    = Input_Opt%LNLPBL
       LPREINDHG = Input_Opt%LPREINDHG
       LEMIS     = Input_Opt%LEMIS
-      LPRT      = ( Input_Opt%LPRT .and. am_I_Root )
+      prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
       ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
+      CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, 'kg',
      &                        RC,         OrigUnit=OrigUnit )
 
@@ -2669,7 +2562,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ENDIF
 
          ! Read anthro, ocean, land emissions of Hg from disk
-         CALL MERCURY_READYR( am_I_Root, Input_Opt, RC )
+         CALL MERCURY_READYR( Input_Opt, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -2693,7 +2586,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! (cdh, 4/30/09)
          EHg0_oc = 0e+0_fp
 
-         CALL OCEAN_MERCURY_FLUX( am_I_Root,  Input_Opt,  State_Chm,
+         CALL OCEAN_MERCURY_FLUX( Input_Opt,  State_Chm,
      &                            State_Diag, State_Grid, State_Met,
      &                            EHg0_oc,    RC )
 
@@ -2704,11 +2597,12 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             RETURN
          ENDIF
 
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
+         IF ( prtDebug ) 
+     &      CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ELSE
          EHg0_oc = 0e+0_fp
-         CALL OFFLINEOCEAN_READMO( am_I_Root,  State_Chm, State_Diag,
+         CALL OFFLINEOCEAN_READMO( Input_Opt,  State_Chm, State_Diag,
      &                             State_Grid, State_Met, EHg0_oc, RC )
 
       ENDIF
@@ -2723,10 +2617,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 !            ! OLD CODE: CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
 !            CALL GTMM_DR
-!     &           ( am_I_Root,  Input_Opt, State_Chm,
-!     &             State_Grid, State_Met, EHg0_gtm,  RC )
+!     &           ( Input_Opt, State_Chm, State_Grid, State_Met,
+!     &             EHg0_gtm,  RC )
 !
-!            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
+!            IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
 !         ENDIF
 !
 !      ELSE
@@ -2737,16 +2631,18 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          !--------------------------------------------------------------
          CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, State_Grid,
      &                            State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
+         IF ( prtDebug ) 
+     &      CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
 
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
          ! (jaf, eds, 4/1/11)
-         CALL VEGEMIS( am_I_Root, Input_Opt, State_Met,
+         CALL VEGEMIS( Input_Opt, State_Met,
      &                 LVEGEMIS,  EHg0_dist, EHg0_vg,   RC )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
 
          CALL SOILEMIS( EHg0_dist, EHg0_so, State_Grid, State_Met )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
+         IF ( prtDebug )
+     &      CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
 
 !==============================================================================
 !      ENDIF
@@ -2754,10 +2650,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow,  LHGSNOW,  State_Chm,
      &                             State_Grid, State_Met )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
 
-      CALL BIOMASSHG( am_I_Root, Input_Opt, EHg0_bb, RC )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )
+      CALL BIOMASSHG( Input_Opt, EHg0_bb, RC )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )
 
       IF ( LnoUSAemis ) THEN
 
@@ -2789,7 +2685,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ENDIF
 
       CALL RESET_HG_DEP_ARRAYS
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: ' //
+      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: ' //
      &     'a RESET_HG_DEP_ARRAYS' )
 
       ! If we are using the non-local PBL mixing,
@@ -2798,22 +2694,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
 
       ! Add Hg(0) source into State_Chm%Species [kg]
-      CALL SRCHg0( am_I_Root,  Input_Opt, State_Chm, State_Diag,
+      CALL SRCHg0( Input_Opt,  State_Chm, State_Diag,
      &             State_Grid, State_Met, RC )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
 
       ! Add Hg(II) source into State_Chm%Species [kg]
-      CALL SRCHg2( am_I_Root,  Input_Opt, State_Chm, State_Diag,
+      CALL SRCHg2( Input_Opt,  State_Chm, State_Diag,
      &             State_Grid, State_Met, RC )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
 
       ! Add HgP source into State_Chm%Species [kg]
-      CALL SRCHgP( am_I_Root,  Input_Opt, State_Chm,
+      CALL SRCHgP( Input_Opt, State_Chm,
      &             State_Grid, State_Met, RC )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHgP' )
 
       ! Convert species units back to original unit
-      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
+      CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,
      &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,
@@ -2862,7 +2758,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  27 Aug 2009 - C. Holmes   - Initial version
-!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, arguments
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2938,8 +2834,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHg0( am_I_Root,  Input_Opt,  State_Chm,
-     &                   State_Diag, State_Grid, State_Met, RC )
+      SUBROUTINE SRCHg0( Input_Opt,  State_Chm, State_Diag,
+     &                   State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -2955,7 +2851,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -2971,15 +2866,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  21 Jan 2005 - N. (Eckley) Selin, C. Holmes - Initial version
-!  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
-!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
-!        Remove reference to FEMIS. (bmy, 2/22/05)
-!  (3 ) EHg0_an is now a 2-D array.  Modified for new ocean mercury module.
-!        Now use ID_Hg0 index array from "tracerid_mod.f".  Now make sure
-!        STT does not underflow. (cdh, bmy, 4/6/06)
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3890,8 +3777,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHg2( am_I_Root,  Input_Opt,  State_Chm,
-     &                   State_Diag, State_Grid, State_Met, RC )
+      SUBROUTINE SRCHg2( Input_Opt,  State_Chm, State_Diag,
+     &                   State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -3907,7 +3794,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -3923,13 +3809,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
-!  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
-!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
-!        Remove reference to FEMIS. (bmy, 2/22/05)
-!  (3 ) EHg2_an is now a 2-D array.  Now use ID_Hg2 index array from
-!        "tracerid_mod.f".  Now make sure STT does not underflow.
-!        (eck, cdh, bmy, 4/6/06)
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4145,8 +4025,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHgP( am_I_Root,  Input_Opt, State_Chm,
-     &                   State_Grid, State_Met, RC )
+      SUBROUTINE SRCHgP( Input_Opt, State_Chm, State_Grid, &
+                         State_Met, RC )
 !
 ! !USES:
 !
@@ -4161,7 +4041,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -4176,12 +4055,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
-!  (1 ) Now use diagnostic arrays from "diag03_mod.f" (bmy, 1/21/05)
-!  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_MAX_L from "pbl_mix_mod.f".
-!        Remove reference to FEMIS. (bmy, 2/22/05)
-!  (3 ) EHgP_an is now a 2-D array.  Now use ID_HgP index array from
-!        "tracerid_mod.f".  Now make sure STT does not underflow.
-!        (eck, cdh, bmy, 4/6/06)
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4378,7 +4252,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MERCURY_READYR( am_I_Root, Input_Opt, RC )
+      SUBROUTINE MERCURY_READYR( Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4391,7 +4265,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
@@ -4400,35 +4273,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Dec 2004 - N. (Eckley) Selin - Initial version
-!  (1 ) Now read data from mercury_200501 subdirectory.  Now compute oceanic
-!        Hg(0) emissions w/ ocean flux module instead of reading them from
-!        disk.  Now use 1985 TAU values. (sas, bmy, 1/20/05)
-!  (2 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Now read anthro emissions on GEOS 1x1 grid in DATA_1x1_DIR.  Also
-!        keep 2x25 and 4x5 files together in DATA_1x1_DIR.  Also now use new
-!        land re-emissions files from Noelle Selin. (eck, bmy, 4/6/06)
-!  (5 ) Now reads anthro emissions for 17 world regions from David Streets
-!       for use in tagged simulations. (eds 2/7/12)
-!  (6 ) Bug fix: emissions are read on GENERIC grid (jaf, 2/8/12)
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
-!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
-!  24 May 2012 - H. Amos     - updated file paths for soil Hg files
-!  28 Jun 2012 - S. Kim      - Bug fix: you need to provide a location
-!                              in the call to ERROR_STOP
-!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS in DO_REGRID_A2A
-!  13 Jan 2013 - M. Payer    - Update soil Hg files for v9-02c (Y. Zhang)
-!  06 Jun 2013 - R. Yantosca - Get ANTHRO_Hg_YEAR, Hg_SCENARIO from Input_Opt
-!  06 Sep 2013 - R. Yantosca - Kludge: use MERRA soil file for GEOS-FP testing
-!                              and debugging.  Worry about this later.
-!  06 Sep 2013 - R. Yantosca - Kludge: use GEOS-5 soil file for GEOS-4 testing
-!                              and debugging.  Worry about this later.
-!  24 Sep 2014 - C. Keller   - HEMCO update
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  27 Feb 2018 - C. Thackray - Removed unused ANTHRO_Hg_YEAR and Hg_SCENARIO
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4515,7 +4360,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
          ! Anthropogenic emissions
          DgnName = 'HG0_ANTHRO'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4526,7 +4371,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
          ! Artisanal emissions
          DgnName = 'HG0_ARTISANAL'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4542,7 +4387,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
          ! Anthropogenic emissions
          DgnName = 'HG2_ANTHRO'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4554,7 +4399,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ! Natural emissions
       DgnName = 'HG0_NATURAL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
       IF ( RC /= HCO_SUCCESS ) THEN
          ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4564,7 +4409,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       Ptr2D    => NULL()
 
       ! Soil distribution
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'HG0_SOILDIST', Ptr2D, RC )
+      CALL HCO_GetPtr( HcoState, 'HG0_SOILDIST', Ptr2D, RC )
       IF ( RC /= HCO_SUCCESS ) THEN
          ErrMsg = 'Could not get pointer to HEMCO field HG0_SOILDIST!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4637,12 +4482,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Dec 2002 - R. Yantosca - Initial version
-!  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
-!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_O3_MOD
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4703,12 +4543,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
-!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
-!  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
-!  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_OH_MOD
-!  06 Feb 2018 - E. Lundgren - Update time unit conversion factor for timestep
-!                              unit change from min to sec
-
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4790,10 +4625,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
-!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
-!  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
-!  ca. 2014    - H. Horowitz -
-!  30 Sep 2017 - C. Thackray (cpt) - Merged into v11
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4879,8 +4711,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(fp)                    :: ClO_MOLEC_CM3  ! ClO  conc [molec/cm3]
 !
 ! !REVISION HISTORY:
-! 06 Oct 2014 - H. Horowitz - initial version copied from get_br.
-! 30 Sep 2017 - C. Thackray (cpt) - merged into v11
+!  06 Oct 2014 - H. Horowitz - initial version copied from get_br.
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4982,8 +4814,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(fp)                      :: Cl_MOLEC_CM3   ! Cl   conc [molec/cm3]
 !
 ! !REVISION HISTORY:
-! 19 Nov 2014 - H. Horowitz - initial version copied from get_clO.
-! 30 Sep 2017 - C. Thackray (cpt) - merged into v11
+!  19 Nov 2014 - H. Horowitz - initial version copied from get_clO.
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5084,7 +4916,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  ca. 2014 - H. Horowitz - Initial version
-!  30 Sep 2017 - C. Thackray (cpt) - Merged into v11
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5181,7 +5013,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  ca. 2014    - H. Horowitz - Initial version
-!  30 Sep 2017 - C. Thackray (cpt) - Merged into v11
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5306,20 +5138,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Jul 2006 - C. Holmes   - Initial version
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
-!  10 Aug 2015 - J. Fisher - implement variable polar BrO concentrations based
-!                            on temperature and incoming solar radiation
-!  10 Aug 2015 - J. Fisher - only apply diurnal cycle to BrO from pTOMCAT
-!                            daily means, NOT to polar BrO which represents
-!                            instantaneous values
-!  10 Aug 2015 - J. Fisher - add upper ice threshold to MERRA conditions for
-!                            polar BrO release
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5633,22 +5452,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  16 Dec 2002 - R. Park & R. Yantosca - Initial version
-!  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
-!        values.  Figure this out later (rjp, bmy, 1/10/03)
-!  (2 ) Now replace XMID(I) with routine GET_XMID from "grid_mod.f".
-!        Now replace RLAT(J) with routine GET_YMID_R from "grid_mod.f".
-!        Removed NTIME, NHMSb from the arg list.  Now use GET_NHMSb,
-!        GET_ELAPSED_SEC, GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT from
-!        "time_mod.f". (bmy, 3/27/03)
-!  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in
-!        the COSZM array. (rjp, bmy, 3/30/04)
-!  (4 ) Also added parallel loop over grid boxes (eck, bmy, 12/8/04)
-!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
-!  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
-!                              from (MAXIJ) to (IIPAR,JJPAR)
-!  06 Feb 2018 - E. Lundgren - Update unit conversion factor for timestep
-!                              unit change from min to sec
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5807,8 +5611,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  25 Nov 2009 - C. Holmes   - Initial version
-!  25 Jul 2014 - R. Yantosca - Remove reference to function SFCWINDSQR
-!  04 Dec 2014 - M. Yannetti - Remove reference to RNPBE_MOD
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5924,9 +5727,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !  clear skies. J-NO2 ~ exp( -0.360 * sec(SZA) )
 !
 ! !REVISION HISTORY:
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
-!  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
-!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6015,8 +5816,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PARTITIONHG2( am_I_Root,  Input_Opt, State_Chm,
-     &                         State_Grid, RC )
+      SUBROUTINE PARTITIONHG2( Input_Opt, State_Chm, State_Grid, RC )
 !
 ! !USES:
 !
@@ -6030,7 +5830,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -6044,17 +5843,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  12-Jul-2010 - H. Amos     - Add option to partition Hg2 according to Fg/Fp
-!  02-Jan-2011 - H. Amos     - Add/clean up comments
-!  04 Jan 2012 - H. Amos     - modify algorithms to reflect the fact that
-!                              anthropogenic Hg(p) is now emitted as Hg(II)
-!                              (i.e. it's no longer considered refractory).
-!  28-Mar-2013 - C. Holmes   - Since we now assume that all HgP and Hg2
-!                              actively partition between gas and aerosol,
-!                              we no longer need to 'reverse' partition.
-!  03 Jun 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  18 Nov 2014 - M. Yannetti - Took out OCEAN_MERCURY_MOD calling Fp
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6142,6 +5931,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  11 Jan 2011 - Y. Zhang    - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6184,7 +5974,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RED_INPLUME( am_I_Root, Input_Opt, State_Grid, RC )
+      SUBROUTINE DO_RED_INPLUME( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -6200,7 +5990,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
@@ -6210,12 +5999,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  11 Jan 2011 - Y. Zhang    - Initial version
-!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  05 Mar 2015 - R. Yantosca - Add Input_Opt%RES_DIR to data path'
-!  16 Mar 2015 - R. Yantosca - Remove bpch input
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6248,8 +6032,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       E_ELEC_Hg2 => NULL()
 
       ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
-      CALL HCO_GetPtr( am_I_Root, HcoState,
-     &                'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
+      CALL HCO_GetPtr( HcoState, 'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg =
      &     'Cannot get pointer to HEMCO field CFPP_NEI2005_Hg2!'
@@ -6291,8 +6074,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OFFLINEOCEAN_READMO( am_I_Root,  State_Chm, State_Diag,
-     &                                State_Grid, State_Met, FLUX, RC )
+      SUBROUTINE OFFLINEOCEAN_READMO( State_Chm, State_Diag, State_Grid,
+     &                                State_Met, FLUX, RC )
 !
 ! !USES:
 !
@@ -6316,8 +6099,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      ! hmh adding 5/17/16
-      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
       TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
       TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
@@ -6335,14 +6116,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  12 Aug 2015 - H. Horowitz - Initial version
-!  15 Sep 2015 - H. Horowitz - removing am_I_root & trying to fix netcdf issue.
-!     also removing input_opt; don't need it here. Try making Array 2D instead
-!     of 3-D.
-!  16 Sep 2015 - H. Horowitz - adding diags for Hg_up and Hg_down (separates
-!     the positive and negative oceanic fluxes from the net EHg0_oc.
-!  17 May 2016 - H. Horowitz - setting up to read concentrations and do flux
-!     calculations like in ocean_mercury_mod subrtine ocean_mercury_flux
-!  30 Nov 2017 - C. Thackray (cpt) - merging into v11
+!  See the Gitk browser for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -6429,8 +6203,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       IF ( ITS_A_NEW_MONTH() ) THEN
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OCEAN',
-     &                    OCEAN_CONC,  RC )
+         CALL HCO_GetPtr( HcoState, 'GLOBAL_OCEAN', OCEAN_CONC, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to HEMCO field GLOBAL_OCEAN!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6672,7 +6445,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Reset_Hg_Diags( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE Reset_Hg_Diags( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -6683,7 +6456,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -6700,6 +6472,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6788,8 +6561,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MERCURY( am_I_Root,  Input_Opt, State_Chm,
-     &                         State_Grid, RC )
+      SUBROUTINE INIT_MERCURY( Input_Opt, State_Chm, State_Grid, RC )
 !
 ! !USES:
 !
@@ -6803,7 +6575,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
@@ -6814,20 +6585,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  02 Dec 2004 - N. (Eckley) Selin - Initial version
-!  (1 ) Removed reference to FEMIS array.  Now also allocates and zeroes
-!        the T44 array.  Added reference to CMN_DIAG.  Now references
-!        N_TRACERS from "tracer_mod.f". (bmy, 2/24/05)
-!  (2 ) EHg0_an, EHg2_an, EHgP_an are now 2-D arrays.  Now modified for
-!        updated ocean mercury module. (eck, cdh, sas, bmy, 4/6/06)
-!  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
-!  11 Apr 2012 - R. Yantosca - Now retire lai_mod.F; remove call to INIT_LAI
-!  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
-!  03 Jun 2013 - R. Yantosca - Now use fields from Input_Opt
-!  12 Mar 2015 - R. Yantosca - Now test if HEMCO_Collections are defined
-!  25 Apr 2016 - R. Yantosca - Now use species database for tagHg indexing
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
-!  30 Aug 2018 - C. Thackray - Merged halogen chem options
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7439,7 +7197,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_OPTIONS_FROM_HEMCO( am_I_Root,  Input_Opt,
+      SUBROUTINE SET_OPTIONS_FROM_HEMCO( Input_Opt,
      &                                   State_Grid, RC )
 !
 ! !USES:
@@ -7453,7 +7211,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root
       TYPE(OptInput), INTENT(IN)  :: Input_Opt
       TYPE(GrdState), INTENT(IN)  :: State_Grid
 !
@@ -7465,9 +7222,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  11 Oct 2016 - R. Yantosca - Move call to DO_RED_INPLUME here
-!  13 Feb 2018 - C. Thackray - Put chem switches here
-!  30 Aug 2018 - C. Thackray - Merged halogen chem options
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7622,7 +7377,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! (yzh 11/1/2011).  Move this here so that the HEMCO_Config file
       ! will have been already read by this point. (bmy, 10/11/16)
       IF ( LInPlume .AND. .NOT. LPREINDHG .AND. LNEI2005 ) THEN
-         CALL DO_RED_INPLUME( am_I_Root, Input_Opt, State_Grid, RC )
+         CALL DO_RED_INPLUME( Input_Opt, State_Grid, RC )
       ENDIF
 
       !-----------------------------------------------------------------
@@ -7669,8 +7424,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Dec 2004 - N. (Eckley) Selin - Initial version
-!  (1 ) Now deallocate MLD, NPP, RAD (sas, bmy, 1/18/05)
-!  (2 ) Now deallocate T44 (bmy, 2/24/05)
+!  See the Gitk browser for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

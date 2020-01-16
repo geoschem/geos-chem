@@ -3345,11 +3345,11 @@ CONTAINS
 ! !INTERFACE:
 !
  SUBROUTINE Get_Met_Fields( Input_Opt, State_Chm, State_Grid, &
-                            State_Met, Phase,     RC )
+                            State_Met, Phase, RC )
 !
 ! ! USES:
 !
-   USE DAO_Mod
+   USE Derived_Met_Mod
    USE ErrCode_Mod
    USE FlexGrid_Read_Mod
    USE HCO_INTERFACE_MOD,      ONLY : HcoState
@@ -3592,8 +3592,8 @@ CONTAINS
       ! Call AIRQNT to compute initial air mass quantities
       ! Do not update initial tracer concentrations since not read
       ! from restart file yet (ewl, 10/28/15)
-      CALL AirQnt( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, State_Met, &
-                   RC,        update_mixing_ratio=.FALSE. )
+      CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                   RC, update_mixing_ratio=.FALSE. )
 
    ENDIF
 
@@ -3637,7 +3637,6 @@ CONTAINS
 ! !USES:
 !
    USE CMN_SIZE_Mod
-   USE DAO_Mod,            ONLY : AIRQNT
    USE ErrCode_Mod
    USE Error_Mod
    USE HCO_INTERFACE_MOD,  ONLY : HcoState

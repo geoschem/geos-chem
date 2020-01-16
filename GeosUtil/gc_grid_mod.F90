@@ -61,7 +61,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+  SUBROUTINE Compute_Grid( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -70,7 +70,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root         ! Root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt         ! Input Options
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -432,7 +431,7 @@ CONTAINS
     !======================================================================
     ! Echo info to stdout
     !======================================================================
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(a)' )
        WRITE( 6, '(''%%%%%%%%%%%%%%% GLOBAL GRID %%%%%%%%%%%%%%%'')' )
        WRITE( 6, '(a)' )
@@ -489,16 +488,17 @@ CONTAINS
 ! initialization phase (they are imported from superdynamics).
 ! !INTERFACE:
 !
-  SUBROUTINE SetGridFromCtr( am_I_Root,  State_Grid, lonCtr, latCtr, RC )
+  SUBROUTINE SetGridFromCtr( Input_Opt, State_Grid, lonCtr, latCtr, RC )
 !
 ! USES
 !
     USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
     USE Roundoff_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root      ! Root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt      ! Input Options object
     REAL(f4),       INTENT(IN)    :: lonCtr(:,:)    ! Lon ctrs [rad]
     REAL(f4),       INTENT(IN)    :: latCtr(:,:)    ! Lat ctrs [rad]
     TYPE(GrdState), INTENT(IN)    :: State_Grid     ! Grid State object
@@ -602,17 +602,18 @@ CONTAINS
 ! consistency with the GEOS-Chem interface to GEOS-5.
 ! !INTERFACE:
 !
-  SUBROUTINE SetGridFromCtrEdges( am_I_Root, State_Grid, lonCtr, latCtr, &
+  SUBROUTINE SetGridFromCtrEdges( Input_Opt, State_Grid, lonCtr, latCtr, &
                                   lonEdge, latEdge, RC )
 !
 ! USES
 !
     USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
     USE Roundoff_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root      ! Root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt      ! Input Options object
     REAL(f4),       INTENT(IN)    :: lonCtr (:,:)   ! Lon ctrs [rad]
     REAL(f4),       INTENT(IN)    :: latCtr (:,:)   ! Lat ctrs [rad]
     REAL(f4),       INTENT(IN)    :: lonEdge(:,:)   ! Lon edges [rad]

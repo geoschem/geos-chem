@@ -541,17 +541,12 @@ CONtAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Grid_Registry( Input_Opt, RC )
+  SUBROUTINE Cleanup_Grid_Registry( RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
     USE Registry_Mod,  ONLY : Registry_Destroy
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -657,7 +652,7 @@ CONtAINS
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
-    CALL Registry_Destroy( Input_Opt, Registry, RC )
+    CALL Registry_Destroy( Registry, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object "Registry"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

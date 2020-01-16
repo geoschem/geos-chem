@@ -72,7 +72,7 @@
 #
 # !REVISION HISTORY:
 #  16 Sep 2009 - R. Yantosca - Initial version
-#  See the Git history with the gitk browser!
+#  See the gitk browser for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -372,11 +372,11 @@ exehg:                                             # Create Hg/GTMM exec file
 ###                                                                         ###
 ###############################################################################
 
-aerosol_mod.o               : aerosol_mod.F                                  \
+aerosol_mod.o               : aerosol_mod.F90                                \
                               dao_mod.o               diag_mod.o             \
                               tomas_mod.o             ucx_mod.o
 
-carbon_mod.o                : carbon_mod.F                                   \
+carbon_mod.o                : carbon_mod.F90                                 \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o                                  \
                               tomas_mod.o             vdiff_pre_mod.o        \
@@ -395,7 +395,7 @@ chemistry_mod.o             : chemistry_mod.F90                              \
                               tagged_o3_mod.o         tomas_mod.o            \
                               flexchem_mod.o          diagnostics_mod.o
 
-cleanup.o                   : cleanup.F                                      \
+cleanup.o                   : cleanup.F90                                    \
                               aerosol_mod.o                                  \
                               carbon_mod.o            co2_mod.o              \
                               dao_mod.o               depo_mercury_mod.o     \
@@ -418,12 +418,12 @@ cleanup.o                   : cleanup.F                                      \
                               set_global_ch4_mod.o    pops_mod.o             \
                               rrtmg_rad_transfer_mod.o
 
-cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
+cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F90
 
-co2_mod.o                   : co2_mod.F                                      \
+co2_mod.o                   : co2_mod.F90                                    \
                               hco_interface_mod.o
 
-convection_mod.o            : convection_mod.F                               \
+convection_mod.o            : convection_mod.F90                             \
                               diag_mod.o              depo_mercury_mod.o     \
                               wetscav_mod.o           mercury_mod.o          \
                               tendencies_mod.o        hco_interface_mod.o    \
@@ -750,7 +750,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
 ###  Dependencies of files specific to the APM microphysics simulation      ###
 ###                                                                         ###
 ###############################################################################
-apm_driv_mod.o              : apm_driv_mod.F                                 \
+apm_driv_mod.o              : apm_driv_mod.F90                               \
                               dao_mod.o                                      \
                               pbl_mix_mod.o                                  \
                               isorropiaII_mod.o
@@ -769,7 +769,7 @@ tomas_tpcore_mod.o          : tomas_tpcore_mod.F90                           \
                               tomas_mod.o
 
 
-aero_drydep.o               : aero_drydep.F                                  \
+aero_drydep.o               : aero_drydep.F90                                \
                               drydep_mod.o            dust_mod.o             \
                               pbl_mix_mod.o           tomas_mod.o            \
                               diag_mod.o

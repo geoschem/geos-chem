@@ -1823,15 +1823,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_FlexChem( am_I_Root, RC )
+  SUBROUTINE Cleanup_FlexChem( RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !

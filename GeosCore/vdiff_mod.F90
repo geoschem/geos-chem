@@ -1687,17 +1687,18 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE VDINTI( am_I_Root, State_Grid, RC )
+  SUBROUTINE VDINTI( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE PRESSURE_MOD,   ONLY : GET_AP, GET_BP
     USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
     TYPE(GrdState), INTENT(IN ) :: State_Grid ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
@@ -1818,8 +1819,8 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( am_I_Root,  Input_Opt,  State_Chm,                    &
-                      State_Diag, State_Grid, State_Met, RC                  )
+  SUBROUTINE VDIFFDR( Input_Opt,  State_Chm, State_Diag, &
+                      State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1855,7 +1856,6 @@ contains
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
 !
@@ -2043,10 +2043,10 @@ contains
        ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
        ! respective diagnostics. The pointers will remain unassociated if
        ! the diagnostics do not exist (ckeller, 4/10/2015).
-       CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
-                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         )
-       CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
-                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       )
+       CALL GetHcoDiagn( 'PARANOX_O3_DEPOSITION_FLUX'  , &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3 )
+       CALL GetHcoDiagn( 'PARANOX_HNO3_DEPOSITION_FLUX', &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3 )
 
        ! Reset first-time flag
        FIRST = .FALSE.
@@ -2055,7 +2055,7 @@ contains
 #ifdef USE_TEND
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
-    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+    CALL TEND_STAGE1( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
                       State_Met, 'PBLMIX', RC )
 #endif
 
@@ -2637,7 +2637,7 @@ contains
        State_Met%PBLH = pblh
 
        ! Compute PBL quantities
-       CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Grid, State_Met, RC )
+       CALL COMPUTE_PBL_HEIGHT( Input_Opt%amIRoot, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2650,7 +2650,7 @@ contains
 
 #ifdef USE_TEND
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
-    CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm, &
+    CALL TEND_STAGE2( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                       State_Grid, State_Met, 'PBLMIX',  &
                       dtime,      RC )
 #endif
@@ -2678,12 +2678,12 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_PBL_MIX_2( am_I_Root,  DO_VDIFF,   Input_Opt, State_Chm,     &
-                           State_Diag, State_Grid, State_Met, RC            )
+  SUBROUTINE DO_PBL_MIX_2( DO_VDIFF,   Input_Opt,  State_Chm, &
+                           State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : AIRQNT
+    USE Derived_Met_Mod,    ONLY : AIRQNT
     USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
     USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
     USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -2711,7 +2711,6 @@ contains
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
     LOGICAL,        INTENT(IN)    :: DO_VDIFF     ! Switch which turns on PBL
                                                   !  mixing of tracers
     TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
@@ -2753,8 +2752,8 @@ contains
     !=======================================================================
 
     ! Initialize
-    RC       =  GC_SUCCESS                          ! Assume success
-    prtDebug = ( Input_Opt%LPRT .and. am_I_Root )   ! Print debug output?
+    RC       =  GC_SUCCESS                                ! Assume success
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) ! Print debug output?
     ErrMsg   = ''
     ThisLoc  = ' -> at DO_PBL_MIX_2 (in module GeosCore/vdiff_mod.F90)'
 
@@ -2765,7 +2764,7 @@ contains
     IF ( FIRST ) THEN
 
        ! Make sure the various PBL arrays are allocated
-       CALL INIT_PBL_MIX( am_I_Root, State_Grid, RC )
+       CALL INIT_PBL_MIX( Input_Opt, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "INIT_PBL_MIX"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2773,7 +2772,7 @@ contains
        ENDIF
 
        ! Perform more internal initializations
-       CALL Vdinti( am_I_Root, State_Grid, RC )
+       CALL Vdinti( Input_Opt, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "VDINTI"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2810,7 +2809,7 @@ contains
        !------------------------------------------------------
        IF ( State_Diag%Archive_BudgetMixing ) THEN
           ! Get initial column masses
-          CALL Compute_Column_Mass( am_I_Root, Input_Opt,                &
+          CALL Compute_Column_Mass( Input_Opt,                           &
                                     State_Chm, State_Grid, State_Met,    &
                                     State_Chm%Map_Advect,                &
                                     State_Diag%Archive_BudgetMixingFull, &
@@ -2830,7 +2829,7 @@ contains
        !----------------------------------------
 
        ! Convert species concentration to v/v dry
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+       CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                                State_grid, State_Met, 'v/v dry', &
                                RC,         OrigUnit=OrigUnit      )
 
@@ -2846,8 +2845,8 @@ contains
        !----------------------------------------
 
        ! Do non-local PBL mixing
-       CALL VDIFFDR( am_I_Root,  Input_Opt,  State_Chm,                     &
-                     State_Diag, State_Grid, State_Met, RC                 )
+       CALL VDIFFDR( Input_Opt,  State_Chm, State_Diag, &
+                     State_Grid, State_Met, RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2871,8 +2870,8 @@ contains
        ! NOTE: Prior to October 2015, air quantities were not updated
        ! with specific humidity modified in VDIFFDR at this point in
        ! the model
-       CALL AIRQNT( am_I_Root, Input_Opt, State_Chm, State_Grid,             &
-                    State_Met, RC,        Update_Mixing_Ratio=.TRUE.        )
+       CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met, &
+                    RC, Update_Mixing_Ratio=.TRUE. )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2891,7 +2890,7 @@ contains
        !----------------------------------------
 
        ! Convert species back to the original units
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,              &
+       CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,              &
                                State_Grid, State_Met, OrigUnit,  RC           )
 
        ! Trap potential error
@@ -2910,7 +2909,7 @@ contains
           DT_Dyn = Get_Ts_Dyn()
 
           ! Get final column masses and compute diagnostics
-          CALL Compute_Column_Mass( am_I_Root, Input_Opt,                   &
+          CALL Compute_Column_Mass( Input_Opt,                              &
                                     State_Chm, State_Grid, State_Met,       &
                                     State_Chm%Map_Advect,                   &
                                     State_Diag%Archive_BudgetMixingFull,    &
@@ -2918,8 +2917,7 @@ contains
                                     State_Diag%Archive_BudgetMixingPBL,     &
                                     State_Diag%BudgetMass2,                 &
                                     RC )
-          CALL Compute_Budget_Diagnostics( am_I_Root,                       &
-                                       State_Grid,                          &
+          CALL Compute_Budget_Diagnostics( State_Grid,                      &
                                        State_Chm%Map_Advect,                &
                                        DT_Dyn,                              &
                                        State_Diag%Archive_BudgetMixingFull, &

@@ -201,7 +201,7 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetTransport ) THEN
          ! Get initial column masses
-         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+         CALL Compute_Column_Mass( Input_Opt,
      &                          State_Chm, State_Grid, State_Met,
      &                          State_Chm%Map_Advect,
      &                          State_Diag%Archive_BudgetTransportFull,
@@ -328,7 +328,7 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetTransport ) THEN
          ! Get final column masses and compute diagnostics
-         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+         CALL Compute_Column_Mass( Input_Opt,
      &                          State_Chm, State_Grid, State_Met,
      &                          State_Chm%Map_Advect,
      &                          State_Diag%Archive_BudgetTransportFull,
@@ -336,8 +336,7 @@
      &                          State_Diag%Archive_BudgetTransportPBL,
      &                          State_Diag%BudgetMass2,
      &                          RC )
-         CALL Compute_Budget_Diagnostics( am_I_Root,
-     &                          State_Grid,
+         CALL Compute_Budget_Diagnostics( State_Grid,
      &                          State_Chm%Map_Advect,
      &                          DT_Dyn,
      &                          State_Diag%Archive_BudgetTransportFull,
@@ -378,7 +377,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-      USE DAO_MOD,            ONLY : AIRQNT
+      USE Derived_Met_Mod,    ONLY : AIRQNT
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -611,8 +610,8 @@
       ! Update State_Met air quantities with new pressures.
       ! Do not update tracer mixing ratio because after advection
       ! the mixing ratio values reflect the new air pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, Input_opt, State_Chm, State_Grid,
-     &             State_Met, RC,        update_mixing_ratio=.FALSE. )
+      CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met,
+     &             RC, update_mixing_ratio=.FALSE. )
 
 !      !### DEBUG: Print a few global species sums
 !      IF ( LPRT ) THEN
@@ -648,7 +647,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD               ! Size parameters
-      USE DAO_MOD,              ONLY : AIRQNT
+      USE Derived_Met_Mod,      ONLY : AIRQNT
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,        ONLY : OptInput
@@ -929,8 +928,8 @@
       ! Update State_Met air quantities with new pressures.
       ! Do not update tracer mixing ratio because after advection
       ! the mixing ratio values reflect the new air pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, Input_opt, State_Chm, State_Grid,
-     &             State_Met, RC,        Update_Mixing_Ratio=.FALSE. )
+      CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met,
+     &             RC, Update_Mixing_Ratio=.FALSE. )
 
 !      !### Debug
 !      IF ( LPRT ) THEN

@@ -396,7 +396,7 @@ CONTAINS
        ELSE
 
           ! Retrieve the units of the diagnostic from the metadata
-          CALL Get_Metadata_State_Diag( am_I_Root, TRIM(DiagMetadataID), &
+          CALL Get_Metadata_State_Diag( Input_Opt, TRIM(DiagMetadataID), &
                                         Found, RC, Units=Units )
 
           ! Allow for alternate format of units
@@ -668,9 +668,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Column_Mass( am_I_Root,  Input_Opt,  State_Chm,       &
-                                  State_Grid, State_Met,  SpcMap,          &
-                                  isFull,     isTrop,     isPBL,           &
+  SUBROUTINE Compute_Column_Mass( Input_Opt, State_Chm, State_Grid, State_Met, &
+                                  SpcMap,    isFull,    isTrop,     isPBL,     &
                                   ColMass,    RC      )
 !
 ! !USES:
@@ -684,7 +683,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid       ! Grid state object
     TYPE(MetState), INTENT(IN)    :: State_Met        ! Meteorology state object
@@ -824,7 +822,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Budget_Diagnostics( am_I_Root,    State_Grid, &
+  SUBROUTINE Compute_Budget_Diagnostics( State_Grid,               &
                                          SpcMap,       TS,         &
                                          isFull,       isTrop,     &
                                          isPBL,        diagFull,   &
@@ -838,7 +836,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
     TYPE(GrdState), INTENT(IN)  :: State_Grid      ! Grid State object
     INTEGER,        POINTER     :: SpcMap(:)       ! Map to species indexes
     REAL(fp),       INTENT(IN)  :: TS              ! timestep [s]

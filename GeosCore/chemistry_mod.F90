@@ -155,12 +155,12 @@ CONTAINS
     LOGICAL            :: LCHEM
     LOGICAL            :: LDUST
     LOGICAL            :: LSCHEM
-    LOGICAL            :: LPRT
     LOGICAL            :: LSSALT
     LOGICAL            :: LSULF
     LOGICAL            :: LSOA
     LOGICAL            :: LNLPBL
     LOGICAL            :: LUCX
+    LOGICAL            :: prtDebug
     REAL(fp)           :: DT_Chem
 #ifdef APM
     INTEGER            :: I,J,L
@@ -190,7 +190,6 @@ CONTAINS
     LCHEM                    = Input_Opt%LCHEM
     LDUST                    = Input_Opt%LDUST
     LSCHEM                   = Input_Opt%LSCHEM
-    LPRT                     = Input_Opt%LPRT
     LSSALT                   = Input_Opt%LSSALT
     LSULF                    = Input_Opt%LSULF
     LSOA                     = Input_Opt%LSOA
@@ -204,6 +203,7 @@ CONTAINS
     IT_IS_A_TAGO3_SIM        = Input_Opt%ITS_A_TAGO3_SIM
     IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
     IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
+    prtDebug                 = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Save species ID"s on first call
     IF ( FIRST ) THEN
@@ -216,7 +216,7 @@ CONTAINS
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
        ! Get initial column masses
-       CALL Compute_Column_Mass( am_I_Root, Input_Opt,                   &
+       CALL Compute_Column_Mass( Input_Opt,                              &
                                  State_Chm, State_Grid, State_Met,       &
                                  State_Chm%Map_Advect,                   &
                                  State_Diag%Archive_BudgetChemistryFull, &
@@ -291,8 +291,8 @@ CONTAINS
           N          = APMIDS%id_SO4
           CONCTMPSO4 = State_Chm%Species(:,:,:,N)
 
-          CALL AERONUM( am_I_Root,  Input_Opt,  State_Chm,                   &
-                        State_Diag, State_Grid, State_Met, RC               )
+          CALL AERONUM( Input_Opt,  State_Chm, State_Diag, &
+                        State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -490,7 +490,7 @@ CONTAINS
           ! Do carbonaceous aerosol chemistry
           !-----------------------------------
           IF ( LCARB ) THEN
-             CALL ChemCarbon( am_I_Root,  Input_Opt,  State_Chm,             &
+             CALL ChemCarbon( Input_Opt,  State_Chm,             &
                               State_Diag, State_Grid, State_Met, RC         )
 
              ! Trap potential errors
@@ -520,8 +520,8 @@ CONTAINS
           !--------------------------------------------
           ! Do APM aerosol microphysics
           !--------------------------------------------
-          CALL APM_DRIV( am_I_Root,  Input_Opt,  State_Chm,                  &
-                         State_Diag, State_Grid, State_Met, RC              )
+          CALL APM_DRIV( Input_Opt,  State_Chm, State_Diag, &
+                         State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -571,12 +571,12 @@ CONTAINS
           ! Compute aerosol & dust concentrations [kg/m3]
           ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
           !-------------------------------------------------------
-          CALL Aerosol_Conc( am_I_Root,  Input_Opt,  State_Chm,              &
-                             State_Diag, State_Grid, State_Met, RC          )
+          CALL Aerosol_Conc( Input_Opt,  State_Chm, State_Diag, &
+                             State_Grid, State_Met, RC )
 
           ! Check units (ewl, 10/5/15)
           IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-             ErrMsg = 'Incorrect species units after AEROSOL_CONC!'
+             ErrMsg = 'Incorrect species units after AEROSOL_CONC'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
           ENDIF
 
@@ -593,9 +593,9 @@ CONTAINS
           MONTH      = 0
           YEAR       = 0
           WAVELENGTH = 0
-          CALL RdAer( am_I_Root,  Input_Opt,  State_Chm,                     &
-                      State_Diag, State_Grid, State_Met, RC,                 &
-                      MONTH,      YEAR,       WAVELENGTH                    )
+          CALL RdAer( Input_Opt,  State_Chm, State_Diag, &
+                      State_Grid, State_Met, RC,         &
+                      MONTH,      YEAR,      WAVELENGTH  )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -683,7 +683,7 @@ CONTAINS
           ! Carbon and Secondary Organic Aerosols
           !-----------------------------------------
           IF ( LCARB ) THEN
-             CALL ChemCarbon( am_I_Root,  Input_Opt,  State_Chm,             &
+             CALL ChemCarbon( Input_Opt,  State_Chm,             &
                               State_Diag, State_Grid, State_Met, RC         )
 
              ! Trap potential errors
@@ -862,8 +862,8 @@ CONTAINS
 #endif
 
           ! Do Hg chemistry
-          CALL ChemMercury( am_I_Root,  Input_Opt,  State_Chm,               &
-                            State_Diag, State_Grid, State_Met, RC           )
+          CALL ChemMercury( Input_Opt,  State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -930,7 +930,7 @@ CONTAINS
           ENDIF
 
           !### Debug
-          IF ( LPRT .and. am_I_Root ) THEN
+          IF ( prtDebug ) THEN
              CALL Debug_Msg( '### MAIN: a CHEMISTRY' )
           ENDIF
 
@@ -975,7 +975,7 @@ CONTAINS
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
        ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( am_I_Root, Input_Opt,                   &
+       CALL Compute_Column_Mass( Input_Opt,                              &
                                  State_Chm, State_Grid, State_Met,       &
                                  State_Chm%Map_Advect,                   &
                                  State_Diag%Archive_BudgetChemistryFull, &
@@ -983,8 +983,7 @@ CONTAINS
                                  State_Diag%Archive_BudgetChemistryPBL,  &
                                  State_Diag%BudgetMass2,                 &
                                  RC )
-       CALL Compute_Budget_Diagnostics( am_I_Root,                           &
-                                     State_Grid,                             &
+       CALL Compute_Budget_Diagnostics( State_Grid,                          &
                                      State_Chm%Map_Advect,                   &
                                      DT_Chem,                                &
                                      State_Diag%Archive_BudgetChemistryFull, &
@@ -1067,7 +1066,8 @@ CONTAINS
     LOGICAL            :: IT_IS_A_FULLCHEM_SIM
     LOGICAL            :: IT_IS_AN_AEROSOL_SIM
     LOGICAL            :: LCARB, LCHEM,  LDUST
-    LOGICAL            :: LPRT,  LSSALT, LSULF,      LSOA
+    LOGICAL            :: LSSALT, LSULF, LSOA
+    LOGICAL            :: prtDebug
     INTEGER            :: MONTH, YEAR,   WAVELENGTH
 
     ! Strings
@@ -1090,12 +1090,12 @@ CONTAINS
     LCARB                = Input_Opt%LCARB
     LCHEM                = Input_Opt%LCHEM
     LDUST                = Input_Opt%LDUST
-    LPRT                 = Input_Opt%LPRT
     LSSALT               = Input_Opt%LSSALT
     LSULF                = Input_Opt%LSULF
     LSOA                 = Input_Opt%LSOA
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! First make sure chemistry is turned on
     IF ( LCHEM ) THEN
@@ -1107,8 +1107,8 @@ CONTAINS
           IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
              ! Skip this section if all of these are turned off
-             CALL AEROSOL_CONC( am_I_Root,  Input_Opt,  State_Chm,            &
-                                State_Diag, State_Grid, State_Met, RC        )
+             CALL AEROSOL_CONC( Input_Opt,  State_Chm, State_Diag, &
+                                State_Grid, State_Met, RC )
 
              !==============================================================
              ! Call RDAER -- computes aerosol optical depths
@@ -1116,9 +1116,9 @@ CONTAINS
 
              ! Calculate the AOD at the wavelength specified in jv_spec_aod
              WAVELENGTH = 1
-             CALL RDAER( am_I_Root,  Input_Opt,  State_Chm,                  &
-                         State_Diag, State_Grid, State_Met, RC,              &
-                         MONTH,     YEAR,       WAVELENGTH                  )
+             CALL RDAER( Input_Opt,  State_Chm, State_Diag, &
+                         State_Grid, State_Met, RC,         &
+                         MONTH,     YEAR,       WAVELENGTH  )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -1128,7 +1128,7 @@ CONTAINS
              ENDIF
 
              !### Debug
-             IF ( LPRT .and. am_I_Root ) THEN
+             IF ( prtDebug ) THEN
                 CALL Debug_Msg( '### RECOMPUTE_OD: after RDAER' )
              ENDIF
 
@@ -1155,7 +1155,7 @@ CONTAINS
              ENDIF
 
              !### Debug
-             IF ( LPRT .and. am_I_Root ) THEN
+             IF ( prtDebug ) THEN
                 CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDUST' )
              ENDIF
           ENDIF
@@ -1239,7 +1239,7 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F)'

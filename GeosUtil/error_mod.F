@@ -1214,11 +1214,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_ERROR( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_ERROR( Input_Opt, RC )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)         :: am_I_Root ! Are we on root CPU?
       TYPE(OptInput), INTENT(IN), TARGET :: Input_Opt ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
@@ -1241,7 +1240,7 @@
       RC               =  GC_SUCCESS
 
       ! Store a shadow copy of am_I_Root
-      SHADOW_am_I_Root =  am_I_Root
+      SHADOW_am_I_Root =  Input_Opt%amIRoot
 
       ! Store a shadow copy of Input_Opt (point to it instead of copying)
       SHADOW_Input_Opt => Input_Opt

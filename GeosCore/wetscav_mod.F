@@ -214,7 +214,7 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
          ! Get initial column masses
-         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+         CALL Compute_Column_Mass( Input_Opt,
      &                             State_Chm, State_Grid, State_Met,
      &                             State_Chm%Map_WetDep,
      &                             State_Diag%Archive_BudgetWetDepFull,
@@ -325,7 +325,7 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
          ! Get final masses and compute diagnostics
-         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+         CALL Compute_Column_Mass( Input_Opt,
      &                          State_Chm, State_Grid, State_Met,
      &                          State_Chm%Map_WetDep,
      &                          State_Diag%Archive_BudgetWetDepFull,
@@ -334,8 +334,7 @@
      &                          State_Diag%BudgetMass2,
      &                          RC )
          DT_Dyn = Get_Ts_Dyn()
-         CALL Compute_Budget_Diagnostics( am_I_Root,
-     &                          State_Grid,
+         CALL Compute_Budget_Diagnostics( State_Grid,
      &                          State_Chm%Map_WetDep,
      &                          DT_Dyn,
      &                          State_Diag%Archive_BudgetWetDepFull,
@@ -632,9 +631,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_F( am_I_Root, N,         F,          ISOL,
-     &                      Input_Opt, State_Chm, State_Grid, State_Met,
-     &                      RC    )
+      SUBROUTINE COMPUTE_F( N, F, ISOL, Input_Opt, State_Chm, 
+     &                      State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -651,7 +649,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
       INTEGER,        INTENT(IN)    :: N          ! Species ID
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
@@ -1426,7 +1423,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WASHOUT( am_I_Root,  I,        J,         L,
+      SUBROUTINE WASHOUT( I,          J,        L,
      &                    N,          BXHEIGHT, TK,        PP,
      &                    DT,         F,        H2O2s,     SO2s,
      &                    WASHFRAC,   KIN,      Input_Opt, State_Chm,
@@ -1453,7 +1450,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
       INTEGER,        INTENT(IN)    :: I          ! Longitude index
       INTEGER,        INTENT(IN)    :: J          ! Latitude index
       INTEGER,        INTENT(IN)    :: L          ! Level index
@@ -1546,7 +1542,7 @@
 
       IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
          UNITCHANGE_KGKG = .TRUE.
-         CALL ConvertBox_KgKgDry_to_Kg( am_I_Root, I, J, L,
+         CALL ConvertBox_KgKgDry_to_Kg( Input_Opt%amIRoot, I, J, L,
      &                                  State_Met, State_Chm, RC )
 
          ! Trap potential errors
@@ -1558,7 +1554,7 @@
 
       ELSE IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
-         CALL ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L,
+         CALL ConvertBox_Kgm2_to_Kg( Input_Opt%amIRoot, I, J, L,
      &                               State_Chm, State_Grid, RC )
 
          ! Trap potential errors
@@ -1745,7 +1741,7 @@
       ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
       !-----------------------------------------------------------------
       IF ( UNITCHANGE_KGKG ) THEN
-         CALL ConvertBox_Kg_to_KgKgDry( am_I_Root, I, J, L,
+         CALL ConvertBox_Kg_to_KgKgDry( Input_Opt%amIRoot, I, J, L,
      &                                  State_Met, State_Chm, RC )
 
          ! Trap potential errors
@@ -1756,7 +1752,7 @@
          ENDIF
 
       ELSE IF ( UNITCHANGE_KGM2 ) THEN
-         CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L,
+         CALL ConvertBox_Kg_to_Kgm2( Input_Opt%amIRoot, I, J, L,
      &                               State_Chm, State_Grid, RC )
 
          ! Trap potential errors
@@ -3951,7 +3947,7 @@
 
          ! Call WASHOUT to compute the fraction of
          ! species lost to washout in grid box (I,J,L)
-         CALL WASHOUT( am_I_Root, I, J, L, N,
+         CALL WASHOUT( I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L),
      &                 TK,        QDOWN,        DT,
      &                 TF,
@@ -4628,7 +4624,7 @@
 
          ! Call WASHOUT to compute the fraction of species
          ! in grid box (I,J,L) that is lost to washout.
-         CALL WASHOUT( am_I_Root, I, J, L, N,
+         CALL WASHOUT( I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L),
      &                 TK ,       QDOWN,        DT,
      &                 F,
@@ -5474,15 +5470,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_WETSCAV( am_I_Root, RC )
+      SUBROUTINE CLEANUP_WETSCAV( RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-!
-! !INPUT_PARAMETERS:
-!
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !

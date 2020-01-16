@@ -74,9 +74,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PBL_MIX( am_I_Root, DO_TURBDAY, Input_Opt,
-     &                       State_Chm, State_Diag, State_Grid,
-     &                       State_Met, RC )
+      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, Input_Opt,  State_Chm,
+     &                       State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -98,7 +97,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       LOGICAL,        INTENT(IN)    :: DO_TURBDAY  ! =T means call TURBDAY
                                                    !    for full PBL mixing
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -163,7 +161,7 @@
       IF ( FIRST ) THEN
 
          ! Allocate arrays etc.
-         CALL INIT_PBL_MIX( am_I_Root, State_Grid, RC )
+         CALL INIT_PBL_MIX( Input_Opt, State_Grid, RC )
 
          ! Trap potential error
          IF ( RC /= GC_SUCCESS ) THEN
@@ -186,7 +184,7 @@
          !-------------------------------------------------
          IF ( State_Diag%Archive_BudgetMixing ) THEN
             ! Get initial column masses
-            CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+            CALL Compute_Column_Mass( Input_Opt,
      &                    State_Chm, State_Grid, State_Met,
      &                    State_Chm%Map_Advect,
      &                    State_Diag%Archive_BudgetMixingFull,
@@ -207,9 +205,9 @@
          !--------------------------
 
          ! Convert species to v/v dry
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
-     &                           State_Grid, State_Met, 'v/v dry',
-     &                           RC,         OrigUnit=OrigUnit )
+         CALL Convert_Spc_Units(Input_Opt%amIRoot, Input_Opt, State_Chm,
+     &                          State_Grid, State_Met, 'v/v dry',
+     &                          RC,         OrigUnit=OrigUnit )
 
          ! Trap potential error
          IF ( RC /= GC_SUCCESS ) THEN
@@ -226,18 +224,18 @@
 #if defined( USE_TEND )
          ! Archive species concentrations for tendencies. Tracers are
          ! already in v/v (ckeller, 7/15/2015)
-         CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, State_Grid,
-     &                     State_Met, 'PBLMIX', RC )
+         CALL TEND_STAGE1( Input_Opt%amIRoot, Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, 'PBLMIX', RC )
 #endif
 
          ! Do complete mixing of tracers in the PBL
-         CALL TURBDAY( am_I_Root,  Input_Opt,  State_Chm,
+         CALL TURBDAY( Input_Opt%amIRoot,  Input_Opt,  State_Chm,
      &                 State_Diag, State_Grid, State_Met, RC )
 
 #if defined( USE_TEND )
          ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
          DT_TEND = GET_TS_CONV()
-         CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm,
+         CALL TEND_STAGE2( Input_Opt%amIRoot,  Input_Opt, State_Chm,
      &                     State_Grid, State_Met, 'PBLMIX',
      &                     DT_TEND,    RC )
 #endif
@@ -247,8 +245,8 @@
          !--------------------------
 
          ! Convert species back to original units
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,
-     &                           State_Grid, State_Met, OrigUnit,  RC )
+         CALL Convert_Spc_Units(Input_Opt%amIRoot, Input_Opt, State_Chm,
+     &                          State_Grid, State_Met, OrigUnit,  RC )
 
          ! Trap potential error
          IF ( RC /= GC_SUCCESS ) THEN
@@ -267,7 +265,7 @@
           DT_Dyn = Get_Ts_Dyn()
 
           ! Get final column masses and compute diagnostics
-          CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+          CALL Compute_Column_Mass( Input_Opt,
      &                  State_Chm, State_Grid, State_Met,
      &                  State_Chm%Map_Advect,
      &                  State_Diag%Archive_BudgetMixingFull,
@@ -275,8 +273,7 @@
      &                  State_Diag%Archive_BudgetMixingPBL,
      &                  State_Diag%BudgetMass2,
      &                  RC )
-          CALL Compute_Budget_Diagnostics( am_I_Root,
-     &                  State_Grid,
+          CALL Compute_Budget_Diagnostics( State_Grid,
      &                  State_Chm%Map_Advect,
      &                  DT_Dyn,
      &                  State_Diag%Archive_BudgetMixingFull,
@@ -830,16 +827,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PBL_MIX( am_I_root, State_Grid, RC )
+      SUBROUTINE INIT_PBL_MIX( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid ! Grid State object
 !
 ! !OUTPUT PARAMETERS:

@@ -52,8 +52,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_MIXING ( am_I_Root,  Input_Opt,  State_Chm,                 &
-                           State_Diag, State_Grid, State_Met, RC             )
+  SUBROUTINE INIT_MIXING ( Input_Opt,  State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -69,7 +69,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid  ! Grid State
 !
@@ -114,8 +113,8 @@ CONTAINS
     IF ( Input_Opt%LNLPBL ) THEN
 
        ! Initialize non-local PBL mixing scheme
-       CALL DO_PBL_MIX_2( am_I_Root, .FALSE.,     Input_Opt, State_Chm,      &
-                          State_Diag, State_Grid, State_Met, RC             )
+       CALL DO_PBL_MIX_2( .FALSE.,    Input_Opt,  State_Chm, &
+                          State_Diag, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -127,8 +126,8 @@ CONTAINS
     ELSE
 
        ! Initialize full PBL mixing scheme
-       CALL DO_PBL_MIX( am_I_Root,  .FALSE.,    Input_Opt, State_Chm,        &
-                        State_Diag, State_Grid, State_Met, RC               )
+       CALL DO_PBL_MIX( .FALSE.,    Input_Opt, State_Chm,  &
+                        State_Diag, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -153,7 +152,7 @@ CONTAINS
     ! required met quantities are also not defined until GIGC_Chunk_Run,
     ! so also skip this here (hplin, 8/9/18)
     !-----------------------------------------------------------------------
-    CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Grid, State_Met, RC )
+    CALL COMPUTE_PBL_HEIGHT( Input_Opt%amIRoot, State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -177,8 +176,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_MIXING( am_I_Root,  Input_Opt,  State_Chm,                   &
-                        State_Diag, State_Grid, State_Met, RC               )
+  SUBROUTINE DO_MIXING( Input_Opt,  State_Chm, State_Diag, &
+                        State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -193,7 +192,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid  ! Grid State
 !
@@ -265,9 +263,8 @@ CONTAINS
        ENDIF
 
        ! Non-local mixing
-       CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
-                          State_Chm, State_Diag,      State_Grid,            &
-                          State_Met, RC                                     )
+       CALL DO_PBL_MIX_2( Input_Opt%LTURB, Input_Opt,  State_Chm, &
+                          State_Diag,      State_Grid, State_Met, RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -295,8 +292,8 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Apply tendencies
-    CALL DO_TEND( am_I_Root,  Input_Opt, State_Chm,    State_Diag,          &
-                  State_Grid, State_Met, OnlyAbovePBL, RC                  )
+    CALL DO_TEND( Input_Opt, State_Chm,  State_Diag, &
+                  State_Grid, State_Met, OnlyAbovePBL, RC )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -325,9 +322,8 @@ CONTAINS
        ENDIF
 
        ! Full PBL mixing
-       CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt,               &
-                        State_Chm, State_Diag,      State_Grid,              &
-                        State_Met, RC                                       )
+       CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt,  State_Chm, &
+                        State_Diag,      State_Grid, State_Met, RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -353,8 +349,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_TEND( am_I_Root,  Input_Opt, State_Chm,    State_Diag,       &
-                      State_Grid, State_Met, OnlyAbovePBL, RC,        DT    )
+  SUBROUTINE DO_TEND( Input_Opt, State_Chm,    State_Diag, State_Grid, &
+                      State_Met, OnlyAbovePBL, RC,         DT )
 !
 ! !USES:
 !
@@ -380,7 +376,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root    ! root CPU?
     TYPE(OptInput),   INTENT(IN   )           :: Input_Opt    ! Input opts
     TYPE(MetState),   INTENT(IN   )           :: State_Met    ! Met state
     TYPE(GrdState),   INTENT(IN   )           :: State_Grid   ! Grid state
@@ -502,7 +497,7 @@ CONTAINS
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
        ! Get initial column masses
-       CALL Compute_Column_Mass( am_I_Root, Input_Opt,                    &
+       CALL Compute_Column_Mass( Input_Opt,                               &
                                  State_Chm, State_Grid, State_Met,        &
                                  State_Chm%Map_Advect,                    &
                                  State_Diag%Archive_BudgetEmisDryDepFull, &
@@ -521,7 +516,7 @@ CONTAINS
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
     ! remove area-dependency (ewl, 9/30/15)
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
                             State_Grid, State_Met, 'kg/m2',   &
                             RC,         OrigUnit=OrigUnit )
 
@@ -571,9 +566,9 @@ CONTAINS
        ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F.
        !  (ckeller, 4/10/2015)
        IF ( .NOT. Input_Opt%LNLPBL ) THEN
-          CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
+          CALL GetHcoDiagn( 'PARANOX_O3_DEPOSITION_FLUX'  , &
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          )
-          CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
+          CALL GetHcoDiagn( 'PARANOX_HNO3_DEPOSITION_FLUX', &
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        )
        ENDIF
        FIRST = .FALSE.
@@ -581,7 +576,7 @@ CONTAINS
 
 #if defined( USE_TEND )
     ! Archive concentrations for tendencies (ckeller, 7/15/2015)
-    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+    CALL TEND_STAGE1( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
                       State_Met, 'FLUX', RC )
 #endif
 
@@ -969,13 +964,13 @@ CONTAINS
 
 #if defined( USE_TEND )
     ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
-    CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm, &
+    CALL TEND_STAGE2( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                       State_Grid, State_Met, 'FLUX',    &
                       TS,         RC )
 #endif
 
     ! Convert State_Chm%Species back to original units
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                             State_Grid, State_Met, OrigUnit, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        MSG = 'Unit conversion error!'
@@ -988,7 +983,7 @@ CONTAINS
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
        ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( am_I_Root, Input_Opt,                        &
+       CALL Compute_Column_Mass( Input_Opt,                                   &
                                  State_Chm, State_Grid, State_Met,            &
                                  State_Chm%Map_Advect,                        &
                                  State_Diag%Archive_BudgetEmisDryDepFull,     &
@@ -996,8 +991,7 @@ CONTAINS
                                  State_Diag%Archive_BudgetEmisDryDepPBL,      &
                                  State_Diag%BudgetMass2,                      &
                                  RC )
-       CALL Compute_Budget_Diagnostics( am_I_Root,                            &
-                                     State_Grid,                              &
+       CALL Compute_Budget_Diagnostics( State_Grid,                           &
                                      State_Chm%Map_Advect,                    &
                                      TS,                                      &
                                      State_Diag%Archive_BudgetEmisDryDepFull, &

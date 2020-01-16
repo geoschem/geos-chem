@@ -64,7 +64,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, State_Grid, RC )
+      SUBROUTINE READ_INPUT_FILE( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -74,10 +74,6 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -109,7 +105,7 @@
       !=================================================================
 
       ! Echo output
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'G E O S - C H E M   U S E R   I N P U T'
          WRITE( 6, 100   ) TRIM( FILENAME )
@@ -162,7 +158,7 @@
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
-            CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_SIMULATION_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Simulation_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -171,7 +167,7 @@
 
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
          ELSE IF ( INDEX( LINE, 'GRID MENU' ) > 0 ) THEN
-            CALL READ_GRID_MENU( am_I_Root, Input_Opt, State_Grid, RC )
+            CALL READ_GRID_MENU( Input_Opt, State_Grid, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Grid_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -180,7 +176,7 @@
 #endif
 
          ELSE IF ( INDEX( LINE, 'TIMESTEP MENU' ) > 0 ) THEN
-            CALL READ_TIMESTEP_MENU( am_I_Root, Input_Opt, State_Grid,
+            CALL READ_TIMESTEP_MENU( Input_Opt, State_Grid,
      &                               RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Timestep_Menu"!'
@@ -189,7 +185,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'ADVECTED SPECIES MENU' ) > 0 ) THEN
-            CALL READ_ADVECTED_SPECIES_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_ADVECTED_SPECIES_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Advected_Species_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -197,7 +193,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
-            CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_AEROSOL_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Aerosol_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -205,7 +201,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-            CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_EMISSIONS_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Emissions_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -213,7 +209,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
-            CALL READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_CHEMISTRY_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Chemistry_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -221,7 +217,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'TRANSPORT MENU'   ) > 0 ) THEN
-            CALL READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_TRANSPORT_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Transport_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -229,7 +225,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'PHOTOLYSIS MENU'   ) > 0 ) THEN
-            CALL READ_PHOTOLYSIS_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_PHOTOLYSIS_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Photolysis_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -237,7 +233,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
-            CALL READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_CONVECTION_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Convection_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -245,7 +241,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
-            CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_DEPOSITION_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Depositon_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -253,7 +249,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'RADIATION MENU'   ) > 0 ) THEN
-            CALL READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_RADIATION_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Radiation_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -261,7 +257,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'CO SIM MENU'     ) > 0 ) THEN
-            CALL READ_CO_SIM_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_CO_SIM_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_CO_Sim_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -269,7 +265,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
-            CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_CO2_SIM_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_CO2_Sim_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -277,7 +273,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
-            CALL READ_POPS_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_POPS_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_POPS_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -285,7 +281,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN
-            CALL READ_MERCURY_MENU( am_I_Root, Input_Opt, RC  )
+            CALL READ_MERCURY_MENU( Input_Opt, RC  )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Mercury_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -293,7 +289,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN
-            CALL READ_CH4_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_CH4_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_CH4_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -301,7 +297,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'PASSIVE SPECIES' ) > 0 ) THEN
-            CALL READ_PASSIVE_SPECIES_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_PASSIVE_SPECIES_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Passive_Species_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -315,7 +311,7 @@
          ! Always skip BPCH-related menus for external ESMs
          !==============================================================
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
-            CALL READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_GAMAP_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Gamap_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -323,7 +319,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
-            CALL READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_OUTPUT_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Output_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -331,7 +327,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
-            CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_DIAGNOSTIC_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Diagnostic_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -339,7 +335,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
-            CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_PLANEFLIGHT_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Planeflight_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -347,7 +343,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
-            CALL READ_ND51_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_ND51_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ND51_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -355,7 +351,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
-            CALL READ_ND51b_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_ND51b_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ND51b_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -364,7 +360,7 @@
 
 #if defined TOMAS
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
-            CALL READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_PROD_LOSS_MENU( Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Prod_Loss_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -388,7 +384,7 @@
       !=================================================================
 
       ! Check GEOS-CHEM timesteps
-      CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, State_Grid, RC )
+      CALL CHECK_TIME_STEPS( Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error in "Check_Time_Steps"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -523,7 +519,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_SIMULATION_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
@@ -531,10 +527,6 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -799,7 +791,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'SIMULATION MENU'
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 100 ) 'Start time of run           : ',
@@ -855,7 +847,7 @@
       ! Pass the values for the start & end times of the simulation directly
       ! to GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       ! (bmy, 12/6/12)
-      CALL Accept_External_Date_Time( am_I_Root   = am_I_Root,
+      CALL Accept_External_Date_Time( am_I_Root   = Input_Opt%amIRoot,
      &                                value_NYMDb = Input_Opt%NYMDb,
      &                                value_NHMSb = Input_Opt%NHMSb,
      &                                value_NYMDe = Input_Opt%NYMDe,
@@ -918,7 +910,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GRID_MENU( am_I_Root, Input_Opt, State_Grid, RC )
+      SUBROUTINE READ_GRID_MENU( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -926,10 +918,6 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1162,7 +1150,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'GRID MENU'
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 100 ) 'Grid resolution             : ',
@@ -1211,8 +1199,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TIMESTEP_MENU( am_I_Root, Input_Opt, State_Grid,
-     &                               RC )
+      SUBROUTINE READ_TIMESTEP_MENU( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -1222,7 +1209,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1292,7 +1278,7 @@
 
       IF ( Input_Opt%SimLengthSec < Input_Opt%TS_DYN .or.
      &     Input_Opt%SimLengthSec < Input_Opt%TS_CHEM ) THEN
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
 
             WRITE( 6, *   ) ''
             WRITE( 6, *   ) 'The length of the simulation is shorter '
@@ -1316,7 +1302,7 @@
      &     TRIM(State_Grid%GridRes)  == '0.5x0.625' ) THEN
       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
          IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 ) THEN
-            IF ( am_I_Root ) THEN
+            IF ( Input_Opt%amIRoot ) THEN
 
             WRITE( 6,* ) ''
             WRITE( 6,* ) 'It has been noted that MERRA-2 nested grid'
@@ -1349,7 +1335,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'TIMESTEP MENU'
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 100     ) 'Transport/Convection [sec]  : ',
@@ -1376,17 +1362,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ADVECTED_SPECIES_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_ADVECTED_SPECIES_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput, Set_Input_Opt_Advect
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1489,7 +1471,7 @@
       ENDIF
 
       ! Initialize arrays in Input_Opt that depend on N_ADVECT
-      CALL Set_Input_Opt_Advect( am_I_Root, Input_Opt, RC )
+      CALL Set_Input_Opt_Advect( Input_Opt, RC )
 
       ! Set menu counter
       CT1 = CT1 + 1
@@ -1509,16 +1491,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_AEROSOL_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1829,7 +1807,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ',
@@ -1911,17 +1889,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_EMISSIONS_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,      ONLY : GET_YEAR
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2055,7 +2029,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
         WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
         WRITE( 6, '(  a)' ) '--------------'
         WRITE( 6, 100 ) 'Turn on emissions?          : ',
@@ -2088,17 +2062,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CO_SIM_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_CO_SIM_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2153,7 +2123,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( Input_Opt%ITS_A_TAGCO_SIM .and. am_I_Root ) THEN
+      IF ( Input_Opt%ITS_A_TAGCO_SIM .and. Input_Opt%amIRoot ) THEN
          WRITE(6,'(/,a)') 'CO SIMULATION MENU ' //
      &        '(overwrites any other settings related to CO)'
          WRITE(6,'(  a)') '-------------------------------------'
@@ -2184,16 +2154,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_CO2_SIM_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2345,7 +2311,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( Input_Opt%ITS_A_CO2_SIM .and. am_I_Root ) THEN
+      IF ( Input_Opt%ITS_A_CO2_SIM .and. Input_Opt%amIRoot ) THEN
          WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
      &        '(overwrites any other settings related to CO2)'
          WRITE(6,'(  a)') '-------------------------------------'
@@ -2396,16 +2362,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_CHEMISTRY_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2606,7 +2568,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'CHEMISTRY MENU'
          WRITE( 6, '(  a)' ) '--------------'
          WRITE( 6, 100     ) 'Turn on chemistry?          : ',
@@ -2656,16 +2618,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_RADIATION_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_RADIATION_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2827,7 +2785,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'RADIATION MENU'
          WRITE( 6, '(  a)' ) '--------------'
          DO N=1, Input_Opt%NWVSELECT
@@ -2870,16 +2828,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_TRANSPORT_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2961,7 +2915,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'TRANSPORT MENU'
          WRITE( 6, '(  a)' ) '--------------'
          WRITE( 6, 100     ) 'Turn on transport?          : ',
@@ -2993,16 +2947,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PHOTOLYSIS_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_PHOTOLYSIS_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3070,7 +3020,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'PHOTOLYSIS MENU'
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 110 ) 'FAST_JX Directory           : ',
@@ -3096,16 +3046,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_CONVECTION_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3189,7 +3135,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'CONVECTION MENU'
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100     ) 'Turn on cloud convection?   : ',
@@ -3218,16 +3164,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_DEPOSITION_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3364,7 +3306,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'DEPOSITION MENU'
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 100     ) 'Turn on dry deposition?     : ',
@@ -3405,16 +3347,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_GAMAP_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3478,7 +3416,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'GAMAP MENU'
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ',
@@ -3502,16 +3440,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_OUTPUT_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3565,7 +3499,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF( am_I_Root ) THEN
+      IF( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'OUTPUT MENU'
          WRITE( 6, '(  a)' ) '-----------'
          WRITE( 6, 110     )
@@ -3607,7 +3541,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_DIAGNOSTIC_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
@@ -3621,10 +3555,6 @@
       USE FILE_MOD,      ONLY : IU_BPCH
       USE Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,      ONLY : GET_NYMDb, GET_NHMSb, EXPAND_DATE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3732,7 +3662,7 @@
       ENDIF
       READ( SUBSTRS(1), * ) ND03x
       IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) ND03x = 0
-      CALL SET_TINDEX( am_I_Root, 03, ND03x, SUBSTRS(2:N), N-1, PD03 )
+      CALL SET_TINDEX( Input_Opt, 03, ND03x, SUBSTRS(2:N), N-1, PD03 )
 
       !--------------------------
       ! ND06: Dust emissions
@@ -3746,7 +3676,7 @@
       READ( SUBSTRS(1), * ) ND06x
       IF ( .not. Input_Opt%LDUST .or.
      &     .not. Input_Opt%LEMIS ) ND06x = 0
-      CALL SET_TINDEX( am_I_Root, 06, ND06x, SUBSTRS(2:N), N-1, NDSTBIN)
+      CALL SET_TINDEX( Input_Opt, 06, ND06x, SUBSTRS(2:N), N-1, NDSTBIN)
 #endif
 
       !--------------------------
@@ -3768,7 +3698,7 @@
 #ifdef TOMAS
       READ( SUBSTRS(1), * ) ND44x
       IF ( .not. Input_Opt%LDRYD ) ND44x = 0
-      CALL SET_TINDEX( am_I_Root, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
+      CALL SET_TINDEX( Input_Opt, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
 #endif
 
       !--------------------------
@@ -3782,7 +3712,7 @@
       READ( SUBSTRS(1), * ) ND53x
       IF ( .not. Input_Opt%ITS_A_POPS_SIM .or.
      &     .not. Input_Opt%LEMIS) ND53x = 0
-      CALL SET_TINDEX( am_I_Root, 53, ND53x, SUBSTRS(2:N), N-1, PD53 )
+      CALL SET_TINDEX( Input_Opt, 53, ND53x, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
       ! ND59: TOMAS aerosol emiss
@@ -3794,7 +3724,7 @@
       ENDIF
 #ifdef TOMAS
       READ( SUBSTRS(1), * ) ND59x
-      CALL SET_TINDEX( am_I_Root, 59, ND59x, SUBSTRS(2:N), N-1, PD59 )
+      CALL SET_TINDEX( Input_Opt, 59, ND59x, SUBSTRS(2:N), N-1, PD59 )
 #endif
 
       !--------------------------
@@ -3808,7 +3738,7 @@
       ENDIF
 #ifdef TOMAS
       READ( SUBSTRS(1), * ) ND60x
-      CALL SET_TINDEX( am_I_Root, 60, ND60x, SUBSTRS(2:N), N-1, PD60 )
+      CALL SET_TINDEX( Input_Opt, 60, ND60x, SUBSTRS(2:N), N-1, PD60 )
 #endif
 
       !--------------------------
@@ -3821,7 +3751,7 @@
       ENDIF
 #ifdef TOMAS
       READ( SUBSTRS(1), * ) ND61x
-      CALL SET_TINDEX( am_I_Root, 61, ND61x, SUBSTRS(2:N), N-1, PD61 )
+      CALL SET_TINDEX( Input_Opt, 61, ND61x, SUBSTRS(2:N), N-1, PD61 )
 #endif
 
       !--------------------------
@@ -3837,7 +3767,7 @@
       !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
       !divided by number of allowed species (PD72R)
       READ( SUBSTRS(1), * ) ND72x
-      CALL SET_TINDEX( am_I_Root, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
+      CALL SET_TINDEX( Input_Opt, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
 #endif
 
       !If LRAD is on then ND72 must be on (so the diagnostic is
@@ -3921,8 +3851,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_TINDEX( am_I_Root,
-     &                       N_DIAG, L_DIAG, SUBSTRS, N, NMAX )
+      SUBROUTINE SET_TINDEX(Input_Opt, N_DIAG, L_DIAG, SUBSTRS, N, NMAX)
 !
 ! !USES:
 !
@@ -3931,16 +3860,17 @@
 #endif
       USE CMN_DIAG_MOD                              ! TMAX, TINDEX
       USE CMN_SIZE_MOD                              ! Size parameters
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput),     INTENT(IN) :: Input_Opt   ! Input Options object
       INTEGER,            INTENT(IN) :: N_DIAG      ! GEOS-Chem diagnostic #
       INTEGER,            INTENT(IN) :: N           ! # of valid substrs passed
       INTEGER,            INTENT(IN) :: NMAX        ! Max # of tracers allowed
       INTEGER,            INTENT(IN) :: L_DIAG      ! # of levels to save
       CHARACTER(LEN=255), INTENT(IN) :: SUBSTRS(N)  ! Substrs passed from
                                                     !  READ_DIAGNOSTIC_MENU
-      LOGICAL,            INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 !
 ! !REMARKS:
@@ -3970,7 +3900,7 @@
 
       ! Error check
       IF ( N < 1 ) THEN
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, '(a)' ) 'ERROR: N must be 1 or greater!'
             WRITE( 6, '(a)' ) 'STOP in SET_TINDEX (input_mod.f)'
             WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -4062,7 +3992,7 @@
 
       ! First-time printing only
       IF ( FIRST ) THEN
-         IF( am_I_Root ) THEN
+         IF( Input_Opt%amIRoot ) THEN
             WRITE( 6,'(/,a)' ) 'DIAGNOSTIC MENU'
             WRITE( 6,'(  a)' ) '---------------'
             WRITE( 6,'(  a)' ) 'Diag    L   Tracers being saved to disk'
@@ -4075,7 +4005,7 @@
 
          ! Print abbreviated output string
          IF ( L_DIAG > 0 ) THEN
-           IF ( am_I_Root ) THEN
+           IF ( Input_Opt%amIRoot ) THEN
               WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
            ENDIF
  100       FORMAT( 'ND', i2.2, 2x, i3, 1x, i3, ' -', i3 )
@@ -4086,7 +4016,7 @@
          ! Or just list each tracer
          ! Print each diagnostic and # of tracers that will print out
          IF ( L_DIAG > 0 ) THEN
-            IF ( am_I_Root ) THEN
+            IF ( Input_Opt%amIRoot ) THEN
                WRITE( 6, 110 ) N_DIAG, L_DIAG,
      &                         ( TINDEX(N_DIAG,M), M=1,TMAX(N_DIAG) )
             ENDIF
@@ -4111,7 +4041,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_PLANEFLIGHT_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4120,11 +4050,6 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,   ONLY : OptInput
       USE PLANEFLIGHT_MOD, ONLY : SET_PLANEFLIGHT
-
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4201,7 +4126,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF( am_I_Root ) THEN
+      IF( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'PLANEFLIGHT MENU'
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100 ) 'Turn on planeflight diag?   : ',
@@ -4242,16 +4167,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_OBSPACK_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_OBSPACK_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4345,7 +4266,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF( am_I_Root ) THEN
+      IF( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'OBSPACK_MENU'
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100 ) 'Turn on ObsPack diagnostic? : ',
@@ -4381,16 +4302,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_ND51_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4528,7 +4445,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'ND51 MORNING OR AFTERNOON TIMESERIES MENU'
          WRITE( 6, '(  a)' ) '-----------------------------------------'
          WRITE( 6, 100 ) 'Turn on ND51 timeseries?    : ',
@@ -4574,16 +4491,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51b_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_ND51b_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4723,7 +4636,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' )'ND51b MORNING OR AFTERNOON TIMESERIES MENU'
          WRITE( 6, '(  a)' )'-----------------------------------------'
          WRITE( 6, 100 ) 'Turn on ND51b timeseries?    : ',
@@ -4770,7 +4683,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_PROD_LOSS_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
@@ -4779,10 +4692,6 @@
       USE gckpp_Parameters,   ONLY : NFAM
       USE gckpp_Monitor,      ONLY : FAM_NAMES
       USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4946,7 +4855,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
          WRITE( 6, '(  a)' ) '---------------------------'
          WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ',
@@ -4988,16 +4897,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_MERCURY_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_MERCURY_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5113,7 +5018,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'MERCURY MENU'
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 110 ) 'Error check tag & total Hg? : ',
@@ -5153,16 +5058,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CH4_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_CH4_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5226,7 +5127,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF( am_I_Root ) THEN
+      IF( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'CH4 MENU'
          WRITE( 6, '(  a)' ) '-----------'
          WRITE( 6, 100     ) 'Use GOSAT obs operator: ',
@@ -5257,16 +5158,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POPS_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_POPS_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN)           :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5402,7 +5299,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF( am_I_Root ) THEN
+      IF( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'POPS MENU'
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 120     ) 'Species of POP        : ',
@@ -5453,16 +5350,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PASSIVE_SPECIES_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_PASSIVE_SPECIES_MENU( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL, INTENT(IN)           :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5504,7 +5397,7 @@
       P = 0
       D = 0
 
-      IF ( am_I_Root ) THEN
+      IF ( Input_Opt%amIRoot ) THEN
          WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES MENU'
          WRITE( 6, '(  a)' ) '---------------------'
       ENDIF
@@ -5572,7 +5465,7 @@
 
 
          ! Verbose
-         IF ( am_I_Root ) THEN
+         IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, '(a)' ) 'Added passive species: '
             WRITE( 6, 110   ) ' - Species name                : ',
      &            TRIM( Input_Opt%PASSIVE_NAME(P) )
@@ -5622,17 +5515,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE VALIDATE_DIRECTORIES( am_I_Root, Input_Opt, RC )
+      SUBROUTINE VALIDATE_DIRECTORIES( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,      ONLY : EXPAND_DATE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5781,7 +5670,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_TIME_STEPS( am_I_Root, Input_Opt, State_Grid, RC)
+      SUBROUTINE CHECK_TIME_STEPS( Input_Opt, State_Grid, RC)
 !
 ! !USES:
 !
@@ -5792,7 +5681,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
@@ -5957,7 +5845,7 @@
       ENDIF
 
       ! Initialize timesteps in "time_mod.f"
-      CALL SET_TIMESTEPS( am_I_Root,
+      CALL SET_TIMESTEPS( Input_Opt%amIRoot,
      &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS,
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
      &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG,
@@ -6065,17 +5953,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Do_Error_Checks( am_I_root, Input_Opt, RC )
+      SUBROUTINE Do_Error_Checks( Input_Opt, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE State_Chm_Mod, ONLY : Ind_
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

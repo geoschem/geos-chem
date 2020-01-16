@@ -3853,7 +3853,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : AIRQNT
+      USE Derived_Met_Mod,    ONLY : AIRQNT
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -4057,8 +4057,8 @@
       ! If humidity was updated, update all moist-dependent air quantities
       ! and species mixing ratio with the new moisture content (ewl, 4/29/15)
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
-         CALL AIRQNT( am_I_Root, Input_opt, State_Chm, State_Grid,
-     &                State_Met, RC,        Update_Mixing_Ratio=.TRUE. )
+         CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met,
+     &                RC, Update_Mixing_Ratio=.TRUE. )
       ENDIF
 
       ! Free pointer

@@ -212,7 +212,6 @@
       LOGICAL                  :: LGTMM
       LOGICAL                  :: LLINOZ
       LOGICAL                  :: LNLPBL
-      LOGICAL                  :: LPRT
       LOGICAL                  :: LSTDRUN
       LOGICAL                  :: LSCHEM
       LOGICAL                  :: LSETH2O
@@ -376,14 +375,14 @@
       ENDIF
 
       ! Initialize fields of the Grid State object
-      CALL Init_State_Grid( am_I_Root, State_Grid, RC )
+      CALL Init_State_Grid( Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered within call to "Set_Grid_State"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
       ! Read GEOS-Chem input file at very beginning of simulation
-      CALL Read_Input_File( am_I_Root, Input_Opt, State_Grid, RC )
+      CALL Read_Input_File( Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Read_Input_File"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -426,14 +425,14 @@
       !-----------------------------------------------------------------
 
       ! Make sure all directories are valid
-      CALL Validate_Directories( am_I_Root, Input_Opt, RC )
+      CALL Validate_Directories( Input_Opt, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in  "Validate_Directories"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
       ! Initialize GEOS-Chem horizontal grid structure
-      CALL GC_Init_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+      CALL GC_Init_Grid( Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error in "GC_Init_Grid"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -442,14 +441,14 @@
       ! Call the routine GC_Allocate_All (located in module file
       ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
       ! allocatable arrays used by GEOS-Chem.
-      CALL GC_Allocate_All( am_I_root, Input_Opt, State_Grid, RC )
+      CALL GC_Allocate_All( Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "GC_Allocate_All"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
       ! Store shadow copies of am_I_Root, Input_Opt in error_mod.F
-      CALL Init_Error( am_I_Root, Input_Opt, RC )
+      CALL Init_Error(Input_Opt, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Init_Error"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -470,7 +469,6 @@
       LGTMM               =  Input_Opt%LGTMM
       LLINOZ              =  Input_Opt%LLINOZ
       LNLPBL              =  Input_Opt%LNLPBL
-      LPRT                =  Input_Opt%LPRT
       LSCHEM              =  Input_Opt%LSCHEM
       LSETH2O             =  Input_Opt%LSETH2O
       LSTDRUN             =  Input_Opt%LSTDRUN
@@ -480,7 +478,7 @@
       LWETD               =  Input_Opt%LWETD
 
       ! Set a flag to denote if we should print ND70 debug output
-      prtDebug            = ( LPRT .and. am_I_Root )
+      prtDebug            = ( Input_Opt%LPRT .and. am_I_Root )
 
       ! Debug output
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_INPUT_FILE' )
@@ -504,13 +502,13 @@
 
          ! Don't initialize diagnostics when in dry-run mode
          historyConfigFile = 'HISTORY.rc' ! InputOpt not yet initialized
-         CALL Init_DiagList( am_I_Root, historyConfigFile,
+         CALL Init_DiagList( Input_Opt, historyConfigFile,
      &                       Diag_List, RC                 )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "Init_DiagList"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
-         CALL Init_TaggedDiagList( am_I_Root, Diag_List,
+         CALL Init_TaggedDiagList( Input_Opt, Diag_List,
      &                             TaggedDiag_List, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "Init_TaggedDiagList"!'
@@ -518,8 +516,8 @@
          ENDIF
 
          !###  Print diagnostic lists if needed for debugging
-         IF ( prtDebug ) CALL Print_DiagList( am_I_Root, Diag_List, RC )
-         IF ( prtDebug ) CALL Print_TaggedDiagList( am_I_Root,
+         IF ( prtDebug ) CALL Print_DiagList( Input_Opt, Diag_List, RC )
+         IF ( prtDebug ) CALL Print_TaggedDiagList( Input_Opt,
      &                                            TaggedDiag_List, RC )
 
 #ifdef USE_TIMERS
@@ -549,9 +547,8 @@
       !-----------------------------------------------------------------
 
       ! Initialize State_Met, State_Chm, and State_Diag objects
-      CALL GC_Init_StateObj( am_I_Root, Diag_List,  Input_Opt,
-     &                       State_Chm, State_Diag, State_Grid,
-     &                       State_Met, RC )
+      CALL GC_Init_StateObj( Diag_List,  Input_Opt,  State_Chm, 
+     &                       State_Diag, State_Grid, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "GC_Init_All!"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -580,8 +577,8 @@
       ! This removes the init calls from the run-stage, which cannot
       ! happen when connecting GEOS-Chem to external ESMs.
       !-----------------------------------------------------------------     
-      CALL GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt,
-     &                    State_Chm, State_Diag, State_Grid, RC )
+      CALL GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm,
+     &                    State_Diag, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "GC_Init_Extra"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -593,7 +590,7 @@
       IF ( notDryRun ) THEN
 
          ! Initialize the regridding module by storing shadow copies
-         CALL GC_Init_Regridding( am_I_Root, Input_Opt, State_Grid, RC )
+         CALL GC_Init_Regridding( Input_Opt, State_Grid, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "Initialize_Regridding"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
@@ -687,7 +684,7 @@
       ! the History component can use it for netCDF metadata
       !-----------------------------------------------------------------
       IF ( notDryRun ) THEN
-         CALL Init_Grid_Registry( am_I_Root, State_Grid, RC )
+         CALL Init_Grid_Registry( Input_Opt, State_Grid, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "Init_Grid_Registry"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
@@ -730,8 +727,8 @@
 
       ! Initialize the GEOS-Chem history component
       ! (for dry-run, enter routine to print out HISTORY.rc status)
-      CALL History_Init( am_I_root, Input_Opt,  State_Met,
-     &                   State_Chm, State_Diag, RC         )
+      CALL History_Init( Input_Opt,  State_Met, State_Chm, 
+     &                   State_Diag, RC )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -770,8 +767,8 @@
       CALL GEOS_Timer_Start( "HEMCO", RC )
 #endif
 
-      CALL Emissions_Init( am_I_Root,  Input_Opt, State_Chm,
-     &                     State_Grid, State_Met, RC )
+      CALL Emissions_Init( Input_Opt, State_Chm, State_Grid,
+     &                     State_Met, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -781,7 +778,7 @@
 
       ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
       ! and restart file fields
-      CALL Emissions_Run( am_I_Root,   Input_Opt,  State_Chm,
+      CALL Emissions_Run( Input_Opt,   State_Chm,
      &                    State_Diag,  State_Grid, State_Met,
      &                    TimeForEmis, 0,          RC )
 
@@ -819,8 +816,8 @@
 
          ! Initialize PBL quantities but do not do mixing
          ! Add option for non-local PBL (Lin, 03/31/09)
-         CALL Init_Mixing( am_I_Root,  Input_Opt,  State_Chm,
-     &                     State_Diag, State_Grid, State_Met, RC )
+         CALL Init_Mixing( Input_Opt,  State_Chm, State_Diag,
+     &                     State_Grid, State_Met, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -1023,7 +1020,7 @@
          TimeForEmis = ITS_TIME_FOR_EMIS()
 
          ! Run HEMCO Phase 1
-         CALL Emissions_Run( am_I_Root,   Input_Opt,  State_Chm,
+         CALL Emissions_Run( Input_Opt,   State_Chm,
      &                       State_Diag,  State_Grid, State_Met,
      &                       TimeForEmis, 1,          RC )
 
@@ -1054,7 +1051,7 @@
 #endif
             ! Do not do actual output for dry-run
             ! Write HEMCO diagnostics (ckeller, 4/1/15)
-            CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .FALSE., RC )
+            CALL HCOI_GC_WriteDiagn( Input_Opt, .FALSE., RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1139,8 +1136,7 @@
 #endif
 
                ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
-               CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .TRUE.,
-     &                                  RC )
+               CALL HCOI_GC_WriteDiagn( Input_Opt, .TRUE., RC )
 
 
                ! Trap potential errors
@@ -1263,13 +1259,12 @@
             ! Compute updated airmass quantities at each grid box
             ! and update tracer concentration to conserve tracer mass
             ! (ewl, 10/28/15)
-            CALL AirQnt( am_I_Root, Input_Opt, State_Chm, State_Grid,
-     &                   State_Met, RC,
-     &                   Update_Mixing_Ratio=.TRUE. )
+            CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met,
+     &                   RC, Update_Mixing_Ratio=.TRUE. )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "AirQnt (call #2)"!'
+               ErrMsg = 'Error encountered in "AirQnt"!'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
@@ -1299,7 +1294,6 @@
             ! Compute the cosine of the solar zenith angle array
             ! State_Met%SUNCOS     = at the current time
             ! State_Met%SUNCOSmid  = at the midpt of the chem timestep
-            ! State_Met%SUNCOSmid5 = at the midpt of the chem timestep 5hrs ago
             CALL Get_Cosine_SZA( am_I_Root, Input_Opt, State_Grid,
      &                           State_Met, RC )
 
@@ -1597,8 +1591,8 @@
             ! only calculates emissions. All data has been read to disk
             ! in phase 1 at the beginning of the time step.
             ! (ckeller, 4/1/15)
-            CALL Emissions_Run( am_I_Root,  Input_Opt,  State_Chm,
-     &                          State_Diag, State_Grid, State_Met,
+            CALL Emissions_Run( Input_Opt,   State_Chm,
+     &                          State_Diag,  State_Grid, State_Met,
      &                          TimeForEmis, 2,         RC )
 
             ! Trap potential errors
@@ -1647,8 +1641,8 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [v/v dry air] for mixing. Eventually mixing should
             ! be updated to use [kg/kg total air] (ewl, 9/18/15)
-            CALL Do_Mixing( am_I_Root,  Input_Opt,  State_Chm,
-     &                      State_Diag, State_Grid, State_Met, RC )
+            CALL Do_Mixing( Input_Opt,  State_Chm, State_Diag,
+     &                      State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1673,7 +1667,7 @@
                ! Call the appropriate convection routine
                ! NOTE: Tracer concentration units are converted locally
                ! to [kg/kg total air] for convection (ewl, 9/18/15)
-               CALL Do_Convection( am_I_Root,  Input_Opt,  State_Chm,
+               CALL Do_Convection( Input_Opt,  State_Chm,
      &                             State_Diag, State_Grid, State_Met,
      &                             RC )
 
@@ -1963,7 +1957,7 @@
             ! NOTE: This should now go before HISTORY_UPDATE, so that we
             ! can recompute the update alarm interval properly for monthly
             ! or yearly intervals spanning leap years. (bmy, 3/5/19)
-            CALL History_SetTime( am_I_Root, RC )
+            CALL History_SetTime( Input_Opt, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2247,7 +2241,7 @@
 
             ! Write HISTORY ITEMS in each diagnostic collection to disk
             ! (or skip writing if it is not the proper output time.
-            CALL History_Write( am_I_Root, State_Chm%Spc_Units, RC )
+            CALL History_Write( Input_Opt, State_Chm%Spc_Units, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2294,7 +2288,7 @@
 #endif
 
          ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
-         CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .TRUE., RC )
+         CALL HCOI_GC_WriteDiagn( Input_Opt, .TRUE., RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -2376,7 +2370,7 @@
       !%%% close all netCDF files upon both normal or abnormal exits.
 
       ! Deallocate fields of the Input Options object
-      CALL Cleanup_Input_Opt( am_I_Root, Input_Opt, RC )
+      CALL Cleanup_Input_Opt( Input_Opt, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_Input_Opt"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -2384,7 +2378,7 @@
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup Input_Opt' )
 
       ! Deallocate fields of the Chemistry State object
-      CALL Cleanup_State_Chm( am_I_Root, State_Chm, RC )
+      CALL Cleanup_State_Chm( State_Chm, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_State_Chm"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -2392,23 +2386,15 @@
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Chm' )
 
       ! Deallocate fields of the Diagnostics State object
-      CALL Cleanup_State_Diag( am_I_Root, State_Diag, RC )
+      CALL Cleanup_State_Diag( State_Diag, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_State_Diag"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Diag' )
 
-      ! Deallocate fields of the Grid State object
-      CALL Cleanup_State_Grid( am_I_Root, State_Grid, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Cleanup_State_grid"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Grid' )
-
       ! Deallocate fields of the Meteorology State object
-      CALL Cleanup_State_Met( am_I_Root, State_Met, RC )
+      CALL Cleanup_State_Met( State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_State_Met"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -2416,20 +2402,29 @@
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Met' )
 
       ! Deallocate dynamic module arrays
-      CALL CleanUp( am_I_Root, State_Grid, .FALSE., RC )
+      CALL CleanUp( State_Grid, .FALSE., RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
+      ! Deallocate fields of the Grid State object
+      CALL Cleanup_State_Grid( State_Grid, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_State_grid"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Grid' )
+
+
       ! Deallocate fields of the diagnostics list object
       IF ( notDryRun ) THEN
-         CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
+         CALL Cleanup_DiagList( Diag_List, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "Cleanup_DiagList"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
-         CALL Cleanup_TaggedDiagList( am_I_Root, TaggedDiag_List, RC )
+         CALL Cleanup_TaggedDiagList( TaggedDiag_List, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "Cleanup_TaggedDiagList"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
@@ -2442,7 +2437,7 @@
 #ifdef APM
       ! Clean up arrays for APM microphysics, etc.
       CALL CLEANUP_APMARRAYS()
-      CALL CLEANUP_APM3D( Input_Opt, RC )
+      CALL CLEANUP_APM3D( RC )
 #endif
 
 !-----------------------------------------------------------------------------
