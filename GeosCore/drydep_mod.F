@@ -16,7 +16,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                          ! Size parameters
-      USE DAO_MOD                               ! Met field subroutines
+      USE Derived_Met_Mod                       ! Met field subroutines
       USE ERROR_MOD                             ! Error handling routines
 #ifdef TOMAS
       USE TOMAS_MOD                             ! For TOMAS microphysics
@@ -611,7 +611,7 @@
             ! For ACET, we need to only do drydep over the land
             ! and not over the oceans.
             IF ( N == id_ACET ) THEN
-               IF ( IS_LAND( I, J, State_Met ) ) THEN
+               IF ( State_Met%IsLand(I,J) ) THEN
                   DVZ = 0.1e+0_f8
                ELSE
                   DVZ = 0e+0_f8
@@ -625,7 +625,7 @@
             ! For ALD2, we need to only do drydep over the land
             ! and not over the oceans.
             IF ( N == id_ALD2 ) THEN
-               IF ( .not. IS_LAND( I, J, State_Met ) ) THEN
+               IF ( .not. State_Met%IsLand(I,J) ) THEN
                   DVZ = 0e+0_f8
                ENDIF
             ENDIF
@@ -637,7 +637,7 @@
             ! For MENO3, we need to only do drydep over the land
             ! and not over the oceans.
             IF ( N == id_MENO3 ) THEN
-               IF ( .not. IS_LAND( I, J, State_Met ) ) THEN
+               IF ( .not. State_Met%IsLand(I,J) ) THEN
                   DVZ = 0e+0_f8
                ENDIF
             ENDIF
@@ -649,7 +649,7 @@
             ! For ETNO3, we need to only do drydep over the land
             ! and not over the oceans.
             IF ( N == id_ETNO3 ) THEN
-               IF ( .not. IS_LAND( I, J, State_Met ) ) THEN
+               IF ( .not. State_Met%IsLand(I,J) ) THEN
                   DVZ = 0e+0_f8
                ENDIF
             ENDIF

@@ -1249,9 +1249,6 @@
 !      USE ADJ_ARRAYS_MOD,     ONLY : EXPAND_NAME
 !      USE CHECKPT_MOD,        ONLY : CHK_STT
 !      USE COMODE_MOD,         ONLY : CSPEC, JLOP
-!      USE DAO_MOD,            ONLY : AD, TROPP
-!      USE DAO_MOD,            ONLY : AIRDEN
-!      USE DAO_MOD,            ONLY : BXHEIGHT
 !      USE DIRECTORY_ADJ_MOD,  ONLY : DIAGADJ_DIR
 !      USE GRID_MOD,           ONLY : GET_IJ
 !      USE PRESSURE_MOD,       ONLY : GET_PCENTER, GET_PEDGE

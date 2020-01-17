@@ -4880,7 +4880,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : IS_WATER
       USE State_Met_Mod,      ONLY : MetState
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -4954,7 +4953,7 @@
       ! Assume Vud is the same at all altitudes; the array can be 2-D
       !=================================================================
       IF ( .NOT. VUD_DEFINED ) THEN
-         IF ( IS_WATER( I, J, State_Met ) ) THEN
+         IF ( State_Met%IsWater(I,J) ) THEN
             VUD = 5e+0_fp
          ELSE
             VUD = 10e+0_fp
@@ -4980,7 +4979,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : IS_WATER
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
 !

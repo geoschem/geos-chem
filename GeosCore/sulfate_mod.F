@@ -2288,7 +2288,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : IS_WATER
       USE DUST_MOD,           ONLY : GET_DUST_ALK      ! tdf 04/08/08
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
@@ -3390,7 +3389,7 @@
             ! Decide whether or not to perform sulfate production rate
             ! enhancement due to cloud drop heterogenity in pH over the oceans
             ! (bec, 12/23/11)
-            IF ( SIZE_RES == 1 .AND. IS_WATER( I, J, State_Met) .AND.
+            IF ( SIZE_RES == 1 .AND. State_Met%IsWater(I,J) .AND.
      &           TK > 268.15 ) THEN
 
 	       ! Get total in-cloud sulfate production based on bulk cloud pH

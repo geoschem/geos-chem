@@ -1824,7 +1824,6 @@ contains
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS

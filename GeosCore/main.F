@@ -120,7 +120,7 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
       !-----------------------------------------------------------------
-      USE DAO_MOD               ! Met field definitions
+      USE Derived_Met_Mod       ! Met field calculations
       USE FLEXGRID_READ_MOD     ! For reading FLEXGRID data
 #ifdef EXCHANGE
       USE EXCHANGE_MOD          ! For two-way coupled simulations
@@ -1294,7 +1294,7 @@
             ! Compute the cosine of the solar zenith angle array
             ! State_Met%SUNCOS     = at the current time
             ! State_Met%SUNCOSmid  = at the midpt of the chem timestep
-            CALL Get_Cosine_SZA( am_I_Root, Input_Opt, State_Grid,
+            CALL Get_Cosine_SZA( Input_Opt, State_Grid,
      &                           State_Met, RC )
 
             ! Trap potential errors

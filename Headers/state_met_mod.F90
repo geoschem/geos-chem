@@ -66,6 +66,9 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: GWETROOT      (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP       (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX         (:,:  ) ! Sensible heat flux [W/m2]
+     LOGICAL,  POINTER :: IsLand        (:,:  ) ! Is this a land  grid box?
+     LOGICAL,  POINTER :: IsWater       (:,:  ) ! Is this a water grid box?
+     LOGICAL,  POINTER :: IsIce         (:,:  ) ! Is this a ice   grid box?
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
      REAL(fp), POINTER :: LWI           (:,:  ) ! Land/water indices [1]
@@ -370,6 +373,9 @@ CONTAINS
     State_Met%GWETROOT       => NULL()
     State_Met%GWETTOP        => NULL()
     State_Met%HFLUX          => NULL()
+    State_Met%IsWater        => NULL()
+    State_Met%IsLand         => NULL()
+    State_Met%IsIce          => NULL()
     State_Met%LAI            => NULL()
     State_Met%LWI            => NULL()
     State_Met%PARDR          => NULL()
@@ -699,6 +705,40 @@ CONTAINS
     CALL Register_MetField( Input_Opt, 'HFLUX', State_Met%HFLUX, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! IsWater
+    !-------------------------
+    ALLOCATE( State_Met%IsWater( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%IsWater', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%IsWater = .FALSE.
+!    CALL Register_MetField( Input_Opt, 'IsWater', State_Met%IsWater, &
+!                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! IsLand
+    !-------------------------
+    ALLOCATE( State_Met%IsLand( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%IsLand', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%IsLand = .FALSE.
+!    CALL Register_MetField( Input_Opt, 'IsLand', State_Met%IsLand, &
+!                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! IsIce
+    !-------------------------
+    ALLOCATE( State_Met%IsIce( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%IsIce', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%IsIce = .FALSE.
+!    CALL Register_MetField( Input_Opt, 'IsIce', State_Met%IsIce, &
+!                            State_Met, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+
 
     !-------------------------
     ! LAI [1]
@@ -2100,6 +2140,27 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%HFLUX', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%HFLUX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%IsWater ) ) THEN
+       DEALLOCATE( State_Met%IsWater, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%IsWater', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IsWater => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%IsLand ) ) THEN
+       DEALLOCATE( State_Met%IsLand, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%IsLand', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IsLand => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%IsIce ) ) THEN
+       DEALLOCATE( State_Met%IsIce, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%IsIce', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IsIce => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%LAI ) ) THEN

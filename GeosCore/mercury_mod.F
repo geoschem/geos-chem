@@ -331,9 +331,6 @@
 !
 !LL      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : IS_ICE
-      USE DAO_MOD,            ONLY : IS_LAND
-      USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
       USE CMN_DIAG_MOD
@@ -633,15 +630,16 @@
          ENDIF
 
          ! Br and BrO not directly from HEMCO
-         CALL GET_GLOBAL_BR( Input_Opt, State_Grid, State_Met, &
-                             MONTH,     RC )
+         CALL GET_GLOBAL_BR( Input_Opt, State_Grid, State_Met, 
+     &                       MONTH,     RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Cannot get pointer to GLOBAL_BR!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
 
-         IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
+         IF ( prtDebug ) 
+     &        CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
          !-------------------------------------------------------------
          ! Some oxidants only required by certain mechanisms:
@@ -796,11 +794,11 @@
          ! Sea-salt aerosol uptake
          !------------------------------------------------------
 
-         ! IS_WATER returns true for ocean boxes.
+         ! IsWater returns true for ocean boxes.
          ! Fresh water may be TRUE in
          ! principle but is not at 4x5 resolution.
          ! Sea salt will not be active in coastal boxes that have some ocean
-         ! but where IS_WATER is FALSE.
+         ! but where IsWater is FALSE.
 
          ! RGM uptake on sea-salt aerosol, 1/s
          ! (based on SSA production rate (wind speed)
@@ -810,7 +808,7 @@
          ! Alternatively, uncomment the following lines
          ! to use a constant uptake rate (1/s) that is tuned to
          ! fit Okinawa RGM observations (Selin et al. 2007)
-         !IF (IS_WATER(I,J)) THEN
+         !IF (State_Met%IsWater(I,J)) THEN
          !   K_SALT = 3.8D-5
          !ELSE
          !   K_SALT = 0e+0_fp
@@ -1019,8 +1017,8 @@
          RH3 = State_Met%RH(I,J,L)
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
-         IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND.
-     &        IS_WATER(I,J, State_Met )) THEN
+         IF( LRED_JNO2 .AND. (F_PBL >0.1) .AND.
+     &       State_Met%IsWater(I,J)) THEN
             Faq = ( Kstar * 2e+3_fp * R_DRY * T(I,J,L) * LWC )
             Faq = Faq / ( 1e+0_fp + Faq )
          ENDIF
@@ -4025,8 +4023,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHgP( Input_Opt, State_Chm, State_Grid, &
-                         State_Met, RC )
+      SUBROUTINE SRCHgP( Input_Opt, State_Chm, State_Grid, 
+     &                   State_Met, RC )
 !
 ! !USES:
 !
@@ -5102,8 +5100,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : GET_OBK
-      USE DAO_MOD,            ONLY : IS_WATER
+      USE Derived_Met_Mod,    ONLY : GET_OBK
       USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
@@ -5219,7 +5216,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       IF ( L_ADD_MBL_BR ) THEN
 
-         IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0e+0_fp) ) THEN
+         IF ( State_Met%IsWater(I,J) ) .AND. (FPBL > 0e+0_fp) ) THEN
 
             ! Convert BrO concentration to corresponding Br based on
             ! photochemical steady state, pptv
@@ -5593,7 +5590,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : IS_WATER
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
@@ -5640,7 +5636,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       DO I = 1, State_Grid%NX
 
          ! Only calculate deposition via sea salt over water
-         IF ( IS_WATER( I, J, State_Met ) ) THEN
+         IF ( State_Met%IsWater(I,J) ) THEN
 
             ! Wind speed at 10m altitude [m/s]
             SFCWINDSQR = State_Met%U10M(I,J)**2
@@ -6087,8 +6083,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 #ifdef BPCH_DIAG
       USE DIAG03_MOD,         ONLY : AD03, ND03 ! hmh 9/16/15 for Hg_up/down
 #endif
-      ! adding hmh 5/17/16
-      USE DAO_MOD,            ONLY : IS_WATER
       USE CMN_SIZE_MOD             ! Size parameters
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState

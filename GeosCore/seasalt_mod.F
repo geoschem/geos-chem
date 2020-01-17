@@ -1236,7 +1236,6 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND59
-      USE DAO_MOD,            ONLY : IS_WATER
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE State_Grid_Mod,     ONLY : GrdState
@@ -1372,7 +1371,7 @@
 
          ! Check if over ocean assuming only gridcells that are
          ! at least 50% water are oceans (J. Pierce, 3/10/14)
-         IF ( IS_WATER( I, J, State_Met ) ) THEN
+         IF ( State_Met%IsWater(I,J) ) THEN
             FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
          ELSE
             FOCEAN = 0.e+0_fp
@@ -1475,13 +1474,12 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : IS_WATER
-      USE ERROR_MOD,      ONLY : DEBUG_MSG, ERROR_STOP
-      USE State_Grid_Mod, ONLY : GrdState
-      USE State_Met_Mod,  ONLY : MetState
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE APM_INIT_MOD,   ONLY : DFMSALT9  ! kg m-2 s-1
-      USE APM_INIT_MOD,   ONLY : IFSSTSCALE
+      USE ERROR_MOD,       ONLY : DEBUG_MSG, ERROR_STOP
+      USE State_Grid_Mod,  ONLY : GrdState
+      USE State_Met_Mod,   ONLY : MetState
+      USE TIME_MOD,        ONLY : GET_TS_CHEM
+      USE APM_INIT_MOD,    ONLY : DFMSALT9  ! kg m-2 s-1
+      USE APM_INIT_MOD,    ONLY : IFSSTSCALE
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
@@ -1545,7 +1543,7 @@
 
          ! Check if over ocean assuming only gridcells that are
          ! at least 50% water are oceans (J. Pierce, 3/10/14)
-         IF ( IS_WATER( I, J, State_Met ) ) THEN
+         IF ( State_Met%IsWater(I,J) ) THEN
             FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
          ELSE
             FOCEAN = 0.e+0_fp

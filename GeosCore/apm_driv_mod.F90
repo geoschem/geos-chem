@@ -2352,9 +2352,6 @@ CONTAINS
 !
     USE APM_INIT_MOD, ONLY : IFSITE,SITEOUT2D
     USE APM_INIT_MOD, ONLY : IFALBMODIS
-    USE DAO_MOD,      ONLY : IS_WATER
-    USE DAO_MOD,      ONLY : IS_ICE
-    USE DAO_MOD,      ONLY : IS_LAND
     USE TIME_MOD,     ONLY : GET_DAY_OF_YEAR
     USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
     USE TIME_MOD,     ONLY : GET_DAY,GET_HOUR,GET_MINUTE
@@ -3742,8 +3739,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,        ONLY : IS_WATER
-    USE DAO_MOD,        ONLY : IS_ICE
     USE PRESSURE_MOD,   ONLY : GET_PCENTER
     USE PRESSURE_MOD,   ONLY : GET_PEDGE
     USE APM_NUCL_MOD,   ONLY : IONRATE0
@@ -3775,8 +3770,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        YPSURF = GET_PEDGE(I,J,1) !surface P in mb
-       IF( IS_WATER( I, J, State_Met ) .or. &
-           IS_ICE  ( I, J, State_Met )) THEN
+       IF( State_Met%IsWater(I,J) .or. State_Met%IsIce(I,J) ) THEN
           ISURF = 0
        ELSE
           ISURF = 1
@@ -3810,7 +3804,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DAO_MOD,        ONLY : IS_WATER,   IS_ICE
     USE PRESSURE_MOD,   ONLY : GET_PCENTER
     USE TIME_MOD,       ONLY : GET_YEAR,   GET_MONTH
     USE APM_NUCL_MOD,   ONLY : IONRATE
@@ -3843,8 +3836,7 @@ CONTAINS
        XLAT = State_Grid%YMID(1,J) ! Grid box latitude center [degree]
        DO I = 1, State_Grid%NX
           XLON = State_Grid%XMID(I,J) !Grid box longitude [degrees]
-          IF( IS_WATER( I, J, State_Met ) .or. &
-              IS_ICE  ( I, J, State_Met )) THEN
+          IF( State_Met%IsWater(I,J) .or. State_Met%IsIce(I,J) ) THEN
              ISURF = 0
           ELSE
              ISURF = 1

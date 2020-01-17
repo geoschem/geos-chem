@@ -2612,7 +2612,6 @@ CONTAINS
 !      write(*,*) 'AIRMW        : ', HcoState%Phys%AIRMW
 !      write(*,*) 'MWNO, NO2, O3: ', Inst%MW_NO, Inst%MW_NO2, Inst%MW_O3
 !      write(*,*) 'O3conc       : ', ExtState%O3%Arr%Val(I,J,1)
-!      write(*,*) 'SUNCOSmid5   : ', Inst%SC5(I,J)
 !      write(*,*) 'NO,NO2 conc  : ', ExtState%NO%Arr%Val(I,J,1), &
 !                                    ExtState%NO2%Arr%Val(I,J,1)
 !      write(*,*) 'U, V         : ', ExtState%U10M%Arr%Val(I,J), &

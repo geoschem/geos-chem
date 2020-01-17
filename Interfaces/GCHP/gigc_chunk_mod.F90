@@ -375,8 +375,8 @@ CONTAINS
     USE WetScav_Mod,        ONLY : Setup_WetScav, Do_WetDep
 
     ! Specialized subroutines
-    USE Dao_Mod,            ONLY : AirQnt, Set_Dry_Surface_Pressure
-    USE Dao_Mod,            ONLY : GIGC_Cap_Tropopause_Prs
+    USE Derived_Met_Mod,    ONLY : AirQnt, Set_Dry_Surface_Pressure
+    USE Derived_Met_Mod,    ONLY : GIGC_Cap_Tropopause_Prs
     USE Set_Global_CH4_Mod, ONLY : Set_CH4
     USE MODIS_LAI_Mod,      ONLY : Compute_XLAI
     USE PBL_Mix_Mod,        ONLY : Compute_PBL_Height
@@ -399,7 +399,7 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
 #if defined( MODEL_GEOS )
-    USE DAO_MOD,            ONLY : GET_COSINE_SZA
+    USE Derived_Met_Mod,    ONLY : GET_COSINE_SZA
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn
 #endif
 !
@@ -679,8 +679,7 @@ CONTAINS
 
     ! Define airmass and related quantities
 #if defined( MODEL_GEOS )
-    CALL AirQnt( Input_Opt%AmIRoot, Input_opt, State_Chm, State_Grid, &
-                 State_Met, RC, .FALSE. )
+    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, .FALSE. )
 #else
     ! Scale mixing ratio with changing met only if FV advection is off.
     ! Only do this the first timestep if DELP_DRY found in restart.
@@ -692,22 +691,19 @@ CONTAINS
        _VERIFY(STATUS)
        IF ( .not. ( RST == MAPL_RestartBootstrap .OR. &
                     RST == MAPL_RestartSkipInitial ) ) scaleMR = .TRUE.
-       CALL AirQnt( Input_Opt%AmIRoot, Input_opt, State_Chm, State_Grid, &
-                    State_Met, RC, scaleMR )
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
        scaleMR = .TRUE.
     ELSE
-       CALL AirQnt( Input_Opt%AmIRoot, Input_opt, State_Chm, State_Grid, &
-                    State_Met, RC, scaleMR )
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
     ENDIF
 #endif
 
     ! Cap the polar tropopause pressures at 200 hPa, in order to avoid
     ! tropospheric chemistry from happening too high up (cf. J. Logan)
-    CALL GIGC_Cap_Tropopause_Prs  ( am_I_Root      = Input_Opt%AmIRoot,  &
-                                    Input_Opt      = Input_Opt,  &
-                                    State_Grid     = State_Grid, &
-                                    State_Met      = State_Met,  &
-                                    RC             = RC         )
+    CALL GIGC_Cap_Tropopause_Prs( Input_Opt      = Input_Opt,  &
+                                  State_Grid     = State_Grid, &
+                                  State_Met      = State_Met,  &
+                                  RC             = RC         )
 
     ! Call PBL quantities. Those are always needed
     CALL COMPUTE_PBL_HEIGHT( Input_Opt%AmIRoot, State_Grid, State_Met, RC )

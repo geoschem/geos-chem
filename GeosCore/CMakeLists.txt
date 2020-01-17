@@ -1,6 +1,6 @@
 add_library(Transport STATIC EXCLUDE_FROM_ALL
 	diag_mod.F
-	dao_mod.F
+	derived_met_mod.F
 	diagnostics_mod.F90
 	pjc_pfix_mod.F
 	tpcore_fvdas_mod.F90
@@ -21,14 +21,14 @@ elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 add_library(GeosCore STATIC EXCLUDE_FROM_ALL
-	aero_drydep.F
-	aerosol_mod.F
-	carbon_mod.F
+	aero_drydep.F90
+	aerosol_mod.F90
+	carbon_mod.F90
 	chemistry_mod.F90
-	cldice_HBrHOBr_rxn.F
-	cleanup.F
-	co2_mod.F
-	convection_mod.F
+	cldice_HBrHOBr_rxn.F90
+	cleanup.F90
+	co2_mod.F90
+	convection_mod.F90
 	depo_mercury_mod.F
 	diag03_mod.F
 	diag1.F
@@ -93,7 +93,7 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 
 	$<$<BOOL:${RRTMG}>:rrtmg_rad_transfer_mod.F>
 	$<$<BOOL:${TOMAS}>:tomas_mod.F>
-	$<$<BOOL:${APM}>:apm_driv_mod.F>
+	$<$<BOOL:${APM}>:apm_driv_mod.F90>
 )
 
 # Fixes #64: If GCC>=8.0.0 then ocean_mercury_mod.F should be compiled with -O1

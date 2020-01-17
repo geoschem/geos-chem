@@ -194,7 +194,7 @@
 
          ! Get pointer from HEMCO diagnostics
          DgnName = 'GCPOPS_POPPOCPO_SOURCE'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -215,7 +215,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_POPPBCPO_SOURCE'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -236,7 +236,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_POPG_SOURCE'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -257,7 +257,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_POPG_SOIL'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -278,7 +278,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_POPG_LAKE'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -299,7 +299,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_POPG_LEAF'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -320,7 +320,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_SOIL2AIR'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -341,7 +341,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_AIR2SOIL'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -362,7 +362,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_LAKE2AIR'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -383,7 +383,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_AIR2LAKE'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -404,7 +404,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_LEAF2AIR'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -425,7 +425,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_AIR2LEAF'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -446,7 +446,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_SOILAIR_FUG'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -467,7 +467,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_LAKEAIR_FUG'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -488,7 +488,7 @@
 
          ! Get pointer from HEMCO
          DgnName = 'GCPOPS_LEAFAIR_FUG'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )

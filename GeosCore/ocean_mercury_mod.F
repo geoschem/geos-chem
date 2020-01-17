@@ -658,7 +658,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : IS_ICE,  IS_LAND
       USE DIAG03_MOD,         ONLY : AD03,    ND03
       USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
       USE State_Chm_Mod,      ONLY : ChmState
@@ -937,7 +936,6 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
-      USE DAO_MOD,            ONLY : IS_WATER, IS_ICE
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
       USE ErrCode_Mod

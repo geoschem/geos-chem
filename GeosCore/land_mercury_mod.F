@@ -84,7 +84,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-      USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE DEPO_MERCURY_MOD,   ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
@@ -288,7 +287,7 @@
          ! by HEMCO automatically. Output unit is as specified when
          ! defining diagnostics (kg/m2/s).
          DgnName = 'BIOMASS_HG0'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -329,7 +328,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : IS_LAND
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
@@ -430,7 +428,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-      USE DAO_MOD,            ONLY : IS_LAND
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
@@ -816,7 +813,6 @@
 !!
 !      USE BPCH2_MOD
 !      USE CMN_SIZE_MOD             ! Size parameters
-!      USE DAO_MOD,            ONLY : IS_LAND
 !      USE DEPO_MERCURY_MOD,   ONLY : CHECK_DIMENSIONS
 !      USE DEPO_MERCURY_MOD,   ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
 !      USE DEPO_MERCURY_MOD,   ONLY : READ_GTMM_RESTART
@@ -1048,7 +1044,7 @@
 !
 !      DO J = 1, State_Grid%NY
 !      DO I = 1, State_Grid%NX
-!         IF ( .NOT.(IS_LAND(I, J, State_Met )) ) Hg0gtm(I,J) = 0e+0_fp
+!         IF ( .NOT. State_Met%IsLand(I,J) ) Hg0gtm(I,J) = 0e+0_fp
 !      ENDDO
 !      ENDDO
 !

@@ -284,7 +284,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState

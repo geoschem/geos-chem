@@ -223,8 +223,6 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE DAO_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -358,8 +356,6 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE DAO_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1152,8 +1148,6 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE DAO_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
