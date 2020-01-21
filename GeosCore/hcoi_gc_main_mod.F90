@@ -2931,10 +2931,12 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( .NOT. Input_Opt%LEMIS ) THEN
 
-       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
-       Print*, '% Emissions are set to false in input.geos so emissions %'
-       Print*, '% data will not be read by HEMCO (hcoi_gc_main_mod.F90) %'
-       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+       IF ( Input_Opt%amIRoot ) THEN
+          Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+          Print*, '% Emissions are set to false in input.geos so emissions %'
+          Print*, '% data will not be read by HEMCO (hcoi_gc_main_mod.F90) %'
+          Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+       END IF
 
        OptName = 'EMISSIONS : false'
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
@@ -2968,10 +2970,12 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( .NOT. Input_Opt%LCHEM ) THEN
 
-       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
-       Print*, '% Chemistry is set to false in input.geos so chemistry  %'
-       Print*, '% data will not be read by HEMCO (hcoi_gc_main_mod.F90) %'
-       Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+       IF ( Input_Opt%amIRoot ) THEN
+          Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+          Print*, '% Chemistry is set to false in input.geos so chemistry  %'
+          Print*, '% data will not be read by HEMCO (hcoi_gc_main_mod.F90) %'
+          Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+       ENDIF
 
        OptName = 'CHEMISTRY_INPUT : false'
        CALL AddExtOpt( am_I_Root, HcoConfig, TRIM(OptName), CoreNr, RC=HMRC )
