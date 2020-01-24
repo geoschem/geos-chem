@@ -1741,6 +1741,7 @@ SfcVMR_CFC12    v/v  N Y F%y4-%m2-01T00:00:00 none none CFC12    ./MainDataDir/S
 SfcVMR_CH3CCl3  v/v  N Y F%y4-%m2-01T00:00:00 none none CH3CCl3  ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
 SfcVMR_H1211    v/v  N Y F%y4-%m2-01T00:00:00 none none H1211    ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
 SfcVMR_H1301    v/v  N Y F%y4-%m2-01T00:00:00 none none H1301    ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
+SfcVMR_H2402    v/v  N Y F%y4-%m2-01T00:00:00 none none C2BR2F4  ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
 SfcVMR_HCFC141b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC141b ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
 SfcVMR_HCFC142b v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC142b ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
 SfcVMR_HCFC22   v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC22   ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
