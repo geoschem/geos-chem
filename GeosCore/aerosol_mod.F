@@ -1880,7 +1880,6 @@
                ! Get the AOD contribution from isoprene SOA only (eam, 2014)
                IF ( N == 3 .and. Is_ComplexSOA ) THEN
                   ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
-     &                              * State_Met%BXHEIGHT(I,J,L)
      &                              * ISOAAQ(I,J,L) * QQAA(IWV,1,N) /
      &                              ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
                ENDIF

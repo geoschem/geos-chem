@@ -3455,44 +3455,25 @@ Warnings:                    1
 * SfcVMR_CH3Br  $ROOT/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Br  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
 
 #==============================================================================
-# --- GMI files ---
+# --- WMO-2018 files (GMI) ---
 #==============================================================================
-* SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH3Br   $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH3Cl   $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-#* SfcVMR_CH4     $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_H1211    $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_H1301    $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-* SfcVMR_N2O      $ROOT/SfcFix/v2019-12/GMI/2x2.5/surface_VMRs_GMI_$YYYY.2x25.nc N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
-
-#==============================================================================
-# --- UCX files ---
-#==============================================================================
-# * SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-## * SfcVMR_CH3Br   $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
-## * SfcVMR_CH3Cl   $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-## * SfcVMR_CH4     $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_H1211    $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_H1301    $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
-# * SfcVMR_N2O      $ROOT/SfcFix/v2019-12/UCX/2x2.5/surface_VMRs_UCX_$YYYY.2x25.nc  N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CCl4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CCl4        1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC113   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC113      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC114   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC114      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC115   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC115      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC11    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC11       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CFC12    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CFC12       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH3Br   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3Br       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_CH3CCl3  $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3CCl3     1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH3Cl   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH3Cl       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+#* SfcVMR_CH4     $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc CH4         1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H1211    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc H1211       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H1301    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc H1301       1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_H2402    $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc C2BR2F4     1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC141b $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC141b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC142b $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC142b    1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_HCFC22   $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc HCFC22      1960-2100/1-12/1/0 C xy v/v * 802 1 1
+* SfcVMR_N2O      $ROOT/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_$YYYY.2x25.nc N2O         1960-2100/1-12/1/0 C xy v/v * 802 1 1
 
 #==============================================================================
 # --- Dummy files with a single surface concentration (for OCS and H2) ---
