@@ -2245,9 +2245,8 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                               Found,     RC,        exact=.TRUE. )
+                               Found,     RC  )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for Rn-Pb-Be-Passive '// &
@@ -2479,9 +2478,8 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                               Found,     RC,        exact=.TRUE. )
+                               Found,     RC )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for simulations '     // &
@@ -3283,9 +3281,8 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                               Found,     RC,        exact=.TRUE. )
+                               Found,     RC )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for full-chemistry '  // &
@@ -3393,9 +3390,8 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                               Found,     RC,        exact=.TRUE. )
+                               Found,     RC )
 
           ! Halt with an error message if any of the following quantities
           ! have been requested as diagnostics in simulations other than
@@ -3493,9 +3489,8 @@ CONTAINS
        diagID  = 'OHconcAfterChem'
 
        ! Exit if any of the above are in the diagnostic list
-       ! Force an exact string match to avoid namespace confusion
        CALL Check_DiagList( am_I_Root, Diag_List, diagID,                    &
-                            Found,     RC,        exact=.TRUE. )
+                            Found,     RC )
        IF ( Found ) THEN
           ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '       // &
                    'but this is only appropriate for full-chemistry '     // &
@@ -3540,7 +3535,7 @@ CONTAINS
        arrayID = 'State_Diag%AODDustWL1'
        TmpWL   = RadWL(1)                           ! Workaround for ifort 17
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm' ! to avoid seg faults
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL1', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL1( IM, JM, LM, NDUST ), STAT=RC )
@@ -3560,7 +3555,7 @@ CONTAINS
        arrayID = 'State_Diag%AODDustWL2'
        TmpWL   = RadWL(2)
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL2', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL2( IM, JM, LM, NDUST ), STAT=RC )
@@ -3580,7 +3575,7 @@ CONTAINS
        arrayID = 'State_Diag%AODDustWL3'
        TmpWL   = RadWL(3)
        diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL3', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL3( IM, JM, LM, NDUST ), STAT=RC )
@@ -3600,7 +3595,7 @@ CONTAINS
        arrayID = 'State_Diag%AODHygWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL1', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL1( IM, JM, LM, nHygGrth ), STAT=RC )
@@ -3619,7 +3614,7 @@ CONTAINS
        arrayID = 'State_Diag%AODHygWL2'
        TmpWL   = RadWL(2)
        diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL2', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL2( IM, JM, LM, nHygGrth ), STAT=RC )
@@ -3638,7 +3633,7 @@ CONTAINS
        arrayID = 'State_Diag%AODHygWL3'
        TmpWL   = RadWL(3)
        diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL3', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL3( IM, JM, LM, nHygGrth ), STAT=RC )
@@ -3657,8 +3652,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSOAfromAqIsopWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List,  &
-                            'AODSOAfromAqIsopreneWL1', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSOAfromAqIsopWL1( IM, JM, LM ), STAT=RC )
@@ -3678,8 +3672,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSOAfromAqIsopWL2'
        TmpWl   = RadWL(2)
        diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
-                            'AODSOAfromAqIsopreneWL2', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSOAfromAqIsopWL2( IM, JM, LM ), STAT=RC )
@@ -3699,8 +3692,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSOAfromAqIsopWL3'
        TmpWl   = RadWL(3)
        diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
-                            'AODSOAfromAqIsopreneWL3', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSOAfromAqIsopWL3( IM, JM, LM ), STAT=RC )
@@ -3720,8 +3712,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSLAWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
-                            'AODStratLiquidAerWL1', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
@@ -3740,8 +3731,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSLAWL1'
        TmpWL   = RadWL(2)
        diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
-                            'AODStratLiquidAerWL2', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
@@ -3760,8 +3750,7 @@ CONTAINS
        arrayID = 'State_Diag%AODSLAWL1'
        TmpWL   = RadWL(3)
        diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
-                            'AODStratLiquidAerWL3', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
@@ -3780,8 +3769,7 @@ CONTAINS
        arrayID = 'State_Diag%AODPSCWL1'
        TmpWL   = RadWL(1)
        diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
-                            'AODPolarStratCloudWL1', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODPSCWL1( IM, JM, LM ), STAT=RC )
@@ -3799,8 +3787,7 @@ CONTAINS
        arrayID = 'State_Diag%AODPSCWL2'
        TmpWL   = RadWL(2)
        diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
-                            'AODPolarStratCloudWL2', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODPSCWL2( IM, JM, LM ), STAT=RC )
@@ -3819,8 +3806,7 @@ CONTAINS
        arrayID = 'State_Diag%AODPSCWL3'
        TmpWL   = RadWL(3)
        diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
-       CALL Check_DiagList( am_I_Root, Diag_List, &
-                            'AODPolarStratCloudWL3', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODPSCWL3( IM, JM, LM ), STAT=RC )
@@ -4500,9 +4486,8 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                               Found,     RC,        exact=.TRUE.           )
+                               Found,     RC )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for full-chemistry '  // &
@@ -4643,9 +4628,8 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                               Found,     RC,        exact=.TRUE.           )
+                               Found,     RC )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for aerosol-only '    // &
@@ -4676,9 +4660,7 @@ CONTAINS
        arrayID = 'State_Diag%Loss'
        diagID  = 'Loss'
 
-       ! NOTE: Use "Loss_" as the search string so that other diagnostics
-       ! such as "LossCH4byOH" won't be confused with this diagnostic.
-       CALL Check_DiagList( am_I_Root, Diag_List, 'Loss_', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, 'Loss', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%Loss( IM, JM, LM, nLoss ), STAT=RC )
@@ -4697,9 +4679,7 @@ CONTAINS
        arrayID = 'State_Diag%Prod'
        diagID  = 'Prod'
 
-       ! NOTE: Use "Prod_" as the search string so that other diagnostics
-       ! such as "ProdBCPIfromBCPO" won't be confused with this diagnostic.
-       CALL Check_DiagList( am_I_Root, Diag_List, 'Prod_', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%Prod( IM, JM, LM, nProd ), STAT=RC )
@@ -4728,15 +4708,14 @@ CONTAINS
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1 )
-                diagID  = 'Loss_'
+                diagID  = 'Loss'
              CASE( 2 )
-                diagID  = 'Prod_'
+                diagID  = 'Prod'
            END SELECT
 
            ! Exit if any of the above are in the diagnostic list
-           ! Force an exact string match to avoid namespace confusion
            CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                                Found,     RC,        exact=.TRUE.           )
+                                Found,     RC )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '  // &
                       'but this is only appropriate for full-chemistry, '// &
@@ -4837,9 +4816,8 @@ CONTAINS
            END SELECT
 
            ! Exit if any of the above are in the diagnostic list
-           ! Force an exact string match to avoid namespace confusion
            CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                                Found,     RC,        exact=.TRUE.           )
+                                Found,     RC )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '   // &
                       'but this is only appropriate for acid uptake '     // &
@@ -5461,9 +5439,8 @@ CONTAINS
            END SELECT
 
            ! Exit if any of the above are in the diagnostic list
-           ! Force an exact string match to avoid namespace confusion
            CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                                Found,     RC,        exact=.TRUE.           )
+                                Found,     RC )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for Persistent '       // &
@@ -5514,9 +5491,8 @@ CONTAINS
        diagId = 'ProdCO2fromCO'
 
        ! Exit if any of the above are in the diagnostic list
-       ! Force an exact string match to avoid namespace confusion
        CALL Check_DiagList( am_I_Root, Diag_List, diagID,                    &
-                            Found,     RC,        exact=.TRUE.              )
+                            Found,     RC )
        IF ( Found ) THEN
           ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '       // &
                'but this is only appropriate for the CO2 '                // &
@@ -5614,9 +5590,8 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                               Found,     RC,        exact=.TRUE.           )
+                               Found,     RC )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for the CH4 '         // &
@@ -5694,9 +5669,8 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          ! Force an exact string match to avoid namespace confusion
           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                               Found,     RC,        exact=.TRUE.           )
+                               Found,     RC )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for the '             // &
@@ -6596,9 +6570,8 @@ CONTAINS
            END SELECT
 
            ! Exit if any of the above are in the diagnostic list
-           ! Force an exact string match to avoid namespace confusion
            CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
-                                Found,     RC,        exact=.TRUE.           )
+                                Found,     RC )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for the mercury '      // &
