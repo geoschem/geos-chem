@@ -584,7 +584,7 @@ CONTAINS
     ! By default, do processes as defined in input.geos. DoTend defined below. 
     DoConv   = Input_Opt%LCONV                    ! dynamic time step
     DoDryDep = Input_Opt%LDRYD .AND. IsChemTime   ! chemistry time step
-    DoEmis   = Input_Opt%LEMIS .AND. IsChemTime   ! chemistry time step
+    DoEmis   = IsChemTime                         ! chemistry time step
 #if defined( MODEL_GEOS )
     DoTurb   = Input_Opt%LTURB .AND. IsChemTime   ! dynamic time step
 #else
