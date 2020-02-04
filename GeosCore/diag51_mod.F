@@ -1960,14 +1960,14 @@
       !-----------
 
       ! Error check ND51_IMIN
-      IF ( Input_Opt%ND51_IMIN+I0 < 1       .or.
-     &     Input_Opt%ND51_IMIN+I0 > State_Grid%NX ) THEN
+      IF ( Input_Opt%ND51_IMIN < 1       .or.
+     &     Input_Opt%ND51_IMIN > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Bad ND51_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND51_IMAX
-      IF ( Input_Opt%ND51_IMAX+I0 < 1       .or.
-     &     Input_Opt%ND51_IMAX+I0 > State_Grid%NX ) THEN
+      IF ( Input_Opt%ND51_IMAX < 1       .or.
+     &     Input_Opt%ND51_IMAX > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Bad ND51_IMAX value!', LOCATION )
       ENDIF
 
@@ -1991,14 +1991,14 @@
       !-----------
 
       ! Error check JMIN_AREA
-      IF ( Input_Opt%ND51_JMIN+J0 < 1       .or.
-     &     Input_Opt%ND51_JMIN+J0 > State_Grid%NY ) THEN
+      IF ( Input_Opt%ND51_JMIN < 1       .or.
+     &     Input_Opt%ND51_JMIN > State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Bad ND51_JMIN value!', LOCATION )
       ENDIF
 
       ! Error check JMAX_AREA
-      IF ( Input_Opt%ND51_JMAX+J0 < 1       .or.
-     &     Input_Opt%ND51_JMAX+J0 > State_Grid%NY ) THEN
+      IF ( Input_Opt%ND51_JMAX < 1       .or.
+     &     Input_Opt%ND51_JMAX > State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Bad ND51_JMAX value!', LOCATION )
       ENDIF
 
