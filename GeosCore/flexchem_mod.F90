@@ -43,12 +43,15 @@ MODULE FlexChem_Mod
   INTEGER               :: id_PCO, id_LCH4
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
-  INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2, id_DHPCARP
-  INTEGER               :: id_DIBOO,id_ETO2, id_HC5OO, id_IEPOXOO
-  INTEGER               :: id_INPN, id_ISNOOA, id_ISNOOB, id_ISNOHOO, id_LIMO2
-  INTEGER               :: id_MAOPO2, id_MO2, id_MRO2, id_PIO2, id_PO2
-  INTEGER               :: id_PRNI, id_R4NI, id_R4O2, id_RIO2, id_TRO2
-  INTEGER               :: id_VRO2, id_XRO2
+  INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
+  INTEGER               :: id_ETO2, id_LIMO2, id_MO2, id_PIO2, id_PO2
+  INTEGER               :: id_PRN1, id_R4N1, id_R4O2, id_TRO2, id_XRO2
+  INTEGER               :: id_IHOO1, id_IHOO4, id_ICHOO, id_IHPOO1
+  INTEGER               :: id_IHPOO2, id_IHPOO3, id_IEPOXAOO, id_IEPOXBOO
+  INTEGER               :: id_C4HVP1, id_C4HVP2, id_HPALD1OO, id_HPALD2OO
+  INTEGER               :: id_ISOPNOO1, id_ISOPNOO2, id_INO2B, id_INO2D
+  INTEGER               :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
+  INTEGER               :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
 #endif
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
 
@@ -1461,75 +1464,108 @@ CONTAINS
                IF ( id_BRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_BRO2)
-               IF ( id_DHPCARP > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DHPCARP)
-               IF ( id_DIBOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DIBOO)
                IF ( id_ETO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ETO2)
-               IF ( id_HC5OO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HC5OO)
                IF ( id_HO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HO2)
-               IF ( id_IEPOXOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXOO)
-               IF ( id_INPN > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INPN)
-               IF ( id_ISNOOA > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOA)
-               IF ( id_ISNOOB > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOB)
-               IF ( id_ISNOHOO > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOHOO)
                IF ( id_LIMO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_LIMO2)
-               IF ( id_MAOPO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MAOPO2)
                IF ( id_MO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MO2)
-               IF ( id_MRO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MRO2)
                IF ( id_PIO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PIO2)
                IF ( id_PO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PO2)
-               IF ( id_PRNI > 0 ) &
+               IF ( id_PRN1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PRNI)
-               IF ( id_R4NI > 0 ) &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PRN1)
+               IF ( id_R4N1 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4NI)
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4N1)
                IF ( id_R4O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4O2)
-               IF ( id_RIO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_RIO2)
                IF ( id_TRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_TRO2)
-               IF ( id_VRO2 > 0 ) &
-                  State_Diag%RO2concAfterChem(I,J,L) = &
-                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_VRO2)
                IF ( id_XRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_XRO2)
+               IF ( id_IHOO1 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHOO1)
+               IF ( id_IHOO4 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHOO4)
+               IF ( id_ICHOO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ICHOO)
+               IF ( id_IHPOO1 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO1)
+               IF ( id_IHPOO2 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO2)
+               IF ( id_IHPOO3 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPOO3)
+               IF ( id_IEPOXAOO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXAOO)
+               IF ( id_IEPOXBOO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXBOO)
+               IF ( id_C4HVP1 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_C4HVP1)
+               IF ( id_C4HVP2 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_C4HVP2)
+               IF ( id_HPALD1OO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HPALD1OO)
+               IF ( id_HPALD2OO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HPALD2OO)
+               IF ( id_ISOPNOO1 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISOPNOO1)
+               IF ( id_ISOPNOO2 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISOPNOO2)
+               IF ( id_INO2D > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INO2D)
+               IF ( id_INO2B > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INO2B)
+               IF ( id_IDHNBOO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNBOO)
+               IF ( id_IDHNDOO1 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNDOO1)
+               IF ( id_IDHNDOO2 > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDHNDOO2)
+               IF ( id_IHPNBOO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPNBOO)
+               IF ( id_IHPNDOO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IHPNDOO)
+               IF ( id_ICNOO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ICNOO)
+               IF ( id_IDNOO > 0 ) &
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IDNOO)
             ENDIF
 #endif
 
@@ -1677,28 +1713,39 @@ CONTAINS
     id_A3O2                  = Ind_( 'A3O2'         )
     id_ATO2                  = Ind_( 'ATO2'         )
     id_BRO2                  = Ind_( 'BRO2'         )
-    id_DHPCARP               = Ind_( 'DHPCARP'      )
-    id_DIBOO                 = Ind_( 'DIBOO'        )
     id_ETO2                  = Ind_( 'ETO2'         )
-    id_HC5OO                 = Ind_( 'HC5OO'        )
-    id_IEPOXOO               = Ind_( 'IEPOXOO'      )
-    id_INPN                  = Ind_( 'INPN'         )
-    id_ISNOOA                = Ind_( 'ISNOOA'       )
-    id_ISNOOB                = Ind_( 'ISNOOB'       )
-    id_ISNOHOO               = Ind_( 'ISNOHOO'      )
     id_LIMO2                 = Ind_( 'LIMO2'        )
-    id_MAOPO2                = Ind_( 'MAOPO2'       )
     id_MO2                   = Ind_( 'MO2'          )
-    id_MRO2                  = Ind_( 'MRO2'         )
     id_PIO2                  = Ind_( 'PIO2'         )
     id_PO2                   = Ind_( 'PO2'          )
-    id_PRNI                  = Ind_( 'PRNI'         )
-    id_R4NI                  = Ind_( 'R4NI'         )
+    id_PRN1                  = Ind_( 'PRN1'         )
+    id_R4N1                  = Ind_( 'R4N1'         )
     id_R4O2                  = Ind_( 'R4O2'         )
-    id_RIO2                  = Ind_( 'RIO2'         )
     id_TRO2                  = Ind_( 'TRO2'         )
-    id_VRO2                  = Ind_( 'VRO2'         )
     id_XRO2                  = Ind_( 'XRO2'         )
+    id_IHOO1                 = Ind_( 'IHOO1'        )
+    id_IHOO4                 = Ind_( 'IHOO4'        )
+    id_IHCOO                 = Ind_( 'IHCOO'        )
+    id_IHPOO1                = Ind_( 'IHPOO1'       )
+    id_IHPOO2                = Ind_( 'IHPOO2'       )
+    id_IHPOO3                = Ind_( 'IHPOO3'       )
+    id_IEPOXAOO              = Ind_( 'IEPOXAOO'     )
+    id_IEPOXBOO              = Ind_( 'IEPOXBOO'     )
+    id_C4HVP1                = Ind_( 'C4HVP1'       )
+    id_C4HVP2                = Ind_( 'C4HVP2'       )
+    id_HPALD1OO              = Ind_( 'HPALD1OO'     )
+    id_HPALD2OO              = Ind_( 'HPALD2OO'     )
+    id_ISOPNOO1              = Ind_( 'ISOPNOO1'     )
+    id_ISOPNOO2              = Ind_( 'ISOPNOO2'     )
+    id_INO2B                 = Ind_( 'INO2B'        )
+    id_INO2D                 = Ind_( 'INO2D'        )
+    id_IDHNBOO               = Ind_( 'IDHNBOO'      )
+    id_IDHNDOO1              = Ind_( 'IDHNDOO1'     )
+    id_IDHNDOO2              = Ind_( 'IDHNDOO2'     )
+    id_IHPNBOO               = Ind_( 'IHPNBOO'      )
+    id_IHPNDOO               = Ind_( 'IHPNDOO'      )
+    id_ICNOO                 = Ind_( 'ICNOO'        )
+    id_IDNOO                 = Ind_( 'IDNOO'        )
 #endif
 
     ! Set flags to denote if each species is defined

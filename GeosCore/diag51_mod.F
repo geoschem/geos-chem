@@ -403,10 +403,10 @@
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_SEASALT
       LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy,    IS_OPTD, IS_SLP
       INTEGER, SAVE     :: id_HNO3,     id_HNO4,   id_N2O5, id_NO
-      INTEGER, SAVE     :: id_PAN,      id_NPMN,   id_PPN,  id_O3
+      INTEGER, SAVE     :: id_PAN,      id_MPAN,   id_PPN,  id_O3
       INTEGER, SAVE     :: id_R4N2,     id_SALA,   id_SALC, id_NO2
-      INTEGER, SAVE     :: id_IPMN,     id_SOAIE,  id_SOAME
-      INTEGER, SAVE     :: id_INDIOL,   id_LVOCOA, id_ISN1OA
+      INTEGER, SAVE     :: id_SOAIE,    id_INDIOL, id_LVOCOA
+      INTEGER, SAVE     :: id_ISOA1,    id_ISOA2,  id_ISOA3
       INTEGER, SAVE     :: id_SO4,      id_NH4,    id_NIT
       INTEGER, SAVE     :: id_BCPI,     id_BCPO,   id_OH
 
@@ -447,20 +447,16 @@
          id_N2O5    = Ind_('N2O5'   )
          id_NO      = Ind_('NO'     )
          id_PAN     = Ind_('PAN'    )
-         id_NPMN    = Ind_('NPMN'   )
-         id_IPMN    = Ind_('IPMN'   )
+         id_MPAN    = Ind_('MPAN'   )
          id_PPN     = Ind_('PPN'    )
          id_O3      = Ind_('O3'     )
          id_R4N2    = Ind_('R4N2'   )
          id_SALA    = Ind_('SALA'   )
          id_SALC    = Ind_('SALC'   )
          id_NO2     = Ind_('NO2'    )
-         id_IPMN    = Ind_('IPMN'   )
          id_SOAIE   = Ind_('SOAIE'  )
-         id_SOAME   = Ind_('SOAME'  )
          id_INDIOL  = Ind_('INDIOL' )
          id_LVOCOA  = Ind_('LVOCOA' )
-         id_ISN1OA  = Ind_('ISN1OA' )
          id_SO4     = Ind_('SO4'    )
          id_NH4     = Ind_('NH4'    )
          id_NIT     = Ind_('NIT'    )
@@ -476,10 +472,9 @@
          IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
      &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
+     &                   id_HNO3 > 0 .and. id_MPAN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
-     &                   id_IPMN > 0 )
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 )
 
          ! Reset first-time flag
          FIRST       = .FALSE.
@@ -625,16 +620,11 @@
                TMP = TMP + ( ( AIRMW
      &                        / State_Chm%SpcData(id_HNO3)%Info%emMW_g )
      &                       * GOOD(I) * Spc(I,J,L,id_HNO3)  )
-
-               ! NPMN
-               TMP = TMP + ( ( AIRMW
-     &                        / State_Chm%SpcData(id_NPMN)%Info%emMW_g )
-     &                       * GOOD(I) * Spc(I,J,L,id_NPMN)   )
-
-               ! IPMN
-               TMP = TMP + ( ( AIRMW
-     &                        / State_Chm%SpcData(id_IPMN)%Info%emMW_g )
-     &                       * GOOD(I) * Spc(I,J,L,id_IPMN)   )
+            
+               ! MPAN
+               TMP = TMP + ( ( AIRMW 
+     &                        / State_Chm%SpcData(id_MPAN)%Info%emMW_g )        
+     &                       * GOOD(I) * Spc(I,J,L,id_MPAN)   )
 
                ! PPN
                TMP = TMP + ( ( AIRMW
@@ -1073,12 +1063,6 @@
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                ENDIF
 
-               ! IMAE-OA (ug/m3)
-               IF ( id_SOAME > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_SOAME)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
                ! INDIOL (ug/m3)
                IF ( id_INDIOL > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_INDIOL)  * GOOD(I) *
@@ -1088,12 +1072,6 @@
                ! LVOCOA (ug/m3)
                IF ( id_LVOCOA > 0 ) THEN
                   TMP = TMP + ( Spc(I,J,L,id_LVOCOA)  * GOOD(I) *
-     &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
-               ENDIF
-
-               ! ISOP+NO3 aerosols (ug/m3)
-               IF ( id_ISN1OA > 0 ) THEN
-                  TMP = TMP + ( Spc(I,J,L,id_ISN1OA)  * GOOD(I) *
      &                          1e+9+fp / State_Met%AIRVOL(I,J,L) )
                ENDIF
 
