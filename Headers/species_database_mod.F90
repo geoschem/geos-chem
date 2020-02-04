@@ -6406,7 +6406,7 @@ CONTAINS
           WRITE( Unit, 111 ) '"Is_DryDep"', 'false'
        ENDIF
 
-       IF ( ThisSpc%Is_DryDep ) THEN
+       IF ( ThisSpc%Is_Gas ) THEN
           WRITE( Unit, 111 ) '"Is_Gas"', 'true'
        ELSE
           WRITE( Unit, 111 ) '"Is_Gas"', 'false'
