@@ -535,23 +535,6 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! SDE 2020-01-18: This assumption is bad. We can also want to get
-          ! fields from other gridded components, and this will throw a
-          ! (false) error if we do so.
-          !! Throw an error if we cannot find the gridcomp name
-          !! (e.g. "'GIGCchem',").  GCHP will choke if this isn't found.
-          !G = INDEX( Line, "'GIGCchem'," )
-          !IF ( G == 0 ) THEN
-          !   ErrMsg = 'The name of the GCHP gridded component '           // &
-          !            "(e.g. 'GIGCchem') for attribute "  // '" '         // &
-          !            TRIM( AttName ) // '" must be enclosed in '         // &
-          !            'single quotes and be followed by a comma. '        // &
-          !            'Please check the HISTORY.rc file.'
-          !   WRITE( ErrorLine, 250 ) LineNum
-          !   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
-          !   RETURN
-          !ENDIF
-
           ! Save into LineSq the text of the line, skipping over
           ! the attribute name (if we are on the first line),
           ! as well as the gridcomp name
