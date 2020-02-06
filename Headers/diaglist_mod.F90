@@ -392,7 +392,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-#if !defined( MODEL_GEOS )
+#if defined( MODEL_CLASSIC )
        !====================================================================
        ! Add some extra error checks for collections that are in the
        ! collection name list (and therefore will be archived)
@@ -530,6 +530,20 @@ CONTAINS
                       TRIM( LastCollName ) // '".  This indicates that '  // &
                       'the end-of-collection delimiter (i.e. "::") is '   // &
                       'missing.  Please check the HISTORY.rc file.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          ! Throw an error if we cannot find the gridcomp name
+          ! (e.g. "'GIGCchem',").  GCHP will choke if this isn't found.
+          G = INDEX( Line, "'GIGCchem'," )
+          IF ( G == 0 ) THEN
+             ErrMsg = 'The name of the GCHP gridded component '           // &
+                      "(e.g. 'GIGCchem') for attribute "  // '" '         // &
+                      TRIM( AttName ) // '" must be enclosed in '         // &
+                      'single quotes and be followed by a comma. '        // &
+                      'Please check the HISTORY.rc file.'
              WRITE( ErrorLine, 250 ) LineNum
              CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
