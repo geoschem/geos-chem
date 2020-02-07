@@ -464,6 +464,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
+      USE Time_Mod,           ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
 !
@@ -666,6 +667,10 @@
          firsttime = .false.
       endif
 
+      ! Get chemistry timestep for use below [s]
+      ! NOTE: This doesn't have to be !$OMP+PRIVATE (bmy, 2/7/20)
+      ADT = GET_TS_CHEM()
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: THIS PARALLEL LOOP MAY BE ABLE TO BE REVERSED TO L-J-I
 !%%% WHICH IS MUCH MORE EFFICIENT (bmy, 1/28/14)
@@ -673,7 +678,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( ADT, PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )
+!$OMP+PRIVATE( PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )
 !$OMP+PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC )
 !$OMP+PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )
 !$OMP+PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )
@@ -690,7 +695,9 @@
 #ifdef BPCH_DIAG
          ! Reset the AD61_INST array used for tracking instantaneous
          ! certain rates.  As of now, tracking nucleation (win, 10/7/08)
-         AD61_INST(I,J,L,:) = 0e0
+         IF ( Input_Opt%ND61 > 0 ) THEN
+            AD61_INST(I,J,L,:) = 0e0
+         ENDIF
 #endif
 
          ! Skip non-chemgrid boxes
@@ -701,7 +708,6 @@
          !if(printdebug)          print *,'+++++',I,J,L,'inside Aerophys'
 
          ! Get info on this grid box
-         ADT     = 3600.
          PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
          TEMPTMS = State_Met%T(I,J,L)
          BOXMASS = State_Met%AD(I,J,L)
