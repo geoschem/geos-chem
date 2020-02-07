@@ -157,6 +157,13 @@ CONTAINS
        VERB = .FALSE.
     ENDIF
 
+    ! Set KG to zero and return if winds are 0
+    IF ( V == 0.d0 ) THEN
+       KG = 0d0
+       RC = OC_SUCCESS
+       RETURN
+    ENDIF
+
     ! Surface temperature must be greater than -40 degC. Otherwise, an
     ! overflow error may occur!
     TMP = MAX(T,TMAX)
