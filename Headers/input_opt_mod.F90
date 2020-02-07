@@ -517,11 +517,7 @@ CONTAINS
     Input_Opt%Max_BPCH_Diag          = 80  ! Mirror MAX_DIAG in CMN_DIAG_mod.F
 #endif
     Input_Opt%Max_Families           = 250
-#ifdef TOMAS
     Input_Opt%Max_AdvectSpc          = 600
-#else
-    Input_Opt%Max_AdvectSpc          = 300
-#endif
     Input_Opt%Max_PassiveSpc         = 50
 
     !----------------------------------------
