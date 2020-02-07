@@ -2853,8 +2853,14 @@
             ! Luo et al scheme: Compute the condensed water
             ! content instead of using a constant value.
             ! Then compute K_RAIN and F_RAINOUT for LS precip.
-            COND_WATER_CONTENT = MAX(1.e-30_fp,(QQ(L,I,J)*DT+
-     &      State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1e-3_fp))
+            ! Now use QL and QI in formula for COND_WATER_CONTENT (bmy, 2/7/20)
+            COND_WATER_CONTENT = 
+     &           ( QQ(L,I,J)                 * DT                    )
+     &        +  ( ( State_Met%QL(I,J,L)     + State_Met%QI(I,J,L) )
+     &           * ( State_Met%AIRDEN(I,J,L) * 1e-3_fp             ) )
+
+            COND_WATER_CONTENT = MAX( 1e-30_fp, COND_WATER_CONTENT   )
+
             K_RAIN    = LS_K_RAIN( QQ(L,I,J), COND_WATER_CONTENT )
             F_RAINOUT = MAX( 1.e-4_fp, State_Met%CLDF(I,J,L) )
             F_RAINOUT = F_RAINOUT * MIN(1.e+0_fp,
@@ -2937,8 +2943,14 @@
                ! Luo et al scheme: Compute the condensed water
                ! content instead of using a defined constant value.
                ! Then compute K_RAIN and F_PRIME for LS precip.
-               COND_WATER_CONTENT = MAX(1.e-30_fp,(QQ(L,I,J)*DT+
-     &         State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1e-3_fp))
+               ! Now use QL and QI in formula for COND_WATER_CONTENT (bmy, 2/7/20)
+               COND_WATER_CONTENT = 
+     &           ( QQ(L,I,J)                 * DT                    )
+     &        +  ( ( State_Met%QL(I,J,L)     + State_Met%QI(I,J,L) )
+     &        *    ( State_Met%AIRDEN(I,J,L) * 1e-3_fp             ) )
+
+               COND_WATER_CONTENT = MAX( 1e-30_fp, COND_WATER_CONTENT )
+
                K_RAIN  = LS_K_RAIN( QQ(L,I,J), COND_WATER_CONTENT )
                F_PRIME = MAX(1.e-4_fp,State_Met%CLDF(I,J,L))
                F_PRIME = F_PRIME*MIN(1.e+0_fp,
