@@ -81,7 +81,7 @@ Warnings:                    1
 # SF6 emissions from EDGAR v4.2
 #==============================================================================
 (((EDGARv42_SF6
-0 EDGAR_SF6  $ROOT/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc emi_sf6 1970-2008/1-12/1/0 C xy kg/m2/s SF6Tracer - 1 1
+0 EDGAR_SF6  $ROOT/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc emi_sf6 1970-2008/1/1/0 C xy kg/m2/s SF6Tracer - 1 1
 )))EDGARv42_SF6
 
 #==============================================================================

@@ -151,6 +151,9 @@ JValuesLocalNoon_mode=${common_mode}
 LevelEdgeDiags_freq=${common_freq}
 LevelEdgeDiags_dur=${common_dur}
 LevelEdgeDiags_mode=${common_mode}
+KppDiags_freq=${common_freq}
+KppDiags_dur=${common_dur}
+KppDiags_mode=${common_mode}
 ProdLoss_freq=${common_freq}
 ProdLoss_dur=${common_dur}
 ProdLoss_mode=${common_mode}
@@ -505,6 +508,9 @@ replace_val JValuesLocalNoon.mode      ${JValuesLocalNoon_mode} HISTORY.rc
 replace_val LevelEdgeDiags.frequency   ${LevelEdgeDiags_freq}   HISTORY.rc
 replace_val LevelEdgeDiags.duration    ${LevelEdgeDiags_dur}    HISTORY.rc
 replace_val LevelEdgeDiags.mode        ${LevelEdgeDiags_mode}   HISTORY.rc
+replace_val KppDiags.frequency         ${KppDiags_freq}         HISTORY.rc
+replace_val KppDiags.duration          ${KppDiags_dur}          HISTORY.rc
+replace_val KppDiags.mode              ${KppDiags_mode}         HISTORY.rc
 replace_val ProdLoss.frequency         ${ProdLoss_freq}         HISTORY.rc
 replace_val ProdLoss.duration          ${ProdLoss_dur}          HISTORY.rc
 replace_val ProdLoss.mode              ${ProdLoss_mode}         HISTORY.rc
