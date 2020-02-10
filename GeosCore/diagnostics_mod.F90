@@ -16,7 +16,6 @@ MODULE Diagnostics_mod
 !
 ! !USES:
 !
-  USE CMN_Size_Mod
   USE ErrCode_Mod
   USE Precision_Mod
 
@@ -498,7 +497,7 @@ CONTAINS
 !  ensure that State_Diag%SpeciesConc will get set to the proper units.
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

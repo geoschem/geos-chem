@@ -163,8 +163,7 @@ CONTAINS
 
        ! Check if file exists
        FldName = TRIM( Prefix ) // TRIM( SpcInfo%Name )
-       CALL HCO_EvalFld( Input_Opt%amIRoot, HcoState, TRIM(FldName),         &
-                         Arr2D,             RC,       FOUND=FOUND           )
+       CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find field : ' // TRIM( FldName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -319,8 +318,7 @@ CONTAINS
     DO WHILE( ASSOCIATED( iObj ) )
 
        ! Get concentration for this species
-       CALL HCO_EvalFld( Input_Opt%amIRoot,  HcoState,                       &
-                         Trim(iObj%FldName), Arr2D,    RC                   )
+       CALL HCO_EvalFld( HcoState, Trim(iObj%FldName), Arr2D, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get surface VMR for species: '//               &
                    TRIM( iObj%FldName ) // '!'

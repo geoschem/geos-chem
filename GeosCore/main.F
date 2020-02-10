@@ -1114,7 +1114,7 @@
                IF ( DO_DIAG_WRITE ) THEN
 
                   ! Write data to the "trac_avg." bpch file
-                  CALL DIAG3( am_I_Root,  Input_Opt, State_Chm,
+                  CALL DIAG3( Input_Opt, State_Chm,
      &                        State_Grid, State_Met, RC )
 
                   ! Flush file units
@@ -1552,8 +1552,8 @@
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
                ! Compute drydep velocities
-               CALL Do_Drydep( am_I_Root,  Input_Opt,  State_Chm,
-     &                         State_Diag, State_Grid, State_Met, RC )
+               CALL Do_Drydep( Input_Opt,  State_Chm, State_Diag,
+     &                         State_Grid, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -2148,7 +2148,7 @@
                IF ( prtDebug ) CALL Debug_Msg('### MAIN: b DIAGNOSTICS')
 
                ! Accumulate several diagnostic quantities
-               CALL Diag1( am_I_Root,  Input_Opt, State_Chm,
+               CALL Diag1( Input_Opt, State_Chm,
      &                     State_Grid, State_Met, RC )
 
                ! Trap potential errors
@@ -2176,8 +2176,8 @@
 
             ! Morning or afternoon timeseries
             IF ( Input_Opt%DO_ND51 ) THEN
-               CALL DIAG51( am_I_Root,  Input_Opt, State_Chm,
-     &                      State_Grid, State_Met, RC         )
+               CALL DIAG51( Input_Opt, State_Chm,
+     &                      State_Grid, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -2187,8 +2187,8 @@
             ENDIF
 
             IF ( Input_Opt%DO_ND51b ) THEN
-               CALL DIAG51b( am_I_Root,  Input_Opt, State_Chm,
-     &                       State_Grid, State_Met, RC         )
+               CALL DIAG51b( Input_Opt, State_Chm,
+     &                       State_Grid, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -2208,8 +2208,6 @@
 #endif
          ENDIF
 #endif
-
-
 
          !=================================================================
          !     ***** C O P Y   I - 3   F I E L D S *****
@@ -2343,7 +2341,7 @@
          !--------------------------------------------------------------
          ! Print the mass-weighted mean OH concentration (if applicable)
          !--------------------------------------------------------------
-         CALL Print_Diag_OH( am_I_Root, Input_Opt, RC )
+         CALL Print_Diag_OH( Input_Opt, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN

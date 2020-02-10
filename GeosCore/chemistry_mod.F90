@@ -32,7 +32,7 @@ MODULE Chemistry_Mod
   PRIVATE :: CHEM_PASSIVE_SPECIES
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -66,7 +66,6 @@ CONTAINS
     USE AEROSOL_MOD,     ONLY : RDAER
     USE AEROSOL_MOD,     ONLY : SOILDUST
     USE CARBON_MOD,      ONLY : CHEMCARBON
-    USE CMN_SIZE_MOD
     USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE DUST_MOD,        ONLY : CHEMDUST
@@ -130,7 +129,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -490,8 +489,8 @@ CONTAINS
           ! Do carbonaceous aerosol chemistry
           !-----------------------------------
           IF ( LCARB ) THEN
-             CALL ChemCarbon( Input_Opt,  State_Chm,             &
-                              State_Diag, State_Grid, State_Met, RC         )
+             CALL ChemCarbon( Input_Opt,  State_Chm, State_Diag, &
+                              State_Grid, State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -505,8 +504,8 @@ CONTAINS
           ! Do dust aerosol chemistry/removal
           !------------------------------------
           IF ( LDUST .AND. id_DST1 > 0 ) THEN
-             CALL ChemDust( am_I_Root,  Input_Opt,  State_Chm,               &
-                            State_Diag, State_Grid, State_Met, RC           )
+             CALL ChemDust( Input_Opt,  State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -683,8 +682,8 @@ CONTAINS
           ! Carbon and Secondary Organic Aerosols
           !-----------------------------------------
           IF ( LCARB ) THEN
-             CALL ChemCarbon( Input_Opt,  State_Chm,             &
-                              State_Diag, State_Grid, State_Met, RC         )
+             CALL ChemCarbon( Input_Opt,  State_Chm, State_Diag, &
+                              State_Grid, State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -700,8 +699,8 @@ CONTAINS
           IF ( LDUST ) THEN
 
              ! Do dust aerosol chemistry
-             CALL ChemDust( am_I_Root,  Input_Opt,  State_Chm,               &
-                            State_Diag, State_Grid, State_Met, RC           )
+             CALL ChemDust( Input_Opt,  State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -712,9 +711,9 @@ CONTAINS
 
              ! Compute dust OD's & surface areas
              WAVELENGTH = 0
-             CALL Rdust_Online( am_I_Root,  Input_Opt,  State_Chm,           &
-                                State_Diag, State_Grid, State_Met,           &
-                                SOILDUST,   WAVELENGTH, RC                  )
+             CALL Rdust_Online( Input_Opt,  State_Chm, State_Diag, &
+                                State_Grid, State_Met, SOILDUST,   &
+                                WAVELENGTH, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -1055,7 +1054,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Fev 2011 - Adapted from chemdr.f by skim
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1142,9 +1141,9 @@ CONTAINS
              ! from disk. (rjp, tdf, bmy, 4/1/04)
              !==============================================================
              IF ( LDUST ) THEN
-                CALL RDUST_ONLINE( am_I_Root,  Input_Opt,  State_Chm,       &
-                                   State_Diag, State_Grid, State_Met,       &
-                                   SOILDUST,   WAVELENGTH, RC              )
+                CALL RDUST_ONLINE( Input_Opt,  State_Chm, State_Diag, &
+                                   State_Grid, State_Met, SOILDUST,   &
+                                   WAVELENGTH, RC )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
@@ -1209,7 +1208,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Sep 2015 - C. Keller   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1363,7 +1362,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 May 2014 - C. Keller   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

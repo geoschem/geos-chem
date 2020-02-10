@@ -428,43 +428,43 @@ convection_mod.o            : convection_mod.F90                             \
                               tendencies_mod.o        hco_interface_mod.o    \
                               diagnostics_mod.o
 
-depo_mercury_mod.o          : depo_mercury_mod.F                             \
+depo_mercury_mod.o          : depo_mercury_mod.F90                           \
                               diag_mod.o              diag03_mod.o
 
-diag03_mod.o                : diag03_mod.F
+diag03_mod.o                : diag03_mod.F90
 
-diag1.o                     : diag1.F                                        \
+diag1.o                     : diag1.F90                                      \
                               hco_interface_mod.o                            \
                               diag03_mod.o            diag_mod.o
 
-diag3.o                     : diag3.F                                        \
+diag3.o                     : diag3.F90                                      \
                               diag_mod.o              diag03_mod.o           \
                               diag53_mod.o            depo_mercury_mod.o     \
                               drydep_mod.o            hco_interface_mod.o    \
                               apm_driv_mod.o          wetscav_mod.o          \
                               tomas_mod.o
 
-diag51_mod.o                : diag51_mod.F                                   \
+diag51_mod.o                : diag51_mod.F90                                 \
                               pbl_mix_mod.o
 
-diag51b_mod.o               : diag51b_mod.F                                  \
+diag51b_mod.o               : diag51b_mod.F90                                \
                               pbl_mix_mod.o
 
-diag53_mod.o                : diag53_mod.F
+diag53_mod.o                : diag53_mod.F90
 
-diag_mod.o                  : diag_mod.F
+diag_mod.o                  : diag_mod.F90
 
-diag_oh_mod.o               : diag_oh_mod.F
+diag_oh_mod.o               : diag_oh_mod.F90
 
 diagnostics_mod.o           : diagnostics_mod.F90
 
-drydep_mod.o                : drydep_mod.F                                   \
+drydep_mod.o                : drydep_mod.F90                                 \
                               apm_driv_mod.o                                 \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
                               hco_interface_mod.o     diagnostics_mod.o
 
-dust_mod.o                  : dust_mod.F                                     \
+dust_mod.o                  : dust_mod.F90                                   \
                               diag_mod.o              drydep_mod.o           \
                               apm_driv_mod.o          tomas_mod.o            \
                               hco_interface_mod.o

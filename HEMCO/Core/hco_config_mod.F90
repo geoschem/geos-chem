@@ -508,7 +508,7 @@ CONTAINS
        ENDIF
 
        ! Register scale factors based upon UnqScalIDs.
-       CALL Register_Scal( coState, RC )
+       CALL Register_Scal( HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           PRINT *,'Error in Register_Scal called from HEMCO SetReadList'
           RETURN

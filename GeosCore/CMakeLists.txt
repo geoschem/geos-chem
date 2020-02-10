@@ -1,5 +1,5 @@
 add_library(Transport STATIC EXCLUDE_FROM_ALL
-	diag_mod.F
+	diag_mod.F90
 	derived_met_mod.F
 	diagnostics_mod.F90
 	pjc_pfix_mod.F
@@ -29,16 +29,16 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	cleanup.F90
 	co2_mod.F90
 	convection_mod.F90
-	depo_mercury_mod.F
-	diag03_mod.F
-	diag1.F
-	diag3.F
-	diag51b_mod.F
-	diag51_mod.F
-	diag53_mod.F
-	diag_oh_mod.F
-	drydep_mod.F
-	dust_mod.F
+	depo_mercury_mod.F90
+	diag03_mod.F90
+	diag1.F90
+	diag3.F90
+	diag51b_mod.F90
+	diag51_mod.F90
+	diag53_mod.F90
+	diag_oh_mod.F90
+	drydep_mod.F90
+	dust_mod.F90
 	emissions_mod.F90
 	fast_jx_mod.F
 	flexchem_mod.F90

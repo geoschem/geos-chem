@@ -49,7 +49,7 @@ MODULE GC_Environment_Mod
 !
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Created module file
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,7 +121,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -242,7 +242,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -355,7 +355,7 @@ CONTAINS
 !                                                                             .
 ! !REVISION HISTORY:
 !  01 Mar 2012 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -475,7 +475,7 @@ CONTAINS
 !                                                                             .
 ! !REVISION HISTORY:
 !  04 Mar 2013 - R. Yantosca - Initial revision
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -515,8 +515,7 @@ CONTAINS
     IF ( Input_Opt%LDRYD ) THEN
 
        ! Setup for dry deposition
-       CALL Init_DryDep( Input_Opt%amIRoot,  Input_Opt,  State_Chm,                  &
-                         State_Diag, State_Grid, RC                         )
+       CALL Init_DryDep( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Drydep"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -605,8 +604,7 @@ CONTAINS
     ! Initialize "dust_mod.F"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LDUST ) then
-       CALL Init_Dust( Input_Opt%amIRoot,  Input_Opt,  State_Chm,                    &
-                       State_Diag, State_Grid, RC                           )
+       CALL Init_Dust( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Dust"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -719,7 +717,7 @@ CONTAINS
     ENDIF
 
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-    CALL Init_Diag_OH( Input_Opt%amIRoot, Input_Opt, State_Grid, RC )
+    CALL Init_Diag_OH( Input_Opt, State_Grid, RC )
 
 #ifdef BPCH_DIAG
     !=================================================================
@@ -800,10 +798,10 @@ CONTAINS
 
     ! Satellite timeseries (bpch)
     IF ( Input_Opt%DO_ND51 ) THEN
-       CALL Init_Diag51 ( Input_Opt%amIRoot, Input_Opt, State_Grid, RC )
+       CALL Init_Diag51 ( Input_Opt, State_Grid, RC )
     ENDIF
     IF ( Input_Opt%DO_ND51b ) THEN
-       CALL Init_Diag51b( Input_Opt%amIRoot, Input_Opt, State_Grid, RC )
+       CALL Init_Diag51b( Input_Opt, State_Grid, RC )
     ENDIF
 
     ! POPs (bpch)
@@ -868,7 +866,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jul 2014 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -973,7 +971,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
