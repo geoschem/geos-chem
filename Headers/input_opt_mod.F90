@@ -741,6 +741,7 @@ CONTAINS
     Input_Opt%RS_SCALE               = 1.0_fp
     Input_Opt%RA_Alt_Above_Sfc       = 10       ! default height
 
+
     !----------------------------------------
     ! GAMAP_MENU fields
     !----------------------------------------

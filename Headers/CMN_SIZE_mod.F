@@ -51,7 +51,7 @@
       INTEGER,    PARAMETER :: NPOLY    = 20
 
       ! MAXFAM -- Max number of families for prod and loss output
-      INTEGER,    PARAMETER :: MAXFAM = 40
+      INTEGER,    PARAMETER :: MAXFAM = 800
 
       ! MAXMEM is maximum number of families of prod and loss
       ! moved from input_mod and diag_pl_mod to here (hotp 7/31/09)
@@ -61,7 +61,7 @@
 
       ! MAXPL increased from 100 to 500 and moved from diag_pl_mod
       ! to here by FP (hotp 7/31/09)
-      INTEGER,    PARAMETER :: MAXPL = 500
+      INTEGER,    PARAMETER :: MAXPL = 800
 
       ! NDUST -- Number of FAST-J aerosol size bins (rvm, bmy, 11/15/01)
       INTEGER,    PARAMETER :: NDUST = 7

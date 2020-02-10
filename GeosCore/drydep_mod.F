@@ -23,6 +23,7 @@
 #endif
       USE PhysConstants                         ! Physical constants
       USE PRECISION_MOD                         ! For GEOS-Chem Precision (fp)
+      USE TIME_MOD
 
       IMPLICIT NONE
       PRIVATE
@@ -248,7 +249,7 @@
       ! Scalars
       INTEGER                        :: NUMDEP,   NWATER
       INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
-      INTEGER                        :: id_ACET,  id_ALD2
+      INTEGER                        :: id_ACET,  id_ALD2,  id_O3
       INTEGER                        :: id_MENO3, id_ETNO3
       INTEGER                        :: id_NK1
       INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
@@ -286,6 +287,9 @@
       REAL(f8),          ALLOCATABLE :: A_DEN   (:    ) ! Aer density [kg/m3]
       CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
+      REAL(f4), POINTER :: HCO_Iodide(:,:)   => NULL()
+      REAL(f4), POINTER :: HCO_Salinity(:,:) => NULL()
+
       ! Allocatable arrays
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
@@ -318,6 +322,7 @@
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -483,6 +488,11 @@
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
       LPRT       = Input_Opt%LPRT
 
+      CALL HCO_GetPtr( am_I_Root, HcoState, 'surf_iodide', 
+     &                 HCO_Iodide, RC )
+      CALL HCO_GetPtr( am_I_Root, HcoState,'surf_salinity', 
+     &                 HCO_Salinity, RC)
+
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10
       !  (jaegle 5/11/11, mpayer 1/10/12)
@@ -491,12 +501,12 @@
      &             RHB,        PRESSU,    W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( am_I_Root, Input_Opt, State_Chm,  State_Diag,
-     &             State_Grid, State_Met, RADIAT,    TC0, SUNCOS_MID,
-     &             F0,        HSTAR,     XMW,        AIROSOL,
-     &             USTAR,     CZ1,       OBK,        CFRAC,
-     &             ZH,        LSNOW,     DVEL,       AZO,
-     &             RHB,       PRESSU,    W10,        RC            )
+      CALL DEPVEL( am_I_Root,  Input_Opt, State_Chm,  State_Diag,
+     &             State_Grid, State_Met, RADIAT,     TC0, SUNCOS_MID,
+     &             F0,         HSTAR,     XMW,        AIROSOL,
+     &             USTAR,      CZ1,       OBK,        CFRAC,
+     &             ZH,         LSNOW,     DVEL,       AZO,
+     &             RHB,        PRESSU,    W10,        RC            )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -696,6 +706,175 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: OceanO3
+!
+! !DESCRIPTION: Function OCEANO3 calculates the dry deposition velcoity of O3
+!     to the ocean using method described in Pound et.al (2019)
+!     currently under discussion in ACPD. 
+!     Accounts for the turbulence of the ocean surface,Iodide concentration
+!     and surface temperature effects on the dry deposition velocity of
+!     ozone to the ocean.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OCEANO3( TEMPK, USTAR, DEPV, I, J )
+!
+! !USES:
+!
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
+!     
+! !INPUT PARAMETERS: 
+!
+      REAL(f8), INTENT(IN)         :: TEMPK ! Temperature [K]
+      REAL(f8), INTENT(IN)         :: USTAR ! Fictional Velocity [m/s]
+      INTEGER,  INTENT(IN)         :: I,J
+      REAL(f8), INTENT(OUT)        :: DEPV  ! the new deposition vel [cm/s]
+! 
+! !REVISION HISTORY: 
+!  21 Aug 2018 - R. Pound - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(f8) :: a,D,DelM,b,PSI,LAM,EP,USTARWater,K0,K1,Iodide
+
+      !=================================================================
+      ! OCEANO3 begins here!
+      !=================================================================
+      
+      USTARWater = 0.0345_f8*USTAR !waterside friction velocity
+    
+      Iodide = HCO_Iodide(I,J)*1.0E-9_f8 !retrieve iodide from HEMCO
+     
+      a = Iodide*EXP((-8772.2/TEMPK)+51.5) !chemical reactivity
+
+      D = 1.1E-6*EXP(-1896.0/TEMPK) ! diffusivity
+
+      DelM = SQRT(D/a) ! reaction-diffusion length
+      
+      b = 2.0_f8/(0.4_f8*USTARWater)
+   
+      LAM = DelM*SQRT(a/D) ! this cancels to 1 but here for completeness
+                           ! of equations
+
+      EP = SQRT(2.0_f8*a*b*(DelM+(b*D/2.0_f8)))
+
+      PSI = EP/SQRT(a*b**2*D)
+
+      CALL K0K1_APROX(EP,K0,K1)
+
+      DEPV = SQRT(a*D)*((PSI*K1*COSH(LAM)+K0*SINH(LAM))/(PSI*K1* 
+     &                   SINH(LAM)+K0*COSH(LAM)))
+   
+      END SUBROUTINE OCEANO3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: K0K1_APROX
+!
+! !DESCRIPTION:  Function to estimate the modified Bessel functions of
+!     the second kind order zero and one (K0,K1). Approach initially based on 
+!     that described in Numerical Recipes in Fortran 90 second edition
+!     (1996). This implementation is designed to be specific to the use
+!     case required for calculating oceanic deposition velocity. Uses a
+!     polynomial fit of each type of modified bessel function to
+!     estimate the value of the function for each input. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE K0K1_APROX( input_arg, K0, K1 )
+!     
+! !INPUT PARAMETERS: 
+!     
+      REAL(f8), INTENT(IN)  :: input_arg !the value we want the soln for
+      REAL(f8), INTENT(OUT) :: K0,K1 !the values of the modified bessel fncs
+!     
+! !REVISION HISTORY: 
+!  21 Aug 2018 - R. Pound - Initial version    
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!     
+! !LOCAL VARIABLES:
+!    
+      REAL(f8), DIMENSION(7) :: coeff !coefficients for polynomial fit
+                                      ! of each bessel function
+      REAL(f8)               :: I0,I1 !modified bessel functions of
+                                      ! first kind order 0 and 1
+
+      ! begin the calculation of k0 by estimating i0
+      coeff = (/1.0,3.5156229,3.0899424,1.2067492,0.2659732,0.360768e-1,
+     &      0.45813e-2/)
+      I0 = poly_fit((input_arg/3.75_f8)**2,coeff)
+      !now we can use this estimate of i0 to calculate k0
+      coeff = (/-0.57721566,0.42278420,0.23069756,0.3488590e-1,
+     &      0.262698e-2,0.10750e-3,0.74e-5/)
+      K0 = (-LOG(0.5_f8*input_arg)*I0)+
+     &        poly_fit(0.25_f8*input_arg**2,coeff)
+
+      !begin the calculation of k0 by estimating i1
+      coeff = (/0.5,0.87890594,0.51498869,0.15084934,0.2658733e-1,
+     &      0.301532e-2,0.32411e-3/)
+      I1 = input_arg*poly_fit((input_arg/3.75_f8)**2,coeff)
+      ! now we can use this to estimate to get a value for k1
+      coeff = (/1.0,0.15443144,-0.67278579,-0.18156897,-0.1919402e-1,
+     &      -0.110404e-2,-0.4686e-4/)
+      K1 = (LOG(0.5_f8*input_arg)*I1)+(1.0_f8/input_arg)*
+     &      poly_fit(0.25_f8*input_arg**2,coeff)
+
+      END SUBROUTINE K0K1_APROX
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: poly_fit
+!
+! !DESCRIPTION: Function to calculate the value of a polynomial fit,
+! used in the K0K1_APPROX function in estimating the values of a
+! modified bessel function.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION poly_fit ( input, coeffs )
+!     
+! !INPUT PARAMETERS: 
+!     
+      REAL(f8), INTENT(IN)               :: input
+      REAL(f8), DIMENSION(:), INTENT(IN) :: coeffs
+!
+! !REVISION HISTORY: 
+!  21 Aug 2018 - R. Pound - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!     
+! !LOCAL VARIABLES:
+!     
+      REAL(f8)                           :: poly_fit
+      INTEGER                            :: i
+      poly_fit = 0
+      DO i = 1,7,1
+           poly_fit = poly_fit+coeffs(i)*input**i
+      ENDDO
+
+      END FUNCTION poly_fit
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: metero
 !
 ! !DESCRIPTION: Subroutine METERO calculates meteorological constants needed
@@ -875,12 +1054,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Chm, State_Diag,
-     &                   State_Grid, State_Met, RADIAT,   TEMP, SUNCOS,
-     &                   F0,        HSTAR,     XMW,       AIROSOL,
-     &                   USTAR,     CZ1,       OBK,       CFRAC,
-     &                   ZH,        LSNOW,     DVEL,      ZO,
-     &                   RHB,       PRESSU,    W10,       RC          )
+      SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Chm, State_Diag,
+     &                   State_Grid, State_Met, RADIAT,    TEMP, SUNCOS,
+     &                   F0,         HSTAR,     XMW,       AIROSOL,
+     &                   USTAR,      CZ1,       OBK,       CFRAC,
+     &                   ZH,         LSNOW,     DVEL,      ZO,
+     &                   RHB,        PRESSU,    W10,       RC          )
+
 !
 ! !USES:
 !
@@ -1150,6 +1330,11 @@
       ! Loop indices (bmy, 3/29/12)
       INTEGER  :: I, J
 
+      ! Integer for the GEOS-CHEM species number
+      INTEGER  :: N_SPC
+      REAL(f8) :: alpha
+      REAL(f8) :: DEPVw
+
       ! Size of DRYCOEFF (ckeller, 05/19/14)
       INTEGER  :: NN
 
@@ -1304,6 +1489,7 @@
 !$OMP+PRIVATE( DUMMY1,  DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB       )
 !$OMP+PRIVATE( C1X,     VK,      I,       J,      IW                )
 !$OMP+PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP )
+!$OMP+PRIVATE( N_SPC,   alpha,   DEPVw                              )
 #ifdef MODEL_GEOS
 !$OMP+PRIVATE( RA2M,    Z0OBK2M, RA10M, Z0OBK10M                    )
 #endif
@@ -1500,20 +1686,42 @@
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
 
-               !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
-               XMWH2O = H2OMW * 1.e-3_f8
-               RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/
-     C              DIFFG(TEMPK,PRESSU(I,J),XMW(K))
-     C              + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
-               RLUXX = 1.e+12_f8
-               IF (RLU(LDT).LT.9999.e+0_f8)
-     C              RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0(K))
+               ! Test for special treatment for O3 drydep to ocean
+               N_SPC = State_Chm%Map_DryDep(K)
+               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+                  IF (HCO_Salinity(I,J) .GT. 20.0_f8) THEN
+                     ! Now apply the Luhar et al. [2018] equations for the
+                     ! special treatment of O3 dry deposition to the ocean
+                     ! surface 
+                     CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
+     &                            I,J)
+                     ! Now convert to the new rc value(s) can probably tidy
+                     ! this up a bit
+                     alpha = 10.0_f8**(-0.25-0.013*(
+     &                                 State_Met%TSKIN(I,J)-273.16_f8))
+                     RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw)
+                  ELSE
+                     ! It's not 'ocean' so we instead don't change it from
+                     ! 'default' rc
+                     RSURFC(K,LDT) = 2000.0_f8
+                  ENDIF
+
+               ELSE
+
+                  !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
+                  XMWH2O = H2OMW * 1.e-3_f8
+                  RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/
+     C                 DIFFG(TEMPK,PRESSU(I,J),XMW(K))
+     C                 + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
+                  RLUXX = 1.e+12_f8
+                  IF (RLU(LDT).LT.9999.e+0_f8)
+     C                 RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0(K))
 
         ! If a POPs simulation, scale cuticular resistances with octanol-air
         ! partition coefficient (Koa) instead of HSTAR (clf, 1/3/2011)
 
-               IF (IS_POPS)
-     C              RLUXX = RLU(LDT)/(KOA(K)/1.0e+05_f8 + F0(K))
+                  IF (IS_POPS)
+     C                 RLUXX = RLU(LDT)/(KOA(K)/1.0e+05_f8 + F0(K))
 
 !*
 !* To prevent virtually zero resistance to species with huge HSTAR, such
@@ -1525,20 +1733,24 @@
 !* was introduced by J.Y. Liang on 7/9/95.
 !*
 
-               RGSX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RGSS(LDT) +
-     1              F0(K)/RGSO(LDT))
-               RCLX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RCLS(LDT) +
-     1              F0(K)/RCLO(LDT))
+                  RGSX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RGSS(LDT) +
+     1                 F0(K)/RGSO(LDT))
+                  RCLX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RCLS(LDT) +
+     1                 F0(K)/RCLO(LDT))
 !*
 !** Get the bulk surface resistance of the canopy, RSURFC, from the network
 !** of resistances in parallel and in series (Fig. 1 of Wesely [1989])
-               DTMP1=1.e+0_f8/RIXX
-               DTMP2=1.e+0_f8/RLUXX
-               DTMP3=1.e+0_f8/(RAC(LDT)+RGSX)
-               DTMP4=1.e+0_f8/(RDC+RCLX)
-               RSURFC(K,LDT) = 1.e+0_f8/(DTMP1 + DTMP2 + DTMP3 + DTMP4)
+                  DTMP1=1.e+0_f8/RIXX
+                  DTMP2=1.e+0_f8/RLUXX
+                  DTMP3=1.e+0_f8/(RAC(LDT)+RGSX)
+                  DTMP4=1.e+0_f8/(RDC+RCLX)
+                  RSURFC(K,LDT) = 1.e+0_f8/(DTMP1 + DTMP2 + 
+     &                            DTMP3 + DTMP4) 
+
+               ENDIF
 !** get surface deposition velocity for aerosols if needed;
 !** equations (15)-(17) of Walcek et al. [1986]
+          
  155           IF (.NOT. AIROSOL(K)) GOTO 160
 
 !-----------------------------------------------------------------------------
@@ -1735,8 +1947,16 @@
             IF (.NOT.LDEP(K)) GOTO 190
             DO 180 LDT = 1, IREG(I,J)
                IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
-               RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT),
-     &                        9999.e+0_f8))
+!    because of high resistance values, different rule applied for ocean
+!    ozone               
+               N_SPC = State_Chm%Map_DryDep(K)
+               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+                  RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT), 
+     &                 999999.e+0_f8))
+               ELSE
+                  RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT),
+     &                 9999.e+0_f8))
+               ENDIF
               ! Set Rc for strong acids (HNO3,HCl,HBr) to 1 s/m
               ! V. Shah (23 Oct 18)
               ! Ref. Jaegle et al. 2018, cf. Erisman,van Pul,Ayers 1994
@@ -2131,6 +2351,7 @@
                IF (.NOT.LDEP(K)) GOTO 400
                VK(K) = VD(K)
                VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
+
  400        CONTINUE
 
 #if defined( MODEL_GEOS )
@@ -4315,6 +4536,7 @@
       LDRYD     = Input_Opt%LDRYD
       NUMDEP    = 0
       id_ACET   = 0
+      id_O3     = 0
       id_ALD2   = 0
       id_MENO3  = 0
       id_ETNO3  = 0
@@ -4474,6 +4696,10 @@
                CASE( 'ACET' )
                   ! Flag the species ID of ACET for use above.
                   id_ACET = SpcInfo%ModelId
+
+               CASE( 'O3' )
+                  ! Flag the species ID of O3 for use above
+                  ID_O3 = SpcInfo%ModelId
 
                CASE( 'ALD2' )
                   ! Flag the species ID of ALD2 for use above.

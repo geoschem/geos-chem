@@ -2074,6 +2074,8 @@
  130  FORMAT( A, A   )
 
       END SUBROUTINE READ_EMISSIONS_MENU
+ 
+
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3287,7 +3289,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_OPt%LWETD
+      READ( SUBSTRS(1:N), * ) Input_Opt%LWETD
 
       ! Turn on CO2 effect on drydep?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CO2_EFFECT', RC )

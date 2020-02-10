@@ -466,7 +466,7 @@ drydep_mod.o                : drydep_mod.F                                   \
                               dao_mod.o               apm_driv_mod.o         \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
-                              hco_interface_mod.o     diagnostics_mod.o
+                              hco_interface_mod.o     diagnostics_mod.o      
 
 dust_mod.o                  : dust_mod.F                                     \
                               diag_mod.o              drydep_mod.o           \
@@ -666,6 +666,7 @@ seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               pbl_mix_mod.o           tomas_mod.o            \
                               apm_driv_mod.o          vdiff_pre_mod.o        \
                               hco_interface_mod.o
+
 
 set_global_ch4_mod.o        : set_global_ch4_mod.F90                         \
                               pbl_mix_mod.o

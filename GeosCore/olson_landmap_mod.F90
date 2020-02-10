@@ -244,8 +244,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: I,           J,             T
-    INTEGER :: typeCounter, maxFracInd(1), sumIUSE
+    INTEGER   :: I,           J,             T
+    INTEGER   :: typeCounter, maxFracInd(1), sumIUSE
 
     ! Arrays
 
