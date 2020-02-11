@@ -113,7 +113,7 @@ MODULE AEROSOL_MOD
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -219,7 +219,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1080,7 +1080,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2240,7 +2240,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2464,7 +2464,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2548,7 +2548,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Feb 2018 - R. Yantosca - Initial version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -64,7 +64,7 @@ MODULE HCOI_GC_Diagn_Mod
 !
 ! !REVISION HISTORY:
 !  04 May 2014 - C. Keller   - Initial version.
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,7 +115,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Sep 2013 - C. Keller   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,7 +249,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Sep 2014 - C. Keller   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -737,7 +737,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Aug 2014 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -918,7 +918,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Aug 2014 - M. Sulprizio- Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1362,7 +1362,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Sep 2014 - J. Kodros - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

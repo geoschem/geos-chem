@@ -53,7 +53,7 @@
 # the user's input, and will make errors less likely.
 #
 # !REVISION HISTORY:
-#  See the Git history with the gitk browser!
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

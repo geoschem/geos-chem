@@ -90,7 +90,7 @@
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,7 +128,7 @@
 !
 ! !REVISION HISTORY:
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

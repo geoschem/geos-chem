@@ -122,7 +122,7 @@ MODULE HCOX_MEGAN_MOD
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (6/2003).  Updated to
 !        latest algorithm and modified for the standard code by May Fu
 !        (11/2004).
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -312,7 +312,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Aug 2013 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1535,7 +1535,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Original code by Dorian Abbot (9/2003).  Updated to the latest
 !        algorithm and modified for the standard code by May Fu (11/20/04)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1793,7 +1793,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) Created by dbm 07/2012
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2034,7 +2034,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) Created 11/2012 by dbm
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2155,7 +2155,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Code was taken & adapted directly from the MEGAN v2.1 source code.
 !      (mpb,2009)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2285,7 +2285,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) This code was taken directly from the MEGAN v2.1 source code.(mpb,2009)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2353,7 +2353,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) Original code by Michael Barkley (2009).
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2420,7 +2420,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Includes the latest MEGAN v2.1 temperature algorithm (mpb, 2009).
 !       Note, this temp-dependence is the same for the PCEEA & hybrid models.
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2494,7 +2494,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard
 !        code by May Fu (11/2004)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2567,7 +2567,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Original code by Dorian Abbot (9/2003). Modified for the standard
 !        code by May Fu (11/2004)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2686,7 +2686,7 @@ CONTAINS
 !  (1 ) Created by dbm (6/2012). We are not currently using a soil moisture
 !       effect for isoprene. For all compounds other than acetaldehyde and
 !       ethanol, gamma_sm =1 presently.
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2771,7 +2771,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) Implemented in the standard code by A. Tai (Jun 2012).
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2893,7 +2893,7 @@ CONTAINS
 !        conifer tree, etc.) then to be correct we should have a
 !        different CCE for each canopy type for each compound class
 !        (which would be 160 slightly different values of CCE)."
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3029,7 +3029,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2014 - C. Keller    - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3129,7 +3129,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard
 !        code by May Fu (11/2004)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3672,7 +3672,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Aug 2013 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4769,7 +4769,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Aug 2013 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4803,7 +4803,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4866,7 +4866,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4934,7 +4934,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

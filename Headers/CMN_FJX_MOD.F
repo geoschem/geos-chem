@@ -340,7 +340,7 @@
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -537,7 +537,7 @@
 !
 ! !REVISION HISTORY:
 !  21 Feb 2014 - M. Sulprizio- Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

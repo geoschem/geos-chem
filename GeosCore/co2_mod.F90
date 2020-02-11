@@ -98,7 +98,7 @@ MODULE CO2_MOD
 !                                                                             .
 ! !REVISION HISTORY:
 !  16 Aug 2005 - P. Suntharalingam - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -173,7 +173,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2005 - P. Suntharalingam - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -363,7 +363,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -588,7 +588,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -744,7 +744,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -963,7 +963,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1060,7 +1060,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -38,7 +38,7 @@ MODULE HCO_EMISLIST_MOD
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller   - Initialization
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -84,7 +84,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,7 +181,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Dec 2012 - C. Keller - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -359,7 +359,7 @@ CONTAINS
 !!
 !! !REVISION HISTORY:
 !!  20 Apr 2013 - C. Keller - Initial version
-!!  See the Gitk browser for complete history
+!!  See https://github.com/geoschem/geos-chem for complete history
 !!EOP
 !!------------------------------------------------------------------------------
 !!BOC
@@ -437,7 +437,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - C. Keller - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -714,7 +714,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Sep 2013 - C. Keller - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -839,7 +839,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Sep 2013 - C. Keller - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

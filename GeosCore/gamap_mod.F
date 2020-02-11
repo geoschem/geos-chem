@@ -46,7 +46,7 @@
 !
 ! !REVISION HISTORY:
 !  03 May 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,7 +133,7 @@
 !
 ! !REVISION HISTORY:
 !  03 May 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,7 +185,7 @@
 !
 ! !REVISION HISTORY:
 !  03 May 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -294,7 +294,7 @@
 !
 ! !REVISION HISTORY:
 !  21 Apr 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -684,7 +684,7 @@
 !
 ! !REVISION HISTORY:
 !  17 Oct 1996 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1060,7 +1060,7 @@
 !
 ! !REVISION HISTORY:
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4520,7 +4520,7 @@
 !
 ! !REVISION HISTORY:
 !  22 Apr 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

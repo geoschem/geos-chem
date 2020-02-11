@@ -113,7 +113,7 @@ MODULE Registry_Mod
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,7 +203,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -513,7 +513,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -894,7 +894,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1164,7 +1164,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1228,7 +1228,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1318,7 +1318,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1411,7 +1411,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1499,7 +1499,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

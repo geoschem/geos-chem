@@ -31,7 +31,7 @@ MODULE FlexChem_Mod
 !
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,7 +151,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -403,7 +403,7 @@ CONTAINS
     ! (rjp, tdf, bmy, 4/1/04)
     !=======================================================================
     IF ( Input_Opt%LDUST ) THEN
-       CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Chm,  State_Diag,    &
+       CALL RDUST_ONLINE( Input_Opt, State_Chm,  State_Diag, &
                           State_Grid, State_Met, SOILDUST,   WAVELENGTH, RC )
 
        ! Trap potential errors
@@ -1366,7 +1366,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1620,7 +1620,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1835,7 +1835,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Aug 2016 - M. Sulprizio- Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

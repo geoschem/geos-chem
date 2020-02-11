@@ -106,7 +106,7 @@
 !  (3 ) HgP               : Particulate mercury
 !
 !  NOTES:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !******************************************************************************
 !
       USE inquireMod,    ONLY : findFreeLUN
@@ -931,7 +931,7 @@
 !____________________________________________________________________________
 !
 !  NOTES:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2314,7 +2314,7 @@
 !  (1 ) THISMONTH (INTEGER) : Month to read fields (1-12)
 !
 !  NOTES:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !******************************************************************************
 !
 ! !USES:
@@ -2598,7 +2598,7 @@
 !  (4 ) MLDnew (REAL(fpp)): New ocean mixed layer depth [m]
 !
 !  NOTES:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -3436,7 +3436,7 @@
 !  (sas, cdh, bmy, 1/19/05, 3/28/06)
 !
 !  NOTES:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !******************************************************************************
 !
 ! !USES:

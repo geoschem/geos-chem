@@ -30,7 +30,7 @@ MODULE CONVECTION_MOD
 !
 ! !REVISION HISTORY:
 !  27 Jan 2004 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -90,7 +90,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 May 2005 - S. Wu - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -475,7 +475,7 @@ CONTAINS
 !  routines ADD_Hg2_
 !
 ! !REVISION HISTORY:
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

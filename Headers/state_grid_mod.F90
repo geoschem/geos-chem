@@ -86,7 +86,7 @@ MODULE State_Grid_Mod
 !
 ! !REVISION HISTORY:
 !  11 Nov 2018 - M. Sulprizio- Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,7 +128,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Nov 2018 - M. Sulprizio- Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,7 +221,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  10 Mar 2019 - M. Sulprizio- Initial version, based on Init_Grid formerly in
 !                              gc_grid_mod.F90
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -309,7 +309,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Nov 2018 - M. Sulprizio- Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

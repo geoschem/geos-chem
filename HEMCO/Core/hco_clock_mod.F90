@@ -308,7 +308,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Feb 2015 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

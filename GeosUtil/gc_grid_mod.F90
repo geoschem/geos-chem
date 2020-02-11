@@ -40,7 +40,7 @@ MODULE GC_Grid_Mod
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,7 +86,7 @@ CONTAINS
 !  22 May 2019 - M. Sulprizio- Initial version: Consolidated Compute_Grid and
 !                              DoGridComputation into single routine that
 !                              computes fields in State_Grid.
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -509,7 +509,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Jan 2014 - C. Keller   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -626,7 +626,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Nov 2018 - H.P. Lin    - Initial version based on SetGridFromCtr
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -720,7 +720,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - M. Sulprizio- Initial version based on routine from adjoint
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

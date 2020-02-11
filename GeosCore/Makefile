@@ -72,7 +72,7 @@
 #
 # !REVISION HISTORY:
 #  16 Sep 2009 - R. Yantosca - Initial version
-#  See the gitk browser for complete history
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

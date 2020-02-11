@@ -35,7 +35,7 @@
 #
 # !REVISION HISTORY:
 #  23 Aug 2011 - M. Long     - Initial version
-#  See the Git history with the gitk browser!
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

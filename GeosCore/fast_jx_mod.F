@@ -51,7 +51,7 @@
       PRIVATE :: SET_AER
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -169,7 +169,7 @@
 !                           3 - Maximum Random Overlap (computation intensive)
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -573,7 +573,7 @@
 !
 ! !REVISION HISTORY:
 !  27 Mar 2013 - S. D. Eastham - Copied from GEOS-Chem v9-01-03
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -867,7 +867,7 @@ c---SUMBX = flux from Lambert reflected I+
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1132,7 +1132,7 @@ C------------lower boundary, 2nd-order, A-matrix is full (AA)
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1251,7 +1251,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1338,7 +1338,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1486,7 +1486,7 @@ c  Lowest level intersected by emergent beam
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1646,7 +1646,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1700,7 +1700,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2008,7 +2008,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2323,7 +2323,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Adapted from GEOS-Chem v9-1-3
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2486,7 +2486,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY:
 !  10 May 2010 - C. Heald      - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2703,7 +2703,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D. Ridley   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2931,7 +2931,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3318,7 +3318,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Adapted from Fast-JX v7.0
-!  See the Git history with the gitk browser
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3399,7 +3399,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4613,7 +4613,7 @@ C---Always does PL(2) = P[1]
 !
 ! !REVISION HISTORY:
 !  30 Mar 2013 - S. D. Eastham - Adapted from J. Mao code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4885,7 +4885,7 @@ C---Always does PL(2) = P[1]
 !
 ! !REVISION HISTORY:
 !  31 Mar 2013 - S. D. Eastham - Adapted from J. Mao FJX v6.2 implementation
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4994,7 +4994,7 @@ C---Always does PL(2) = P[1]
 !
 ! !REVISION HISTORY:
 !  19 Apr 2012 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5197,7 +5197,7 @@ C---Always does PL(2) = P[1]
 !  %%%% NOT KEEP ANY CONFLICTING OR INCORRECT INFORMATION (bmy, 3/28/16) %%%%
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -54,7 +54,7 @@
 !
 ! !REVISION HISTORY:
 !  28 Jul 2000- R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -131,7 +131,7 @@
 !
 ! !REVISION HISTORY:
 !  19 Oct 1999 - Q. Li, B. Duncan, B. Field - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

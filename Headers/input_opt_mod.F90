@@ -415,7 +415,7 @@ MODULE Input_Opt_Mod
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -456,7 +456,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Nov 2012 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -967,7 +967,7 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  26 Jan 2018 - M. Sulprizio- Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1030,7 +1030,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Nov 2012 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -171,7 +171,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Dec 2004 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -449,7 +449,7 @@
 !
 ! !REVISION HISTORY:
 !  01 Oct 1995 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1593,7 +1593,7 @@
 !
 !  !REVISION HISTORY:
 !  19 November 2014 - H. Horowitz (HMH) - initial version finalized
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1863,7 +1863,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Jul 2006 - C. Holmes   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2122,7 +2122,7 @@
 !
 !  !REVISION HISTORY:
 !   21 Nov 2014 - H. Horowitz (HMH) - first version, copied from get_hgbry_rat
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2295,7 +2295,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 !  !REVISION HISTORY:
 !  03 May 2013 - E. Corbitt - initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2494,7 +2494,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  03 Jun 2013 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2756,7 +2756,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  27 Aug 2009 - C. Holmes   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2864,7 +2864,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  21 Jan 2005 - N. (Eckley) Selin, C. Holmes - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3807,7 +3807,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4053,7 +4053,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4271,7 +4271,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Dec 2004 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4480,7 +4480,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Dec 2002 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4541,7 +4541,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4623,7 +4623,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  07 Dec 2004 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4710,7 +4710,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Oct 2014 - H. Horowitz - initial version copied from get_br.
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4813,7 +4813,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  19 Nov 2014 - H. Horowitz - initial version copied from get_clO.
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4914,7 +4914,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  ca. 2014 - H. Horowitz - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5011,7 +5011,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  ca. 2014    - H. Horowitz - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5135,7 +5135,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Jul 2006 - C. Holmes   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5449,7 +5449,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  16 Dec 2002 - R. Park & R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5607,7 +5607,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  25 Nov 2009 - C. Holmes   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5723,7 +5723,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !  clear skies. J-NO2 ~ exp( -0.360 * sec(SZA) )
 !
 ! !REVISION HISTORY:
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5839,7 +5839,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  12-Jul-2010 - H. Amos     - Add option to partition Hg2 according to Fg/Fp
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5927,7 +5927,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  11 Jan 2011 - Y. Zhang    - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5995,7 +5995,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  11 Jan 2011 - Y. Zhang    - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6110,7 +6110,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  12 Aug 2015 - H. Horowitz - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -6466,7 +6466,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6579,7 +6579,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  02 Dec 2004 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7216,7 +7216,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7418,7 +7418,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  06 Dec 2004 - N. (Eckley) Selin - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

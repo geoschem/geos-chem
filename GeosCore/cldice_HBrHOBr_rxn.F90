@@ -63,7 +63,7 @@ SUBROUTINE CLDICE_HBrHOBr_RXN( I, J, L, DENAIR, QI, hbr, hobr, &
 !
 ! !REVISION HISTORY:
 !  16 Jun 2011 - J. Parrella - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

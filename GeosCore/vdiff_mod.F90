@@ -127,7 +127,7 @@ MODULE VDIFF_MOD
 !
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,7 +280,7 @@ contains
 !  f = sqrt(1 - 18*ri)
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1292,7 +1292,7 @@ contains
 !  Richtmyer and Morton (1967,pp 198-199)
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1398,7 +1398,7 @@ contains
          as2(:,:,:,:)     ! moist, tracers after vert. diff
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1629,7 +1629,7 @@ contains
          cgq(plonl,plevp,pcnst)  ! counter-gradient term for constituents
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1706,7 +1706,7 @@ contains
     INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1881,7 +1881,7 @@ contains
 !      to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
 
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2727,7 +2727,7 @@ contains
 !
 ! !REVISION HISTORY:
 !  11 Feb 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

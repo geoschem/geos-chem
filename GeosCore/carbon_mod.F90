@@ -135,7 +135,7 @@ MODULE CARBON_MOD
 !
 ! !REVISION HISTORY:
 !  01 Apr 1994 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -363,7 +363,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 1994 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -936,7 +936,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1063,7 +1063,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1157,7 +1157,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1284,7 +1284,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1373,7 +1373,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  11 Sep 2007 - W. Trivitayanurak - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1575,7 +1575,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Jul 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2275,7 +2275,7 @@ CONTAINS
 !
 !  NOTES:
 !  08 Jul 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2369,7 +2369,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Jul 2004 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2513,7 +2513,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Jul 2004 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2642,7 +2642,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Jul 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2932,7 +2932,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Nov 2006 - D. Henze - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3346,7 +3346,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jul 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3735,7 +3735,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 May 2010 - H.O.T. Pye - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3884,7 +3884,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4284,7 +4284,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Oct 2007 - W. Trivitayanurak - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4565,7 +4565,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Sep 2007 - W. Trivitayanurak - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4669,7 +4669,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Nov 2014 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4841,7 +4841,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Jun 2015 - J. Kodros   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5168,7 +5168,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Sep 2007 - W. Trivitayanurak - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5272,7 +5272,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Dec 2002 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5420,7 +5420,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  09 Jul 2004 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5536,7 +5536,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Dec 2002 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5677,7 +5677,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Dec 2002 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5810,7 +5810,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Nov 2006 - D. Henze - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6028,7 +6028,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Jun 2006 - D. Henze - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6143,7 +6143,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 May 2010 - H.O.T. Pye - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6464,7 +6464,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  17 May 2010 - H.O.T. Pye - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6590,7 +6590,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 May 2010 - H.O.T. Pye - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7119,7 +7119,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  07 May 2010 - H.O.T. Pye - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7206,7 +7206,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 May 2010 - H.O.T. Pye - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7295,7 +7295,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 May 2010 - H.O.T. Pye - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7407,7 +7407,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Jan 2017 - E. Ramnarine - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7548,7 +7548,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7840,7 +7840,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7927,7 +7927,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8035,7 +8035,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8136,7 +8136,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8245,7 +8245,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8349,7 +8349,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8597,7 +8597,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Feb 2011 - R. Yantosca - Initial version, from G. Luo
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

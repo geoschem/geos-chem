@@ -39,7 +39,7 @@
 !
 ! !REVISION HISTORY:
 !  17 Jan 2001- J. Wang, B. Duncan, R. Yantosca -- Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -128,7 +128,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -614,7 +614,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -861,7 +861,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1036,7 +1036,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1208,7 +1208,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f"
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1345,7 +1345,7 @@
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1436,7 +1436,7 @@
 !  This routine is called from GC_INIT_EXTRA (in GeosCore/input_mod.f)
 !
 ! !REVISION HISTORY:
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1506,7 +1506,7 @@
       INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

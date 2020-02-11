@@ -58,7 +58,7 @@
 !  then you will have to make your own modifications in this module.
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,7 +212,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -397,7 +397,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -861,7 +861,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1111,7 +1111,7 @@
 !
 ! !REVISION HISTORY:
 !  01 Aug 2003 - M. Evans    - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1222,7 +1222,7 @@
 !
 ! !REVISION HISTORY:
 !  01 Jun 2009 - F. Paulot   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1332,7 +1332,7 @@
 !
 ! !REVISION HISTORY:
 !  01 Jun 2009 - F. Paulot   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1458,7 +1458,7 @@
 !
 ! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans    - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2219,7 +2219,7 @@
 !
 ! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans    - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2298,7 +2298,7 @@
 !
 ! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans    - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2390,7 +2390,7 @@
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2431,7 +2431,7 @@
 !
 ! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans    - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

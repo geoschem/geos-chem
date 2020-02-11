@@ -50,7 +50,7 @@ MODULE SfcVmr_Mod
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version.
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,7 +113,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2019 - C. Keller   - Updated version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -262,7 +262,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -377,7 +377,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2019 - C. Keller   - Updated version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

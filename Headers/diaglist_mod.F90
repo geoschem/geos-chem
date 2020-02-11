@@ -108,7 +108,7 @@ MODULE DiagList_Mod
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -159,7 +159,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -856,7 +856,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -914,7 +914,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -965,7 +965,7 @@ CONTAINS
 !!
 !! !REVISION HISTORY:
 !!  25 Jan 2018 - E. Lundgren - Initial version
-!!  See the Gitk browser for complete history
+!!  See https://github.com/geoschem/geos-chem for complete history
 !!EOP
 !!------------------------------------------------------------------------------
 !!BOC
@@ -1030,7 +1030,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1103,7 +1103,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1158,7 +1158,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1211,7 +1211,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1271,7 +1271,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1332,7 +1332,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1444,7 +1444,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1525,7 +1525,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1590,7 +1590,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1652,7 +1652,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

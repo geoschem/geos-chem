@@ -61,7 +61,7 @@
 
 ! !REVISION HISTORY:
 !  16 Jun 1998 - I. Bey, R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

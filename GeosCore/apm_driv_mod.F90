@@ -162,7 +162,7 @@ MODULE APM_DRIV_MOD
 !
 ! !REVISION HISTORY:
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -378,7 +378,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3676,7 +3676,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Aug 2008 - F. Yu - Initial version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5155,7 +5155,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  29 Nov 2000 - R. Yantosca - Initial Version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5221,7 +5221,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Dec 2002 - R. Yantosca - Initial Version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5315,7 +5315,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Dec 2002 - R. Yantosca - Initial Version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5472,7 +5472,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  Aug 2012 - F. Yu - Initial Version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5573,7 +5573,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Aug 2008 - F. Yu       - Initial version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6217,7 +6217,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Aug 2008 - F. Yu       - Initial version
-!  See the gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

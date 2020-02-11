@@ -189,7 +189,7 @@ MODULE Species_Mod
 !
 ! !REVISION HISTORY:
 !  28 Feb 2014 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -228,7 +228,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,7 +281,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -439,7 +439,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1085,7 +1085,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Jul 2015 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1283,7 +1283,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Sep 2015 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

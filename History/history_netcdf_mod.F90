@@ -42,7 +42,7 @@ MODULE History_Netcdf_Mod
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,7 +86,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Aug 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,7 +197,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -669,7 +669,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -953,7 +953,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1081,7 +1081,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1324,7 +1324,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1560,7 +1560,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  10 Aug 2017 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1619,7 +1619,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Jun 2019 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

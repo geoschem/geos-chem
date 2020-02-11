@@ -65,7 +65,7 @@ MODULE DEPO_MERCURY_MOD
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,7 +112,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,7 +148,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,7 +184,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,7 +220,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Jan 2005 - S. Strode, C. Holmes - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -269,7 +269,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Sep 2008 - C. Holmes   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -392,7 +392,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Sep 2008 - C. Holmes   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,7 +423,6 @@ CONTAINS
 ! !USES:
 !
     USE BPCH2_MOD
-    USE CMN_SIZE_MOD              ! Size parameters
     USE ErrCode_Mod
     USE Input_Opt_Mod,       ONLY : OptInput
     USE inquireMod,          ONLY : findFreeLUN
@@ -445,7 +444,7 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -556,7 +555,6 @@ CONTAINS
 ! !USES:
 !
     USE BPCH2_MOD,            ONLY : OPEN_BPCH2_FOR_READ
-    USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD,            ONLY : DEBUG_MSG
     USE FILE_MOD,             ONLY : IOERROR
@@ -588,7 +586,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -773,7 +771,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 June 2010  - C. Carouge  - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -832,7 +830,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Aug 2010 - S. Strode, C. Holmes - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -892,7 +890,6 @@ CONTAINS
 !
 ! !USES
 !
-    USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ALLOC_ERR
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -915,7 +912,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1038,7 +1035,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

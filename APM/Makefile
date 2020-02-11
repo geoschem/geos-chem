@@ -71,7 +71,7 @@
 # (8) GeosCore/            : "Core" GEOS-Chem modules
 #
 # !REVISION HISTORY: 
-#  See the git history using the gitk browser
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

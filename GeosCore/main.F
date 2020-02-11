@@ -187,7 +187,7 @@
 !     - modification history
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2500,7 +2500,7 @@
       SUBROUTINE Display_Model_Info()
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2626,7 +2626,7 @@
 !
 ! !REVISION HISTORY:
 !  31 Aug 2000 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2656,7 +2656,7 @@
 !
 ! !REVISION HISTORY:
 !  03 May 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2705,7 +2705,7 @@
 !
 ! !REVISION HISTORY:
 !  07 Mar 2012 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2770,7 +2770,7 @@
 !
 ! !REVISION HISTORY:
 !  13 Nov 2019 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2868,7 +2868,7 @@
 !
 ! !REVISION HISTORY:
 !  13 Nov 2019 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2912,7 +2912,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

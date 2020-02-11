@@ -51,7 +51,7 @@ MODULE ObsPack_Mod
 !  04 Jun 2015 - A. Jacobson - Adapted from v10.1 planeflight_mod.f, following
 !                              similar work done in v9.2 by Andrew Schuh.
 !  05 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,7 +110,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  05 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -269,7 +269,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - first version
 !  06 Dec 2018 - R. Yantosca - Implemented into the standard GEOS_Chem code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -622,7 +622,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - first version
 !  05 Dec 2018 - R. Yantosca - Implemented into GEOS-Chem standard code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -796,7 +796,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - First version
 !  06 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1242,7 +1242,7 @@ CONTAINS
 !                                        ct_mod.F, itself modified from
 !                                        planeflight_mod.F
 !  03 Mar 2017 - A. Jacobson - Update to v11 (get species in "v/v dry")
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1448,7 +1448,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  5 Jun 2015 - A. Jacobson - First version
 !  3 Mar 2017 - A. Jacobson - Update to v11 (use State_Met%BXHEIGHT instead of my own hypsometry)
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1572,7 +1572,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Dec 2018 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1647,7 +1647,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Jan 2019 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1848,7 +1848,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Jan 2019 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

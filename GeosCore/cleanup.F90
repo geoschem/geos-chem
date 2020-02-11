@@ -88,7 +88,7 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
 !
 ! !REVISION HISTORY:
 !  29 Nov 1999 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

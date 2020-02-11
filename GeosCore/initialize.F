@@ -58,7 +58,7 @@
 !
 ! !REVISION HISTORY:
 !  15 Jun 1998 - M. Prather  - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

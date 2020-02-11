@@ -50,7 +50,7 @@
       PRIVATE :: FILE_EX_I
 !
 ! !REVISION HISTORY:
-! See the Git history with the gitk browser!
+! See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -83,7 +83,7 @@
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION   ! Descriptive message
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -162,7 +162,7 @@
 !
 ! !REVISION HISTORY:
 !  23 Mar 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,7 +212,7 @@
 !
 ! !REVISION HISTORY:
 !  23 Mar 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
@@ -241,7 +241,7 @@
 !
 ! !REVISION HISTORY:
 !  04 Mar 1998 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

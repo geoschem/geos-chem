@@ -58,7 +58,7 @@
 !
 ! !REVISION HISTORY:
 !  22 Jul 2007 - Win T. - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
