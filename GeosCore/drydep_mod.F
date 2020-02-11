@@ -1711,8 +1711,8 @@
                   !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
                   XMWH2O = H2OMW * 1.e-3_f8
                   RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/
-     C                 DIFFG(TEMPK,PRESSU(I,J),XMW(K))
-     C                 + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
+     C                DIFFG(TEMPK,PRESSU(I,J),XMW(K))
+     C                + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
                   RLUXX = 1.e+12_f8
                   IF (RLU(LDT).LT.9999.e+0_f8)
      C                 RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0(K))
