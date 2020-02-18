@@ -808,25 +808,37 @@
       REAL(f8)               :: I0,I1 !modified bessel functions of
                                       ! first kind order 0 and 1
 
-      ! begin the calculation of k0 by estimating i0
-      coeff = (/1.0,3.5156229,3.0899424,1.2067492,0.2659732,0.360768e-1,
-     &      0.45813e-2/)
-      I0 = poly_fit((input_arg/3.75_f8)**2,coeff)
-      !now we can use this estimate of i0 to calculate k0
-      coeff = (/-0.57721566,0.42278420,0.23069756,0.3488590e-1,
-     &      0.262698e-2,0.10750e-3,0.74e-5/)
-      K0 = (-LOG(0.5_f8*input_arg)*I0)+
-     &        poly_fit(0.25_f8*input_arg**2,coeff)
+      ! determine which fit method is best for the bessel functions
+      IF (input_arg <= 2.0_f8) THEN
+          ! begin the calculation of k0 by estimating i0
+          coeff = (/1.0,3.5156229,3.0899424,1.2067492,0.2659732,0.360768e-1,
+     &              0.45813e-2/)
+          I0 = poly_fit((input_arg/3.75_f8)**2,coeff)
+          !now we can use this estimate of i0 to calculate k0
+          coeff = (/-0.57721566,0.42278420,0.23069756,0.3488590e-1,
+     &               0.262698e-2,0.10750e-3,0.74e-5/)
+          K0 = (-LOG(0.5_f8*input_arg)*I0)+
+     &            poly_fit(0.25_f8*input_arg**2,coeff)
 
-      !begin the calculation of k0 by estimating i1
-      coeff = (/0.5,0.87890594,0.51498869,0.15084934,0.2658733e-1,
-     &      0.301532e-2,0.32411e-3/)
-      I1 = input_arg*poly_fit((input_arg/3.75_f8)**2,coeff)
-      ! now we can use this to estimate to get a value for k1
-      coeff = (/1.0,0.15443144,-0.67278579,-0.18156897,-0.1919402e-1,
-     &      -0.110404e-2,-0.4686e-4/)
-      K1 = (LOG(0.5_f8*input_arg)*I1)+(1.0_f8/input_arg)*
-     &      poly_fit(0.25_f8*input_arg**2,coeff)
+          !begin the calculation of k0 by estimating i1
+          coeff = (/0.5,0.87890594,0.51498869,0.15084934,0.2658733e-1,
+     &              0.301532e-2,0.32411e-3/)
+          I1 = input_arg*poly_fit((input_arg/3.75_f8)**2,coeff)
+          ! now we can use this to estimate to get a value for k1
+          coeff = (/1.0,0.15443144,-0.67278579,-0.18156897,
+     &             -0.1919402e-1,-0.110404e-2,-0.4686e-4/)
+          K1 = (LOG(0.5_f8*input_arg)*I1)+(1.0_f8/input_arg)*
+     &          poly_fit(0.25_f8*input_arg**2,coeff)
+      ELSE
+          coeff = (/1.25331414,-0.7832358e-1,0.2189568e-1,-0.1062446e-1
+     &             ,0.587872e-2,-0.251540e-2,0.53208e-3/)
+          K0 = (EXP(-input_arg)/SQRT(input_arg))*
+     &          poly((2.0_f8/input_arg),coeff)
+          coeff = (/1.25331414,0.23498619,-0.3655620e-1,0.1504268e-1,
+     &             -0.780353e-2,0.325614e-2,-0.68245e-3/)
+          K1 = (EXP(-input_arg)/SQRT(input_arg))*
+     &          poly((2.0_f8/input_arg),coeff)
+      ENDIF
 
       END SUBROUTINE K0K1_APROX
 
