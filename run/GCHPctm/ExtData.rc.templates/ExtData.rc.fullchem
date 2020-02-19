@@ -1373,15 +1373,15 @@ MODIS_CHLR  1 N Y F%y4-%m2-01T00:00:00 none none MODIS ./MainDataDir/MODIS_CHLR/
 #==============================================================================
 # --- MEGAN biogenic emissions (Extension 108)
 #==============================================================================
-MEGAN_AEF_ISOP               kgC/m2/s N Y - none none AEF_ISOPRENE             ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
-MEGAN_AEF_MBOX               kgC/m2/s N Y - none none AEF_MBO                  ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
-MEGAN_AEF_APIN               kgC/m2/s N Y - none none AEF_ALPHA_PINENE         ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
-MEGAN_AEF_BPIN               kgC/m2/s N Y - none none AEF_BETA_PINENE          ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
-MEGAN_AEF_CARE               kgC/m2/s N Y - none none AEF_CARENE               ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
-MEGAN_AEF_LIMO               kgC/m2/s N Y - none none AEF_LIMONENE             ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
-MEGAN_AEF_MYRC               kgC/m2/s N Y - none none AEF_MYRCENE              ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
-MEGAN_AEF_OCIM               kgC/m2/s N Y - none none AEF_OCIMENE              ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
-MEGAN_AEF_SABI               kgC/m2/s N Y - none none AEF_SABINENE             ./MainDataDir/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_ISOP               kgC/m2/s N Y - none none AEF_ISOPRENE             ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_MBOX               kgC/m2/s N Y - none none AEF_MBO                  ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_APIN               kgC/m2/s N Y - none none AEF_ALPHA_PINENE         ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_BPIN               kgC/m2/s N Y - none none AEF_BETA_PINENE          ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_CARE               kgC/m2/s N Y - none none AEF_CARENE               ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_LIMO               kgC/m2/s N Y - none none AEF_LIMONENE             ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_MYRC               kgC/m2/s N Y - none none AEF_MYRCENE              ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_OCIM               kgC/m2/s N Y - none none AEF_OCIMENE              ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
+MEGAN_AEF_SABI               kgC/m2/s N Y - none none AEF_SABINENE             ./MainDataDir/MEGAN/v2020-02/MEGAN2.1_EF.geos.025x03125.nc
 CLM4_PFT_BARE                1        N Y - none none PFT_BARE                 ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
 CLM4_PFT_NDLF_EVGN_TMPT_TREE 1        N Y - none none PFT_NDLF_EVGN_TMPT_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
 CLM4_PFT_NDLF_EVGN_BORL_TREE 1        N Y - none none PFT_NDLF_EVGN_BORL_TREE  ./MainDataDir/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc       
@@ -1723,7 +1723,7 @@ NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./MainDataDir/NOAA_
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 (pre 1970) (CMIP6_SFC_CH4) ---
 #==============================================================================
-#CMIP6_Sfc_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none CH4 ./MainDataDir/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+CMIP6_Sfc_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none CH4 ./MainDataDir/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
 
 #==============================================================================
 # --- Surface VMR (SfcVMR) ---
