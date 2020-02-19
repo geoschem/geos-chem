@@ -272,7 +272,7 @@ endif
 # %%%%% MODEL_GCHP %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(MODEL_GCHP)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -MODEL_GCHP
+  USER_DEFS          += -DMODEL_GCHP
 endif
 
 # %%%%% EXTERNAL_FORCING %%%%%
