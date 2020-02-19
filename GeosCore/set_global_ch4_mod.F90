@@ -146,16 +146,20 @@ CONTAINS
        IF ( HcoState%Clock%ThisEYear > 1978 ) THEN
            ! Use the NOAA spatially resolved data where available
            CALL HCO_GetPtr( am_I_Root, HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4! Make sure it is turned on in HEMCO_Config.rc.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ELSE
            ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
            ! https://doi.org/10.5194/gmd-10-2057-2017a
            CALL HCO_GetPtr( am_I_Root, HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC )
-       ENDIF
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Cannot get pointer to CMIP6_Sfc_CH4! Make sure it is turned on in HEMCO_Config.rc.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Reset first-time flag
