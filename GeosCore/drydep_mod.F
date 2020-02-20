@@ -811,8 +811,8 @@
       ! determine which fit method is best for the bessel functions
       IF (input_arg <= 2.0_f8) THEN
           ! begin the calculation of k0 by estimating i0
-          coeff = (/1.0,3.5156229,3.0899424,1.2067492,0.2659732,0.360768e-1,
-     &              0.45813e-2/)
+          coeff = (/1.0,3.5156229,3.0899424,1.2067492,0.2659732,
+     &              0.360768e-1,0.45813e-2/)
           I0 = poly_fit((input_arg/3.75_f8)**2,coeff)
           !now we can use this estimate of i0 to calculate k0
           coeff = (/-0.57721566,0.42278420,0.23069756,0.3488590e-1,
@@ -829,15 +829,15 @@
      &             -0.1919402e-1,-0.110404e-2,-0.4686e-4/)
           K1 = (LOG(0.5_f8*input_arg)*I1)+(1.0_f8/input_arg)*
      &          poly_fit(0.25_f8*input_arg**2,coeff)
-      ELSE
+      ELSE !use a different approximation that doesn't need I0/I1
           coeff = (/1.25331414,-0.7832358e-1,0.2189568e-1,-0.1062446e-1
      &             ,0.587872e-2,-0.251540e-2,0.53208e-3/)
           K0 = (EXP(-input_arg)/SQRT(input_arg))*
-     &          poly((2.0_f8/input_arg),coeff)
+     &          poly_fit((2.0_f8/input_arg),coeff)
           coeff = (/1.25331414,0.23498619,-0.3655620e-1,0.1504268e-1,
      &             -0.780353e-2,0.325614e-2,-0.68245e-3/)
           K1 = (EXP(-input_arg)/SQRT(input_arg))*
-     &          poly((2.0_f8/input_arg),coeff)
+     &          poly_fit((2.0_f8/input_arg),coeff)
       ENDIF
 
       END SUBROUTINE K0K1_APROX
