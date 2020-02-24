@@ -63,9 +63,11 @@
       PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
       PUBLIC  :: GET_I3_TIME
+      PUBLIC  :: GET_BC_TIME
       PUBLIC  :: GET_FIRST_A1_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
       PUBLIC  :: GET_FIRST_I3_TIME
+      PUBLIC  :: GET_FIRST_BC_TIME
       PUBLIC  :: ITS_TIME_FOR_CHEM
       PUBLIC  :: ITS_TIME_FOR_CONV
       PUBLIC  :: ITS_TIME_FOR_DYN
@@ -77,6 +79,7 @@
       PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_I3
+      PUBLIC  :: ITS_TIME_FOR_BC
       PUBLIC  :: ITS_TIME_FOR_EXIT
       PUBLIC  :: ITS_A_LEAPYEAR
       PUBLIC  :: ITS_A_NEW_YEAR
@@ -2440,6 +2443,74 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Get_bc_time
+!
+! !DESCRIPTION: Function GET\_BC\_TIME returns the correct YYYYMMDD and HHMMSS
+!  values that are needed to read in the next 3-hour boundary condition fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_BC_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+!
+! !REVISION HISTORY:
+!  24 Feb 2020 - M. Sulprizio- Initial version, based on GET_I3_TIME
+!  See the Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: HH, MM, SS, SECS, OFFSET
+
+      !=================================================================
+      ! ALL MET FIELDS:
+      !=================================================================
+
+      IF ( FIRST ) THEN
+
+         !--------------------------------------------------------------
+         ! FIRST-TIME ONLY!  Get the proper # of hours until the next
+         ! BC time.  Also works for start times other than 0 GMT.
+         !--------------------------------------------------------------
+
+         ! Split NHMS into hours, mins, seconds
+         CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+         ! Compute seconds elapsed in the 3-hour interval
+         SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
+
+         ! Compute offset to next I-3 time
+         OFFSET = 10800 - SECS
+
+         ! Get YYYY/MM/DD and hh:mm:ss to next BC time
+         DATE   = GET_TIME_AHEAD( OFFSET )
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+
+      ELSE
+
+         !--------------------------------------------------------------
+         ! Other than the 1st time: Search 180 mins ahead
+         !--------------------------------------------------------------
+
+         ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs)
+         ! ahead of time
+         DATE = GET_TIME_AHEAD( 10800 )
+
+      ENDIF
+
+      END FUNCTION GET_BC_TIME
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Get_first_a1_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_A1\_TIME returns the correct YYYYMMDD
@@ -2561,6 +2632,54 @@
       DATE   = GET_TIME_AHEAD( OFFSET )
 
       END FUNCTION GET_FIRST_I3_TIME
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_first_bc_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_BC\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values the first time that boundary conditions are read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_FIRST_BC_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+!
+! !REVISION HISTORY:
+!  24 Feb 2020 - M. Sulprizio- Initial version, based on GET_FIRST_3_TIME
+!  See the Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, SECS, OFFSET
+
+      !==================================================================
+      ! Compute first time for boundary conditions
+      !==================================================================
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+      ! Compute seconds elapsed in the 3-hour interval
+      SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
+
+      ! Compute offset to nearest I-6 time
+      OFFSET = -SECS
+
+      ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
+      DATE   = GET_TIME_AHEAD( OFFSET )
+
+      END FUNCTION GET_FIRST_BC_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3014,6 +3133,43 @@
       FIRST = .FALSE.
 
       END FUNCTION ITS_TIME_FOR_I3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Its_Time_For_bc
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_BC returns TRUE if it is time to read
+!  in 3-hourly boundary conditions and FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_BC() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
+!  24 Feb 2020 - M. Sulprizio- Initial version, based on ITS_TIME_FOR_I3
+!  See the Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARAIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+
+      ! We read in boundary conditions at 00, 03, 06, 09, 12, 15, 18, 21 GMT
+      FLAG = ( ( MOD( NHMS, 030000 ) == 0 ) .or. FIRST )
+
+      FIRST = .FALSE.
+
+      END FUNCTION ITS_TIME_FOR_BC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

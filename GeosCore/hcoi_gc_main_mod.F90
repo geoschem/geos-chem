@@ -638,7 +638,7 @@ CONTAINS
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
-    USE Time_Mod,        ONLY : Get_Tau
+    USE Time_Mod
 
     ! HEMCO routines
     USE HCO_Clock_Mod,   ONLY : HcoClock_Get
@@ -689,6 +689,9 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ThisLoc, Instr
     CHARACTER(LEN=512) :: ErrMsg
+
+    ! Arrays
+    INTEGER            :: D(2)               ! Variable for date and time
 
     !=======================================================================
     ! HCOI_GC_RUN begins here!
@@ -852,11 +855,18 @@ CONTAINS
     !=======================================================================
     ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
-    IF ( State_Grid%NestedGrid        .and.                                 &
-         (Phase == 0 .or. PHASE == 1) .and. notDryRun ) THEN
+
+    ! Assume BCs are 3-hourly and only get from HEMCO when needed
+    IF ( PHASE == 0 ) THEN
+       D = GET_FIRST_BC_TIME()
+    ELSE
+       D = GET_BC_TIME()
+    ENDIF
+    IF ( State_Grid%NestedGrid .and. notDryRun .and. &
+       ( Phase == 0 .or. ( PHASE == 1 .and. ITS_TIME_FOR_BC() ) ) ) THEN
        IF ( Input_Opt%LTRAN ) THEN
           CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm,   &
-                                       State_Grid, State_Met, RC           )
+                                        State_Grid, State_Met, D(1), D(2), RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Get_Boundary_Conditions"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3483,7 +3493,7 @@ CONTAINS
    ENDIF
    IF ( PHASE == 0 .or. ITS_TIME_FOR_A1() .and. &
         .not. ITS_TIME_FOR_EXIT() ) THEN
-      CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Grid, State_Met )
+      CALL FlexGrid_Read_A1( D(1), D(2), Input_Opt, State_Grid, State_Met )
    ENDIF
 
    !----------------------------------
@@ -3496,7 +3506,7 @@ CONTAINS
    ENDIF
    IF ( PHASE == 0 .or. ITS_TIME_FOR_A3() .and. &
         .not. ITS_TIME_FOR_EXIT() ) THEN
-      CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Grid, State_Met )
+      CALL FlexGrid_Read_A3( D(1), D(2), Input_Opt, State_Grid, State_Met )
    ENDIF
 
    !----------------------------------
@@ -4530,7 +4540,8 @@ CONTAINS
 ! !INTERFACE:
 !
  SUBROUTINE Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
-                                     State_Grid, State_Met, RC )
+                                     State_Grid, State_Met,            &
+                                     YYYYMMDD,   HHMMSS,    RC )
 !
 ! ! USES:
 !
@@ -4550,6 +4561,8 @@ CONTAINS
    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
    TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
    TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
+   INTEGER,          INTENT(IN   )          :: YYYYMMDD   ! GMT date
+   INTEGER,          INTENT(IN   )          :: HHMMSS     ! GMT time
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4569,6 +4582,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    INTEGER              :: I, J, L, N, NA     ! lon, lat, lev, spc indexes
+   INTEGER              :: t_index            ! Time index
    LOGICAL              :: FOUND              ! Found in restart file?
    CHARACTER(LEN=60)    :: Prefix             ! utility string
    CHARACTER(LEN=255)   :: LOC                ! routine location
@@ -4586,7 +4600,7 @@ CONTAINS
    TYPE(Species), POINTER :: SpcInfo
 
    !=================================================================
-   ! READ_BOUNDARY_CONDITIONS begins here!
+   ! GET_BOUNDARY_CONDITIONS begins here!
    !=================================================================
 
    ! Assume success
@@ -4601,6 +4615,17 @@ CONTAINS
 
    ! Name of this routine
    LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F)'
+
+   ! Find the proper time-slice to read from disk
+   t_index = ( HHMMSS / 030000 ) + 1
+
+   ! Stop w/ error if the time index is invalid
+   IF ( t_index < 1 .or. t_index > 8 ) THEN
+      WRITE( MSG, 100 ) t_index
+100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+      CALL GC_Error( MSG, RC, LOC)
+      RETURN
+   ENDIF
 
    !=================================================================
    ! Read species concentrations from NetCDF [mol/mol] and
@@ -4637,7 +4662,7 @@ CONTAINS
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       Ptr3D,     RC,       FOUND=FOUND )
+                       Ptr3D,     RC,       TIDX=t_index, FOUND=FOUND )
 
       ! Check if BCs are found
       IF ( FOUND ) THEN
