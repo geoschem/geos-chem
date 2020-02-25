@@ -2119,19 +2119,6 @@ CONTAINS
 #endif
              WD_RetFactor  = 2.0e-2_fp
 
-          CASE( 'IPRNO3' )
-             FullName = 'Isopropyl nitrate'
-             Formula       = 'C3H7ONO2'
-             MW_g          = 105.09_fp
-             Is_Gas        = T
-             Is_Drydep     = T
-             Is_Wetdep     = F
-             Is_Photolysis = T
-             DD_F0         = 0.1_fp
-             DD_Hstar_old  = 7.9e-1_fp
-             Henry_K0      = 7.9e-1_f8
-             Henry_CR      = 5400.0_f8
-
           CASE( 'IONITA' )
              FullName      = 'Aer-phase organic nitrate from isoprene precursors'
 
@@ -2154,6 +2141,19 @@ CONTAINS
              WD_AerScavEff = 0.8_fp
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
+
+          CASE( 'IPRNO3' )
+             FullName = 'Isopropyl nitrate'
+             Formula       = 'C3H7ONO2'
+             MW_g          = 105.09_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 0.1_fp
+             DD_Hstar_old  = 7.9e-1_fp
+             Henry_K0      = 7.9e-1_f8
+             Henry_CR      = 5400.0_f8
 
           CASE( 'ISOP' )
              FullName      = 'Isoprene'
@@ -6707,7 +6707,7 @@ CONTAINS
           WRITE( Unit, 111 ) '"Is_DryDep"', 'false'
        ENDIF
 
-       IF ( ThisSpc%Is_DryDep ) THEN
+       IF ( ThisSpc%Is_Gas ) THEN
           WRITE( Unit, 111 ) '"Is_Gas"', 'true'
        ELSE
           WRITE( Unit, 111 ) '"Is_Gas"', 'false'
