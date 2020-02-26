@@ -58,6 +58,7 @@ get_repo_version(GC_REPO_VERSION ${CMAKE_CURRENT_SOURCE_DIR})
 message(STATUS "GEOS-Chem @ ${GC_REPO_VERSION}")
 
 if(NOT GC_EXTERNAL_CONFIG)
+        set(GCCLASSIC TRUE )
 	# This conditional block configures the GEOS-Chem build for GEOS-Chem
 	# Classic. As mentioned above, it sets GCCLASSIC_EXE_TARGETS, RRTMG, GTMM
 	# TOMAS, MECH, and GCHP, and it configures the BaseTarget.
