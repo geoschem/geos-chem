@@ -1,0 +1,3 @@
+[submodule "HEMCO"]
+	path = HEMCO
+	url = https://github.com/geoschem/hemco.git
