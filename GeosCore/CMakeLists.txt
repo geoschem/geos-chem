@@ -126,6 +126,8 @@ if("geos" IN_LIST GCCLASSIC_EXE_TARGETS)
 	target_link_libraries(geos
 		PUBLIC GeosCore
 	)
+	set_target_properties(geos PROPERTIES
+		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 	install(TARGETS geos
 		RUNTIME DESTINATION ${RUNDIR}
 	)
