@@ -7,7 +7,7 @@ RUN mkdir /opt/geos-chem && mkdir /opt/geos-chem/bin
 # This means this docker build command's context must be 
 # GEOS-Chem's root source code directory
 COPY . /gc-src
-RUN git -c /gc-src/HEMCO submodule update --init --recursive \
+RUN git -c /gc-src submodule update --init --recursive \
 && cd /gc-src \
 &&  mkdir build
 
