@@ -63,6 +63,7 @@ steps:
     spack load hdf5 
     spack load netcdf 
     spack load netcdf-fortran
+    git -c ./HEMCO submodule update --init --recursive
     mkdir build
     cd build
     cmake -DRUNDIR=IGNORE -DRUNDIR_SIM=standard -DCMAKE_COLOR_MAKEFILE=FALSE $(Build.Repository.LocalPath)
