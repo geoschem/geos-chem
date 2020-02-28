@@ -4571,7 +4571,7 @@ MODULE GCKPP_HETRATES
       D_l  = 2.0e-5_fp
 
       k1 = 1.5e+4_fp !M-1s-1
-      k2 = 7.6e+8_fp !M-1s-1 Fogelman et al., 1988
+      k2 = 2.8e+5_fp !M-1s-1 Liu and Abbatt, Geophys. Res. Lett., 2020
       k_tot = k1 * C_Hp * C_Y1 + k2 * C_Y2
 
       H_X = H_HOCl*dexp(-H_HOCl_E*(1.0e0_fp/T - 1.0e0_fp/H_HOCl_T))
@@ -5788,8 +5788,8 @@ MODULE GCKPP_HETRATES
          k_b2  = 1.6e+10_fp 
 !      ELSEIF ( X==3 ) THEN
          ! Reaction rate coefficient for HOBr + HSO3- [M-2 s-1]
-         ! (Liu and Margerum, Environ. Sci. Tech., 2001)
-         k_b3  = 3.2e+9_fp 
+         ! (Liu and Abbatt, Geophys. Res. Let., 2020)
+         k_b3  = 2.6e+7_fp
          !k_b3  = 0.0e0_fp
 !      ELSEIF ( X==4 ) THEN
          ! Reaction rate coefficient for HOBr + HSO3-- [M-2 s-1]
