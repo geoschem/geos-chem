@@ -752,7 +752,8 @@
       Spc => NULL()
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### ISORROPIAII: a DO_ISORROPIAII' )
+      IF ( LPRT .and. am_I_Root )
+     &      CALL DEBUG_MSG( '### ISORROPIAII: a DO_ISORROPIAII' )
 
       END SUBROUTINE DO_ISORROPIAII
 !EOC
