@@ -37,6 +37,9 @@
       PUBLIC :: DO_DRYDEP
       PUBLIC :: INIT_DRYDEP
       PUBLIC :: INIT_WEIGHTSS
+#if defined( MODEL_CESM )
+      PUBLIC :: UPDATE_DRYDEPSAV
+#endif
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -45,6 +48,9 @@
       PUBLIC :: NTRAIND
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
       PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
+#if defined( MODEL_CESM )
+      PUBLIC :: NDVZIND
+#endif
 !      PUBLIC :: NDVZIND ! MSL -> For MPI broadcasting in GCHP
 !
 ! !REMARKS:
@@ -313,7 +319,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE DO_DRYDEP( am_I_Root,  Input_Opt,  State_Chm,
-     &                      State_Diag, State_Grid, State_Met, RC )
+     &                      State_Diag, State_Grid, State_Met, 
+     &                      RC )
 !
 ! !USES:
 !
@@ -322,7 +329,6 @@
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
@@ -433,8 +439,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A
-      REAL(f8)           :: DVZ, THIK
+      INTEGER            :: D,   N,  A
       CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
 
@@ -448,22 +453,14 @@
       REAL(f8)      :: RADIAT(State_Grid%NX,State_Grid%NY) ! Solar radiation [W/m2]
       REAL(f8)      :: USTAR (State_Grid%NX,State_Grid%NY) ! Grid box friction vel [m/s]
       REAL(f8)      :: RHB   (State_Grid%NX,State_Grid%NY) ! Relative humidity [unitless]
-      REAL(f8)      :: DVEL  (State_Grid%NX,State_Grid%NY,NUMDEP) ! Drydep velocities [m/s]
       REAL(f8)      :: PRESSU(State_Grid%NX,State_Grid%NY) ! Local surface pressure [Pa]
       REAL(f8)      :: W10   (State_Grid%NX,State_Grid%NY) ! 10m windspeed [m/s]
       REAL(f8)      :: AZO   (State_Grid%NX,State_Grid%NY)        ! Z0, per (I,J) square
       REAL(f8)      :: SUNCOS_MID(State_Grid%NX,State_Grid%NY)    ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
 
-      ! Pointers
-      REAL(fp), POINTER :: DEPSAV (:,:,:   )      ! Dry deposition frequencies [s-1]
-
-      ! For ESMF, need to assign these from Input_Opt
-      LOGICAL       :: PBL_DRYDEP
+      ! For ESMF, need to assign this from Input_Opt
       LOGICAL       :: LPRT
-
-      ! Objects
-      TYPE(Species), POINTER :: SpcInfo
 
       !=================================================================
       ! DO_DRYDEP begins here!
@@ -473,16 +470,11 @@
       RC = GC_SUCCESS
 
       ! Initialize
-      SpcInfo => NULL()
       ErrMsg  = ''
       ThisLoc =
      &   ' -> at Do_DryDep  (in module GeosCore/drydep_mod.F)'
 
-      ! Point to columns of derived-type object fields
-      DEPSAV     => State_Chm%DryDepSav
-
       ! Copy values from the Input Options object to local variables
-      PBL_DRYDEP = Input_Opt%PBL_DRYDEP
       LPRT       = Input_Opt%LPRT
 
       ! Call METERO to obtain meterological fields (all 1-D arrays)
@@ -497,8 +489,8 @@
      &             State_Grid, State_Met, RADIAT,    TC0, SUNCOS_MID,
      &             F0,        HSTAR,     XMW,        AIROSOL,
      &             USTAR,     CZ1,       OBK,        CFRAC,
-     &             ZH,        LSNOW,     DVEL,       AZO,
-     &             RHB,       PRESSU,    W10,        RC            )
+     &             ZH,        LSNOW,     AZO,        RHB,
+     &             PRESSU,    W10,        RC            )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -507,14 +499,122 @@
          RETURN
       ENDIF
 
+#if !defined( MODEL_CESM )
+      ! Call UPDATE_DRYDEPSAV to update dry deposition frequencies [s-1]
+      ! from dry deposition velocities [m/s]
+      CALL UPDATE_DRYDEPSAV( am_I_Root,  Input_Opt,  State_Chm,
+     &                       State_Diag, State_Grid, State_Met,
+     &                       RC )
+#endif
+
+      !### Debug
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
+      ENDIF
+
+      END SUBROUTINE DO_DRYDEP
+
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: update_drydepsav
+!
+! !DESCRIPTION: Subroutine UPDATE\_DRYDEPSAV updates dry deposition 
+! frequencies from dry deposition velocities
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE UPDATE_DRYDEPSAV( am_I_Root,  Input_Opt,  State_Chm, 
+     &                             State_Diag, State_Grid, State_Met,
+     &                             RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Met_Mod,      ONLY : MetState
+      USE Species_Mod,        ONLY : Species
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  02 Mar 2020 - T. M. Fritz - Separate DO_DRYDEP into two calls. The
+!                              first call updates dry deposition
+!                              velocities. The second call computes dry
+!                              deposition frequencies.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A
+      REAL(f8)           :: DVZ, THIK
+      LOGICAL            :: LSNOW                  ! Flag for snow/ice on the surface
+      CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
+
+      ! Pointers
+      REAL(fp), POINTER  :: DEPSAV (:,:,:   )      ! Dry deposition frequencies [s-1]
+
+      ! For ESMF, need to assign this from Input_Opt
+      LOGICAL            :: PBL_DRYDEP
+
+      ! Objects
+      TYPE(Species), POINTER :: SpcInfo
+
+      !=================================================================
+      ! UPDATE_DRYDEPSAV begins here!
+      !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
+
+      ! Initialize
+      SpcInfo => NULL()
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Update_DryDepSav  (in module GeosCore/drydep_mod.F)'
+
+      ! Point to columns of derived-type object fields
+      DEPSAV     => State_Chm%DryDepSav  
+
+      ! Copy values from the Input Options object to local variables
+      PBL_DRYDEP = Input_Opt%PBL_DRYDEP
+
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, A )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
+
+         ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
+         LSNOW  = ( State_Met%ALBD(I,J) > 0.4 )
 
          ! THIK = thickness of surface layer [m]
          THIK   = State_Met%BXHEIGHT(I,J,1)
@@ -524,8 +624,8 @@
          ! to the thickness of the 1st layer (rjp, bmy, 7/21/03)
          ! Add option for non-local PBL mixing scheme: THIK must
          ! be the first box height. (Lin, 03/31/09)
-         ! Now use PBL_DRYDEP instead of LNLPBL (ckeller, 3/5/15).
-         IF (PBL_DRYDEP) THIK = MAX( ZH(I,J), THIK )
+         ! Now use PBL_DRYDEP instead of LNLPBL (ckeller, 3/5/15). 
+         IF (PBL_DRYDEP) THIK = MAX( State_Met%PBL_TOP_m(I,J), THIK )
 
          ! Loop over drydep species
          DO D = 1, State_Chm%nDryDep
@@ -540,12 +640,12 @@
             ! concentrations at a user-defined altitude above the surface
             A       =  SpcInfo%DryAltID
 
-            ! Index of drydep species in the DVEL array
+            ! Index of drydep species in the State_Chm%DryDepVel array
             ! as passed back from subroutine DEPVEL
             NDVZ    =  NDVZIND(D)
 
             ! Dry deposition velocity [cm/s]
-            DVZ     =  DVEL(I,J,NDVZ) * 100.e+0_f8
+            DVZ     =  State_Chm%DryDepVel(I,J,NDVZ) * 100.e+0_f8
 
             ! Scale relative to specified species (krt, 3/1/15)
             IF ( FLAG(D) .eq. 1 )  THEN
@@ -571,7 +671,7 @@
             !-----------------------------------------------------------
             ! Special treatment for snow vs. ice
             !-----------------------------------------------------------
-            IF ( LSNOW(I,J) ) THEN
+            IF ( LSNOW ) THEN 
 
                !-------------------------------------
                ! %%% SURFACE IS SNOW OR ICE %%%
@@ -667,15 +767,10 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
-         CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
-      ENDIF
-
       ! Nullify pointers
       NULLIFY( DEPSAV )
 
-      END SUBROUTINE DO_DRYDEP
+      END SUBROUTINE UPDATE_DRYDEPSAV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -865,8 +960,8 @@
      &                   State_Grid, State_Met, RADIAT,   TEMP, SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,
      &                   USTAR,     CZ1,       OBK,       CFRAC,
-     &                   ZH,        LSNOW,     DVEL,      ZO,
-     &                   RHB,       PRESSU,    W10,       RC          )
+     &                   ZH,        LSNOW,     ZO,        RHB,
+     &                   PRESSU,    W10,       RC                      )
 !
 ! !USES:
 !
@@ -917,7 +1012,6 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,  INTENT(OUT) :: RC                  ! Success or failure?
-      REAL(f8), INTENT(OUT) :: DVEL(State_Grid%NX,State_Grid%NY,NUMDEP) ! Drydep velocity [m/s]
 !
 ! !REMARKS:
 !  Need as landtype input for each grid square (I,J); see CMN_DEP_mod.F
@@ -978,8 +1072,8 @@
 !                      surface LDT
 !     C1X(K)         - Total resistance to deposition (s m-1) for species K
 !                                                                             .
-!  Returned:
-!     DVEL(I,J,K) - Deposition velocity (m s-1) of species K
+!  Modified:
+!     State_Chm%DryDepVel
 !                                                                             .
 !  References:
 !  ============================================================================
@@ -1243,8 +1337,8 @@
          ENDIF
       ENDDO
 
-      ! Initialize DVEL
-      DVEL = 0.0e+0_f8
+      ! Initialize State_Chm%DryDepVel
+      State_Chm%DryDepVel = 0.0e+0_f8
 
 !***********************************************************************
 !*
@@ -2139,18 +2233,18 @@
 
  500     CONTINUE
 
-!** Load array DVEL
+!** Load array State_Chm%DryDepVel
          DO 550 K=1,NUMDEP
             IF (.NOT.LDEP(K)) GOTO 550
-            DVEL(I,J,K) = VD(K)
+            State_Chm%DryDepVel(I,J,K) = VD(K)
 
-            ! Now check for negative deposition velocity
+            ! Now check for negative deposition velocity 
             ! before returning to calling program (bmy, 4/16/00)
             ! Also call CLEANUP to deallocate arrays (bmy, 10/15/02)
-            IF ( DVEL(I,J,K) < 0e+0_f8 ) THEN
+            IF ( State_Chm%DryDepVel(I,J,K) < 0e+0_f8 ) THEN
 !$OMP CRITICAL
                PRINT*, 'DEPVEL: Deposition velocity is negative!'
-               PRINT*, 'Dep. Vel = ', DVEL(I,J,K)
+               PRINT*, 'Dep. Vel = ', State_Chm%DryDepVel(I,J,K)
                PRINT*, 'Species  = ', K
                PRINT*, 'I, J     = ', I, J
                PRINT*, 'RADIAT   = ', RADIAT(I,J)
@@ -2173,10 +2267,10 @@
             ! Now check for IEEE NaN (not-a-number) condition
             ! before returning to calling program (bmy, 4/16/00)
             ! Also call CLEANUP to deallocate arrays (bmy, 10/15/02)
-            IF ( IT_IS_NAN( DVEL(I,J,K) ) ) THEN
+            IF ( IT_IS_NAN( State_Chm%DryDepVel(I,J,K) ) ) THEN
 !$OMP CRITICAL
                PRINT*, 'DEPVEL: Deposition velocity is NaN!'
-               PRINT*, 'Dep. Vel = ', DVEL(I,J,K)
+               PRINT*, 'Dep. Vel = ', State_Chm%DryDepVel(I,J,K)
                PRINT*, 'Species  = ', K
                PRINT*, 'I, J     = ', I, J
                PRINT*, 'RADIAT   = ', RADIAT(I,J)
@@ -4333,6 +4427,36 @@
 
       ! Initialize
       RC        = GC_SUCCESS
+
+      ErrMsg    = ''
+      ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: Because READ_DRYDEP_INPUTS reads info from a netCDF %%%
+      !%%% file, we may have to broadcast these.  However, the file  %%%
+      !%%% dimensions are not very great (10 or 20 indices each)     %%%
+      !%%% (bmy, 12/11/12)                                           %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      ! Read drydep inputs from the netCDF file
+      ! Save Olson indices in INDOLSON array, in order to avoid
+      ! confusion w/ previously-assigned variable name IOLSON
+      !
+      CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
+     &                         DRYCOEFF,  INDOLSON, IDEP,
+     &                         IWATER,    NWATER,   IZO,      
+     &                         IDRYDEP,   IRI,      IRLU,     
+     &                         IRAC,      IRGSS,    IRGSO, 
+     &                         IRCLS,     IRCLO,    IVSMAX, 
+     &                         RC )
+
+       ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Read_Drydep_Inputs"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       IS_Hg     = Input_Opt%ITS_A_MERCURY_SIM
       LDRYD     = Input_Opt%LDRYD
       NUMDEP    = 0
@@ -4341,8 +4465,6 @@
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
       id_ISOPND = IND_('ISOPND')
-      ErrMsg    = ''
-      ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
 
       ! If the dry deposition module has already been initialized,
       ! the arrays do not need to be allocated again, as they are only
@@ -4435,7 +4557,8 @@
       ! ----------------------------------------------------------------
       ! NUMDEP    Number of dry depositing species
       ! NTRAIND   GEOS-Chem species ID number (advected index)
-      ! NDVZIND   Coresponding index in the DVEL drydep velocity array
+      ! NDVZIND   Coresponding index in the State_Chm%DryDepVel drydep
+      !           velocity array
       ! HSTAR     Henry's law solubility constant [M atm-1]
       ! F0        Reactivity (0.0 = not reactive, 1.0=very reactive)
       ! XMW       Molecular weight of species [kg mol-1]
@@ -4510,7 +4633,8 @@
                CASE( 'N2O5', 'HC187' )
                   ! These species scale to the Vd of HNO3. We will
                   ! explicitly compute the Vd of these species instead
-                  ! of assigning the Vd of HNO3 from the DVEL array.
+                  ! of assigning the Vd of HNO3 from the
+                  ! State_Chm%DryDepVel array.
                   ! The scaling is applied in DO_DRYDEP using FLAG=1.
                   !
                   ! Make sure to set XMW to the MW of HNO3
@@ -4522,7 +4646,8 @@
                CASE(  'NPMN', 'IPMN', 'PPN', 'R4N2' )
                   ! These specied scale to the Vd of PAN.  We will
                   ! explicitly compute the Vd of these species instead
-                  ! of assigning the Vd of PAN from the DVEL array.
+                  ! of assigning the Vd of PAN from the
+                  ! State_Chm%DryDepVel array.
                   ! The scaling is applied in DO_DRYDEP using FLAG=2.
                   !
                   ! Make sure to set XMW to the MW of PAN
@@ -4535,7 +4660,8 @@
      &               'HONIT' )
                   ! These species scale to the Vd of ISOPN. We will
                   ! explicitly compute the Vd of these species instead
-                  ! of assigning the Vd of ISOPN from the DVEL array.
+                  ! of assigning the Vd of ISOPN from the
+                  ! State_Chm%DryDepVel array.
                   ! The scaling is applied in DO_DRYDEP using FLAG=3.
                   !
                   ! Make sure to set XMW to the MW of ISOPN
@@ -4615,60 +4741,6 @@
 
          ENDDO
  100     FORMAT( i3, 3x, a8, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
-      ENDIF
-
-      !=================================================================
-      ! Get input information
-      !=================================================================
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: Because READ_DRYDEP_INPUTS reads info from a netCDF %%%
-      !%%% file, we may have to broadcast these.  However, the file  %%%
-      !%%% dimensions are not very great (10 or 20 indices each)     %%%
-      !%%% (bmy, 12/11/12)                                           %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      ! Read drydep inputs from the netCDF file
-      ! Save Olson indices in INDOLSON array, in order to avoid
-      ! confusion w/ previously-assigned variable name IOLSON
-!==========!#if defined( MODEL_CESM )
-!==========!      if ( am_I_Root ) then
-!==========!#endif
-      CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
-     &                         DRYCOEFF,  INDOLSON, IDEP,
-     &                         IWATER,    NWATER,   IZO,
-     &                         IDRYDEP,   IRI,      IRLU,
-     &                         IRAC,      IRGSS,    IRGSO,
-     &                         IRCLS,     IRCLO,    IVSMAX,
-     &                         RC )
-!==========!#if defined( MODEL_CESM )
-!==========!      end if
-!==========! 
-!==========!#if defined( SPMD )
-!==========!      call mpibcast( DRYCOEFF,  NPOLY,        mpir8,  0, mpicom )
-!==========!      call mpibcast( INDOLSON,  NVEGTYPE,     mpiint, 0, mpicom )
-!==========!      call mpibcast( Input_Opt%IDEP(1:NVEGTYPE), NVEGTYPE, 
-!==========!     &                                        mpiint, 0, mpicom )
-!==========!      call mpibcast( IWATER,    1,            mpiint, 0, mpicom )
-!==========!      call mpibcast( NWATER,    NVEGTYPE,     mpiint, 0, mpicom )
-!==========!      call mpibcast( IZO,       NVEGTYPE,     mpiint, 0, mpicom )
-!==========!      call mpibcast( IDRYDEP,   NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!      call mpibcast( IRI,       NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!      call mpibcast( IRLU,      NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!      call mpibcast( IRAC,      NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!      call mpibcast( IRGSS,     NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!      call mpibcast( IRGSO,     NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!      call mpibcast( IRCLS,     NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!      call mpibcast( IRCLO,     NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!      call mpibcast( IVSMAX,    NDRYDTYPE,    mpiint, 0, mpicom )
-!==========!#endif
-!==========!#endif
-
-       ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Read_Drydep_Inputs"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
       ENDIF
 
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of
