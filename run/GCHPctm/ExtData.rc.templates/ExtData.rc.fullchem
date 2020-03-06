@@ -1723,15 +1723,15 @@ NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./MainDataDir/NOAA_
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 (pre 1970) (CMIP6_SFC_CH4) ---
 #==============================================================================
-#CMIP6_Sfc_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none CH4 ./MainDataDir/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+#CMIP6_Sfc_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none CH4 ./MainDataDir/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
 
 #==============================================================================
 # --- Surface VMR (SfcVMR) ---
 #==============================================================================
-SfcVMR_CH3Cl    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl    ./MainDataDir/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
-SfcVMR_CH2Cl2   ppbv N Y F%y4-%m2-01T00:00:00 none none CH2Cl2   ./MainDataDir/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
-SfcVMR_CHCl3    ppbv N Y F%y4-%m2-01T00:00:00 none none CHCl3    ./MainDataDir/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
-SfcVMR_CH3Br    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Br    ./MainDataDir/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+SfcVMR_CH3Cl    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl    ./MainDataDir/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+SfcVMR_CH2Cl2   ppbv N Y F%y4-%m2-01T00:00:00 none none CH2Cl2   ./MainDataDir/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+SfcVMR_CHCl3    ppbv N Y F%y4-%m2-01T00:00:00 none none CHCl3    ./MainDataDir/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
+SfcVMR_CH3Br    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Br    ./MainDataDir/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_%y4.2x25.nc
 SfcVMR_CCl4     v/v  N Y F%y4-%m2-01T00:00:00 none none CCl4     ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
 SfcVMR_CFC113   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC113   ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc
 SfcVMR_CFC114   v/v  N Y F%y4-%m2-01T00:00:00 none none CFC114   ./MainDataDir/SfcFix/v2019-12/WMO_2018/2x2.5/surface_VMRs_WMO2018_%y4.2x25.nc

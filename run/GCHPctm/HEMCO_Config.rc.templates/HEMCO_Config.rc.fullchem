@@ -3226,7 +3226,7 @@ Warnings:                    1
 # NOTE: This is only used if NOAA data is unavailible (pre 1979)
 #==============================================================================
 (((CMIP6_SFC_CH4
-* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH4 1750-1978/1-12/1/0 C xy ppbv * - 1 1
+* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH4 1750-1978/1-12/1/0 C xy ppbv * - 1 1
 )))CMIP6_SFC_CH4
 
 #==============================================================================
@@ -3449,10 +3449,10 @@ Warnings:                    1
 #
 # Use core CMIP6 observationally constrained data from Meinshausen et al. (2017) GMD
 #==============================================================================
-* SfcVMR_CH3Cl  $ROOT/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Cl  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CH2Cl2 $ROOT/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH2Cl2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CHCl3  $ROOT/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CHCl3  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
-* SfcVMR_CH3Br  $ROOT/CMIP6/v2019-12/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Br  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH3Cl  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Cl  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH2Cl2 $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH2Cl2 1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CHCl3  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CHCl3  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
+* SfcVMR_CH3Br  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH3Br  1750-2014/1-12/1/0 C xy ppbv * 801 1 1
 
 #==============================================================================
 # --- WMO-2018 files (GMI) ---
