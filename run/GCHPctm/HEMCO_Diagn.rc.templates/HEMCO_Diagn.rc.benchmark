@@ -36,7 +36,7 @@
 EmisACET_Total     ACET   -1     -1  -1   3   kg/m2/s  ACET_emission_flux_from_all_sectors
 EmisACET_Anthro    ACET   0      1   -1   3   kg/m2/s  ACET_emission_flux_from_anthropogenic
 EmisACET_BioBurn   ACET   111    -1  -1   2   kg/m2/s  ACET_emission_flux_from_biomass_burning
-EmisACET_Biogenic  ACET   0      4   -1   2   kg/m2/s  ACET_emission_flux_from_biogenic_sources
+EmisACET_Biogenic  ACET   108    -1  -1   2   kg/m2/s  ACET_emission_flux_from_biogenic_sources
 EmisACET_Ocean     ACET   101    -1  -1   2   kg/m2/s  ACET_emission_flux_from_ocean
 
 ###############################################################################
@@ -45,7 +45,7 @@ EmisACET_Ocean     ACET   101    -1  -1   2   kg/m2/s  ACET_emission_flux_from_o
 EmisALD2_Total     ALD2   -1     -1  -1   3   kg/m2/s  ALD2_emission_flux_from_all_sectors
 EmisALD2_Anthro    ALD2   0      1   -1   3   kg/m2/s  ALD2_emission_flux_from_anthropogenic
 EmisALD2_BioBurn   ALD2   111    -1  -1   2   kg/m2/s  ALD2_emission_flux_from_biomass_burning
-EmisALD2_Biogenic  ALD2   0      4   -1   2   kg/m2/s  ALD2_emission_flux_from_biogenic_sources
+EmisALD2_Biogenic  ALD2   108    -1  -1   2   kg/m2/s  ALD2_emission_flux_from_biogenic_sources
 EmisALD2_Ocean     ALD2   101    -1  -1   2   kg/m2/s  ALD2_emission_flux_from_ocean
 EmisALD2_PlantDecay ALD2  0      3   -1   2   kg/m2/s  ALD2_emission_flux_from_decaying_plants
 EmisALD2_Ship      ALD2   0      10  -1   2   kg/m2/s  ALD2_emission_flux_from_ships
@@ -92,7 +92,7 @@ EmisC2H2_Ship      C2H2   0      10  -1   2   kg/m2/s  C2H2_emission_flux_from_s
 ###############################################################################
 EmisC2H4_Total     C2H4   -1     -1  -1   3   kg/m2/s  C2H4_emission_flux_from_all_sectors
 EmisC2H4_Anthro    C2H4   0      1   -1   3   kg/m2/s  C2H4_emission_flux_from_anthropogenic
-EmisC2H4_Biogenic  C2H4   0      4   -1   2   kg/m2/s  C2H4_emission_flux_from_biogenic_sources
+EmisC2H4_Biogenic  C2H4   108    -1  -1   2   kg/m2/s  C2H4_emission_flux_from_biogenic_sources
 EmisC2H4_Ship      C2H4   0      10  -1   2   kg/m2/s  C2H4_emission_flux_from_ships
 
 ###############################################################################
@@ -187,10 +187,10 @@ EmisDMS_Ocean      DMS    101    -1  -1   2   kg/m2/s  DMS_emission_flux_from_oc
 ###############################################################################
 EmisDST1_Total     DST1   -1     -1  -1   2   kg/m2/s  DST1_emission_flux_from_all_sectors
 EmisDST1_Anthro    DST1   0      1   -1   2   kg/m2/s  DST1_emission_flux_from_anthropogenic
-EmisDST1_Natural   DST1   0      3   -1   2   kg/m2/s  DST1_emission_flux_from_natural_sources
-EmisDST2_Natural   DST2   0      3   -1   2   kg/m2/s  DST2_emission_flux_from_natural_sources
-EmisDST3_Natural   DST3   0      3   -1   2   kg/m2/s  DST3_emission_flux_from_natural_sources
-EmisDST4_Natural   DST4   0      3   -1   2   kg/m2/s  DST4_emission_flux_from_natural_sources
+EmisDST1_Natural   DST1   105    -1  -1   2   kg/m2/s  DST1_emission_flux_from_natural_sources
+EmisDST2_Natural   DST2   105    -1  -1   2   kg/m2/s  DST2_emission_flux_from_natural_sources
+EmisDST3_Natural   DST3   105    -1  -1   2   kg/m2/s  DST3_emission_flux_from_natural_sources
+EmisDST4_Natural   DST4   105    -1  -1   2   kg/m2/s  DST4_emission_flux_from_natural_sources
 
 ###############################################################################
 #####  EOH emissions                                                      #####
@@ -198,7 +198,7 @@ EmisDST4_Natural   DST4   0      3   -1   2   kg/m2/s  DST4_emission_flux_from_n
 EmisEOH_Total      EOH    -1     -1  -1   3   kg/m2/s  EOH_emission_flux_from_all_sectors
 EmisEOH_Anthro     EOH    0      1   -1   3   kg/m2/s  EOH_emission_flux_from_anthropogenic
 EmisEOH_BioBurn    EOH    111    -1  -1   2   kg/m2/s  EOH_emission_flux_from_biomass_burning
-EmisEOH_Biogenic   EOH    0      4   -1   2   kg/m2/s  EOH_emission_flux_from_biogenic_sources
+EmisEOH_Biogenic   EOH    108    -1  -1   2   kg/m2/s  EOH_emission_flux_from_biogenic_sources
 EmisEOH_PlantDecay EOH    0      3   -1   2   kg/m2/s  EOH_emission_flux_from_decaying_plants
 EmisEOH_Ship       EOH    0      10  -1   2   kg/m2/s  EOH_emission_flux_from_ships
 
@@ -247,12 +247,12 @@ EmisHNO3_Ship      HNO3   102    -1  -1   2   kg/m2/s  HNO3_emission_flux_from_s
 ###############################################################################
 EmisISOP_Total     ISOP   -1     -1  -1   3   kg/m2/s  ISOP_emission_flux_from_all_sectors
 EmisISOP_Anthro    ISOP   0      1   -1   3   kg/m2/s  ISOP_emission_flux_from_anthropogenic
-EmisISOP_Biogenic  ISOP   0      4   -1   2   kg/m2/s  ISOP_emission_flux_from_biogenic_sources
+EmisISOP_Biogenic  ISOP   108    -1  -1   2   kg/m2/s  ISOP_emission_flux_from_biogenic_sources
 
 ###############################################################################
 #####  LIMO emissions                                                     #####
 ###############################################################################
-EmisLIMO_Biogenic  LIMO   0      4   -1   2   kg/m2/s  LIMO_emission_flux_from_biogenic_sources
+EmisLIMO_Biogenic  LIMO   108    -1  -1   2   kg/m2/s  LIMO_emission_flux_from_biogenic_sources
 
 ###############################################################################
 #####  MACR emissions                                                     #####
@@ -295,12 +295,12 @@ EmisMOH_Ship       MOH    0      10  -1   2   kg/m2/s  MOH_emission_flux_from_sh
 ###############################################################################
 EmisMTPA_Total     MTPA   -1     -1  -1   3   kg/m2/s  MTPA_emission_flux_from_all_sectors
 EmisMTPA_BioBurn   MTPA   111    -1  -1   2   kg/m2/s  MTPA_emission_flux_from_biomass_burning
-EmisMTPA_Biogenic  MTPA   0      4   -1   2   kg/m2/s  MTPA_emission_flux_from_biogenic_sources
+EmisMTPA_Biogenic  MTPA   108    -1  -1   2   kg/m2/s  MTPA_emission_flux_from_biogenic_sources
 
 ###############################################################################
 #####  MTPO emissions                                                     #####
 ###############################################################################
-EmisMTPO_Biogenic  MTPO   0      4   -1   2   kg/m2/s  MTPO_emission_flux_from_biogenic_sources
+EmisMTPO_Biogenic  MTPO   108    -1  -1   2   kg/m2/s  MTPO_emission_flux_from_biogenic_sources
 
 ###############################################################################
 #####  MVK emissions                                                      #####
@@ -333,7 +333,7 @@ EmisNO_Anthro      NO     0      1   -1   3   kg/m2/s  NO_emission_flux_from_ant
 EmisNO_BioBurn     NO     111    -1  -1   2   kg/m2/s  NO_emission_flux_from_biomass_burning
 EmisNO_Lightning   NO     103    -1  -1   3   kg/m2/s  NO_emission_flux_from_lightning
 EmisNO_Ship        NO     102    -1  -1   2   kg/m2/s  NO_emission_flux_from_ships
-EmisNO_Soil        NO     0      3   -1   2   kg/m2/s  NO_emission_flux_from_soil
+EmisNO_Soil        NO     104    -1  -1   2   kg/m2/s  NO_emission_flux_from_soil
 
 ###############################################################################
 #####  NO2 emissions                                                      #####
@@ -383,7 +383,7 @@ EmisPRPE_Total     PRPE   -1     -1  -1   3   kg/m2/s  PRPE_emission_flux_from_a
 EmisPRPE_Aircraft  PRPE   0      20  -1   3   kg/m2/s  PRPE_emission_flux_from_aircraft
 EmisPRPE_Anthro    PRPE   0      1   -1   3   kg/m2/s  PRPE_emission_flux_from_anthropogenic
 EmisPRPE_BioBurn   PRPE   111    -1  -1   2   kg/m2/s  PRPE_emission_flux_from_biomass_burning
-EmisPRPE_Biogenic  PRPE   0      4   -1   2   kg/m2/s  PRPE_emission_flux_from_biogenic_sources
+EmisPRPE_Biogenic  PRPE   108    -1  -1   2   kg/m2/s  PRPE_emission_flux_from_biogenic_sources
 EmisPRPE_Ship      PRPE   0      10  -1   2   kg/m2/s  PRPE_emission_flux_from_ships
 
 ###############################################################################
@@ -396,16 +396,16 @@ EmisRCHO_Anthro    RCHO   0      1   -1   3   kg/m2/s  RCHO_emission_flux_from_a
 ###############################################################################
 #####  SESQ emissions                                                     #####
 ###############################################################################
-EmisSESQ_Biogenic  SESQ   0      4   -1   2   kg/m2/s  SESQ_emission_flux_from_biogenic_sources
+EmisSESQ_Biogenic  SESQ   108    -1  -1   2   kg/m2/s  SESQ_emission_flux_from_biogenic_sources
 
 ###############################################################################
 #####  Sea salt emissions                                                 #####
 ###############################################################################
-EmisBr2_Natural    Br2    0      3   -1   2   kg/m2/s  Br2_emission_flux_from_natural_sources
-EmisBrSALA_Natural BrSALA 0      3   -1   2   kg/m2/s  BrSALA_emission_flux_from_natural_sources
-EmisBrSALC_Natural BrSALC 0      3   -1   2   kg/m2/s  BrSALC_emission_flux_from_natural_sources
-EmisSALA_Natural   SALA   0      3   -1   2   kg/m2/s  SALA_emission_flux_from_natural_sources
-EmisSALC_Natural   SALC   0      3   -1   2   kg/m2/s  SALC_emission_flux_from_natural_sources
+EmisBr2_Natural    Br2    107    -1  -1   2   kg/m2/s  Br2_emission_flux_from_natural_sources
+EmisBrSALA_Natural BrSALA 107    -1  -1   2   kg/m2/s  BrSALA_emission_flux_from_natural_sources
+EmisBrSALC_Natural BrSALC 107    -1  -1   2   kg/m2/s  BrSALC_emission_flux_from_natural_sources
+EmisSALA_Natural   SALA   107    -1  -1   2   kg/m2/s  SALA_emission_flux_from_natural_sources
+EmisSALC_Natural   SALC   107    -1  -1   2   kg/m2/s  SALC_emission_flux_from_natural_sources
 
 ###############################################################################
 #####  SO2 emissions                                                      #####
@@ -432,14 +432,14 @@ EmisSO4_Ship       SO4    0      10  -1   2   kg/m2/s  SO4_emission_flux_from_sh
 EmisSOAP_Total     SOAP   -1     -1  -1   3   kg/m2/s  SOAP_emission_flux_from_all_sectors
 EmisSOAP_Aircraft  SOAP   0      20  -1   3   kg/m2/s  SOAP_emission_flux_from_aircraft
 EmisSOAP_Anthro    SOAP   0      1   -1   3   kg/m2/s  SOAP_emission_flux_from_anthropogenic
-EmisSOAP_Biogenic  SOAP   0      4   -1   2   kg/m2/s  SOAP_emission_flux_from_biogenic_sources
+EmisSOAP_Biogenic  SOAP   108    -1  -1   2   kg/m2/s  SOAP_emission_flux_from_biogenic_sources
 EmisSOAP_BioBurn   SOAP   111    -1  -1   2   kg/m2/s  SOAP_emission_flux_from_biomass_burning
 EmisSOAP_Ship      SOAP   0      10  -1   2   kg/m2/s  SOAP_emission_flux_from_ships
 
 ###############################################################################
 #####  SOAS sources                                                       #####
 ###############################################################################
-EmisSOAS_Biogenic  SOAS   0      4   -1   2   kg/m2/s  SOAS_emission_flux_from_biogenic_sources
+EmisSOAS_Biogenic  SOAS   108    -1  -1   2   kg/m2/s  SOAS_emission_flux_from_biogenic_sources
 
 ###############################################################################
 #####  TOLU emissions                                                     #####
@@ -709,43 +709,45 @@ InvPLANTDECAY_EOH    EOH    0    3   1   2   kg/m2/s  EOH_emission_flux_from_PLA
 #=============================
 InvAFCID_DST1        DST1   0    1  -1   2   kg/m2/s  DST1_emission_flux_from_AFCID_inventory
 
-#=============================
-# Offline dust emissions
-#=============================
-InvOFFLINEDUST_DST1  DST1   0    3   -1  2   kg/m2/s  DST1_emission_flux_from_offline_model
-InvOFFLINEDUST_DST2  DST2   0    3   -1  2   kg/m2/s  DST2_emission_flux_from_offline_model
-InvOFFLINEDUST_DST3  DST3   0    3   -1  2   kg/m2/s  DST3_emission_flux_from_offline_model
-InvOFFLINEDUST_DST4  DST4   0    3   -1  2   kg/m2/s  DST4_emission_flux_from_offline_model
-
-#=============================
-# Offline biogenic VOC emissions
-#=============================
-InvOFFLINEBIOVOC_ACET ACET  0    4   -1  2   kg/m2/s  ACET_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_ALD2 ALD2  0    4   -1  2   kg/m2/s  ALD2_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_C2H4 C2H4  0    4   -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_EOH  EOH   0    4   -1  2   kg/m2/s  EOH_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_ISOP ISOP  0    4   -1  2   kg/m2/s  ISOP_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_LIMO LIMO  0    4   -1  2   kg/m2/s  LIMO_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_MTPA MTPA  0    4   -1  2   kg/m2/s  MTPA_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_MTPO MTPO  0    4   -1  2   kg/m2/s  MTPO_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_PRPE PRPE  0    4   -1  2   kg/m2/s  PRPE_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_SESQ SESQ  0    4   -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_SOAP SOAP  0    4   -1  2   kg/m2/s  SOAP_biogenic_emission_flux_from_offline_model
-InvOFFLINEBIOVOC_SOAS SOAS  0    4   -1  2   kg/m2/s  SOAS_biogenic_emission_flux_from_offline_model
-
-#=============================
-# Offline sea salt emissions
-#=============================
-InvOFFLINESEASALT_Br2    Br2    0 3  -1  2   kg/m2/s  Br2_seasalt_emission_flux_from_offline_model
-InvOFFLINESEASALT_BrSALA BrSALA 0 3  -1  2   kg/m2/s  BrSALA_seasalt_emission_flux_from_offline_model
-InvOFFLINESEASALT_BrSALC BrSALC 0 3  -1  2   kg/m2/s  BrSALC_seasalt_emission_flux_from_offline_model
-InvOFFLINESEASALT_SALA   SALA   0 3  -1  2   kg/m2/s  SALA_seasalt_emission_flux_from_offline_model
-InvOFFLINESEASALT_SALC   SALC   0 3  -1  2   kg/m2/s  SALC_seasalt_emission_flux_from_offline_model
-
-#=============================
-# Offline soil NOx emissions
-#=============================
-InvOFFLINESOILNOX_NO NO     0    3   -1  2   kg/m2/s  NO_soil_and_fertilizer_emission_flux_from_offline_model
+## Benchmark simulations will use online emissions
+## Comment out offline emission inventories, but leave here for ease of switching
+###=============================
+### Offline dust emissions
+###=============================
+##InvOFFLINEDUST_DST1  DST1   0    3   -1  2   kg/m2/s  DST1_emission_flux_from_offline_model
+##InvOFFLINEDUST_DST2  DST2   0    3   -1  2   kg/m2/s  DST2_emission_flux_from_offline_model
+##InvOFFLINEDUST_DST3  DST3   0    3   -1  2   kg/m2/s  DST3_emission_flux_from_offline_model
+##InvOFFLINEDUST_DST4  DST4   0    3   -1  2   kg/m2/s  DST4_emission_flux_from_offline_model
+##
+###=============================
+### Offline biogenic VOC emissions
+###=============================
+##InvOFFLINEBIOVOC_ACET ACET  0    4   -1  2   kg/m2/s  ACET_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_ALD2 ALD2  0    4   -1  2   kg/m2/s  ALD2_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_C2H4 C2H4  0    4   -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_EOH  EOH   0    4   -1  2   kg/m2/s  EOH_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_ISOP ISOP  0    4   -1  2   kg/m2/s  ISOP_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_LIMO LIMO  0    4   -1  2   kg/m2/s  LIMO_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_MTPA MTPA  0    4   -1  2   kg/m2/s  MTPA_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_MTPO MTPO  0    4   -1  2   kg/m2/s  MTPO_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_PRPE PRPE  0    4   -1  2   kg/m2/s  PRPE_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_SESQ SESQ  0    4   -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_SOAP SOAP  0    4   -1  2   kg/m2/s  SOAP_biogenic_emission_flux_from_offline_model
+##InvOFFLINEBIOVOC_SOAS SOAS  0    4   -1  2   kg/m2/s  SOAS_biogenic_emission_flux_from_offline_model
+##
+###=============================
+### Offline sea salt emissions
+###=============================
+##InvOFFLINESEASALT_Br2    Br2    0 3  -1  2   kg/m2/s  Br2_seasalt_emission_flux_from_offline_model
+##InvOFFLINESEASALT_BrSALA BrSALA 0 3  -1  2   kg/m2/s  BrSALA_seasalt_emission_flux_from_offline_model
+##InvOFFLINESEASALT_BrSALC BrSALC 0 3  -1  2   kg/m2/s  BrSALC_seasalt_emission_flux_from_offline_model
+##InvOFFLINESEASALT_SALA   SALA   0 3  -1  2   kg/m2/s  SALA_seasalt_emission_flux_from_offline_model
+##InvOFFLINESEASALT_SALC   SALC   0 3  -1  2   kg/m2/s  SALC_seasalt_emission_flux_from_offline_model
+##
+###=============================
+### Offline soil NOx emissions
+###=============================
+##InvOFFLINESOILNOX_NO NO     0    3   -1  2   kg/m2/s  NO_soil_and_fertilizer_emission_flux_from_offline_model
 
 #=============================
 # Seaflux extension
@@ -772,25 +774,45 @@ InvPARANOX_O3        O3     102  -1  -1  2   kg/m2/s  O3_emission_flux_from_PARA
 InvLIGHTNOX_NO       NO     103  -1  -1  3   kg/m2/s  NO_emission_flux_from_lightning_extension
 
 #=============================
-# MEGAN Extension
-#
-# Comment out species obtained from OFFLINE_BIOGENICVOC by default
+# SOILNOX extension
 #=============================
-#InvMEGAN_ALD2        ALD2   108   -1 -1  2   kg/m2/s  ALD2_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_C2H4        C2H4   108   -1 -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_EOH         EOH    108   -1 -1  2   kg/m2/s  EOH_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ISOP        ISOP   108   -1 -1  2   kg/m2/s  ISOP_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_LIMO        LIMO   108   -1 -1  2   kg/m2/s  LIMO_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_MTPA        MTPA   108   -1 -1  2   kg/m2/s  MTPA_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_MTPO        MTPO   108   -1 -1  2   kg/m2/s  MTPO_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_PRPE        PRPE   108   -1 -1  2   kg/m2/s  PRPE_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_SESQ        SESQ   108   -1 -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_SOAP        SOAP   108   -1 -1  2   kg/m2/s  SOAP_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_SOAS        SOAS   108   -1 -1  2   kg/m2/s  SOAS_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ACET        ACET   108   -1 -1  2   kg/m2/s  ACET_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ACET_MONO   -1     108   -1 -1  2   kg/m2/s  Acetone_from_monoterpenes_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ACET_MBOX   -1     108   -1 -1  2   kg/m2/s  Acetone_from_methyl_butenol_biogenic_emission_flux_from_MEGAN_extension
-#InvMEGAN_ACET_DIRECT -1     108   -1 -1  2   kg/m2/s  Direct_acetone_biogenic_emission_flux_from_MEGAN_extension
+InvSOILNOX_NO        NO     104  -1  -1  2   kg/m2/s  NO_emission_flux_from_SOINOX_extension_including_soil_and_fertilizer_emissions
+
+#=============================
+# DEAD (dust) Extension
+#=============================
+InvDEAD_DST1         DST1   105  -1  -1  2   kg/m2/s  DST1_emission_flux_from_DEAD_extension
+InvDEAD_DST2         DST2   105  -1  -1  2   kg/m2/s  DST2_emission_flux_from_DEAD_extension
+InvDEAD_DST3         DST3   105  -1  -1  2   kg/m2/s  DST3_emission_flux_from_DEAD_extension
+InvDEAD_DST4         DST4   105  -1  -1  2   kg/m2/s  DST4_emission_flux_from_DEAD_extension
+
+#=============================
+# SeaSalt extension
+#=============================
+InvSeaSalt_Br2       Br2    107  -1  -1  2   kg/m2/s  Br2_emission_flux_from_SeaSalt_extension
+InvSeaSalt_BrSALA    BrSALA 107  -1  -1  2   kg/m2/s  BrSALA_emission_flux_from_SeaSalt_extension
+InvSeaSalt_BrSALC    BrSALC 107  -1  -1  2   kg/m2/s  BrSALC_emission_flux_from_SeaSalt_extension
+InvSeaSalt_SALA      SALA   107  -1  -1  2   kg/m2/s  SALA_emission_flux_from_SeaSalt_extension
+InvSeaSalt_SALC      SALC   107  -1  -1  2   kg/m2/s  SALC_emission_flux_from_SeaSalt_extension
+
+#=============================
+# MEGAN Extension
+#=============================
+InvMEGAN_ALD2        ALD2   108   -1 -1  2   kg/m2/s  ALD2_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_C2H4        C2H4   108   -1 -1  2   kg/m2/s  C2H4_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_EOH         EOH    108   -1 -1  2   kg/m2/s  EOH_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_ISOP        ISOP   108   -1 -1  2   kg/m2/s  ISOP_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_LIMO        LIMO   108   -1 -1  2   kg/m2/s  LIMO_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_MTPA        MTPA   108   -1 -1  2   kg/m2/s  MTPA_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_MTPO        MTPO   108   -1 -1  2   kg/m2/s  MTPO_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_PRPE        PRPE   108   -1 -1  2   kg/m2/s  PRPE_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_SESQ        SESQ   108   -1 -1  2   kg/m2/s  SESQ_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_SOAP        SOAP   108   -1 -1  2   kg/m2/s  SOAP_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_SOAS        SOAS   108   -1 -1  2   kg/m2/s  SOAS_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_ACET        ACET   108   -1 -1  2   kg/m2/s  ACET_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_ACET_MONO   -1     108   -1 -1  2   kg/m2/s  Acetone_from_monoterpenes_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_ACET_MBOX   -1     108   -1 -1  2   kg/m2/s  Acetone_from_methyl_butenol_biogenic_emission_flux_from_MEGAN_extension
+InvMEGAN_ACET_DIRECT -1     108   -1 -1  2   kg/m2/s  Direct_acetone_biogenic_emission_flux_from_MEGAN_extension
 InvMEGAN_MOH          MOH    108  -1  -1  2   kg/m2/s  Methanol_emission_flux_from_MEGAN_extension
 InvMEGAN_APIN         -1     108  -1  -1  2   kg/m2/s  Alpha_pinene_emission_flux_from_MEGAN_extension
 InvMEGAN_BPIN         -1     108  -1  -1  2   kg/m2/s  Beta_pinene_acid_emission_flux_from_MEGAN_extension

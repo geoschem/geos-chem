@@ -120,6 +120,7 @@ Warnings:                    1
     --> YUAN_MODIS_LAI         :       false
     --> RRTMG                  :       false
     --> SfcVMR                 :       true
+    --> OCEAN_O3_DRYDEP        :       true
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS/ACET/ALD2/MENO3/ETNO3/MOH
@@ -3481,6 +3482,17 @@ Warnings:                    1
 * SfcVMR_OCS  $ROOT/SfcFix/v2019-12/surface_VMR_OCS.2x25.nc OCS 1985/1/1/0  C xy ppbv * - 1 1
 * SfcVMR_H2   $ROOT/SfcFix/v2019-12/surface_VMR_H2.2x25.nc  H2  1985/1/1/0  C xy ppbv * - 1 1
 )))SfcVMR
+
+#==============================================================================
+# --- Oceanic ozone deposition ---
+#
+# Sea surface iodide concentration and salinity to be read in for the
+# new calculations for ozone deposition to the ocean
+#==============================================================================
+(((OCEAN_O3_DRYDEP
+* surf_salinity   $ROOT/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc                                                s_mn                   1985/1/1/0    C xy 1 * - 1 1
+* surf_iodide     $ROOT/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc   Ensemble_Monthly_mean  1970/1-12/1/0 C xy 1 * - 1 1
+)))OCEAN_O3_DRYDEP
 
 ### END SECTION BASE EMISSIONS ###
 
