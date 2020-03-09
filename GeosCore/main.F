@@ -1333,7 +1333,8 @@
 
                ! Copy UV Albedo data (for photolysis) into the
                ! State_Met%UVALBEDO field. (bmy, 3/20/15)
-               CALL Get_UvAlbedo( am_I_Root, Input_Opt, State_Met, RC )
+               CALL Get_UvAlbedo( am_I_Root, Input_Opt, State_Met,
+     &                            State_Grid, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN

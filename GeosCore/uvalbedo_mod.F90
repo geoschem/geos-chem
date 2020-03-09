@@ -66,21 +66,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_UValbedo( am_I_root, Input_Opt, State_Met, RC )
+  SUBROUTINE Get_UValbedo( am_I_root, Input_Opt, State_Met, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Grid_Mod,     ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -93,6 +95,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  09 Mar 2020 - E. Lundgren - Replace HCO_GetPtr with HCO_EvalFld
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,6 +112,9 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
 
+    ! Arrays
+    REAL(fp), ALLOCATABLE :: uvalbedo(:,:)
+
     !=======================================================================
     ! READ_UVALBEDO begins here!
     !=======================================================================
@@ -124,24 +130,23 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Nullify pointer
-    Ptr2D => NULL()
-
-    ! Get the pointer to the UV albedo data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, 'UV_ALBEDO', Ptr2D, RC, FOUND=FND )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
+    ! Evalulate the UV albedo from HEMCO
+    ALLOCATE( uvalbedo( State_Grid%NX, State_Grid%NY ), STAT=RC )
+    CALL GC_CheckVar( 'uvalbedo_mod.F: uvalbedo', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    uvalbedo = 0.0_fp
+    CALL HCO_EvalFld( am_I_Root, HcoState, 'UV_ALBEDO', uvalbedo, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not find UV_ALBEDO in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     ! Add to State_Met
-    State_Met%UVALBEDO = Ptr2D(:,:)
+    State_Met%UVALBEDO = uvalbedo
 
-    ! Free the pointer
-    Ptr2d => NULL()
+    ! Cleanup
+    IF ( ALLOCATED( uvalbedo ) ) DEALLOCATE ( uvalbedo, STAT=RC )
 
   END SUBROUTINE Get_UValbedo
 !EOC
