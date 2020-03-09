@@ -17,6 +17,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD     ! Size parameters
+      USE ErrCode_Mod
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
       IMPLICIT NONE
@@ -25,7 +26,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: INIT_TOMS
-      PUBLIC :: READ_TOMS
       PUBLIC :: COMPUTE_OVERHEAD_O3
       PUBLIC :: GET_OVERHEAD_O3
       PUBLIC :: CLEANUP_TOMS
@@ -83,6 +83,8 @@
 !  21 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  16 Mar 2015 - R. Yantosca - Retire bpch input; now read TOMS via HEMCO
 !  03 Nov 2016 - B. Henderson- Added fix for weird O3 in GEOS-5 simulations
+!  09 Mar 2020 - E. Lundgren - Remove DTOMS and TOMS since not used; move TOMS1,
+!                              TOMS2, STOMS to local; delete READ_TOMS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,194 +93,8 @@
 !
       ! Arrays
       REAL(fp), PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
-      REAL(f4), PRIVATE, ALLOCATABLE :: STOMS(:,:)
-
-      ! Pointers to fields in the HEMCO data structure
-      REAL(f4), PRIVATE, POINTER     :: TOMS(:,:)
-      REAL(f4), PRIVATE, POINTER     :: TOMS1(:,:)
-      REAL(f4), PRIVATE, POINTER     :: TOMS2(:,:)
-      REAL(f4), PRIVATE, POINTER     :: DTOMS1(:,:)
-      REAL(f4), PRIVATE, POINTER     :: DTOMS2(:,:)
 
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_toms
-!
-! !DESCRIPTION: Subroutine READ\_TOMS reads in TOMS O3 column data from a
-!  binary punch file for the given grid, month and year.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_TOMS( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE ErrCode_Mod
-      USE HCO_Interface_Mod,  ONLY : HcoState
-      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-      USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 5.
-!  Resolution:  5 x 10 deg.
-!                                                                             .
-!  Methodology
-!  ------------------------------------------------------------------------
-!  FAST-J comes with its own default O3 column climatology (from McPeters
-!  1992 & Nagatani 1991), which is stored in the input file "jv_atms.dat".
-!  These "FAST-J default" O3 columns are used in the computation of the
-!  actinic flux and other optical quantities for the FAST-J photolysis.
-!                                                                             .
-!  The TOMS/SBUV O3 columns and 1/2-monthly O3 trends (contained in the
-!  TOMS_200906 directory) are read into GEOS-Chem by routine READ_TOMS in
-!  "toms_mod.f".  Missing values (i.e. locations where there are no data)
-!  in the TOMS/SBUV O3 columns are defined by the flag -999.
-!                                                                             .
-!  After being read from disk in routine READ_TOMS, the TOMS/SBUV O3 data
-!  are then passed to the FAST-J routine "set_prof.F".  In "set_prof.F", a
-!  test is done to make sure that the TOMS/SBUV O3 columns and 1/2-monthly
-!  trends do not have any missing values for (lat,lon) location for the given
-!  month.  If so, then the TOMS/SBUV O3 column data is interpolated to the
-!  current day and is used to weight the "FAST-J default" O3 column.  This
-!  essentially "forces" the "FAST-J default" O3 column values to better match
-!  the observations, as defined by TOMS/SBUV.
-!                                                                             .
-!  If there are no TOMS/SBUV O3 columns (and 1/2-monthly trends) at a (lat,
-!  lon) location for given month, then FAST-J will revert to its own "default"
-!  climatology for that location and month.  Therefore, the TOMS O3 can be
-!  thought of as an  "overlay" data -- it is only used if it exists.
-!                                                                             .
-!  Note that there are no TOMS/SBUV O3 columns at the higher latitudes.
-!  At these latitudes, the code will revert to using the "FAST-J default"
-!  O3 columns.
-!                                                                             .
-!  As of March 2012, we have TOMS/SBUV data for 1979 thru 2008.  We will
-!  update to the latest TOMS/SBUV data set shortly.
-!                                                                             .
-!  This methodology was originally adopted by Mat Evans.
-!
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-!
-! !REVISION HISTORY:
-!  10 Dec 2002 - M. Evans - Initial version
-!  (1 ) Bundled into "toms_mod.f" (bmy, 7/14/03)
-!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (3 ) Now can read files for GEOS or GCAP grids (bmy, 8/16/05)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Now always use 2002 TOMS O3 data for GCAP (swu, bmy, 10/3/06)
-!  (6 ) Now reads from TOMS_200701 directory, w/ updated data.  Also always
-!        use 1979 data prior to 1979 or 2005 data after 2005. (bmy, 2/12/07)
-!  (7 ) Bug fix: don't include DATA_DIR in filename, just in case someone's
-!        file path has replaceable tokens (e.g. hh, mm, MM etc.) (bmy, 12/5/07)
-!  (8 ) Latest year of TOMS data is now 2007 (bmy, 1/14/09)
-!  (9 ) Updated TOMS data in TOMS_200906. Latest year is 2008. (ccc, 6/15/09)
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
-!                              to GEOS-5.7.2 met data for the time being.
-!  13 Dec 2013 - M. Sulprizio- Now pass USE_O3_FROM_MET logical flag so that
-!                              we bypass reading TOMS O3 data when using TO3
-!                              from the met fields.
-!  05 Mar 2014 - M. Sulprizio- Now regrid TOMS O3 from the files on GEOS 1x1
-!                              grid (J. Lin)
-!  20 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  23 Jun 2014 - R. Yantosca - Now use Input_Opt%DATA_DIR_1x1
-!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/CHEM_INPUTS
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Strings
-      CHARACTER(LEN=255) :: ThisLoc
-      CHARACTER(LEN=255) :: ErrMsg
-
-      !=================================================================
-      ! READ_TOMS begins here
-      !=================================================================
-
-      ! Assume success
-      RC = GC_SUCCESS
-
-      ! Exit if we are not using TOMS overhead O3 columns
-      IF ( .not. Input_Opt%USE_TOMS_O3 ) RETURN
-
-      ! Initialize
-      ErrMsg  = ''
-      ThisLoc = ' -> at READ_TOMS (in module GeosCore/toms_mod.F)'
-
-      !-----------------------------------------------------------------
-      ! Read TOMS O3 columns [dobsons]
-      !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS_O3_COL', TOMS, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Cannot get pointer to field: TOMS_O3_COL'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      !-----------------------------------------------------------------
-      ! Read TOMS O3 columns first day [dobsons]
-      !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS1_O3_COL', TOMS1, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Cannot get pointer to field: TOMS1_O3_COL!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      !-----------------------------------------------------------------
-      ! Read TOMS O3 columns last day [dobsons]
-      !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS2_O3_COL', TOMS2, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Cannot get pointer to field: TOMS2_O3_COL!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      !-----------------------------------------------------------------
-      ! Read d(TOMS)/dt, 1st half of the month [dobsons/day]
-      !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState, 'DTOMS1_O3_COL', DTOMS1, RC)
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Cannot get pointer to field: DTOMS1_O3_COL'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      !-----------------------------------------------------------------
-      ! Read d(TOMS)/dt, 2nd half of the month [dobsons/day]
-      !-----------------------------------------------------------------
-      CALL HCO_GetPtr( am_I_Root, HcoState,'DTOMS2_O3_COL', DTOMS2, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Cannot get pointer to field: DTOMS2_O3_COL!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      END SUBROUTINE READ_TOMS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -304,11 +120,13 @@
 ! !INTERFACE:
 !
       SUBROUTINE COMPUTE_OVERHEAD_O3( am_I_Root, State_Grid, DAY,
-     &                                USE_O3_FROM_MET, TO3 )
+     &                                USE_O3_FROM_MET, TO3, RC )
 !
 ! !USES:
 !
-      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Grid_Mod,    ONLY : GrdState
+      USE HCO_Calc_Mod,      ONLY : Hco_EvalFld
+      USE HCO_Interface_Mod, ONLY : HcoState
 !
 ! !INPUT PARAMETERS:
 !
@@ -318,6 +136,10 @@
       LOGICAL,        INTENT(IN) :: USE_O3_FROM_MET ! Use TO3 directly from met?
       REAL(fp),       INTENT(IN) :: TO3(State_Grid%NX,State_Grid%NY) ! Met TO3
                                                                      ! [Dobsons]
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 ! Reference for the TOMS/SBUV merged O3 columns:
@@ -389,14 +211,21 @@
 !                              the FAST-J routine SET_PROF; based on the
 !                              GEOS-Chem column code routine
 !  22 Oct 2014 - C. Keller   - Added am_I_Root parameter.
+!  09 Mar 2020 - E. Lundgren - Replace HCO_GetPtr with HCO_EvalFld
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, J
+      LOGICAL,         SAVE :: FIRST = .TRUE.
+      INTEGER               :: I, J
+      CHARACTER(LEN=255)    :: ErrMsg
+      REAL(fp), ALLOCATABLE :: TOMS1(:,:)
+      REAL(fp), ALLOCATABLE :: TOMS2(:,:)
+
+      ! Assume success
+      RC = GC_SUCCESS
 
       ! Initialize
       TO3_DAILY = 0e+0_fp
@@ -424,30 +253,51 @@
 
       ELSE
 
+         ! Evalulate the first day TOMS O3 columns from HEMCO
+         ALLOCATE( TOMS1( State_Grid%NX, State_Grid%NY ), STAT=RC )
+         CALL GC_CheckVar( 'toms_mod.F: TOMS1', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         TOMS1 = 0.0_fp
+         CALL HCO_EvalFld( am_I_Root, HcoState, 'TOMS1_O3_COL', TOMS1,
+     &                     RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find TOMS1_O3_COL in HEMCO data list!'
+            CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )
+            RETURN
+         ENDIF
+         
+         ! Evalulate the last day TOMS O3 columns from HEMCO
+         ALLOCATE( TOMS2( State_Grid%NX, State_Grid%NY ), STAT=RC )
+         CALL GC_CheckVar( 'toms_mod.F: TOMS2', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         TOMS2 = 0.0_fp
+         CALL HCO_EvalFld( am_I_Root, HcoState, 'TOMS2_O3_COL', TOMS2,
+     &                     RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find TOMS2_O3_COL in HEMCO data list!'
+            CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )
+            RETURN
+         ENDIF
+
          !---------------------------------------------------------------
          ! Here we are returning the default FAST-J overhead O3
          ! climatology with the TOMS/SBUV O3 columns (where data exists)
          !---------------------------------------------------------------
-            ! Calc difference
+            ! Interpolate O3 diff to current day (w/in 2nd half of month)
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( I, J )
 !$OMP+DEFAULT( SHARED )
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
-                 STOMS(I,J) = (TOMS2(I,J)-TOMS1(I,J))/30.0_fp
+                TO3_DAILY(I,J) = TOMS1(I,J) + (DAY - 1)
+     &                           * (TOMS2(I,J)-TOMS1(I,J))/30.0_fp
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-            ! Interpolate O3 to current day (w/in 2nd half of month)
-!$OMP PARALLEL DO
-!$OMP+PRIVATE( I, J )
-!$OMP+DEFAULT( SHARED )
-            DO J = 1, State_Grid%NY
-            DO I = 1, State_Grid%NX
-                TO3_DAILY(I,J) = TOMS1(I,J) + (DAY - 1) * STOMS(I,J)
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+
+         ! Clean up
+         IF ( ALLOCATED( TOMS1 ) ) DEALLOCATE ( TOMS1 )
+         IF ( ALLOCATED( TOMS2 ) ) DEALLOCATE ( TOMS2 )
 
       ENDIF
 
@@ -506,7 +356,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -556,20 +405,6 @@
          TO3_DAILY = 0.0_fp
       ENDIF
 
-      IF ( .not. ALLOCATED( STOMS ) ) THEN
-         ALLOCATE( STOMS( State_Grid%NX, State_Grid%NY ), STAT=RC )
-         CALL GC_CheckVar( 'toms_mod.F:STOMS', 0, RC )
-         IF ( RC /= GC_SUCCESS ) RETURN
-         STOMS = 0e+0_fp
-      ENDIF
-
-      ! Initialize pointers
-      TOMS   => NULL()
-      TOMS1  => NULL()
-      TOMS2  => NULL()
-      DTOMS1 => NULL()
-      DTOMS2 => NULL()
-
       END SUBROUTINE INIT_TOMS
 !EOC
 !------------------------------------------------------------------------------
@@ -588,7 +423,6 @@
 !
 ! !USES:
 !
-      USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -620,19 +454,6 @@
          CALL GC_CheckVar( 'toms_mod.F:TO3_DAILY', 2, RC )
          RETURN
       ENDIF
-
-      IF ( ALLOCATED( STOMS ) ) THEN
-         DEALLOCATE( STOMS, STAT=RC )
-         CALL GC_CheckVar( 'toms_mod.F:STOMS', 2, RC )
-         RETURN
-      ENDIF
-
-      ! Free pointers
-      TOMS   => NULL()
-      TOMS1  => NULL()
-      TOMS2  => NULL()
-      DTOMS1 => NULL()
-      DTOMS2 => NULL()
 
       END SUBROUTINE CLEANUP_TOMS
 !EOC
