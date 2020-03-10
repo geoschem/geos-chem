@@ -1093,8 +1093,7 @@ COLLECTIONS: #'AerosolMass',
   SpeciesConc.frequency:  010000
   SpeciesConc.duration:   010000
   SpeciesConc.mode:       'time-averaged'
-  SpeciesConc.fields:     #---- Advected species ---------------
-                          'SpeciesConc_ACET       ', 'GIGCchem',
+  SpeciesConc.fields:     'SpeciesConc_ACET       ', 'GIGCchem',
                           'SpeciesConc_ACTA       ', 'GIGCchem',
                           'SpeciesConc_AERI       ', 'GIGCchem',
                           'SpeciesConc_ALD2       ', 'GIGCchem',
@@ -1293,7 +1292,6 @@ COLLECTIONS: #'AerosolMass',
                           'SpeciesConc_SOAS       ', 'GIGCchem',
                           'SpeciesConc_TOLU       ', 'GIGCchem',
                           'SpeciesConc_XYLE       ', 'GIGCchem',
-			  #---- Chemical species ---------------
 			  'SpeciesConc_A3O2       ', 'GIGCchem',
 			  'SpeciesConc_ATO2       ', 'GIGCchem',
 			  'SpeciesConc_B3O2       ', 'GIGCchem',
