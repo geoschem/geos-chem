@@ -167,10 +167,10 @@ BENZ       = IGNORE; {C6H6; Benzene}
 Br         = IGNORE; {Br; Atomic bromine}
 Br2        = IGNORE; {Br2; Molecular bromine}
 BrCl       = IGNORE; {BrCl; Bromine chloride}
-BrO        = IGNORE; {BrO; Bromine monoxide}
-BRO2       = IGNORE; {C6H5O2 ; Peroxy radical from BENZ oxidation}
 BrNO2      = IGNORE; {BrNO2; Nitryl bromide}
 BrNO3      = IGNORE; {BrNO3; Bromine nitrate}
+BrO        = IGNORE; {BrO; Bromine monoxide}
+BRO2       = IGNORE; {C6H5O2 ; Peroxy radical from BENZ oxidation}
 BrSALA     = IGNORE; {Br; Fine sea salt bromine}
 BrSALC     = IGNORE; {Br; Course sea salt bromine}
 C2H4       = IGNORE; {C2H4; Ethylene}
@@ -181,8 +181,8 @@ C4HVP2     = IGNORE; {C4 hydroxy-vinyl-peroxy radicals from HPALDs}
 CH2Br2     = IGNORE; {CH3Br2; Dibromomethane}
 CH2Cl2     = IGNORE; {CH2Cl2; Dichloromethane}
 CH2I2      = IGNORE; {CH2I2; Diiodomethane}
-CH2ICl     = IGNORE; {CH2ICl; Chloroiodomethane}
 CH2IBr     = IGNORE; {CH2IBr; Bromoiodomethane}
+CH2ICl     = IGNORE; {CH2ICl; Chloroiodomethane}
 CH2O       = IGNORE; {CH2O; Formaldehyde}
 CH2OO      = IGNORE; {CH2OO; Criegee intermediate}
 CH3Br      = IGNORE; {CH3Br; Methyl bromide}
@@ -336,8 +336,8 @@ MVKN       = IGNORE; {HOCH2CH(ONO2)C(=O)CH3; Hydroxynitrate from MVK}
 MVKOHOO    = IGNORE; {peroxy radical from MVK + OH}
 MVKPC      = IGNORE; {OCHCH(OOH)C(O)CH3; MVK hydroperoxy-carbonyl}
 N2O5       = IGNORE; {N2O5; Dinitrogen pentoxide}
-NITs       = IGNORE; {NITs; Inorganic nitrates on surface of sea salt}
 NIT        = IGNORE; {NITs; Inorganic nitrates}
+NITs       = IGNORE; {NITs; Inorganic nitrates on surface of sea salt}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
 NO3        = IGNORE; {NO3; Nitrate radical}
@@ -357,9 +357,9 @@ PO2        = IGNORE; {HOCH2CH(OO)CH3; RO2 from propene}
 PP         = IGNORE; {HOCH2CH(OOH)CH3; Peroxide from PO2}
 PPN        = IGNORE; {CH3CH2C(O)OONO2; Peroxypropionylnitrate}
 PRN1       = IGNORE; {O2NOCH2CH(OO)CH3; RO2 from propene + NO3}
+PROPNN     = IGNORE; {CH3C(=O)CH2ONO2; Propanone nitrate}
 PRPE       = IGNORE; {C3H6; >= C3 alkenes}
 PRPN       = IGNORE; {O2NOCH2CH(OOH)CH3; Peroxide from PRN1}
-PROPNN     = IGNORE; {CH3C(=O)CH2ONO2; Propanone nitrate}
 PYAC       = IGNORE; {CH3COCOOH; Pyruvic acid}
 R4N1       = IGNORE; {RO2 from R4N2}
 R4N2       = IGNORE; {RO2NO; >= C4 alkylnitrates}

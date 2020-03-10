@@ -70,8 +70,10 @@ Warnings:                    1
     --> CHEMISTRY_INPUT        :       true
 # ----- RESTART FIELDS ----------------------
     --> GC_RESTART             :       false
-    --> GC_BCs                 :       false
+    --> STATE_PSC              :       false
     --> HEMCO_RESTART          :       false
+# ----- NESTED GRID FIELDS ------------------
+    --> GC_BCs                 :       false
 # ----- REGIONAL INVENTORIES ----------------
     --> APEI                   :       false
     --> NEI2011_HOURLY         :       false
@@ -122,7 +124,7 @@ Warnings:                    1
 # offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
 #   OFFLINE_DUST        - DustDead or DustGinoux
-#   OFFLINE_BIOGENICVOC - MEGAN and MEGAN_Mono
+#   OFFLINE_BIOGENICVOC - MEGAN
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
 #--------------------------------------------
@@ -144,9 +146,10 @@ Warnings:                    1
     --> YUAN_MODIS_LAI         :       false
     --> RRTMG                  :       false
     --> SfcVMR                 :       true
+    --> OCEAN_O3_DRYDEP        :       true
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
-101     SeaFlux                : on    DMS/ACET/ALD2/MENO3/ETNO3
+101     SeaFlux                : on    DMS/ACET/ALD2/MENO3/ETNO3/MOH
 102     ParaNOx                : off   NO/NO2/O3/HNO3
     --> LUT data format        :       txt
     --> LUT source dir         :       $ROOT/PARANOX/v2015-02
@@ -165,6 +168,7 @@ Warnings:                    1
 104     SoilNOx                : on    NO 
     --> Use fertilizer NOx     :       true
 105     DustDead               : on    DST1/DST2/DST3/DST4
+# Replace @MASS_TUNING_FACTOR with value matching run resolution
 #C24  --> Mass tuning factor     : 6.0e-4
 #C48  --> Mass tuning factor     : 5.0416e-4
 #C90  --> Mass tuning factor     : 4.0e-4
@@ -173,31 +177,26 @@ Warnings:                    1
 #C720 --> Mass tuning factor     : 2.3e-4
     --> Mass tuning factor     :       5.0416e-4
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
-107     SeaSalt                : on    SALA/SALC/Br2/BrSALA/BrSALC
+107     SeaSalt                : on    SALA/SALC/Br2/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01 
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
     --> SALC upper radius      :       8.0
-    --> Emit Br2               :       false 
-    --> Br2 scaling            :       1.0 
+    --> Emit Br2               :       false
+    --> Br2 scaling            :       1.0
     --> Model sea salt Br-     :       false
     --> Br- mass ratio         :       2.11e-3
-108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/EOH/SOAP/SOAS
-    --> Isoprene scaling       :       1.0 
+108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
+    --> Isoprene scaling       :       1.0
     --> CO2 inhibition         :       true
     --> CO2 conc (ppmv)        :       390.0
     --> Isoprene to SOAP       :       0.015
     --> Isoprene to SOAS       :       0.015
-    --> Normalize LAI          :       true
-#3% mass yield from isoprene to SOA
-109     MEGAN_Mono             : on    MTPA/MTPO/LIMO/SESQ
     --> Monoterp to SOAP       :       0.050
     --> Monoterp to SOAS       :       0.050
-#10% mass yield from monoterpenes to SOA
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-#10% mass yield from other terpenes to SOA
-111     GFED                   : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/SOAP
+111     GFED                   : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -214,21 +213,14 @@ Warnings:                    1
     --> Scaling_SOAP           :       0.013
     --> hydrophilic BC         :       0.2
     --> hydrophilic OC         :       0.5
-##---- Conflicting ext 115 -----
-## GEOS - comment out for now. Need to do HEMCO diff.
-#115     AeroCom_Volcano        : on    SO2/SO4
-#    --> AeroCom_Table          :       ./ExtData/AeroCom/sfc/volcanic_v4/Aerocom.so2_volcanic.$YYYY$MM$DD.rc
-#    --> Scaling_SO2            :       0.95
-#    --> Scaling_SO4            :       0.05
-#    --> Cat_Eruptive           :       61
-#    --> Cat_Degassing          :       62
-## GC - comment out for now
-#115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
-##-------------
-116     MarinePOA              : off   MOPO/MOPI
-117     Volcano                : off   SO2
+115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
+117     Volcano                : on    SO2/SO4
     --> Volcano_Source         :       AeroCom
-    --> Volcano_Table          :       $ROOT/VOLCANO/v2019-08/$YYYY/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
+    --> Volcano_Table          :       ./ExtData/AeroCom/sfc/volcanic_v4/Aerocom.so2_volcanic.$YYYY$MM$DD.rc
+    --> Scaling_SO2            :       0.95
+    --> Scaling_SO4            :       0.05
+    --> Cat_Eruptive           :       61
+    --> Cat_Degassing          :       62
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true
@@ -759,12 +751,13 @@ Warnings:                    1
 # --- Seawater concentrations for oceanic emissions (Extension 101) ---
 #==============================================================================
 (((SeaFlux
-#101 CH3I_SEAWATER  $ROOT/CH3I/v2014-07/ocean_ch3i.geos.4x5.nc       CH3I_OCEAN 1985/1-12/1/0 C xy kg/m3 CH3I - 1 1
-101 DMS_SEAWATER    $ROOT/DMS/v2015-07/DMS_lana.geos.1x1.nc          DMS_OCEAN  1985/1-12/1/0 C xy kg/m3 DMS  - 1 1
-101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc ACET       2005/1/1/0    C xy kg/m3 ACET - 1 1 
-101 ALD2_SEAWATER   $ROOT/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc   ALD2       1985/1-12/1/0 C xy kg/m3 ALD2 - 1 1
-101 MENO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc MENO3      2006/1-12/1/0 C xy kg/m3 MENO3 - 1 1
-101 ETNO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc ETNO3      2006/1-12/1/0 C xy kg/m3 ETNO3 - 1 1
+#101 CH3I_SEAWATER  $ROOT/CH3I/v2014-07/ocean_ch3i.geos.4x5.nc               CH3I_OCEAN 1985/1-12/1/0 C xy kg/m3 CH3I  - 1 1
+101 DMS_SEAWATER    $ROOT/DMS/v2015-07/DMS_lana.geos.1x1.nc                  DMS_OCEAN  1985/1-12/1/0 C xy kg/m3 DMS   - 1 1
+101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc         ACET       2005/1/1/0    C xy kg/m3 ACET  - 1 1
+101 ALD2_SEAWATER   $ROOT/ALD2/v2017-03/ALD2_seawater.geos.2x25.nc           ALD2       2006/1-12/1/0 C xy kg/m3 ALD2  - 1 1
+101 MENO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc         MENO3      2006/1-12/1/0 C xy kg/m3 MENO3 - 1 1
+101 ETNO3_SEAWATER  $ROOT/RONO2/v2019-05/RONO2_seawater.geos.2x25.nc         ETNO3      2006/1-12/1/0 C xy kg/m3 ETNO3 - 1 1
+101 MOH_SEAWATER    $ROOT/MOH/v2019-12/MOH_seawater.low.kgCm3.generic.1x1.nc MOH        2005/1/1/0    C xy kgC/m3 MOH  - 1 1
 )))SeaFlux
 
 #==============================================================================
@@ -854,14 +847,12 @@ Warnings:                    1
 108  PARDF_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
 )))HEMCO_RESTART
 108  MEGAN_AEF_ISOP               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_ISOPRENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
-(((MEGAN_Mono
-109  MEGAN_AEF_MBOX               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_MBO                 1985/1/1/0    C xy kgC/m2/s * - 1 1
-109  MEGAN_AEF_BPIN               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_BETA_PINENE         1985/1/1/0    C xy kgC/m2/s * - 1 1
-109  MEGAN_AEF_CARE               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_CARENE              1985/1/1/0    C xy kgC/m2/s * - 1 1
-109  MEGAN_AEF_LIMO               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_LIMONENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
-109  MEGAN_AEF_OCIM               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_OCIMENE             1985/1/1/0    C xy kgC/m2/s * - 1 1
-109  MEGAN_AEF_SABI               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_SABINENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
-)))MEGAN_Mono
+108 MEGAN_AEF_MBOX               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_MBO                 1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_BPIN               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_BETA_PINENE         1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_CARE               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_CARENE              1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_LIMO               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_LIMONENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_OCIM               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_OCIMENE             1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_SABI               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_SABINENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
 108  CLM4_PFT_BARE                ~/data/CLM4_PFT.geos.1x1.nc    PFT_BARE                2000/1/1/0    C xy 1        * - 1 1
 108  CLM4_PFT_NDLF_EVGN_TMPT_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_NDLF_EVGN_TMPT_TREE 2000/1/1/0    C xy 1        * - 1 1
 108  CLM4_PFT_NDLF_EVGN_BORL_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_NDLF_EVGN_BORL_TREE 2000/1/1/0    C xy 1        * - 1 1
@@ -878,13 +869,11 @@ Warnings:                    1
 108  CLM4_PFT_C3_NARC_GRSS        ~/data/CLM4_PFT.geos.1x1.nc    PFT_C3_NARC_GRSS        2000/1/1/0    C xy 1        * - 1 1
 108  CLM4_PFT_C4_GRSS             ~/data/CLM4_PFT.geos.1x1.nc    PFT_C4_GRSS             2000/1/1/0    C xy 1        * - 1 1
 108  CLM4_PFT_CROP                ~/data/CLM4_PFT.geos.1x1.nc    PFT_CROP                2000/1/1/0    C xy 1        * - 1 1
-(((MEGAN_Mono
-109  MEGAN_ORVC                   ~/data/NVOC.geos.1x1.nc        OCPI                    1990/1-12/1/0 C xy kgC/m2/s * - 1 1
-)))MEGAN_Mono
+108  MEGAN_ORVC                   ~/data/NVOC.geos.1x1.nc        OCPI                    1990/1-12/1/0 C xy kgC/m2/s * - 1 1
 )))MEGAN
 
 #==============================================================================
-# --- GFED biomass burning emissions (Extension 111) 
+# --- GFED biomass burning emissions (Extension 111)
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
 (((GFED4
@@ -896,11 +885,11 @@ Warnings:                    1
 111 GFED_SAVA       $ROOT/GFED4/v2015-10/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2014/1-12/01/0    C xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2015-10/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2014/1-12/1-31/0  C xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2015-10/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2016/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2015-10/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2014/1-12/1/0-23  C xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2015-10/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2016/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 
@@ -1288,7 +1277,7 @@ Warnings:                    1
 # NOTE: This is only used if NOAA data is unavailible (pre 1979)
 #==============================================================================
 (((CMIP6_SFC_CH4
-* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2019-09/CMIP6_GHG_surface_VMR_1750_2014_for_CH4.nc CH4     1750-1978/1-12/1/0 C xy ppbv * - 1 1
+* CMIP6_Sfc_CH4  $ROOT/CMIP6/v2020-03/2x2.5/CMIP6_GHG_surface_VMR_$YYYY.2x25.nc CH4 1750-1978/1-12/1/0 C xy ppbv * - 1 1
 )))CMIP6_SFC_CH4
 
 #==============================================================================
@@ -1520,6 +1509,17 @@ Warnings:                    1
 * SfcVMR_H2   $ROOT/SfcFix/v2019-12/surface_VMR_H2.nc  H2  1985/1/1/0  C xy ppbv * - 1 1
 )))SfcVMR
 
+#==============================================================================
+# --- Oceanic ozone deposition ---
+#
+# Sea surface iodide concentration and salinity to be read in for the
+# new calculations for ozone deposition to the ocean
+#==============================================================================
+(((OCEAN_O3_DRYDEP
+* surf_salinity   $ROOT/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc                                                s_mn                   1985/1/1/0    C xy 1 * - 1 1
+* surf_iodide     $ROOT/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc   Ensemble_Monthly_mean  1970/1-12/1/0 C xy 1 * - 1 1
+)))OCEAN_O3_DRYDEP
+
 ### END SECTION BASE EMISSIONS ###
 
 ###############################################################################
@@ -1540,14 +1540,10 @@ Warnings:                    1
 
 # SOx to SO2 conversion (Chin et al., 2000)
 60 SOX2SO2_GLOBAL 0.986  - - - xy unitless 1
-61 SOX2SO2_EU     0.95   - - - xy unitless 1
-62 SULFUR2SOX     2.0    - - - xy unitless 1
 63 SO2toSO4       0.031  - - - xy unitless 1
-64 SOX2SO4_EU     0.05   - - - xy unitless 1
-65 SO2toSO4_CAC   0.014  - - - xy unitless 1
+65 SO2toSO4_APEI  0.014  - - - xy unitless 1
 66 SO2toPFe       1.0e-3 - - - xy unitless 1
-67 SOX2PFe_EU     1.7e-3 - - - xy unitless 1
-68 SO2toPFe_CAC   4.7e-4 - - - xy unitless 1
+68 SO2toPFe_APEI  4.7e-4 - - - xy unitless 1
 69 SO2toPFe_NEI   1.0e-3 - - - xy unitless 1
 78 SO2FRAC        0.969  - - - xy unitless 1
 
@@ -1575,22 +1571,25 @@ Warnings:                    1
 # as reported by Tzompa-Sosa et al. 2017 
 96 C2H6scal       2.1   - - - xy unitless 1
 
-#==============================================================================
-# --- SOA-Precursor scale factors ---
+# SOA-Precursor scale factors
 #
-# from Kim, P.S., et. al. 2015 "Sources, seasonality, and trends 
+# From Kim, P.S., et. al. 2015 "Sources, seasonality, and trends
 # of southeast US aerosol: ..."
-#
 #   AVOCs and BBVOCs are emitted in proportion to CO, with an emission ratio of
-#   0.069 g AVOC (g CO)−1 (Hayes et al., 2015) and
-#   0.013 g BBVOC (g CO)−1 (Cubison et al., 2011).
+#     0.069 g AVOC (g CO)−1 (Hayes et al., 2015) and
+#     0.013 g BBVOC (g CO)−1 (Cubison et al., 2011).
 #   They are both oxidized by OH in the model ... to generate SOA.
-#
-280 COtoSOAP_anth 0.069   - - - xy 1 1
-281 COtoSOAP_burn 0.013   - - - xy 1 1
+280 COtoSOAP_anth 0.069 - - - xy 1 1
+281 COtoSOAP_burn 0.013 - - - xy 1 1
+
 # NOTE for GEOS:
 # ==> This next one is GEOS-only
 282 COtoNAP_burn  2.75e-4 - - - xy 1 1
+
+# Convert CEDS total alchohols to methanol, ethanol, and other alcohols following Chen et al. (2019, ACP)
+90 VOC1toMOH 0.5   - - - xy 1 1
+91 VOC1toEOH 0.375 - - - xy 1 1
+92 VOC1toROH 0.125 - - - xy 1 1
 
 #==============================================================================
 # --- Annual scale factors ---
@@ -1607,6 +1606,7 @@ Warnings:                    1
 # --- Diurnal scale factors ---
 #==============================================================================
 (((APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
+25 EDGAR_TODNOX $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless 1
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless 1
 )))APEI.or.MIX.or.DICE_Africa.or.CEDS.or.EDGARv43.or.HTAP.or.POET_EOH.or.XIAO_C3H8
 
