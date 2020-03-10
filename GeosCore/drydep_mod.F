@@ -3534,9 +3534,9 @@
          ELSE
             RS = 1.e+0_f8 / (USTAR**2.e+0_f8/ (1.e-20_f8*VON_KARMAN) *
      &           (EB + EIM ) + VTS)
-            PRINT *, "WARNING: 10 m winds are zero. Using small value",
-     &               "in drydep calculation of particle surface ",
-     &               "resistance to avoid divide by zero error."
+      !       PRINT *, "WARNING: 10 m winds are zero. Using small value",
+      !&               "in drydep calculation of particle surface ",
+      !&               "resistance to avoid divide by zero error."
          ENDIF
 #else
          RS = 1.e+0_f8 / (USTAR**2.e+0_f8/ (W10*VON_KARMAN) *
