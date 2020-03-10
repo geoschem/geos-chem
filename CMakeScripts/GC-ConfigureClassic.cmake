@@ -121,6 +121,9 @@ function(configureGCClassic)
         target_compile_definitions(BaseTarget INTERFACE "BPCH_DIAG")
     endif()
 
+    # Always set MODEL_CLASSIC when building GEOS-Chem Classic
+    target_compile_definitions(BaseTarget INTERFACE MODEL_CLASSIC)
+
     # Always set USE_REAL8. See https://github.com/geoschem/geos-chem/issues/43.
     target_compile_definitions(BaseTarget INTERFACE "USE_REAL8")
 

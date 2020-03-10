@@ -633,7 +633,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, J
-    REAL(fp)           :: YEDGE_VAL, YSIN_VAL
+    REAL(fp)           :: YEDGE_VAL, YSIN_VAL, TMP
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
@@ -663,7 +663,7 @@ CONTAINS
 
        ! Special treatment at uppermost edge
        IF ( I == State_Grid%NX ) THEN
-          XEDGE(I+1,J) = RoundOff( lonEdge(I+1,J) / PI_180, 4 )
+          State_Grid%XEdge(I+1,J) = RoundOff( lonEdge(I+1,J) / PI_180, 4 )
        ENDIF
        IF ( J == State_Grid%NY ) THEN
           State_Grid%YEdge(I,J+1)   = RoundOff( latEdge(I,J+1) / PI_180, 4 )
@@ -671,11 +671,11 @@ CONTAINS
           State_Grid%YSIN(I,J+1)    = SIN( State_Grid%YEdge_R(I,J+1) )
        ENDIF
 
-       ! Special quantities directly derived from YEDGE
-       State_Grid%YEdge_R(I,J)   = State_Grid%YEdge(I,J) * PI_180
-       State_Grid%YEdge_VAL      = State_Grid%YEdge_R(I,J) ! Lat edge [radians]
-       State_Grid%YSIN_VAL       = SIN( YEDGE_VAL)         ! SIN( lat edge )
-       State_Grid%YSIN(I,J)      = YSIN_VAL                ! Store in YSIN array
+       ! Special quantities directly derived from State_Grid%YEdge
+       State_Grid%YEdge_R(I,J) = State_Grid%YEdge(I,J) * PI_180
+       YEDGE_VAL               = State_Grid%YEdge_R(I,J) ! Lat edge[radians]
+       YSIN_VAL                = SIN( YEDGE_VAL )        ! SIN( lat edge )
+       State_Grid%YSIN(I,J)    = YSIN_VAL                ! Store in YSIN
 
     ENDDO
     ENDDO

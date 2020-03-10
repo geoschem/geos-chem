@@ -116,6 +116,7 @@ ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
 endif
 
 # %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%%%
+# %%%%% If not HPC, then build as GEOS-Chem Classic
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
   IS_HPC             :=1
@@ -123,6 +124,7 @@ ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
 # PRECISION          :=4
 else
   IS_HPC             :=0
+  USER_DEFS          += -DMODEL_CLASSIC
 endif
 
 # %%%%% Default to 8-byte precision unless specified otherwise %%%%%
@@ -265,6 +267,12 @@ REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_GRID)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_GRID
   NO_GRID_NEEDED     :=1
+endif
+
+# %%%%% MODEL_GCHP %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(MODEL_GCHP)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DMODEL_GCHP
 endif
 
 # %%%%% EXTERNAL_FORCING %%%%%

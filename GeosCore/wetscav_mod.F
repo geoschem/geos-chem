@@ -2825,9 +2825,14 @@
          ENDDO
          ENDDO
 
+#ifndef LUO_WETDEP
          !==============================================================
          ! (3)  R a i n o u t   F r o m   T o p   L a y e r
          ! (L = State_Grid%NZ)
+         !
+         ! Skip for Luo et al scheme, since we want to avoid doing
+         ! wet scavenging in the stratosphere. (bmy, 2/19/20)
+         ! See: https://github.com/geoschem/geos-chem/issues/211
          !==============================================================
 
          ! Zero variables for this level
@@ -2849,24 +2854,38 @@
             ! Q is the new precip that is forming within grid box (I,J,L)
             Q = QQ(L,I,J)
 
-#ifdef LUO_WETDEP
-            ! Luo et al scheme: Compute the condensed water
-            ! content instead of using a constant value.
-            ! Then compute K_RAIN and F_RAINOUT for LS precip.
-            COND_WATER_CONTENT = MAX(1.e-30_fp,(QQ(L,I,J)*DT+
-     &      State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1e-3_fp))
-            K_RAIN    = LS_K_RAIN( QQ(L,I,J), COND_WATER_CONTENT )
-            F_RAINOUT = MAX( 1.e-4_fp, State_Met%CLDF(I,J,L) )
-            F_RAINOUT = F_RAINOUT * MIN(1.e+0_fp,
-     &                  QQ(L,I,J) / ( COND_WATER_CONTENT * K_RAIN) )
-#else
+!---------------------------------------------------------------------------
+! Prior to 2/19/20: 
+! Comment out for now, in case we need to restore this (bmy, 2/19/20)
+!#ifdef LUO_WETDEP
+!           ! Luo et al scheme: Compute the condensed water
+!           ! content instead of using a constant value.
+!           ! Then compute K_RAIN and F_RAINOUT for LS precip.
+!           ! Now use QL and QI in formula for COND_WATER_CONTENT (bmy, 2/7/20)
+!           COND_WATER_CONTENT = 
+!    &           ( QQ(L,I,J)                 * DT                    )
+!    &        +  ( ( State_Met%QL(I,J,L)     + State_Met%QI(I,J,L) )
+!    &           * ( State_Met%AIRDEN(I,J,L) * 1e-3_fp             ) )
+!
+!           COND_WATER_CONTENT = MAX( 1e-30_fp, COND_WATER_CONTENT   )
+!
+!           K_RAIN    = LS_K_RAIN( QQ(L,I,J), COND_WATER_CONTENT )
+!           F_RAINOUT = MAX( 1.e-4_fp, State_Met%CLDF(I,J,L) )
+!           F_RAINOUT = F_RAINOUT * MIN(1.e+0_fp,
+!    &                  QQ(L,I,J) / ( COND_WATER_CONTENT * K_RAIN) )
+!#else
+!---------------------------------------------------------------------------
             ! Default scheme: Compute K_RAIN and F_RAINOUT for LS
             ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000).
             ! Use COND_WATER_CONTENT = 1e-6 [cm3/cm3], which
             ! was recommended by Qiaoqiao Wang et al [2014].
             K_RAIN    = LS_K_RAIN(  Q,         1.0e-6_fp  )
             F_RAINOUT = LS_F_PRIME( Q, K_RAIN, 1.0e-6_fp  )
-#endif
+!---------------------------------------------------------------------------
+! Prior to 2/19/20: 
+! Comment out for now, in case we need to restore this (bmy, 2/19/20)
+!#endif
+!---------------------------------------------------------------------------
 
             ! Set F = F_RAINOUT, since there is no FTOP at L = State_Grid%NZ
             F = F_RAINOUT
@@ -2910,14 +2929,20 @@
             FTOP = F
 
          ENDIF
+#endif
 
          !==============================================================
          ! (4)  R a i n o u t   a n d   W a s h o u t
          !      i n   t h e   M i d d l e   L e v e l s
          !==============================================================
 #ifdef LUO_WETDEP
+         ! Luo et al scheme: Avoid wet scavenging in the stratosphere.
+         ! See: https://github.com/geoschem/geos-chem/issues/211
+         ! (bmy, 2/19/20)
          DO L = State_Grid%NZ-1, 1, -1
+            IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
 #else
+         ! Default scheme
          DO L = State_Grid%NZ-1, 2, -1
 #endif
 
@@ -2937,8 +2962,15 @@
                ! Luo et al scheme: Compute the condensed water
                ! content instead of using a defined constant value.
                ! Then compute K_RAIN and F_PRIME for LS precip.
-               COND_WATER_CONTENT = MAX(1.e-30_fp,(QQ(L,I,J)*DT+
-     &         State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1e-3_fp))
+               ! Now use QL and QI in formula for COND_WATER_CONTENT 
+               ! (bmy, 2/7/20)
+               COND_WATER_CONTENT = 
+     &           ( QQ(L,I,J)                 * DT                    )
+     &        +  ( ( State_Met%QL(I,J,L)     + State_Met%QI(I,J,L) )
+     &        *    ( State_Met%AIRDEN(I,J,L) * 1e-3_fp             ) )
+
+               COND_WATER_CONTENT = MAX( 1e-30_fp, COND_WATER_CONTENT )
+
                K_RAIN  = LS_K_RAIN( QQ(L,I,J), COND_WATER_CONTENT )
                F_PRIME = MAX(1.e-4_fp,State_Met%CLDF(I,J,L))
                F_PRIME = F_PRIME*MIN(1.e+0_fp,

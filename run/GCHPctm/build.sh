@@ -144,10 +144,10 @@ if [[ $1 == "build" ]]; then
    if [[ $2 == "--debug" ]]; then
       make -j${NUM_JOB_SLOTS} CHEM=standard EXTERNAL_GRID=y TRACEBACK=y    \
                               DEBUG=y       BOUNDS=y        FPEX=y         \
-                              BPCH_DIAG=n   hpc
+                              BPCH_DIAG=n   MODEL_GCHP=y    hpc
    else 
       make -j${NUM_JOB_SLOTS} CHEM=standard EXTERNAL_GRID=y TRACEBACK=y    \
-                              BPCH_DIAG=n   hpc
+                              BPCH_DIAG=n   MODEL_GCHP=y    hpc
    fi
 fi
 

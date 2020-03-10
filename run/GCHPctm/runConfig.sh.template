@@ -151,6 +151,9 @@ JValuesLocalNoon_mode=${common_mode}
 LevelEdgeDiags_freq=${common_freq}
 LevelEdgeDiags_dur=${common_dur}
 LevelEdgeDiags_mode=${common_mode}
+KppDiags_freq=${common_freq}
+KppDiags_dur=${common_dur}
+KppDiags_mode=${common_mode}
 ProdLoss_freq=${common_freq}
 ProdLoss_dur=${common_dur}
 ProdLoss_mode=${common_mode}
@@ -238,10 +241,13 @@ if [[ $CS_RES -lt 180 ]]; then
     ChemEmiss_Timestep_sec=1200
     TransConv_Timestep_sec=600
     TransConv_Timestep_HHMMSS=001000
+    Reference_Time=121000
 else
     ChemEmiss_Timestep_sec=600
     TransConv_Timestep_sec=300
     TransConv_Timestep_HHMMSS=000500
+    # For reduced timesteps must shift reference time to shift alarm ringtime
+    Reference_Time=121001
 fi
 
 #------------------------------------------------
@@ -505,6 +511,9 @@ replace_val JValuesLocalNoon.mode      ${JValuesLocalNoon_mode} HISTORY.rc
 replace_val LevelEdgeDiags.frequency   ${LevelEdgeDiags_freq}   HISTORY.rc
 replace_val LevelEdgeDiags.duration    ${LevelEdgeDiags_dur}    HISTORY.rc
 replace_val LevelEdgeDiags.mode        ${LevelEdgeDiags_mode}   HISTORY.rc
+replace_val KppDiags.frequency         ${KppDiags_freq}         HISTORY.rc
+replace_val KppDiags.duration          ${KppDiags_dur}          HISTORY.rc
+replace_val KppDiags.mode              ${KppDiags_mode}         HISTORY.rc
 replace_val ProdLoss.frequency         ${ProdLoss_freq}         HISTORY.rc
 replace_val ProdLoss.duration          ${ProdLoss_dur}          HISTORY.rc
 replace_val ProdLoss.mode              ${ProdLoss_mode}         HISTORY.rc
@@ -536,6 +545,7 @@ replace_val GIGCchem_DT   ${ChemEmiss_Timestep_sec}  GCHP.rc
 replace_val DYNAMICS_DT   ${TransConv_Timestep_sec}  GCHP.rc
 replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  CAP.rc
 replace_val dt            ${TransConv_Timestep_sec}  fvcore_layout.rc
+replace_val GIGCchem_REFERENCE_TIME ${Reference_Time} GCHP.rc
 update_dyn_freq PS2   ExtData.rc
 update_dyn_freq SPHU2 ExtData.rc
 update_dyn_freq TMPU2 ExtData.rc

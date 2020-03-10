@@ -408,8 +408,12 @@ CONTAINS
           Inst%EmissBe7 (I,J,L) = ADD_Be7
           Inst%EmissBe10(I,J,L) = ADD_Be10
           IF ( L > ExtState%TropLev%Arr%Val(I,J) ) THEN
-             Inst%EmissBe7Strat (I,J,L) = Add_Be7
-             Inst%EmissBe10Strat(I,J,L) = Add_Be10
+             IF ( Inst%IDTBe7Strat > 0 ) THEN
+                Inst%EmissBe7Strat (I,J,L) = Add_Be7
+             ENDIF
+             IF ( Inst%IDTBe10Strat > 0 ) THEN 
+                Inst%EmissBe10Strat(I,J,L) = Add_Be10
+             ENDIF
           ENDIF
 
        ENDDO

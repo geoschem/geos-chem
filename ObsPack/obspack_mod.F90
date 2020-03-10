@@ -518,6 +518,7 @@ CONTAINS
                                central_time(5,N),                            & 
                                central_time(6,N)  )
 
+
        ! Pick the start and end time of the averaging interval
        ! depending on the averaging strategy listed in the file
        SELECT CASE ( State_Diag%ObsPack_Strategy(N) )
@@ -561,6 +562,17 @@ CONTAINS
 
              State_Diag%ObsPack_Ival_End(N) =                                &
                 State_Diag%ObsPack_Ival_Center(N) + 2700.0_f8
+
+          !---------------------
+          ! Instaneous Sampling
+          !---------------------
+          CASE( 4 )
+             State_Diag%ObsPack_Ival_Start(N) =                              &
+                State_Diag%ObsPack_Ival_Center(N)
+                                                              
+             State_Diag%ObsPack_Ival_End(N) =                                &
+                State_Diag%ObsPack_Ival_Center(N) 
+
 
           !------------------
           ! Exit w/ error
@@ -1250,7 +1262,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtLog,  prtDebug
+    LOGICAL             :: prtLog,  prtDebug, doSample
     INTEGER             :: I,       J,        L,  N,  R,  S
     INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
     REAL(f8)            :: TsStart, TsEnd
@@ -1298,6 +1310,7 @@ CONTAINS
  
     ! Compute elapsed seconds since 1970
     TsEnd   = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
+       
     TsStart = TsEnd - Input_Opt%TS_DYN
 
     ! Logfile header
@@ -1313,14 +1326,33 @@ CONTAINS
 
     ! Loop over observations
     DO N = 1, State_Diag%ObsPack_nObs
+       
+       !initializing flag for whether sampling should occur at this timestep
+       doSample = .false.
 
-       ! Skip observation if the sampling strategy says to do so
-       IF ( State_Diag%ObsPack_Strategy(N) == 0 ) CYCLE
+       SELECT CASE ( State_Diag%ObsPack_Strategy(N) )
+          CASE ( 0 )
+             ! Skip observation if the sampling strategy says to do so
+             CYCLE
+          CASE ( 1:3 )
+             ! If the sample covers the entire dynamic timestep, then...
+             IF ( State_Diag%ObsPack_Ival_Start(N) <= TsStart .and.                &
+                  State_Diag%ObsPack_Ival_End(N)   >= TsEnd ) doSample = .true.
+          CASE ( 4 )
+             ! If Instantaneous sampling choose the closest timestep
+             IF ( (TsEnd - State_Diag%ObsPack_Ival_Center(N)) <= (Input_Opt%TS_DYN/2.) .and.    &
+                  (State_Diag%ObsPack_Ival_Center(N) - TsEnd) < (Input_Opt%TS_DYN/2.) ) doSample =.true.
+          CASE DEFAULT
+             ErrMsg = "Sample Strategy not implemented in ObsPack_Sample Subroutine"
+             CALL GC_Error( ErrMsg, RC, ThisLoc )     
+             RETURN
+       END SELECT
+                
+                
 
-       ! If the sample covers the entire dynamic timestep, then...
-       IF ( State_Diag%ObsPack_Ival_Start(N) <= TsStart .and.                &
-            State_Diag%ObsPack_Ival_End(N)   >= TsEnd ) THEN
-
+       ! If sampling strategy time-step conditions are met, sample at these times
+       IF ( doSample ) THEN 
+          
           ! Print the observations that are sampled here
           IF ( prtLog ) THEN
              WRITE( 6, '(i6,1x,a)' ) N, TRIM( State_Diag%ObsPack_Id(N) )
@@ -1588,7 +1620,7 @@ CONTAINS
 
     ! Compute the fractional day
     FracDay = DBLE( Day ) + ( DBLE( Hour   ) /    24.0_f8 )  +               & 
-                            ( DBLE( Minute ) /  3600.0_f8 )  +               &
+                            ( DBLE( Minute ) /  1440.0_f8 )  +               &
                             ( DBLE( Second ) / 86400.0_f8 ) 
 
     ! Compute the Astronomical Julian Date (in decimal days)

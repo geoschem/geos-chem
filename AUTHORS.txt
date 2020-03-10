@@ -1,4 +1,4 @@
-List of Developers for GEOS-Chem, GCPy, and Related Software (24 Jul 2019)
+List of Developers for GEOS-Chem, HEMCO, and Related Software (05 Feb 2020)
 ===============================================================================
 
 Peter Adams
@@ -70,6 +70,7 @@ Brendan Field
 Arlene Fiore
 Emily Fischer
 Jenny Fisher
+Charley Fite
 Eric Fleming
 Judit Flo-Gaya
 Bonne Ford
@@ -100,6 +101,7 @@ Lu Hu
 Jianping Huang
 Jiayue Huang
 Rynda Hudman Kay
+Hyeonmin Kim
 Kohei Ikeda
 Daniel Jacob
 Andy Jacobson
@@ -252,6 +254,7 @@ John Tannahill
 Shu Tao
 Colin Thackray
 Thibaud Thonat
+Rong Tian
 Maria Tombrou
 Katherine Travis
 Win Trivitayanurak

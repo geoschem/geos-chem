@@ -392,7 +392,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-#if !defined( MODEL_GEOS )
+#if defined( MODEL_CLASSIC )
        !====================================================================
        ! Add some extra error checks for collections that are in the
        ! collection name list (and therefore will be archived)
@@ -1278,13 +1278,15 @@ CONTAINS
 !
 ! !IROUTINE: Check_DiagList
 !
-! !DESCRIPTION: Returns TRUE if a diagnostic name (or just a substring of a
-!  diagnostic name) is found in the DiagList diagnostic list object.
+! !DESCRIPTION: Returns TRUE if a string matches the metadataID for at
+!  least one diagnostic in the passed DiagList object. An exact match is
+!  required (case-insensitive) unless optional partial logical argument
+!  is passed.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_DiagList( am_I_Root, DiagList, substr, found, RC, exact )
+  SUBROUTINE Check_DiagList( am_I_Root, DiagList, name, found, RC, partial )
 !
 ! !USES:
 !
@@ -1294,8 +1296,8 @@ CONTAINS
 !
     LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(DgnList),     INTENT(IN)  :: DiagList    ! Diagnostic list object
-    CHARACTER(LEN=*),  INTENT(IN)  :: substr      ! Substring
-    LOGICAL,           OPTIONAL    :: exact       ! Force exact name match?
+    CHARACTER(LEN=*),  INTENT(IN)  :: name        ! Diagnostic metadata name
+    LOGICAL,           OPTIONAL    :: partial     ! Allow partial name match?
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1312,13 +1314,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: doExactMatch
+    LOGICAL                :: doPartialMatch
     INTEGER                :: matchInd
     INTEGER                :: matchLen
 
     ! Strings
     CHARACTER(LEN=255)     :: thisLoc
-    CHARACTER(LEN=255)     :: substr_AllCaps
+    CHARACTER(LEN=255)     :: inName_AllCaps
     CHARACTER(LEN=255)     :: currentName_AllCaps
 
     ! Pointers
@@ -1331,32 +1333,32 @@ CONTAINS
 
     ! Get the optional exactMatch argument, whichg determines
     ! if we should force an exact name match or not (bmy, 10/29/18)
-    IF ( PRESENT( exact ) ) THEN
-       doExactMatch = exact
+    IF ( PRESENT( partial ) ) THEN
+       doPartialMatch = partial
     ELSE
-       doExactMatch = .FALSE.
+       doPartialMatch = .FALSE.
     ENDIF
 
     ! Convert strings to uppercase for comparison
-    substr_AllCaps = To_Uppercase( TRIM( substr ) )
+    inName_AllCaps = To_Uppercase( TRIM( name ) )
 
-    ! Get the length of subStr_AllCaps excluding whitespace
-    matchLen       = LEN_TRIM( subStr_AllCaps )
+    ! Get the length of inName_AllCaps excluding whitespace
+    matchLen = LEN_TRIM( inName_AllCaps )
 
     ! Search for name in list
     current => DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
 
-       ! Name of the diagnostic at this point in the linked list
-       currentName_AllCaps = To_Uppercase( current%name )
+       ! Name of the diagnostic metadata at this point in the linked list
+       currentName_AllCaps = To_Uppercase( current%metadataID )
 
        ! Test if the substring matches all or part of the diagnostic name
-       matchInd = INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) )
+       matchInd = INDEX( currentName_AllCaps, TRIM( inName_AllCaps ) )
 
        ! Determine if we need to have an exact or partial match
-       IF ( doExactMatch ) THEN
+       IF ( .NOT. doPartialMatch ) THEN
 
-          ! Exact match: substr_AllCaps matches a sequence of characters
+          ! Exact match: inName_AllCaps matches a sequence of characters
           ! starting with the first character of currentName_AllCaps.
           ! AND has the same trimmed length as currentName_AllCaps
           IF ( ( matchInd == 1                               )   .and.       &
@@ -1367,7 +1369,7 @@ CONTAINS
 
        ELSE
 
-          ! Partial match: substr_AllCaps matches a sequence of characters
+          ! Partial match: inName_AllCaps matches a sequence of characters
           ! somewhere within currentName_AllCaps (but not necessarily
           ! starting from the beginning).
           IF ( matchInd > 0 ) THEN

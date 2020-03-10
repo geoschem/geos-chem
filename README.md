@@ -53,7 +53,7 @@ You can find the __The GEOS-Chem User's Guide__ online here:
 ### Wiki
 The most up-to-date information about GEOS-Chem is posted on the __GEOS-Chem wiki__.  Here you will find information about technical issues, bug fixes, and other pertinent topics.
 
-  * http://wiki-geos.chem.org
+  * http://wiki.geos-chem.org
 
 ## GEOS-Chem run directories
 To generate GEOS-Chem run directories, please clone the [__geos-chem-unittest__](https://github.com/geoschem/geos-chem-unittest) repository and follow the instructions as listed on the [Creating GEOS-Chem run directories wiki page](http://wiki.seas.harvard.edu/geos-chem/index.php/Creating_GEOS-Chem_run_directories).
