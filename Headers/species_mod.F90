@@ -1249,7 +1249,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAero,    nDryAlt, nDryDep,        &
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAeroSpc, nDryAlt, nDryDep,        &
                                 nGasSpc,  nHygGrth, nKppVar, nKppFix,        &
                                 nKppSpc,  nPhotol,  nWetDep, nHg0Cats,       &
                                 nHg2Cats, nHgPCats                          )
@@ -1257,7 +1257,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: nAdvect     ! # of advected species
-    INTEGER, INTENT(OUT) :: nAero       ! # of aerosol species
+    INTEGER, INTENT(OUT) :: nAeroSpc    ! # of aerosol species
     INTEGER, INTENT(OUT) :: nDryAlt     ! # of dry-dep species to save at a
                                         !  user-defined altitude above sfc.
     INTEGER, INTENT(OUT) :: nDryDep     ! # of dry-deposited species
@@ -1281,7 +1281,7 @@ CONTAINS
 
     ! Return module variables
     nAdvect  = AdvectCount
-    nAero    = AeroCount
+    nAeroSpc = AeroCount
     nDryAlt  = DryAltCount
     nDryDep  = DryDepCount
     nGasSpc  = GasSpcCount

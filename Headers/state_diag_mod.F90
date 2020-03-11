@@ -9941,7 +9941,7 @@ CONTAINS
        CASE( 'ADV'     )
           numTags = State_Chm%nAdvect
        CASE( 'AER'     )
-          numTags = State_Chm%nAero
+          numTags = State_Chm%nAeroSpc
        CASE( 'DRY'     )
           numTags = State_Chm%nDryDep
        CASE( 'DRYALT'  )

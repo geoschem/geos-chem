@@ -68,7 +68,8 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      INTEGER                    :: nSpecies             ! # species (all)
      INTEGER                    :: nAdvect              ! # advected species
-     INTEGER                    :: nAero                ! # of Aerosol Types
+     INTEGER                    :: nAeroSpc             ! # of Aerosol Species
+     INTEGER                    :: nAeroType            ! # of Aerosol Types
      INTEGER                    :: nDryAlt              ! # dryalt species
      INTEGER                    :: nDryDep              ! # drydep species
      INTEGER                    :: nGasSpc              ! # gas phase species
@@ -342,7 +343,8 @@ CONTAINS
     ! Number of each type of species
     State_Chm%nSpecies          =  0
     State_Chm%nAdvect           =  0
-    State_Chm%nAero             =  0
+    State_Chm%nAeroSpc          =  0
+    State_Chm%nAeroType         =  0
     State_Chm%nDryAlt           =  0
     State_Chm%nDryDep           =  0
     State_Chm%nGasSpc           =  0
@@ -500,7 +502,7 @@ CONTAINS
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and
     ! HgP species (these are zero unless the Hg simulation is used).
     CALL Spc_GetNumSpecies( nAdvect  = State_Chm%nAdvect,                  &
-                            nAero    = State_Chm%nAero,                    &
+                            nAeroSpc = State_Chm%nAeroSpc,                 &
                             nDryAlt  = State_Chm%nDryAlt,                  &
                             nDryDep  = State_Chm%nDryDep,                  &
                             nGasSpc  = State_Chm%nGasSpc,                  &
@@ -615,8 +617,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( State_Chm%nAero > 0 ) THEN
-       ALLOCATE( State_Chm%Map_Aero( State_Chm%nAero ), STAT=RC )
+    IF ( State_Chm%nAeroSpc > 0 ) THEN
+       ALLOCATE( State_Chm%Map_Aero( State_Chm%nAeroSpc ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Aero', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_Aero = 0
@@ -904,18 +906,18 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
        ! Save nAerosol to State_Chm
-       State_Chm%nAero = nAerosol
+       State_Chm%nAeroType = nAerosol
 
        !--------------------------------------------------------------------
        ! AeroArea
        !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%AeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       ALLOCATE( State_Chm%AeroArea(IM,JM,LM,State_Chm%nAeroType), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroArea', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%AeroArea = 0.0_fp
 
        ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAero
+       DO N = 1, State_Chm%nAeroType
 
           ! Define identifying string
           SELECT CASE( N )
@@ -948,7 +950,7 @@ CONTAINS
              CASE( 14 )
                 chmID  = 'AeroAreaICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined'    &
+                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
                          // ' dry aerosol area categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
@@ -963,13 +965,13 @@ CONTAINS
        !--------------------------------------------------------------------
        ! AeroRadi
        !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%AeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       ALLOCATE( State_Chm%AeroRadi(IM,JM,LM,State_Chm%nAeroType), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroRadi', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%AeroRadi    = 0.0_fp
 
        ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAero
+       DO N = 1, State_Chm%nAeroType
 
           ! Define identifying string
           SELECT CASE( N )
@@ -1002,7 +1004,7 @@ CONTAINS
              CASE( 14 )
                 chmID = 'AeroRadiICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined'     &
+                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
                          // ' dry aerosol radius categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
@@ -1017,13 +1019,13 @@ CONTAINS
        !--------------------------------------------------------------------
        ! WetAeroArea
        !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%WetAeroArea( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       ALLOCATE( State_Chm%WetAeroArea(IM,JM,LM,State_Chm%nAeroType), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroArea', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%WetAeroArea = 0.0_fp
 
        ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAero
+       DO N = 1, State_Chm%nAeroType
 
           ! Define identifying string
           SELECT CASE( N )
@@ -1056,7 +1058,7 @@ CONTAINS
              CASE( 14 )
                 chmID = 'WetAeroAreaICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined'     &
+                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
                          // ' wet aerosol area categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
@@ -1071,13 +1073,13 @@ CONTAINS
        !--------------------------------------------------------------------
        ! WetAeroRadi
        !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%WetAeroRadi( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       ALLOCATE( State_Chm%WetAeroRadi(IM,JM,LM,State_Chm%nAeroType), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%WetAeroRadi = 0.0_fp
 
        ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAero
+       DO N = 1, State_Chm%nAeroType
 
           ! Define identifying string
           SELECT CASE( N )
@@ -1110,7 +1112,7 @@ CONTAINS
              CASE( 14 )
                 chmID = 'WetAeroRadiICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined'     &
+                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
                          // ' wet aerosol radius categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
@@ -1125,13 +1127,13 @@ CONTAINS
        !--------------------------------------------------------------------
        ! AeroH2O
        !--------------------------------------------------------------------
-       ALLOCATE( State_Chm%AeroH2O( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       ALLOCATE( State_Chm%AeroH2O( IM, JM, LM, State_Chm%nAeroType ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroH2O', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%AeroH2O = 0.0_fp
 
        ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAero
+       DO N = 1, State_Chm%nAeroType
 
           ! Define identifying string
           SELECT CASE( N )
@@ -1164,7 +1166,7 @@ CONTAINS
              CASE( 14 )
                 chmID = 'AeroH2OICEI'
              CASE DEFAULT
-                ErrMsg = 'State_Chm%nAero exceeds the number of defined'     &
+                ErrMsg = 'State_Chm%nAeroType exceeds the number of defined' &
                          // ' aerosol H2O categories'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
