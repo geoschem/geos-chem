@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: geos_timers_mod
+! !MODULE: geos_timers_mod.F90
 !
 ! !DESCRIPTION: Module GEOS\_TIMERS\_MOD is used to track and time how long
 ! specified parts of GEOS-Chem take to run.
@@ -42,10 +42,7 @@ MODULE GEOS_Timers_Mod
 !
 ! !REVISION HISTORY:
 !  23 Jul 2015 - M. Yannetti - Initial version.
-!  05 Feb 2016 - R. Yantosca - Increased timer count from 15 to 16
-!  23 Aug 2017 - R. Yantosca - Increased timer count to 18
-!  20 Dec 2017 - R. Yantosca - Converted to F90 free format
-!  20 Dec 2017 - R. Yantosca - Now use KIND variables from precision_mod
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -118,7 +115,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,7 +191,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,7 +280,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -381,8 +378,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
-!  19 Sep 2016 - R. Yantosca - Rewrite logic of IF statement using .not.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -473,7 +469,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_Print( TimerName, am_I_Root, RC )
+  SUBROUTINE GEOS_Timer_Print( TimerName, RC )
 !
 ! !USES:
 !
@@ -482,7 +478,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)    :: TimerName   ! Name for timer.
-    LOGICAL,          INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -493,7 +488,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -534,7 +529,7 @@ CONTAINS
     ENDIF
 
     ! Print the timer output
-    CALL GEOS_Timer_PrintNum( TimerLoc, am_I_Root )
+    CALL GEOS_Timer_PrintNum( TimerLoc )
 
   END SUBROUTINE GEOS_Timer_Print
 !EOC
@@ -550,15 +545,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_PrintAll( am_I_Root, RC )
+  SUBROUTINE GEOS_Timer_PrintAll( RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -569,8 +560,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine and
-!                              modify to print timers out in a table
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -584,7 +574,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! GEOS_Timer_Start begins here!
+    ! GEOS_Timer_PrintAll begins here!
     !=======================================================================
 
     ! Initialize
@@ -606,19 +596,17 @@ CONTAINS
     ENDIF
 
     ! Print header info
-    IF ( am_I_Root ) THEN
-       WRITE( 6, *     ) ''
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, '(a)' ) 'G E O S - C H E M   T I M E R S'
-       WRITE( 6, *     ) ''
-       WRITE( 6, 100   ) 'Timer name','DD-hh:mm:ss.SSS','Total Seconds'
-       WRITE( 6, '(a)' ) REPEAT( '-', 79 )
- 100   FORMAT( 2x, a10, 23x, a15, 5x, a13 )
-    ENDIF
+    WRITE( 6, *     ) ''
+    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    WRITE( 6, '(a)' ) 'G E O S - C H E M   T I M E R S'
+    WRITE( 6, *     ) ''
+    WRITE( 6, 100   ) 'Timer name','DD-hh:mm:ss.SSS','Total Seconds'
+    WRITE( 6, '(a)' ) REPEAT( '-', 79 )
+100 FORMAT( 2x, a10, 23x, a15, 5x, a13 )
 
     ! Print formatted output
     DO I = 1, TimerCurrentSize
-       CALL GEOS_Timer_PrintNum( I, am_I_Root )
+       CALL GEOS_Timer_PrintNum( I )
     ENDDO
 
   END SUBROUTINE GEOS_Timer_PrintAll
@@ -650,7 +638,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Aug 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -711,12 +699,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_PrintNum( SlotNumber, am_I_Root )
+  SUBROUTINE GEOS_Timer_PrintNum( SlotNumber )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer.
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  This actually does the printing, and is called by other print
@@ -724,7 +711,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -742,7 +729,7 @@ CONTAINS
        PRINT*, "** WARNING: Timer still enabled! "
     ENDIF
 
-    CALL GEOS_Timer_TimePrint( SlotNumber, am_I_Root )
+    CALL GEOS_Timer_TimePrint( SlotNumber )
 
   END SUBROUTINE GEOS_Timer_PrintNum
 !EOC
@@ -773,6 +760,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -823,6 +811,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -861,24 +850,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_TimePrint( SlotNumber, am_I_Root )
+  SUBROUTINE GEOS_Timer_TimePrint( SlotNumber )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: SlotNumber  ! The slot of the timer.
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  This is a private subroutine.
 !
 ! !REVISION HISTORY:
 !  24 Jul 2015 - M. Yannetti - Initial version.
-!  27 Oct 2015 - M. Sulprizio- Change from a function to a subroutine and
-!                              modify to print timers out in a table in the
-!                              DD-hh:mm:ss.SSS format
-!  20 Dec 2017 - R. Yantosca - Bug fix: do not initialize variables at
-!                              declaration, this makes them SAVEd variables
-
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

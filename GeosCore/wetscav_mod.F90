@@ -2713,9 +2713,8 @@ CONTAINS
 
     ! Convert species concentration to mass per unit area (kg/m2) for
     ! wet deposition since computation is done per column (ewl, 9/8/15)
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg/m2', &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg/m2', RC, OrigUnit=OrigUnit )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3251,8 +3250,8 @@ CONTAINS
     ENDIF
 
     ! Convert species concentration back to original unit (ewl, 9/8/15)
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

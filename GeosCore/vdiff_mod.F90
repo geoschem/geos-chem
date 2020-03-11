@@ -2825,9 +2825,8 @@ contains
        !----------------------------------------
 
        ! Convert species concentration to v/v dry
-       CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                               State_grid, State_Met, 'v/v dry', &
-                               RC,         OrigUnit=OrigUnit      )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_grid, State_Met, &
+                               'v/v dry', RC, OrigUnit=OrigUnit )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2886,8 +2885,8 @@ contains
        !----------------------------------------
 
        ! Convert species back to the original units
-       CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,              &
-                               State_Grid, State_Met, OrigUnit,  RC           )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               OrigUnit,  RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN

@@ -1618,9 +1618,8 @@ CONTAINS
           PR = 0
 
           ! Convert species units to [v/v]
-          CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                                  State_Grid, State_Met, 'v/v dry', &
-                                  RC,         OrigUnit=OrigUnit )
+          CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                                  'v/v dry', RC, OrigUnit=OrigUnit )
 
           ! Initialize GEOS-Chem species array
           Spc => State_Chm%Species
@@ -2125,8 +2124,8 @@ CONTAINS
           ENDDO
 
           ! Convert species units back to original unit
-          CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                                  State_Grid, State_Met, OrigUnit, RC )
+          CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                                  OrigUnit, RC )
 
           ! Free pointer
           NULLIFY( Spc )

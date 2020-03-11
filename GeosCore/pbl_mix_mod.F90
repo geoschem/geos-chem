@@ -180,9 +180,8 @@ CONTAINS
        !--------------------------
 
        ! Convert species to v/v dry
-       CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                               State_Grid, State_Met, 'v/v dry',        &
-                               RC,         OrigUnit=OrigUnit )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               'v/v dry', RC, OrigUnit=OrigUnit )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -218,8 +217,8 @@ CONTAINS
        !--------------------------
 
        ! Convert species back to original units
-       CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                               State_Grid, State_Met, OrigUnit,  RC )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               OrigUnit,  RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN

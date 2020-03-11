@@ -7195,9 +7195,8 @@ CONTAINS
     ! Convert species units to [kg] for this routine.
     ! NOTE: For complete area-independence, species units will need to be
     !       mixing ratio or mass per unit area in TOMAS
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg', &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Routine AERO_DIADEN in tomas_mod.F90')
@@ -7281,8 +7280,8 @@ CONTAINS
     ENDIF
 
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Routine AERO_DIADEN in tomas_mod.F90')

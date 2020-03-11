@@ -659,7 +659,7 @@ PROGRAM GEOS_Chem
   !-----------------------------------------------------------------
   ! Initialize the hybrid pressure module.  Define Ap and Bp.
   !-----------------------------------------------------------------
-  CALL Init_Pressure( am_I_Root, Input_Opt, State_Grid, RC )
+  CALL Init_Pressure( Input_Opt, State_Grid, RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Init_Pressure"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
@@ -2355,8 +2355,8 @@ PROGRAM GEOS_Chem
   CALL GEOS_Timer_End( "GEOS-Chem",    RC )
 
   ! Print timer output (skip if a dry-run)
-  IF ( notDryRun ) THEN
-     CALL GEOS_Timer_PrintAll( am_I_Root, RC )
+  IF ( am_I_Root .and. notDryRun ) THEN
+     CALL GEOS_Timer_PrintAll( RC )
   ENDIF
 #endif
 

@@ -163,9 +163,8 @@ CONTAINS
     ENDIF
 
     ! Convert species to [v/v dry] for this routine
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'v/v dry', &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'v/v dry', RC, OrigUnit=OrigUnit )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -231,8 +230,8 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original unit
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit, RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

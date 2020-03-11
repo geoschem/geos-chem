@@ -544,9 +544,8 @@ CONTAINS
        ENDIF
 
        ! Convert species to [v/v dry]
-       CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                               State_Grid, State_Met, 'v/v dry', &
-                               RC,         OrigUnit=OrigUnit )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               'v/v dry', RC, OrigUnit=OrigUnit )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
@@ -663,9 +662,8 @@ CONTAINS
     ELSE
 
        ! Convert species to [v/v dry]
-       CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                               State_Grid, State_Met, 'v/v dry', &
-                               RC,         OrigUnit=OrigUnit )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               'v/v dry', RC, OrigUnit=OrigUnit )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
@@ -693,8 +691,8 @@ CONTAINS
     ENDIF ! FullRun
 
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of CHEM_SULFATE in sulfate_mod.F90')
@@ -783,9 +781,8 @@ CONTAINS
 
     ! Convert species to [kg] for TOMAS. This will be removed once
     ! TOMAS uses mixing ratio instead of mass as tracer units (ewl, 9/11/15)
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg', &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Start of EMISSSULFATETOMAS in sulfate_mod.F90')
@@ -845,8 +842,8 @@ CONTAINS
     NULLIFY( Spc )
 
     ! Convert species back to original units (ewl, 9/11/15)
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of EMISSSULFATETOMAS in sulfate_mod.F90')
@@ -6136,9 +6133,8 @@ CONTAINS
     RC  = GC_SUCCESS
 
     ! Convert species from to [kg]
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg', &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Start of CHEM_SO4_AQ in sulfate_mod.F90')
@@ -6192,8 +6188,8 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original units
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of CHEM_SO4_AQ in sulfate_mod.F90')

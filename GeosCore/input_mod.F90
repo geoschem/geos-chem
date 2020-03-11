@@ -5798,11 +5798,14 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Initialize timesteps in "time_mod.f"
-    CALL SET_TIMESTEPS( Input_Opt%amIRoot, &
-                        CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, &
-                        DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT, &
-                        CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG, &
+    ! Initialize timesteps in "time_mod.F90"
+    CALL SET_TIMESTEPS( Input_Opt,            &
+                        CHEMISTRY  = TS_CHEM, &
+                        EMISSION   = TS_EMIS, &
+                        DYNAMICS   = TS_DYN,  &
+                        UNIT_CONV  = TS_UNIT, &
+                        CONVECTION = TS_CONV, &
+                        DIAGNOS    = TS_DIAG, &
                         RADIATION  = TS_RAD )
 
 100 FORMAT( A, ' time step must be a multiple of the smallest one:', i5, i5 )

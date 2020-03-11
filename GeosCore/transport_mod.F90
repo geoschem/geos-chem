@@ -415,8 +415,8 @@ CONTAINS
 
     !!### DEBUG: Print a few global species sums
     !IF ( prtDebug ) THEN
-    !   CALL Print_Global_Species_Kg( 20, 20, 1, 'O3', &
-    !                                 Input_Opt, State_Chm, &
+    !   CALL Print_Global_Species_Kg( 20, 20, 1, 'O3',       &
+    !                                 Input_Opt, State_Chm,  &
     !                                 State_Grid, State_Met, &
     !                                 "do_global_adv: pre-advection", &
     !                                 RC )
@@ -507,8 +507,8 @@ CONTAINS
 
     !!### DEBUG: Print a few global species sums
     !IF ( prtDebug ) THEN
-    !   CALL Print_Global_Species_Kg( Input_Opt%amIRoot, 20, 20, 1, 'O3', &
-    !                                 Input_Opt, State_Chm, &
+    !   CALL Print_Global_Species_Kg( 20, 20, 1, 'O3',       &
+    !                                 Input_Opt, State_Chm,  &
     !                                 State_Grid, State_Met, &
     !                                 "do_global_adv: post-airqnt", &
     !                                 RC )
@@ -678,10 +678,10 @@ CONTAINS
     !=================================================================
 
     !IF ( prtDebug ) THEN
-    !   CALL Print_Global_Species_Kg( Input_Opt%amIRoot, 20, 20, 1, 'SPC_O3',
-    !                                 Input_Opt,  State_Chm,
-    !                                 State_Grid, State_Met,
-    !                            "do_window_transport: pre-advection",
+    !   CALL Print_Global_Species_Kg( 20, 20, 1, 'SPC_O3',   &
+    !                                 Input_Opt,  State_Chm, &
+    !                                 State_Grid, State_Met, &
+    !                                 "do_window_transport: pre-advection", &
     !                                 RC )
     !ENDIF
 
@@ -795,11 +795,11 @@ CONTAINS
 
     !!### Debug
     !IF ( prtDebug ) THEN
-    !   CALL Print_Global_Species_Kg( Input_Opt%amIRoot, 20, 20, 1, 'SPC_O3',
-    !                                Input_Opt, State_Chm,
-    !                                State_Grid, State_Met,
-    !                               "do_window_transport: post-airqnt",
-    !                                RC )
+    !   CALL Print_Global_Species_Kg( 20, 20, 1, 'SPC_O3',   &
+    !                                 Input_Opt, State_Chm,  &
+    !                                 State_Grid, State_Met, &
+    !                                 "do_window_transport: post-airqnt", &
+    !                                 RC )
     !   CALL DEBUG_MSG( '### NESTED_ADV: a TPCORE' )
     !ENDIF
 

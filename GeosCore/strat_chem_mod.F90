@@ -760,9 +760,8 @@ CONTAINS
        IF ( LLINOZ .OR. LSYNOZ ) THEN
 
           ! Convert units to [v/v dry air] for Linoz and Synoz (ewl, 10/05/15)
-          CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                                  State_Grid, State_Met, 'v/v dry', &
-                                  errCode,    OrigUnit=OrigUnit )
+          CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                                  'v/v dry', errCode,   OrigUnit=OrigUnit )
 
           ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN
@@ -781,8 +780,8 @@ CONTAINS
           ENDIF
 
          ! Convert species units back to original unit
-         CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                                 State_Grid, State_Met, OrigUnit,  errCode )
+         CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                                 OrigUnit,  errCode )
 
           ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN
@@ -994,7 +993,6 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !

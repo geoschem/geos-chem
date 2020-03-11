@@ -139,7 +139,7 @@ MODULE AEROSOL_MOD
   INTEGER :: id_INDIOL,id_LVOCOA,id_ISN1OA
 
   ! Index to map between NRHAER and species database hygroscopic species
-  ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F (e.g. if there is
+  ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F90 (e.g. if there is
   ! a new hygroscopic species) requires manual update of this mapping
   ! (ewl, 1/23/17)
   INTEGER :: Map_NRHAER(5)
@@ -211,12 +211,6 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
-! !REMARKS:
-!  This code was originally included in "chemdr.f", but the same computation
-!  also needs to be done for offline aerosol simulations.  Therefore, we have
-!  split this code off into a separate subroutine which can be called by both
-!  fullchem and offline aerosol simulations.
-!
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -280,7 +274,7 @@ CONTAINS
     ! Assume success
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at AEROSOL_CONC (in module GeosCore/aerosol_mod.F)'
+    ThisLoc = ' -> at AEROSOL_CONC (in module GeosCore/aerosol_mod.F90)'
 
     ! Copy fields from INPUT_OPT to local variables for use below
     LCARB   = Input_Opt%LCARB
@@ -315,9 +309,8 @@ CONTAINS
     Is_ComplexSOA = Input_Opt%LSOA
 
     ! Convert species to [kg] for this routine
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg',      &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg', RC, OrigUnit=OrigUnit )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -380,7 +373,7 @@ CONTAINS
     !=================================================================
     IF ( FIRST ) THEN
 
-       ! Species index of REAA from RD_AOD (in fast_jx_mod.F)
+       ! Species index of REAA from RD_AOD (in fast_jx_mod.F90)
        k_SO4      = 1
        k_ORG      = 3
        k_SSA      = 4
@@ -1002,11 +995,11 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original unit
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit, RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
-                     'End of AEROSOL_CONC in aerosol_mod.F')
+                     'End of AEROSOL_CONC in aerosol_mod.F90')
        RETURN
     ENDIF
 
@@ -1026,7 +1019,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine RDAER reads global aerosol concentrations as
 !  determined by Mian Chin.  Calculates optical depth at each level for
-!  "set\_prof.f". Also calculates surface area for heterogeneous chemistry. It
+!  "set\_prof". Also calculates surface area for heterogeneous chemistry. It
 !  uses aerosol parameters in FAST-J input file "jv\_spec.dat" for these
 !  calculations. (rvm, rjp, tdf, bmy, 11/04/01, 7/20/04)
 !\\
@@ -1248,7 +1241,7 @@ CONTAINS
           CASE DEFAULT
              ErrMsg = 'WARNING: aerosol diagnostics not defined' // &
                       ' for NRHAER greater than 5!'
-             CALL GC_ERROR( ErrMsg, RC, 'RDAER in aerosol_mod.F' )
+             CALL GC_ERROR( ErrMsg, RC, 'RDAER in aerosol_mod.F90' )
           END SELECT
 
        ENDDO
@@ -1345,7 +1338,7 @@ CONTAINS
     !
     ! If LSSALT = TRUE, then take accumulation and coarse mode
     ! seasalt aerosol concentrations [kg/m3] that are passed from
-    ! "chemdr.f".  Save these into WAERSL for use w/ FAST-J and
+    ! KPP.  Save these into WAERSL for use w/ FAST-J and
     ! hetchem.  These fields are updated every chemistry timestep.
     ! (For both fullchem and offline simulations)
     !
@@ -1397,9 +1390,9 @@ CONTAINS
     ! to account for the change in relative humidity
     !
     ! For the optical depth calculation, this involves carrying the
-    ! optical depth at each RH as separate aerosols since OPMIE.f
+    ! optical depth at each RH as separate aerosols since OPMIE
     ! treats the phase functions and single scattering albedos
-    ! separately. (An alternative would be to rewrite OPMIE.f)
+    ! separately. (An alternative would be to rewrite OPMIE)
     !
     ! Scaling is sufficient for the surface area calculation
     !=================================================================
@@ -1439,7 +1432,7 @@ CONTAINS
     !     in optics dat files (NWVAA-NWVAA0)
     !     if LRAD=false, calculation is for the wavelengths required for
     !     user-requested wavelength output. These are determined in CALC_AOD
-    !     within RD_AOD.F and stored in IWVREQUIRED. The coefficients to
+    !     within RD_AOD and stored in IWVREQUIRED. The coefficients to
     !     interpolate from the LUT wavelengths to the user-requested
     !     waveelenths (in CALC_AOD) are used here.
 
@@ -1794,7 +1787,7 @@ CONTAINS
                 !               use same units as TAREA    (tmf, 4/18/07)
                 !    WERADIUS : same as ERADIUS, but excludes dry dust,BCPO,OCPO
                 !               use same units as ERADIUS  (tmf, 4/18/07)
-                ! Wet dust WTAREA and WERADIUS are archived in dust_mod.f.
+                ! Wet dust WTAREA and WERADIUS are archived in dust_mod.F90.
                 !========================================================
 
                 ! For SO4-NIT-NH4 aerosol, re-calculate the wet effective
@@ -2016,7 +2009,7 @@ CONTAINS
     !==============================================================
     IF ( State_Diag%Archive_AOD .and. ODSWITCH .EQ. 1 ) THEN
 
-       ! Loop over aerosol types (dust handled in dust_mod.f)
+       ! Loop over aerosol types (dust handled in dust_mod.F90)
        !$OMP PARALLEL DO                                            &
        !$OMP DEFAULT( SHARED )                                      &
        !$OMP PRIVATE( I, J, L, N, W, LINTERP, IsWL1, IsWL2, IsWL3 ) &
@@ -2073,7 +2066,7 @@ CONTAINS
                 ELSE
                    ! Interpolated using angstrom exponent between
                    ! Closest available wavelengths
-                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
+                   ! (coefs pre-calculated in CALC_AOD (RD_AOD)
                    !catch any zero values before interpolation
                    IF ((ODAER(I,J,L,IWVSELECT(2,W),N).GT.0).AND. &
                        (ODAER(I,J,L,IWVSELECT(1,W),N).GT.0)) THEN
@@ -2257,7 +2250,7 @@ CONTAINS
     ! Initialize
     RC        = GC_SUCCESS
     ErrMsg    = ''
-    ThisLoc   = ' -> at Init_Aerosol (in module GeosCore/aerosol_mod.F)'
+    ThisLoc   = ' -> at Init_Aerosol (in module GeosCore/aerosol_mod.F90)'
 
     ! Add tracer ID flags as module variables (bmy, 6/16/16)
     id_BCPI   = Ind_( 'BCPI'   )
@@ -2301,47 +2294,47 @@ CONTAINS
     ! Allocate arrays
     !=================================================================
     ALLOCATE( BCPI( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     BCPI = 0.0_fp
 
     ALLOCATE( BCPO( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:BCPO', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:BCPO', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     BCPO = 0.0_fp
 
     ALLOCATE( OCPI( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:OCPI', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:OCPI', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     OCPI = 0.0_fp
 
     ALLOCATE( OCPO( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:OCPO', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:OCPO', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     OCPO = 0.0_fp
 
     ALLOCATE( OCPISOA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:OCPISOA', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:OCPISOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     OCPISOA = 0.0_fp
 
     ALLOCATE( SALA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:SALA', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SALA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SALA = 0.0_fp
 
     ALLOCATE( SALC( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:SALC', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SALC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SALC = 0.0_fp
 
     ALLOCATE( SO4_NH4_NIT(State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:SO4_NH4_NIT', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SO4_NH4_NIT', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SO4_NH4_NIT = 0.0_fp
 
     ALLOCATE( SO4( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:SO4', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SO4', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SO4 = 0.0_fp
 
@@ -2351,97 +2344,97 @@ CONTAINS
     NH4 = 0.0_fp
 
     ALLOCATE( NIT( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:NIT', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:NIT', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     NIT = 0.0_fp
 
     ALLOCATE( FRAC_SNA( State_Grid%NX, State_Grid%NY, State_Grid%NZ, 3 ), &
               STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:FRAC_SNA', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:FRAC_SNA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     FRAC_SNA = 0.0_fp
 
     ALLOCATE( SOILDUST( State_Grid%NX, State_Grid%NY, State_Grid%NZ, NDUST ), &
               STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:SOILDUST', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SOILDUST', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SOILDUST = 0.0_fp
 
     IF ( Input_Opt%LUCX ) THEN
        ALLOCATE( SLA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-       CALL GC_CheckVar( 'aerosol_mod.F:SLA', 0, RC )
+       CALL GC_CheckVar( 'aerosol_mod.F90:SLA', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        SLA = 0.0_fp
 
        ALLOCATE( SPA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-       CALL GC_CheckVar( 'aerosol_mod.F:SPA', 0, RC )
+       CALL GC_CheckVar( 'aerosol_mod.F90:SPA', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        SPA   = 0.0_fp
     ENDIF
 
     ALLOCATE( TSOA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:TSOA', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:TSOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     TSOA = 0.0_fp
 
     ALLOCATE( ASOA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:ASOA', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:ASOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     ASOA = 0.0_fp
 
     ALLOCATE( OPOA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:OPOA', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:OPOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     OPOA = 0.0_fp
 
     ALLOCATE( PM25( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:PM25', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:PM25', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     PM25 = 0.0_fp
 
     ALLOCATE( SOAGX( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:SOAGX', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SOAGX', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SOAGX = 0.0_fp
 
     ALLOCATE( SOAMG( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:SOAMG', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SOAMG', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SOAMG = 0.0_fp
 
     ! Mass of hydrophobic aerosol from Mian Chin
     ALLOCATE( DAERSL(State_Grid%NX,State_Grid%NY,State_Grid%NZ,2), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:DAERSL', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:DAERSL', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     DAERSL = 0.0_fp
 
     ! Mass of hydrophilic aerosol from Mian Chin
     ALLOCATE( WAERSL(State_Grid%NX,State_Grid%NY,State_Grid%NZ,NAER), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:WAERSL', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:WAERSL', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     WAERSL = 0.0_fp
 
     ! Mechanistic isoprene SOA (eam, 2014):
     ALLOCATE( ISOAAQ(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:ISOAAQ', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:ISOAAQ', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     ISOAAQ = 0.0_fp
 
     ! Simple SOA
     ALLOCATE( SOAS(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:SOAS', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SOAS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     SOAS = 0.0_fp
 
     ! OM/OC for POA
     ALLOCATE( OCFPOA(State_Grid%NX,State_Grid%NY), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:OCFPOA', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:OCFPOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     OCFPOA = 0.0_fp
 
     ! OM/OC for OPOA, OCPI, OCPO
     ALLOCATE( OCFOPOA(State_Grid%NX,State_Grid%NY), STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F:OCFOPOA', 0, RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:OCFOPOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     OCFOPOA = 0.0_fp
 
@@ -2595,7 +2588,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = ' -> at Set_AerMass_Diagnostic (in module GeosCore/aerosol_mod.F)'
+    ThisLoc  = ' -> at Set_AerMass_Diagnostic (in module GeosCore/aerosol_mod.F90)'
 
     ! Check that species units are kg/kg dry air
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN

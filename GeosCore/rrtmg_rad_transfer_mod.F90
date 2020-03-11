@@ -500,9 +500,8 @@ CONTAINS
     ThisLoc = ' -> at DO_RRTMG_RAD_TRANSFER (in rrtmg_rad_transfer_mod.F90)'
 
     ! Convert species units to kg/kg dry for RRTMG
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg/kg dry', &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg/kg dry', RC, OrigUnit=OrigUnit )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1743,8 +1742,8 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, 'DO_RRTMG_RAD_TRANSFER')
        RETURN

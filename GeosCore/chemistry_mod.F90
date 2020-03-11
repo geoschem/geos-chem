@@ -234,15 +234,14 @@ CONTAINS
     ! Archive species concentrations for tendencies (ckeller,7/15/2015)
     !=======================================================================
     CALL Tend_Stage1( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid,  &
-                      State_Met, 'CHEM', RC                                 )
+                      State_Met, 'CHEM', RC )
 #endif
 
     !=======================================================================
     ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,        &
-                            State_Grid, State_Met, 'kg',                     &
-                            RC,         OrigUnit=OrigUnit                   )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> kg)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -935,8 +934,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit (ewl, 8/12/15)
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -952,9 +951,8 @@ CONTAINS
     !=======================================================================
 
     ! Compute tendencies
-    CALL Tend_Stage2( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                      State_Grid, State_Met, 'CHEM',           &
-                      DT_Chem,    RC )
+    CALL Tend_Stage2( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
+                      State_Met, 'CHEM', DT_Chem, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

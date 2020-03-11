@@ -155,7 +155,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Time_Mod,           ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
     Use SfcVmr_Mod,         Only : FixSfcVmr_Run
 #ifdef BPCH_DIAG
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
@@ -502,9 +501,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units to v/v dry
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,       &
-                            State_Grid, State_Met, 'v/v dry', RC,           &
-                            OrigUnit=OrigUnit                               )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'v/v dry', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -578,8 +576,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, OrigUnit,  RC                     )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

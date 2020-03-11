@@ -3992,9 +3992,8 @@ CONTAINS
       ! Convert units
       PRINT *, " "
       PRINT *, "Species min and max in molec/cm3"
-      CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,   &
-                              State_Grid, State_Met, 'molec/cm3', &
-                              RC,         OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                              'molec/cm3', RC, OrigUnit=OrigUnit )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -4015,8 +4014,8 @@ CONTAINS
       ENDDO
 
       ! Convert units back
-      CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                              State_Grid, State_Met, OrigUnit,  RC )
+      CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                              OrigUnit,  RC )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN

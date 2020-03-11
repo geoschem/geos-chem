@@ -39,7 +39,7 @@ MODULE GC_Grid_Mod
 #endif
 !
 ! !REVISION HISTORY:
-!  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
+!  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F90
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -118,7 +118,6 @@ CONTAINS
     State_Grid%NativeNZ = 72
 
     ! Hardcode maximum number of levels below tropopause and stratopause
-    ! (formerly set in CMN_SIZE_mod.F)
     IF ( State_Grid%NZ == 47 ) THEN
        State_Grid%MaxTropLev  = 38
        State_Grid%MaxStratLev = 44
@@ -705,7 +704,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD
     USE ERROR_MOD,      ONLY : ERROR_STOP
     USE State_Grid_Mod, ONLY : GrdState
 !

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: henry_mod.F
+! !MODULE: henry_mod.F90
 !
 ! !DESCRIPTION: Module HENRY\_MOD contains routines to calculate
 ! The dimensionless liquid-over-gas Henry constant KH as well as the
@@ -31,33 +31,30 @@
 !
 ! !INTERFACE:
 !
-      MODULE HENRY_MOD
+MODULE HENRY_MOD
 
-      IMPLICIT NONE
-      PRIVATE
+  IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CALC_KH
-      PUBLIC :: CALC_HEFF
+  PUBLIC :: CALC_KH
+  PUBLIC :: CALC_HEFF
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller   - Initial version
-!  08 Aug 2014 - C. Keller   - Moved coefficients into separate module
-!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  08 Dec 2015 - R. Yantosca - Make parameters REAL*8 instead of REAL(fp)
-!  12 Jan 2016 - E. Lundgren - Update molar gas constant (R) value to NIST 2014
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER :: TREF = 298.15d0      ! [K          ]
-      REAL*8, PARAMETER :: R    = 8.3144598d0   ! [J K-1 mol-1]
-      REAL*8, PARAMETER :: ATM  = 101.325d0     ! [mPa (!)    ]
+  REAL*8, PARAMETER :: TREF = 298.15d0      ! [K          ]
+  REAL*8, PARAMETER :: R    = 8.3144598d0   ! [J K-1 mol-1]
+  REAL*8, PARAMETER :: ATM  = 101.325d0     ! [mPa (!)    ]
 
-      CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -74,45 +71,46 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_KH ( thisK0, thisCR, TK, KH, RC )
+  SUBROUTINE CALC_KH ( thisK0, thisCR, TK, KH, RC )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(IN)    :: thisK0  ! [M/atm]
-      REAL*8,  INTENT(IN)    :: thisCR  ! [-d ln kH / d(1/T) ]
-      REAL*8,  INTENT(IN)    :: TK      ! Temperature [K]
+    REAL*8,  INTENT(IN)    :: thisK0  ! [M/atm]
+    REAL*8,  INTENT(IN)    :: thisCR  ! [-d ln kH / d(1/T) ]
+    REAL*8,  INTENT(IN)    :: TK      ! Temperature [K]
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT)   :: KH      ! Henry liquid over gas constant [-]
+    REAL*8,  INTENT(OUT)   :: KH      ! Henry liquid over gas constant [-]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(INOUT) :: RC      ! Error handling
+    INTEGER, INTENT(INOUT) :: RC      ! Error handling
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      !=================================================================
-      ! CALC_KH begins here!
-      !=================================================================
+    !=================================================================
+    ! CALC_KH begins here!
+    !=================================================================
 
-      ! Assume success
-      RC = 0
+    ! Assume success
+    RC = 0
 
-      ! Error if not defined
-      IF ( thisK0 == 0d0 ) THEN
-         RC = -999
-         KH = -999
-         RETURN
-      ENDIF
+    ! Error if not defined
+    IF ( thisK0 == 0d0 ) THEN
+       RC = -999
+       KH = -999
+       RETURN
+    ENDIF
 
-      ! Calculate Henry coefficient for given temperature
-      KH = thisK0 * exp( thisCR * (1/TK - 1/TREF) ) * R * TK / ATM
+    ! Calculate Henry coefficient for given temperature
+    KH = thisK0 * exp( thisCR * (1/TK - 1/TREF) ) * R * TK / ATM
 
-      END SUBROUTINE CALC_KH
+  END SUBROUTINE CALC_KH
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -153,21 +151,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_HEFF ( thispKa, PH, KH, HEFF, RC )
+  SUBROUTINE CALC_HEFF ( thispKa, PH, KH, HEFF, RC )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,  INTENT(IN)    :: thispKa  ! pKa value [-]
-      REAL*8,  INTENT(IN)    :: PH       ! PH value [-]
-      REAL*8,  INTENT(IN)    :: KH       ! gas/aq Henry constant [-]
+    REAL*8,  INTENT(IN)    :: thispKa  ! pKa value [-]
+    REAL*8,  INTENT(IN)    :: PH       ! PH value [-]
+    REAL*8,  INTENT(IN)    :: KH       ! gas/aq Henry constant [-]
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT)   :: HEFF     ! effective gas/aq constant [-]
+    REAL*8,  INTENT(OUT)   :: HEFF     ! effective gas/aq constant [-]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(INOUT) :: RC       ! for error handling
+    INTEGER, INTENT(INOUT) :: RC       ! for error handling
 !
 ! !REMARKS:
 ! It should be noted that the correction term calculated here is from a
@@ -183,24 +181,24 @@
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      !=================================================================
-      ! CALC_HEFF begins here!
-      !=================================================================
+    !=================================================================
+    ! CALC_HEFF begins here!
+    !=================================================================
 
-      ! Assume success
-      RC = 0
+    ! Assume success
+    RC = 0
 
-      ! Calculate correction term.
-      IF ( thispKa > 0d0 ) THEN
-         HEFF = KH * ( 1d0 + 10d0**( pH - thispKa ) )
-      ELSE
-         HEFF = KH
-      ENDIF
+    ! Calculate correction term.
+    IF ( thispKa > 0d0 ) THEN
+       HEFF = KH * ( 1d0 + 10d0**( pH - thispKa ) )
+    ELSE
+       HEFF = KH
+    ENDIF
 
-      END SUBROUTINE CALC_HEFF
+  END SUBROUTINE CALC_HEFF
 !EOC
-      END MODULE HENRY_MOD
-!EOM
+END MODULE HENRY_MOD

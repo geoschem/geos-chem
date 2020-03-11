@@ -401,9 +401,8 @@ CONTAINS
        ENDIF
 
        ! Convert State_Chm%Species unit to diagnostic units
-       CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                               State_grid, State_Met, Units,     &
-                               RC,         OrigUnit=OrigUnit )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_grid, State_Met, &
+                               Units, RC, OrigUnit=OrigUnit )
 
        ! Copy species concentrations to diagnostic array
        !$OMP PARALLEL DO           &
@@ -421,8 +420,8 @@ CONTAINS
        !$OMP END PARALLEL DO
 
        ! Convert State_Chm%Species back to original unit
-       CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                               State_Grid, State_Met, OrigUnit, RC )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               OrigUnit, RC )
 
        ! Error handling
        IF ( RC /= GC_SUCCESS ) THEN
@@ -519,9 +518,8 @@ CONTAINS
     Units   = 'v/v dry'
 
     ! Convert State_Chm%Species unit to [v/v dry]
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt,     State_Chm,        &
-                            State_Grid, State_Met,         Units,            &
-                            RC,         OrigUnit=OrigUnit                   )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            Units, RC, OrigUnit=OrigUnit )
 
     ! Error handling
     IF ( RC /= GC_SUCCESS ) THEN
@@ -634,8 +632,8 @@ CONTAINS
     ENDIF
 
     ! Convert State_Chm%Species back to original unit
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,                &
-                            State_Grid, State_Met, OrigUnit,  RC            )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
 
     ! Error handling
     IF ( RC /= GC_SUCCESS ) THEN

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: time_mod.F
+! !MODULE: time_mod.F90
 !
 ! !DESCRIPTION: Module TIME\_MOD contains GEOS-Chem date and time variables
 !  and timesteps, and routines for accessing them.
@@ -11,125 +11,124 @@
 !\\
 ! !INTERFACE:
 !
-      MODULE TIME_MOD
+MODULE TIME_MOD
 !
 ! !USES:
 !
-      USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+  USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
 
-      IMPLICIT NONE
+  IMPLICIT NONE
 !
 ! !PRIVATE TYPES:
 !
-      PRIVATE
-      PRIVATE :: HG2_DIAG !hma, 25 Oct 2011
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: SET_CURRENT_TIME
-      PUBLIC  :: SET_BEGIN_TIME
-      PUBLIC  :: SET_END_TIME
-      PUBLIC  :: SET_TIMESTEPS
-      PUBLIC  :: SET_ELAPSED_SEC
-      PUBLIC  :: GET_JD
-      PUBLIC  :: GET_ELAPSED_SEC
-      PUBLIC  :: GET_NYMDb
-      PUBLIC  :: GET_NHMSb
-      PUBLIC  :: GET_NYMDe
-      PUBLIC  :: GET_NHMSe
-      PUBLIC  :: GET_NYMD
-      PUBLIC  :: GET_NHMS
-      PUBLIC  :: GET_TIME_AHEAD
-      PUBLIC  :: GET_MONTH
-      PUBLIC  :: GET_DAY
-      PUBLIC  :: GET_YEAR
-      PUBLIC  :: GET_HOUR
-      PUBLIC  :: GET_MINUTE
-      PUBLIC  :: GET_SECOND
-      PUBLIC  :: GET_DAY_OF_YEAR
-      PUBLIC  :: GET_GMT
-      PUBLIC  :: GET_TAU
-      PUBLIC  :: GET_TAUb
-      PUBLIC  :: GET_TAUe
-      PUBLIC  :: GET_LOCALTIME
-      PUBLIC  :: GET_LOCALTIME_IN_SEC
-      PUBLIC  :: GET_TS_CHEM
-      PUBLIC  :: GET_TS_CONV
-      PUBLIC  :: GET_TS_DIAG
-      PUBLIC  :: GET_TS_DYN
-      PUBLIC  :: GET_TS_EMIS
-      PUBLIC  :: GET_TS_UNIT
-      PUBLIC  :: GET_TS_RAD
-      PUBLIC  :: GET_A1_TIME
-      PUBLIC  :: GET_A3_TIME
-      PUBLIC  :: GET_I3_TIME
-      PUBLIC  :: GET_FIRST_A1_TIME
-      PUBLIC  :: GET_FIRST_A3_TIME
-      PUBLIC  :: GET_FIRST_I3_TIME
-      PUBLIC  :: ITS_TIME_FOR_CHEM
-      PUBLIC  :: ITS_TIME_FOR_CONV
-      PUBLIC  :: ITS_TIME_FOR_DYN
-      PUBLIC  :: ITS_TIME_FOR_EMIS
-      PUBLIC  :: ITS_TIME_FOR_EXCH
-      PUBLIC  :: ITS_TIME_FOR_UNIT
-      PUBLIC  :: ITS_TIME_FOR_RT
-      PUBLIC  :: ITS_TIME_FOR_SURFACE_RAD
-      PUBLIC  :: ITS_TIME_FOR_A1
-      PUBLIC  :: ITS_TIME_FOR_A3
-      PUBLIC  :: ITS_TIME_FOR_I3
-      PUBLIC  :: ITS_TIME_FOR_EXIT
-      PUBLIC  :: ITS_A_LEAPYEAR
-      PUBLIC  :: ITS_A_NEW_YEAR
-      PUBLIC  :: ITS_A_NEW_MONTH
-      PUBLIC  :: ITS_A_NEW_DAY
-      PUBLIC  :: ITS_A_NEW_HOUR
-      PUBLIC  :: PRINT_CURRENT_TIME
-      PUBLIC  :: TIMESTAMP_STRING
-      PUBLIC  :: YMD_EXTRACT
-      PUBLIC  :: EXPAND_DATE
-      PUBLIC  :: Valid_Date
-      PUBLIC  :: Valid_Time
-      PUBLIC  :: SYSTEM_DATE_TIME
-      PUBLIC  :: SYSTEM_TIMESTAMP
-      PUBLIC  :: TIMESTAMP_DIAG
+  PUBLIC  :: SET_CURRENT_TIME
+  PUBLIC  :: SET_BEGIN_TIME
+  PUBLIC  :: SET_END_TIME
+  PUBLIC  :: SET_TIMESTEPS
+  PUBLIC  :: SET_ELAPSED_SEC
+  PUBLIC  :: GET_JD
+  PUBLIC  :: GET_ELAPSED_SEC
+  PUBLIC  :: GET_NYMDb
+  PUBLIC  :: GET_NHMSb
+  PUBLIC  :: GET_NYMDe
+  PUBLIC  :: GET_NHMSe
+  PUBLIC  :: GET_NYMD
+  PUBLIC  :: GET_NHMS
+  PUBLIC  :: GET_TIME_AHEAD
+  PUBLIC  :: GET_MONTH
+  PUBLIC  :: GET_DAY
+  PUBLIC  :: GET_YEAR
+  PUBLIC  :: GET_HOUR
+  PUBLIC  :: GET_MINUTE
+  PUBLIC  :: GET_SECOND
+  PUBLIC  :: GET_DAY_OF_YEAR
+  PUBLIC  :: GET_GMT
+  PUBLIC  :: GET_TAU
+  PUBLIC  :: GET_TAUb
+  PUBLIC  :: GET_TAUe
+  PUBLIC  :: GET_LOCALTIME
+  PUBLIC  :: GET_LOCALTIME_IN_SEC
+  PUBLIC  :: GET_TS_CHEM
+  PUBLIC  :: GET_TS_CONV
+  PUBLIC  :: GET_TS_DIAG
+  PUBLIC  :: GET_TS_DYN
+  PUBLIC  :: GET_TS_EMIS
+  PUBLIC  :: GET_TS_UNIT
+  PUBLIC  :: GET_TS_RAD
+  PUBLIC  :: GET_A1_TIME
+  PUBLIC  :: GET_A3_TIME
+  PUBLIC  :: GET_I3_TIME
+  PUBLIC  :: GET_FIRST_A1_TIME
+  PUBLIC  :: GET_FIRST_A3_TIME
+  PUBLIC  :: GET_FIRST_I3_TIME
+  PUBLIC  :: ITS_TIME_FOR_CHEM
+  PUBLIC  :: ITS_TIME_FOR_CONV
+  PUBLIC  :: ITS_TIME_FOR_DYN
+  PUBLIC  :: ITS_TIME_FOR_EMIS
+  PUBLIC  :: ITS_TIME_FOR_EXCH
+  PUBLIC  :: ITS_TIME_FOR_UNIT
+  PUBLIC  :: ITS_TIME_FOR_RT
+  PUBLIC  :: ITS_TIME_FOR_SURFACE_RAD
+  PUBLIC  :: ITS_TIME_FOR_A1
+  PUBLIC  :: ITS_TIME_FOR_A3
+  PUBLIC  :: ITS_TIME_FOR_I3
+  PUBLIC  :: ITS_TIME_FOR_EXIT
+  PUBLIC  :: ITS_A_LEAPYEAR
+  PUBLIC  :: ITS_A_NEW_YEAR
+  PUBLIC  :: ITS_A_NEW_MONTH
+  PUBLIC  :: ITS_A_NEW_DAY
+  PUBLIC  :: ITS_A_NEW_HOUR
+  PUBLIC  :: PRINT_CURRENT_TIME
+  PUBLIC  :: TIMESTAMP_STRING
+  PUBLIC  :: YMD_EXTRACT
+  PUBLIC  :: EXPAND_DATE
+  PUBLIC  :: Valid_Date
+  PUBLIC  :: Valid_Time
+  PUBLIC  :: SYSTEM_DATE_TIME
+  PUBLIC  :: SYSTEM_TIMESTAMP
+  PUBLIC  :: TIMESTAMP_DIAG
 #if defined( ESMF_ ) || defined( MODEL_ )
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
-      !%%%  IS COMPILED FOR GCHP OR FOR CONNECTION TO EXTERNAL ESMs   %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      PUBLIC  :: Accept_External_Date_Time
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
+  !%%%  IS COMPILED FOR GCHP OR FOR CONNECTION TO EXTERNAL ESMs   %%%
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  PUBLIC  :: Accept_External_Date_Time
 #endif
 #ifdef BPCH_DIAG
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
-      !%%%  IS COMPILED WITH BPCH_DIAG=y (bmy, 10/4/19)               %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      PUBLIC  :: GET_DIAGb
-      PUBLIC  :: GET_DIAGe
-      PUBLIC  :: GET_CT_CHEM
-      PUBLIC  :: GET_CT_CONV
-      PUBLIC  :: GET_CT_DYN
-      PUBLIC  :: GET_CT_EMIS
-      PUBLIC  :: GET_CT_RAD
-      PUBLIC  :: GET_CT_A3
-      PUBLIC  :: GET_CT_I3
-      PUBLIC  :: GET_CT_DIAG
-      PUBLIC  :: GET_NYMD_DIAG
-      PUBLIC  :: ITS_MIDMONTH
-      PUBLIC  :: SET_CT_CHEM
-      PUBLIC  :: SET_CT_CONV
-      PUBLIC  :: SET_CT_DYN
-      PUBLIC  :: SET_CT_EMIS
-      PUBLIC  :: SET_CT_DIAG
-      PUBLIC  :: SET_CT_RAD
-      PUBLIC  :: SET_CT_A3
-      PUBLIC  :: SET_CT_I3
-      PUBLIC  :: SET_DIAGb
-      PUBLIC  :: SET_DIAGe
-      PUBLIC  :: SET_Hg2_DIAG
-      PUBLIC  :: ITS_TIME_FOR_BPCH
-      PUBLIC  :: ITS_TIME_FOR_DIAG
-      PUBLIC  :: GET_Hg2_DIAG
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  !%%%  NOTE: THESE ROUTINES WILL BE OMITTED UNLESS GEOS-Chem     %%%
+  !%%%  IS COMPILED WITH BPCH_DIAG=y (bmy, 10/4/19)               %%%
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  PUBLIC  :: GET_DIAGb
+  PUBLIC  :: GET_DIAGe
+  PUBLIC  :: GET_CT_CHEM
+  PUBLIC  :: GET_CT_CONV
+  PUBLIC  :: GET_CT_DYN
+  PUBLIC  :: GET_CT_EMIS
+  PUBLIC  :: GET_CT_RAD
+  PUBLIC  :: GET_CT_A3
+  PUBLIC  :: GET_CT_I3
+  PUBLIC  :: GET_CT_DIAG
+  PUBLIC  :: GET_NYMD_DIAG
+  PUBLIC  :: ITS_MIDMONTH
+  PUBLIC  :: SET_CT_CHEM
+  PUBLIC  :: SET_CT_CONV
+  PUBLIC  :: SET_CT_DYN
+  PUBLIC  :: SET_CT_EMIS
+  PUBLIC  :: SET_CT_DIAG
+  PUBLIC  :: SET_CT_RAD
+  PUBLIC  :: SET_CT_A3
+  PUBLIC  :: SET_CT_I3
+  PUBLIC  :: SET_DIAGb
+  PUBLIC  :: SET_DIAGe
+  PUBLIC  :: SET_Hg2_DIAG
+  PUBLIC  :: ITS_TIME_FOR_BPCH
+  PUBLIC  :: ITS_TIME_FOR_DIAG
+  PUBLIC  :: GET_Hg2_DIAG
 #endif
 !
 ! !REMARKS:
@@ -151,82 +150,82 @@
 !
 ! !PRIVATE TYPES:
 !
-      !---------------------------------
-      ! GMT dates @ start & end of run
-      !---------------------------------
-      INTEGER             :: NYMDb        ! YYYY/MM/DD on which to start run
-      INTEGER             :: NHMSb        ! hh:mm:ss   on which to start run
-      REAL(f8)            :: TAUb         ! Hours since 1/1/1985 @ start of run
+  !---------------------------------
+  ! GMT dates @ start & end of run
+  !---------------------------------
+  INTEGER             :: NYMDb        ! YYYY/MM/DD on which to start run
+  INTEGER             :: NHMSb        ! hh:mm:ss   on which to start run
+  REAL(f8)            :: TAUb         ! Hours since 1/1/1985 @ start of run
 
-      INTEGER             :: NYMDe        ! YYYY/MM/DD on which to end run
-      INTEGER             :: NHMSe        ! hh:mm:ss   on which to end run
-      REAL(f8)            :: TAUe         ! Hours since 1/1/1985 @ end of run
+  INTEGER             :: NYMDe        ! YYYY/MM/DD on which to end run
+  INTEGER             :: NHMSe        ! hh:mm:ss   on which to end run
+  REAL(f8)            :: TAUe         ! Hours since 1/1/1985 @ end of run
 
-      !---------------------------------
-      ! Current GMT date/time values
-      !---------------------------------
-      INTEGER             :: NYMD         ! YYYY/MM/DD date
-      INTEGER             :: NHMS         ! hh:mm:ss time
-      INTEGER             :: MONTH        ! Month (1-12)
-      INTEGER             :: DAY          ! Day of month (1-31)
-      INTEGER             :: YEAR         ! Year (YYYY format)
-      INTEGER             :: HOUR         ! hour (0-23)
-      INTEGER             :: MINUTE       ! Minutes (0-59)
-      INTEGER             :: SECOND       ! Seconds (0-59)
-      INTEGER             :: NSEASON      ! Season (1=DJF,2=MAM,3=JJA,4=SON)
-      INTEGER             :: DAY_OF_YEAR  ! Day of year (0-365 or 0-366 if LY)
-      INTEGER             :: DAY_OF_WEEK  ! Day of week (0=Sun,1=Mon,.., 6=Sat)
-      REAL(f8)            :: TAU          ! Hours since 1/1/1985
-      REAL(f8)            :: GMT          ! Current GMT time [decimal hours]
+  !---------------------------------
+  ! Current GMT date/time values
+  !---------------------------------
+  INTEGER             :: NYMD         ! YYYY/MM/DD date
+  INTEGER             :: NHMS         ! hh:mm:ss time
+  INTEGER             :: MONTH        ! Month (1-12)
+  INTEGER             :: DAY          ! Day of month (1-31)
+  INTEGER             :: YEAR         ! Year (YYYY format)
+  INTEGER             :: HOUR         ! hour (0-23)
+  INTEGER             :: MINUTE       ! Minutes (0-59)
+  INTEGER             :: SECOND       ! Seconds (0-59)
+  INTEGER             :: NSEASON      ! Season (1=DJF,2=MAM,3=JJA,4=SON)
+  INTEGER             :: DAY_OF_YEAR  ! Day of year (0-365 or 0-366 if LY)
+  INTEGER             :: DAY_OF_WEEK  ! Day of week (0=Sun,1=Mon,.., 6=Sat)
+  REAL(f8)            :: TAU          ! Hours since 1/1/1985
+  REAL(f8)            :: GMT          ! Current GMT time [decimal hours]
 
-      !---------------------------------
-      ! Elapsed time values
-      !---------------------------------
-      INTEGER             :: ELAPSED_SEC    ! # of seconds into the run
-      REAL(f8)            :: LEAP_YEAR_DAYS ! # of leap yrs since start of run
+  !---------------------------------
+  ! Elapsed time values
+  !---------------------------------
+  INTEGER             :: ELAPSED_SEC    ! # of seconds into the run
+  REAL(f8)            :: LEAP_YEAR_DAYS ! # of leap yrs since start of run
 
-      !---------------------------------
-      ! Diagnostic date/time values
-      !---------------------------------
-      INTEGER             :: NYMD_DIAG    ! Diagnostic date for output
-      REAL(f8)            :: DIAGb        ! Start of diag averaging interval
-      REAL(f8)            :: DIAGe        ! End   of diag averaging interval
+  !---------------------------------
+  ! Diagnostic date/time values
+  !---------------------------------
+  INTEGER             :: NYMD_DIAG    ! Diagnostic date for output
+  REAL(f8)            :: DIAGb        ! Start of diag averaging interval
+  REAL(f8)            :: DIAGe        ! End   of diag averaging interval
 
-      !---------------------------------
-      ! Timestep values
-      !---------------------------------
-      INTEGER             :: TS_CHEM      ! Chemistry timestep       [sec]
-      INTEGER             :: TS_CONV      ! Convection timestep      [sec]
-      INTEGER             :: TS_DIAG      ! Diagnostic timestep      [sec]
-      INTEGER             :: TS_DYN       ! Dynamic timestep         [sec]
-      INTEGER             :: TS_EMIS      ! Emissions timestep       [sec]
-      INTEGER             :: TS_UNIT      ! Unit conversion timestep [sec]
-      INTEGER             :: TS_RAD       ! Radiation timestep       [sec]
+  !---------------------------------
+  ! Timestep values
+  !---------------------------------
+  INTEGER             :: TS_CHEM      ! Chemistry timestep       [sec]
+  INTEGER             :: TS_CONV      ! Convection timestep      [sec]
+  INTEGER             :: TS_DIAG      ! Diagnostic timestep      [sec]
+  INTEGER             :: TS_DYN       ! Dynamic timestep         [sec]
+  INTEGER             :: TS_EMIS      ! Emissions timestep       [sec]
+  INTEGER             :: TS_UNIT      ! Unit conversion timestep [sec]
+  INTEGER             :: TS_RAD       ! Radiation timestep       [sec]
 
-      !---------------------------------
-      ! Counter values
-      !---------------------------------
-      INTEGER             :: CT_CHEM      ! # of elapsed chemistry timesteps
-      INTEGER             :: CT_CONV      ! # of elapsed convection timesteps
-      INTEGER             :: CT_DYN       ! # of elapsed dynamic timesteps
-      INTEGER             :: CT_EMIS      ! # of elapsed emission timesteps
-      INTEGER             :: CT_RAD       ! # of elapsed radiation timesteps
-      INTEGER             :: CT_A3        ! # of elapsed A3 met field reads
-      INTEGER             :: CT_I3        ! # of elapsed I3 met field reads
-      INTEGER             :: CT_DIAG      ! # of elapsed diagnostic timesteps
-      INTEGER             :: Hg2_DIAG     ! # of elapsed Hg2 diag outputs
+  !---------------------------------
+  ! Counter values
+  !---------------------------------
+  INTEGER             :: CT_CHEM      ! # of elapsed chemistry timesteps
+  INTEGER             :: CT_CONV      ! # of elapsed convection timesteps
+  INTEGER             :: CT_DYN       ! # of elapsed dynamic timesteps
+  INTEGER             :: CT_EMIS      ! # of elapsed emission timesteps
+  INTEGER             :: CT_RAD       ! # of elapsed radiation timesteps
+  INTEGER             :: CT_A3        ! # of elapsed A3 met field reads
+  INTEGER             :: CT_I3        ! # of elapsed I3 met field reads
+  INTEGER             :: CT_DIAG      ! # of elapsed diagnostic timesteps
+  INTEGER             :: Hg2_DIAG     ! # of elapsed Hg2 diag outputs
 
-      !---------------------------------
-      ! For historical emissions
-      !---------------------------------
-      INTEGER             :: HISTYRA      ! Year for historical emissions
+  !---------------------------------
+  ! For historical emissions
+  !---------------------------------
+  INTEGER             :: HISTYRA      ! Year for historical emissions
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
-      REAL(f8), PARAMETER :: JD85 = 2446066.5e+0_f8
+  ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
+  REAL(f8), PARAMETER :: JD85 = 2446066.5e+0_f8
 
-      CONTAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -243,16 +242,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CURRENT_TIME
+  SUBROUTINE SET_CURRENT_TIME
 !
 ! !USES:
 !
-      USE JULDAY_MOD, ONLY : JULDAY, CALDATE
+    USE JULDAY_MOD, ONLY : JULDAY, CALDATE
 !
 ! !REMARKS:
 !  The GEOS met fields are assimilated data, and therefore contain data on
 !  the leap-year days.  SET_CURRENT_TIME computes the days according to the
-!  Astronomical Julian Date algorithms (in "julday_mod.f"), which contain
+!  Astronomical Julian Date algorithms (in "julday_mod.F90"), which contain
 !  leap-year days.
 !
 ! !REVISION HISTORY:
@@ -264,95 +263,95 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      REAL(f4)      :: TMP
-      REAL(f8)      :: A, B, JD, JD0, JD1, THISDAY
+    LOGICAL, SAVE :: FIRST = .TRUE.
+    REAL(f4)      :: TMP
+    REAL(f8)      :: A, B, JD, JD0, JD1, THISDAY
 
-      !=================================================================
-      ! SET_CURRENT_TIME begins here!
-      !=================================================================
+    !=================================================================
+    ! SET_CURRENT_TIME begins here!
+    !=================================================================
 
-      ! Initialize LEAP_YEAR_DAYS
-      IF ( FIRST ) THEN
-         LEAP_YEAR_DAYS = 0e+0_f8
-         FIRST          = .FALSE.
-      ENDIF
+    ! Initialize LEAP_YEAR_DAYS
+    IF ( FIRST ) THEN
+       LEAP_YEAR_DAYS = 0e+0_f8
+       FIRST          = .FALSE.
+    ENDIF
 
-      ! JD0: Astronomical Julian Date at start of GEOS-Chem run
-      JD0 = GET_JD( NYMDb, NHMSb )
+    ! JD0: Astronomical Julian Date at start of GEOS-Chem run
+    JD0 = GET_JD( NYMDb, NHMSb )
 
-      ! JD1: Astronomical Julian Date at current time
-      JD1 = JD0 + ( DBLE( ELAPSED_SEC ) / 86400e+0_f8 )
+    ! JD1: Astronomical Julian Date at current time
+    JD1 = JD0 + ( DBLE( ELAPSED_SEC ) / 86400e+0_f8 )
 
-      ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
-      CALL CALDATE( DBLE(JD1), NYMD, NHMS )
+    ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
+    CALL CALDATE( DBLE(JD1), NYMD, NHMS )
 
-      ! Extract current year, month, day from NYMD
-      CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
+    ! Extract current year, month, day from NYMD
+    CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
 
-      ! Extract current hour, minute, second from NHMS
-      CALL YMD_EXTRACT( NHMS, HOUR, MINUTE, SECOND )
+    ! Extract current hour, minute, second from NHMS
+    CALL YMD_EXTRACT( NHMS, HOUR, MINUTE, SECOND )
 
-      ! Fix minutes & seconds for display purposes (esp. for 1x1)
-      IF ( SECOND              == 59 ) SECOND = 0
-      IF ( MOD( MINUTE+1, 10 ) == 0  ) MINUTE = MINUTE + 1
+    ! Fix minutes & seconds for display purposes (esp. for 1x1)
+    IF ( SECOND              == 59 ) SECOND = 0
+    IF ( MOD( MINUTE+1, 10 ) == 0  ) MINUTE = MINUTE + 1
 
-      !=================================================================
-      ! Compute other GEOS-Chem timing variables
-      !=================================================================
+    !=================================================================
+    ! Compute other GEOS-Chem timing variables
+    !=================================================================
 
-      ! Current Greenwich Mean Time
-      GMT         = ( DBLE( HOUR )                ) +
-     &              ( DBLE( MINUTE ) /   60e+0_f8 ) +
-     &              ( DBLE( SECOND ) / 3600e+0_f8 )
+    ! Current Greenwich Mean Time
+    GMT         = ( DBLE( HOUR )                ) + &
+                  ( DBLE( MINUTE ) /   60e+0_f8 ) + &
+                  ( DBLE( SECOND ) / 3600e+0_f8 )
 
-      ! Days elapsed in this year (0-366)
-      DAY_OF_YEAR = JD1 - JULDAY( YEAR, 1, 0d0 ) ! has to be REAL*8
+    ! Days elapsed in this year (0-366)
+    DAY_OF_YEAR = JD1 - JULDAY( YEAR, 1, 0d0 ) ! has to be REAL*8
 
-      ! TAU value (# of hours since 1 Jan 1985)
-      ! NOTE: TMP is REAL*4 to prevent precision problems
-      TMP         = ( JD1 - JD85 ) * 24e+0_f4
-      TAU         = DBLE( TMP )
+    ! TAU value (# of hours since 1 Jan 1985)
+    ! NOTE: TMP is REAL*4 to prevent precision problems
+    TMP         = ( JD1 - JD85 ) * 24e+0_f4
+    TAU         = DBLE( TMP )
 
-      ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
-      SELECT CASE ( MONTH )
-         CASE ( 12, 1, 2 )
-            NSEASON = 1
-         CASE ( 3, 4, 5 )
-            NSEASON = 2
-         CASE ( 6, 7, 8 )
-            NSEASON = 3
-         CASE ( 9, 10, 11 )
-            NSEASON = 4
-      END SELECT
+    ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
+    SELECT CASE ( MONTH )
+    CASE ( 12, 1, 2 )
+       NSEASON = 1
+    CASE ( 3, 4, 5 )
+       NSEASON = 2
+    CASE ( 6, 7, 8 )
+       NSEASON = 3
+    CASE ( 9, 10, 11 )
+       NSEASON = 4
+    END SELECT
 
-      !=================================================================
-      ! Compute day of week w/r/t the GMT date
-      ! (moved here from routine GET_DAY_OF_WEEK)
-      !=================================================================
+    !=================================================================
+    ! Compute day of week w/r/t the GMT date
+    ! (moved here from routine GET_DAY_OF_WEEK)
+    !=================================================================
 
-      ! Get fractional GMT day
-      THISDAY     = DAY + ( GMT / 24e+0_f8 ) ! real*8
+    ! Get fractional GMT day
+    THISDAY     = DAY + ( GMT / 24e+0_f8 ) ! real*8
 
-      ! Get current Julian date
-      JD          = JULDAY( YEAR, MONTH, DBLE(THISDAY) ) ! real*8
+    ! Get current Julian date
+    JD          = JULDAY( YEAR, MONTH, DBLE(THISDAY) ) ! real*8
 
-      ! Add 1.5 to JD and divide by 7
-      A           = ( JD + 1.5e+0_f8 ) / 7e+0_f8
+    ! Add 1.5 to JD and divide by 7
+    A           = ( JD + 1.5e+0_f8 ) / 7e+0_f8
 
-      ! Take fractional part and multiply by 7
-      B           = ( A - INT( A ) ) * 7e+0_f8
+    ! Take fractional part and multiply by 7
+    B           = ( A - INT( A ) ) * 7e+0_f8
 
-      ! NOTE: This is not in the Duffett-Smith book, but when using
-      ! REAL(f8), we have to round B to 4 decimal places in order
-      ! to avoid floating-point errors. (bmy, 6/13/13)
-      B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) )
-     &            / 10e+0_f8 ) / 1e+4_f8
+    ! NOTE: This is not in the Duffett-Smith book, but when using
+    ! REAL(f8), we have to round B to 4 decimal places in order
+    ! to avoid floating-point errors. (bmy, 6/13/13)
+    B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) ) &
+                  / 10e+0_f8 ) / 1e+4_f8
 
-      ! Discard the fractional part of B
-      DAY_OF_WEEK = INT( B )
+    ! Discard the fractional part of B
+    DAY_OF_WEEK = INT( B )
 
-      END SUBROUTINE SET_CURRENT_TIME
+  END SUBROUTINE SET_CURRENT_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -368,20 +367,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BEGIN_TIME( THISNYMDb, THISNHMSb, RC )
+  SUBROUTINE SET_BEGIN_TIME( THISNYMDb, THISNHMSb, RC )
 !
 ! !USES:
 !
-      USE ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: THISNYMDb   ! YYYYMMDD @ start of G-C simulation
-      INTEGER, INTENT(IN)  :: THISNHMSb   ! HHMMSS   @ start of G-C simulation
+    INTEGER, INTENT(IN)  :: THISNYMDb   ! YYYYMMDD @ start of G-C simulation
+    INTEGER, INTENT(IN)  :: THISNHMSb   ! HHMMSS   @ start of G-C simulation
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial Version
@@ -392,48 +391,46 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f4) :: TMP
+    REAL(f4) :: TMP
 
-      ! Strings
-      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-      !=================================================================
-      ! SET_BEGIN_TIME begins here!
-      !=================================================================
+    !=================================================================
+    ! SET_BEGIN_TIME begins here!
+    !=================================================================
 
-      ! Initialize
-      RC      = GC_SUCCESS
-      ErrMsg  = ''
-      ThisLoc =
-     &   ' -> at Set_Begin_Time (in module GeosUtil/time_mod.F)'
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Set_Begin_Time (in module GeosUtil/time_mod.F90)'
 
-      ! Error check THISNHMSb
-      IF ( THISNHMSb > 235959 ) THEN
-         ErrMsg = 'NHMSb cannot be greater than 23:59:59!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
+    ! Error check THISNHMSb
+    IF ( THISNHMSb > 235959 ) THEN
+       ErrMsg = 'NHMSb cannot be greater than 23:59:59!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-      ! Error check THISNYMDb
-      IF ( THISNYMDb < 19000101 ) THEN
-         ErrMsg = 'NYMDb must be in the format YYYYMMDD!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
+    ! Error check THISNYMDb
+    IF ( THISNYMDb < 19000101 ) THEN
+       ErrMsg = 'NYMDb must be in the format YYYYMMDD!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-      ! Initialize NYMDb, NHMSb
-      NYMDb = THISNYMDb
-      NHMSb = THISNHMSb
+    ! Initialize NYMDb, NHMSb
+    NYMDb = THISNYMDb
+    NHMSb = THISNHMSb
 
-      ! TAUb value (TMP is REAL*4 to prevent precision problems)
-      TMP   = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e+0_f4
-      TAUb  = DBLE( TMP )
+    ! TAUb value (TMP is REAL*4 to prevent precision problems)
+    TMP   = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e+0_f4
+    TAUb  = DBLE( TMP )
 
-      ! Also initialize ELAPSED_SEC
-      ELAPSED_SEC = 0
+    ! Also initialize ELAPSED_SEC
+    ELAPSED_SEC = 0
 
-      ! Return to calling program
-      END SUBROUTINE SET_BEGIN_TIME
+  END SUBROUTINE SET_BEGIN_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -449,20 +446,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_END_TIME( THISNYMDe, THISNHMSe, RC )
+  SUBROUTINE SET_END_TIME( THISNYMDe, THISNHMSe, RC )
 !
 ! !USES:
 !
-      USE ErrCode_Mod
+    USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: THISNYMDe   ! YYYYMMDD @ end of G-C simulation
-      INTEGER, INTENT(IN)  :: THISNHMSe   ! HHMMSS   @ end of G-C simulation
+    INTEGER, INTENT(IN)  :: THISNYMDe   ! YYYYMMDD @ end of G-C simulation
+    INTEGER, INTENT(IN)  :: THISNHMSe   ! HHMMSS   @ end of G-C simulation
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial Version
@@ -473,46 +470,44 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
-      REAL(f4) :: TMP
+    ! Scalars
+    REAL(f4) :: TMP
 
-      ! Strings
-      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-      !=================================================================
-      ! SET_END_TIME begins here!
-      !=================================================================
+    !=================================================================
+    ! SET_END_TIME begins here!
+    !=================================================================
 
-      ! Initialize
-      RC      = GC_SUCCESS
-      ErrMsg  = ''
-      ThisLoc =
-     &   ' -> at Set_End_Time (in module GeosUtil/time_mod.F)'
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Set_End_Time (in module GeosUtil/time_mod.F90)'
 
-      ! Error check THISNHMS
-      IF ( THISNHMSe > 235959 ) THEN
-         ErrMsg = 'NHMSe cannot be greater than 23:59:59!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
+    ! Error check THISNHMS
+    IF ( THISNHMSe > 235959 ) THEN
+       ErrMsg = 'NHMSe cannot be greater than 23:59:59!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-      ! Error check THISNYMDe
-      IF ( THISNYMDe < 19000101 ) THEN
-         ErrMsg = 'NYMDe must be in the format YYYYMMDD!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
+    ! Error check THISNYMDe
+    IF ( THISNYMDe < 19000101 ) THEN
+       ErrMsg = 'NYMDe must be in the format YYYYMMDD!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-      ! Initialize NYMDe, NHMSe
-      NYMDe = THISNYMDe
-      NHMSe = THISNHMSe
+    ! Initialize NYMDe, NHMSe
+    NYMDe = THISNYMDe
+    NHMSe = THISNHMSe
 
-      ! TAUe value (TMP is REAL*4 to prevent precision problems)
-      TMP   = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e+0_f4
-      TAUe  = DBLE( TMP )
+    ! TAUe value (TMP is REAL*4 to prevent precision problems)
+    TMP   = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e+0_f4
+    TAUe  = DBLE( TMP )
 
-      ! Return to calling program
-      END SUBROUTINE SET_END_TIME
+  END SUBROUTINE SET_END_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -527,11 +522,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_DIAGb( THISDIAGb )
+  SUBROUTINE SET_DIAGb( THISDIAGb )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(f8), INTENT(IN) :: THISDIAGb  ! Initial DIAGb value [hrs from 1/1/85]
+    REAL(f8), INTENT(IN) :: THISDIAGb  ! Initial DIAGb value [hrs from 1/1/85]
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -539,9 +534,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      DIAGb = THISDIAGb
+    DIAGb = THISDIAGb
 
-      END SUBROUTINE SET_DIAGb
+  END SUBROUTINE SET_DIAGb
 #ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
@@ -557,11 +552,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_DIAGe( THISDIAGe )
+  SUBROUTINE SET_DIAGe( THISDIAGe )
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(f8), INTENT(IN) :: THISDIAGe  ! Initial DIAGe value [hrs from 1/1/85]
+    REAL(f8), INTENT(IN) :: THISDIAGe  ! Initial DIAGe value [hrs from 1/1/85]
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -569,9 +564,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      DIAGe = THISDIAGe
+    DIAGe = THISDIAGe
 
-      END SUBROUTINE SET_DIAGe
+  END SUBROUTINE SET_DIAGe
 #endif
 !EOC
 !------------------------------------------------------------------------------
@@ -588,21 +583,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_TIMESTEPS( am_I_Root,
-     &                          CHEMISTRY, CONVECTION, DYNAMICS,
-     &                          EMISSION,  UNIT_CONV,  DIAGNOS,
-     &                          RADIATION )
+  SUBROUTINE SET_TIMESTEPS( Input_Opt, CHEMISTRY,  CONVECTION, DYNAMICS, &
+                            EMISSION,  UNIT_CONV,  DIAGNOS,    RADIATION )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root    ! Is this the root CPU?
-      INTEGER, INTENT(IN) :: CHEMISTRY    ! Chemistry  timestep [sec]
-      INTEGER, INTENT(IN) :: CONVECTION   ! Convection timestep [sec]
-      INTEGER, INTENT(IN) :: DYNAMICS     ! Dynamic    timestep [sec]
-      INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [sec]
-      INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [sec]
-      INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [sec]
-      INTEGER, INTENT(IN) :: RADIATION    ! Radiation  timestep [sec]
+    TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input options
+    INTEGER,        INTENT(IN) :: CHEMISTRY    ! Chemistry  timestep [sec]
+    INTEGER,        INTENT(IN) :: CONVECTION   ! Convection timestep [sec]
+    INTEGER,        INTENT(IN) :: DYNAMICS     ! Dynamic    timestep [sec]
+    INTEGER,        INTENT(IN) :: EMISSION     ! Emission   timestep [sec]
+    INTEGER,        INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [sec]
+    INTEGER,        INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [sec]
+    INTEGER,        INTENT(IN) :: RADIATION    ! Radiation  timestep [sec]
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -610,30 +607,30 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Initialize timesteps
-      TS_CHEM  = CHEMISTRY
-      TS_CONV  = CONVECTION
-      TS_DYN   = DYNAMICS
-      TS_EMIS  = EMISSION
-      TS_UNIT  = UNIT_CONV
-      TS_DIAG  = DIAGNOS
-      TS_RAD   = RADIATION
+    ! Initialize timesteps
+    TS_CHEM  = CHEMISTRY
+    TS_CONV  = CONVECTION
+    TS_DYN   = DYNAMICS
+    TS_EMIS  = EMISSION
+    TS_UNIT  = UNIT_CONV
+    TS_DIAG  = DIAGNOS
+    TS_RAD   = RADIATION
 
-      ! Zero timestep counters
+    ! Zero timestep counters
 #ifdef BPCH_DIAG
-      CT_CHEM  = 0
-      CT_CONV  = 0
-      CT_DYN   = 0
-      CT_EMIS  = 0
-      CT_RAD   = 0
-      CT_A3    = 0
-      CT_I3    = 0
-      CT_DIAG  = 0
-      Hg2_DIAG = 0
+    CT_CHEM  = 0
+    CT_CONV  = 0
+    CT_DYN   = 0
+    CT_EMIS  = 0
+    CT_RAD   = 0
+    CT_A3    = 0
+    CT_I3    = 0
+    CT_DIAG  = 0
+    Hg2_DIAG = 0
 #endif
 
-      ! Echo to stdout
-      IF ( am_I_Root ) THEN
+    ! Echo to stdout
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
        WRITE( 6, '(  a)' ) '-------------------------------------------'
        WRITE( 6, '(''Chemistry  Timestep [sec] : '', i6)' ) TS_CHEM
@@ -643,9 +640,9 @@
        WRITE( 6, '(''Unit Conv  Timestep [sec] : '', i6)' ) TS_UNIT
        WRITE( 6, '(''Diagnostic Timestep [sec] : '', i6)' ) TS_DIAG
        WRITE( 6, '(''Radiation  Timestep [sec] : '', i6)' ) TS_RAD
-      ENDIF
+    ENDIF
 
-      END SUBROUTINE SET_TIMESTEPS
+  END SUBROUTINE SET_TIMESTEPS
 #ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
@@ -661,12 +658,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CT_CHEM( INCREMENT, RESET )
+  SUBROUTINE SET_CT_CHEM( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  21 Mar 2009 - R. Yantosca - Initial Version
@@ -674,13 +671,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_CHEM = CT_CHEM + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_CHEM = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       CT_CHEM = CT_CHEM + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       CT_CHEM = 0
+    ENDIF
 
-      END SUBROUTINE SET_CT_CHEM
+  END SUBROUTINE SET_CT_CHEM
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -695,12 +692,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CT_RAD( INCREMENT, RESET )
+  SUBROUTINE SET_CT_RAD( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
@@ -708,13 +705,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_RAD = CT_RAD + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_RAD = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       CT_RAD = CT_RAD + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       CT_RAD = 0
+    ENDIF
 
-      END SUBROUTINE SET_CT_RAD
+  END SUBROUTINE SET_CT_RAD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -729,12 +726,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_Hg2_DIAG( INCREMENT, RESET )
+  SUBROUTINE SET_Hg2_DIAG( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  18 Feb 2012 - H. Amos     - Initial version
@@ -742,14 +739,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         Hg2_DIAG = Hg2_DIAG + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         Hg2_DIAG = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       Hg2_DIAG = Hg2_DIAG + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       Hg2_DIAG = 0
+    ENDIF
 
-      END SUBROUTINE SET_Hg2_DIAG
-
+  END SUBROUTINE SET_Hg2_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -764,12 +760,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CT_CONV( INCREMENT, RESET )
+  SUBROUTINE SET_CT_CONV( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  21 Mar 2009 - R. Yantosca - Initial Version
@@ -777,13 +773,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_CONV = CT_CONV + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_CONV = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       CT_CONV = CT_CONV + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       CT_CONV = 0
+    ENDIF
 
-      END SUBROUTINE SET_CT_CONV
+  END SUBROUTINE SET_CT_CONV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -798,12 +794,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CT_DYN( INCREMENT, RESET )
+  SUBROUTINE SET_CT_DYN( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  21 Mar 2009 - R. Yantosca - Initial Version
@@ -811,13 +807,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_DYN = CT_DYN + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_DYN = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       CT_DYN = CT_DYN + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       CT_DYN = 0
+    ENDIF
 
-      END SUBROUTINE SET_CT_DYN
+  END SUBROUTINE SET_CT_DYN
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -832,12 +828,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CT_EMIS( INCREMENT, RESET )
+  SUBROUTINE SET_CT_EMIS( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  21 Mar 2009 - R. Yantosca - Initial Version
@@ -845,13 +841,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_EMIS = CT_EMIS + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_EMIS = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       CT_EMIS = CT_EMIS + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       CT_EMIS = 0
+    ENDIF
 
-      END SUBROUTINE SET_CT_EMIS
+  END SUBROUTINE SET_CT_EMIS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -866,12 +862,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CT_DIAG( INCREMENT, RESET )
+  SUBROUTINE SET_CT_DIAG( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  13 May 2009 - C. Carouge  - Initial Version
@@ -879,13 +875,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_DIAG = CT_DIAG + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_DIAG = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       CT_DIAG = CT_DIAG + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       CT_DIAG = 0
+    ENDIF
 
-      END SUBROUTINE SET_CT_DIAG
+  END SUBROUTINE SET_CT_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -900,12 +896,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CT_A3( INCREMENT, RESET )
+  SUBROUTINE SET_CT_A3( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -913,13 +909,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_A3 = CT_A3 + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_A3 = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       CT_A3 = CT_A3 + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       CT_A3 = 0
+    ENDIF
 
-      END SUBROUTINE SET_CT_A3
+  END SUBROUTINE SET_CT_A3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -934,12 +930,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CT_I3( INCREMENT, RESET )
+  SUBROUTINE SET_CT_I3( INCREMENT, RESET )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+    LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
 !
 ! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
@@ -947,13 +943,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( PRESENT( INCREMENT ) ) THEN
-         CT_I3 = CT_I3 + 1
-      ELSE IF ( PRESENT( RESET ) ) THEN
-         CT_I3 = 0
-      ENDIF
+    IF ( PRESENT( INCREMENT ) ) THEN
+       CT_I3 = CT_I3 + 1
+    ELSE IF ( PRESENT( RESET ) ) THEN
+       CT_I3 = 0
+    ENDIF
 
-      END SUBROUTINE SET_CT_I3
+  END SUBROUTINE SET_CT_I3
 #endif
 !EOC
 !------------------------------------------------------------------------------
@@ -969,19 +965,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_ELAPSED_SEC
+  SUBROUTINE SET_ELAPSED_SEC
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
-! See https://github.com/geoschem/geos-chem for complete history
-!  06 Feb 2018 - E. lundgren - Rename from SET_ELAPSED_MIN to SET_ELAPSED_SEC;
-!                              update minimum time unit from min to sec
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ELAPSED_SEC = ELAPSED_SEC + TS_DYN
+    ELAPSED_SEC = ELAPSED_SEC + TS_DYN
 
-      END SUBROUTINE SET_ELAPSED_SEC
+  END SUBROUTINE SET_ELAPSED_SEC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -997,20 +991,20 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_JD( THISNYMD, THISNHMS ) RESULT( THISJD )
+  FUNCTION GET_JD( THISNYMD, THISNHMS ) RESULT( THISJD )
 !
 ! !USES:
 !
-      USE JULDAY_MOD, ONLY : JULDAY
+    USE JULDAY_MOD, ONLY : JULDAY
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: THISNYMD   ! YYYY/MM/DD value
-      INTEGER, INTENT(IN)  :: THISNHMS   ! hh:mm:ss   value
+    INTEGER, INTENT(IN)  :: THISNYMD   ! YYYY/MM/DD value
+    INTEGER, INTENT(IN)  :: THISNHMS   ! hh:mm:ss   value
 !
 ! !RETURN VALUE:
 !
-      REAL(f8)             :: THISJD     ! Output value
+    REAL(f8)             :: THISJD     ! Output value
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1021,29 +1015,28 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: Y, M, D, H, MI, S
-      REAL(f8) :: DAY
+    INTEGER  :: Y, M, D, H, MI, S
+    REAL(f8) :: DAY
 
-      !=================================================================
-      ! GET_JD begins here!
-      !=================================================================
+    !=================================================================
+    ! GET_JD begins here!
+    !=================================================================
 
-      ! Extract year, month, day from NYMDb
-      CALL YMD_EXTRACT( THISNYMD, Y, M, D )
+    ! Extract year, month, day from NYMDb
+    CALL YMD_EXTRACT( THISNYMD, Y, M, D )
 
-      ! Extract hour, minute, second from NHMSb
-      CALL YMD_EXTRACT( THISNHMS, H, MI, S )
+    ! Extract hour, minute, second from NHMSb
+    CALL YMD_EXTRACT( THISNHMS, H, MI, S )
 
-      ! Decimal day (including fractional part)
-      DAY  = DBLE( D ) + ( DBLE( H  ) /    24e+0_f8 ) +
-     &                   ( DBLE( MI ) /  1440e+0_f8 ) +
-     &                   ( DBLE( S  ) / 86400e+0_f8 )
+    ! Decimal day (including fractional part)
+    DAY  = DBLE( D ) + ( DBLE( H  ) /    24e+0_f8 ) + &
+                       ( DBLE( MI ) /  1440e+0_f8 ) + &
+                       ( DBLE( S  ) / 86400e+0_f8 )
 
-      ! Compute astronomical Julian day at start of run
-      THISJD = JULDAY( Y, M, DAY )
+    ! Compute astronomical Julian day at start of run
+    THISJD = JULDAY( Y, M, DAY )
 
-      ! Return to the calling program
-      END FUNCTION GET_JD
+  END FUNCTION GET_JD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1058,11 +1051,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_ELAPSED_SEC() RESULT( THIS_ELAPSED_SEC )
+  FUNCTION GET_ELAPSED_SEC() RESULT( THIS_ELAPSED_SEC )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_ELAPSED_SEC
+    INTEGER :: THIS_ELAPSED_SEC
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1070,9 +1063,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_ELAPSED_SEC = ELAPSED_SEC
+    THIS_ELAPSED_SEC = ELAPSED_SEC
 
-      END FUNCTION GET_ELAPSED_SEC
+  END FUNCTION GET_ELAPSED_SEC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1087,11 +1080,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NYMDb() RESULT( THISNYMDb )
+  FUNCTION GET_NYMDb() RESULT( THISNYMDb )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISNYMDb
+    INTEGER :: THISNYMDb
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1099,9 +1092,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISNYMDb = NYMDb
+    THISNYMDb = NYMDb
 
-      END FUNCTION GET_NYMDb
+  END FUNCTION GET_NYMDb
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1116,11 +1109,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NHMSb() RESULT( THISNHMSb )
+  FUNCTION GET_NHMSb() RESULT( THISNHMSb )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISNHMSb
+    INTEGER :: THISNHMSb
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1128,9 +1121,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISNHMSb = NHMSb
+    THISNHMSb = NHMSb
 
-      END FUNCTION GET_NHMSb
+  END FUNCTION GET_NHMSb
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1145,11 +1138,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NYMDe() RESULT( THISNYMDe )
+  FUNCTION GET_NYMDe() RESULT( THISNYMDe )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISNYMDe
+    INTEGER :: THISNYMDe
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1157,9 +1150,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISNYMDe = NYMDe
+    THISNYMDe = NYMDe
 
-      END FUNCTION GET_NYMDe
+  END FUNCTION GET_NYMDe
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1174,11 +1167,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NHMSe() RESULT( THISNHMSe )
+  FUNCTION GET_NHMSe() RESULT( THISNHMSe )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISNHMSe
+    INTEGER :: THISNHMSe
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1186,9 +1179,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISNHMSe = NHMSe
+    THISNHMSe = NHMSe
 
-      END FUNCTION GET_NHMSe
+  END FUNCTION GET_NHMSe
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1202,11 +1195,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NYMD() RESULT( THISNYMD )
+  FUNCTION GET_NYMD() RESULT( THISNYMD )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISNYMD
+    INTEGER :: THISNYMD
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1214,9 +1207,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISNYMD = NYMD
+    THISNYMD = NYMD
 
-      END FUNCTION GET_NYMD
+  END FUNCTION GET_NYMD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1230,11 +1223,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NHMS() RESULT( THISNHMS )
+  FUNCTION GET_NHMS() RESULT( THISNHMS )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISNHMS
+    INTEGER :: THISNHMS
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1242,9 +1235,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISNHMS = NHMS
+    THISNHMS = NHMS
 
-      END FUNCTION GET_NHMS
+  END FUNCTION GET_NHMS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1260,19 +1253,19 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TIME_AHEAD( N_SECS ) RESULT( DATE )
+  FUNCTION GET_TIME_AHEAD( N_SECS ) RESULT( DATE )
 !
 ! !USES:
 !
-      USE JULDAY_MOD, ONLY : CALDATE
+    USE JULDAY_MOD, ONLY : CALDATE
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: N_SECS   ! Seconds ahead to compute date & time
+    INTEGER, INTENT(IN) :: N_SECS   ! Seconds ahead to compute date & time
 !
 ! !RETURN VALUE:
 !
-      INTEGER             :: DATE(2)  ! Date & time output
+    INTEGER             :: DATE(2)  ! Date & time output
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -1283,37 +1276,37 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: THISYEAR, THISMONTH, THISDAY, TMP
-      REAL(f8) :: JD
+    INTEGER  :: THISYEAR, THISMONTH, THISDAY, TMP
+    REAL(f8) :: JD
 
-      !=================================================================
-      ! GET_TIME_AHEAD begins here!
-      !=================================================================
+    !=================================================================
+    ! GET_TIME_AHEAD begins here!
+    !=================================================================
 
-      ! Astronomical Julian Date at current time + N_SECS
-      JD = GET_JD( NYMD, NHMS ) + ( N_SECS / 86400e+0_f8 )
+    ! Astronomical Julian Date at current time + N_SECS
+    JD = GET_JD( NYMD, NHMS ) + ( N_SECS / 86400e+0_f8 )
 
-      ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
-      CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
+    ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
+    CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
 
-      ! Check to see if HHMMSS is 240000.  This may occur due to a
-      ! roundoff error in CALDATE.  If this is the case, then add 1
-      ! to the date and then set HHMMSS = 0.  Use the GET_JD and
-      ! CALDATE functions to do this computation rigorously.
-      IF ( DATE(2) == 240000 ) THEN
+    ! Check to see if HHMMSS is 240000.  This may occur due to a
+    ! roundoff error in CALDATE.  If this is the case, then add 1
+    ! to the date and then set HHMMSS = 0.  Use the GET_JD and
+    ! CALDATE functions to do this computation rigorously.
+    IF ( DATE(2) == 240000 ) THEN
 
-         ! Split the date into Y/M/D variables
-         CALL YMD_EXTRACT( DATE(1), THISYEAR, THISMONTH, THISDAY )
+       ! Split the date into Y/M/D variables
+       CALL YMD_EXTRACT( DATE(1), THISYEAR, THISMONTH, THISDAY )
 
-         ! Increment the Astronomical Julian Date by 1 day
-         TMP = THISYEAR*10000 + THISMONTH*100 + THISDAY
-         JD  = GET_JD( TMP, 000000 ) + 1
+       ! Increment the Astronomical Julian Date by 1 day
+       TMP = THISYEAR*10000 + THISMONTH*100 + THISDAY
+       JD  = GET_JD( TMP, 000000 ) + 1
 
-         ! Convert to YYYY/MM/DD and hh:mm:ss
-         CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
-      ENDIF
+       ! Convert to YYYY/MM/DD and hh:mm:ss
+       CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
+    ENDIF
 
-      END FUNCTION GET_TIME_AHEAD
+  END FUNCTION GET_TIME_AHEAD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1327,11 +1320,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MONTH() RESULT( THISMONTH )
+  FUNCTION GET_MONTH() RESULT( THISMONTH )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISMONTH
+    INTEGER :: THISMONTH
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1339,9 +1332,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISMONTH = MONTH
+    THISMONTH = MONTH
 
-      END FUNCTION GET_MONTH
+  END FUNCTION GET_MONTH
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1355,11 +1348,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DAY() RESULT( THISDAY )
+  FUNCTION GET_DAY() RESULT( THISDAY )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISDAY
+    INTEGER :: THISDAY
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1367,9 +1360,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISDAY = DAY
+    THISDAY = DAY
 
-      END FUNCTION GET_DAY
+  END FUNCTION GET_DAY
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1383,11 +1376,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_YEAR() RESULT( THISYEAR )
+  FUNCTION GET_YEAR() RESULT( THISYEAR )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISYEAR
+    INTEGER :: THISYEAR
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1395,9 +1388,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISYEAR = YEAR
+    THISYEAR = YEAR
 
-      END FUNCTION GET_YEAR
+  END FUNCTION GET_YEAR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1411,11 +1404,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_HOUR() RESULT( THISHOUR )
+  FUNCTION GET_HOUR() RESULT( THISHOUR )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISHOUR
+    INTEGER :: THISHOUR
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1423,9 +1416,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISHOUR = HOUR
+    THISHOUR = HOUR
 
-      END FUNCTION GET_HOUR
+  END FUNCTION GET_HOUR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1439,11 +1432,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_MINUTE() RESULT( THISMINUTE )
+  FUNCTION GET_MINUTE() RESULT( THISMINUTE )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISMINUTE
+    INTEGER :: THISMINUTE
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1451,9 +1444,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISMINUTE = MINUTE
+    THISMINUTE = MINUTE
 
-      END FUNCTION GET_MINUTE
+  END FUNCTION GET_MINUTE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1468,11 +1461,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_SECOND() RESULT( THISSECOND )
+  FUNCTION GET_SECOND() RESULT( THISSECOND )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISSECOND
+    INTEGER :: THISSECOND
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1480,9 +1473,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISSECOND = SECOND
+    THISSECOND = SECOND
 
-      END FUNCTION GET_SECOND
+  END FUNCTION GET_SECOND
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1497,11 +1490,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DAY_OF_YEAR() RESULT( THISDAYOFYEAR )
+  FUNCTION GET_DAY_OF_YEAR() RESULT( THISDAYOFYEAR )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISDAYOFYEAR  ! Day of year
+    INTEGER :: THISDAYOFYEAR  ! Day of year
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1509,9 +1502,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISDAYOFYEAR = DAY_OF_YEAR
+    THISDAYOFYEAR = DAY_OF_YEAR
 
-      END FUNCTION GET_DAY_OF_YEAR
+  END FUNCTION GET_DAY_OF_YEAR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1526,11 +1519,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GMT() RESULT( THISGMT )
+  FUNCTION GET_GMT() RESULT( THISGMT )
 !
 ! !RETURN VALUE:
 !
-      REAL(f8) :: THISGMT   ! Greenwich mean time [hrs]
+    REAL(f8) :: THISGMT   ! Greenwich mean time [hrs]
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1538,10 +1531,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-      THISGMT = GMT
+    THISGMT = GMT
 
-      END FUNCTION GET_GMT
+  END FUNCTION GET_GMT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1556,11 +1548,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TAU() RESULT( THISTAU )
+  FUNCTION GET_TAU() RESULT( THISTAU )
 !
 ! !RETURN VALUE:
 !
-      REAL(f8) :: THISTAU  ! TAUb [hrs since 1/1/1985]
+    REAL(f8) :: THISTAU  ! TAUb [hrs since 1/1/1985]
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1568,9 +1560,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISTAU = TAU
+    THISTAU = TAU
 
-      END FUNCTION GET_TAU
+  END FUNCTION GET_TAU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1585,11 +1577,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TAUb() RESULT( THISTAUb )
+  FUNCTION GET_TAUb() RESULT( THISTAUb )
 !
 ! !RETURN VALUE:
 !
-      REAL(f8) :: THISTAUb  ! TAUb [hrs since 1/1/1985]
+    REAL(f8) :: THISTAUb  ! TAUb [hrs since 1/1/1985]
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1597,9 +1589,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISTAUb = TAUb
+    THISTAUb = TAUb
 
-      END FUNCTION GET_TAUb
+  END FUNCTION GET_TAUb
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1614,11 +1606,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TAUe() RESULT( THISTAUe )
+  FUNCTION GET_TAUe() RESULT( THISTAUe )
 !
 ! !RETURN VALUE:
 !
-      REAL(f8) :: THISTAUe  ! TAUe [hrs since 1/1/1985]
+    REAL(f8) :: THISTAUe  ! TAUe [hrs since 1/1/1985]
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1626,9 +1618,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISTAUe = TAUe
+    THISTAUe = TAUe
 
-      END FUNCTION GET_TAUe
+  END FUNCTION GET_TAUe
 #ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
@@ -1644,11 +1636,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DIAGb() RESULT( THISDIAGb )
+  FUNCTION GET_DIAGb() RESULT( THISDIAGb )
 !
 ! !RETURN VALUE:
 !
-      REAL(f8) :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
+    REAL(f8) :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1656,9 +1648,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISDIAGb = DIAGb
+    THISDIAGb = DIAGb
 
-      END FUNCTION GET_DIAGb
+  END FUNCTION GET_DIAGb
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1673,11 +1665,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_DIAGe() RESULT( THISDIAGe )
+  FUNCTION GET_DIAGe() RESULT( THISDIAGe )
 !
 ! !RETURN VALUE:
 !
-      REAL(f8) :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
+    REAL(f8) :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
 !
 ! !REVISION HISTORY:
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -1685,9 +1677,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THISDIAGe = DIAGe
+    THISDIAGe = DIAGe
 
-      END FUNCTION GET_DIAGe
+  END FUNCTION GET_DIAGe
 #endif
 !EOC
 !------------------------------------------------------------------------------
@@ -1703,24 +1695,24 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_LOCALTIME( I, J, L, State_Grid, GMT )
-     &    RESULT( THISLOCALTIME )
+  FUNCTION GET_LOCALTIME( I, J, L, State_Grid, GMT ) &
+       RESULT( THISLOCALTIME )
 !
 ! !USES:
 !
-      USE State_Grid_Mod, ONLY : GrdState
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN)           :: I          ! Longitude index
-      INTEGER,        INTENT(IN)           :: J          ! Latitude index
-      INTEGER,        INTENT(IN)           :: L          ! Level index
-      TYPE(GrdState), INTENT(IN)           :: State_Grid ! Grid State object
-      REAL(f8),       INTENT(IN), OPTIONAL :: GMT        ! GMT time of day [hrs]
+    INTEGER,        INTENT(IN)           :: I          ! Longitude index
+    INTEGER,        INTENT(IN)           :: J          ! Latitude index
+    INTEGER,        INTENT(IN)           :: L          ! Level index
+    TYPE(GrdState), INTENT(IN)           :: State_Grid ! Grid State object
+    REAL(f8),       INTENT(IN), OPTIONAL :: GMT        ! GMT time of day [hrs]
 !
 ! !RETURN VALUE:
 !
-      REAL(f8) :: THISLOCALTIME  ! Local time [hrs]
+    REAL(f8) :: THISLOCALTIME  ! Local time [hrs]
 !
 ! !REMARKS:
 !  Local Time = GMT + ( longitude / 15 ) since each hour of time
@@ -1735,30 +1727,29 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f8) :: GMT_HRS
+    REAL(f8) :: GMT_HRS
 
-      ! Save the value of the argument GMT in a local variable
-      ! If not passed, then use the current GMT time from time_mod.f
-      IF ( PRESENT( GMT ) ) THEN
-         GMT_HRS = GMT
-      ELSE
-         GMT_HRS = GET_GMT()
-      ENDIF
+    ! Save the value of the argument GMT in a local variable
+    ! If not passed, then use the current GMT time from time_mod.F90
+    IF ( PRESENT( GMT ) ) THEN
+       GMT_HRS = GMT
+    ELSE
+       GMT_HRS = GET_GMT()
+    ENDIF
 
-      ! Local time  = GMT time [hrs] + longitude / 15
-      THISLOCALTIME = GMT_HRS + ( State_Grid%XMid(I,J) / 15.0_f8 )
+    ! Local time  = GMT time [hrs] + longitude / 15
+    THISLOCALTIME = GMT_HRS + ( State_Grid%XMid(I,J) / 15.0_f8 )
 
-      ! Make sure that THISLOCALTIME is in the range 0-24 hours
-      IF ( THISLOCALTIME > 24.0_f8 ) THEN
-         THISLOCALTIME = THISLOCALTIME - 24.0_f8
-      ENDIF
+    ! Make sure that THISLOCALTIME is in the range 0-24 hours
+    IF ( THISLOCALTIME > 24.0_f8 ) THEN
+       THISLOCALTIME = THISLOCALTIME - 24.0_f8
+    ENDIF
 
-      IF ( THISLOCALTIME < 0.0_f8 ) THEN
-         THISLOCALTIME = THISLOCALTIME + 24.0_f8
-      ENDIF
+    IF ( THISLOCALTIME < 0.0_f8 ) THEN
+       THISLOCALTIME = THISLOCALTIME + 24.0_f8
+    ENDIF
 
-      ! Return to calling program
-      END FUNCTION GET_LOCALTIME
+  END FUNCTION GET_LOCALTIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1773,23 +1764,23 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION Get_LocalTime_In_Sec( I, J, L, State_Grid )
-     &    RESULT( Lt_In_Sec )
+  FUNCTION Get_LocalTime_In_Sec( I, J, L, State_Grid ) &
+       RESULT( Lt_In_Sec )
 !
 ! !USES:
 !
-      USE State_Grid_Mod, ONLY : GrdState
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN) :: I           ! Longitude index
-      INTEGER,        INTENT(IN) :: J           ! Latitude index
-      INTEGER,        INTENT(IN) :: L           ! Level index
-      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+    INTEGER,        INTENT(IN) :: I           ! Longitude index
+    INTEGER,        INTENT(IN) :: J           ! Latitude index
+    INTEGER,        INTENT(IN) :: L           ! Level index
+    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: Lt_In_Sec   ! Local time [s]
+    INTEGER :: Lt_In_Sec   ! Local time [s]
 !
 ! !REMARKS:
 !  Local Time = GMT + ( longitude / 15 ) since each hour of time
@@ -1804,28 +1795,28 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: Offset_Sec, UTC_In_Sec
+    INTEGER :: Offset_Sec, UTC_In_Sec
 
-      ! Compute UTC value in seconds
-      UTC_In_Sec = ( Hour * 3600 ) + ( Minute * 60 ) + Second
+    ! Compute UTC value in seconds
+    UTC_In_Sec = ( Hour * 3600 ) + ( Minute * 60 ) + Second
 
-      ! 15 degrees of longitude on Earth is 1 hour or 3600 sec of time
-      ! Use NINT to avoid roundoff issues
-      Offset_Sec = NINT(( State_Grid%XMid(I,J) / 15.0_f8 ) * 3600.0_f8 )
+    ! 15 degrees of longitude on Earth is 1 hour or 3600 sec of time
+    ! Use NINT to avoid roundoff issues
+    Offset_Sec = NINT(( State_Grid%XMid(I,J) / 15.0_f8 ) * 3600.0_f8 )
 
-      ! Add offset to UTC to get local time
-      Lt_In_Sec  = UTC_In_Sec + Offset_Sec
+    ! Add offset to UTC to get local time
+    Lt_In_Sec  = UTC_In_Sec + Offset_Sec
 
-      ! Make sure that local time is in the range 0-86400
-      IF ( Lt_In_Sec > 86400 ) THEN
-         Lt_In_Sec = Lt_In_Sec - 86400
-      ENDIF
+    ! Make sure that local time is in the range 0-86400
+    IF ( Lt_In_Sec > 86400 ) THEN
+       Lt_In_Sec = Lt_In_Sec - 86400
+    ENDIF
 
-      IF ( Lt_In_Sec < 0 ) THEN
-         Lt_In_Sec = Lt_In_Sec + 86400
-      ENDIF
+    IF ( Lt_In_Sec < 0 ) THEN
+       Lt_In_Sec = Lt_In_Sec + 86400
+    ENDIF
 
-      END FUNCTION Get_LocalTime_In_Sec
+  END FUNCTION Get_LocalTime_In_Sec
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1840,11 +1831,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TS_CHEM() RESULT( THIS_TS_CHEM )
+  FUNCTION GET_TS_CHEM() RESULT( THIS_TS_CHEM )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_CHEM   ! ! Chemistry timestep [sec]
+    INTEGER :: THIS_TS_CHEM   ! ! Chemistry timestep [sec]
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -1852,9 +1843,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_TS_CHEM = TS_CHEM
+    THIS_TS_CHEM = TS_CHEM
 
-      END FUNCTION GET_TS_CHEM
+  END FUNCTION GET_TS_CHEM
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1869,11 +1860,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TS_RAD() RESULT( THIS_TS_RAD )
+  FUNCTION GET_TS_RAD() RESULT( THIS_TS_RAD )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_RAD   ! ! Radiation timestep [sec]
+    INTEGER :: THIS_TS_RAD   ! ! Radiation timestep [sec]
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
@@ -1881,9 +1872,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_TS_RAD = TS_RAD
+    THIS_TS_RAD = TS_RAD
 
-      END FUNCTION GET_TS_RAD
+  END FUNCTION GET_TS_RAD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1898,11 +1889,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TS_CONV() RESULT( THIS_TS_CONV )
+  FUNCTION GET_TS_CONV() RESULT( THIS_TS_CONV )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_CONV   ! Convective timestep [sec]
+    INTEGER :: THIS_TS_CONV   ! Convective timestep [sec]
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -1910,9 +1901,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_TS_CONV = TS_CONV
+    THIS_TS_CONV = TS_CONV
 
-      END FUNCTION GET_TS_CONV
+  END FUNCTION GET_TS_CONV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1927,11 +1918,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TS_DIAG() RESULT( THIS_TS_DIAG )
+  FUNCTION GET_TS_DIAG() RESULT( THIS_TS_DIAG )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_DIAG   ! Diagnostic timestep [sec]
+    INTEGER :: THIS_TS_DIAG   ! Diagnostic timestep [sec]
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -1939,9 +1930,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_TS_DIAG = TS_DIAG
+    THIS_TS_DIAG = TS_DIAG
 
-      END FUNCTION GET_TS_DIAG
+  END FUNCTION GET_TS_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1956,11 +1947,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TS_DYN() RESULT( THIS_TS_DYN )
+  FUNCTION GET_TS_DYN() RESULT( THIS_TS_DYN )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_DYN    ! Dynamic timestep [sec]
+    INTEGER :: THIS_TS_DYN    ! Dynamic timestep [sec]
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -1968,9 +1959,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_TS_DYN = TS_DYN
+    THIS_TS_DYN = TS_DYN
 
-      END FUNCTION GET_TS_DYN
+  END FUNCTION GET_TS_DYN
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1985,11 +1976,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TS_EMIS() RESULT( THIS_TS_EMIS )
+  FUNCTION GET_TS_EMIS() RESULT( THIS_TS_EMIS )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_EMIS   ! Emissions timestep [sec]
+    INTEGER :: THIS_TS_EMIS   ! Emissions timestep [sec]
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -1997,9 +1988,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_TS_EMIS = TS_EMIS
+    THIS_TS_EMIS = TS_EMIS
 
-      END FUNCTION GET_TS_EMIS
+  END FUNCTION GET_TS_EMIS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2014,11 +2005,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TS_UNIT() RESULT( THIS_TS_UNIT )
+  FUNCTION GET_TS_UNIT() RESULT( THIS_TS_UNIT )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_UNIT   ! Unit conversion timestep [sec]
+    INTEGER :: THIS_TS_UNIT   ! Unit conversion timestep [sec]
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2026,9 +2017,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_TS_UNIT = TS_UNIT
+    THIS_TS_UNIT = TS_UNIT
 
-      END FUNCTION GET_TS_UNIT
+  END FUNCTION GET_TS_UNIT
 #ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
@@ -2044,11 +2035,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CT_CHEM() RESULT( THIS_CT_CHEM )
+  FUNCTION GET_CT_CHEM() RESULT( THIS_CT_CHEM )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_CT_CHEM
+    INTEGER :: THIS_CT_CHEM
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2056,9 +2047,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_CT_CHEM = CT_CHEM
+    THIS_CT_CHEM = CT_CHEM
 
-      END FUNCTION GET_CT_CHEM
+  END FUNCTION GET_CT_CHEM
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2073,11 +2064,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CT_RAD() RESULT( THIS_CT_RAD )
+  FUNCTION GET_CT_RAD() RESULT( THIS_CT_RAD )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_CT_RAD
+    INTEGER :: THIS_CT_RAD
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
@@ -2085,9 +2076,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_CT_RAD = CT_RAD
+    THIS_CT_RAD = CT_RAD
 
-      END FUNCTION GET_CT_RAD
+  END FUNCTION GET_CT_RAD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2102,11 +2093,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CT_CONV() RESULT( THIS_CT_CONV )
+  FUNCTION GET_CT_CONV() RESULT( THIS_CT_CONV )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_CT_CONV   ! # of convection timesteps
+    INTEGER :: THIS_CT_CONV   ! # of convection timesteps
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2114,9 +2105,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_CT_CONV = CT_CONV
+    THIS_CT_CONV = CT_CONV
 
-      END FUNCTION GET_CT_CONV
+  END FUNCTION GET_CT_CONV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2131,11 +2122,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CT_DYN() RESULT( THIS_CT_DYN )
+  FUNCTION GET_CT_DYN() RESULT( THIS_CT_DYN )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_CT_DYN   ! # of dynamics timesteps
+    INTEGER :: THIS_CT_DYN   ! # of dynamics timesteps
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2143,9 +2134,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_CT_DYN = CT_DYN
+    THIS_CT_DYN = CT_DYN
 
-      END FUNCTION GET_CT_DYN
+  END FUNCTION GET_CT_DYN
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2160,11 +2151,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CT_EMIS() RESULT( THIS_CT_EMIS )
+  FUNCTION GET_CT_EMIS() RESULT( THIS_CT_EMIS )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_CT_EMIS  ! # of emissions timesteps
+    INTEGER :: THIS_CT_EMIS  ! # of emissions timesteps
 !
 !
 ! !REVISION HISTORY:
@@ -2173,9 +2164,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_CT_EMIS = CT_EMIS
+    THIS_CT_EMIS = CT_EMIS
 
-      END FUNCTION GET_CT_EMIS
+  END FUNCTION GET_CT_EMIS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2190,11 +2181,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CT_A3() RESULT( THIS_CT_A3 )
+  FUNCTION GET_CT_A3() RESULT( THIS_CT_A3 )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_CT_A3   ! # of A-3 timesteps
+    INTEGER :: THIS_CT_A3   ! # of A-3 timesteps
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2202,10 +2193,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-      THIS_CT_A3 = CT_A3
+    THIS_CT_A3 = CT_A3
 
-      END FUNCTION GET_CT_A3
+  END FUNCTION GET_CT_A3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2220,11 +2210,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CT_I3() RESULT( THIS_CT_I3 )
+  FUNCTION GET_CT_I3() RESULT( THIS_CT_I3 )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_CT_I3   ! # of I-6 timesteps
+    INTEGER :: THIS_CT_I3   ! # of I-6 timesteps
 !
 ! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
@@ -2232,9 +2222,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_CT_I3 = CT_I3
+    THIS_CT_I3 = CT_I3
 
-      END FUNCTION GET_CT_I3
+  END FUNCTION GET_CT_I3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2249,11 +2239,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_CT_DIAG() RESULT( THIS_CT_DIAG )
+  FUNCTION GET_CT_DIAG() RESULT( THIS_CT_DIAG )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_CT_DIAG   ! # of diagnostic timesteps
+    INTEGER :: THIS_CT_DIAG   ! # of diagnostic timesteps
 !
 ! !REVISION HISTORY:
 !  21 May 2009 - C. Carouge  - Initial Version
@@ -2261,9 +2251,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_CT_DIAG = CT_DIAG
+    THIS_CT_DIAG = CT_DIAG
 
-      END FUNCTION GET_CT_DIAG
+  END FUNCTION GET_CT_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2278,11 +2268,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_Hg2_DIAG() RESULT( THIS_Hg2_DIAG )
+  FUNCTION GET_Hg2_DIAG() RESULT( THIS_Hg2_DIAG )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_Hg2_DIAG  ! # of diagnostic timesteps
+    INTEGER :: THIS_Hg2_DIAG  ! # of diagnostic timesteps
 !
 ! !REVISION HISTORY:
 !  18 Feb 2012 - H. Amos     - Initial version
@@ -2290,9 +2280,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_Hg2_DIAG = Hg2_DIAG
+    THIS_Hg2_DIAG = Hg2_DIAG
 
-      END FUNCTION GET_Hg2_DIAG
+  END FUNCTION GET_Hg2_DIAG
 #endif
 !EOC
 !------------------------------------------------------------------------------
@@ -2308,11 +2298,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_A1_TIME() RESULT( DATE )
+  FUNCTION GET_A1_TIME() RESULT( DATE )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+    INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
 !
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version
@@ -2321,11 +2311,11 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      ! GEOS-FP and MERRA-2 met fields are 1-hour time-averages, timestamped
-      ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
-      DATE = GET_TIME_AHEAD( 1800 )
+    ! GEOS-FP and MERRA-2 met fields are 1-hour time-averages, timestamped
+    ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
+    DATE = GET_TIME_AHEAD( 1800 )
 
-      END FUNCTION GET_A1_TIME
+  END FUNCTION GET_A1_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2340,11 +2330,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_A3_TIME() RESULT( DATE )
+  FUNCTION GET_A3_TIME() RESULT( DATE )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+    INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2353,12 +2343,12 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      ! The A-3 fields are timestamped by center time.
-      ! Therefore, the difference between the actual time when the fields
-      ! are read and the A-3 timestamp time is 90 minutes.
-      DATE = GET_TIME_AHEAD( 5400 )
+    ! The A-3 fields are timestamped by center time.
+    ! Therefore, the difference between the actual time when the fields
+    ! are read and the A-3 timestamp time is 90 minutes.
+    DATE = GET_TIME_AHEAD( 5400 )
 
-      END FUNCTION GET_A3_TIME
+  END FUNCTION GET_A3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2374,11 +2364,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_I3_TIME() RESULT( DATE )
+  FUNCTION GET_I3_TIME() RESULT( DATE )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+    INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
 !
 ! !REMARKS:
 !  Modified for start times other than 0 GMT.
@@ -2392,48 +2382,48 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: HH, MM, SS, SECS, OFFSET
+    LOGICAL, SAVE :: FIRST = .TRUE.
+    INTEGER       :: HH, MM, SS, SECS, OFFSET
 
-      !=================================================================
-      ! ALL MET FIELDS:
-      !=================================================================
+    !=================================================================
+    ! ALL MET FIELDS:
+    !=================================================================
 
-      IF ( FIRST ) THEN
+    IF ( FIRST ) THEN
 
-         !--------------------------------------------------------------
-         ! FIRST-TIME ONLY!  Get the proper # of hours until the next
-         ! I3 time.  Also works for start times other than 0 GMT.
-         !--------------------------------------------------------------
+       !--------------------------------------------------------------
+       ! FIRST-TIME ONLY!  Get the proper # of hours until the next
+       ! I3 time.  Also works for start times other than 0 GMT.
+       !--------------------------------------------------------------
 
-         ! Split NHMS into hours, mins, seconds
-         CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+       ! Split NHMS into hours, mins, seconds
+       CALL YMD_EXTRACT( NHMS, HH, MM, SS )
 
-         ! Compute seconds elapsed in the 3-hour interval
-         SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
+       ! Compute seconds elapsed in the 3-hour interval
+       SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
 
-         ! Compute offset to next I-3 time
-         OFFSET = 10800 - SECS
+       ! Compute offset to next I-3 time
+       OFFSET = 10800 - SECS
 
-         ! Get YYYY/MM/DD and hh:mm:ss to next I3 time
-         DATE   = GET_TIME_AHEAD( OFFSET )
+       ! Get YYYY/MM/DD and hh:mm:ss to next I3 time
+       DATE   = GET_TIME_AHEAD( OFFSET )
 
-         ! Reset first-time flag
-         FIRST = .FALSE.
+       ! Reset first-time flag
+       FIRST = .FALSE.
 
-      ELSE
+    ELSE
 
-         !--------------------------------------------------------------
-         ! Other than the 1st time: Search 180 mins ahead
-         !--------------------------------------------------------------
+       !--------------------------------------------------------------
+       ! Other than the 1st time: Search 180 mins ahead
+       !--------------------------------------------------------------
 
-         ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs)
-         ! ahead of time
-         DATE = GET_TIME_AHEAD( 10800 )
+       ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs)
+       ! ahead of time
+       DATE = GET_TIME_AHEAD( 10800 )
 
-      ENDIF
+    ENDIF
 
-      END FUNCTION GET_I3_TIME
+  END FUNCTION GET_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2448,11 +2438,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FIRST_A1_TIME() RESULT( DATE )
+  FUNCTION GET_FIRST_A1_TIME() RESULT( DATE )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+    INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
 !
 ! !REVISION HISTORY:
 !  26 Jun 2003 - R. Yantosca - Initial Version
@@ -2460,11 +2450,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-      ! Return the first A-1 time
-      DATE = GET_A1_TIME()
+    DATE = GET_A1_TIME()
 
-      END FUNCTION GET_FIRST_A1_TIME
+  END FUNCTION GET_FIRST_A1_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2479,11 +2467,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FIRST_A3_TIME() RESULT( DATE )
+  FUNCTION GET_FIRST_A3_TIME() RESULT( DATE )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+    INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
 !
 ! !REVISION HISTORY:
 !  26 Jun 2003 - R. Yantosca - Initial Version
@@ -2494,25 +2482,25 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: HH, MM, SS, SECS, OFFSET
+    INTEGER :: HH, MM, SS, SECS, OFFSET
 
-      !==================================================================
-      ! A3 fields are indexed at the midpoint of the 3-hr interval
-      !==================================================================
+    !==================================================================
+    ! A3 fields are indexed at the midpoint of the 3-hr interval
+    !==================================================================
 
-      ! Split NYMS into hours, mins, seconds
-      CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+    ! Split NYMS into hours, mins, seconds
+    CALL YMD_EXTRACT( NHMS, HH, MM, SS )
 
-      ! Compute seconds elapsed in the 3-hour interval
-      SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
+    ! Compute seconds elapsed in the 3-hour interval
+    SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
 
-      ! Compute offset to midpoint of 3hr interval
-      OFFSET = 10800 - ( SECS + 5400 )
+    ! Compute offset to midpoint of 3hr interval
+    OFFSET = 10800 - ( SECS + 5400 )
 
-      ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
-      DATE   = GET_TIME_AHEAD( OFFSET )
+    ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
+    DATE   = GET_TIME_AHEAD( OFFSET )
 
-      END FUNCTION GET_FIRST_A3_TIME
+  END FUNCTION GET_FIRST_A3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2527,11 +2515,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FIRST_I3_TIME() RESULT( DATE )
+  FUNCTION GET_FIRST_I3_TIME() RESULT( DATE )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+    INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
 !
 ! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
@@ -2542,25 +2530,25 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: HH, MM, SS, SECS, OFFSET
+    INTEGER :: HH, MM, SS, SECS, OFFSET
 
-      !==================================================================
-      ! Compute first I-6 time for all met field types
-      !==================================================================
+    !==================================================================
+    ! Compute first I-6 time for all met field types
+    !==================================================================
 
-      ! Split NYMS into hours, mins, seconds
-      CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+    ! Split NYMS into hours, mins, seconds
+    CALL YMD_EXTRACT( NHMS, HH, MM, SS )
 
-      ! Compute seconds elapsed in the 3-hour interval
-      SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
+    ! Compute seconds elapsed in the 3-hour interval
+    SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
 
-      ! Compute offset to nearest I-6 time
-      OFFSET = -SECS
+    ! Compute offset to nearest I-6 time
+    OFFSET = -SECS
 
-      ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
-      DATE   = GET_TIME_AHEAD( OFFSET )
+    ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
+    DATE   = GET_TIME_AHEAD( OFFSET )
 
-      END FUNCTION GET_FIRST_I3_TIME
+  END FUNCTION GET_FIRST_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2575,11 +2563,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_CHEM() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_CHEM() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2590,24 +2578,24 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! changes for proper chemistry time (lzh, ccc, 3/20/10)
-      INTEGER :: M
+    ! changes for proper chemistry time (lzh, ccc, 3/20/10)
+    INTEGER :: M
 
-      !=================================================================
-      ! ITS_TIME_FOR_CHEM begins here!
-      !=================================================================
+    !=================================================================
+    ! ITS_TIME_FOR_CHEM begins here!
+    !=================================================================
 
-      ! Get multiplier between transport and chemistry:
-      M = TS_CHEM/TS_DYN
+    ! Get multiplier between transport and chemistry:
+    M = TS_CHEM/TS_DYN
 
-      ! Divide by 2 (get middle). KEEP INTEGERS!!!!
-      M = MAX( M/2, 1 )
+    ! Divide by 2 (get middle). KEEP INTEGERS!!!!
+    M = MAX( M/2, 1 )
 
-      ! Is it time for chemistry?
-      ! Chemistry time step is now in the center of transport time steps
-      FLAG = ( MOD( ELAPSED_SEC, TS_CHEM ) == (M-1)*TS_DYN )
+    ! Is it time for chemistry?
+    ! Chemistry time step is now in the center of transport time steps
+    FLAG = ( MOD( ELAPSED_SEC, TS_CHEM ) == (M-1)*TS_DYN )
 
-      END FUNCTION ITS_TIME_FOR_CHEM
+  END FUNCTION ITS_TIME_FOR_CHEM
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2622,11 +2610,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_RT() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_RT() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  04 Oct 2012 - D. Ridley   - Initial Version
@@ -2637,25 +2625,26 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: M, TMOD, TS
+    INTEGER :: M, TMOD, TS
 
-      !=================================================================
-      ! ITS_TIME_FOR_RT begins here!
-      !=================================================================
-      ! Get half a time step value
-      M = TS_RAD/2
+    !=================================================================
+    ! ITS_TIME_FOR_RT begins here!
+    !=================================================================
 
-      ! Elapsed time in this radiation step
-      TMOD =  MOD( ELAPSED_SEC, TS_RAD )
+    ! Get half a time step value
+    M = TS_RAD/2
 
-      ! Smallest time step
-      TS = TS_DYN
+    ! Elapsed time in this radiation step
+    TMOD =  MOD( ELAPSED_SEC, TS_RAD )
 
-      ! It's time for radiation, when the current time is greater than
-      ! half step and the previous time was less.
-      FLAG = ( TMOD >= M ) .and. ( TMOD-TS < M )
+    ! Smallest time step
+    TS = TS_DYN
 
-      END FUNCTION ITS_TIME_FOR_RT
+    ! It's time for radiation, when the current time is greater than
+    ! half step and the previous time was less.
+    FLAG = ( TMOD >= M ) .and. ( TMOD-TS < M )
+
+  END FUNCTION ITS_TIME_FOR_RT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2670,11 +2659,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_SURFACE_RAD() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_SURFACE_RAD() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial Version
@@ -2685,19 +2674,20 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: M
+    INTEGER :: M
 
-      !=================================================================
-      ! ITS_TIME_FOR_SURFACE_RAD begins here!
-      !=================================================================
-      ! Get half a time step value
-      M = GET_DAY_OF_YEAR()
+    !=================================================================
+    ! ITS_TIME_FOR_SURFACE_RAD begins here!
+    !=================================================================
 
-      ! Is it time to read the 8-day file?
-      ! files start on 1, then 9, 17... etc
-      FLAG = ( MOD( M, 8 ) == 1 )
+    ! Get half a time step value
+    M = GET_DAY_OF_YEAR()
 
-      END FUNCTION ITS_TIME_FOR_SURFACE_RAD
+    ! Is it time to read the 8-day file?
+    ! files start on 1, then 9, 17... etc
+    FLAG = ( MOD( M, 8 ) == 1 )
+
+  END FUNCTION ITS_TIME_FOR_SURFACE_RAD
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2712,11 +2702,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_CONV() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_CONV() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2724,10 +2714,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Is it time for convection?
-      FLAG = ( MOD( ELAPSED_SEC, TS_CONV ) == 0 )
+    ! Is it time for convection?
+    FLAG = ( MOD( ELAPSED_SEC, TS_CONV ) == 0 )
 
-      END FUNCTION ITS_TIME_FOR_CONV
+  END FUNCTION ITS_TIME_FOR_CONV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2742,24 +2732,22 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_DYN() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_DYN() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
 ! See https://github.com/geoschem/geos-chem for complete history
-!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
-!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Is it time for dynamics?
-      FLAG = ( MOD( ELAPSED_SEC, TS_DYN ) == 0 )
+    ! Is it time for dynamics?
+    FLAG = ( MOD( ELAPSED_SEC, TS_DYN ) == 0 )
 
-      END FUNCTION ITS_TIME_FOR_DYN
+  END FUNCTION ITS_TIME_FOR_DYN
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2774,11 +2762,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_EMIS() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_EMIS() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2789,24 +2777,24 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! changes for proper chemistry time (lzh, ccc, 3/20/10)
-      INTEGER :: M
+    ! changes for proper chemistry time (lzh, ccc, 3/20/10)
+    INTEGER :: M
 
-      !=================================================================
-      ! ITS_TIME_FOR_EMIS begins here!
-      !=================================================================
+    !=================================================================
+    ! ITS_TIME_FOR_EMIS begins here!
+    !=================================================================
 
-      ! Get multiplier between transport and chemistry:
-      M = TS_EMIS/TS_DYN
+    ! Get multiplier between transport and chemistry:
+    M = TS_EMIS/TS_DYN
 
-      ! Divide by 2 (get middle). KEEP INTEGERS!!!!
-      M = MAX( M/2, 1 )
+    ! Divide by 2 (get middle). KEEP INTEGERS!!!!
+    M = MAX( M/2, 1 )
 
-      ! Is it time for emissions?
-      ! Emission time step is now in the center of transport time steps
-      FLAG = ( MOD( ELAPSED_SEC, TS_EMIS ) == (M-1)*TS_DYN )
+    ! Is it time for emissions?
+    ! Emission time step is now in the center of transport time steps
+    FLAG = ( MOD( ELAPSED_SEC, TS_EMIS ) == (M-1)*TS_DYN )
 
-      END FUNCTION ITS_TIME_FOR_EMIS
+  END FUNCTION ITS_TIME_FOR_EMIS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2821,11 +2809,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_EXCH() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_EXCH() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  30 Mar 2014 - Y.Y. Yan    - Initial Version
@@ -2836,24 +2824,24 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! changes for proper chemistry time (lzh, ccc, 3/20/10)
-      INTEGER :: M
+    ! changes for proper chemistry time (lzh, ccc, 3/20/10)
+    INTEGER :: M
 
-      !=================================================================
-      ! ITS_TIME_FOR_CHEM begins here!
-      !=================================================================
+    !=================================================================
+    ! ITS_TIME_FOR_CHEM begins here!
+    !=================================================================
 
-      ! Get multiplier between transport and chemistry:
-      M = TS_CHEM/TS_DYN
+    ! Get multiplier between transport and chemistry:
+    M = TS_CHEM/TS_DYN
 
-      ! Divide by 2 (get middle). KEEP INTEGERS!!!!
-      M = MAX( M/2, 1 )
+    ! Divide by 2 (get middle). KEEP INTEGERS!!!!
+    M = MAX( M/2, 1 )
 
-      ! Is it time for exchange?
-      ! Chemistry time step is now in the center of transport time steps
-      FLAG = ( MOD( ELAPSED_SEC, 10800 ) == 0 )
+    ! Is it time for exchange?
+    ! Chemistry time step is now in the center of transport time steps
+    FLAG = ( MOD( ELAPSED_SEC, 10800 ) == 0 )
 
-      END FUNCTION ITS_TIME_FOR_EXCH
+  END FUNCTION ITS_TIME_FOR_EXCH
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2868,11 +2856,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_UNIT() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_UNIT() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2880,11 +2868,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    ! Is it time for unit conversion?
+    FLAG = ( MOD( ELAPSED_SEC, TS_DYN ) == 0 )
 
-      ! Is it time for unit conversion?
-      FLAG = ( MOD( ELAPSED_SEC, TS_DYN ) == 0 )
-
-      END FUNCTION ITS_TIME_FOR_UNIT
+  END FUNCTION ITS_TIME_FOR_UNIT
 #ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
@@ -2900,11 +2887,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_DIAG() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_DIAG() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2912,10 +2899,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Is it time for diagnostics?
-      FLAG = ( MOD( ELAPSED_SEC, TS_DIAG ) == 0 )
+    ! Is it time for diagnostics?
+    FLAG = ( MOD( ELAPSED_SEC, TS_DIAG ) == 0 )
 
-      END FUNCTION ITS_TIME_FOR_DIAG
+  END FUNCTION ITS_TIME_FOR_DIAG
 #endif
 !EOC
 !------------------------------------------------------------------------------
@@ -2931,11 +2918,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_A1() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_A1() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  20 Aug 2010 - R. Yantosca - Initial version
@@ -2943,10 +2930,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! We read A1 fields every 3 hours
-      FLAG = ( MOD( NHMS, 010000 ) == 0 )
+    ! We read A1 fields every 3 hours
+    FLAG = ( MOD( NHMS, 010000 ) == 0 )
 
-      END FUNCTION ITS_TIME_FOR_A1
+  END FUNCTION ITS_TIME_FOR_A1
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2961,11 +2948,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_A3() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_A3() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2973,10 +2960,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! We read A3 fields every 3 hours
-      FLAG = ( MOD( NHMS, 030000 ) == 0 )
+    ! We read A3 fields every 3 hours
+    FLAG = ( MOD( NHMS, 030000 ) == 0 )
 
-      END FUNCTION ITS_TIME_FOR_A3
+  END FUNCTION ITS_TIME_FOR_A3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2991,11 +2978,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_I3() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_I3() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
@@ -3006,14 +2993,14 @@
 !
 ! !LOCAL VARAIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
+    LOGICAL, SAVE :: FIRST = .TRUE.
 
-      ! We read in I-6 fields at 00, 03, 06, 09, 12, 15, 18, 21 GMT
-      FLAG = ( ( MOD( NHMS, 030000 ) == 0 ) .or. FIRST )
+    ! We read in I-6 fields at 00, 03, 06, 09, 12, 15, 18, 21 GMT
+    FLAG = ( ( MOD( NHMS, 030000 ) == 0 ) .or. FIRST )
 
-      FIRST = .FALSE.
+    FIRST = .FALSE.
 
-      END FUNCTION ITS_TIME_FOR_I3
+  END FUNCTION ITS_TIME_FOR_I3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3028,11 +3015,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_EXIT() RESULT( FLAG )
+  FUNCTION ITS_TIME_FOR_EXIT() RESULT( FLAG )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: FLAG
+    LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -3041,10 +3028,10 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      ! Test if it's end of run
-      FLAG = ( TAU >= TAUe )
+    ! Test if it's end of run
+    FLAG = ( TAU >= TAUe )
 
-      END FUNCTION ITS_TIME_FOR_EXIT
+  END FUNCTION ITS_TIME_FOR_EXIT
 #ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
@@ -3060,23 +3047,23 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_BPCH( Input_Opt ) RESULT( DO_BPCH )
+  FUNCTION ITS_TIME_FOR_BPCH( Input_Opt ) RESULT( DO_BPCH )
 !
 ! !USES:
 !
-      USE Input_Opt_Mod, ONLY : OptInput
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input options
+    TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input options
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: DO_BPCH
+    LOGICAL :: DO_BPCH
 !
 ! !REMARKS:
-!  NJDAY is now located in CMN_SIZE_mod.F, so that we can eventually
-!  retire the obsolete CMN_DIAG_mod.F. (bmy, 1/16/18)
+!  NJDAY is now located in CMN_SIZE_mod.F90, so that we can eventually
+!  retire the obsolete CMN_DIAG_mod.F90. (bmy, 1/16/18)
 !
 ! !REVISION HISTORY:
 !  02 Feb 2007 - R. Yantosca - Initial Version
@@ -3084,39 +3071,40 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: DOY, THIS_NJDAY
 
-      ! Local variables
-      INTEGER :: DOY, THIS_NJDAY
+    !=================================================================
+    ! ITS_TIME_FOR_BPCH begins here!
+    !=================================================================
 
-      !=================================================================
-      ! ITS_TIME_FOR_BPCH begins here!
-      !=================================================================
+    ! Return FALSE if it's the first timestep
+    IF ( TAU == TAUb ) THEN
+       DO_BPCH = .FALSE.
+       RETURN
+    ENDIF
 
-      ! Return FALSE if it's the first timestep
-      IF ( TAU == TAUb ) THEN
-         DO_BPCH = .FALSE.
-         RETURN
-      ENDIF
+    ! Day of year (0..365 or 0..366 leapyears)
+    DOY = DAY_OF_YEAR
 
-      ! Day of year (0..365 or 0..366 leapyears)
-      DOY = DAY_OF_YEAR
+    ! Look up appropriate value of NJDAY array.  We may need to add a
+    ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
+    IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. DOY > 59 ) THEN
+       THIS_NJDAY = Input_Opt%NJDAY( DOY + 1 )
+    ELSE
+       THIS_NJDAY = Input_Opt%NJDAY( DOY )
+    ENDIF
 
-      ! Look up appropriate value of NJDAY array.  We may need to add a
-      ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
-      IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. DOY > 59 ) THEN
-         THIS_NJDAY = Input_Opt%NJDAY( DOY + 1 )
-      ELSE
-         THIS_NJDAY = Input_Opt%NJDAY( DOY )
-      ENDIF
+    ! Test if this is the day & time to write to the BPCH file!
+    IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NHMSe ) THEN
+       DO_BPCH = .TRUE.
+    ELSE
+       DO_BPCH = .FALSE.
+    ENDIF
 
-      ! Test if this is the day & time to write to the BPCH file!
-      IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NHMSe ) THEN
-         DO_BPCH = .TRUE.
-      ELSE
-         DO_BPCH = .FALSE.
-      ENDIF
-
-      END FUNCTION ITS_TIME_FOR_BPCH
+  END FUNCTION ITS_TIME_FOR_BPCH
 #endif
 !EOC
 !------------------------------------------------------------------------------
@@ -3132,16 +3120,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_A_LEAPYEAR( YEAR_IN, FORCE ) RESULT( IS_LEAPYEAR )
+  FUNCTION ITS_A_LEAPYEAR( YEAR_IN, FORCE ) RESULT( IS_LEAPYEAR )
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN), OPTIONAL :: YEAR_IN   ! Year to test if leapyear
-      LOGICAL, INTENT(IN), OPTIONAL :: FORCE     ! Do not exit if using GCAP
+    INTEGER, INTENT(IN), OPTIONAL :: YEAR_IN   ! Year to test if leapyear
+    LOGICAL, INTENT(IN), OPTIONAL :: FORCE     ! Do not exit if using GCAP
 !
 ! !RETURN VALUE:
 !
-      LOGICAL                       :: IS_LEAPYEAR  ! =T if it's a leapyear
+    LOGICAL                       :: IS_LEAPYEAR  ! =T if it's a leapyear
 !
 ! !REVISION HISTORY:
 !  17 Mar 1999 - R. Yantosca - Initial Version
@@ -3152,56 +3140,56 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: THISYEAR
-      LOGICAL  :: THISFORCE
+    INTEGER  :: THISYEAR
+    LOGICAL  :: THISFORCE
 
-      !=================================================================
-      ! LEAPYEAR begins here!
-      !=================================================================
+    !=================================================================
+    ! LEAPYEAR begins here!
+    !=================================================================
 
-      ! If YEAR_IN is passed, use that value; otherwise use the value
-      ! of the current year as stored in module variable YEAR.
-      IF ( PRESENT( YEAR_IN ) ) THEN
-         THISYEAR = YEAR_IN
-      ELSE
-         THISYEAR = YEAR
-      ENDIF
+    ! If YEAR_IN is passed, use that value; otherwise use the value
+    ! of the current year as stored in module variable YEAR.
+    IF ( PRESENT( YEAR_IN ) ) THEN
+       THISYEAR = YEAR_IN
+    ELSE
+       THISYEAR = YEAR
+    ENDIF
 
-      ! If FORCE is passed, use that value, otherwise default to .FALSE.
-      IF ( PRESENT( FORCE ) ) THEN
-         THISFORCE = FORCE
-      ELSE
-         THISFORCE = .FALSE.
-      ENDIF
+    ! If FORCE is passed, use that value, otherwise default to .FALSE.
+    IF ( PRESENT( FORCE ) ) THEN
+       THISFORCE = FORCE
+    ELSE
+       THISFORCE = .FALSE.
+    ENDIF
 
-      !=================================================================
-      ! A leap year is:
-      ! (1) evenly divisible by 4 (if not a century year)
-      ! (2) evenly divisible by 4, 100, and 400 (if a century year)
-      !
-      ! EXAMPLES:
-      ! (a) 1992 is a leap year since it is evenly divisible by 4,
-      !     and is not a century year (i.e. it doesn't end in '00').
-      !
-      ! (b) 1900 is NOT a leap year, since while being evenly divisible
-      !     by 4 and 100, it is NOT divisible by 400.
-      !
-      ! (c) 2000 is a leap year, since it is divisible by
-      !     4, 100, and 400.
-      !=================================================================
-      IS_LEAPYEAR = .FALSE.
+    !=================================================================
+    ! A leap year is:
+    ! (1) evenly divisible by 4 (if not a century year)
+    ! (2) evenly divisible by 4, 100, and 400 (if a century year)
+    !
+    ! EXAMPLES:
+    ! (a) 1992 is a leap year since it is evenly divisible by 4,
+    !     and is not a century year (i.e. it doesn't end in '00').
+    !
+    ! (b) 1900 is NOT a leap year, since while being evenly divisible
+    !     by 4 and 100, it is NOT divisible by 400.
+    !
+    ! (c) 2000 is a leap year, since it is divisible by
+    !     4, 100, and 400.
+    !=================================================================
+    IS_LEAPYEAR = .FALSE.
 
-      IF ( MOD( THISYEAR, 4 ) == 0 ) THEN
-         IF ( MOD( THISYEAR, 100 ) == 0 ) THEN
-            IF ( MOD( THISYEAR, 400 ) == 0 ) THEN
-               IS_LEAPYEAR = .TRUE.
-            ENDIF
-         ELSE
-            IS_LEAPYEAR = .TRUE.
-         ENDIF
-      ENDIF
+    IF ( MOD( THISYEAR, 4 ) == 0 ) THEN
+       IF ( MOD( THISYEAR, 100 ) == 0 ) THEN
+          IF ( MOD( THISYEAR, 400 ) == 0 ) THEN
+             IS_LEAPYEAR = .TRUE.
+          ENDIF
+       ELSE
+          IS_LEAPYEAR = .TRUE.
+       ENDIF
+    ENDIF
 
-      END FUNCTION ITS_A_LEAPYEAR
+  END FUNCTION ITS_A_LEAPYEAR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3216,16 +3204,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_A_NEW_YEAR( NO_CCTS ) RESULT( IS_NEW_YEAR )
+  FUNCTION ITS_A_NEW_YEAR( NO_CCTS ) RESULT( IS_NEW_YEAR )
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
-                                         ! (i.e. w/o using central chem step)
+    LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
+                                       ! (i.e. w/o using central chem step)
 !
 ! !RETURN VALUE:
 !
-      LOGICAL           :: IS_NEW_YEAR   ! =T if it's 1st data read of year
+    LOGICAL           :: IS_NEW_YEAR   ! =T if it's 1st data read of year
 !
 ! !REMARKS:
 !  ITS_A_NEW_YEAR assumes that we are using the central chemistry timestep
@@ -3238,7 +3226,7 @@
 !  of the year, but at the center of the first chemistry timestep of the
 !  year.  This is because emissions and chemistry are done at the same time.
 !  The proper time of day for reading emissions is determined by function
-!  ITS_TIME_FOR_EMIS, also within time_mod.f.
+!  ITS_TIME_FOR_EMIS, also within time_mod.F90.
 !                                                                             .
 !  Similarly, for simulations that start at an arbitrary midmonth date and
 !  time, we must not read data at the starting date and time of the simulation,
@@ -3259,87 +3247,87 @@
 !
 ! !LOCAL VARIABLES
 !
-      LOGICAL  :: NO_CENTRAL
-      INTEGER  :: HH,     MM,   SS
-      REAL(f8) :: GMTb,   TS
+    LOGICAL  :: NO_CENTRAL
+    INTEGER  :: HH,     MM,   SS
+    REAL(f8) :: GMTb,   TS
 
-      !==============================================================
-      ! Initialization
-      !==============================================================
+    !==============================================================
+    ! Initialization
+    !==============================================================
 
-      ! Save the optional argument NO_CCTS in a local shadow variable
-      IF ( PRESENT( NO_CCTS ) ) THEN
-         NO_CENTRAL = NO_CCTS
-      ELSE
-         NO_CENTRAL = .FALSE.
-      ENDIF
+    ! Save the optional argument NO_CCTS in a local shadow variable
+    IF ( PRESENT( NO_CCTS ) ) THEN
+       NO_CENTRAL = NO_CCTS
+    ELSE
+       NO_CENTRAL = .FALSE.
+    ENDIF
 
-      ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 3600e+0_f8
+    ! Emissions timestep [hours]
+    TS = DBLE( TS_EMIS ) / 3600e+0_f8
 
-      !==============================================================
-      ! FOR JANUARY 1st OF THE YEAR
-      !==============================================================
-      IF ( MONTH == 1 .and. DAY == 1 ) THEN
+    !==============================================================
+    ! FOR JANUARY 1st OF THE YEAR
+    !==============================================================
+    IF ( MONTH == 1 .and. DAY == 1 ) THEN
 
-         IF ( NO_CENTRAL ) THEN
+       IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.
-            ! Therefore, the first data read of the year should occur
-            ! at 00:00 GMT on Jan 1st.
-            IS_NEW_YEAR = ( NHMS == 000000 )
+          ! Here, we are not using the central chemistry timestep.
+          ! Therefore, the first data read of the year should occur
+          ! at 00:00 GMT on Jan 1st.
+          IS_NEW_YEAR = ( NHMS == 000000 )
 
-         ELSE
+       ELSE
 
-            ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the year will occur not at
-            ! 00:00 GMT on the Jan 1st, but offset by a small amount (as
-            ! diagnosed by function ITS_TIME_FOR_EMIS).
-            IS_NEW_YEAR = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
+          ! Here, we are using the central chemistry timestep option.
+          ! Therefore, the first data read of the year will occur not at
+          ! 00:00 GMT on the Jan 1st, but offset by a small amount (as
+          ! diagnosed by function ITS_TIME_FOR_EMIS).
+          IS_NEW_YEAR = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
 
-         ENDIF
+       ENDIF
 
-      ELSE IF ( NYMD == NYMDb ) THEN
+    ELSE IF ( NYMD == NYMDb ) THEN
 
-         !==============================================================
-         ! FOR THE FIRST DAY OF THE SIMULATION
-         ! (i.e. for simulations that start at other times of the year)
-         !==============================================================
-         IF ( NO_CENTRAL ) THEN
+       !==============================================================
+       ! FOR THE FIRST DAY OF THE SIMULATION
+       ! (i.e. for simulations that start at other times of the year)
+       !==============================================================
+       IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.
-            ! Therefore, the first data read of this year should occur
-            ! at the start time of the simulation.
-            IS_NEW_YEAR = ( NHMS == NHMSb )
+          ! Here, we are not using the central chemistry timestep.
+          ! Therefore, the first data read of this year should occur
+          ! at the start time of the simulation.
+          IS_NEW_YEAR = ( NHMS == NHMSb )
 
-         ELSE
+       ELSE
 
-            ! Split starting time into hour, minute, second
-            CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
+          ! Split starting time into hour, minute, second
+          CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
 
-            ! Compute GMT at the start of the simulation
-            GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
+          ! Compute GMT at the start of the simulation
+          GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
 
-            ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the year will occur not
-            ! at  00:00 GMT on Jan 1st, but offset by a small amount (as
-            ! diagnosed by function ITS_TIME_FOR_EMIS).
-            IS_NEW_YEAR  = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
+          ! Here, we are using the central chemistry timestep option.
+          ! Therefore, the first data read of the year will occur not
+          ! at  00:00 GMT on Jan 1st, but offset by a small amount (as
+          ! diagnosed by function ITS_TIME_FOR_EMIS).
+          IS_NEW_YEAR  = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
 
-         ENDIF
+       ENDIF
 
-      ELSE
+    ELSE
 
-         !==============================================================
-         ! FOR ALL OTHER DAYS
-         !==============================================================
+       !==============================================================
+       ! FOR ALL OTHER DAYS
+       !==============================================================
 
-         ! It isn't time for the first data read of the year; return FALSE
-         IS_NEW_YEAR = .FALSE.
+       ! It isn't time for the first data read of the year; return FALSE
+       IS_NEW_YEAR = .FALSE.
 
-      ENDIF
+    ENDIF
 
-      END FUNCTION ITS_A_NEW_YEAR
+  END FUNCTION ITS_A_NEW_YEAR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3354,16 +3342,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_A_NEW_MONTH( NO_CCTS ) RESULT( IS_NEW_MONTH )
+  FUNCTION ITS_A_NEW_MONTH( NO_CCTS ) RESULT( IS_NEW_MONTH )
 !
 ! !INPUT PARAMETERS
 !
-      LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
-                                         ! (i.e. w/o using central chem step)
+    LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
+                                       ! (i.e. w/o using central chem step)
 !
 ! !RETURN VALUE:
 !
-      LOGICAL           :: IS_NEW_MONTH  ! =T if it's 1st data read of month
+    LOGICAL           :: IS_NEW_MONTH  ! =T if it's 1st data read of month
 !
 ! !REMARKS:
 !  ITS_A_NEW_MONTH assumes that we are using the central chemistry timestep
@@ -3376,7 +3364,7 @@
 !  of the month, but at the center of the first chemistry timestep of the
 !  month.  This is because emissions and chemistry are done at the same time.
 !  The proper time of day for reading emissions is determined by function
-!  ITS_TIME_FOR_EMIS, also within time_mod.f.
+!  ITS_TIME_FOR_EMIS, also within time_mod.F90.
 !                                                                             .
 !  Similarly, for simulations that start at an arbitrary midmonth date and
 !  time, we must not read data at the starting date and time of the simulation,
@@ -3397,87 +3385,87 @@
 !
 ! !LOCAL VARIABLES
 !
-      LOGICAL  :: NO_CENTRAL
-      INTEGER  :: HH,   MM,  SS
-      REAL(f8) :: GMTb, TS
+    LOGICAL  :: NO_CENTRAL
+    INTEGER  :: HH,   MM,  SS
+    REAL(f8) :: GMTb, TS
 
-      !==============================================================
-      ! Initialization
-      !==============================================================
+    !==============================================================
+    ! Initialization
+    !==============================================================
 
-      ! Save
-      IF ( PRESENT( NO_CCTS ) ) THEN
-         NO_CENTRAL = NO_CCTS
-      ELSE
-         NO_CENTRAL = .FALSE.
-      ENDIF
+    ! Save
+    IF ( PRESENT( NO_CCTS ) ) THEN
+       NO_CENTRAL = NO_CCTS
+    ELSE
+       NO_CENTRAL = .FALSE.
+    ENDIF
 
-      ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 3600e+0_f8
+    ! Emissions timestep [hours]
+    TS = DBLE( TS_EMIS ) / 3600e+0_f8
 
-      IF ( DAY == 1 .and. HOUR == 0 .and. MINUTE == 0 ) THEN
+    IF ( DAY == 1 .and. HOUR == 0 .and. MINUTE == 0 ) THEN
 
-         !==============================================================
-         ! FOR THE FIRST DAY OF THE MONTH
-         !==============================================================
-         IF ( NO_CENTRAL ) THEN
+       !==============================================================
+       ! FOR THE FIRST DAY OF THE MONTH
+       !==============================================================
+       IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.
-            ! Therefore, the first data read of the month should occur
-            ! at 00:00 GMT of the 1st day of the month.
-            IS_NEW_MONTH = ( NHMS == 000000 )
+          ! Here, we are not using the central chemistry timestep.
+          ! Therefore, the first data read of the month should occur
+          ! at 00:00 GMT of the 1st day of the month.
+          IS_NEW_MONTH = ( NHMS == 000000 )
 
-         ELSE
+       ELSE
 
-            ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the month will occur not at
-            ! 00:00 GMT on the 1st day of the month, but offset by a small
-            ! amount (as diagnosed by function ITS_TIME_FOR_EMIS).
-            IS_NEW_MONTH = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
+          ! Here, we are using the central chemistry timestep option.
+          ! Therefore, the first data read of the month will occur not at
+          ! 00:00 GMT on the 1st day of the month, but offset by a small
+          ! amount (as diagnosed by function ITS_TIME_FOR_EMIS).
+          IS_NEW_MONTH = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
 
-         ENDIF
+       ENDIF
 
-      ELSE IF ( NYMD == NYMDb ) THEN
+    ELSE IF ( NYMD == NYMDb ) THEN
 
-         !==============================================================
-         ! FOR THE FIRST DAY OF THE SIMULATION
-         ! (i.e. for simulations that start at other times of the month)
-         !==============================================================
-         IF ( NO_CENTRAL ) THEN
+       !==============================================================
+       ! FOR THE FIRST DAY OF THE SIMULATION
+       ! (i.e. for simulations that start at other times of the month)
+       !==============================================================
+       IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.
-            ! Therefore, the first data read of this month should occur
-            ! at the start time of the simulation.
-            IS_NEW_MONTH = ( NHMS == NHMSb )
+          ! Here, we are not using the central chemistry timestep.
+          ! Therefore, the first data read of this month should occur
+          ! at the start time of the simulation.
+          IS_NEW_MONTH = ( NHMS == NHMSb )
 
-         ELSE
+       ELSE
 
-            ! Split starting time into hour, minute, second
-            CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
+          ! Split starting time into hour, minute, second
+          CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
 
-            ! Compute GMT at the start of the simulation
-            GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
+          ! Compute GMT at the start of the simulation
+          GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
 
-            ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the month will occur not at
-            ! 00:00 GMT on the 1st day of the month, but offset by a small
-            ! amount (as diagnosed by function ITS_TIME_FOR_EMIS).
-            IS_NEW_MONTH = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
+          ! Here, we are using the central chemistry timestep option.
+          ! Therefore, the first data read of the month will occur not at
+          ! 00:00 GMT on the 1st day of the month, but offset by a small
+          ! amount (as diagnosed by function ITS_TIME_FOR_EMIS).
+          IS_NEW_MONTH = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
 
-         ENDIF
+       ENDIF
 
-      ELSE
+    ELSE
 
-         !==============================================================
-         ! FOR ALL OTHER DAYS
-         !==============================================================
+       !==============================================================
+       ! FOR ALL OTHER DAYS
+       !==============================================================
 
-         ! It isn't time for the first data read of the month; return FALSE
-         IS_NEW_MONTH = .FALSE.
+       ! It isn't time for the first data read of the month; return FALSE
+       IS_NEW_MONTH = .FALSE.
 
-      ENDIF
+    ENDIF
 
-      END FUNCTION ITS_A_NEW_MONTH
+  END FUNCTION ITS_A_NEW_MONTH
 #ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
@@ -3493,11 +3481,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_MIDMONTH() RESULT( IS_MIDMONTH )
+  FUNCTION ITS_MIDMONTH() RESULT( IS_MIDMONTH )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: IS_MIDMONTH
+    LOGICAL :: IS_MIDMONTH
 !
 ! !REVISION HISTORY:
 !  10 Oct 2005 - S. Strode   - Initial Version
@@ -3506,10 +3494,10 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      ! Test for the 16th of the month at 0 GMT
-      IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
+    ! Test for the 16th of the month at 0 GMT
+    IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
 
-      END FUNCTION ITS_MIDMONTH
+  END FUNCTION ITS_MIDMONTH
 #endif
 !EOC
 !------------------------------------------------------------------------------
@@ -3525,16 +3513,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_A_NEW_DAY( NO_CCTS ) RESULT( IS_NEW_DAY )
+  FUNCTION ITS_A_NEW_DAY( NO_CCTS ) RESULT( IS_NEW_DAY )
 !
 ! !INPUT PARAMETERS
 !
-      LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
-                                         ! (i.e. w/o using central chem step)
+    LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
+                                       ! (i.e. w/o using central chem step)
 !
 ! !RETURN VALUE:
 !
-      LOGICAL           :: IS_NEW_DAY    ! =T if it's 1st data read of day
+    LOGICAL           :: IS_NEW_DAY    ! =T if it's 1st data read of day
 !
 ! !REMARKS:
 !  ITS_A_NEW_DAY assumes that we are using the central chemistry timestep
@@ -3547,7 +3535,7 @@
 !  but at the center of the first chemistry timestep of the day.  This is
 !  because emissions and chemistry are done at the same time.  The proper
 !  time of day for reading emissions is determined by function
-!  ITS_TIME_FOR_EMIS, also within time_mod.f.
+!  ITS_TIME_FOR_EMIS, also within time_mod.F90.
 !                                                                             .
 !  Similarly, for simulations that start at an arbitrary midmonth date and
 !  time, we must not read data at the starting date and time of the simulation,
@@ -3567,78 +3555,78 @@
 !
 ! !LOCAL VARIABLES
 !
-      LOGICAL  :: NO_CENTRAL
-      INTEGER  :: HH,     MM,   SS
-      REAL(f8) :: GMTb,   TS
+    LOGICAL  :: NO_CENTRAL
+    INTEGER  :: HH,     MM,   SS
+    REAL(f8) :: GMTb,   TS
 
-      !==============================================================
-      ! Initialization
-      !==============================================================
+    !==============================================================
+    ! Initialization
+    !==============================================================
 
-      ! Save optional argument NO_CCTS in a local shadow variable
-      IF ( PRESENT( NO_CCTS ) ) THEN
-         NO_CENTRAL = NO_CCTS
-      ELSE
-         NO_CENTRAL = .FALSE.
-      ENDIF
+    ! Save optional argument NO_CCTS in a local shadow variable
+    IF ( PRESENT( NO_CCTS ) ) THEN
+       NO_CENTRAL = NO_CCTS
+    ELSE
+       NO_CENTRAL = .FALSE.
+    ENDIF
 
-      ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 3600e+0_f8
+    ! Emissions timestep [hours]
+    TS = DBLE( TS_EMIS ) / 3600e+0_f8
 
-      IF ( NYMD == NYMDb ) THEN
+    IF ( NYMD == NYMDb ) THEN
 
-         !==============================================================
-         ! FOR THE FIRST DAY OF THE SIMULATION
-         ! (i.e. for simulations that start at any time of the year)
-         !==============================================================
-         IF ( NO_CENTRAL ) THEN
+       !==============================================================
+       ! FOR THE FIRST DAY OF THE SIMULATION
+       ! (i.e. for simulations that start at any time of the year)
+       !==============================================================
+       IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep option
-            ! Therefore, the first data read of this day should occur at
-            ! the start time of the simulation.
-            IS_NEW_DAY = ( NHMS == NHMSb )
+          ! Here, we are not using the central chemistry timestep option
+          ! Therefore, the first data read of this day should occur at
+          ! the start time of the simulation.
+          IS_NEW_DAY = ( NHMS == NHMSb )
 
-         ELSE
+       ELSE
 
-            ! Split starting time into hour, minute, second
-            CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
+          ! Split starting time into hour, minute, second
+          CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
 
-            ! Compute GMT at the start of the simulation
-            GMTb       = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
+          ! Compute GMT at the start of the simulation
+          GMTb       = DBLE( HH ) + ( DBLE( MM ) / 60e+0_f8 )
 
-            ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the day will occur not at
-            ! 00:00 GMT, but offset by a small amount (as diagnosed by
-            ! function ITS_TIME_FOR_EMIS).
-            IS_NEW_DAY = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
+          ! Here, we are using the central chemistry timestep option.
+          ! Therefore, the first data read of the day will occur not at
+          ! 00:00 GMT, but offset by a small amount (as diagnosed by
+          ! function ITS_TIME_FOR_EMIS).
+          IS_NEW_DAY = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
 
-         ENDIF
+       ENDIF
 
-      ELSE
+    ELSE
 
-         !==============================================================
-         ! FOR EACH NEW DAY
-         !==============================================================
-         IF ( NO_CENTRAL ) THEN
+       !==============================================================
+       ! FOR EACH NEW DAY
+       !==============================================================
+       IF ( NO_CENTRAL ) THEN
 
-            ! Here, we are not using the central chemistry timestep.
-            ! Therefore, the first data read of this day should occur
-            ! at 00:00 GMT.
-            IS_NEW_DAY = ( NHMS == 000000 )
+          ! Here, we are not using the central chemistry timestep.
+          ! Therefore, the first data read of this day should occur
+          ! at 00:00 GMT.
+          IS_NEW_DAY = ( NHMS == 000000 )
 
-         ELSE
+       ELSE
 
-            ! Here, we are using the central chemistry timestep option.
-            ! Therefore, the first data read of the day will occur not at
-            ! 00:00 GMT, but offset by a small amount (as diagnosed by
-            ! function ITS_TIME_FOR_EMIS).
-            IS_NEW_DAY = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
+          ! Here, we are using the central chemistry timestep option.
+          ! Therefore, the first data read of the day will occur not at
+          ! 00:00 GMT, but offset by a small amount (as diagnosed by
+          ! function ITS_TIME_FOR_EMIS).
+          IS_NEW_DAY = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
 
-         ENDIF
+       ENDIF
 
-      ENDIF
+    ENDIF
 
-      END FUNCTION ITS_A_NEW_DAY
+  END FUNCTION ITS_A_NEW_DAY
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3654,11 +3642,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_A_NEW_HOUR( ) RESULT( IS_NEW_HOUR )
+  FUNCTION ITS_A_NEW_HOUR( ) RESULT( IS_NEW_HOUR )
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: IS_NEW_HOUR
+    LOGICAL :: IS_NEW_HOUR
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Yantosca - Initial Version
@@ -3666,31 +3654,29 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      !=================================================================
-      ! ITS_A_NEW_HOUR begins here!
-      !=================================================================
-      IF ( MOD( NHMS, 10000 ) == 0 ) THEN
 
-         ! Test if it's 0 GMT
-         IS_NEW_HOUR = .TRUE.
+    !=================================================================
+    ! ITS_A_NEW_HOUR begins here!
+    !=================================================================
+    IF ( MOD( NHMS, 10000 ) == 0 ) THEN
 
-      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+       ! Test if it's 0 GMT
+       IS_NEW_HOUR = .TRUE.
 
-         ! Also return TRUE if it's the start of the run
-         ! (since files will need to be read in from disk)
-         IS_NEW_HOUR = .TRUE.
+    ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
 
-      ELSE
+       ! Also return TRUE if it's the start of the run
+       ! (since files will need to be read in from disk)
+       IS_NEW_HOUR = .TRUE.
 
-         ! Otherwise, it's not a new year
-         IS_NEW_HOUR = .FALSE.
+    ELSE
 
-      ENDIF
+       ! Otherwise, it's not a new year
+       IS_NEW_HOUR = .FALSE.
 
-      END FUNCTION ITS_A_NEW_HOUR
+    ENDIF
+
+  END FUNCTION ITS_A_NEW_HOUR
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3705,7 +3691,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PRINT_CURRENT_TIME
+  SUBROUTINE PRINT_CURRENT_TIME
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -3716,19 +3702,19 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f4) :: E_HOURS
+    REAL(f4) :: E_HOURS
 
-      ! Hours since start of run
-      E_HOURS = REAL( ELAPSED_SEC ) / 3600e+0_f4
+    ! Hours since start of run
+    E_HOURS = REAL( ELAPSED_SEC ) / 3600e+0_f4
 
-      ! Write quantities
-      WRITE( 6, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE, E_HOURS
+    ! Write quantities
+    WRITE( 6, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE, E_HOURS
 
-      ! Format string
- 100  FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2,
-     &            '  UTC: ', i2.2, ':', i2.2, '  X-HRS: ', f13.6 )
+    ! Format string
+100 FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2, &
+                '  UTC: ', i2.2, ':', i2.2, '  X-HRS: ', f13.6 )
 
-      END SUBROUTINE PRINT_CURRENT_TIME
+  END SUBROUTINE PRINT_CURRENT_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3745,16 +3731,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )
+  FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN), OPTIONAL :: YYYYMMDD   ! YYYY/MM/DD date
-      INTEGER, INTENT(IN), OPTIONAL :: HHMMSS     ! hh:mm:ss time
+    INTEGER, INTENT(IN), OPTIONAL :: YYYYMMDD   ! YYYY/MM/DD date
+    INTEGER, INTENT(IN), OPTIONAL :: HHMMSS     ! hh:mm:ss time
 !
 ! !RETURN VALUE:
 !
-      CHARACTER(LEN=16)             :: TIME_STR
+    CHARACTER(LEN=16)             :: TIME_STR
 !
 ! !REVISION HISTORY:
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -3765,36 +3751,35 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: THISYEAR, THISMONTH,  THISDAY
-      INTEGER :: THISHOUR, THISMINUTE, THISSECOND
+    INTEGER :: THISYEAR, THISMONTH,  THISDAY
+    INTEGER :: THISHOUR, THISMINUTE, THISSECOND
 
-      ! If YYYYMMDD is passed, then use that date.  Otherwise use the
-      ! current date stored in global variables YEAR, MONTH, DAY.
-      IF ( PRESENT( YYYYMMDD ) ) THEN
-         CALL YMD_EXTRACT( YYYYMMDD, THISYEAR, THISMONTH, THISDAY )
-      ELSE
-         THISYEAR  = YEAR
-         THISMONTH = MONTH
-         THISDAY   = DAY
-      ENDIF
+    ! If YYYYMMDD is passed, then use that date.  Otherwise use the
+    ! current date stored in global variables YEAR, MONTH, DAY.
+    IF ( PRESENT( YYYYMMDD ) ) THEN
+       CALL YMD_EXTRACT( YYYYMMDD, THISYEAR, THISMONTH, THISDAY )
+    ELSE
+       THISYEAR  = YEAR
+       THISMONTH = MONTH
+       THISDAY   = DAY
+    ENDIF
 
-      ! If HHMMSS is passed, then use that time.  Otherwise use the
-      ! current time stored in global variables HOUR and MINUTE.
-      IF ( PRESENT( HHMMSS ) ) THEN
-         CALL YMD_EXTRACT( HHMMSS, THISHOUR, THISMINUTE, THISSECOND )
-      ELSE
-         THISHOUR   = HOUR
-         THISMINUTE = MINUTE
-      ENDIF
+    ! If HHMMSS is passed, then use that time.  Otherwise use the
+    ! current time stored in global variables HOUR and MINUTE.
+    IF ( PRESENT( HHMMSS ) ) THEN
+       CALL YMD_EXTRACT( HHMMSS, THISHOUR, THISMINUTE, THISSECOND )
+    ELSE
+       THISHOUR   = HOUR
+       THISMINUTE = MINUTE
+    ENDIF
 
-      ! For other platforms, we can just use a FORTRAN internal write
-      WRITE( TIME_STR, 100 ) THISYEAR, THISMONTH,
-     &                       THISDAY,  THISHOUR, THISMINUTE
+    ! For other platforms, we can just use a FORTRAN internal write
+    WRITE( TIME_STR, 100 ) THISYEAR, THISMONTH, THISDAY, THISHOUR, THISMINUTE
 
-      ! Format statement
- 100  FORMAT( i4.4, '/', i2.2, '/', i2.2, ' ', i2.2, ':', i2.2 )
+    ! Format statement
+100 FORMAT( i4.4, '/', i2.2, '/', i2.2, ' ', i2.2, ':', i2.2 )
 
-      END FUNCTION TIMESTAMP_STRING
+  END FUNCTION TIMESTAMP_STRING
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3810,15 +3795,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE YMD_EXTRACT( NYMD, Y, M, D )
+  SUBROUTINE YMD_EXTRACT( NYMD, Y, M, D )
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: NYMD      ! YYYY/MM/DD format date
+    INTEGER, INTENT(IN)  :: NYMD      ! YYYY/MM/DD format date
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: Y, M, D   ! Separated YYYY, MM, DD values
+    INTEGER, INTENT(OUT) :: Y, M, D   ! Separated YYYY, MM, DD values
 !
 ! !REVISION HISTORY:
 !  21 Nov 2001 - R. Yantosca - Initial Version
@@ -3829,21 +3814,20 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f8) :: REM
+    REAL(f8) :: REM
 
-      ! Extract YYYY from YYYYMMDD
-      Y = INT( DBLE( NYMD ) / 1e+4_f8 )
+    ! Extract YYYY from YYYYMMDD
+    Y = INT( DBLE( NYMD ) / 1e+4_f8 )
 
-      ! Extract MM from YYYYMMDD
-      REM = DBLE( NYMD ) - ( DBLE( Y ) * 1e+4_f8 )
-      M   = INT( REM / 1e+2_f8 )
+    ! Extract MM from YYYYMMDD
+    REM = DBLE( NYMD ) - ( DBLE( Y ) * 1e+4_f8 )
+    M   = INT( REM / 1e+2_f8 )
 
-      ! Extract DD from YYYYMMDD
-      REM = REM - ( DBLE( M ) * 1e+2_f8 )
-      D   = INT( REM )
+    ! Extract DD from YYYYMMDD
+    REM = REM - ( DBLE( M ) * 1e+2_f8 )
+    D   = INT( REM )
 
-      ! Return to calling program
-      END SUBROUTINE YMD_EXTRACT
+  END SUBROUTINE YMD_EXTRACT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3858,20 +3842,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+  SUBROUTINE EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 !
 ! !USES:
 !
-      USE CHARPAK_MOD, ONLY : STRREPL
+    USE CHARPAK_MOD, ONLY : STRREPL
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,          INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD date
-      INTEGER,          INTENT(IN)    :: HHMMSS     ! hh:mm:ss time
+    INTEGER,          INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD date
+    INTEGER,          INTENT(IN)    :: HHMMSS     ! hh:mm:ss time
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      CHARACTER(LEN=*), INTENT(INOUT) :: FILENAME   ! Filename to modify
+    CHARACTER(LEN=*), INTENT(INOUT) :: FILENAME   ! Filename to modify
 !
 ! !REVISION HISTORY:
 !  27 Jun 2002 - R. Yantosca - Initial Version
@@ -3882,44 +3866,44 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: YYYY, YY, MM, DD, HH, II, SS
-      CHARACTER(LEN=2)  :: MM_STR, DD_STR
-      CHARACTER(LEN=2)  :: HH_STR, II_STR, SS_STR
-      CHARACTER(LEN=2)  :: YY_STR
-      CHARACTER(LEN=4)  :: YYYY_STR
+    INTEGER           :: YYYY, YY, MM, DD, HH, II, SS
+    CHARACTER(LEN=2)  :: MM_STR, DD_STR
+    CHARACTER(LEN=2)  :: HH_STR, II_STR, SS_STR
+    CHARACTER(LEN=2)  :: YY_STR
+    CHARACTER(LEN=4)  :: YYYY_STR
 
-      !=================================================================
-      ! EXPAND_DATE begins here!
-      !=================================================================
+    !=================================================================
+    ! EXPAND_DATE begins here!
+    !=================================================================
 
-      ! Extract today's date into year, month, and day sections
-      CALL YMD_EXTRACT( YYYYMMDD, YYYY, MM, DD )
+    ! Extract today's date into year, month, and day sections
+    CALL YMD_EXTRACT( YYYYMMDD, YYYY, MM, DD )
 
-      ! Extract today's time into HH, MM, and SS sections
-      ! (rename minutes to II so as not to overwrite MM)
-      CALL YMD_EXTRACT( HHMMSS, HH, II, SS )
+    ! Extract today's time into HH, MM, and SS sections
+    ! (rename minutes to II so as not to overwrite MM)
+    CALL YMD_EXTRACT( HHMMSS, HH, II, SS )
 
-      ! 2-digit year number (e.g. "97" instead of "1997")
-      YY = YYYY - 1900
-      IF ( YY >= 100 ) YY = YY - 100
+    ! 2-digit year number (e.g. "97" instead of "1997")
+    YY = YYYY - 1900
+    IF ( YY >= 100 ) YY = YY - 100
 
-      ! For other platforms, use an F90 internal write (bmy, 9/29/03)
-      WRITE( YYYY_STR, '(i4.4)' ) YYYY
-      WRITE( YY_STR,   '(i2.2)' ) YY
-      WRITE( MM_STR,   '(i2.2)' ) MM
-      WRITE( DD_STR,   '(i2.2)' ) DD
-      WRITE( HH_STR,   '(i2.2)' ) HH
-      WRITE( II_STR,   '(i2.2)' ) II
+    ! For other platforms, use an F90 internal write (bmy, 9/29/03)
+    WRITE( YYYY_STR, '(i4.4)' ) YYYY
+    WRITE( YY_STR,   '(i2.2)' ) YY
+    WRITE( MM_STR,   '(i2.2)' ) MM
+    WRITE( DD_STR,   '(i2.2)' ) DD
+    WRITE( HH_STR,   '(i2.2)' ) HH
+    WRITE( II_STR,   '(i2.2)' ) II
 
-      ! Replace YYYY, MM, DD, HH tokens w/ actual values
-      CALL STRREPL( FILENAME, 'YYYY', YYYY_STR )
-      CALL STRREPL( FILENAME, 'YY',   YY_STR   )
-      CALL STRREPL( FILENAME, 'MM',   MM_STR   )
-      CALL STRREPL( FILENAME, 'DD',   DD_STR   )
-      CALL STRREPL( FILENAME, 'hh',   HH_STR   )
-      CALL STRREPL( FILENAME, 'mm',   II_STR   )
+    ! Replace YYYY, MM, DD, HH tokens w/ actual values
+    CALL STRREPL( FILENAME, 'YYYY', YYYY_STR )
+    CALL STRREPL( FILENAME, 'YY',   YY_STR   )
+    CALL STRREPL( FILENAME, 'MM',   MM_STR   )
+    CALL STRREPL( FILENAME, 'DD',   DD_STR   )
+    CALL STRREPL( FILENAME, 'hh',   HH_STR   )
+    CALL STRREPL( FILENAME, 'mm',   II_STR   )
 
-      END SUBROUTINE EXPAND_DATE
+  END SUBROUTINE EXPAND_DATE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3934,16 +3918,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION Valid_Date( YYYYMMDD ) RESULT( Is_Valid )
+  FUNCTION Valid_Date( YYYYMMDD ) RESULT( Is_Valid )
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD date
+    INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD date
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: Is_Valid   ! =T if YYYYMMDD is a valid date
-                                        ! =F otherwise
+    LOGICAL             :: Is_Valid   ! =T if YYYYMMDD is a valid date
+                                      ! =F otherwise
 !
 ! !REVISION HISTORY:
 !  06 Jul 2018 - R. Yantosca - Initial version
@@ -3954,53 +3938,53 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: Is_Leap
-      INTEGER :: YYYY, MM, DD, HH, II, SS, LastDay
+    LOGICAL :: Is_Leap
+    INTEGER :: YYYY, MM, DD, HH, II, SS, LastDay
 
-      !=================================================================
-      ! VALID_DATE begins here!
-      !=================================================================
+    !=================================================================
+    ! VALID_DATE begins here!
+    !=================================================================
 
-      ! Assume success until otherwise proven
-      Is_Valid = .TRUE.
+    ! Assume success until otherwise proven
+    Is_Valid = .TRUE.
 
-      ! Extract the date value into year, month, and day sections
-      CALL YMD_EXTRACT( YYYYMMDD, YYYY, MM, DD )
+    ! Extract the date value into year, month, and day sections
+    CALL YMD_EXTRACT( YYYYMMDD, YYYY, MM, DD )
 
-      ! Exit if month is out of range
-      IF ( MM < 1 .or. MM > 12 ) THEN
-         Is_Valid = .FALSE.
-         RETURN
-      ENDIF
+    ! Exit if month is out of range
+    IF ( MM < 1 .or. MM > 12 ) THEN
+       Is_Valid = .FALSE.
+       RETURN
+    ENDIF
 
-      ! Get the last day of the month
-      SELECT CASE( MM )
+    ! Get the last day of the month
+    SELECT CASE( MM )
 
-         ! Check for leap year day if it's Feb
-         CASE( 2 )
-            IF ( ITS_A_LEAPYEAR( YYYY ) ) THEN
-               LastDay = 29
-            ELSE
-               LastDay = 28
-            ENDIF
+    ! Check for leap year day if it's Feb
+    CASE( 2 )
+       IF ( ITS_A_LEAPYEAR( YYYY ) ) THEN
+          LastDay = 29
+       ELSE
+          LastDay = 28
+       ENDIF
 
-         ! 30 days hath September, April, June, and November
-         CASE( 4, 6, 9, 11 )
-            LastDay = 30
+    ! 30 days hath September, April, June, and November
+    CASE( 4, 6, 9, 11 )
+       LastDay = 30
 
-         ! All the rest have 31
-         CASE DEFAULT
-            LastDay = 31
+    ! All the rest have 31
+    CASE DEFAULT
+       LastDay = 31
 
-      END SELECT
+    END SELECT
 
-      ! Exit if the day is out of range
-      IF ( DD < 1 .or. DD > LastDay ) THEN
-         Is_Valid = .FALSE.
-         RETURN
-      ENDIF
+    ! Exit if the day is out of range
+    IF ( DD < 1 .or. DD > LastDay ) THEN
+       Is_Valid = .FALSE.
+       RETURN
+    ENDIF
 
-      END FUNCTION Valid_Date
+  END FUNCTION Valid_Date
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4015,16 +3999,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION Valid_Time( HHMMSS ) RESULT( Is_Valid )
+  FUNCTION Valid_Time( HHMMSS ) RESULT( Is_Valid )
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: HHMMSS     ! HH:MM:SS time
+    INTEGER, INTENT(IN) :: HHMMSS     ! HH:MM:SS time
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: Is_Valid   ! =T if HHMMSS is a valid time
-                                        ! =F otherwise
+    LOGICAL             :: Is_Valid   ! =T if HHMMSS is a valid time
+                                      ! =F otherwise
 !
 ! !REVISION HISTORY:
 !  06 Jul 2018 - R. Yantosca - Initial version
@@ -4035,37 +4019,37 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: HH, MM, SS
+    INTEGER :: HH, MM, SS
 
-      !=================================================================
-      ! VALID_TIME begins here!
-      !=================================================================
+    !=================================================================
+    ! VALID_TIME begins here!
+    !=================================================================
 
-      ! Assume success until otherwise proven
-      Is_Valid = .TRUE.
+    ! Assume success until otherwise proven
+    Is_Valid = .TRUE.
 
-      ! Extract the time value into hour, minute, and second sections
-      CALL YMD_EXTRACT( HHMMSS, HH, MM, SS )
+    ! Extract the time value into hour, minute, and second sections
+    CALL YMD_EXTRACT( HHMMSS, HH, MM, SS )
 
-      ! Exit if hours are out of range
-      IF ( HH < 0 .or. HH > 23 ) THEN
-         Is_Valid = .FALSE.
-         RETURN
-      ENDIF
+    ! Exit if hours are out of range
+    IF ( HH < 0 .or. HH > 23 ) THEN
+       Is_Valid = .FALSE.
+       RETURN
+    ENDIF
 
-      ! Exit if minutes are out of range
-      IF ( MM < 0 .or. MM > 59 ) THEN
-         Is_Valid = .FALSE.
-         RETURN
-      ENDIF
+    ! Exit if minutes are out of range
+    IF ( MM < 0 .or. MM > 59 ) THEN
+       Is_Valid = .FALSE.
+       RETURN
+    ENDIF
 
-      ! Exit if seconds are out of range
-      IF ( SS < 0 .or. SS > 59 ) THEN
-         Is_Valid = .FALSE.
-         RETURN
-      ENDIF
+    ! Exit if seconds are out of range
+    IF ( SS < 0 .or. SS > 59 ) THEN
+       Is_Valid = .FALSE.
+       RETURN
+    ENDIF
 
-      END FUNCTION Valid_Time
+  END FUNCTION Valid_Time
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4080,12 +4064,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SYSTEM_DATE_TIME( SYS_NYMD, SYS_NHMS )
+  SUBROUTINE SYSTEM_DATE_TIME( SYS_NYMD, SYS_NHMS )
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: SYS_NYMD   ! System date in YYYY/MM/DD format
-      INTEGER, INTENT(OUT) :: SYS_NHMS   ! System time in YYYY/MM/DD format
+    INTEGER, INTENT(OUT) :: SYS_NYMD   ! System date in YYYY/MM/DD format
+    INTEGER, INTENT(OUT) :: SYS_NHMS   ! System time in YYYY/MM/DD format
 !
 ! !REMARKS:
 !  Uses the F90 intrinsic function DATE_AND_TIME.
@@ -4099,30 +4083,27 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Arguments
+    INTEGER              :: V(8)
+    CHARACTER(LEN=8)     :: D
+    CHARACTER(LEN=10)    :: T
 
-      ! Local variables
-      INTEGER              :: V(8)
-      CHARACTER(LEN=8)     :: D
-      CHARACTER(LEN=10)    :: T
+    !=================================================================
+    ! SYSTEM_DATE_TIME begins here!
+    !=================================================================
 
-      !=================================================================
-      ! SYSTEM_DATE_TIME begins here!
-      !=================================================================
+    ! Initialize
+    D = 'ccyymmdd'
+    T = 'hhmmss.sss'
 
-      ! Initialize
-      D = 'ccyymmdd'
-      T = 'hhmmss.sss'
+    ! Call the F90 intrinsic routine DATE_AND_TIME
+    ! Return values are (/YYYY, MM, DD, GMT_MIN, HH, MM, SS, MSEC/)
+    CALL DATE_AND_TIME( DATE=D, TIME=T, VALUES=V )
 
-      ! Call the F90 intrinsic routine DATE_AND_TIME
-      ! Return values are (/YYYY, MM, DD, GMT_MIN, HH, MM, SS, MSEC/)
-      CALL DATE_AND_TIME( DATE=D, TIME=T, VALUES=V )
+    ! Save to YYYYMMDD and HHMMSS format
+    SYS_NYMD = ( V(1) * 10000 ) + ( V(2) * 100 ) + V(3)
+    SYS_NHMS = ( V(5) * 10000 ) + ( V(6) * 100 ) + V(7)
 
-      ! Save to YYYYMMDD and HHMMSS format
-      SYS_NYMD = ( V(1) * 10000 ) + ( V(2) * 100 ) + V(3)
-      SYS_NHMS = ( V(5) * 10000 ) + ( V(6) * 100 ) + V(7)
-
-      END SUBROUTINE SYSTEM_DATE_TIME
+  END SUBROUTINE SYSTEM_DATE_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4137,11 +4118,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SYSTEM_TIMESTAMP() RESULT( STAMP )
+  FUNCTION SYSTEM_TIMESTAMP() RESULT( STAMP )
 !
 ! !RETURN VALUE:
 !
-      CHARACTER(LEN=16) :: STAMP
+    CHARACTER(LEN=16) :: STAMP
 !
 ! !REVISION HISTORY:
 !  03 May 2005 - R. Yantosca - Initial version
@@ -4152,19 +4133,19 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: SYS_NYMD, SYS_NHMS
+    INTEGER           :: SYS_NYMD, SYS_NHMS
 
-      !=================================================================
-      ! SYSTEM_TIMESTAMP begins here!
-      !=================================================================
+    !=================================================================
+    ! SYSTEM_TIMESTAMP begins here!
+    !=================================================================
 
-      ! Get system date and time
-      CALL SYSTEM_DATE_TIME( SYS_NYMD, SYS_NHMS )
+    ! Get system date and time
+    CALL SYSTEM_DATE_TIME( SYS_NYMD, SYS_NHMS )
 
-      ! Create a string w/ system date & time
-      STAMP = TIMESTAMP_STRING( SYS_NYMD, SYS_NHMS )
+    ! Create a string w/ system date & time
+    STAMP = TIMESTAMP_STRING( SYS_NYMD, SYS_NHMS )
 
-      END FUNCTION SYSTEM_TIMESTAMP
+  END FUNCTION SYSTEM_TIMESTAMP
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4181,7 +4162,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TIMESTAMP_DIAG
+  SUBROUTINE TIMESTAMP_DIAG
 !
 ! !REVISION HISTORY:
 !  12 Aug 2009 - C. Carouge  - Initial version
@@ -4190,9 +4171,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      NYMD_DIAG = GET_NYMD()
+    NYMD_DIAG = GET_NYMD()
 
-      END SUBROUTINE TIMESTAMP_DIAG
+  END SUBROUTINE TIMESTAMP_DIAG
 #ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
@@ -4208,11 +4189,11 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_NYMD_DIAG() RESULT( THISNYMD )
+  FUNCTION GET_NYMD_DIAG() RESULT( THISNYMD )
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THISNYMD
+    INTEGER :: THISNYMD
 !
 ! !REVISION HISTORY:
 !  12 Aug 2009 - C. Carouge  - Initial version
@@ -4221,9 +4202,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-      THISNYMD = NYMD_DIAG
+    THISNYMD = NYMD_DIAG
 
-      END FUNCTION GET_NYMD_DIAG
+  END FUNCTION GET_NYMD_DIAG
 #endif
 !EOC
 #if defined( ESMF_ ) || defined( MODEL_ )
@@ -4235,53 +4216,52 @@
 ! !IROUTINE: Accept_External_Date_Time
 !
 ! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_DATE\_TIME sets the date and
-!  time variables in time\_mod.F with the values obtained from an external
+!  time variables in time\_mod.F90 with the values obtained from an external
 !  GCM (such as NASA's GEOS-5 GCM).  The various date \& time values from
 !  the GCM are passed as arguments.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Accept_External_Date_Time(
-     &   am_I_Root,    value_NYMDb,    value_NYMDe,   value_NYMD,
-     &   value_NHMSb,  value_NHMSe,    value_NHMS,    value_YEAR,
-     &   value_MONTH,  value_DAY,      value_DAYOFYR, value_HOUR,
-     &   value_MINUTE, value_SECOND,   value_UTC,     value_HELAPSED,
-     &   value_TS_CHEM, value_TS_CONV, value_TS_DYN,  value_TS_EMIS,
-     &   RC                                                           )
+  SUBROUTINE Accept_External_Date_Time(             &
+       value_NYMDb,  value_NYMDe,    value_NYMD,    &
+       value_NHMSb,  value_NHMSe,    value_NHMS,    &
+       value_YEAR,   value_MONTH,    value_DAY,     value_DAYOFYR, &
+       value_HOUR,   value_MINUTE,   value_SECOND,  &
+       value_UTC,    value_HELAPSED, value_TS_CHEM, &
+       value_TS_CONV, value_TS_DYN,  value_TS_EMIS, RC )
 !
 ! !USES:
 !
-      USE ErrCode_Mod
-      USE JULDAY_MOD,       ONLY : JULDAY
-      USE JULDAY_MOD,       ONLY : CALDATE
+    USE ErrCode_Mod
+    USE JULDAY_MOD,       ONLY : JULDAY
+    USE JULDAY_MOD,       ONLY : CALDATE
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,  INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
-      INTEGER,  OPTIONAL    :: value_NYMDb     ! YYYY/MM/DD @ start of run
-      INTEGER,  OPTIONAL    :: value_NYMDe     ! YYYY/MM/DD @ end of run
-      INTEGER,  OPTIONAL    :: value_NYMD      ! YYYY/MM/DD @ current time
-      INTEGER,  OPTIONAL    :: value_NHMSb     ! hh:mm:ss   @ start of run
-      INTEGER,  OPTIONAL    :: value_NHMSe     ! hh:mm:ss   @ end of run
-      INTEGER,  OPTIONAL    :: value_NHMS      ! hh:mm:ss   @ current time
-      INTEGER,  OPTIONAL    :: value_YEAR      ! UTC year
-      INTEGER,  OPTIONAL    :: value_MONTH     ! UTC month
-      INTEGER,  OPTIONAL    :: value_DAY       ! UTC day
-      INTEGER,  OPTIONAL    :: value_DAYOFYR   ! UTC day of year
-      INTEGER,  OPTIONAL    :: value_HOUR      ! UTC hour
-      INTEGER,  OPTIONAL    :: value_MINUTE    ! UTC minute
-      INTEGER,  OPTIONAL    :: value_SECOND    ! UTC second
-      REAL(f4), OPTIONAL    :: value_UTC       ! UTC time [hrs]
-      REAL(f4), OPTIONAL    :: value_HELAPSED  ! Elapsed hours
-      INTEGER,  OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [sec]
-      INTEGER,  OPTIONAL    :: value_TS_CONV   ! Convection timestep [sec]
-      INTEGER,  OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [sec]
-      INTEGER,  OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [sec]
+    INTEGER,  OPTIONAL    :: value_NYMDb     ! YYYY/MM/DD @ start of run
+    INTEGER,  OPTIONAL    :: value_NYMDe     ! YYYY/MM/DD @ end of run
+    INTEGER,  OPTIONAL    :: value_NYMD      ! YYYY/MM/DD @ current time
+    INTEGER,  OPTIONAL    :: value_NHMSb     ! hh:mm:ss   @ start of run
+    INTEGER,  OPTIONAL    :: value_NHMSe     ! hh:mm:ss   @ end of run
+    INTEGER,  OPTIONAL    :: value_NHMS      ! hh:mm:ss   @ current time
+    INTEGER,  OPTIONAL    :: value_YEAR      ! UTC year
+    INTEGER,  OPTIONAL    :: value_MONTH     ! UTC month
+    INTEGER,  OPTIONAL    :: value_DAY       ! UTC day
+    INTEGER,  OPTIONAL    :: value_DAYOFYR   ! UTC day of year
+    INTEGER,  OPTIONAL    :: value_HOUR      ! UTC hour
+    INTEGER,  OPTIONAL    :: value_MINUTE    ! UTC minute
+    INTEGER,  OPTIONAL    :: value_SECOND    ! UTC second
+    REAL(f4), OPTIONAL    :: value_UTC       ! UTC time [hrs]
+    REAL(f4), OPTIONAL    :: value_HELAPSED  ! Elapsed hours
+    INTEGER,  OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [sec]
+    INTEGER,  OPTIONAL    :: value_TS_CONV   ! Convection timestep [sec]
+    INTEGER,  OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [sec]
+    INTEGER,  OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [sec]
 !
 ! !OUTPUT ARGUMENTS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  The date and time values are obtained via the Extract_ subroutine in
@@ -4296,88 +4276,88 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f8) :: A, B, JD, THISDAY, TMP
+    REAL(f8) :: A, B, JD, THISDAY, TMP
 
-      !=================================================================
-      ! Set time/date values of time_mod.F from the ESMF inputs
-      !=================================================================
-      IF ( PRESENT( value_NYMDb    ) ) NYMDb       = value_NYMdb
-      IF ( PRESENT( value_NYMDe    ) ) NYMDe       = value_NYMDe
-      IF ( PRESENT( value_NYMD     ) ) NYMD        = value_NYMD
-      IF ( PRESENT( value_NHMSb    ) ) NHMSb       = value_NHMSb
-      IF ( PRESENT( value_NHMSe    ) ) NHMSe       = value_NHMSe
-      IF ( PRESENT( value_NHMS     ) ) NHMS        = value_NHMS
-      IF ( PRESENT( value_YEAR     ) ) YEAR        = value_YEAR
-      IF ( PRESENT( value_MONTH    ) ) MONTH       = value_MONTH
-      IF ( PRESENT( value_DAY      ) ) DAY         = value_DAY
-      IF ( PRESENT( value_DAYOFYR  ) ) DAY_OF_YEAR = value_DAYOFYR
-      IF ( PRESENT( value_HOUR     ) ) HOUR        = value_HOUR
-      IF ( PRESENT( value_MINUTE   ) ) MINUTE      = value_MINUTE
-      IF ( PRESENT( value_SECOND   ) ) SECOND      = value_SECOND
-      IF ( PRESENT( value_TS_CHEM  ) ) TS_CHEM     = value_TS_CHEM
-      IF ( PRESENT( value_TS_CONV  ) ) TS_CONV     = value_TS_CONV
-      IF ( PRESENT( value_TS_DYN   ) ) TS_DYN      = value_TS_DYN
-      IF ( PRESENT( value_TS_EMIS  ) ) TS_EMIS     = value_TS_EMIS
+    !=================================================================
+    ! Set time/date values of time_mod.F90 from the ESMF inputs
+    !=================================================================
+    IF ( PRESENT( value_NYMDb    ) ) NYMDb       = value_NYMdb
+    IF ( PRESENT( value_NYMDe    ) ) NYMDe       = value_NYMDe
+    IF ( PRESENT( value_NYMD     ) ) NYMD        = value_NYMD
+    IF ( PRESENT( value_NHMSb    ) ) NHMSb       = value_NHMSb
+    IF ( PRESENT( value_NHMSe    ) ) NHMSe       = value_NHMSe
+    IF ( PRESENT( value_NHMS     ) ) NHMS        = value_NHMS
+    IF ( PRESENT( value_YEAR     ) ) YEAR        = value_YEAR
+    IF ( PRESENT( value_MONTH    ) ) MONTH       = value_MONTH
+    IF ( PRESENT( value_DAY      ) ) DAY         = value_DAY
+    IF ( PRESENT( value_DAYOFYR  ) ) DAY_OF_YEAR = value_DAYOFYR
+    IF ( PRESENT( value_HOUR     ) ) HOUR        = value_HOUR
+    IF ( PRESENT( value_MINUTE   ) ) MINUTE      = value_MINUTE
+    IF ( PRESENT( value_SECOND   ) ) SECOND      = value_SECOND
+    IF ( PRESENT( value_TS_CHEM  ) ) TS_CHEM     = value_TS_CHEM
+    IF ( PRESENT( value_TS_CONV  ) ) TS_CONV     = value_TS_CONV
+    IF ( PRESENT( value_TS_DYN   ) ) TS_DYN      = value_TS_DYN
+    IF ( PRESENT( value_TS_EMIS  ) ) TS_EMIS     = value_TS_EMIS
 
-      ! Special handling for GMT to avoid roundoff error
-      IF ( PRESENT( value_UTC  ) ) THEN
-         TMP = value_UTC
-         GMT = TMP
-      ENDIF
+    ! Special handling for GMT to avoid roundoff error
+    IF ( PRESENT( value_UTC  ) ) THEN
+       TMP = value_UTC
+       GMT = TMP
+    ENDIF
 
-      !=================================================================
-      ! Compute various other derived time/date values
-      !=================================================================
+    !=================================================================
+    ! Compute various other derived time/date values
+    !=================================================================
 
-      ! Elapsed seconds since the start of the run
-      IF ( PRESENT( value_HELAPSED ) ) THEN
-         ELAPSED_SEC = value_HELAPSED * 3600
-      ENDIF
+    ! Elapsed seconds since the start of the run
+    IF ( PRESENT( value_HELAPSED ) ) THEN
+       ELAPSED_SEC = value_HELAPSED * 3600
+    ENDIF
 
-      ! TAUb (hours since 0 UTC on 01 Jan 1985) @ start of simulation
-      IF ( PRESENT( value_NYMDb ) .and. PRESENT( value_NHMSb ) ) THEN
-         TMP  = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e+0_f8
-         TAUb = DBLE( TMP )
-      ENDIF
+    ! TAUb (hours since 0 UTC on 01 Jan 1985) @ start of simulation
+    IF ( PRESENT( value_NYMDb ) .and. PRESENT( value_NHMSb ) ) THEN
+       TMP  = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e+0_f8
+       TAUb = DBLE( TMP )
+    ENDIF
 
-      ! TAUe (hours since 0 UTC on 01 Jan 1985) @ end of simulation
-      IF ( PRESENT( value_NYMDe ) .and. PRESENT( value_NHMSe ) ) THEN
-         TMP  = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e+0_f8
-         TAUe = DBLE( TMP )
-      ENDIF
+    ! TAUe (hours since 0 UTC on 01 Jan 1985) @ end of simulation
+    IF ( PRESENT( value_NYMDe ) .and. PRESENT( value_NHMSe ) ) THEN
+       TMP  = ( GET_JD( NYMDe, NHMSe ) - JD85 ) * 24e+0_f8
+       TAUe = DBLE( TMP )
+    ENDIF
 
-      ! TAU value ( hours since 0 UTC on 01 Jan 1985)
-      IF ( PRESENT( value_NYMD ) .and. PRESENT( value_NHMS ) ) THEN
-         TMP  = ( GET_JD( NYMD, NHMS ) - JD85 ) * 24e+0_f8
-         TAU  = DBLE( TMP )
-      ENDIF
+    ! TAU value ( hours since 0 UTC on 01 Jan 1985)
+    IF ( PRESENT( value_NYMD ) .and. PRESENT( value_NHMS ) ) THEN
+       TMP  = ( GET_JD( NYMD, NHMS ) - JD85 ) * 24e+0_f8
+       TAU  = DBLE( TMP )
+    ENDIF
 
-      ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
-      SELECT CASE ( MONTH )
-         CASE ( 12, 1, 2 )
-            NSEASON = 1
-         CASE ( 3, 4, 5 )
-            NSEASON = 2
-         CASE ( 6, 7, 8 )
-            NSEASON = 3
-         CASE ( 9, 10, 11 )
-            NSEASON = 4
-      END SELECT
+    ! Season index (1=DJF, 2=MAM, 3=JJA, 4=SON)
+    SELECT CASE ( MONTH )
+       CASE ( 12, 1, 2 )
+          NSEASON = 1
+       CASE ( 3, 4, 5 )
+          NSEASON = 2
+       CASE ( 6, 7, 8 )
+          NSEASON = 3
+       CASE ( 9, 10, 11 )
+          NSEASON = 4
+    END SELECT
 
-      ! Day of week w/r/t the GMT date
-      ! Use same algorithm as in routine SET_CURRENT_TIME
-      THISDAY     = DAY + ( GMT / 24e+0_f8 )
-      JD          = JULDAY( YEAR, MONTH, THISDAY )
-      A           = ( JD + 1.5e+0_f8 ) / 7e+0_f8
-      B           = ( A - INT( A ) ) * 7e+0_f8
-      B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) )
-     &            / 10e+0_f8 ) / 1e+4_f8
-      DAY_OF_WEEK = INT( B )
+    ! Day of week w/r/t the GMT date
+    ! Use same algorithm as in routine SET_CURRENT_TIME
+    THISDAY     = DAY + ( GMT / 24e+0_f8 )
+    JD          = JULDAY( YEAR, MONTH, THISDAY )
+    A           = ( JD + 1.5e+0_f8 ) / 7e+0_f8
+    B           = ( A - INT( A ) ) * 7e+0_f8
+    B           = INT( NINT( B*1e+5_f8 + SIGN( 5e+0_f8, B ) ) &
+                  / 10e+0_f8 ) / 1e+4_f8
+    DAY_OF_WEEK = INT( B )
 
-      ! Return successfully
-      RC = GC_SUCCESS
+    ! Return successfully
+    RC = GC_SUCCESS
 
-      END SUBROUTINE Accept_External_Date_Time
+  END SUBROUTINE Accept_External_Date_Time
 !EOC
 #endif
-      END MODULE TIME_MOD
+END MODULE TIME_MOD

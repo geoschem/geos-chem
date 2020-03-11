@@ -49,29 +49,7 @@
 #
 # !REVISION HISTORY:
 #  19 Nov 2009 - R. Yantosca - Initial version
-#  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
-#                              automatically written to the mod directory
-#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
-#  21 Dec 2009 - R. Yantosca - If HDF5=yes, then look for hdf5.mod in the
-#                              HDF5 include path $(HDF5_INC).
-#  01 Mar 2012 - R. Yantosca - Replace grid_mod.F with grid_mod.F90, to
-#                              facilitate work on the GI model
-#  03 Apr 2012 - M. Payer    - Add new module regrid_a2a_mod.F90 (M. Cooper)
-#  03 Aug 2012 - R. Yantosca - Add dependency for inquireMod.F90
-#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
-#  20 Jun 2014 - R. Yantosca - Removed unix_cmds_mod.F; it's now obsolete
-#  20 Jun 2014 - R. Yantosca - Removed directory_mod.F; it's now obsolete
-#  10 Jul 2014 - R. Yantosca - Now compile ncdf_mod.F90 in NcdfUtil/ subdir
-#  21 Jul 2014 - R. Yantosca - regrid_a2a_mod.F90 no longer relies on other
-#                              files in GeosUtil
-#  21 Jul 2014 - R. Yantosca - Removed regrid_1x1_mod.F; it's obsolete
-#  23 Jul 2014 - R. Yantosca - Removed global_grid_mod.F90; it's obsolete
-#  08 Jan 2015 - E. Lundgren - Add module for unit conversion
-#  03 Jun 2015 - R. Yantosca - Also remove *.mod, *.a files with "make clean"
-#  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
-#  22 Jan 2016 - R. Yantosca - Remove linux_err.o
-#  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90, etc.
-#  23 Aug 2017 - R. Yantosca - Added dependencies for grid_registry_mod.F90
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -163,15 +141,15 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
-bpch2_mod.o         : bpch2_mod.F           \
+bpch2_mod.o         : bpch2_mod.F90         \
                       error_mod.o           \
                       file_mod.o            \
                       julday_mod.o
 
-error_mod.o         : error_mod.F           \
+error_mod.o         : error_mod.F90         \
                       geos_timers_mod.o
 
-file_mod.o          : file_mod.F            \
+file_mod.o          : file_mod.F90          \
                       error_mod.o
 
 gc_grid_mod.o       : gc_grid_mod.F90       \
@@ -182,25 +160,25 @@ grid_registry_mod.o : grid_registry_mod.F90 \
                       gc_grid_mod.o         \
                       pressure_mod.o
 
-henry_mod.o         : henry_mod.F
+henry_mod.o         : henry_mod.F90
 
-ifort_errmsg.o      : ifort_errmsg.F
+ifort_errmsg.o      : ifort_errmsg.F90
 
-julday_mod.o        : julday_mod.F
+julday_mod.o        : julday_mod.F90
 
-pressure_mod.o      : pressure_mod.F        \
+pressure_mod.o      : pressure_mod.F90      \
                       error_mod.o
 
 regrid_a2a_mod.o    : regrid_a2a_mod.F90
 
 roundoff_mod.o      : roundoff_mod.F90
 
-time_mod.o          : time_mod.F            \
+time_mod.o          : time_mod.F90          \
                       error_mod.o           \
                       gc_grid_mod.o         \
                       julday_mod.o
 
-transfer_mod.o      : transfer_mod.F        \
+transfer_mod.o      : transfer_mod.F90      \
                       error_mod.o
 
 unitconv_mod.o	    : unitconv_mod.F90      \

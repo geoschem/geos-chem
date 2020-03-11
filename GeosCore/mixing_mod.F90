@@ -473,9 +473,8 @@ CONTAINS
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
     ! remove area-dependency (ewl, 9/30/15)
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg/m2',   &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg/m2', RC, OrigUnit=OrigUnit )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -926,8 +925,8 @@ CONTAINS
 #endif
 
     ! Convert State_Chm%Species back to original units
-    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit, RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        MSG = 'Unit conversion error!'
        CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )

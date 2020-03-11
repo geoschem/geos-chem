@@ -1272,8 +1272,8 @@ CONTAINS
     ! what the units are prior to this call.  After we sample
     ! the species, we'll call this again requesting that the
     ! species are converted back to the InUnit values.
-    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, "v/v dry", RC,       PriorUnit       )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,  State_Met, &
+                            'v/v dry', RC, PriorUnit )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1389,8 +1389,8 @@ CONTAINS
 
     ! Return State_Chm%SPECIES to whatever units they had
     ! coming into this routine
-    call Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, PriorUnit, RC                        )
+    call Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            PriorUnit, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

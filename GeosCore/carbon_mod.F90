@@ -4913,9 +4913,8 @@ CONTAINS
    ! Convert State_Chm%Species to [kg] for TOMAS. This will be
    ! removed once TOMAS uses mixing ratio instead of mass
    ! as species units (ewl, 9/11/15)
-   CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                           State_Grid, State_Met, 'kg', &
-                           RC,        OrigUnit=OrigUnit )
+   CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                           'kg', RC, OrigUnit=OrigUnit )
    IF ( RC /= GC_SUCCESS ) THEN
       CALL GC_Error( 'Unit conversion error', RC, &
                      'Start of EMISSCARBONTOMAS in carbon_mod.F90' )
@@ -5113,8 +5112,8 @@ CONTAINS
    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
    ! Convert State_Chm%Species back to original units (ewl, 9/11/15)
-   CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                           State_Grid, State_Met, OrigUnit, RC )
+   CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                           OrigUnit, RC )
    IF ( RC /= GC_SUCCESS ) THEN
       CALL GC_Error('Unit conversion error', RC, &
                     'End of EMISSCARBONTOMAS in carbon_mod.F90')
