@@ -164,29 +164,7 @@ MODULE Olson_LandMap_Mod
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - R. Yantosca - Initial version
-!  19 Mar 2012 - R. Yantosca - Minor last-minute bug fixes
-!  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computations
-!  22 Mar 2012 - R. Yantosca - Now read surface area from the file
-!  22 Mar 2012 - R. Yantosca - Now make lon, lat, OLSON, A_CM2 allocatable
-!  22 Mar 2012 - R. Yantosca - Now define I_OLSON, J_OLSON, N_OLSON, D_LON,
-!                              and D_LAT in routine Init_Olson_LandMap
-!  27 Mar 2012 - R. Yantosca - Now reference USE_OLSON_2001 from logical_mod.F
-!  02 Apr 2012 - R. Yantosca - Now reference mapping_mod.F90
-!  02 Apr 2012 - R. Yantosca - Moved routine GET_MAP_WT to mapping_mod.F90
-!  02 Apr 2012 - R. Yantosca - Now Save mapping info for later use
-!  09 Apr 2012 - R. Yantosca - Removed IJREG, IJUSE, IJLAND; these are now
-!                              replaced by IREG, IUSE, ILAND arrays
-!  09 Apr 2012 - R. Yantosca - Removed reference to CMN_VEL_mod.F
-!  20 Mar 2014 - R. Yantosca - Speed up Olson computation by skipping boxes
-!  24 Jun 2014 - R. Yantosca - Remove references to logical_mod.F
-!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  18 Oct 2016 - E. Lundgren - Add GCHP routine for computing landmap variables
-!  02 Nov 2016 - E. Lundgren - Remove N_OLSON since same as global NSURFTYPE
-!  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
-!                              now the default.
-!  14 Feb 2019 - R. Yantosca - Added routine Init_LandTypeFrac, which gets
-!                              the land type fraction data from HEMCO
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,8 +184,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Grid, &
-                                    State_Met, RC )
+  SUBROUTINE Compute_Olson_Landmap( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -219,7 +196,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput),  INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState),  INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -233,10 +209,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Sep 2016 - E. Lundgren - Initial version
-!  14 Feb 2019 - R. Yantosca - Changed name to Compute_Olson_Landmap, since
-!                              we now also use this for GC-Classic, etc.
-!  14 Feb 2019 - R. Yantosca - Now pass Input_Opt as an argument (since it
-!                              has the core number in Input_Opt%MyPet
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,7 +330,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_LandTypeFrac( am_I_Root, Input_Opt, State_Met, RC )
+  SUBROUTINE Init_LandTypeFrac( Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
@@ -370,7 +343,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -387,6 +359,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Feb 2019 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

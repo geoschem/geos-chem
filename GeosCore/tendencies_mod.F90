@@ -29,15 +29,15 @@
 ! of the tendencies (i.e. in tend\_init):
 !
 !    ! Create new class
-!    CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'PROCESS', RC )
+!    CALL Tend_CreateClass( Input_Opt, State_Chm, 'PROCESS', RC )
 !    IF ( RC /= GC_SUCCESS ) RETURN
 !
 ! The second step is to assign the species of interest to this tendency class:
 !
 !    ! Add species to classes
-!    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', id_O3, RC )
+!    CALL Tend_Add( Input_Opt, 'PROCESS', id_O3, RC )
 !    IF ( RC /= GC_SUCCESS ) RETURN
-!    CALL Tend_Add ( am_I_Root, Input_Opt, 'PROCESS', id_CO, RC )
+!    CALL Tend_Add( Input_Opt, 'PROCESS', id_CO, RC )
 !    IF ( RC /= GC_SUCCESS ) RETURN
 !
 ! The last step then involves the definition of the entry and exit points of
@@ -117,8 +117,7 @@ MODULE Tendencies_Mod
 !
 ! !REVISION HISTORY:
 !  14 Jul 2015 - C. Keller   - Initial version.
-!  26 Oct 2015 - C. Keller   - Now organize in linked list for more flexibility.
-!  19 Jul 2016 - R. Yantosca - Now block out this routine with #ifdef USE_TEND
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,8 +137,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Init ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                         State_Met, RC )
+  SUBROUTINE Tend_Init( Input_Opt, State_Chm, State_Grid, &
+                        State_Met, RC )
 !
 ! !USES:
 !
@@ -147,7 +146,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input options
     TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry State object
     TYPE(GrdState),   INTENT(IN   ) :: State_Grid ! Grid State object
@@ -163,9 +161,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Oct 2015 - C. Keller   - Initial version
-!  16 Jun 2016 - J. Kaiser   - Move tracer IDS to variable names
-!  20 Jun 2016 - R. Yantosca - Renamed IDTCO, IDTO3 to id_CO and id_O3
-!  19 Jul 2016 - R. Yantosca - Activate more tendency classes
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,7 +178,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'Tend_Init (tendencies_mod.F)'
+    CHARACTER(LEN=255) :: LOC = 'Tend_Init (tendencies_mod.F90)'
 !
 ! !DEFINED PARAMETERS:
 !
@@ -210,167 +206,140 @@ CONTAINS
        ! Define tendency classes (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'ADV' ,   RC )
+       CALL Tend_CreateClass( Input_Opt, State_Chm, 'ADV' ,   RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'CHEM',   RC )
+       CALL Tend_CreateClass( Input_Opt, State_Chm, 'CHEM',   RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'CONV',   RC )
+       CALL Tend_CreateClass( Input_Opt, State_Chm, 'CONV',   RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'FLUX',   RC )
+       CALL Tend_CreateClass( Input_Opt, State_Chm, 'FLUX',   RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', RC )
+       CALL Tend_CreateClass( Input_Opt, State_Chm, 'PBLMIX', RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, 'WETD',   RC )
+       CALL Tend_CreateClass( Input_Opt, State_Chm, 'WETD',   RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for O3 (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                      'ADV',      id_O3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'ADV',    id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                      'CHEM',     id_O3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CHEM',   id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CONV',    id_O3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CONV',   id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'FLUX',    id_O3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'FLUX',   id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'WETD',    id_O3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'WETD',   id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'PBLMIX',  id_O3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'PBLMIX', id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for CO (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'ADV',     id_CO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'ADV',    id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CHEM',    id_CO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CHEM',   id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CONV',    id_CO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CONV',   id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'PBLMIX',  id_CO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'PBLMIX', id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'WETD',    id_CO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'WETD',   id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'FLUX',    id_CO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'FLUX',   id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for NO (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'ADV',     id_NO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'ADV',    id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CHEM',    id_NO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CHEM',   id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CONV',    id_NO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CONV',   id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'PBLMIX',  id_NO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'PBLMIX', id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'WETD',    id_NO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'WETD',   id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'FLUX',    id_NO, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'FLUX',   id_NO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for NO2 (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'ADV',     id_NO2, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'ADV',    id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CHEM',    id_NO2, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CHEM',   id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CONV',    id_NO2, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CONV',   id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'PBLMIX',  id_NO2, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'PBLMIX', id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'WETD',    id_NO2, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'WETD',   id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'FLUX',    id_NO2, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'FLUX',   id_NO2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for HNO3 (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'ADV',     id_HNO3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'ADV',    id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CHEM',    id_HNO3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CHEM',   id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CONV',    id_HNO3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CONV',   id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'PBLMIX',  id_HNO3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'PBLMIX', id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'WETD',    id_HNO3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'WETD',   id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'FLUX',    id_HNO3, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'FLUX',   id_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Activate tendency computations for OH (add more as you wish)
+       !--------------------------------------------------------------------
 
        id_tmp = Ind_('OH')
-       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                       'CHEM',    id_tmp, RC )
+       CALL Tend_Add( Input_Opt, State_Chm, State_Grid, 'CHEM',   id_tmp, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDIF ! test toggle
@@ -389,14 +358,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_CreateClass ( am_I_Root, Input_Opt, State_Chm, TendName, RC )
+  SUBROUTINE Tend_CreateClass( Input_Opt, State_Chm, TendName, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input Options object
     TYPE(ChmState),   INTENT(IN   ) :: State_Chm  ! Chemistry State object
     CHARACTER(LEN=*), INTENT(IN   ) :: TendName   ! Tendency class name
@@ -407,6 +375,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Oct 2015 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -416,7 +385,7 @@ CONTAINS
     TYPE(TendClass), POINTER :: NewTend => NULL()
     LOGICAL                  :: FOUND
     CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: LOC = 'Tend_CreateClass (tendencies_mod.F)'
+    CHARACTER(LEN=255)       :: LOC = 'Tend_CreateClass (tendencies_mod.F90)'
 
     !=======================================================================
     ! Tend_CreateClass begins here!
@@ -426,7 +395,7 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Check if class already exists
-    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC )
+    CALL Tend_FindClass( TendName, FOUND, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     IF ( .NOT. FOUND ) THEN
@@ -472,14 +441,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_FindClass ( am_I_Root, TendName, FOUND, RC, ThisTend )
+  SUBROUTINE Tend_FindClass( TendName, FOUND, RC, ThisTend )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! Are we on the root CPU?
     CHARACTER(LEN=*), INTENT(IN   )          :: TendName   ! tendency class name
 !
 ! !OUTPUT PARAMETERS:
@@ -490,7 +458,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Oct 2015 - C. Keller   - Initial version
-!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -554,7 +522,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Oct 2015 - C. Keller   - Initial version
-!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -616,7 +584,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Add ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+  SUBROUTINE Tend_Add( Input_Opt, State_Chm, State_Grid, &
                         TendName,   SpcID,    RC,        CreateClass )
 !
 ! !USES:
@@ -625,7 +593,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   )           :: Input_Opt   ! Input opts
     TYPE(ChmState),   INTENT(IN   )           :: State_Chm   ! Chemistry State object
     TYPE(GrdState),   INTENT(IN   )           :: State_Grid  ! Grid State object
@@ -639,9 +606,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2015 - C. Keller   - Initial version
-!  26 Oct 2015 - C. Keller   - Update for linked list
-!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
-!  29 Dec 2017 - C. Keller   - Don't use HEMCO diagnostics in ESMF env.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -677,19 +642,18 @@ CONTAINS
     IF ( SpcID <= 0 ) RETURN
 
     ! Search for diagnostics class
-    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
+    CALL Tend_FindClass( TendName, FOUND, RC, ThisTend=ThisTend )
 
     ! Eventually create this class if it does not exist yet
     IF ( .NOT. FOUND .AND. PRESENT( CreateClass ) ) THEN
        IF ( CreateClass ) THEN
 
           ! Create class
-          CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm, TendName, RC )
+          CALL Tend_CreateClass( Input_Opt, State_Chm, TendName, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
 
           ! Get pointer to class object
-          CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, &
-                               ThisTend=ThisTend )
+          CALL Tend_FindClass( TendName, FOUND, RC, ThisTend=ThisTend )
 
        ENDIF
     ENDIF
@@ -727,8 +691,7 @@ CONTAINS
     Collection = Input_Opt%DIAG_COLLECTION
 
     ! Create container for tendency
-    CALL Diagn_Create( am_I_Root, &
-                       HcoState  = HcoState,          &
+    CALL Diagn_Create( HcoState  = HcoState,          &
                        Col       = Collection,        &
 !                       cID       = cID,               &
                        cName     = TRIM( DiagnName ), &
@@ -768,7 +731,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Stage1( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+  SUBROUTINE Tend_Stage1( Input_Opt, State_Chm, State_Grid, &
                           State_Met, TendName,  RC )
 !
 ! !USES:
@@ -778,7 +741,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
     TYPE(GrdState),   INTENT(IN   ) :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Met state
@@ -794,12 +756,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2015 - C. Keller   - Initial version
-!  26 Oct 2015 - C. Keller   - Update to include tendency classes
-!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
-!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
-!  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
-!  17 Oct 2017 - C. Keller   - Stage2 now updates internal array to tendency
-!                              array (instead of resetting it to zero).
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -817,7 +774,7 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=63)        :: OrigUnit
     CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE1 (tendencies_mod.F)'
+    CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE1 (tendencies_mod.F90)'
 
     !=======================================================================
     ! TEND_STAGE1 begins here!
@@ -831,11 +788,11 @@ CONTAINS
     ThisTend => NULL()
 
     ! Find tendency class
-    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
+    CALL Tend_FindClass( TendName, FOUND, RC, ThisTend=ThisTend )
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
     ! Convert tracers to kg/kg dry
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,   &
                             State_Grid, State_Met, 'kg/kg dry', &
                             RC,         OrigUnit=OrigUnit )
     IF ( RC/= HCO_SUCCESS ) RETURN
@@ -864,7 +821,7 @@ CONTAINS
     ThisTend%Stage = 1
 
     ! Convert tracers back to original unit
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                             State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
@@ -886,7 +843,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Stage2( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+  SUBROUTINE Tend_Stage2( Input_Opt, State_Chm, State_Grid, &
                           State_Met, TendName,  DT, RC )
 !
 ! !USES:
@@ -897,7 +854,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root  ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt  ! Input opts
     TYPE(GrdState),   INTENT(IN   ) :: State_Grid ! Grid state
     TYPE(MetState),   INTENT(IN   ) :: State_Met  ! Meteorology state
@@ -914,13 +870,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2015 - C. Keller   - Initial version
-!  26 Oct 2015 - C. Keller   - Update to include tendency classes
-!  05 Jan 2015 - C. Keller   - Small updates to remove spurious tendencies
-!                              caused by floating point errors.
-!  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
-!  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
-!  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
-!  29 Dec 2017 - C. Keller   - Don't use HEMCO diagnostics in ESMF env.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -960,13 +910,13 @@ CONTAINS
     ThisTend => NULL()
 
     ! Find tendency class
-    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
+    CALL Tend_FindClass( TendName, FOUND, RC, ThisTend=ThisTend )
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
     ! Error check: stage 2 must be called after stage 1
     ZeroTend = .FALSE.
     IF ( ThisTend%Stage /= 1 ) THEN
-       IF ( am_I_Root ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
           WRITE(*,*) 'Warning: cannot do tendency stage 2 - stage 1 not yet called: ', TRIM(TendName)
        ENDIF
        ZeroTend = .TRUE.
@@ -974,14 +924,14 @@ CONTAINS
 
     ! Error check: DT must not be 0
     IF ( DT == 0.0_fp ) THEN
-       IF ( am_I_Root ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
           WRITE(*,*) 'Warning: cannot calculate tendency for DT = 0: ', TRIM(TendName)
        ENDIF
        ZeroTend = .TRUE.
     ENDIF
 
     ! Convert tracers to kg/kg dry
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,   &
                             State_Grid, State_Met, 'kg/kg dry', &
                             RC,         OrigUnit=OrigUnit )
     IF ( RC/= HCO_SUCCESS ) RETURN
@@ -1016,8 +966,8 @@ CONTAINS
 
 #if !defined( ESMF_ )
        ! Update diagnostics array
-       CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, &
-               Array3D=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
+       CALL Diagn_Update( HcoState, cName=DiagnName, Array3D=Tend, &
+                          COL=Input_Opt%DIAG_COLLECTION, RC=RC )
 
        IF ( RC /= HCO_SUCCESS ) THEN
           WRITE(ErrMsg,*) 'Error in updating diagnostics with ID ', cID
@@ -1038,7 +988,7 @@ CONTAINS
     ThisTend%Stage = 2
 
     ! Convert tracers back to original unit
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                             State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
@@ -1060,14 +1010,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tend_Get( am_I_Root, Input_Opt, TendName, SpcID, Stage, Tend, RC )
+  SUBROUTINE Tend_Get( Input_Opt, TendName, SpcID, Stage, Tend, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN   ) :: Input_Opt   ! Input opts
     CHARACTER(LEN=*), INTENT(IN   ) :: TendName    ! tendency name
     INTEGER,          INTENT(IN   ) :: SpcID       ! Species ID
@@ -1081,7 +1030,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2015 - C. Keller   - Initial version
-!  26 Oct 2015 - C. Keller   - Update to include tendency classes
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1098,7 +1047,7 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=63)        :: DiagnName
     CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: LOC = 'TEND_GET (tendencies_mod.F)'
+    CHARACTER(LEN=255)       :: LOC = 'TEND_GET (tendencies_mod.F90)'
 
     !=======================================================================
     ! TEND_GET begins here!
@@ -1113,7 +1062,7 @@ CONTAINS
     Stage    =  0
 
     ! Find tendency class
-    CALL Tend_FindClass( am_I_Root, TendName, FOUND, RC, ThisTend=ThisTend )
+    CALL Tend_FindClass( TendName, FOUND, RC, ThisTend=ThisTend )
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
     ! Skip if not used

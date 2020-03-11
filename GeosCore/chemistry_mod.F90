@@ -57,8 +57,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_CHEMISTRY( am_I_Root,  Input_Opt,  State_Chm,                &
-                           State_Diag, State_Grid, State_Met, RC            )
+  SUBROUTINE DO_CHEMISTRY( Input_Opt,  State_Chm, State_Diag, &
+                           State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -112,7 +112,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -234,14 +233,14 @@ CONTAINS
     !=======================================================================
     ! Archive species concentrations for tendencies (ckeller,7/15/2015)
     !=======================================================================
-    CALL Tend_Stage1( am_I_Root, Input_Opt, State_Chm, State_Grid,           &
+    CALL Tend_Stage1( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid,  &
                       State_Met, 'CHEM', RC                                 )
 #endif
 
     !=======================================================================
     ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,                &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,        &
                             State_Grid, State_Met, 'kg',                     &
                             RC,         OrigUnit=OrigUnit                   )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -273,9 +272,8 @@ CONTAINS
           IF ( LSULF ) THEN
 
              ! Dry run only
-             CALL ChemSulfate( am_I_Root,  Input_Opt,  State_Chm,            &
-                               State_Diag, State_Grid, State_Met,            &
-                               .FALSE.,    RC                               )
+             CALL ChemSulfate( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                               State_Met, .FALSE.,   RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -304,8 +302,8 @@ CONTAINS
           !---------------------------
           ! Call gas-phase chemistry
           !---------------------------
-          CALL Do_FlexChem( am_I_Root,  Input_Opt,  State_Chm,               &
-                            State_Diag, State_Grid, State_Met, RC           )
+          CALL Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
 
           ! Check units (ewl, 10/5/15)
           IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -336,8 +334,8 @@ CONTAINS
 
              ! Do linearized chemistry for the stratosphere (tropchem)
              ! or the mesosphere (UCX)
-             CALL Do_Strat_Chem( am_I_Root,  Input_Opt, State_Chm,           &
-                                 State_Grid, State_Met, RC                  )
+             CALL Do_Strat_Chem( Input_Opt, State_Chm, State_Grid, &
+                                 State_Met, RC )
 
              ! Check units (ewl, 10/5/15)
              IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -388,8 +386,8 @@ CONTAINS
           ! Do seasalt aerosol chemistry
           !--------------------------------
           IF ( LSSALT ) THEN
-             CALL ChemSeaSalt( am_I_Root,  Input_Opt,  State_Chm,            &
-                               State_Diag, State_Grid, State_Met, RC        )
+             CALL ChemSeaSalt( Input_Opt,  State_Chm, State_Diag, &
+                               State_Grid, State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -410,8 +408,8 @@ CONTAINS
 #endif
 
              ! Recalculate PSC
-             CALL Calc_Strat_Aer( am_I_Root,  Input_Opt, State_Chm,          &
-                                  State_Grid, State_Met, RC )
+             CALL Calc_Strat_Aer( Input_Opt, State_Chm, State_Grid, &
+                                  State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -433,9 +431,8 @@ CONTAINS
           IF ( LSULF ) THEN
 
              ! Do sulfate chemistry
-             CALL ChemSulfate( am_I_Root,  Input_Opt,  State_Chm,             &
-                               State_Diag, State_Grid, State_Met,             &
-                               .TRUE.,     RC                                )
+             CALL ChemSulfate( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                               State_Met, .TRUE.,     RC )
 
              ! Check units (ewl, 10/5/15)
              IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -457,8 +454,8 @@ CONTAINS
 
 #ifndef APM
                 ! ISORROPIA takes Na+, Cl- into account
-                CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,      &
-                                     State_Diag, State_Grid, State_Met, RC  )
+                CALL Do_IsorropiaII( Input_Opt,  State_Chm, State_Diag, &
+                                     State_Grid, State_Met, RC )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
@@ -478,9 +475,8 @@ CONTAINS
 #endif
 
                 ! RPMARES does not take Na+, Cl- into account
-                CALL Do_RPMARES( am_I_Root,  Input_Opt, State_Chm,           &
-                                 State_Grid, State_Met, RC                  )
-
+                CALL Do_RPMARES( Input_Opt, State_Chm, State_Grid, &
+                                 State_Met, RC )
              ENDIF
 
           ENDIF
@@ -535,8 +531,8 @@ CONTAINS
           ! Do TOMAS aerosol microphysics and dry dep
           !--------------------------------------------
           IF ( id_NK1 > 0 ) THEN
-             CALL Do_TOMAS( am_I_Root, Input_Opt,  State_Chm,               &
-                           State_Diag, State_Grid, State_Met, RC           )
+             CALL Do_TOMAS( Input_Opt,  State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
 
              ! Check units (ewl, 10/5/15)
              IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -568,7 +564,7 @@ CONTAINS
 
           !-------------------------------------------------------
           ! Compute aerosol & dust concentrations [kg/m3]
-          ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+          ! (NOTE: SOILDUST in "aerosol_mod.F90" is computed here)
           !-------------------------------------------------------
           CALL Aerosol_Conc( Input_Opt,  State_Chm, State_Diag, &
                              State_Grid, State_Met, RC )
@@ -611,8 +607,8 @@ CONTAINS
 
 #ifndef APM
                 ! ISORROPIA takes Na+, Cl- into account
-                CALL Do_IsorropiaII( am_I_Root,  Input_Opt,  State_Chm,      &
-                                     State_Diag, State_Grid, State_Met, RC  )
+                CALL Do_IsorropiaII( Input_Opt,  State_Chm, State_Diag, &
+                                     State_Grid, State_Met, RC )
 #endif
 
                 ! Trap potential errors
@@ -633,8 +629,8 @@ CONTAINS
 
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)
-                CALL Do_RPMARES( am_I_Root,  Input_Opt, State_Chm,           &
-                                 State_Grid, State_Met, RC                  )
+                CALL Do_RPMARES( Input_Opt, State_Chm, State_Grid, &
+                                 State_Met, RC )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
@@ -649,8 +645,8 @@ CONTAINS
           ! Seasalt Aerosols
           !-----------------------------
           IF ( LSSALT ) THEN
-             CALL ChemSeaSalt( am_I_Root,  Input_Opt,  State_Chm,            &
-                               State_Diag, State_Grid, State_Met, RC        )
+             CALL ChemSeaSalt( Input_Opt,  State_Chm, State_Diag, &
+                               State_Grid, State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -666,9 +662,8 @@ CONTAINS
           IF ( LSULF ) THEN
 
              ! Do sulfate chemistry
-             CALL ChemSulfate( am_I_Root,  Input_Opt,  State_Chm,            &
-                               State_Diag, State_Grid, State_Met,            &
-                               .TRUE.,     RC                               )
+             CALL ChemSulfate( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                               State_Met, .TRUE.,    RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -737,8 +732,8 @@ CONTAINS
 #endif
 
           ! Do Rn-Pb-Be chemistry
-          CALL ChemRnPbBe( am_I_Root,  Input_Opt,  State_Chm,                &
-                           State_Diag, State_Grid, State_Met, RC            )
+          CALL ChemRnPbBe( Input_Opt,  State_Chm, State_Diag, &
+                           State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -763,8 +758,8 @@ CONTAINS
           !-----------------------------------------------
           ! Do Tagged O3 chemistry
           !-----------------------------------------------
-          CALL Chem_Tagged_O3( am_I_Root,  Input_Opt,  State_Chm,            &
-                               State_Diag, State_Grid, State_Met, RC        )
+          CALL Chem_Tagged_O3( Input_Opt,  State_Chm, State_Diag, &
+                               State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -787,8 +782,8 @@ CONTAINS
 #endif
 
              ! Do LINOZ for Ozone
-             CALL Do_Strat_Chem( am_I_Root,  Input_Opt, State_Chm,           &
-                                 State_Grid, State_Met, RC                  )
+             CALL Do_Strat_Chem( Input_Opt, State_Chm, State_Grid, &
+                                 State_Met, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -813,8 +808,8 @@ CONTAINS
 #endif
 
           ! Do tagged CO chemistry
-          CALL Chem_Tagged_CO( am_I_Root,  Input_Opt,  State_Chm,            &
-                               State_Diag, State_Grid, State_Met, RC        )
+          CALL Chem_Tagged_CO( Input_Opt,  State_Chm, State_Diag, &
+                               State_Grid, State_Met, RC        )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -836,8 +831,8 @@ CONTAINS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
 
-          CALL ChemCh4( am_I_Root,  Input_Opt,  State_Chm,                &
-                        State_Diag, State_Grid, State_Met, RC            )
+          CALL ChemCh4( Input_Opt,  State_Chm, State_Diag, &
+                        State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -885,8 +880,8 @@ CONTAINS
 #endif
 
           ! Do POPS chemistry
-          CALL ChemPOPs( am_I_Root,  Input_Opt,  State_Chm,                  &
-                         State_Diag, State_Grid, State_Met, RC              )
+          CALL ChemPOPs( Input_Opt,  State_Chm, State_Diag, &
+                         State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -918,8 +913,8 @@ CONTAINS
        IF ( Input_Opt%NPassive_Decay > 0 ) THEN
 
           ! Apply loss rate to passive species with finite lifetimes
-          CALL Chem_Passive_Species( am_I_Root,  Input_Opt, State_Chm,       &
-                                     State_Grid, State_Met, RC              )
+          CALL Chem_Passive_Species( Input_Opt, State_Chm, State_Grid, &
+                                     State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -940,8 +935,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit (ewl, 8/12/15)
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,                &
-                            State_Grid, State_Met, OrigUnit,  RC            )
+    CALL Convert_Spc_Units( Input_Opt%amIRoot, Input_Opt, State_Chm, &
+                            State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -957,8 +952,8 @@ CONTAINS
     !=======================================================================
 
     ! Compute tendencies
-    CALL Tend_Stage2( am_I_Root,  Input_Opt, State_Chm,                      &
-                      State_Grid, State_Met, 'CHEM',                         &
+    CALL Tend_Stage2( Input_Opt%amIRoot, Input_Opt, State_Chm, &
+                      State_Grid, State_Met, 'CHEM',           &
                       DT_Chem,    RC )
 
     ! Trap potential errors
@@ -1016,12 +1011,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RECOMPUTE_OD( am_I_Root,  Input_Opt,  State_Chm,                &
-                           State_Diag, State_Grid, State_Met, RC            )
+  SUBROUTINE RECOMPUTE_OD( Input_Opt,  State_Chm, State_Diag, &
+                           State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    ! References to F90 modules
     USE AEROSOL_MOD,    ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,    ONLY : RDAER
     USE AEROSOL_MOD,    ONLY : SOILDUST
@@ -1038,7 +1032,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -1079,7 +1072,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at Recompute_OD  (in module GeosCore/chemistry_mod.F)'
+    ThisLoc = ' -> at Recompute_OD  (in module GeosCore/chemistry_mod.F90)'
 
     ! Get month and year
     MONTH                = GET_MONTH()
@@ -1176,8 +1169,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Chem_Passive_Species( am_I_Root,  Input_Opt, State_Chm,         &
-                                   State_Grid, State_Met, RC                )
+  SUBROUTINE Chem_Passive_Species( Input_Opt, State_Chm, State_Grid, &
+                                   State_Met, RC )
 !
 ! !USES:
 !
@@ -1191,7 +1184,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   ) :: am_I_Root   ! root CPU?
     TYPE(OptInput), INTENT(IN   ) :: Input_Opt   ! Input options object
     TYPE(GrdState), INTENT(IN   ) :: State_Grid  ! Grid state object
     TYPE(MetState), INTENT(IN   ) :: State_Met   ! Meteorology state object
@@ -1241,7 +1233,7 @@ CONTAINS
     prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F)'
+       ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F90)'
 
     DT       = GET_TS_CHEM() ! timestep in seconds
 
@@ -1334,8 +1326,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Chemistry( am_I_Root,  Input_Opt,  State_Chm,              &
-                             State_Diag, State_Grid, RC                     )
+  SUBROUTINE Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -1350,7 +1341,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)     :: am_I_Root   ! Is this the root CPU?
     TYPE(GrdState), INTENT(IN)     :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1382,7 +1372,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = ' -> at Init_Chemistry  (in module GeosCore/chemistry_mod.F)'
+    ThisLoc  = ' -> at Init_Chemistry  (in module GeosCore/chemistry_mod.F90)'
 
     ! Skip if we have already done this
     IF ( FIRST ) THEN
@@ -1398,8 +1388,7 @@ CONTAINS
        ! Initialize FlexChem (skip if it is a dry-run)
        !--------------------------------------------------------------------
        IF ( .not. Input_Opt%DryRun ) THEN
-          CALL Init_FlexChem( am_I_Root,  Input_Opt, State_Chm,              &
-                              State_Diag, RC                                )
+          CALL Init_FlexChem( Input_Opt, State_Chm, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1414,8 +1403,7 @@ CONTAINS
        ! NOTE: we need to call this for a dry-run so that we can get
        ! a list of all of the lookup tables etc. that FAST-JX reads
        !--------------------------------------------------------------------
-       CALL Init_FJX( am_I_Root,  Input_Opt,  State_Chm,                     &
-                      State_Diag, State_Grid, RC                            )
+       CALL Init_FJX( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

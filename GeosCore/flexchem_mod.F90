@@ -85,8 +85,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( am_I_Root,  Input_Opt,  State_Chm,  &
-                          State_Diag, State_Grid, State_Met, RC )
+  SUBROUTINE Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
+                          State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -135,7 +135,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
@@ -214,9 +213,9 @@ CONTAINS
     ! Initialize
     RC        =  GC_SUCCESS
     ErrMsg    =  ''
-    ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F)'
+    ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F90)'
     SpcInfo   => NULL()
-    prtDebug  =  ( Input_Opt%LPRT .and. am_I_Root )
+    prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     itim      =  0.0_fp
     rtim      =  0.0_fp
     totsteps  =  0
@@ -232,7 +231,7 @@ CONTAINS
     ! Turn heterogeneous chemistry and photolysis on/off for testing
     DO_HETCHEM  = .TRUE.
     DO_PHOTCHEM = .TRUE.
-    IF ( FIRSTCHEM .AND. am_I_Root ) THEN
+    IF ( FIRSTCHEM .AND. Input_Opt%amIRoot ) THEN
        IF ( .not. DO_HETCHEM ) THEN
           WRITE( 6, '(a)' ) REPEAT( '#', 32 )
           WRITE( 6, '(a)' )  ' # Do_FlexChem: Heterogeneous chemistry' // &
@@ -298,8 +297,8 @@ CONTAINS
        IF ( Input_Opt%LUCX ) THEN
 
           ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-          CALL CALC_STRAT_AER( am_I_Root,  Input_Opt, State_Chm,             &
-                               State_Grid, State_Met, RC                    )
+          CALL CALC_STRAT_AER( Input_Opt, State_Chm, State_Grid, &
+                               State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -448,7 +447,7 @@ CONTAINS
     !======================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !======================================================================
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm,   &
                             State_Grid, State_Met, 'molec/cm3', &
                             RC,         OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -466,8 +465,8 @@ CONTAINS
 #endif
 
     ! Do Photolysis
-    CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, State_Chm,               &
-                  State_Diag, State_Grid, State_Met, RC                      )
+    CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm, &
+                  State_Diag, State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -670,10 +669,10 @@ CONTAINS
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
           ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
           ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
-          CALL PHOTRATE_ADJ( am_I_root, Input_Opt, State_Diag,               &
-                             I,         J,         L,                        &
-                             NUMDEN,    TEMP,      H2O,                      &
-                             SO4_FRAC,  IERR                                )
+          CALL PHOTRATE_ADJ( Input_Opt, State_Diag,      &
+                             I,         J,          L,   &
+                             NUMDEN,    TEMP,       H2O, &
+                             SO4_FRAC,  IERR )
 
           ! Loop over the FAST-JX photolysis species
           DO N = 1, JVN_
@@ -697,7 +696,7 @@ CONTAINS
              ! and noontime photolysis rates [s-1]
              !
              !    NOTE: Attach diagnostics here instead of in module
-             !    fast_jx_mod.F so that we can get the adjusted photolysis
+             !    fast_jx_mod.F90 so that we can get the adjusted photolysis
              !    rates (output from routne PHOTRATE_ADJ above).
              !
              ! The mapping between the GEOS-Chem photolysis species and
@@ -717,7 +716,7 @@ CONTAINS
              !    photolysis species index (range: 1..State_Chm%nPhotol)
              !    for each of the FAST-JX photolysis species (range;
              !    1..JVN_) in the GC_PHOTO_ID array (located in module
-             !    CMN_FJX_MOD.F).
+             !    CMN_FJX_MOD.F90).
              !
              ! To match the legacy bpch diagnostic, we archive the sum of
              ! photolysis rates for a given GEOS-Chem species over all of
@@ -1199,15 +1198,14 @@ CONTAINS
 
     !=======================================================================
     ! Archive OH, HO2, O1D, O3P concentrations after FlexChem solver
-    ! (NOTE: This was formerly done by ohsave.F and diagoh.F)
     !=======================================================================
     IF ( Do_Diag_OH_HO2_O1D_O3P ) THEN
 
        ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
        ! NOTE: These might not be needed for netCDF, as they will already
        ! have been archived in State_Chm%Species output.
-       CALL Diag_OH_HO2_O1D_O3P( am_I_Root,  Input_Opt,  State_Chm,           &
-                                 State_Diag, State_Grid, State_Met, RC       )
+       CALL Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
+                                 State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1232,7 +1230,7 @@ CONTAINS
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                             State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
@@ -1325,12 +1323,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diag_OH_HO2_O1D_O3P( am_I_Root,  Input_Opt,  State_Chm,          &
-                                  State_Diag, State_Grid, State_Met, RC      )
+  SUBROUTINE Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
+                                  State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1340,7 +1337,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -1594,11 +1590,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_FlexChem( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
+  SUBROUTINE Init_FlexChem( Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Parameters, ONLY : nFam, nReact
@@ -1609,7 +1604,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Diagnostics State object
     TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
@@ -1651,7 +1645,7 @@ CONTAINS
     !=======================================================================
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_FlexChem (in module GeosCore/flexchem_mod.F90)'
-    prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Debug output
     IF ( prtDebug ) THEN

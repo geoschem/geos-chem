@@ -27,6 +27,7 @@ MODULE Set_Global_CH4_Mod
 !
 ! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -50,12 +51,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_CH4( am_I_Root,  Input_Opt,  State_Chm, &
-                      State_Diag, State_Grid, State_Met, RC )
+  SUBROUTINE Set_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                      State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD
     USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
@@ -74,7 +74,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met ! Meteorology State object
@@ -99,6 +98,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,7 +163,7 @@ CONTAINS
     ENDIF
 
     ! Convert species to [v/v dry] for this routine
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                             State_Grid, State_Met, 'v/v dry', &
                             RC,         OrigUnit=OrigUnit )
 
@@ -231,7 +231,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original unit
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
                             State_Grid, State_Met, OrigUnit, RC )
 
     ! Trap potential errors
@@ -260,6 +260,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

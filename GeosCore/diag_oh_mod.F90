@@ -230,13 +230,9 @@ CONTAINS
     REAL(f8) :: SUM_CH4EMIS, SUM_CH4TROPMASS
     REAL(fp) :: OHCONC, LIFETIME
 
-    LOGICAL  :: LPRT
-
     !=================================================================
     ! PRINT_DIAG_OH begins here!
     !=================================================================
-
-    LPRT = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Assume success
     RC         = GC_SUCCESS

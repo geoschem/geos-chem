@@ -24,12 +24,12 @@ MODULE VDIFF_PRE_MOD
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  LOGICAL, PUBLIC      :: LPRT               ! Passes LPRT to vdiff_mod
+  LOGICAL, PUBLIC      :: prtDebug           ! Passes prtDebug to vdiff_mod
   LOGICAL, PUBLIC      :: LTURB              ! Passes LTURB to vdiff_mod
   INTEGER, PUBLIC      :: PCNST              ! Passes N_TRACERS to vdiff_mod
 !
 ! !REVISION HISTORY:
-
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,6 +70,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Jun 2014 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,7 +87,7 @@ CONTAINS
     PCNST = State_Chm%nAdvect
 
     ! Debug print?
-    LPRT  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Use PBL mixing?
     LTURB = Input_Opt%LTURB

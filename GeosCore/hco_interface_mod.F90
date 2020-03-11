@@ -44,6 +44,7 @@ MODULE HCO_INTERFACE_MOD
 !
 ! !REVISION HISTORY:
 !  27 Feb 2016 - C. Keller   - Initial version.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -97,8 +98,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller - Initial Version
-!  23 Jan 2013 - C. Keller - Now call MAP_A2A instead of DO_REGRID_A2A
-!  12 Jan 2015 - C. Keller - Added argument TimeForEmis
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,7 +158,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Oct 2014 - C. Keller - Initial Version
-!  12 Dec 2014 - M. Yannetti - Changed real(dp) to real(hp)
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -229,6 +229,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Oct 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,6 +291,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Sep 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

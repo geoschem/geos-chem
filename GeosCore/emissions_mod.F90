@@ -32,7 +32,7 @@ MODULE Emissions_Mod
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version.
-!  20 Jun 2016 - R. Yantosca - Declare species ID flags as module variables
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,9 +86,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version
-!  16 Jun 2016 - J. Sheng    - Added tracer index retriever
-!  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
-!  22 Jan 2018 - R. Yantosca - Return error code to calling routine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,22 +182,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version
-!  13 Nov 2014 - C. Keller   - Added EMISSCARBON (for SESQ and POA)
-!  21 Nov 2014 - C. Keller   - Added EMISSVOC to prevent VOC build-up
-!                              above tropopause
-!  22 Sep 2016 - R. Yantosca - Don't call EMISSCARBON unless we are doing
-!                              a fullchem or aerosol simulation
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!  22 Jan 2018 - R. Yantosca - Return error code to calling program
-!  28 Aug 2018 - E. Lundgren - Implement budget diagnostics
-!  15 Oct 2018 - R. Yantosca - Now call GetPopsDiagsFromHemco to copy manual
-!                              diags for the POPS simulation into State_Diag
-!  18 Oct 2018 - R. Yantosca - Now pass State_Diag to EmissCO2 for nc diags
-#if defined ( MODEL_GEOS )
-!  27 Jun 2019 - C. Keller   - Only set surface CH3Br concentrations if flag is
-!                              set accordingly.
-#endif
-!  16 Aug 2019 - C. Keller   - Now call update fixSfcVMR_Run routine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,6 +378,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller    - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -440,7 +424,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod
     USE ErrCode_Mod
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -470,6 +453,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  31 Jan 2019 - M. Sulprizio- Initial version, modified from MMR code in
 !                              TR_GridCompMod.F90 from GEOS model
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -507,7 +491,7 @@ CONTAINS
     ! Initialize
     RC          = GC_SUCCESS
     ErrMsg      = ''
-    ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F)'
+    ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F90)'
 
     ! Point to chemical species array [kg/kg dry air]
     Spc        => State_Chm%Species

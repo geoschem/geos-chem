@@ -19,7 +19,7 @@ MODULE VDIFF_MOD
   USE PhysConstants                                ! Physical constants
   USE PRECISION_MOD                                ! For GEOS-Chem Precision(fp)
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
-  USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
+  USE VDIFF_PRE_MOD, ONLY : prtDebug               ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
 
   IMPLICIT NONE
@@ -158,8 +158,7 @@ contains
     real(fp), intent(in) :: gravx     !  acceleration of gravity
 !
 ! !REVISION HISTORY:
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,7 +381,7 @@ contains
     sum_qp1  = 0.0_fp
 
     !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
 
     !Populate local variables with values from arguments.(ccc, 11/17/09)
@@ -433,7 +432,7 @@ contains
     end do
 
 !      !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: diffusion begins' )
 
 !-----------------------------------------------------------------------
@@ -455,7 +454,7 @@ contains
     end do
 
 !      !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: compute free atmos. diffusion' )
 
 !-----------------------------------------------------------------------
@@ -504,7 +503,7 @@ contains
     end do
 
     !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: pbldif begins' )
 
 !-----------------------------------------------------------------------
@@ -533,7 +532,7 @@ contains
     endif
 
     !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
 
 !-----------------------------------------------------------------------
@@ -695,7 +694,7 @@ contains
     end do
 
     !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
 
 !-----------------------------------------------------------------------
@@ -855,8 +854,7 @@ contains
          qpert(plonl)               ! convective humidity excess
 !
 ! !REVISION HISTORY:
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1980,7 +1978,7 @@ contains
     ThisLoc = ' -> at VDIFF (in module GeosCore/vdiff_mod.F90)'
 
     !### Debug
-    IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
+    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
 
     ! NOTE: The prior behavior of the code assumed that NUMDEP=0 when
     ! drydep was shut off.  NUMDEP=0 prevented the main drydep loops
@@ -2166,7 +2164,7 @@ contains
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
           ! array. These values are stored in 1/s. They are added in the
-          ! same manner as the DEPSAV values from drydep_mod.F.
+          ! same manner as the DEPSAV values from drydep_mod.F90.
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
           CALL GetHcoVal ( NA, I, J, 1, fnd, dep=dep )
           IF ( fnd ) THEN
@@ -2178,7 +2176,7 @@ contains
 
        !--------------------------------------------------------------------
        ! Overwrite emissions for offline CH4 simulation.
-       ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F.
+       ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F90.
        ! We use CH4_EMIS here instead of the HEMCO internal emissions
        ! only to make sure that total CH4 emissions are properly defined
        ! in a multi-tracer CH4 simulation. For a single-tracer simulation
@@ -2195,7 +2193,7 @@ contains
 #ifdef BPCH_DIAG
        !--------------------------------------------------------------------
        ! Overwrite emissions for offline mercury simulation
-       ! HG emissions become stored in HG_EMIS in mercury_mod.F.
+       ! HG emissions become stored in HG_EMIS in mercury_mod.F90.
        ! This is a workaround to ensure backwards compatibility.
        ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
        !--------------------------------------------------------------------
@@ -2208,7 +2206,7 @@ contains
 
        !--------------------------------------------------------------------
        ! Apply dry deposition frequencies
-       ! These are the frequencies calculated in drydep_mod.F
+       ! These are the frequencies calculated in drydep_mod.F90
        ! The HEMCO drydep frequencies (from air-sea exchange and
        ! PARANOX) were already added above.
        !
@@ -2477,7 +2475,7 @@ contains
 	!Maasa, Add SoilNOx deposition to allow SN code to work with NLPBL on.
 
     !### Debug
-    IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
+    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
 
     if( divdiff ) then
 
@@ -2531,7 +2529,7 @@ contains
        p_shp              =  p_shp * 1.e-3_fp
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )
@@ -2548,7 +2546,7 @@ contains
 !$OMP END PARALLEL DO
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
        ! Convert kg/kg -> v/v
        DO NA = 1, nAdvect
@@ -2602,7 +2600,7 @@ contains
        enddo
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiffar' )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: before vdiffar' )
 
 !!$OMP PARALLEL DO DEFAULT( SHARED )   &
 !!$OMP PRIVATE( J )
@@ -2613,7 +2611,7 @@ contains
 !!$OMP END PARALLEL DO
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiffar' )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after vdiffar' )
 
        ! Convert from m/m (i.e. kg/kg) -> v/v
        do NA = 1, nAdvect
@@ -2636,7 +2634,7 @@ contains
        State_Met%PBLH = pblh
 
        ! Compute PBL quantities
-       CALL COMPUTE_PBL_HEIGHT( Input_Opt%amIRoot, State_Grid, State_Met, RC )
+       CALL COMPUTE_PBL_HEIGHT( State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2655,7 +2653,7 @@ contains
 #endif
 
 !      !### Debug
-    IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
+    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
     ! Nullify pointers
     NULLIFY( DEPSAV )
@@ -2689,7 +2687,6 @@ contains
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
-    USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState

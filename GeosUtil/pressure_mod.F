@@ -281,8 +281,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_FLOATING_PRESSURES( am_I_Root, State_Grid,
-     &                                   State_Met, RC )
+      SUBROUTINE SET_FLOATING_PRESSURES( State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -294,7 +293,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on root CPU?
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology state object
 !

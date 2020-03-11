@@ -73,7 +73,7 @@
     INTEGER,  SAVE     :: id_NK1
 
     ! Scalars
-    LOGICAL            :: LPRT
+    LOGICAL            :: prtDebug
     INTEGER            :: nDryDep
     INTEGER            :: I,      J,        L
     INTEGER            :: N,      JC,       BIN,   ID
@@ -129,7 +129,7 @@
     DTCHEM    = GET_TS_CHEM()
 
     ! Get logical values from Input_Opt
-    LPRT      = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Initialize pointers
     Spc      => State_Chm%Species
@@ -524,7 +524,7 @@
     ENDDO
     !$OMP END PARALLEL DO
 
-    IF ( LPRT ) PRINT *,'### Finish AERO_DRYDEP'
+    IF ( prtDebug ) PRINT *,'### Finish AERO_DRYDEP'
 
     ! Free pointers
     Spc      => NULL()

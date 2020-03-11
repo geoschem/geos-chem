@@ -33,21 +33,7 @@ MODULE UValbedo_Mod
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!   19 Apr 2002 - R. Yantosca - Initial version
-!  (1 ) Now read uvalbedo file directly from DATA_DIR/uvalbedo_200111
-!        subdirectory.  (bmy, 4/2/02)
-!  (2 ) Now divide module header into MODULE PRIVATE, MODULE VARIABLES, and
-!        MODULE ROUTINES sections. (bmy, 5/28/02)
-!  (3 ) Now references "error_mod.f" (bmy, 10/15/02)
-!  (4 ) Minor modification in READ_UVALBEDO (bmy, 3/14/03)
-!  (5 ) Now references "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Bug fix for GCAP grid in READ_UVALBEDO (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
-!  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  12 Jan 2015 - R. Yantosca - Remove CLEANUP_UVALBEDO routine
-!  04 Mar 2015 - R. Yantosca - UV albedo data now comes via HEMCO
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -66,7 +52,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_UValbedo( am_I_root, Input_Opt, State_Met, RC )
+  SUBROUTINE Get_UValbedo( Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
@@ -79,7 +65,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -92,7 +77,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

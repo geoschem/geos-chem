@@ -706,7 +706,7 @@ CONTAINS
 
     !=======================================================================
     ! Make sure HEMCO time is in sync with simulation time
-    ! This is now done in main.F
+    ! This is now done in main.F90
     !=======================================================================
     CALL SetHcoTime( EmisTime, HMRC )
 
@@ -3157,9 +3157,6 @@ CONTAINS
 !
     REAL(fp)                   :: FACT
 !
-! !REMARKS:
-!  Moved here from the obsolete global_oh_mod.F.
-!
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
@@ -3213,9 +3210,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
-!
-! !REMARKS:
-!  Moved here from the obsolete global_oh_mod.F.
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -3587,7 +3581,7 @@ CONTAINS
       ! to allow initialization of floating pressures
       State_Met%PSC2_WET = State_Met%PS1_WET
       State_Met%PSC2_DRY = State_Met%PS1_DRY
-      CALL Set_Floating_Pressures( Input_Opt%amIRoot, State_Grid, State_Met, RC )
+      CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
 
       ! Call AIRQNT to compute initial air mass quantities
       ! Do not update initial tracer concentrations since not read
@@ -3636,7 +3630,6 @@ CONTAINS
 !
 ! !USES:
 !
-   USE CMN_SIZE_Mod
    USE ErrCode_Mod
    USE Error_Mod
    USE HCO_INTERFACE_MOD,  ONLY : HcoState
@@ -3723,7 +3716,7 @@ CONTAINS
    Hg_Cat_Name => NULL()
 
    ! Name of this routine
-   LOC = ' -> at Get_GC_Restart (in GeosCore/hcoi_gc_main_mod.F)'
+   LOC = ' -> at Get_GC_Restart (in GeosCore/hcoi_gc_main_mod.F90)'
 
    ! Set minimum value threshold for [mol/mol]
    SMALL_NUM = 1.0e-30_fp
@@ -4525,7 +4518,7 @@ CONTAINS
    Spc       => State_Chm%Species
 
    ! Name of this routine
-   LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F)'
+   LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F90)'
 
    !=================================================================
    ! Read species concentrations from NetCDF [mol/mol] and

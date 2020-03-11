@@ -378,7 +378,6 @@ CONTAINS
     LOGICAL            :: IT_IS_AN_AEROSOL_SIM
     LOGICAL            :: LSOA
     LOGICAL            :: LEMIS
-    LOGICAL            :: LPRT
     REAL(fp)           :: NEWSOA
     REAL(fp)           :: DTCHEM, SOAP_LIFETIME  ! [=] seconds
     INTEGER            :: L
@@ -392,7 +391,6 @@ CONTAINS
     REAL(fp), POINTER  :: Spc(:,:,:,:)
 
     ! For getting fields from HEMCO
-    LOGICAL            :: aIR
     CHARACTER(LEN=255) :: LOC = 'CHEMCARBON (carbon_mod.F90)'
 
 #ifdef APM
@@ -410,10 +408,8 @@ CONTAINS
     RC                   = GC_SUCCESS
 
     ! Copy fields from INPUT_OPT to local variables for use below
-    aIR                  = Input_Opt%amIRoot
     LSOA                 = Input_Opt%LSOA
     LEMIS                = Input_Opt%LEMIS
-    LPRT                 = Input_Opt%LPRT
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
     DTCHEM               = GET_TS_CHEM()
@@ -421,7 +417,7 @@ CONTAINS
     SOAP_LIFETIME        = 1.00_fp * 24.0_fp * 60.0_fp * 60.0_fp
 
     ! Do we have to print debug output?
-    prtDebug             = ( LPRT .and. aIR )
+    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to chemical species array [kg]
     Spc                  => State_Chm%Species
@@ -548,7 +544,7 @@ CONTAINS
 
        ! Get biomass BCPO diagnostics from HEMCO
        DiagnCnt => NULL()
-       CALL Diagn_Get( aIR,   HcoState, .FALSE., DiagnCnt, &
+       CALL Diagn_Get( HcoState, .FALSE., DiagnCnt, &
                        FLAG,  RC, cName='BIOMASS_BCPO',        &
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
@@ -565,7 +561,7 @@ CONTAINS
 
        ! Get anthropogenic BCPO diagnostics from HEMCO
        DiagnCnt => NULL()
-       CALL Diagn_Get( aIR,   HcoState, .FALSE., DiagnCnt, &
+       CALL Diagn_Get( HcoState, .FALSE., DiagnCnt, &
                        FLAG,  RC, cName='ANTHROPOGENIC_BCPO',  &
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
@@ -656,7 +652,7 @@ CONTAINS
     IF ( ( id_OCPO + id_OCPI ) > 2 ) THEN
        ! Get diagnostics from HEMCO
        DiagnCnt => NULL()
-       CALL Diagn_Get( aIR,   HcoState, .FALSE., DiagnCnt, &
+       CALL Diagn_Get( HcoState, .FALSE., DiagnCnt, &
                        FLAG,  RC, cName='BIOMASS_OCPO',        &
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
@@ -672,7 +668,7 @@ CONTAINS
        ENDIF
 
        DiagnCnt => NULL()
-       CALL Diagn_Get( aIR,   HcoState, .FALSE., DiagnCnt, &
+       CALL Diagn_Get( HcoState, .FALSE., DiagnCnt, &
                        FLAG,  RC, cName='ANTHROPOGENIC_OCPO',  &
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
@@ -1584,7 +1580,6 @@ CONTAINS
 !
    LOGICAL, SAVE   :: FIRST = .TRUE.
    LOGICAL         :: prtDebug
-   LOGICAL         :: LPRT
    INTEGER         :: I,        J,        L,        N
    ! no more NOx (hotp 5/22/10)
    INTEGER         :: JHC,      IPR!,      NOX ! (dkh, 10/30/06)
@@ -1635,14 +1630,11 @@ CONTAINS
    ! SOA_CHEMISTRY begins here!
    !=================================================================
 
-   ! Save fields from Input_Opt to local variables
-   LPRT         = Input_Opt%LPRT
-
    ! Point to chemical species array [kg]
    Spc          => State_Chm%Species
 
    ! Do we have to print debug output?
-   prtDebug     = ( LPRT .and. Input_Opt%amIRoot )
+   prtDebug     = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
    ! Zero some diagnostics (hotp 5/17/10)
    GLOB_POGRXN  = 0e+0_fp
@@ -1650,7 +1642,7 @@ CONTAINS
    DELTASOGSAVE = 0e+0_fp
 
    ! Save initial OA+OG for diagnostic (hotp 5/17/10)
-   IF ( LPRT ) THEN
+   IF ( prtDebug ) THEN
       CALL SAVE_OAGINIT( State_Chm, State_Grid, State_Met )
    ENDIF
 
@@ -2082,7 +2074,7 @@ CONTAINS
       GLOB_AM0_POA(I,J,L,1,:,:) = AM0(:,JSVPOA:JSVOPOA)
 
       ! Check equilibrium (hotp 5/18/10)
-      IF ( LPRT ) THEN
+      IF ( prtDebug ) THEN
          ! IDSV for lumped arom/IVOC is hardwired (=3) (hotp 5/20/10)
          ! Low NOX (non-volatile) aromatic product is IPR=4
          CALL CHECK_EQLB( I, J, L, KOM, FAC, MNEW, LOWER, TOL, &
@@ -2095,7 +2087,7 @@ CONTAINS
    !$OMP END PARALLEL DO
 
    ! Debug: check mass balance (hotp 5/18/10)
-   IF ( LPRT ) THEN
+   IF ( prtDebug ) THEN
       CALL CHECK_MB( Input_Opt,State_Chm, State_Grid, State_Met )
    ENDIF
 
@@ -4870,12 +4862,12 @@ CONTAINS
    CHARACTER(LEN=63)        :: OrigUnit
    LOGICAL, SAVE            :: FIRST = .TRUE. !(ramnarine 12/27/2018)
    LOGICAL                  :: FND !(ramnarine 1/2/2019)
+   LOGICAL                  :: prtDebug
 
    ! Strings
    CHARACTER(LEN= 63)       :: DgnName
    CHARACTER(LEN=255)       :: MSG
    CHARACTER(LEN=255)       :: LOC='EMISSCARBONTOMAS (carbon_mod.F90)'
-   LOGICAL                  :: LPRT
 
    ! Pointers
    REAL(fp),        POINTER :: emis2D(:,:)
@@ -4888,6 +4880,9 @@ CONTAINS
 
    ! Assume success
    RC                  = GC_SUCCESS
+
+   ! Print debug output?
+   prtDebug            = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
    ! Get nested-grid offsets
    I0                  = State_Grid%XMinOffset
@@ -5115,7 +5110,7 @@ CONTAINS
    END DO
    !$OMP END PARALLEL DO
 
-   IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
+   IF ( prtDebug ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
    ! Convert State_Chm%Species back to original units (ewl, 9/11/15)
    CALL Convert_Spc_Units( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
@@ -6611,9 +6606,6 @@ CONTAINS
    REAL(fp)             :: TEMPSOAG
    REAL(fp)             :: MBDIFF
 
-   ! For fields from Input_Opt
-   LOGICAL              :: LPRT
-
    ! Pointers
    REAL(fp), POINTER    :: Spc(:,:,:,:)
 
@@ -6621,14 +6613,11 @@ CONTAINS
    ! CHECK_MB starts here
    !=================================================================
 
-   ! Copy logical fields from INPUT_OPT to local variables
-   LPRT = Input_Opt%LPRT
-
    ! Point to chemical species array [kg]
    Spc => State_Chm%Species
 
    ! Do we have to print debug output?
-   prtDebug = ( LPRT .and. Input_Opt%amIRoot )
+   prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
    ! run in serial now (hotp 6/5/10)
    ! Make parallel again (mpayer, 9/14/11)
@@ -6823,7 +6812,7 @@ CONTAINS
       ENDIF
 
       ! Debug print to screen
-      !IF ( LPRT ) THEN
+      !IF ( prtDebug ) THEN
       !   IF ( I == 37 .AND. J == 25 .AND. L == 4 ) THEN
       !      print*,'CK_MB ',NOX,IPR,JSV, &
       !             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,NOX,IPR,JSV)
@@ -7009,7 +6998,7 @@ CONTAINS
       print*,'POG2 OH       Rxn : ', DELTAHCSAVE(2,JHC)
 
       ! Check Spc for debug purposes (hotp 6/4/10)
-      !IF ( LPRT ) THEN
+      !IF ( prtDebug ) THEN
       !   print*,Spc(37,25,4,:)
       !ENDIF
 

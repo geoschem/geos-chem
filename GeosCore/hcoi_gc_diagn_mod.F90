@@ -9,7 +9,7 @@
 ! module for the HEMCO diagnostics. For every GEOS-Chem emissions diagnostics,
 ! a corresponding HEMCO diagnostics is created. The HEMCO diagnostics become
 ! (automatically) filled and updated when calling HEMCO. They are passed
-! back to GEOS-Chem when writing the diagnostics (e.g. in diag3.F).
+! back to GEOS-Chem when writing the diagnostics (e.g. in diag3.F90).
 !\\
 !\\
 ! Notes:
@@ -20,8 +20,8 @@
 !  Diagnostics will not represent what they should if these category numbers
 !  get changed!
 ! \item In HEMCO, ocean sinks are treated as drydep and the calculated
-!  deposition velocities are passed to drydep\_mod.F. Hence, no Acetone or ALD2
-!  ocean sink is calculated by HEMCO and the DMS diagnostics only includes
+!  deposition velocities are passed to drydep\_mod.F90. Hence, no Acetone or
+!  ALD2 ocean sink is calculated by HEMCO and the DMS diagnostics only includes
 !  the ocean flux (this is NOT the net flux!!).
 !  If needed, we can build a simple wrapper in hcoi\_gc\_main\_mod.F90 that
 !  explicitly calculates oceanic fluxes.
@@ -33,8 +33,6 @@ MODULE HCOI_GC_Diagn_Mod
 !
 ! !USES:
 !
-  ! GEOS-Chem diagnostic switches and arrays
-  USE CMN_SIZE_Mod
 #ifdef BPCH_DIAG
   USE CMN_DIAG_Mod
   USE DIAG_Mod
@@ -243,7 +241,7 @@ CONTAINS
 !\\
 !  CH4 diagnostics need to be defined even if ND58 is turned off because
 !  the diagnostics are also being used to write CH4 emissions from the
-!  individual sources (gas, coal, etc.) into STT (in global\_ch4\_mod.F).
+!  individual sources (gas, coal, etc.) into STT (in global\_ch4\_mod.F90).
 !  The categories defined here need to match the ones specified in the
 !  HEMCO configuration file.
 !
@@ -1156,6 +1154,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Sep 2014 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1743,6 +1742,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Aug 2014 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
