@@ -126,7 +126,7 @@ MODULE Species_Mod
      !%%% we will need to supply the dry deposition code with the same
      !%%% HSTAR values that are currently set in INIT_DRYDEP.  Therefore,
      !%%% add this field as a temporary placeholder for the Hstar quantity
-     !%%% from drydep_mod.F.  We will remove this later on. (bmy, 8/24/15)
+     !%%% from drydep_mod.F90.  We will remove this later on. (bmy, 8/24/15)
      !%%%
      REAL(fp)           :: DD_Hstar_Old     ! HSTAR value in drydep_mod [M/atm]
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -145,7 +145,7 @@ MODULE Species_Mod
      REAL(fp)           :: WD_KcScaleFac(3) ! Temperature-dependent scale
                                             !  factors to multiply Kc rate
                                             !  (conv of condensate -> precip)
-                                            !  in F_AEROSOL (wetscav_mod.F)
+                                            !  in F_AEROSOL (wetscav_mod.F90)
      REAL(fp)           :: WD_RainoutEff(3) ! Temperature-dependent scale
                                             !  factors for rainout efficiency
 
@@ -385,7 +385,7 @@ CONTAINS
     !%%% we will need to supply the dry deposition code with the same
     !%%% HSTAR values that are currently set in INIT_DRYDEP.  Therefore,
     !%%% add this field as a temporary placeholder for the Hstar quantity
-    !%%% from drydep_mod.F.  We will remove this later on. (bmy, 8/24/15)
+    !%%% from drydep_mod.F90.  We will remove this later on. (bmy, 8/24/15)
     !%%%
     REAL(fp),         OPTIONAL    :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -438,7 +438,7 @@ CONTAINS
 !  (11) If Is_Wetdep = T, this will automatically update WetDepId.
 !
 ! !REVISION HISTORY:
-!!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
+!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -680,7 +680,7 @@ CONTAINS
 
     !---------------------------------------------------------------------
     ! Scale factor used to multiply the Kc rate (condensate -> precip)
-    ! in routine F_AEROSOL in wetscav_mod.F.  This implments the
+    ! in routine F_AEROSOL in wetscav_mod.F90.  This implments the
     ! impaction scavenging for aerosol species.
     !---------------------------------------------------------------------
     IF ( PRESENT( WD_KcScaleFac ) ) THEN

@@ -385,7 +385,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-#if !defined( MODEL_GEOS )
+#ifndef MODEL_GEOS
        !====================================================================
        ! Add some extra error checks for collections that are in the
        ! collection name list (and therefore will be archived)
@@ -588,7 +588,7 @@ CONTAINS
        ! Skip line if GIGCchem not present
        ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
        ! scan accordingly (ckeller, 12/29/17)
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
 #else
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
@@ -616,14 +616,14 @@ CONTAINS
           state = 'MET'
        ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
           state = 'CHEM'
-#if defined( ESMF_ )
+#ifdef ESMF_
        ! Emissions diagnostics are included in HISTORY.rc in GCHP only
        ELSEIF ( nameAllCaps(1:4) == 'EMIS' ) THEN
           state = 'EMISSIONS'
        ! Emissions inventory diagnostics are included in HISTORY.rc in GCHP only
        ELSEIF ( nameAllCaps(1:3) == 'INV' ) THEN
           state = 'EMISSIONS'
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        ! GEOS uses a different internal state prefix than GCHP and
        ! and also can have custom diagnostics
        ELSEIF ( nameAllCaps(1:5) == 'GEOS_' ) THEN
@@ -643,7 +643,7 @@ CONTAINS
        isWildcard = .FALSE.
        wildcard   = ''
        IF ( INDEX( name, '?' ) > 0 ) THEN
-#if defined( ESMF_ )
+#ifdef ESMF_
           ! Exit with an error if using GCHP and wildcard is present
           ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
                    'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &

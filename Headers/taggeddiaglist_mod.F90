@@ -116,7 +116,7 @@ CONTAINS
     INTEGER,              INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
+!  18 Nov 2019 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -542,7 +542,7 @@ CONTAINS
     INTEGER,             INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
+!  18 Nov 2019 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -598,7 +598,7 @@ CONTAINS
     INTEGER,          INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
+!  18 Nov 2019 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------

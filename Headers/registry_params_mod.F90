@@ -41,8 +41,7 @@ MODULE Registry_Params_Mod
 !
 ! !REVISION HISTORY:
 !  14 Jul 2017 - R. Yantosca - Initial version
-!  25 Aug 2017 - R. Yantosca - Add KINDVAL_F8 parameter for REAL*8 data
-!  07 Sep 2017 - E. Lundgren - Add vertical location parameters
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

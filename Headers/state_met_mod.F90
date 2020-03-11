@@ -3185,8 +3185,6 @@ CONTAINS
     INTEGER,             OPTIONAL    :: Type       ! Desc of data type
     INTEGER,             OPTIONAL    :: VLoc       ! Vertical placement
 !
-! !REMARKS:
-!
 ! !REVISION HISTORY:
 !  28 Aug 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -3987,8 +3985,6 @@ CONTAINS
 !
     INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
 !
-! !REMARKS:
-!
 ! !REVISION HISTORY:
 !  07 Sep 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -4087,8 +4083,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  07 Sep 2017 - E. Lundgren - Initial version
@@ -4193,8 +4187,6 @@ CONTAINS
 !
     INTEGER,           INTENT(OUT)   :: RC               ! Success/failure
 !
-! !REMARKS:
-!
 ! !REVISION HISTORY:
 !  07 Sep 2017 - E. Lundgren - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -4293,8 +4285,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
-!
-! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  07 Sep 2017 - E. Lundgren - Initial version

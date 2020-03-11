@@ -182,7 +182,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
      LOGICAL                     :: LGMIOZ
 #endif
 
@@ -377,7 +377,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
      LOGICAL                     :: LCAPTROP     = .FALSE.
      !REAL(fp)                    :: OZONOPAUSE   = -999.0
      LOGICAL                     :: haveImpRst   = .FALSE.
@@ -512,9 +512,9 @@ CONTAINS
     ! Set to large placeholder values
     !----------------------------------------
 #ifdef RRTMG
-    Input_Opt%Max_BPCH_Diag          = 187 ! Mirror MAX_DIAG in CMN_DIAG_mod.F
+    Input_Opt%Max_BPCH_Diag          = 187 ! Mirror MAX_DIAG in CMN_DIAG_mod.F90
 #else
-    Input_Opt%Max_BPCH_Diag          = 80  ! Mirror MAX_DIAG in CMN_DIAG_mod.F
+    Input_Opt%Max_BPCH_Diag          = 80  ! Mirror MAX_DIAG in CMN_DIAG_mod.F90
 #endif
     Input_Opt%Max_Families           = 250
 #ifdef TOMAS
@@ -661,7 +661,7 @@ CONTAINS
     Input_Opt%LSCHEM                 = .FALSE.
     Input_Opt%LLINOZ                 = .FALSE.
     Input_Opt%LSYNOZ                 = .FALSE.
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     Input_Opt%LGMIOZ                 = .FALSE.
 #endif
     Input_Opt%TS_CHEM                = 0
@@ -897,7 +897,7 @@ CONTAINS
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
 !    Input_Opt%OZONOPAUSE             = -999.0
 !    Input_Opt%haveImpRst             = .FALSE.
 !    Input_Opt%AlwaysSetH2O           = .FALSE.
@@ -1168,7 +1168,7 @@ CONTAINS
        Input_Opt%LSPECRADMENU => NULL()
     ENDIF
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     !=======================================================================
     ! These fields of Input_Opt are only finalized when
     ! GEOS-Chem is coupled to the online NASA/GEOS ESM

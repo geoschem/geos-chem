@@ -111,7 +111,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,       ONLY : NDUST
+    USE CMN_SIZE_MOD,       ONLY : NDUST, NRH
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
     USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -3326,6 +3326,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,   ONLY : NRH, NRHAER
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -4533,6 +4534,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,       ONLY : NAER, NRH
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW, AVO, g0, BOLTZ
     USE State_Grid_Mod,     ONLY : GrdState
@@ -4819,6 +4821,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,  ONLY : NRHAER, NRH
     USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:

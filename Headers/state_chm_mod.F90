@@ -2844,12 +2844,12 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'OMOCPOA' )
-          IF ( isDesc  ) Desc  = 'OM:OC ratio for POA (from /aerosol_mod.F)'
+          IF ( isDesc  ) Desc  = 'OM:OC ratio for POA (from /aerosol_mod.F90)'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'OMOCOPOA' )
-          IF ( isDesc  ) Desc  = 'OM:OC ratio for OPOA (from /aerosol_mod.F)'
+          IF ( isDesc  ) Desc  = 'OM:OC ratio for OPOA (from /aerosol_mod.F90)'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 

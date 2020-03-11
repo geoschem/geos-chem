@@ -53,8 +53,6 @@ MODULE Species_Database_Mod
 !#define NEW_HENRY_CONSTANTS 1
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
-! !REMARKS:
-!
 ! !REVISION HISTORY:
 !  28 Aug 2015 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -606,7 +604,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.7e-1_f8 * To_M_atm
              Henry_CR      = 5500.0_f8
 #else
@@ -640,7 +638,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.30e-01_f8 * To_M_atm
              Henry_CR      = 5900.0_f8
 #else
@@ -659,7 +657,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.20e-5_f8 * To_M_atm
              Henry_CR      = 3100.0_f8
 #endif
@@ -695,7 +693,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.00e+5_f8
              Henry_CR      = 6039.0_f8
 #else
@@ -780,7 +778,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 3.40e-4_f8 * To_M_atm
              Henry_CR      = 1800.0_f8
 #endif
@@ -794,7 +792,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 7.20e-3_f8 * To_M_atm
              Henry_CR      = 4400.0_f8
 #else
@@ -852,7 +850,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.90e-5_f8 * To_M_atm
              Henry_CR      = 2400.0_f8
 #endif
@@ -866,7 +864,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.50e-5_f8 * To_M_atm
              Henry_CR      = 2700.0_f8
 #endif
@@ -944,7 +942,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 3.2e+1_f8 * To_M_atm
              Henry_CR      = 6800.0_f8
 #else
@@ -1181,7 +1179,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 9.70e-6_f8 * To_M_atm
              Henry_CR      = 1300.0_f8
 #endif
@@ -1442,7 +1440,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 4.10e+2_f8 * To_M_atm
              Henry_CR      = 4600.0_f8
 #else
@@ -1512,7 +1510,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 4.93e+5_f8 * To_M_atm
              Henry_CR      = 6600.0_f8
              Henry_pKa     = 11.6_f8
@@ -1534,7 +1532,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 7.70e+1_f8 * To_M_atm
              Henry_CR      = 0.0_f8
 #else
@@ -1552,7 +1550,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.40e-1_f8 * To_M_atm
              Henry_CR      = 370.0_f8
 #else
@@ -1573,7 +1571,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = F
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.10e-2_f8 * To_M_atm
              Henry_CR      = 3400.0_f8
 #else
@@ -1682,7 +1680,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.10e+3_f8 * To_M_atm
              Henry_CR      = 8700.0_f8
 #else
@@ -1703,7 +1701,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              !!!Henry_K0      = 3.90e1X_f8 * To_M_atm
              Henry_K0      = 3.90e-1_f8 * To_M_atm
              Henry_CR      = 8400.0_f8
@@ -1718,7 +1716,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.30e+0_f8 * To_M_atm
              Henry_CR      = 4000.0_f8
 #else
@@ -1890,7 +1888,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.70e-2_f8 * To_M_atm
 #else
              DD_Hstar_old  = 3.60_fp
@@ -1971,7 +1969,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 3.40e-4_f8 * To_M_atm
              Henry_CR      = 4400.0_f8
 #endif
@@ -1985,7 +1983,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
              DD_Hstar_old  = 2.00e+6_fp
@@ -2003,7 +2001,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
              DD_Hstar_old  = 2.00e+6_fp
@@ -2070,7 +2068,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 4.8e-2_f8 * To_M_atm
              Henry_CR      = 4300.0_f8
 #else
@@ -2086,7 +2084,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
              DD_Hstar_old  = 2.00e+6_fp
@@ -2104,7 +2102,7 @@ CONTAINS
               Is_Wetdep     = T
               Is_Photolysis = T
               DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
               Henry_K0      = 8.30e+0_f8 * To_M_atm
               Henry_CR      = 5300.0_f8
 #else
@@ -2124,7 +2122,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.90e+02_f8 * To_M_atm
              Henry_CR      = 5700.0_f8
 #endif
@@ -2163,7 +2161,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.27e+2_f8 * To_M_atm
              Henry_CR      = 6300.0_f8
 #else
@@ -2283,7 +2281,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = T
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.90e+0_f8 * To_M_atm
              Henry_CR      = 5200.0_f8
 #else
@@ -2366,7 +2364,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.6e-1_f8 * To_M_atm
              Henry_CR      = 4800.0_f8
 #else
@@ -2382,7 +2380,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
              DD_Hstar_old  = 2.00e+6_fp
@@ -2415,7 +2413,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.10e-2_f8 * To_M_atm
              Henry_CR      = 3400.0_f8
 #else
@@ -2450,7 +2448,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 5.90e-1_f8 * To_M_atm
              Henry_CR      = 4200.0_f8
 #else
@@ -2583,7 +2581,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.90e-5_f8 * To_M_atm
              Henry_CR      = 1600.0_f8
 #endif
@@ -2598,7 +2596,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 0.1_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.20e-4_f8 * To_M_atm
              Henry_CR      = 2400.0_f8
 #else
@@ -2615,7 +2613,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 3.80e-4_f8 * To_M_atm
              Henry_CR      = 1900.0_f8
 #endif
@@ -2632,7 +2630,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = F
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.70e-2_f8 * To_M_atm
 #else
              DD_Hstar_old  = 3.60_fp
@@ -2702,7 +2700,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.90e-05_f8 * To_M_atm
              Henry_CR      = 1600.0_f8
 #else
@@ -2838,7 +2836,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0e+0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.90e+02_f8 * To_M_atm
              Henry_CR      = 5700.0_f8
 #else
@@ -2948,7 +2946,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = F
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.9e-2_fp * To_M_atm
              Henry_CR      = 0.0_f8
 #else
@@ -2964,7 +2962,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 7.3e-5_f8 * To_M_atm
              Henry_CR      = 3400.0_f8
 #endif
@@ -2978,7 +2976,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 4.93e+3_f8 * To_M_atm
              Henry_CR      = 0.0_f8
 #else
@@ -2999,7 +2997,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.0e-2_f8 * To_M_atm
              Henry_CR      = 5800.0_f8
 #else
@@ -3014,7 +3012,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 9.5e-2_f8 * To_M_atm
              Henry_CR      = 6200.0_f8
 #else
@@ -3169,7 +3167,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.30e-2_f8 * To_M_atm
              Henry_CR      = 2900.0_f8
 #else
@@ -3501,7 +3499,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3520,7 +3518,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3539,7 +3537,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3558,7 +3556,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3593,7 +3591,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3630,7 +3628,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3649,7 +3647,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3668,7 +3666,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3687,7 +3685,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3706,7 +3704,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -4200,7 +4198,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Hg2        = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.40e+4_f8 * To_M_atm
              Henry_CR      = 5300.0_f8
 #else
@@ -4334,7 +4332,7 @@ CONTAINS
           CASE( 'POPG' )
 
              !----------------------------------------------------------------
-             ! Notes for DD_Hstar_old from the v11-01c drydep_mod.F
+             ! Notes for DD_Hstar_old from the v11-01c drydep_mod.F90
              ! (cf. Carey Friedman and Helen Amos
              !----------------------------------------------------------------
              ! HSTAR is Henry's Law in mol/L/atm.
@@ -4349,7 +4347,7 @@ CONTAINS
              !  All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819
              !
              !----------------------------------------------------------------
-             ! Notes for DD_KOA from the v11-01c drydep_mod.F
+             ! Notes for DD_KOA from the v11-01c drydep_mod.F90
              ! (cf. Carey Friedman and Helen Amos)
              !----------------------------------------------------------------
              ! Adding Koa (octanol-ar partition coefficient) for POPs to
@@ -4367,7 +4365,7 @@ CONTAINS
              ! Now add factor of 0.8 to account for 80% vol content of octanol
              !
              !----------------------------------------------------------------
-             ! Notes for Henry_K0, Henry_CR from the v11-01c wetscav_mod.F
+             ! Notes for Henry_K0, Henry_CR from the v11-01c wetscav_mod.F90
              ! (cf. Carey Friedman and Helen Amos
              !----------------------------------------------------------------
              ! Cocmpute liquid to gas ratio for POPs using
@@ -4608,7 +4606,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
 
-#if defined( APM )
+#ifdef APM
           CASE( 'APMH2SO4' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -5147,7 +5145,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 5.90e-1_f8 * To_M_atm
              Henry_CR      = 4200.0_f8
 #else
@@ -5172,7 +5170,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 5.90e-1_f8 * To_M_atm
              Henry_CR      = 4200.0_f8
 #else
@@ -5197,7 +5195,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 5.90e-1_f8 * To_M_atm
              Henry_CR      = 4200.0_f8
 #else
@@ -5210,7 +5208,7 @@ CONTAINS
              WD_ConvFacI2G = 6.17395e-1_fp
 #endif
 
-#if defined( TOMAS )
+#ifdef TOMAS
           !==================================================================
           ! Species for the TOMAS microphysics simulations
           !==================================================================
@@ -6010,7 +6008,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  Keep a private shadow copy of this routine here so as not to
-!  incur a dependency with GeosUtil/charpak_mod.F.  This lets us
+!  incur a dependency with GeosUtil/charpak_mod.F90.  This lets us
 !  keep species_datbase_mod.F90 in the Headers/ folder together
 !  with state_chm_mod.F90 and species_mod.F90.
 !
