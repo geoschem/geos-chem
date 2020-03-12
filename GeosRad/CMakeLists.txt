@@ -68,7 +68,7 @@ add_library(GeosRad STATIC EXCLUDE_FROM_ALL
 	test_arr_mult.F90
 )
 target_link_libraries(GeosRad
-	PUBLIC BaseTarget
+	PUBLIC GEOSChemBuildProperties
 )
 target_compile_options(GeosRad 
 	PRIVATE 

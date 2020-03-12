@@ -2,7 +2,7 @@ add_library(Isorropia EXCLUDE_FROM_ALL
     isorropiaII_main_mod.F
 )
 target_link_libraries(Isorropia
-	PUBLIC BaseTarget
+	PUBLIC GEOSChemBuildProperties
 )
 target_compile_options(Isorropia 
     PRIVATE 

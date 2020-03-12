@@ -5,7 +5,7 @@ add_library(KPPFirstPass_Tropchem STATIC EXCLUDE_FROM_ALL
     gckpp_Monitor.F90
 )
 target_link_libraries(KPPFirstPass_Tropchem
-	PUBLIC BaseTarget
+	PUBLIC GEOSChemBuildProperties
 )
 
 # Add libKPP.a

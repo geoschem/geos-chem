@@ -5,10 +5,16 @@ function(configureGCClassic)
     gc_pretty_print(VARIABLE OMP IS_BOOLEAN)
     if("${OMP}")
        find_package(OpenMP REQUIRED)
-       target_compile_options(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
-       target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
+       target_compile_options(GEOSChemBuildProperties
+		INTERFACE ${OpenMP_Fortran_FLAGS}
+       )
+       target_link_libraries(GEOSChemBuildProperties
+		INTERFACE ${OpenMP_Fortran_FLAGS}
+       )
     else()
-        target_compile_definitions(BaseTarget INTERFACE "NO_OMP")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "NO_OMP"
+        )
     endif()
 
     # Check that GEOS-Chem's version number matches the run directory's version
@@ -88,12 +94,18 @@ function(configureGCClassic)
     # Definitions for specific run directories
     set(TOMAS FALSE)
     if("${RUNDIR_SIM}" STREQUAL "masscons")
-        target_compile_definitions(BaseTarget INTERFACE MASSCONS)
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE MASSCONS
+	)
     elseif("${RUNDIR_SIM}" MATCHES "TOMAS15")
-        target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS15)
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE TOMAS TOMAS15
+	)
         set(TOMAS TRUE)
     elseif("${RUNDIR_SIM}" MATCHES "TOMAS40")
-        target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS40)
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE TOMAS TOMAS40
+	)
         set(TOMAS TRUE)
     endif()
 
@@ -118,14 +130,20 @@ function(configureGCClassic)
     set(BPCH_DIAG "${BPCH_DIAG_DEFAULT}" CACHE BOOL "Switch to enable GEOS-Chem's bpch diagnostics")
     gc_pretty_print(VARIABLE BPCH_DIAG IS_BOOLEAN)
     if(${BPCH_DIAG})
-        target_compile_definitions(BaseTarget INTERFACE "BPCH_DIAG")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "BPCH_DIAG"
+	)
     endif()
 
     # Always set MODEL_CLASSIC when building GEOS-Chem Classic
-    target_compile_definitions(BaseTarget INTERFACE MODEL_CLASSIC)
+    target_compile_definitions(GEOSChemBuildProperties
+	INTERFACE MODEL_CLASSIC
+    )
 
     # Always set USE_REAL8. See https://github.com/geoschem/geos-chem/issues/43.
-    target_compile_definitions(BaseTarget INTERFACE "USE_REAL8")
+    target_compile_definitions(GEOSChemBuildProperties
+	INTERFACE "USE_REAL8"
+    )
 
     # Build with timers?
     if("${RUNDIR_SIM}" STREQUAL "benchmark")
@@ -137,7 +155,9 @@ function(configureGCClassic)
     gc_pretty_print(VARIABLE TIMERS IS_BOOLEAN)
     # Set USE_TIMERS
     if(${TIMERS})
-        target_compile_definitions(BaseTarget INTERFACE "USE_TIMERS")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "USE_TIMERS"
+	)
     endif()
 
     gc_pretty_print(SECTION "Components")
@@ -151,7 +171,9 @@ function(configureGCClassic)
     set(APM "${APM_DEFAULT}" CACHE BOOL "Switch to build APM as a component of GEOS-Chem")
     gc_pretty_print(VARIABLE APM IS_BOOLEAN)
     if(${APM})
-        target_compile_definitions(BaseTarget INTERFACE "APM")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "APM"
+	)
     endif()
 
     # Build RRTMG?
@@ -163,14 +185,18 @@ function(configureGCClassic)
     set(RRTMG "${RRTMG_DEFAULT}" CACHE BOOL "Switch to build RRTMG as a component of GEOS-Chem")
     gc_pretty_print(VARIABLE RRTMG IS_BOOLEAN)
     if(${RRTMG})
-        target_compile_definitions(BaseTarget INTERFACE "RRTMG")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "RRTMG"
+	)
     endif()
 
     # Build GTMM?
     set(GTMM "OFF" CACHE BOOL "Switch to build GTMM as a component of GEOS-Chem")
     gc_pretty_print(VARIABLE GTMM IS_BOOLEAN)
     if(${GTMM})
-        target_compile_definitions(BaseTarget INTERFACE "GTMM_Hg")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "GTMM_Hg"
+	)
     endif()
 
     # Build hemco_standalone?
@@ -186,7 +212,9 @@ function(configureGCClassic)
     set(LUO_WETDEP "OFF" CACHE BOOL "Switch to build the Luo et al (2019) wetdep scheme into GEOS-Chem")
     gc_pretty_print(VARIABLE LUO_WETDEP IS_BOOLEAN)
     if(${LUO_WETDEP})
-        target_compile_definitions(BaseTarget INTERFACE "LUO_WETDEP")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "LUO_WETDEP"
+	)
     endif()
 
     # Determine which executables should be built
