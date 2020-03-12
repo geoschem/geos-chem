@@ -1080,7 +1080,7 @@ CONTAINS
                 DELZ  = State_Met%BXHEIGHT(I,J,L)
                 DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
                 Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1)) = 1.e+0_fp / &
-                     ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) & &
+                     ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                      * (Spc(I,J,L,(APMIDS%id_DSTBIN1+N-1)) &
                      + DT_SETTL * VTS(L+1) / DELZ1 * TC0(L+1) )
 

@@ -2281,7 +2281,7 @@ CONTAINS
                       REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_NH3)), &
                       REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_NH4)), &
                       REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_HNO3)),&
-                      REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_NIT))  &
+                      REAL(Spc(ATOMGRID(1,J),ATOMGRID(2,J),L,APMIDS%id_NIT))
                       RECID=RECID+1
              ENDDO
           ENDDO
@@ -2409,9 +2409,9 @@ CONTAINS
 
     INTEGER :: K, LL, IJLOOP
     INTEGER :: NDAY
+    INTEGER :: LEV
 
     INTEGER, PARAMETER :: KWL=7         !! mxy MODIS spectral bands
-    INTEGER            :: LEV=State_Grid%NZ+1
     INTEGER, PARAMETER :: IAE2 = 2
     INTEGER, PARAMETER :: IAE1 = 1
     INTEGER, PARAMETER :: IAE0 = 0
@@ -2490,6 +2490,8 @@ CONTAINS
     INTEGER :: id_CO                !
 
     RC = GC_SUCCESS
+
+    LEV = State_Grid%NZ+1
 
     ! Point to Spc
     Spc => State_Chm%Species

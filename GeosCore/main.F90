@@ -2321,7 +2321,7 @@ PROGRAM GEOS_Chem
 #ifdef APM
   ! Clean up arrays for APM microphysics, etc.
   CALL CLEANUP_APMARRAYS()
-  CALL CLEANUP_APM3D( RC )
+  CALL CLEANUP_APM3D( Input_Opt, RC )
 #endif
 
   !-----------------------------------------------------------------------------

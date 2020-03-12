@@ -1657,7 +1657,7 @@ CONTAINS
                       1.e+0_fp / ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ ) &
                       * (OLD(L,K)*TC0(L)/MASS(L) &
                       + DT_SETTL * VTS(L+1) / DELZ1 &
-                      * OLD(L+1,K)*TC0(L+1)/MASS(L+1) ) &
+                      * OLD(L+1,K)*TC0(L+1)/MASS(L+1) )
                 ENDDO
              ELSE IF(MASS(L)>1.D-30)THEN
                 DELZ  = State_Met%BXHEIGHT(I,J,L)
