@@ -22,5 +22,6 @@ GIGC
 *.log
 bin/*
 build/
+build_*/
 *___.h
 *___.rc
