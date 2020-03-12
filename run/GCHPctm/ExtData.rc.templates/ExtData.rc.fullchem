@@ -285,13 +285,6 @@ OLSON72 1 N F;72 - none none OLSON ./ChemDataDir/Olson_Land_Map_201203/Olson_200
 # Use file with land type stored as 3rd dimension to speed up file read
 XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./MainDataDir/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
 
-#==============================================================================
-# MODIS Chlorophyll-a
-# (uncomment if using the marine POA simulation)
-#==============================================================================
-# Use file with land type stored as 3rd dimension to speed up file read
-#XCHLRMULTI mg_m-3 N Y %y4-%m2-%d2T00:00:00 none none XCHLRMULTI ./ChemDataDir/MODIS_LAI_201204/For_Olson_2001/XCHLR_for_GCHP/%y4/Condensed_MODIS_CHLR.025x025.%y4%m2.nc
-
 ###############################################################################
 ###
 ### HEMCO Base Emissions (Update if HEMCO_Config.rc changes)
@@ -1344,34 +1337,34 @@ MOH_SEAWATER   kgC/m3 N Y -                     none none MOH        ./MainDataD
 #==============================================================================
 # --- SOILNOX emissions (Extension 104) ---
 #==============================================================================
-DEP_RESERVOIR_DEFAULT kg/m3 xy C N Y -                      none none DEP_RESERVOIR ./MainDataDir/SOILNOX/v2014-07/DepReservoirDefault.nc
-SOILNOX_FERT          kg/m3  xy C N Y 2000-%m2-%d2T00:00:00 none none FERT          ./MainDataDir/SOILNOX/v2014-07/soilNOx.fert_res.generic.05x05.time_corrected_for_GCHP.nc
-SOILNOX_LANDK1        1      xy C N Y -                     none none LANDFRAC_K01  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK2        1      xy C N Y -                     none none LANDFRAC_K02  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK3        1      xy C N Y -                     none none LANDFRAC_K03  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK4        1      xy C N Y -                     none none LANDFRAC_K04  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK5        1      xy C N Y -                     none none LANDFRAC_K05  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK6        1      xy C N Y -                     none none LANDFRAC_K06  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK7        1      xy C N Y -                     none none LANDFRAC_K07  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK8        1      xy C N Y -                     none none LANDFRAC_K08  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK9        1      xy C N Y -                     none none LANDFRAC_K09  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK10       1      xy C N Y -                     none none LANDFRAC_K10  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK11       1      xy C N Y -                     none none LANDFRAC_K11  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK12       1      xy C N Y -                     none none LANDFRAC_K12  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK13       1      xy C N Y -                     none none LANDFRAC_K13  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK14       1      xy C N Y -                     none none LANDFRAC_K14  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK15       1      xy C N Y -                     none none LANDFRAC_K15  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK16       1      xy C N Y -                     none none LANDFRAC_K16  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK17       1      xy C N Y -                     none none LANDFRAC_K17  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK18       1      xy C N Y -                     none none LANDFRAC_K18  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK19       1      xy C N Y -                     none none LANDFRAC_K19  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK20       1      xy C N Y -                     none none LANDFRAC_K20  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK21       1      xy C N Y -                     none none LANDFRAC_K21  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK22       1      xy C N Y -                     none none LANDFRAC_K22  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK23       1      xy C N Y -                     none none LANDFRAC_K23  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_LANDK24       1      xy C N Y -                     none none LANDFRAC_K24  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
-SOILNOX_ARID          1      xy C N Y -                     none none ARID          ./MainDataDir/SOILNOX/v2014-07/soilNOx.climate.generic.05x05.nc
-SOILNOX_NONARID       1      xy C N Y -                     none none NON_ARID      ./MainDataDir/SOILNOX/v2014-07/soilNOx.climate.generic.05x05.nc
+DEP_RESERVOIR_DEFAULT kg/m3  N Y -                     none none DEP_RESERVOIR ./MainDataDir/SOILNOX/v2014-07/DepReservoirDefault.nc
+SOILNOX_FERT          kg/m3  N Y 2000-%m2-%d2T00:00:00 none none FERT          ./MainDataDir/SOILNOX/v2014-07/soilNOx.fert_res.generic.05x05.time_corrected_for_GCHP.nc
+SOILNOX_LANDK1        1      N Y -                     none none LANDFRAC_K01  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK2        1      N Y -                     none none LANDFRAC_K02  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK3        1      N Y -                     none none LANDFRAC_K03  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK4        1      N Y -                     none none LANDFRAC_K04  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK5        1      N Y -                     none none LANDFRAC_K05  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK6        1      N Y -                     none none LANDFRAC_K06  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK7        1      N Y -                     none none LANDFRAC_K07  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK8        1      N Y -                     none none LANDFRAC_K08  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK9        1      N Y -                     none none LANDFRAC_K09  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK10       1      N Y -                     none none LANDFRAC_K10  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK11       1      N Y -                     none none LANDFRAC_K11  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK12       1      N Y -                     none none LANDFRAC_K12  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK13       1      N Y -                     none none LANDFRAC_K13  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK14       1      N Y -                     none none LANDFRAC_K14  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK15       1      N Y -                     none none LANDFRAC_K15  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK16       1      N Y -                     none none LANDFRAC_K16  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK17       1      N Y -                     none none LANDFRAC_K17  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK18       1      N Y -                     none none LANDFRAC_K18  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK19       1      N Y -                     none none LANDFRAC_K19  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK20       1      N Y -                     none none LANDFRAC_K20  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK21       1      N Y -                     none none LANDFRAC_K21  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK22       1      N Y -                     none none LANDFRAC_K22  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK23       1      N Y -                     none none LANDFRAC_K23  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_LANDK24       1      N Y -                     none none LANDFRAC_K24  ./MainDataDir/SOILNOX/v2014-07/soilNOx.landtype.generic.025x025.1L.nc
+SOILNOX_ARID          1      N Y -                     none none ARID          ./MainDataDir/SOILNOX/v2014-07/soilNOx.climate.generic.05x05.nc
+SOILNOX_NONARID       1      N Y -                     none none NON_ARID      ./MainDataDir/SOILNOX/v2014-07/soilNOx.climate.generic.05x05.nc
 
 #==============================================================================
 # --- Dust emissions using DEAD model (Extension 105) ---
@@ -1393,7 +1386,7 @@ DEAD_VAI        1        Y Y 1985-%m2-01T00:00:00 none none VAI      ./MainDataD
 #==============================================================================
 # --- Sea salt emissions (Extension 107)
 #==============================================================================
-MODIS_CHLR  1 N Y F%y4-%m2-01T00:00:00 none none MODIS ./MainDataDir/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.%y4.nc
+MODIS_CHLR  mg_m-3 N Y F%y4-%m2-01T00:00:00 none none MODIS ./MainDataDir/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.%y4.nc
 
 #==============================================================================
 # --- MEGAN biogenic emissions (Extension 108)
