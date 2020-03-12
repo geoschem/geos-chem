@@ -2411,7 +2411,7 @@ CONTAINS
     INTEGER :: NDAY
 
     INTEGER, PARAMETER :: KWL=7         !! mxy MODIS spectral bands
-    INTEGER, PARAMETER :: LEV=State_Grid%NZ+1
+    INTEGER            :: LEV=State_Grid%NZ+1
     INTEGER, PARAMETER :: IAE2 = 2
     INTEGER, PARAMETER :: IAE1 = 1
     INTEGER, PARAMETER :: IAE0 = 0
@@ -2582,15 +2582,15 @@ CONTAINS
     !$OMP PRIVATE( CLT0, CLB0, FUL0, FDL0, FLA0, HRL0 ) &
     !$OMP PRIVATE( WCL, WCI )                           &
     !$OMP PRIVATE( SALB )                               &
-    !$OMP PRIVATE( YYAOD,BEXTL13,YVIS,RHL1 )
-    !$OMP PRIVATE( YYAOD1 )
-    !$OMP PRIVATE( YYAODT )
-    !$OMP PRIVATE( PSURF,TSURF,SCOS )
-    !$OMP PRIVATE( AIRD,P1D,PE1D,PDP,T1D,TE1D)
-    !$OMP PRIVATE( COLDRY,WKL)
-    !$OMP PRIVATE( CCLD,CLDLIQ,CLDICE )
-    !$OMP PRIVATE( REL,REI)
-    !$OMP PRIVATE( YCOD )
+    !$OMP PRIVATE( YYAOD,BEXTL13,YVIS,RHL1 )            &
+    !$OMP PRIVATE( YYAOD1 )                             &
+    !$OMP PRIVATE( YYAODT )                             &
+    !$OMP PRIVATE( PSURF,TSURF,SCOS )                   &
+    !$OMP PRIVATE( AIRD,P1D,PE1D,PDP,T1D,TE1D)          &
+    !$OMP PRIVATE( COLDRY,WKL)                          &
+    !$OMP PRIVATE( CCLD,CLDLIQ,CLDICE )                 &
+    !$OMP PRIVATE( REL,REI)                             &
+    !$OMP PRIVATE( YCOD )                               &
     !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -4547,8 +4547,8 @@ CONTAINS
        !IF(NSITE.GT.MS) THEN !No sites
        !IF(NSITE.LE.MS) THEN !All sites
        IF(NSITE.EQ.1.or.NSITE.EQ.4.or.NSITE.EQ.8. &
-          or.NSITE.EQ.10.or.NSITE.EQ.12. &
-          or.NSITE.EQ.23.or.NSITE.EQ.24) THEN !Selected sites
+          .or.NSITE.EQ.10.or.NSITE.EQ.12. &
+          .or.NSITE.EQ.23.or.NSITE.EQ.24) THEN !Selected sites
           IFSITEOUT(NSITE) = 1
           ISITE = ISITES(NSITE)
           JSITE = JSITES(NSITE)
