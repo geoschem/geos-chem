@@ -76,9 +76,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CONV
-#if defined( USE_TEND )
-    USE TENDENCIES_MOD
-#endif
     USE Time_Mod,           ONLY : Get_Ts_Dyn
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
@@ -110,9 +107,6 @@ CONTAINS
 
     ! Scalars
     INTEGER            :: N, NA
-#if defined( USE_TEND )
-    REAL(fp)           :: DT_TEND
-#endif
 
     ! Strings
     CHARACTER(LEN=63)  :: OrigUnit
@@ -194,23 +188,16 @@ CONTAINS
        ! Do full PBL mixing
        !--------------------------
 
-#if defined( USE_TEND )
-       ! Archive species concentrations for tendencies. Tracers are
-       ! already in v/v (ckeller, 7/15/2015)
-       CALL TEND_STAGE1( Input_Opt, State_Chm, State_Grid, State_Met, &
-                         'PBLMIX', RC )
-#endif
-
        ! Do complete mixing of tracers in the PBL
        CALL TURBDAY( Input_Opt,  State_Chm, State_Diag, &
                      State_Grid, State_Met, RC )
 
-#if defined( USE_TEND )
-       ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
-       DT_TEND = GET_TS_CONV()
-       CALL TEND_STAGE2( Input_Opt, State_Chm, State_Grid, State_Met, &
-                         'PBLMIX', DT_TEND, RC )
-#endif
+       ! Trap potential error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "TURBDAY"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
        !--------------------------
        ! Unit conversion #2

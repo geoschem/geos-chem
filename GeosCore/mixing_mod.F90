@@ -358,9 +358,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#ifdef USE_TEND
-    USE TENDENCIES_MOD
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -529,12 +526,6 @@ CONTAINS
        ENDIF
        FIRST = .FALSE.
     ENDIF
-
-#if defined( USE_TEND )
-    ! Archive concentrations for tendencies (ckeller, 7/15/2015)
-    CALL TEND_STAGE1( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'FLUX', RC )
-#endif
 
     !-----------------------------------------------------------------------
     ! For tagged CH4 simulations
@@ -916,12 +907,6 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     ENDIF
-
-#if defined( USE_TEND )
-    ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
-    CALL TEND_STAGE2( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'FLUX', TS, RC )
-#endif
 
     ! Convert State_Chm%Species back to original units
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &

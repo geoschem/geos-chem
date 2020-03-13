@@ -69,10 +69,6 @@ CONTAINS
     USE TIME_MOD,        ONLY : GET_TS_CONV
     USE UnitConv_Mod
     USE WETSCAV_MOD,     ONLY : COMPUTE_F
-#ifdef USE_TEND
-    USE TENDENCIES_MOD
-    USE State_Chm_Mod,   ONLY : Ind_
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -161,21 +157,6 @@ CONTAINS
     FSOL       = 0e+0_fp                                ! Zero the FSOL array
     DoConvFlux = State_Diag%Archive_CloudConvFlux       ! Save mass flux?
     DoWetLoss  = State_Diag%Archive_WetLossConv         ! Save wet loss?
-
-#ifdef USE_TEND
-    !=================================================================
-    ! Archive species concentrations for tendencies (ckeller,7/15/2015)
-    !=================================================================
-    CALL TEND_STAGE1( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'CONV',    RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Tend_Stage1"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
 
     ! Number of advected species
     nAdvect = State_Chm%nAdvect
@@ -325,22 +306,6 @@ CONTAINS
 
     ! Convection timestep [s]
     DT_Conv = GET_TS_CONV()
-
-#ifdef USE_TEND
-    !=================================================================
-    ! Calculate tendencies and write to diagnostics
-    ! (ckeller,7/15/2015)
-    !=================================================================
-    CALL TEND_STAGE2( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'CONV',    DT_Conv,   RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Tend_Stage2"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
 
     !----------------------------------------------------------
     ! Convection budget diagnostics - Part 2 of 2

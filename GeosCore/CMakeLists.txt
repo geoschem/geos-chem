@@ -7,9 +7,6 @@ add_library(Transport STATIC EXCLUDE_FROM_ALL
 	tpcore_window_mod.F90
 	pjc_pfix_window_mod.F90
 	transport_mod.F90
-
-	# TODO: can this safely be omitted?
-	# tendencies_mod.F90
 )
 target_link_libraries(Transport
 	PUBLIC GeosUtil

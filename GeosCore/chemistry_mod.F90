@@ -106,9 +106,6 @@ CONTAINS
 #ifdef TOMAS
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif
-#ifdef USE_TEND
-    USE TENDENCIES_MOD
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -228,14 +225,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-
-#ifdef USE_TEND
-    !=======================================================================
-    ! Archive species concentrations for tendencies (ckeller,7/15/2015)
-    !=======================================================================
-    CALL Tend_Stage1( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'CHEM', RC )
-#endif
 
     !=======================================================================
     ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
@@ -944,23 +933,6 @@ CONTAINS
 
     ! Chemistry timestep [s]
     DT_Chem = Get_Ts_Chem()
-
-#ifdef USE_TEND
-    !=======================================================================
-    ! Calculate tendencies and write to diagnostics (ckeller,7/15/2015)
-    !=======================================================================
-
-    ! Compute tendencies
-    CALL Tend_Stage2( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'CHEM', DT_Chem, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in ""!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
 
     !----------------------------------------------------------
     ! Chemistry budget diagnostics - Part 2 of 2

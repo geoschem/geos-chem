@@ -1842,9 +1842,6 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
 #endif
-#ifdef USE_TEND
-    USE TENDENCIES_MOD
-#endif
 
     ! HEMCO update
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
@@ -2048,13 +2045,6 @@ contains
        ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
-
-#ifdef USE_TEND
-    ! Archive concentrations for tendencies calculations. Tracers array
-    ! is already in v/v (ckeller, 7/15/2015).
-    CALL TEND_STAGE1( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'PBLMIX', RC )
-#endif
 
 ! (Turn off parallelization for now, skim 6/20/12)
 
@@ -2644,12 +2634,6 @@ contains
        ENDIF
 
     endif
-
-#ifdef USE_TEND
-    ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
-    CALL TEND_STAGE2( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'PBLMIX',  dtime, RC )
-#endif
 
     !### Debug
     IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )

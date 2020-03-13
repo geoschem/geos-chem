@@ -231,13 +231,6 @@ ifeq ($(shell [[ "$(HPC_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DHPC_DEVEL
 endif
 
-# %%%%% Turn on tendencies computation  %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(USE_TEND)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DUSE_TEND
-  BPCH_DIAG          :=no
-endif
-
 # %%%%% Turn on Luo et al (2019) wetdep scheme %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(LUO_WETDEP)" =~ $(REGEXP) ]] && echo true),true)

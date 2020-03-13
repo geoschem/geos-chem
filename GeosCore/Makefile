@@ -427,8 +427,7 @@ co2_mod.o                   : co2_mod.F90                                    \
 convection_mod.o            : convection_mod.F90                             \
                               diag_mod.o              depo_mercury_mod.o     \
                               wetscav_mod.o           mercury_mod.o          \
-                              tendencies_mod.o        hco_interface_mod.o    \
-                              diagnostics_mod.o
+                              hco_interface_mod.o     diagnostics_mod.o
 
 depo_mercury_mod.o          : depo_mercury_mod.F90                           \
                               diag_mod.o              diag03_mod.o
@@ -596,7 +595,7 @@ mixing_mod.o                : mixing_mod.F90                                 \
                               diagnostics_mod.o                              \
                               diag_mod.o              drydep_mod.o           \
                               hcoi_gc_main_mod.o      get_ndep_mod.o         \
-                              pbl_mix_mod.o           tendencies_mod.o       \
+                              pbl_mix_mod.o                                  \
                               hco_interface_mod.o     vdiff_mod.o
 
 modis_lai_mod.o             : modis_lai_mod.F90                              \
@@ -629,8 +628,7 @@ olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               hco_interface_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F90                                \
-                              tendencies_mod.o        diagnostics_mod.o      \
-                              diag_mod.o
+                              diagnostics_mod.o       diag_mod.o
 
 pjc_pfix_window_mod.o       : pjc_pfix_window_mod.F90
 
@@ -689,9 +687,6 @@ tagged_o3_mod.o             : tagged_o3_mod.F90                              \
 
 tccon_ch4_mod.o             : tccon_ch4_mod.F90
 
-tendencies_mod.o            : tendencies_mod.F90                             \
-                              hco_interface_mod.o
-
 toms_mod.o                  : toms_mod.F90                                   \
                               hco_interface_mod.o
 
@@ -704,10 +699,9 @@ endif
 
 transport_mod.o             : transport_mod.F90                              \
                               calc_met_mod.o          diag_mod.o             \
-                              pjc_pfix_mod.o                                 \
+                              diagnostics_mod.o       pjc_pfix_mod.o         \
                               tpcore_fvdas_mod.o      tpcore_window_mod.o    \
-                              tendencies_mod.o        pjc_pfix_window_mod.o  \
-                              diagnostics_mod.o
+                              pjc_pfix_window_mod.o
 
 ucx_mod.o                   : ucx_mod.F90                                    \
                               calc_met_mod.o          fast_jx_mod.o          \
@@ -726,13 +720,13 @@ vdiff_mod.o                 : vdiff_mod.F90                                  \
                               depo_mercury_mod.o      diag_mod.o             \
                               drydep_mod.o            ocean_mercury_mod.o    \
                               pbl_mix_mod.o           vdiff_pre_mod.o        \
-                              tendencies_mod.o        hco_interface_mod.o    \
+                              hco_interface_mod.o                            \
                               global_ch4_mod.o        mercury_mod.o
 
 wetscav_mod.o               : wetscav_mod.F90                                \
                               diag_mod.o                                     \
                               depo_mercury_mod.o      get_ndep_mod.o         \
-                              tendencies_mod.o        hco_interface_mod.o    \
+                              hco_interface_mod.o                            \
                               apm_driv_mod.o          diagnostics_mod.o      \
                               tomas_mod.o
 

@@ -149,9 +149,6 @@ CONTAINS
     USE State_Diag_Mod,  ONLY : DgnState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
-#ifdef USE_TEND
-    USE TENDENCIES_MOD
-#endif
     USE TIME_MOD,       ONLY : GET_TS_DYN
     USE UnitConv_Mod
 !
@@ -182,7 +179,6 @@ CONTAINS
     ! Scalars
     LOGICAL                 :: prtDebug
     INTEGER                 :: I, J, L
-    REAL(fp)                :: DT_TEND
 
     ! Strings
     CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
@@ -224,21 +220,6 @@ CONTAINS
                                  State_Diag%BudgetMass1,              &
                                  RC )
     ENDIF
-
-#ifdef USE_TEND
-    !=================================================================
-    ! Archive species concentrations for tendencies (ckeller,7/15/2015)
-    !=================================================================
-    CALL TEND_STAGE1( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'WETD',    RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "TEND_STAGE1"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
 
     !=================================================================
     ! Only do wet deposition for large-scale + anvil precip
@@ -296,23 +277,6 @@ CONTAINS
 
     ! Debug print
     IF ( prtDebug ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
-
-#ifdef USE_TEND
-    !=================================================================
-    ! Calculate tendencies and write to diagnostics
-    ! (ckeller,7/15/2015)
-    !=================================================================
-    DT_TEND = GET_TS_DYN()
-    CALL TEND_STAGE2( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      'WETD', DT_TEND, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "TEND_STAGE1"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
 
     !----------------------------------------------------------
     ! Wet deposition budget diagnostics - Part 2 of 2
