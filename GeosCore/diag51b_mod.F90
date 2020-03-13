@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -14,7 +15,6 @@
 ! !INTERFACE:
 !
 MODULE DIAG51b_MOD
-#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -38,11 +38,6 @@ MODULE DIAG51b_MOD
   PRIVATE :: WRITE_DIAG51b
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
-!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  NOTE by Melissa Sulprizio, 26 May 2015
 !  ----------------------------------------------------------------------------
 !  The emission options in the timeseries diagnostics were removed
@@ -1817,5 +1812,5 @@ CONTAINS
     
   END SUBROUTINE CLEANUP_DIAG51b
 !EOC
-#endif
 END MODULE DIAG51b_MOD
+#endif

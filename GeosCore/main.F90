@@ -64,10 +64,8 @@ PROGRAM GEOS_Chem
   USE AEROSOL_MOD,     ONLY : Set_AerMass_Diagnostic
   USE CARBON_MOD            ! For SOA simulation
   USE CHEMISTRY_MOD         ! Driver routines for chemistry
-#ifdef BPCH_DIAG
   USE MERCURY_MOD           ! For offline Hg simulation (driver)
   USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
-#endif
   USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
   USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
   USE UCX_MOD               ! For unified trop-strat chemistry (SDE)
@@ -77,9 +75,7 @@ PROGRAM GEOS_Chem
   !-----------------------------------------------------------------
   ! GEOS-Chem deposition modules
   !-----------------------------------------------------------------
-#ifdef BPCH_DIAG
   USE DEPO_MERCURY_MOD      ! Deposition for offline Hg simulation
-#endif
   USE DRYDEP_MOD            ! For dry deposition
   USE WETSCAV_MOD           ! For wet deposition (rainout & washout)
 
@@ -91,9 +87,9 @@ PROGRAM GEOS_Chem
   USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
   USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
   USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
-  USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 #endif
-  USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
+  USE PLANEFLIGHT_MOD       ! For planeflight track diag
+  USE DIAG_OH_MOD           ! For OH,HO2,etc. prod diag
   USE HISTORY_MOD           ! Updated netCDF diagnostics
   USE OBSPACK_MOD           ! For ObsPack diagnostics
   USE GOSAT_CH4_MOD         ! For GOSAT observation operator
@@ -317,10 +313,35 @@ PROGRAM GEOS_Chem
   !            ***** I N I T I A L I Z A T I O N *****
   !=================================================================
 
+  !-----------------------------------------------------------------
+  ! Read the user-defined options for the simulation, etc.
+  !-----------------------------------------------------------------
+
+  ! Initialize fields of the Input Options object
+  CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered within call to "Set_Input_Opt"!'
+     CALL Error_Stop( ErrMsg, ThisLoc )
+  ENDIF
+
+  ! Initialize fields of the Grid State object
+  CALL Init_State_Grid( Input_Opt, State_Grid, RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered within call to "Set_Grid_State"!'
+     CALL Error_Stop( ErrMsg, ThisLoc )
+  ENDIF
+
+  ! Read GEOS-Chem input file at very beginning of simulation
+  CALL Read_Input_File( Input_Opt, State_Grid, RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered in "Read_Input_File"!'
+     CALL Error_Stop( ErrMsg, ThisLoc )
+  ENDIF
+
+  !-----------------------------------------------------------------
+  ! Initialize GEOS-Chem timers
+  !-----------------------------------------------------------------
   IF ( Input_Opt%useTimers ) THEN
-     !-----------------------------------------------------------------
-     ! Initialize GEOS-Chem timers
-     !-----------------------------------------------------------------
 
      ! Call timer initilization
      CALL Timer_Setup( 1 )
@@ -358,31 +379,6 @@ PROGRAM GEOS_Chem
      ! Start running the main and initialization timer
      CALL Timer_Start( "GEOS-Chem",                  RC )
      CALL Timer_Start( "Initialization",             RC )
-  ENDIF
-
-  !-----------------------------------------------------------------
-  ! Read the user-defined options for the simulation, etc.
-  !-----------------------------------------------------------------
-
-  ! Initialize fields of the Input Options object
-  CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered within call to "Set_Input_Opt"!'
-     CALL Error_Stop( ErrMsg, ThisLoc )
-  ENDIF
-
-  ! Initialize fields of the Grid State object
-  CALL Init_State_Grid( Input_Opt, State_Grid, RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered within call to "Set_Grid_State"!'
-     CALL Error_Stop( ErrMsg, ThisLoc )
-  ENDIF
-
-  ! Read GEOS-Chem input file at very beginning of simulation
-  CALL Read_Input_File( Input_Opt, State_Grid, RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Read_Input_File"!'
-     CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
   !-----------------------------------------------------------------
@@ -940,7 +936,6 @@ PROGRAM GEOS_Chem
           CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
        ENDIF
 
-#ifdef BPCH_DIAG
        !--------------------------------------------------------------
        ! %%%%% HISTORY (netCDF diagnostics) %%%%%
        !
@@ -949,12 +944,6 @@ PROGRAM GEOS_Chem
        ! start each timestep, before operations like drydep, wetdep,
        ! and convection are executed.  Call a routine to do this.
        ! (bmy, 10/25/18)
-       !
-       ! NOTE: Mercury_mod.F90 is now only compiled if BPCH_DIAG=y,
-       ! as the Hg simulation depends on the bpch diagnostics.
-       ! We are awaiting on an update of the Hg simulation so that
-       ! the chemistry will be handled by KPP.  For now, block this
-       ! out with #ifdef BPCH_DIAG. (bmy, 10/4/19)
        !--------------------------------------------------------------
        IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
@@ -969,11 +958,10 @@ PROGRAM GEOS_Chem
           ENDIF
 
           IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( "All diagnostics",           RC )
-          CALL Timer_End( "=> History (netCDF diags)", RC )
+             CALL Timer_End( "All diagnostics",           RC )
+             CALL Timer_End( "=> History (netCDF diags)", RC )
+          ENDIF
        ENDIF
-       ENDIF
-#endif
 
        !==============================================================
        !       ***** R U N   H E M C O   P H A S E   1 *****
@@ -1066,62 +1054,31 @@ PROGRAM GEOS_Chem
        ENDIF
 
 #ifdef BPCH_DIAG
-       ! Original diagnostics
+       !===========================================================
+       ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
+       !===========================================================
        IF ( ITS_TIME_FOR_BPCH( Input_Opt ) .and. notDryRun ) THEN
 
-          !===========================================================
-          ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
-          !===========================================================
-          IF ( notDryRun ) THEN
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "All diagnostics",              RC )
-                CALL Timer_Start( "=> Binary punch diagnostics",  RC )
-                CALL Timer_Start( "Output",                       RC )
-             ENDIF
-
-             ! Set time at end of diagnostic timestep
-             CALL SET_DIAGe( TAU )
-
-             ! Write bpch file
-             IF ( DO_DIAG_WRITE ) THEN
-                ! Write data to the "trac_avg." bpch file
-                CALL DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-                ! Flush file units
-                CALL CTM_FLUSH()
-             ENDIF
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "All diagnostics",              RC )
-                CALL Timer_End( "=> Binary punch diagnostics",  RC )
-                CALL Timer_End( "Output",                       RC )
-             ENDIF
-
-             !========================================================
-             !    ***** W R I T E   H E M C O   R E S T A R T S *****
-             !========================================================
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "HEMCO",  RC )
-                CALL Timer_Start( "Output", RC )
-             ENDIF
-
-             ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
-             CALL HCOI_GC_WriteDiagn( Input_Opt, .TRUE., RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "HCOI_GC_WriteDiagn"!'
-                CALL Error_Stop( ErrMsg, ThisLoc )
-             ENDIF
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "HEMCO",  RC )
-                CALL Timer_End( "Output", RC )
-             ENDIF
-
-             ! Set time at beginning of next diagnostic timestep
-             CALL SET_DIAGb( TAU )
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All diagnostics",              RC )
+             CALL Timer_Start( "=> Binary punch diagnostics",  RC )
+             CALL Timer_Start( "Output",                       RC )
           ENDIF
+
+          ! Set time at end of diagnostic timestep
+          CALL SET_DIAGe( TAU )
+
+          ! Write bpch file
+          IF ( DO_DIAG_WRITE ) THEN
+             ! Write data to the "trac_avg." bpch file
+             CALL DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+
+             ! Flush file units
+             CALL CTM_FLUSH()
+          ENDIF
+
+          ! Set time at beginning of next diagnostic timestep
+          CALL SET_DIAGb( TAU )
 
           !===========================================================
           !   ***** Z E R O   B P C H   D I A G N O S T I C S *****
@@ -1129,9 +1086,16 @@ PROGRAM GEOS_Chem
           CALL INITIALIZE( Input_Opt, State_Grid, 2, RC )
           CALL INITIALIZE( Input_Opt, State_Grid, 3, RC )
 
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All diagnostics",              RC )
+             CALL Timer_End( "=> Binary punch diagnostics",  RC )
+             CALL Timer_End( "Output",                       RC )
+          ENDIF
        ENDIF
+#endif
 
 #ifdef GTMM_Hg
+#ifdef BPCH_DIAG
        !=============================================================
        !   ***** W R I T E   G T M M   R E S T A R T   F I L E *****
        !     ***** MUST be done after call to diag3 ****
@@ -1309,7 +1273,6 @@ PROGRAM GEOS_Chem
 
           ENDIF
 
-#ifdef BPCH_DIAG
           ! Read data required for Hg2 gas-particle partitioning
           ! (H Amos, 25 Oct 2011)
           IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
@@ -1326,7 +1289,6 @@ PROGRAM GEOS_Chem
                 CALL Debug_Msg( '### MAIN: a READ_HG2_PARTITIONING')
              ENDIF
           ENDIF
-#endif
        ENDIF
 
        ! Prescribe methane surface concentrations throughout PBL
@@ -1929,15 +1891,10 @@ PROGRAM GEOS_Chem
 
           ENDIF
 
-#ifdef BPCH_DIAG
           !--------------------------------------------------------------
           !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
-          !
-          ! %%%%% NOTE: Works whether BPCH_DIAG=y or n        %%%%%
-          ! %%%%% but for timing purposes, count this as bpch %%%%%
-          ! %%%%% because it is not computed with History.    %%%%%
           !--------------------------------------------------------------
-          IF ( ND40 > 0 .and. DO_DIAG_WRITE .and.  ITS_A_NEW_DAY() ) THEN
+          IF ( Input_Opt%Do_Planeflight .and. ITS_A_NEW_DAY() ) THEN
 
              IF ( Input_Opt%useTimers ) THEN
                 CALL Timer_Start( "All diagnostics",             RC) 
@@ -1986,7 +1943,6 @@ PROGRAM GEOS_Chem
                                            State_Met )
              ENDIF
           ENDIF
-#endif
        ENDIF
 
        !==============================================================
@@ -2002,7 +1958,6 @@ PROGRAM GEOS_Chem
           CALL Debug_Msg( '### MAIN: after SET_ELAPSED_SEC' )
        ENDIF
 
-#ifdef BPCH_DIAG
        IF ( notDryRun ) THEN
           !===========================================================
           !   ***** D I A G N O S T I C S   A R C H I V A L *****
@@ -2012,19 +1967,12 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All diagnostics",              RC )
              CALL Timer_Start( "Output",                       RC )
-             CALL Timer_Start( "=> Binary punch diagnostics",  RC )
           ENDIF
 
           !-----------------------------------------------------------
           !  ***** P L A N E F L I G H T   D I A G N O S T I C  *****
-          !
-          ! Plane following diagnostic, moved here to be consistent
-          ! with species array and not be biased by emissions, kyu 30
-          ! jan 2015
-          !
-          ! %%%%% NOTE: works whether BPCH_DIAG=y or n %%%%%
           !-----------------------------------------------------------
-          IF ( ND40 > 0 ) THEN
+          IF ( Input_Opt%Do_Planeflight ) THEN
              ! Archive data along the flight track
              CALL PLANEFLIGHT( Input_Opt,  State_Chm, State_Diag, &
                                State_Grid, State_Met, RC )
@@ -2035,8 +1983,13 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
           ENDIF
-          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG40' )
+          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after Planeflight' )
 
+#ifdef BPCH_DIAG
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Binary punch diagnostics",  RC )
+          ENDIF
+ 
           !-----------------------------------------------------------
           !  *** A R C H I V E   B P C H   D I A G N O S T I C S ***
           !-----------------------------------------------------------
@@ -2063,10 +2016,6 @@ PROGRAM GEOS_Chem
 
           !------------------------------------------------------------
           !  ***** T I M E S E R I E S   D I A G N O S T I C S  *****
-          !
-          ! NOTE: Since we are saving soluble tracers, we must move
-          !       the ND40, ND49, and ND52 timeseries diagnostics
-          !       to after the call to DO_WETDEP (bmy, 4/22/04)
           !------------------------------------------------------------
 
           ! Morning or afternoon timeseries
@@ -2094,12 +2043,14 @@ PROGRAM GEOS_Chem
           IF ( prtDebug ) CALL Debug_Msg('### MAIN: after TIMESERIES')
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "All diagnostics",              RC )
-             CALL Timer_End( "Output",                       RC )
              CALL Timer_End( "=> Binary punch diagnostics",  RC )
           ENDIF
-       ENDIF
 #endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All diagnostics",              RC )
+             CALL Timer_End( "Output",                       RC )
+          ENDIF
+       ENDIF
 
        !=================================================================
        !     ***** C O P Y   I - 3   F I E L D S *****
@@ -2162,7 +2113,6 @@ PROGRAM GEOS_Chem
         CALL Timer_End ( "Timesteps", RC )
      ENDIF
 
-#ifndef BPCH_DIAG
     !--------------------------------------------------------------
     !     ***** W R I T E   H E M C O   R E S T A R T S *****
     !
@@ -2188,7 +2138,6 @@ PROGRAM GEOS_Chem
        CALL Timer_End( "HEMCO",  RC )
        CALL Timer_End( "Output", RC )
     ENDIF
-#endif
 
     !-----------------------------------------------------------------
     !         ***** O B S P A C K   D I A G N O S T I C S *****

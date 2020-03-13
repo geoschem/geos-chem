@@ -3645,9 +3645,7 @@ CONTAINS
 #ifdef APM
    USE APM_INIT_MOD,       ONLY : APMIDS
 #endif
-#ifdef BPCH_DIAG
    USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -4217,7 +4215,6 @@ CONTAINS
 
    ENDIF
 
-#ifdef BPCH_DIAG
    !=================================================================
    ! Read ocean mercury variables
    !=================================================================
@@ -4420,7 +4417,6 @@ CONTAINS
       Hg_Cat_Name => NULL()
 
    ENDIF
-#endif
 
    !=================================================================
    ! Clean up

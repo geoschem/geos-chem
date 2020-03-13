@@ -1834,14 +1834,12 @@ contains
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
-#ifdef BPCH_DIAG
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
-#endif
 
     ! HEMCO update
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
@@ -2180,7 +2178,6 @@ contains
           enddo
        ENDIF
 
-#ifdef BPCH_DIAG
        !--------------------------------------------------------------------
        ! Overwrite emissions for offline mercury simulation
        ! HG emissions become stored in HG_EMIS in mercury_mod.F90.
@@ -2192,7 +2189,6 @@ contains
              eflx(I,J,NA) = HG_EMIS(I,J,NA)
           enddo
        ENDIF
-#endif
 
        !--------------------------------------------------------------------
        ! Apply dry deposition frequencies
@@ -2259,7 +2255,6 @@ contains
                          ( AIRMW / SpcInfo%emMW_g )
           endif
 
-#ifdef BPCH_DIAG
           ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
           ! so disable deposition over water here.
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
@@ -2276,7 +2271,6 @@ contains
                                MAX(1e+0_fp - FRAC_NO_HG0_DEP, 0e+0_fp)
              ENDIF
           ENDIF
-#endif
 
           ! Free species database pointer
           SpcInfo => NULL()
@@ -2306,7 +2300,6 @@ contains
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
-#ifdef BPCH_DIAG
        !--------------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
        !--------------------------------------------------------------------
@@ -2352,7 +2345,6 @@ contains
              SpcInfo => NULL()
           ENDDO
        ENDIF
-#endif
 
     enddo
     enddo

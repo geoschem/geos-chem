@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -12,7 +13,6 @@
 ! !INTERFACE:
 !
 SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -71,12 +71,6 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 ! !OUTPUT PARAMETERS:
 !
   INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED      %%%
-!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                        %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -1179,5 +1173,5 @@ CONTAINS
 
   END SUBROUTINE DIAG2BPCH
 !EOC
-#endif
 END SUBROUTINE DIAG3
+#endif

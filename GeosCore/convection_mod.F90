@@ -389,11 +389,9 @@ CONTAINS
     USE WETSCAV_MOD,        ONLY : LS_K_RAIN
     USE WETSCAV_MOD,        ONLY : LS_F_PRIME
     USE WETSCAV_MOD,        ONLY : CONV_F_PRIME
-#ifdef BPCH_DIAG
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_WD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_WD
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1238,7 +1236,6 @@ CONTAINS
              ENDIF
           ENDDO     ! End of loop over levels below cloud base
 
-#ifdef BPCH_DIAG
           !==================================================================
           ! (5)  M e r c u r y   O c e a n   M o d e l   A r c h i v a l
           !
@@ -1285,7 +1282,6 @@ CONTAINS
                                        State_Met, State_Chm, State_Diag )
              ENDIF
           ENDIF
-#endif
        ENDDO               ! End internal timestep loop
 
        ! Free pointer

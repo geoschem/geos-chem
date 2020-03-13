@@ -12,7 +12,6 @@
 ! !INTERFACE:
 !
 MODULE POPS_MOD
-#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -30,11 +29,6 @@ MODULE POPS_MOD
   PUBLIC :: Cleanup_POPs
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
-!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  POPs Tracers
 !  ============================================================================
 !  (1 ) POPG   : Gaseous POP - total tracer
@@ -832,8 +826,10 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef BPCH_DIAG
     USE CMN_DIAG_MOD
     USE DIAG53_MOD
+#endif
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : DEBUG_MSG
     USE ERROR_MOD,      ONLY : SAFE_DIV
@@ -1397,6 +1393,7 @@ CONTAINS
        ! Sum of differences should equal zero
        SUM_DIFF = MAX(DIFF_G + DIFF_OC + DIFF_BC, SMALLNUM)
 
+#ifdef BPCH_DIAG
        !==============================================================
        ! %%%%% ND53 (bpch) DIAGNOSTIC %%%%%
        ! ND53 diagnostic: Differences in distribution of gas and
@@ -1417,6 +1414,7 @@ CONTAINS
           ENDIF
 
        ENDIF
+#endif
 
        !==============================================================
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -1804,6 +1802,7 @@ CONTAINS
           DEP_POPP_BCPI_DRY  = DEP_POPP_BCPI
        ENDIF
 
+#ifdef BPCH_DIAG
        !==============================================================
        ! %%%% ND53 (bpch) DIAGNOSTIC %%%%
        ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg/s]
@@ -1835,6 +1834,7 @@ CONTAINS
                                       GROSS_OX_NO3_BCPI / DTCHEM
 
        ENDIF
+#endif
 
        !==============================================================
        ! %%%%% HISTORY (netCDF DIAGNOSTICS) %%%%%
@@ -2580,5 +2580,4 @@ CONTAINS
 
   END SUBROUTINE CLEANUP_POPS
 !EOC
-#endif
 END MODULE POPS_MOD

@@ -419,6 +419,7 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE CO2_Mod,            ONLY : Init_CO2
+    USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
@@ -429,6 +430,10 @@ CONTAINS
     USE Global_CH4_Mod,     ONLY : Init_Global_CH4
     USE Input_Mod,          ONLY : Do_Error_Checks
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
+    USE Mercury_Mod,        ONLY : Init_Mercury
+    USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
+    USE POPs_Mod,           ONLY : Init_POPs
     USE Seasalt_Mod,        ONLY : Init_SeaSalt
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -440,16 +445,11 @@ CONTAINS
     USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG
-    USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE Diag03_Mod,         ONLY : Init_Diag03
     USE Diag51_Mod,         ONLY : Init_Diag51
     USE Diag51b_Mod,        ONLY : Init_Diag51b
     USE Diag53_Mod,         ONLY : Init_Diag53
     USE Gamap_Mod,          ONLY : Do_Gamap
-    USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
-    USE Mercury_Mod,        ONLY : Init_Mercury
-    USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
-    USE POPs_Mod,           ONLY : Init_POPs
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -712,12 +712,6 @@ CONTAINS
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
     CALL Init_Diag_OH( Input_Opt, State_Grid, RC )
 
-#ifdef BPCH_DIAG
-    !=================================================================
-    ! These routines are only needed when compiling GEOS-Chem
-    ! with BPCH_DIAG=y. (bmy, 10/4/19)
-    !=================================================================
-
 #ifdef TOMAS
     !-----------------------------------------------------------------
     ! TOMAS
@@ -776,6 +770,12 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+#ifdef BPCH_DIAG
+    !=================================================================
+    ! These routines are only needed when compiling GEOS-Chem
+    ! with BPCH_DIAG=y. (bmy, 10/4/19)
+    !=================================================================
 
     !-----------------------------------------------------------------
     ! Diagnostics

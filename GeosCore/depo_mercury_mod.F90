@@ -11,7 +11,6 @@
 ! !INTERFACE:
 !
 MODULE DEPO_MERCURY_MOD
-#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -29,9 +28,11 @@ MODULE DEPO_MERCURY_MOD
   PUBLIC :: ADD_HG2_SNOWPACK
   PUBLIC :: RESET_HG_DEP_ARRAYS
   PUBLIC :: CHECK_DIMENSIONS
+#ifdef BPCH_DIAG
   PUBLIC :: READ_GTMM_RESTART
   PUBLIC :: MAKE_GTMM_RESTART
   PUBLIC :: UPDATE_DEP
+#endif
   PUBLIC :: INIT_DEPO_MERCURY
   PUBLIC :: CLEANUP_DEPO_MERCURY
 !
@@ -56,12 +57,6 @@ MODULE DEPO_MERCURY_MOD
 !
   CHARACTER(LEN=255)     :: GTMM_RST_FILE
   LOGICAL                :: LHGSNOW
-!
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
-!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Initial version
@@ -249,10 +244,12 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef BPCH_DIAG
+    USE DIAG03_MOD,         ONLY : AD03, ND03
+#endif
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Met_Mod,      ONLY : MetState
-    USE DIAG03_MOD,         ONLY : AD03, ND03
     USE Time_Mod,           ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
@@ -347,10 +344,12 @@ CONTAINS
                                    FRAC_SNOW_OR_ICE &
                                    * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
+#ifdef BPCH_DIAG
        ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
        IF ( ND03 > 0 ) AD03(I,J,21,1) = AD03(I,J,21,1)   + &
                                         FRAC_SNOW_OR_ICE * &
                                         MAX(DEP_HG2, 0e+0_fp)
+#endif
 
        !--------------------------------------------------------------
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -405,6 +404,7 @@ CONTAINS
 
   END SUBROUTINE RESET_HG_DEP_ARRAYS
 !EOC
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -803,6 +803,7 @@ CONTAINS
 
   END SUBROUTINE UPDATE_DEP
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1056,5 +1057,4 @@ CONTAINS
 
   END SUBROUTINE CLEANUP_DEPO_MERCURY
 !EOC
-#endif
 END MODULE DEPO_MERCURY_MOD

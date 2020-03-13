@@ -12,7 +12,6 @@
 ! !INTERFACE:
 !
 MODULE GLOBAL_Br_MOD
-#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -43,12 +42,7 @@ MODULE GLOBAL_Br_MOD
   PUBLIC :: CLEANUP_GLOBAL_Br
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
-!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-! !REFERENCES
+!  References:
 !  (1 ) Holmes, C. D., et al. (2006), Global lifetime of elemental mercury
 !       against oxidation by atomic bromine in the free troposphere, Geophys.
 !       Res. Lett., 33(20).
@@ -525,5 +519,4 @@ CONTAINS
 
   END SUBROUTINE CLEANUP_GLOBAL_Br
 !EOC
-#endif
 END MODULE GLOBAL_Br_MOD

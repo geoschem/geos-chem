@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -20,18 +21,16 @@ SUBROUTINE INITIALIZE( Input_Opt, State_Grid, IFLAG, RC )
 !
 ! !USES:
 !
-  USE Input_Opt_Mod,  ONLY : OptInput
-  USE Precision_Mod
-  USE State_Grid_Mod, ONLY : GrdState
-  USE ErrCode_Mod
-#ifdef BPCH_DIAG
   USE CMN_DIAG_MOD
   USE DIAG_MOD
   USE DIAG03_MOD
   USE DIAG53_MOD
+  USE ErrCode_Mod
   USE ERROR_MOD
+  USE Input_Opt_Mod,  ONLY : OptInput
+  USE Precision_Mod
+  USE State_Grid_Mod, ONLY : GrdState
   USE TIME_MOD
-#endif
 
   IMPLICIT NONE
 !
@@ -62,7 +61,6 @@ SUBROUTINE INITIALIZE( Input_Opt, State_Grid, IFLAG, RC )
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG
   !=================================================================
   ! INITIALIZE begins here!
   !=================================================================
@@ -153,6 +151,7 @@ SUBROUTINE INITIALIZE( Input_Opt, State_Grid, IFLAG, RC )
         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
      ENDIF
   ENDIF
-#endif
+
 END SUBROUTINE INITIALIZE
 !EOC
+#endif

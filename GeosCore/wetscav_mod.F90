@@ -2478,11 +2478,9 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
     USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD
     USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_WD
     USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,    ONLY : OptInput
@@ -3139,7 +3137,6 @@ CONTAINS
           ENDIF
        ENDIF
 
-#ifdef BPCH_DIAG
        !==============================================================
        ! (8)  M e r c u r y   S i m u l a t i o n   O n l y
        !
@@ -3197,7 +3194,6 @@ CONTAINS
           ENDDO
 
        ENDIF
-#endif
 
     ENDDO
     ENDDO

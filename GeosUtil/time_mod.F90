@@ -77,6 +77,7 @@ MODULE TIME_MOD
   PUBLIC  :: ITS_TIME_FOR_A3
   PUBLIC  :: ITS_TIME_FOR_I3
   PUBLIC  :: ITS_TIME_FOR_EXIT
+  PUBLIC  :: ITS_MIDMONTH
   PUBLIC  :: ITS_A_LEAPYEAR
   PUBLIC  :: ITS_A_NEW_YEAR
   PUBLIC  :: ITS_A_NEW_MONTH
@@ -114,7 +115,6 @@ MODULE TIME_MOD
   PUBLIC  :: GET_CT_I3
   PUBLIC  :: GET_CT_DIAG
   PUBLIC  :: GET_NYMD_DIAG
-  PUBLIC  :: ITS_MIDMONTH
   PUBLIC  :: SET_CT_CHEM
   PUBLIC  :: SET_CT_CONV
   PUBLIC  :: SET_CT_DYN
@@ -3466,7 +3466,6 @@ CONTAINS
     ENDIF
 
   END FUNCTION ITS_A_NEW_MONTH
-#ifdef BPCH_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3498,7 +3497,6 @@ CONTAINS
     IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
 
   END FUNCTION ITS_MIDMONTH
-#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

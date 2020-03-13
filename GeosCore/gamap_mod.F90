@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -13,7 +14,6 @@
 ! !INTERFACE:
 !
 MODULE GAMAP_MOD
-#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -4551,5 +4551,5 @@ CONTAINS
 
   END SUBROUTINE CLEANUP_GAMAP
 !EOC
-#endif
 END MODULE GAMAP_MOD
+#endif

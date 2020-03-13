@@ -156,10 +156,8 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE Time_Mod,           ONLY : Get_Ts_Emis
     Use SfcVmr_Mod,         Only : FixSfcVmr_Run
-#ifdef BPCH_DIAG
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
     USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
-#endif
 #ifdef TOMAS
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
@@ -290,7 +288,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-#ifdef BPCH_DIAG
     ! For mercury, use old emissions code for now
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
        CALL EmissMercury( Input_Opt, State_Chm, State_Diag, State_Grid, &
@@ -318,7 +315,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN

@@ -13,7 +13,6 @@
 ! !INTERFACE:
 !
 MODULE PLANEFLIGHT_MOD
-#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -48,11 +47,6 @@ MODULE PLANEFLIGHT_MOD
   PRIVATE :: WRITE_VARS_TO_FILE
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
-!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  The quantities that are saved to disk by the planeflight diagnostic were
 !  requested by GEOS-Chem users.  If you would like to save out a new quantity,
 !  then you will have to make your own modifications in this module.
@@ -829,12 +823,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE BPCH2_MOD,          ONLY : GET_TAU0
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
     USE FILE_MOD,           ONLY : IOERROR
     USE GC_GRID_MOD,        ONLY : GET_IJ
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Ncdf_Mod,           ONLY : GET_TAU0
     USE PhysConstants,      ONLY : g0
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -1415,13 +1409,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE BPCH2_MOD,          ONLY : GET_TAU0
     USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
     USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
     USE CMN_SIZE_MOD,       ONLY : NDUST, NAER
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Ncdf_Mod,           ONLY : GET_TAU0
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
     USE PhysConstants,      ONLY : CONSVAP, AIRMW
@@ -2635,5 +2629,4 @@ CONTAINS
 
   END SUBROUTINE CLEANUP_PLANEFLIGHT
 !EOC
-#endif
 END MODULE PLANEFLIGHT_MOD

@@ -1421,9 +1421,6 @@ CONTAINS
    USE State_Chm_Mod,  ONLY : ChmState
    USE State_Diag_Mod, ONLY : DgnState
    USE State_Grid_Mod, ONLY : GrdState
-#ifdef BPCH_DIAG
-   USE CMN_O3_MOD
-#endif
 #ifdef APM
    USE APM_INIT_MOD,   ONLY : APMIDS
    USE APM_INIT_MOD,   ONLY : NGCOND,NSO4,NSEA,NBCOC
@@ -4800,9 +4797,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-   USE CMN_DIAG_MOD
-#endif
    USE ErrCode_Mod
    USE ERROR_MOD
    USE Input_Opt_Mod,      ONLY : OptInput
@@ -5073,7 +5067,6 @@ CONTAINS
 
    !end anthro emissions
 
-#ifdef BPCH_DIAG
    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
    !%%%% which is only called if BPCH_DIAG=y.(bmy, 8/7/18)          %%%%
@@ -5089,7 +5082,6 @@ CONTAINS
    TERP_ORGC = Ptr2D(:,:)
    TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
    Ptr2D => NULL()
-#endif
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &

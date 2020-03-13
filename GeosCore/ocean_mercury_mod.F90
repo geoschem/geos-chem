@@ -13,7 +13,6 @@
 ! !INTERFACE:
 !
 MODULE OCEAN_MERCURY_MOD
-#ifdef BPCH_DIAG
 !
 ! !USES:
 !
@@ -50,11 +49,6 @@ MODULE OCEAN_MERCURY_MOD
   PUBLIC :: LOCEANCOEF
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
-!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  References:
 !  ============================================================================
 !  (1 ) Xu et al (1999). Formulation of bi-directional atmosphere-surface
@@ -252,9 +246,11 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef BPCH_DIAG
     USE CMN_DIAG_MOD
     USE DIAG03_MOD,         ONLY : ND03
     USE TIME_MOD,           ONLY : SET_Hg2_DIAG
+#endif
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
@@ -533,6 +529,7 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+#ifdef BPCH_DIAG
     !-------------------------------------------!
     ! Store Fg and Fp in ND03 diagnostic.       !
     !-------------------------------------------!
@@ -556,6 +553,7 @@ CONTAINS
 
     ! Increment diagnostic timestep counter.
     CALL SET_Hg2_DIAG( INCREMENT=.TRUE. )
+#endif
 
     ! Free pointers
     ARRAYso4  => NULL()
@@ -587,7 +585,9 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef BPCH_DIAG
     USE DIAG03_MOD,         ONLY : AD03,    ND03
+#endif
     USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -675,6 +675,7 @@ CONTAINS
           ! Add all snow Hg to aqueous Hg2 reservoir
           SNOW_Hg2aq(NN) = ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
 
+#ifdef BPCH_DIAG
           !===========================================================
           ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
           !
@@ -684,6 +685,7 @@ CONTAINS
              AD03(I,J,19,1) = AD03(I,J,19,1) + &
                              ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
           ENDIF
+#endif
 
           !===========================================================
           ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -737,7 +739,9 @@ CONTAINS
 ! !USES:
 !
     USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
+#ifdef BPCH_DIAG
     USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
+#endif
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
@@ -1098,12 +1102,10 @@ CONTAINS
     dMLD = dMLD1
     dFLOW = dFLOW1
 
-#ifdef BPCH_DIAG
     IF ( ITS_MIDMONTH() ) THEN
        dMLD = dMLD2
        dFLOW = dFLOW2
     ENDIF
-#endif
 
     ! Emission timestep [s]
     DTSRCE = GET_TS_EMIS()
@@ -1727,6 +1729,7 @@ CONTAINS
                 Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG * &
                                 A_M2 * DTSRCE * FRAC_O
 
+#ifdef BPCH_DIAG
                 !-----------------------------------------------------
                 ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
                 !
@@ -1736,9 +1739,10 @@ CONTAINS
                 IF ( ( ND03 > 0 ) .and. ( NN == ID_Hg_tot ) ) &
                      AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG * &
                                      A_M2 * DTSRCE * FRAC_O
+#endif
 
                 !-----------------------------------------------------
-                ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+                ! %%%%% HISTORY DIAGNOSTIC %%%%%
                 !
                 ! Flux of Hg(II) from rivers to ocean in Arctic [kg/s]
                 ! NOTE: RIVER_HG is kg/m2/s, convert to kg/s
@@ -1882,6 +1886,7 @@ CONTAINS
              HgPaq(I,J,NN)   = HgPaq(I,J,NN) - HgPaq_SUNK(I,J,NN)
              HgPaq(I,J,NN)   = MAX ( HgPaq(I,J,NN) , 0e+0_fpp )
 
+#ifdef BPCH_DIAG
              !-----------------------------------------------------
              ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
              !
@@ -1890,6 +1895,7 @@ CONTAINS
              IF ( ND03 > 0 ) THEN
                 AD03(I,J,12,1) = AD03(I,J,12,1) + JorgC_kg
              ENDIF
+#endif
 
              !-----------------------------------------------------
              ! %%%%% HISTORY DIAGNOSTIC %%%%%
@@ -3656,5 +3662,5 @@ CONTAINS
     HgP_Id_List => NULL()
 
   END SUBROUTINE CLEANUP_OCEAN_MERCURY
-#endif
+!EOC
 END MODULE OCEAN_MERCURY_MOD

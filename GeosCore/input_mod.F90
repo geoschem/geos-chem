@@ -302,6 +302,14 @@ CONTAINS
           ENDIF
 
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
+       ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
+          CALL READ_PLANEFLIGHT_MENU( Input_Opt, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error in "Read_Planeflight_Menu"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
 #ifdef BPCH_DIAG
        !==============================================================
        ! Skip BPCH-related menus unless compiled with BPCH_DIAG=y
@@ -327,14 +335,6 @@ CONTAINS
           CALL READ_DIAGNOSTIC_MENU( Input_Opt, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error in "Read_Diagnostic_Menu"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-       ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
-          CALL READ_PLANEFLIGHT_MENU( Input_Opt, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error in "Read_Planeflight_Menu"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -3983,6 +3983,7 @@ CONTAINS
 
   END SUBROUTINE SET_TINDEX
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3991,7 +3992,7 @@ CONTAINS
 ! !IROUTINE: read_planeflight_menu
 !
 ! !DESCRIPTION: Subroutine READ\_PLANEFLIGHT\_MENU reads the PLANEFLIGHT MENU
-!  section of the GEOS-Chem input file.  This turns on the ND40 flight track
+!  section of the GEOS-Chem input file.  This turns on the plane flight track
 !  diagnostic.
 !\\
 !\\
@@ -4001,7 +4002,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_DIAG_MOD          ! ND40
     USE ErrCode_Mod
     USE Input_Opt_Mod,   ONLY : OptInput
     USE PLANEFLIGHT_MOD, ONLY : SET_PLANEFLIGHT
@@ -4038,7 +4038,6 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
-    ND40  = 0
     ErrMsg  = 'Error reading the "input.geos" file!'
     ThisLoc = ' -> at Read_Planeflight_Menu (in module GeosCore/input_mod.F90)'
 
@@ -4051,31 +4050,28 @@ CONTAINS
     ENDIF
 
     ! Turn on planeflight diagnostic?
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'DO_PF', RC )
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Do_Planeflight', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    READ( SUBSTRS(1:N), * ) Input_Opt%DO_PF
-
-    ! Set ND40 flag from DO_PF
-    IF ( Input_Opt%DO_PF ) ND40 = 1
+    READ( SUBSTRS(1:N), * ) Input_Opt%Do_Planeflight
 
     ! Input file name (w/ flight track data points)
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'IFILE', RC )
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Planeflight_InFile', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    READ( SUBSTRS(1:N), '(a)' ) Input_Opt%PF_IFILE
+    READ( SUBSTRS(1:N), '(a)' ) Input_Opt%Planeflight_InFile
 
     ! Output file name
-    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'OFILE', RC )
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Planeflight_OutFile', RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    READ( SUBSTRS(1:N), '(a)' ) Input_Opt%PF_OFILE
+    READ( SUBSTRS(1:N), '(a)' ) Input_Opt%Planeflight_OutFile
 
     !=================================================================
     ! Print to screen
@@ -4084,11 +4080,11 @@ CONTAINS
        WRITE( 6, '(/,a)' ) 'PLANEFLIGHT MENU'
        WRITE( 6, '(  a)' ) '----------------'
        WRITE( 6, 100 ) 'Turn on planeflight diag?   : ', &
-                        Input_Opt%DO_PF
+                        Input_Opt%Do_Planeflight
        WRITE( 6, 110 ) 'Flight track input file     : ', &
-                        TRIM( Input_Opt%PF_IFILE )
+                        TRIM( Input_Opt%Planeflight_InFile )
        WRITE( 6, 110 ) 'Output file name            : ', &
-                        TRIM( Input_Opt%PF_OFILE )
+                        TRIM( Input_Opt%Planeflight_OutFile )
     ENDIF
 
     ! FORMAT statements
@@ -4100,12 +4096,11 @@ CONTAINS
     !=================================================================
 
     ! Pass variables to "planeflight_mod.F90"
-    CALL SET_PLANEFLIGHT( Input_Opt%DO_PF,    &
-                          Input_Opt%PF_IFILE, &
-                          Input_Opt%PF_OFILE )
+    CALL SET_PLANEFLIGHT( Input_Opt%Do_Planeflight,    &
+                          Input_Opt%Planeflight_InFile, &
+                          Input_Opt%Planeflight_OutFile )
 
   END SUBROUTINE READ_PLANEFLIGHT_MENU
-#endif
 #endif
 !EOC
 !------------------------------------------------------------------------------

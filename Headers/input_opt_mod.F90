@@ -275,9 +275,9 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! PLANEFLIGHT MENU fields
      !----------------------------------------
-     LOGICAL                     :: DO_PF
-     CHARACTER(LEN=255)          :: PF_IFILE
-     CHARACTER(LEN=255)          :: PF_OFILE
+     LOGICAL                     :: Do_Planeflight
+     CHARACTER(LEN=255)          :: Planeflight_InFile
+     CHARACTER(LEN=255)          :: Planeflight_OutFile
 
      !----------------------------------------
      ! OBSPACK MENU fields
@@ -796,9 +796,9 @@ CONTAINS
     !----------------------------------------
     ! PLANEFLIGHT MENU fields
     !----------------------------------------
-    Input_Opt%DO_PF                  = .FALSE.
-    Input_Opt%PF_IFILE               = ''
-    Input_Opt%PF_OFILE               = ''
+    Input_Opt%Do_Planeflight         = .FALSE.
+    Input_Opt%Planeflight_InFile     = ''
+    Input_Opt%Planeflight_OutFile    = ''
 
     !----------------------------------------
     ! PLANEFLIGHT MENU fields

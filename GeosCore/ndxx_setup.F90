@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -20,17 +21,15 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
 !
 ! !USES:
 !
+  USE CMN_DIAG_MOD
+  USE DIAG_MOD
+  USE ErrCode_Mod
+  USE ERROR_MOD
   USE Input_Opt_Mod,      ONLY : OptInput
   USE State_Chm_Mod,      ONLY : ChmState
   USE State_Chm_Mod,      ONLY : Ind_
   USE State_Grid_Mod,     ONLY : GrdState
   USE State_Met_Mod,      ONLY : MetState
-#ifdef BPCH_DIAG
-  USE CMN_DIAG_MOD
-  USE DIAG_MOD
-  USE ErrCode_Mod
-  USE ERROR_MOD
-#endif
 #ifdef TOMAS
   USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
 #endif
@@ -50,12 +49,6 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
 !
   INTEGER,        INTENT(OUT)    :: RC          ! Success or failure?
 !
-! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  NOTE: THIS MODULE WILL BE A STUB UNLESS GEOS-Chem IS COMPILED    %%%
-!  %%%  WITH THE BPCH_DIAG=y OPTION. (bmy, 10/4/19)                      %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 ! !REVISION HISTORY:
 !  16 Jun 1998 - I. Bey, R. Yantosca - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -65,7 +58,6 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG
   INTEGER :: NMAX, AS
 
   !=================================================================
@@ -210,6 +202,6 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
   ENDIF
 #endif
 
-#endif
 END SUBROUTINE NDXX_SETUP
 !EOC
+#endif

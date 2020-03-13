@@ -20,19 +20,26 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
   USE CO2_MOD,                 ONLY : CLEANUP_CO2
   USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
   USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+  USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
   USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
   USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
   USE DUST_MOD,                ONLY : CLEANUP_DUST
   USE ErrCode_Mod
   USE ERROR_MOD,               ONLY : DEBUG_MSG
   USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
+  USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
   USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
   USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
   USE History_Mod,             ONLY : History_Cleanup
   USE ISORROPIAII_MOD,         ONLY : CLEANUP_ISORROPIAII
+  USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
+  USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
   USE ObsPack_Mod,             ONLY : ObsPack_SpeciesMap_Cleanup
+  USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
   USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
   USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
+  USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
+  USE POPs_Mod,                ONLY : Cleanup_POPs
   USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
   USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
   USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
@@ -51,13 +58,6 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
   USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
   USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
   USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53
-  USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
-  USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
-  USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
-  USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
-  USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
-  USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
-  USE POPs_Mod,                ONLY : Cleanup_POPs
 #endif
 #ifdef TOMAS
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
@@ -224,27 +224,11 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
-#ifdef BPCH_DIAG
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled with BPCH_DIAG=y
-  !=====================================================================
-  CALL CLEANUP_DIAG()
-  CALL CLEANUP_DIAG03()
-  CALL CLEANUP_DIAG51()
-  CALL CLEANUP_DIAG53()
   CALL CLEANUP_MERCURY()
   CALL CLEANUP_OCEAN_MERCURY()
   CALL CLEANUP_DEPO_MERCURY()
   CALL CLEANUP_LAND_MERCURY()
   CALL CLEANUP_PLANEFLIGHT()
-
-  CALL Cleanup_CMN_O3( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_CMN_O3"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
 
   CALL Cleanup_Global_Br( RC )
   IF ( RC /= GC_SUCCESS ) THEN
@@ -256,6 +240,23 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
   CALL Cleanup_POPs( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_POPs"!'
+     CALL GC_Error( ErrMsg, RC, ThisLoc )
+     RETURN
+  ENDIF
+
+#ifdef BPCH_DIAG
+  !=====================================================================
+  ! These routines are only needed when GEOS-Chem
+  ! is compiled with BPCH_DIAG=y
+  !=====================================================================
+  CALL CLEANUP_DIAG()
+  CALL CLEANUP_DIAG03()
+  CALL CLEANUP_DIAG51()
+  CALL CLEANUP_DIAG53()
+
+  CALL Cleanup_CMN_O3( RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered in "Cleanup_CMN_O3"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF

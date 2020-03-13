@@ -32,15 +32,6 @@ MODULE BPCH2_MOD
   PUBLIC  :: BPCH2_HDR
   PUBLIC  :: GET_MODELNAME
   PUBLIC  :: GET_HALFPOLAR
-  PUBLIC  :: GET_TAU0
-
-  INTERFACE GET_TAU0
-     MODULE PROCEDURE GET_TAU0_6A
-  END INTERFACE GET_TAU0
-!
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: GET_TAU0_6A
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -456,109 +447,6 @@ CONTAINS
     HALFPOLAR = 1
 
   END FUNCTION GET_HALFPOLAR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_Tau0_6a
-!
-! !DESCRIPTION: Function GET\_TAU0\_6A returns the corresponding TAU0 value
-!  for the first day of a given MONTH of a given YEAR.  This is necessary to
-!  index monthly mean binary punch files, which are used as input to GEOS-Chem.
-!\\
-!\\
-!  This function takes 3 mandatory arguments (MONTH, DAY, YEAR) and 3
-!  optional arguments (HOUR, MIN, SEC).  It is intended to replace the current
-!  2-argument version of GET\_TAU0.  The advantage being that GET\_TAU0\_6A
-!  can compute a TAU0 for any date and time in the GEOS-Chem epoch, rather
-!  than just the first day of each month.  Overload this w/ an interface so
-!  that the user can also choose the version of GET\_TAU0 w/ 2 arguments
-!  (MONTH, YEAR), which is the prior version.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION GET_TAU0_6A( MONTH, DAY, YEAR, HOUR,  MIN, SEC ) &
-       RESULT( THIS_TAU0 )
-!
-! !USES:
-!
-    USE ERROR_MOD,  ONLY : ERROR_STOP
-    USE JULDAY_MOD, ONLY : JULDAY
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER, INTENT(IN)           :: MONTH
-    INTEGER, INTENT(IN)           :: DAY
-    INTEGER, INTENT(IN)           :: YEAR
-    INTEGER, INTENT(IN), OPTIONAL :: HOUR
-    INTEGER, INTENT(IN), OPTIONAL :: MIN
-    INTEGER, INTENT(IN), OPTIONAL :: SEC
-!
-! !RETURN VALUE:
-!
-    REAL(f8)                        :: THIS_TAU0   ! TAU0 timestamp
-!
-! !REMARKS:
-!  TAU0 is hours elapsed since 00:00 GMT on 01 Jan 1985.
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER  :: TMP_HOUR, TMP_MIN, TMP_SEC
-    REAL(f8) :: DAYS
-
-    !=================================================================
-    ! GET_TAU0_6A begins here!
-    !=================================================================
-
-    ! Error checking
-    IF ( MONTH < 1 .or. MONTH > 12 ) THEN
-       CALL ERROR_STOP ( 'Invalid MONTH selection!', 'GET_TAU0' )
-    ENDIF
-
-    ! Error checking
-    IF ( DAY < 1 .or. DAY > 31 ) THEN
-       CALL ERROR_STOP ( 'Invalid DAY selection!', 'GET_TAU0' )
-    ENDIF
-
-    ! If HOUR isn't passed, default to 0
-    IF ( PRESENT( HOUR ) ) THEN
-       TMP_HOUR = HOUR
-    ELSE
-       TMP_HOUR = 0
-    ENDIF
-
-    ! If MIN isn't passed, default to 0
-    IF ( PRESENT( MIN ) ) THEN
-       TMP_MIN = MIN
-    ELSE
-       TMP_MIN = 0
-    ENDIF
-
-    ! If SEC isn't passed, default to 0
-    IF ( PRESENT( SEC ) ) THEN
-       TMP_SEC = SEC
-    ELSE
-       TMP_SEC = 0
-    ENDIF
-
-    ! Number of days since midnight on 1/1/1985
-    THIS_TAU0 = JULDAY( YEAR, MONTH, DBLE( DAY ) ) - 2446066.5e+0_f8
-
-    ! Multiply by 24 to get hours since 1/1/1985
-    ! Also add in the hours elapsed since midnight on this date
-    THIS_TAU0 = ( THIS_TAU0 * 24e+0_f8 ) + ( TMP_HOUR             ) + &
-                ( TMP_MIN   / 60e+0_f8 ) + ( TMP_SEC / 3600e+0_f8 )
-
-  END FUNCTION GET_TAU0_6A
 !EOC
 END MODULE BPCH2_MOD
 #endif

@@ -76,6 +76,8 @@ CONTAINS
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
     USE ISORROPIAII_MOD, ONLY : DO_ISORROPIAII
+    USE MERCURY_MOD,     ONLY : CHEMMERCURY
+    USE POPS_MOD,        ONLY : CHEMPOPS
     USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
     USE RPMARES_MOD,     ONLY : DO_RPMARES
     USE SEASALT_MOD,     ONLY : CHEMSEASALT
@@ -97,11 +99,6 @@ CONTAINS
     USE APM_DRIV_MOD,    ONLY : PSO4GAS
     USE APM_DRIV_MOD,    ONLY : AERONUM
     USE APM_DRIV_MOD,    ONLY : APM_DRIV
-#endif
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE MERCURY_MOD,     ONLY : CHEMMERCURY
-    USE POPS_MOD,        ONLY : CHEMPOPS
 #endif
 #ifdef TOMAS
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
@@ -833,7 +830,6 @@ CONTAINS
              CALL Timer_End( "=> Gas-phase chem", RC )
           ENDIF
 
-#ifdef BPCH_DIAG
        !====================================================================
        ! Mercury (only used when compiled with BPCH_DIAG=y)
        !====================================================================
@@ -881,7 +877,6 @@ CONTAINS
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "=> Gas-phase chem", RC )
           ENDIF
-#endif
        ENDIF
 
        !====================================================================

@@ -1,3 +1,4 @@
+#ifdef BPCH_DIAG
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -16,12 +17,11 @@ SUBROUTINE OASAVE( State_Grid )
 ! !USES:
 !
   USE State_Grid_Mod,     ONLY : GrdState
-#ifdef BPCH_DIAG
   USE AEROSOL_MOD,        ONLY : OCPI, OCPO
   USE AEROSOL_MOD,        ONLY : TSOA, ASOA, OPOA, ISOAAQ
   USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
   USE CMN_O3_MOD,         ONLY : SAVEOA
-#endif
+
   IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -37,7 +37,6 @@ SUBROUTINE OASAVE( State_Grid )
 !
 ! !LOCAL VARIABLES:
 !
-#ifdef BPCH_DIAG
   INTEGER  :: I, J, L
   REAL(fp) :: FACTOR
 
@@ -66,7 +65,7 @@ SUBROUTINE OASAVE( State_Grid )
   ENDDO
   ENDDO
   !$OMP END PARALLEL DO
-#endif
 END SUBROUTINE OASAVE
 !EOC
+#endif
 

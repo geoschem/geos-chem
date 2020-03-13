@@ -22,7 +22,6 @@ MODULE CMN_DIAG_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-  INTEGER            :: ND40
   INTEGER, PARAMETER :: MAX_TRACER = 600      ! Large placeholder value
 
 #if defined(TOMAS)
