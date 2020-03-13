@@ -1971,7 +1971,7 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
-                                           State_Met, COST_FUNC )
+                                           State_Met )
              ENDIF
           ENDIF
 
@@ -1983,7 +1983,7 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%TCCON_CH4_OBS ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
-                                           State_Met, COST_FUNC )
+                                           State_Met )
              ENDIF
           ENDIF
 #endif

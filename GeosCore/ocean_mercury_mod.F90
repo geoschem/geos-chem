@@ -1160,21 +1160,21 @@ CONTAINS
 
     ! Loop over surface boxes
     !$OMP PARALLEL DO       &
-    !$OMP+DEFAULT( SHARED ) &
-    !$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED                         ) &
-    !$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV               ) &
-    !$OMP+PRIVATE( N,   TK,   CHg0,    k_red_bio                       ) &
-    !$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad              ) &
-    !$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall              ) &
-    !$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,  Hg2aq_tot   ) &
-    !$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg              ) &
-    !$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE                        ) &
-    !$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg                        ) &
-    !$OMP+PRIVATE( IS_OCEAN_BOX                                        ) &
-    !$OMP+PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE,  Snow_Hg2aq  ) &
-    !$OMP+PRIVATE( FRAC_REDUCIBLE,     UVI_RATIO                       ) &
-    !$OMP+PRIVATE( Kd_part                                             ) &
-    !$OMP+SCHEDULE( DYNAMIC )
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I,   vi,   A_M2,    Hg2_RED                         ) &
+    !$OMP PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV               ) &
+    !$OMP PRIVATE( N,   TK,   CHg0,    k_red_bio                       ) &
+    !$OMP PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad              ) &
+    !$OMP PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall              ) &
+    !$OMP PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,  Hg2aq_tot   ) &
+    !$OMP PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg              ) &
+    !$OMP PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE                        ) &
+    !$OMP PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg                        ) &
+    !$OMP PRIVATE( IS_OCEAN_BOX                                        ) &
+    !$OMP PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE,  Snow_Hg2aq  ) &
+    !$OMP PRIVATE( FRAC_REDUCIBLE,     UVI_RATIO                       ) &
+    !$OMP PRIVATE( Kd_part                                             ) &
+    !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -2184,7 +2184,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
     INTEGER,        INTENT(IN)  :: THISMONTH

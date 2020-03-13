@@ -488,7 +488,7 @@ CONTAINS
     REAL(KIND=RB)      :: p_ASMAER    ( State_Grid%NZ,  NBNDSW )
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, This Loc
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=================================================================
     ! DO_RRTMG_RAD_TRANSFER begins here!
@@ -994,9 +994,9 @@ CONTAINS
           IF (IB.GT.16) THEN !SW
 
              !$OMP PARALLEL DO        &
-             !$OMP+DEFAULT( SHARED )  &
-             !$OMP+PRIVATE( I, J, L ) &
-             !$OMP+SCHEDULE( DYNAMIC )
+             !$OMP DEFAULT( SHARED )  &
+             !$OMP PRIVATE( I, J, L ) &
+             !$OMP SCHEDULE( DYNAMIC )
              DO L = 1, State_Grid%NZ
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
@@ -1039,9 +1039,9 @@ CONTAINS
 
        !NO AEROSOL, SET ALL TO SAFE VALUES
        !$OMP PARALLEL DO       &
-       !$OMP+DEFAULT( SHARED ) &
-       !$OMP+PRIVATE( I, J, L, IB, IB_SW ) &
-       !$OMP+SCHEDULE( DYNAMIC )
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, IB, IB_SW ) &
+       !$OMP SCHEDULE( DYNAMIC )
        DO IB= 1, NBNDS
           IB_SW = IB-NBNDLW
           DO L = 1, State_Grid%NZ
@@ -1521,11 +1521,11 @@ CONTAINS
     ENDIF
 
     !$OMP PARALLEL DO       &
-    !$OMP+DEFAULT( SHARED ) &
-    !$OMP+PRIVATE( I, J, LL, W )            &
-    !$OMP+PRIVATE( AODTMP, SSATMP, ASYMTMP) &
-    !$OMP+PRIVATE( AODOUT, SSAOUT, ASYMOUT) &
-    !$OMP+SCHEDULE( DYNAMIC )
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I, J, LL, W )            &
+    !$OMP PRIVATE( AODTMP, SSATMP, ASYMTMP) &
+    !$OMP PRIVATE( AODOUT, SSAOUT, ASYMOUT) &
+    !$OMP SCHEDULE( DYNAMIC )
     DO J=1,State_Grid%NY
     DO I=1,State_Grid%NX
 #ifdef BPCH_DIAG
@@ -2211,7 +2211,7 @@ CONTAINS
     ! Diffuse Near-IR albedo [1]
     !-------------------------------
     FieldName = 'MODIS_ALBDFNIR'
-    CALL HCO_GetPtr( HcoStat, FieldName, MODIS_ALBDFNIR, RC  )
+    CALL HCO_GetPtr( HcoState, FieldName, MODIS_ALBDFNIR, RC  )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
        CALL GC_Error( ErrMsg, RC, ThisLoc )

@@ -102,9 +102,9 @@ CONTAINS
     USE CMN_DIAG_MOD
     USE MERCURY_MOD,     ONLY : CHEMMERCURY
     USE POPS_MOD,        ONLY : CHEMPOPS
+#endif
 #ifdef TOMAS
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
-#endif
 #endif
 #ifdef USE_TEND
     USE TENDENCIES_MOD
@@ -233,8 +233,8 @@ CONTAINS
     !=======================================================================
     ! Archive species concentrations for tendencies (ckeller,7/15/2015)
     !=======================================================================
-    CALL Tend_Stage1( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid,  &
-                      State_Met, 'CHEM', RC )
+    CALL Tend_Stage1( Input_Opt, State_Chm, State_Grid, State_Met, &
+                      'CHEM', RC )
 #endif
 
     !=======================================================================
@@ -951,8 +951,8 @@ CONTAINS
     !=======================================================================
 
     ! Compute tendencies
-    CALL Tend_Stage2( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
-                      State_Met, 'CHEM', DT_Chem, RC )
+    CALL Tend_Stage2( Input_Opt, State_Chm, State_Grid, State_Met, &
+                      'CHEM', DT_Chem, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

@@ -576,7 +576,7 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! NOTE: The following variables are held THREADPRIVATE and
-    ! therefore do not need to be included in the !$OMP+PRIVATE
+    ! therefore do not need to be included in the !$OMP PRIVATE
     ! statements below: C, VAR, FIX, RCONST, TIME, TEMP, NUMDEN,
     ! H2O, PRESS, PHOTOL, HET, and CFACTOR. (bmy, 3/28/16)
     !-----------------------------------------------------------------------

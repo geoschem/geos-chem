@@ -470,7 +470,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
-                                   State_Met, COST_FUNC )
+                                   State_Met )
 !
 ! !USES:
 !
@@ -492,10 +492,6 @@ CONTAINS
     TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
-! !OUTPUT PARAMETERS:
-!
-    REAL(fp), INTENT(INOUT)    :: COST_FUNC   ! Cost function [unitless]
-!
 ! !REVISION HISTORY:
 !  17 Aug 2017 - M. Sulprizio- Initial version based on TCCON CH4 observation
 !                              operator from GC Adjoint v35j with updates from
@@ -507,6 +503,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    REAL(fp), SAVE     :: COST_FUNC   ! Cost function [unitless]
     INTEGER            :: id_CH4
     INTEGER            :: NTSTART, NTSTOP, NT, YYYYMMDD
     INTEGER            :: IIJJ(2), I,      J

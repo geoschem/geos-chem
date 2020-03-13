@@ -2052,8 +2052,8 @@ contains
 #ifdef USE_TEND
     ! Archive concentrations for tendencies calculations. Tracers array
     ! is already in v/v (ckeller, 7/15/2015).
-    CALL TEND_STAGE1( Input_Opt%amIRoot, Input_Opt, State_Chm, State_Grid, &
-                      State_Met, 'PBLMIX', RC )
+    CALL TEND_STAGE1( Input_Opt, State_Chm, State_Grid, State_Met, &
+                      'PBLMIX', RC )
 #endif
 
 ! (Turn off parallelization for now, skim 6/20/12)
@@ -2647,12 +2647,11 @@ contains
 
 #ifdef USE_TEND
     ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
-    CALL TEND_STAGE2( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                      State_Grid, State_Met, 'PBLMIX',  &
-                      dtime,      RC )
+    CALL TEND_STAGE2( Input_Opt, State_Chm, State_Grid, State_Met, &
+                      'PBLMIX',  dtime, RC )
 #endif
 
-!      !### Debug
+    !### Debug
     IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
     ! Nullify pointers

@@ -130,7 +130,7 @@ SUBROUTINE INITIALIZE( Input_Opt, State_Grid, IFLAG, RC )
      ENDIF
 
      ! Echo output
-     IF ( am_I_Root ) THEN
+     IF ( Input_Opt%amIRoot ) THEN
         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
      ENDIF
   ENDIF

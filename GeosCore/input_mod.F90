@@ -843,8 +843,7 @@ CONTAINS
     ! Pass the values for the start & end times of the simulation directly
     ! to GeosUtil/time_mod.F90 via subroutine ACCEPT_EXTERNAL_DATE_TIME.
     ! (bmy, 12/6/12)
-    CALL Accept_External_Date_Time( am_I_Root   = Input_Opt%amIRoot, &
-                                    value_NYMDb = Input_Opt%NYMDb,   &
+    CALL Accept_External_Date_Time( value_NYMDb = Input_Opt%NYMDb,   &
                                     value_NHMSb = Input_Opt%NHMSb,   &
                                     value_NYMDe = Input_Opt%NYMDe,   &
                                     value_NHMSe = Input_Opt%NHMSe,   &

@@ -220,11 +220,11 @@
           CALL ERROR_STOP('CALL AERO_DIADEN', 'AERO_DRYDEP in aero_drydep.F')
        ENDIF
 
-       !$OMP PARALLEL DO                                        &
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( BIN, I, J, DP, DEN, CONST, L, P, TEMP )   &
-       !$OMP PRIVATE( PDP, S<LIP, VISC, VTS, JC, ID, TC0, TC )   &
+       !$OMP PRIVATE( PDP, SLIP, VISC, VTS, JC, ID, TC0, TC )   &
        !$OMP PRIVATE( DELZ, DELZ1, AREA_CM2, TOT1, TOT2, FLUX ) &
-       !$OMP DEFAULT( SHARED )
        !$OMP SCHEDULE( DYNAMIC )
        DO I = 1, State_Grid%NX
        DO J = 1, State_Grid%NY
@@ -303,7 +303,7 @@
              ENDDO
 
              ! We know the boundary condition at the model top
-¯             L     = State_Grid%MaxChemLev
+             L     = State_Grid%MaxChemLev
              DELZ  = BXHEIGHT(I,J,L)           ![=] meter
              TC(L) = TC(L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 

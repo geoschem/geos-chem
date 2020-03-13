@@ -1279,7 +1279,7 @@ CONTAINS
 
           ! Get name, long-name, index, and new units
           SELECT CASE( N )
-           1 )
+          CASE( 1 )
              NAME (T,03) = 'Hg2_Hg0'
              FNAME(T,03) = 'Prod of Hg2 from Hg0'
              INDEX(T,03) = ( N ) + ( SPACING * 35 )

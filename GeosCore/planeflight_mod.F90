@@ -1416,9 +1416,9 @@ CONTAINS
 ! !USES:
 !
     USE BPCH2_MOD,          ONLY : GET_TAU0
-    USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
-<    USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
+    USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
     USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
+    USE CMN_SIZE_MOD,       ONLY : NDUST, NAER
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -1561,7 +1561,7 @@ CONTAINS
        IF ( PTAU(M) < PTAUS ) THEN
 
           ! Write all missing values to disk for point #M
-          CALL WRITE_VARS_TO_FILE( State_Grid, State_Met, M, VARI )
+          CALL WRITE_VARS_TO_FILE( Input_Opt, State_Grid, State_Met, M, VARI )
 
           ! Increment pointer
           PPOINT = PPOINT + 1
@@ -2131,7 +2131,7 @@ CONTAINS
           NULLIFY( Spc )
 
           ! Write data for the Mth plane point out to disk
-          CALL WRITE_VARS_TO_FILE( State_Grid, State_Met, M, VARI )
+          CALL WRITE_VARS_TO_FILE( Input_Opt, State_Grid, State_Met, M, VARI )
 
           ! Increment the record pointer
           PPOINT = PPOINT + 1
@@ -2235,18 +2235,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE WRITE_VARS_TO_FILE( State_Grid, State_Met, IND, VARI )
+  SUBROUTINE WRITE_VARS_TO_FILE( Input_Opt, State_Grid, State_Met, IND, VARI )
 !
 ! !USES:
 !
     USE FILE_MOD,       ONLY : IOERROR
     USE GC_GRID_MOD,    ONLY : GET_IJ
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE TIME_MOD
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(OptInput), INTENT(IN) :: Input_Opt     ! Input options
     TYPE(GrdState), INTENT(IN) :: State_Grid    ! Grid State object
     TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
     INTEGER,        INTENT(IN) :: IND           ! # of the flight track point
@@ -2380,7 +2382,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(InputOpt), INTENT(IN) :: Input_Opt   ! Input Options object
+    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REVISION HISTORY:

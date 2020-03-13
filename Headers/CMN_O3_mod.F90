@@ -105,16 +105,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_CMN_O3( Input_Opt, RC )
+  SUBROUTINE Cleanup_CMN_O3( RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !

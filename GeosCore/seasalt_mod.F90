@@ -1108,7 +1108,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_DIAG_MOD             ! ND59
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE ERROR_MOD,          ONLY : IT_IS_NAN
     USE State_Grid_Mod,     ONLY : GrdState
@@ -1116,7 +1115,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_EMIS
     USE TOMAS_MOD,          ONLY : IBINS, Xk
 #ifdef BPCH_DIAG
-    USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
+    USE DIAG_MOD,           ONLY : ND59, AD59_NUMB, AD59_SALT
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1181,7 +1180,7 @@ CONTAINS
          0.0e+0_fp,     0.0e+0_fp,   0.0e+0_fp, &
 # endif
          4607513.229,   9309031.200, 12961629.010, 13602132.943, &
-         11441451 .509, 9387934.311,  8559624.313,  7165322.549, &
+         11441451.509,  9387934.311,  8559624.313,  7165322.549, &
          4648135.263,   2447035.933,  3885009.997,  1006980.679/ 
          ! make same Nk as 30 bins.
 

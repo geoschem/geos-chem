@@ -51,8 +51,8 @@ SUBROUTINE OASAVE( State_Grid )
   FACTOR = 1e+9_fp
 
   !$OMP PARALLEL DO       &
-  !$OMP+DEFAULT( SHARED ) &
-  !$OMP+PRIVATE( I, J, L )
+  !$OMP DEFAULT( SHARED ) &
+  !$OMP PRIVATE( I, J, L )
   DO L = 1, State_Grid%NZ
   DO J = 1, State_Grid%NY
   DO I = 1, State_Grid%NX

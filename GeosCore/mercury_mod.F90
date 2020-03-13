@@ -1489,7 +1489,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Met_Mod  ONLY : MetState
+    USE State_Met_Mod, ONLY : MetState
     USE ERROR_MOD,     ONLY : SAFE_DIV
 !
 ! !INPUT PARAMETERS:
@@ -2478,8 +2478,8 @@ CONTAINS
 
     ELSE
        EHg0_oc = 0e+0_fp
-       CALL OFFLINEOCEAN_READMO( Input_Opt,  State_Chm, State_Diag, &
-                                 State_Grid, State_Met, EHg0_oc, RC )
+       CALL OFFLINEOCEAN_READMO( State_Chm, State_Diag, State_Grid, &
+                                 State_Met, EHg0_oc, RC )
     ENDIF
 
     !==========================================================================
@@ -5758,7 +5758,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,     ONLY : OptInput
     USE TIME_MOD,          ONLY : EXPAND_DATE,GET_YEAR, GET_TS_EMIS
     USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH, GET_MONTH
 #ifdef BPCH_DIAG
@@ -5813,10 +5812,10 @@ CONTAINS
     REAL(fp)                :: MHg0_air
 
     ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
-    REAL(fp),  PARAMETER    :: TO_KGM2S = 1.0e-11_fp / 3600.0e+0 _fp
+    REAL(fp),  PARAMETER    :: TO_KGM2S = 1.0e-11_fp / 3600.0e+0_fp
 
     ! Small numbers to avoid dividing by zero
-    REAL(fp),  PARAMETER    :: SMALLNUM   = 1.0e-32_fp
+    REAL(fp),  PARAMETER    :: SMALLNUM = 1.0e-32_fp
 
     REAL(fp)                :: SFCWINDSQR
 
@@ -5824,9 +5823,6 @@ CONTAINS
     ! We need to define local arrays to hold corresponding values
     ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
     REAL(fp), POINTER       :: STT(:,:,:,:)
-
-    ! For values from Input_Opt
-    LOGICAL                 :: LDYNOCEAN
 
     ! Characters
     CHARACTER(LEN=255)      :: ThisLoc

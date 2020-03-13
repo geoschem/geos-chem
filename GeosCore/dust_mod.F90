@@ -581,7 +581,7 @@ CONTAINS
     ! Initialize
     LDEAD     =  Input_Opt%LDEAD
     LDUST     =  Input_Opt%LDUST
-    preDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
+    prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Execute on first-call only
     IF ( FIRST ) THEN

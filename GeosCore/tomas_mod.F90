@@ -3638,8 +3638,7 @@ CONTAINS
     UNITCHANGE_KGM2 = .FALSE.
     IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
        UNITCHANGE_KGM2 = .TRUE.
-       CALL ConvertBox_Kgm2_to_Kg( Input_Opt%amIRoot, I, J, L, &
-                                   State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, RC )
     ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
        MSG = 'Incorrect initial species units: ' // TRIM(State_Chm%Spc_Units)
        LOC = 'Routine AQOXID in tomas_mod.F90'
@@ -3865,8 +3864,7 @@ CONTAINS
     ! Convert State_Chm%Species units back to original units
     ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
     IF ( UNITCHANGE_KGM2 ) THEN
-       CALL ConvertBox_Kg_to_Kgm2( Input_Opt%amIRoot, I, J, L, &
-                                   State_Chm, State_Grid, RC )
+       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, RC )
     ENDIF
 
     ! Check that species units are as expected (ewl, 9/29/15)
@@ -4320,8 +4318,8 @@ CONTAINS
        Dpk(k)=((mp/density)*(6./pi))**(0.333)
        Kn=2.0*mfp/Dpk(k)                            !S&P Table 12.1
        Dk(k)=kB*temptms/(3.0*pi*mu*Dpk(k)) &        !S&P Table 12.1
-         *((5.0+4.0*Kn+6.0*Kn**2+18.0*Kn**3)/(5.0-Kn+(8.0+pi)*Kn**2)) &
-         ck(k)=sqrt(8.0*kB*temptms/(pi*mp))         !S&P Table 12.1
+         *((5.0+4.0*Kn+6.0*Kn**2+18.0*Kn**3)/(5.0-Kn+(8.0+pi)*Kn**2))
+       ck(k)=sqrt(8.0*kB*temptms/(pi*mp))           !S&P Table 12.1
     enddo
 
     ! Calculate coagulation coefficients
@@ -4799,6 +4797,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE ERROR_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -5074,7 +5073,7 @@ CONTAINS
                 !species has significant mass in particle - limit change
                 if (abs(atau(k,j))/mc**(2.e+0_fp/3.e+0_fp) > 0.1) then
                    ttr=abs(atau(k,j))/mc**(2.e+0_fp/3.e+0_fp)/5.e-2_fp
-                   if (ttr. gt. tr) then
+                   if (ttr .gt. tr) then
                       tr=ttr
                       !dbg limit='amass'
                       !dbg write(limit(7:11),'(I2,X,I2)') k,j
@@ -5321,13 +5320,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER        ::  L,I,J,K,IMN,CSPECIES
+    INTEGER        :: L,I,J,K,IMN
     REAL(fp)       :: DN,DM,DYI,XL,XU,YL,YLC,YU,YUC
     REAL(fp)       :: TEPS,NEPS,NEPS2,EX2,ZERO
     REAL(fp)       :: XI,XX,XP,YM,WTH,W1,W2,WW,AVG
     REAL(fp)       :: VSW,VNTF(ibins)
     REAL(fp)       :: TAU_L, maxtau
-    REAL(fp)       :: X(ibins+1),AMKD(ibins,icomp),ANKD(ibins)
 
     REAL(fp)       :: AMKDRY(ibins), WR(ibins), AMKWET(ibins)
     REAL(fp)       :: AMKDRYSOL(ibins)
@@ -7380,7 +7378,7 @@ CONTAINS
     RC        =  GC_SUCCESS
 
     ! Copy values from Input_Opt
-    prtDebug  = ( Input_Opt%LPRT .nd. Input_Opt%amIRoot )
+    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to chemical species array [kg]
     Spc       => State_Chm%Species

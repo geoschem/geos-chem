@@ -4938,7 +4938,7 @@ CONTAINS
          emis2d  => OCPO_ANTH_BULK
       END SELECT
 
-      CALL GetHcoDiagn( Input_Opt%amIRoot, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
+      CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
       IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
          CALL HCO_WARNING( 'Not found: '//TRIM(DgnName),ERR, THISLOC=LOC )
       ELSE
@@ -4965,7 +4965,7 @@ CONTAINS
    !end 3d emis
 
    DgnName = 'BCPI_BB'
-   CALL GetHcoDiagn( Input_Opt%amIRoot, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
    ELSE
@@ -4974,7 +4974,7 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'BCPO_BB'
-   CALL GetHcoDiagn( Input_Opt%amIRoot, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
    ELSE
@@ -4983,7 +4983,7 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPI_BB'
-   CALL GetHcoDiagn( Input_Opt%amIRoot, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
    ELSE
@@ -4992,7 +4992,7 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPO_BB'
-   CALL GetHcoDiagn( Input_Opt%amIRoot, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
    ELSE
@@ -5081,7 +5081,7 @@ CONTAINS
    ! READ IN directly emitted SOAS (sfarina / jkodros)
    Ptr2D => NULL()
    DgnName = 'BIOGENIC_SOAS'
-   CALL GetHcoDiagn( Input_Opt%amIRoot, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( DgnName, .FALSE., RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_Error('Not found: '//TRIM(DgnName), RC, THISLOC=LOC)
       RETURN
@@ -5093,7 +5093,7 @@ CONTAINS
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
-   !$OMP+ PRIVATE( I, J, BOXVOL, TEMPTMS, PRES )
+   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
       CALL CHECKMN( I, J, 1, Input_Opt, State_Chm, State_Grid, &

@@ -352,7 +352,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
-                                   State_Met, COST_FUNC )
+                                   State_Met )
 !
 ! !USES:
 !
@@ -374,10 +374,6 @@ CONTAINS
     TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
-! !OUTPUT PARAMETERS:
-!
-    REAL(fp), INTENT(INOUT)    :: COST_FUNC   ! Cost function [unitless]
-!
 ! !REVISION HISTORY:
 !  16 Jun 2017 - M. Sulprizio- Initial version based on GOSAT CH4 observation
 !                              operator from GC Adjoint v35j with updates from
@@ -390,6 +386,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    REAL(fp), SAVE     :: COST_FUNC   ! Cost function [unitless]
     INTEGER            :: id_CH4
     INTEGER            :: NTSTART, NTSTOP, NT
     INTEGER            :: YYYYMM,  YYYYMMDD, HHMMSS
@@ -548,14 +545,14 @@ CONTAINS
 
     !! need to update this in order to do i/o with this loop parallel
     !!      ! Now do a parallel loop for analyzing data
-    !!$OMP PARALLEL DO
-    !!$OMP+DEFAULT( PRIVATE )
-    !!!$OMP+PRIVATE( IND, NT, MAP, LGOS, IIJJ,  I, J,  L,   LL, JLOOP )
-    !!!$OMP+PRIVATE( GC_CH4, FORCE, CH4_PRIOR, GC_PRES, FILENAME      )
-    !!!$OMP+PRIVATE( GC_PEDGE, GC_PSURF, GC_CH4_NATIVE, GOS_XCH4      )
-    !!!$OMP+PRIVATE( GOS_XCH4_ERROR, S_OBS, h, p, XCH4a, XCH4m        )
-    !!!$OMP+PRIVATE( GC_XCH4, DIFF, DIFF_ADJ, GC_XCH4_ADJ             )
-    !!!$OMP+PRIVATE( GC_CH4_NATIVE_ADJ, GC_CH4_ADJ, TotalObs          )
+    !!!$OMP PARALLEL DO &
+    !!!$OMP DEFAULT( PRIVATE ) &
+    !!!$OMP PRIVATE( IND, NT, MAP, LGOS, IIJJ,  I, J,  L,   LL, JLOOP ) &
+    !!!$OMP PRIVATE( GC_CH4, FORCE, CH4_PRIOR, GC_PRES, FILENAME      ) &
+    !!!$OMP PRIVATE( GC_PEDGE, GC_PSURF, GC_CH4_NATIVE, GOS_XCH4      ) &
+    !!!$OMP PRIVATE( GOS_XCH4_ERROR, S_OBS, h, p, XCH4a, XCH4m        ) &
+    !!!$OMP PRIVATE( GC_XCH4, DIFF, DIFF_ADJ, GC_XCH4_ADJ             ) &
+    !!!$OMP PRIVATE( GC_CH4_NATIVE_ADJ, GC_CH4_ADJ, TotalObs          )
     DO IND = 1, NOBS
 
        NT = INDS(IND)

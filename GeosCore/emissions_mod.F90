@@ -159,10 +159,10 @@ CONTAINS
 #ifdef BPCH_DIAG
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
     USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
+#endif
 #ifdef TOMAS
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
-#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -231,7 +231,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if defined ( TOMAS )
+#ifdef TOMAS
     ! Call TOMAS emission routines (JKodros 6/2/15)
     CALL EmissCarbonTomas( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 

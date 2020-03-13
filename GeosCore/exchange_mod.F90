@@ -259,8 +259,7 @@ CONTAINS
     IF ( IS_EXCHANGE ) THEN
 
        ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-       CALL ConvertSpc_KgKgDry_to_Kg( Input_Opt%amIRoot, State_Met, &
-                                      State_Chm, RC )
+       CALL ConvertSpc_KgKgDry_to_Kg( State_Met, State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
                         'EXCHANGE_GLOBAL_POST in exchange_mod.F')
@@ -287,8 +286,7 @@ CONTAINS
 # endif
 
        ! Convert species units back to kg/kg (ewl, 8/13/15)
-       CALL ConvertSpc_Kg_to_KgKgDry( Input_Opt&amIRoot, State_Met, &
-                                      State_Chm, RC )
+       CALL ConvertSpc_Kg_to_KgKgDry( State_Met, State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
                         'EXCHANGE_GLOBAL_POST in exchange_mod.F')
@@ -384,8 +382,7 @@ CONTAINS
     WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
     ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
-    CALL ConvertSpc_KgKgDry_to_Kg( Input_Opt%amIRoot, State_Met, &
-                                   State_Chm, RC )
+    CALL ConvertSpc_KgKgDry_to_Kg( State_Met, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'EXCHANGE_NESTED_POST in exchange_mod.F')
@@ -400,8 +397,7 @@ CONTAINS
                              State_Met, RC )
 
     ! Convert species units back to kg/kg (ewl, 8/13/15)
-    CALL ConvertSpc_Kg_to_KgKgDry( Input_Opt%amIRoot, State_Met, &
-                                   State_Chm, RC )
+    CALL ConvertSpc_Kg_to_KgKgDry( State_Met, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'EXCHANGE_NESTED_POST in exchange_mod.F')

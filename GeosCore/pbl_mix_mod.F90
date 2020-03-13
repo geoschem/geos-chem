@@ -197,8 +197,8 @@ CONTAINS
 #if defined( USE_TEND )
        ! Archive species concentrations for tendencies. Tracers are
        ! already in v/v (ckeller, 7/15/2015)
-       CALL TEND_STAGE1( Input_Opt%amIRoot, Input_Opt, State_Chm, &
-                         State_Grid, State_Met, 'PBLMIX', RC )
+       CALL TEND_STAGE1( Input_Opt, State_Chm, State_Grid, State_Met, &
+                         'PBLMIX', RC )
 #endif
 
        ! Do complete mixing of tracers in the PBL
@@ -208,8 +208,8 @@ CONTAINS
 #if defined( USE_TEND )
        ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
        DT_TEND = GET_TS_CONV()
-       CALL TEND_STAGE2( Input_Opt%amIRoot,  Input_Opt, State_Chm, &
-                         State_Grid, State_Met, 'PBLMIX', DT_TEND, RC )
+       CALL TEND_STAGE2( Input_Opt, State_Chm, State_Grid, State_Met, &
+                         'PBLMIX', DT_TEND, RC )
 #endif
 
        !--------------------------

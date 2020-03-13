@@ -330,10 +330,11 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
+    USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST
     USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
     USE CMN_FJX_MOD,        ONLY : ISOPOD
     USE CMN_O3_MOD               ! SAVEOH, SAVEOA
+    USE CMN_SIZE_MOD,       ONLY : NRH, NDUST
     USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
     USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN

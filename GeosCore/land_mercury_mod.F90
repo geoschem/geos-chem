@@ -109,10 +109,10 @@ CONTAINS
     DTSRCE = GET_TS_EMIS()
 
     !$OMP PARALLEL DO       &
-    !$OMP+DEFAULT( SHARED ) &
-    !$OMP+PRIVATE( I,              J,                NN                 ) &
-    !$OMP+PRIVATE( REEMFRAC,       FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND ) &
-    !$OMP+PRIVATE( IS_LAND_OR_ICE                                       )
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I,              J,                NN                 ) &
+    !$OMP PRIVATE( REEMFRAC,       FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND ) &
+    !$OMP PRIVATE( IS_LAND_OR_ICE                                       )
     DO J  = 1, State_Grid%NY
     DO I  = 1, State_Grid%NX
     DO NN = 1, N_Hg_CATS
@@ -631,10 +631,10 @@ CONTAINS
     DTSRCE = GET_TS_EMIS()
 
     !$OMP PARALLEL DO         &
-    !$OMP+DEFAULT( SHARED )   &
-    !$OMP+PRIVATE( I, J, NN ) &
-    !$OMP+PRIVATE( SNOW_HG_OC_NEW, K_EMIT, SWRAD, SNOW_HG_LN_NEW ) &
-    !$OMP+PRIVATE( FLUX_TMP )
+    !$OMP DEFAULT( SHARED )   &
+    !$OMP PRIVATE( I, J, NN ) &
+    !$OMP PRIVATE( SNOW_HG_OC_NEW, K_EMIT, SWRAD, SNOW_HG_LN_NEW ) &
+    !$OMP PRIVATE( FLUX_TMP )
     DO J  = 1, State_Grid%NY
     DO I  = 1, State_Grid%NX
 

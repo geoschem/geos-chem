@@ -414,7 +414,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID )\
+#if defined( EXTERNAL_FORCING ) || defined ( EXTERNAL_GRID )
     MODELNAME = 'EXTERNAL'
 #else
     IF ( State_Grid%NZ == 47 ) THEN
