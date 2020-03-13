@@ -130,11 +130,6 @@ ifndef PRECISION
  PRECISION           :=8
 endif
 
-# %%%%% Default to Timers disabled %%%%%
-ifndef TIMERS
- TIMERS              :=0
-endif
-
 # %%%%% Turn on traceback (error stack report) by default %%%%%
 ifndef TRACEBACK
  TRACEBACK           :=yes
@@ -830,11 +825,6 @@ ifeq ($(COMPILER_FAMILY),GNU)
     USER_DEFS        += -DUSE_REAL8
   endif
 
-  # Add timers declaration
-  ifeq ($(TIMERS),1)
-    USER_DEFS        += -DUSE_TIMERS
-  endif
-
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -956,11 +946,6 @@ ifeq ($(COMPILER_FAMILY),Intel)
     USER_DEFS        += -DUSE_REAL8
   endif
 
-  # Add timers declaration
-  ifeq ($(TIMERS),1)
-    USER_DEFS        += -DUSE_TIMERS
-  endif
-
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -1027,7 +1012,6 @@ export RRTMG_NEEDED
 export RRTMG_CLEAN
 export RRTMG_NO_CLEAN
 export KPP_CHEM
-export TIMERS
 export IS_GNU_8
 
 #EOC

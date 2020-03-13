@@ -774,6 +774,16 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) Input_Opt%LPRT
 
+    !-----------------------------------------------------------------
+    ! Turn on GEOS-Chem timers
+    !-----------------------------------------------------------------
+    CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'GEOS-Chem timers', RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    READ( SUBSTRS(1:N), * ) Input_Opt%useTimers
+
     ! Separator line
     CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -806,6 +816,8 @@ CONTAINS
                         TRIM( Input_Opt%SimulationName )
        WRITE( 6, 120 ) 'Turn on debug output        : ', &
                         Input_Opt%LPRT
+       WRITE( 6, 120 ) 'Turn on GEOS-Chem timers    : ', &
+                        Input_Opt%useTimers
     ENDIF
 
     ! Format statements

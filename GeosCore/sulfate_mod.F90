@@ -3649,8 +3649,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-    USE ERROR_MOD,          ONLY : IT_IS_NAN
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -4052,8 +4050,6 @@ CONTAINS
 !
     USE CMN_SIZE_Mod,       ONLY : NDSTBIN
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-    USE ERROR_MOD,          ONLY : IT_IS_NAN
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
@@ -5580,7 +5576,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
@@ -6473,7 +6468,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
@@ -6568,7 +6562,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
@@ -6694,7 +6687,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -6929,7 +6921,6 @@ CONTAINS
 !
     USE CMN_SIZE_MOD,       ONLY : NDUST
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : IT_IS_NAN, ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState

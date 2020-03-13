@@ -77,6 +77,8 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
+     LOGICAL                     :: LPRT
+     LOGICAL                     :: useTimers
 
      !----------------------------------------
      ! PASSIVE SPECIES MENU fields
@@ -261,7 +263,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND72   ! RRTMG
 
      INTEGER                     :: TS_DIAG
-     LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
      INTEGER,            POINTER :: TCOUNT(:)
      INTEGER,            POINTER :: TMAX(:)
@@ -546,6 +547,8 @@ CONTAINS
     Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
+    Input_Opt%LPRT                   = .FALSE.
+    Input_Opt%useTimers              = .FALSE.
 
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
@@ -779,7 +782,6 @@ CONTAINS
     Input_Opt%ND61                   = 0
     Input_Opt%ND65                   = 0
     Input_Opt%ND72                   = 0
-    Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TCOUNT(:)              = 0
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )

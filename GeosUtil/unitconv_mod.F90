@@ -134,7 +134,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GEOS_TIMERS_MOD
+    USE TIMERS_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -178,9 +178,9 @@ CONTAINS
     ! Convert_Spc_Units begins here!
     !====================================================================
 
-#if defined( USE_TIMERS )
-    CALL GEOS_Timer_Start( "=> Unit conversions", RC )
-#endif
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Unit conversions", RC )
+    ENDIF
 
     ! Assume success
     RC =  GC_SUCCESS
@@ -206,9 +206,9 @@ CONTAINS
 
     ! Exit if in and out units are the same
     IF ( TRIM(OutUnit) == TRIM(InUnit) ) THEN
-#if defined( USE_TIMERS )
-       CALL GEOS_Timer_End( "=> Unit conversions", RC )
-#endif
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "=> Unit conversions", RC )
+       ENDIF
        RETURN
 ENDIF
 
@@ -338,9 +338,9 @@ ENDIF
        CALL GC_Error( ErrMsg_RC, RC, LOC )
     ENDIF
 
-#if defined( USE_TIMERS )
-    CALL GEOS_Timer_End( "=> Unit conversions", RC )
-#endif
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Unit conversions", RC )
+    ENDIF
 
   END SUBROUTINE Convert_Spc_Units
 !EOC

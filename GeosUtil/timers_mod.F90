@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: geos_timers_mod.F90
+! !MODULE: timers_mod.F90
 !
-! !DESCRIPTION: Module GEOS\_TIMERS\_MOD is used to track and time how long
+! !DESCRIPTION: Module TIMERS\_MOD is used to track and time how long
 ! specified parts of GEOS-Chem take to run.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE GEOS_Timers_Mod
+MODULE Timers_Mod
 !
 ! !USES:
 !
@@ -22,20 +22,20 @@ MODULE GEOS_Timers_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: GEOS_Timer_Setup     ! Init Method
-  PUBLIC  :: GEOS_Timer_Add       ! Adds a timer.
-  PUBLIC  :: GEOS_Timer_Start     ! Starts a timer ticking.
-  PUBLIC  :: GEOS_Timer_End       ! Stops a timer ticking.
-  PUBLIC  :: GEOS_Timer_Print     ! Prints the specified timer.
-  PUBLIC  :: GEOS_Timer_PrintAll  ! Prints all timers.
-  PUBLIC  :: GEOS_Timer_StopAll   ! Stops all currently running timers.
+  PUBLIC  :: Timer_Setup     ! Init Method
+  PUBLIC  :: Timer_Add       ! Adds a timer.
+  PUBLIC  :: Timer_Start     ! Starts a timer ticking.
+  PUBLIC  :: Timer_End       ! Stops a timer ticking.
+  PUBLIC  :: Timer_Print     ! Prints the specified timer.
+  PUBLIC  :: Timer_PrintAll  ! Prints all timers.
+  PUBLIC  :: Timer_StopAll   ! Stops all currently running timers.
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: GEOS_Timer_Find      ! Finds the specified timer.
-  PRIVATE :: GEOS_Timer_PrintNum  ! Prints the timer by number.
-  PRIVATE :: GEOS_Timer_TheTime   ! Returns the current time in MS.
-  PRIVATE :: GEOS_Timer_TimePrint ! Formats the seconds when printing.
+  PRIVATE :: Timer_Find      ! Finds the specified timer.
+  PRIVATE :: Timer_PrintNum  ! Prints the timer by number.
+  PRIVATE :: Timer_TheTime   ! Returns the current time in MS.
+  PRIVATE :: Timer_TimePrint ! Formats the seconds when printing.
 !
 ! !REMARKS:
 !  This module helps track valuable timing information.
@@ -49,18 +49,6 @@ MODULE GEOS_Timers_Mod
 !
 ! !PRIVATE TYPES:
 !
-#if defined( USE_TIMERS )
-
-  ! Enable the timers boolean.
-  LOGICAL, PARAMETER                        :: DoTimers = .true.
-
-#else
-
-  ! Disable the timers boolean.
-  LOGICAL, PARAMETER                        :: DoTimers = .false.
-
-#endif
-
   ! What mode the timers should be in. Defaults to 1.
   ! 1: CPU Time
   ! 2: Real Time
@@ -73,17 +61,17 @@ MODULE GEOS_Timers_Mod
   ! Maximum Supported Timers. Increasing will increase memory footprint.
   INTEGER, PARAMETER                        :: TimerMaxSize = 30
 
-  ! The definition of the GEOS_Timer type.
-  TYPE GEOS_Timer
+  ! The definition of the GC_Timer type.
+  TYPE GC_Timer
      LOGICAL                                :: ENABLED
      CHARACTER(LEN=30)                      :: TIMER_NAME
      REAL(f8)                               :: TOTAL_TIME
      REAL(f8)                               :: START_TIME
      REAL(f8)                               :: END_TIME
-  END TYPE GEOS_Timer
+  END TYPE GC_Timer
 
   ! The array of timers. Determined by TimerMaxSize.
-  TYPE(GEOS_Timer), DIMENSION(TimerMaxSize) :: SavedTimers
+  TYPE(GC_Timer), DIMENSION(TimerMaxSize) :: SavedTimers
 
 CONTAINS
 !EOC
@@ -92,14 +80,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_Setup
+! !IROUTINE: Timer_Setup
 !
-! !DESCRIPTION: Set up the GEOS\_Timer for first use.
+! !DESCRIPTION: Set up the Timer for first use.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_Setup( TheMode )
+  SUBROUTINE Timer_Setup( TheMode )
 !
 ! !USES:
 !
@@ -129,19 +117,13 @@ CONTAINS
     CHARACTER(LEN=255) :: WarnMsg, ThisLoc
 
     !=======================================================================
-    ! GEOS_Timer_Setup begins here
+    ! Timer_Setup begins here
     !=======================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
     WarnMsg = ''
-    ThisLoc = &
-       ' -> at GEOS_Timer_Setup (in module GeosUtil/geos_timers_mod.F90)'
-
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
+    ThisLoc = ' -> at Timer_Setup (in module GeosUtil/timers_mod.F90)'
 
     ! Warning if timer mode is incorrect
     IF ( TheMode .lt. 1 ) THEN
@@ -155,24 +137,23 @@ CONTAINS
     TimerMode = TheMode
 
     ! Debug
-    !PRINT*, "GEOS_Timer_Setup: Done setting up GEOS-Chem timers"
+    !PRINT*, "Timer_Setup: Done setting up GEOS-Chem timers"
 
-  END SUBROUTINE GEOS_Timer_Setup
+  END SUBROUTINE Timer_Setup
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_Add
+! !IROUTINE: Timer_Add
 !
-! !DESCRIPTION: Adds a new timer to the timer list.
-!  Returns status of success.
+! !DESCRIPTION: Adds a new timer to the timer list. Returns status of success.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_Add( TimerName, RC )
+  SUBROUTINE Timer_Add( TimerName, RC )
 !
 ! !USES:
 !
@@ -202,19 +183,13 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! GEOS_Timer_Add begins here!
+    ! Timer_Add begins here!
     !=======================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = &
-      ' -> at GEOS_Timer_Add (in module GeosUtil/geos_timers_mod.F90)'
-
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
+    ThisLoc  = ' -> at Timer_Add (in module GeosUtil/timers_mod.F90)'
 
     ! Now we are sure that timers are enabled.
     ! We need to check if the timers are full.
@@ -247,21 +222,21 @@ CONTAINS
 
     ENDIF
 
-  END SUBROUTINE GEOS_Timer_Add
+  END SUBROUTINE Timer_Add
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_Start
+! !IROUTINE: Timer_Start
 !
 ! !DESCRIPTION: Starts a timer ticking.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_Start( TimerName, RC )
+  SUBROUTINE Timer_Start( TimerName, RC )
 !
 ! !USES:
 !
@@ -296,24 +271,18 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! GEOS_Timer_Start begins here!
+    ! Timer_Start begins here!
     !=======================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = &
-      ' -> at GEOS_Timer_Start (in module GeosUtil/geos_timers_mod.F90)'
-
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
+    ThisLoc  = ' -> at Timer_Start (in module GeosUtil/timers_mod.F90)'
 
     TempTimerName = TimerName
 
     ! First we must find the specified timer.
-    TimerLoc = GEOS_Timer_Find( TempTimerName )
+    TimerLoc = Timer_Find( TempTimerName )
 
     ! Exit if timer is not found
     IF (TimerLoc .eq. 0) THEN
@@ -337,7 +306,7 @@ CONTAINS
     ! 2: Real Time
     ! 3: MPI time
     IF ( TimerMode .eq. 1 ) THEN
-       TheTime = GEOS_Timer_TheTime()
+       TheTime = Timer_TheTime()
     ENDIF
 
     ! Debug
@@ -345,21 +314,21 @@ CONTAINS
 
     SavedTimers(TimerLoc)%START_TIME = TheTime
 
-  END SUBROUTINE GEOS_Timer_Start
+  END SUBROUTINE Timer_Start
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_End
+! !IROUTINE: Timer_End
 !
 ! !DESCRIPTION: Stops a timer ticking. Adds elapsed time to total.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_End( TimerName, RC )
+  SUBROUTINE Timer_End( TimerName, RC )
 !
 ! !USES:
 !
@@ -395,23 +364,17 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! GEOS_Timer_Start begins here!
+    ! Timer_Start begins here!
     !=======================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = &
-       ' -> at GEOS_Timer_End (in module GeosUtil/geos_timers_mod.F90)'
-
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
+    ThisLoc  = ' -> at Timer_End (in module GeosUtil/timers_mod.F90)'
 
     TempTimerName = TimerName
 
-    TimerLoc = GEOS_Timer_Find( TempTimerName )
+    TimerLoc = Timer_Find( TempTimerName )
 
     ! Exit if timer is not found
     IF (TimerLoc .eq. 0) THEN
@@ -435,7 +398,7 @@ CONTAINS
     ! 2: Real Time
     ! 3: MPI time
     IF ( TimerMode .eq. 1 ) THEN
-       TheTime = GEOS_Timer_TheTime()
+       TheTime = Timer_TheTime()
     ENDIF
 
     ! Debug
@@ -455,21 +418,21 @@ CONTAINS
     ! And add difference to current value of total time
     SavedTimers(TimerLoc)%TOTAL_TIME = SavedTimers(TimerLoc)%TOTAL_TIME + Diff
 
-  END SUBROUTINE GEOS_Timer_End
+  END SUBROUTINE Timer_End
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_Print
+! !IROUTINE: Timer_Print
 !
-! !DESCRIPTION: Prints the specified GEOS\_Timer by name.
+! !DESCRIPTION: Prints the specified Timer by name.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_Print( TimerName, RC )
+  SUBROUTINE Timer_Print( TimerName, RC )
 !
 ! !USES:
 !
@@ -503,23 +466,17 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! GEOS_Timer_Start begins here!
+    ! Timer_Print begins here!
     !=======================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = &
-       ' -> at Geos_Timer_Print (in module GeosUtil/geos_timers_mod.F90)'
-
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
+    ThisLoc  = ' -> at Timer_Print (in module GeosUtil/timers_mod.F90)'
 
     TempTimerName = TimerName
 
-    TimerLoc = GEOS_Timer_Find( TempTimerName )
+    TimerLoc = Timer_Find( TempTimerName )
 
     ! Exit if timer is not found
     IF (TimerLoc .eq. 0) THEN
@@ -529,27 +486,32 @@ CONTAINS
     ENDIF
 
     ! Print the timer output
-    CALL GEOS_Timer_PrintNum( TimerLoc )
+    CALL Timer_PrintNum( TimerLoc )
 
-  END SUBROUTINE GEOS_Timer_Print
+  END SUBROUTINE Timer_Print
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_PrintAll
+! !IROUTINE: Timer_PrintAll
 !
-! !DESCRIPTION: Prints all GEOS\_Timers to log file.
+! !DESCRIPTION: Prints all Timers to log file.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_PrintAll( RC )
+  SUBROUTINE Timer_PrintAll( Input_Opt, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
+    USE Input_Opt_Mod,     ONLY : OptInput
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN) :: Input_Opt
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -574,19 +536,13 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! GEOS_Timer_PrintAll begins here!
+    ! Timer_PrintAll begins here!
     !=======================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = &
-       ' -> at Geos_Timer_PrintAll (in module GeosUtil/geos_timers_mod.F90)'
-
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
+    ThisLoc  = ' -> at Timer_PrintAll (in module GeosUtil/timers_mod.F90)'
 
     ! Exit if no timers were turned on
     IF(TimerCurrentSize < 1) THEN
@@ -596,34 +552,36 @@ CONTAINS
     ENDIF
 
     ! Print header info
-    WRITE( 6, *     ) ''
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    WRITE( 6, '(a)' ) 'G E O S - C H E M   T I M E R S'
-    WRITE( 6, *     ) ''
-    WRITE( 6, 100   ) 'Timer name','DD-hh:mm:ss.SSS','Total Seconds'
-    WRITE( 6, '(a)' ) REPEAT( '-', 79 )
-100 FORMAT( 2x, a10, 23x, a15, 5x, a13 )
+    IF ( Input_Opt%amIRoot) THEN
+       WRITE( 6, *     ) ''
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, '(a)' ) 'G E O S - C H E M   T I M E R S'
+       WRITE( 6, *     ) ''
+       WRITE( 6, 100   ) 'Timer name','DD-hh:mm:ss.SSS','Total Seconds'
+       WRITE( 6, '(a)' ) REPEAT( '-', 79 )
+100    FORMAT( 2x, a10, 23x, a15, 5x, a13 )
 
-    ! Print formatted output
-    DO I = 1, TimerCurrentSize
-       CALL GEOS_Timer_PrintNum( I )
-    ENDDO
+       ! Print formatted output
+       DO I = 1, TimerCurrentSize
+          CALL Timer_PrintNum( I )
+       ENDDO
+    ENDIF
 
-  END SUBROUTINE GEOS_Timer_PrintAll
+  END SUBROUTINE Timer_PrintAll
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_StopAll
+! !IROUTINE: Timer_StopAll
 !
-! !DESCRIPTION: Stops all GEOS\_Timers.
+! !DESCRIPTION: Stops all Timers.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_StopAll( RC )
+  SUBROUTINE Timer_StopAll( RC )
 !
 ! !USES:
 !
@@ -652,19 +610,13 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! GEOS_Timer_StopAll begins here!
+    ! Timer_StopAll begins here!
     !=======================================================================
 
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = &
-       ' -> at Geos_Timer_StopAll  (in module GeosUtil/geos_timers_mod.F90)'
-
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
+    ThisLoc  = ' -> at Timer_StopAll  (in module GeosUtil/timers_mod.F90)'
 
     ! Exit if no timers are defined
     IF ( TimerCurrentSize < 1 ) THEN
@@ -681,25 +633,25 @@ CONTAINS
 
           ! Yes, this is inefficient. Should have another function
           ! written eventually to replace using the normal one.
-          CALL GEOS_Timer_End( SavedTimers(I)%TIMER_NAME, RC )
+          CALL Timer_End( SavedTimers(I)%TIMER_NAME, RC )
        ENDIF
     ENDDO
 
-  END SUBROUTINE GEOS_Timer_StopAll
+  END SUBROUTINE Timer_StopAll
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_PrintNum
+! !IROUTINE: Timer_PrintNum
 !
-! !DESCRIPTION: Prints GEOS\_Timer by number.
+! !DESCRIPTION: Prints Timer by number.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_PrintNum( SlotNumber )
+  SUBROUTINE Timer_PrintNum( SlotNumber )
 !
 ! !INPUT PARAMETERS:
 !
@@ -715,11 +667,6 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
 
     IF(TimerCurrentSize < 1) THEN  ! Return if it's empty
        RETURN
@@ -729,23 +676,23 @@ CONTAINS
        PRINT*, "** WARNING: Timer still enabled! "
     ENDIF
 
-    CALL GEOS_Timer_TimePrint( SlotNumber )
+    CALL Timer_TimePrint( SlotNumber )
 
-  END SUBROUTINE GEOS_Timer_PrintNum
+  END SUBROUTINE Timer_PrintNum
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_Find
+! !IROUTINE: Timer_Find
 !
-! !DESCRIPTION: Finds the number of the specified GEOS\_Timer.
+! !DESCRIPTION: Finds the number of the specified Timer.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GEOS_Timer_Find( TimerName ) RESULT ( SlotNumber )
+  FUNCTION Timer_Find( TimerName ) RESULT ( SlotNumber )
 !
 ! !INPUT PARAMETERS:
 !
@@ -769,11 +716,6 @@ CONTAINS
 !
     INTEGER :: I
 
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                      ! If no timers, do nothing.
-    ENDIF
-
     SlotNumber = 0
 
     IF(TimerCurrentSize .lt. 1) THEN  ! Return 0 if it's empty
@@ -786,21 +728,21 @@ CONTAINS
        ENDIF
     ENDDO
 
-  END FUNCTION GEOS_Timer_Find
+  END FUNCTION Timer_Find
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_TheTime
+! !IROUTINE: Timer_TheTime
 !
 ! !DESCRIPTION: Returns the current time in MS.
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GEOS_Timer_TheTime() RESULT ( TotalTime )
+  FUNCTION Timer_TheTime() RESULT ( TotalTime )
 !
 ! !RETURN VALUE:
 !
@@ -821,11 +763,6 @@ CONTAINS
     INTEGER        :: TIME_VALUE            ! For the function
     INTEGER        :: TIME_CLOCK            ! For the function
 
-!      ! First it is important to check if timers are enabled.
-!    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-!       RETURN                       ! If no timers, do nothing.
-!    ENDIF
-
     ! Let's call the intrinsic function...
     CALL SYSTEM_CLOCK(TIME_VALUE, TIME_CLOCK)
 
@@ -836,21 +773,21 @@ CONTAINS
 
     TotalTime = REAL(TIME_VALUE) / REAL(TIME_CLOCK)
 
-  END FUNCTION GEOS_Timer_TheTime
+  END FUNCTION Timer_TheTime
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_Timer_TimePrint
+! !IROUTINE: Timer_TimePrint
 !
 ! !DESCRIPTION: Formats the time and writes it out to the log file.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_Timer_TimePrint( SlotNumber )
+  SUBROUTINE Timer_TimePrint( SlotNumber )
 !
 ! !INPUT PARAMETERS:
 !
@@ -885,13 +822,8 @@ CONTAINS
     CHARACTER(LEN=3)   :: MS
 
     !=======================================================================
-    ! Geos_Timer_TimerPrint begins here!
+    ! Timer_TimePrint begins here!
     !=======================================================================
-
-    ! First it is important to check if timers are enabled.
-    IF (.not. DoTimers) THEN       ! Assume False for optimization.
-       RETURN                       ! If no timers, do nothing.
-    ENDIF
 
     ! Initialize
     InputSecs  = 0.0_f8
@@ -967,6 +899,6 @@ CONTAINS
                     DD, HH, MM, SS, MS, InputSecs
 130 FORMAT( 2x,a30,':',2x,a2,'-',a2,':',a2,':',a2,'.',a3, 4x, f14.3    )
 
-  END SUBROUTINE GEOS_Timer_TimePrint
+  END SUBROUTINE Timer_TimePrint
 !EOC
-END MODULE GEOS_Timers_Mod
+END MODULE Timers_Mod

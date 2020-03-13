@@ -207,7 +207,7 @@ CONTAINS
     IF ( NLEV > MAXLEV ) THEN
        print*,' # Levels this day = ', NLEV
        print*, 'WARNING: NLEV > MAXLEV. Need to increase'
-       print*, ' MAXLEV in tccon_ch4_mod.f.'
+       print*, ' MAXLEV in tccon_ch4_mod.F90.'
        CALL GEOS_CHEM_STOP
     ENDIF
 

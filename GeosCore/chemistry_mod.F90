@@ -16,7 +16,7 @@ MODULE Chemistry_Mod
 ! !USES:
 !
   USE Precision_Mod    ! For GEOS-Chem Precision (fp)
-  USE Geos_Timers_Mod  ! For GEOS-Chem timers (optional)
+  USE Timers_Mod       ! For GEOS-Chem timers (optional)
 
   IMPLICIT NONE
   PRIVATE
@@ -261,9 +261,9 @@ CONTAINS
        !====================================================================
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Gas-phase chem", RC )
+          ENDIF
 
           !----------------------------------------
           ! Dry-run sulfate chem to get cloud pH
@@ -318,18 +318,18 @@ CONTAINS
              RETURN
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Gas-phase chem", RC )
+          ENDIF
 
           !----------------------------------------
           ! Call linearized stratospheric scheme
           !----------------------------------------
           IF ( LSCHEM ) THEN
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_Start( "=> Strat chem", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "=> Strat chem", RC )
+             ENDIF
 
              ! Do linearized chemistry for the stratosphere (tropchem)
              ! or the mesosphere (UCX)
@@ -349,9 +349,9 @@ CONTAINS
                 RETURN
              ENDIF
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End( "=> Strat chem", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "=> Strat chem", RC )
+             ENDIF
 
           ENDIF
 
@@ -377,9 +377,9 @@ CONTAINS
           !$OMP END PARALLEL DO
 #endif
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> All aerosol chem", RC )
+          ENDIF
 
           !--------------------------------
           ! Do seasalt aerosol chemistry
@@ -401,10 +401,10 @@ CONTAINS
           !-------------------------------
           IF ( LUCX ) THEN
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End  ( "=> All aerosol chem", RC )
-             CALL GEOS_Timer_Start( "=> Strat chem",       RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End  ( "=> All aerosol chem", RC )
+                CALL Timer_Start( "=> Strat chem",       RC )
+             ENDIF
 
              ! Recalculate PSC
              CALL Calc_Strat_Aer( Input_Opt, State_Chm, State_Grid, &
@@ -417,10 +417,10 @@ CONTAINS
                 RETURN
              ENDIF
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End  ( "=> Strat chem",       RC )
-             CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End  ( "=> Strat chem",       RC )
+                CALL Timer_Start( "=> All aerosol chem", RC )
+             ENDIF
 
           ENDIF
 
@@ -548,18 +548,18 @@ CONTAINS
           ENDIF
 #endif
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> All aerosol chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> All aerosol chem", RC )
+          ENDIF
 
        !====================================================================
        ! Aerosol-only simulation
        !====================================================================
        ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> All aerosol chem", RC )
+          ENDIF
 
           !-------------------------------------------------------
           ! Compute aerosol & dust concentrations [kg/m3]
@@ -717,18 +717,18 @@ CONTAINS
              ENDIF
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> All aerosol chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> All aerosol chem", RC )
+          ENDIF
 
        !====================================================================
        ! Rn-Pb-Be
        !====================================================================
        ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Gas-phase chem", RC )
+          ENDIF
 
           ! Do Rn-Pb-Be chemistry
           CALL ChemRnPbBe( Input_Opt,  State_Chm, State_Diag, &
@@ -741,18 +741,18 @@ CONTAINS
              RETURN
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Gas-phase chem", RC )
+          ENDIF
 
        !====================================================================
        ! Tagged O3
        !====================================================================
        ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Gas-phase chem", RC )
+          ENDIF
 
           !-----------------------------------------------
           ! Do Tagged O3 chemistry
@@ -767,18 +767,18 @@ CONTAINS
              RETURN
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Gas-phase chem", RC )
+          ENDIF
 
           !-----------------------------------------------
           ! Call linearized stratospheric scheme (LINOZ)
           !-----------------------------------------------
           IF ( LSCHEM ) THEN
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_Start( "=> Strat chem", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "=> Strat chem", RC )
+             ENDIF
 
              ! Do LINOZ for Ozone
              CALL Do_Strat_Chem( Input_Opt, State_Chm, State_Grid, &
@@ -791,9 +791,9 @@ CONTAINS
                 RETURN
              ENDIF
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End( "=> Strat chem", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "=> Strat chem", RC )
+             ENDIF
 
           ENDIF
 
@@ -802,9 +802,9 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Gas-phase chem", RC )
+          ENDIF
 
           ! Do tagged CO chemistry
           CALL Chem_Tagged_CO( Input_Opt,  State_Chm, State_Diag, &
@@ -817,18 +817,18 @@ CONTAINS
              RETURN
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Gas-phase chem", RC )
+          ENDIF
 
        !====================================================================
        ! CH4
        !====================================================================
        ELSE IF ( IT_IS_A_CH4_SIM ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Gas-phase chem", RC )
+          ENDIF
 
           CALL ChemCh4( Input_Opt,  State_Chm, State_Diag, &
                         State_Grid, State_Met, RC )
@@ -840,9 +840,9 @@ CONTAINS
              RETURN
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Gas-phase chem", RC )
+          ENDIF
 
 #ifdef BPCH_DIAG
        !====================================================================
@@ -850,9 +850,9 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Gas-phase chem", RC )
+          ENDIF
 
           ! Do Hg chemistry
           CALL ChemMercury( Input_Opt,  State_Chm, State_Diag, &
@@ -865,18 +865,18 @@ CONTAINS
              RETURN
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Gas-phase chem", RC )
+          ENDIF
 
        !====================================================================
        ! POPs (only used when compiled with BPCH_DIAG=y)
        !====================================================================
        ELSE IF ( IT_IS_A_POPS_SIM ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Gas-phase chem", RC )
+          ENDIF
 
           ! Do POPS chemistry
           CALL ChemPOPs( Input_Opt,  State_Chm, State_Diag, &
@@ -889,9 +889,9 @@ CONTAINS
              RETURN
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Gas-phase chem", RC )
+          ENDIF
 #endif
        ENDIF
 

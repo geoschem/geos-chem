@@ -27,7 +27,6 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
   USE ERROR_MOD,               ONLY : DEBUG_MSG
   USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
   USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
-  USE GEOS_TIMERS_MOD
   USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
   USE History_Mod,             ONLY : History_Cleanup
   USE ISORROPIAII_MOD,         ONLY : CLEANUP_ISORROPIAII

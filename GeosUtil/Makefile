@@ -147,7 +147,7 @@ bpch2_mod.o         : bpch2_mod.F90         \
                       julday_mod.o
 
 error_mod.o         : error_mod.F90         \
-                      geos_timers_mod.o
+                      timers_mod.o
 
 file_mod.o          : file_mod.F90          \
                       error_mod.o
@@ -178,14 +178,14 @@ time_mod.o          : time_mod.F90          \
                       gc_grid_mod.o         \
                       julday_mod.o
 
+timers_mod.o        : timers_mod.F90
+
 transfer_mod.o      : transfer_mod.F90      \
                       error_mod.o
 
 unitconv_mod.o	    : unitconv_mod.F90      \
                       error_mod.o           \
-                      geos_timers_mod.o
-
-geos_timers_mod.o   : geos_timers_mod.F90
+                      timers_mod.o
 
 ifeq ($(HDF5),yes)
 	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<

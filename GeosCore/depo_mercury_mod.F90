@@ -866,7 +866,7 @@ CONTAINS
        WRITE( 6, 120 )
 120    FORMAT( 'ERROR reading in Hg restart file', / &
                'Wrong number of vertical encountered', / &
-               'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.f")' )
+               'STOP in CHECK_DIMENSIONS ("depo_mercury_mod.F90")' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
        CALL GEOS_CHEM_STOP
     ENDIF
@@ -933,9 +933,7 @@ CONTAINS
     GTMM_RST_FILE = Input_Opt%GTMM_RST_FILE
 
     !================================================================
-    ! Initialize local Hg indexing variables.  These used to be
-    ! contained in tracerid_mod.F, but tracerid_mod.F is going
-    ! to be removed with the FlexChem implementation (bmy, 4/26/16)
+    ! Initialize local Hg indexing variables
     !================================================================
 
     ! Now get # of tagHg categories from State_Chm

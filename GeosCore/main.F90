@@ -42,7 +42,6 @@ PROGRAM GEOS_Chem
   USE ErrCode_Mod           ! Error codes for success or failure
   USE ERROR_MOD             ! For error checking
   USE FILE_MOD              ! For file I/O
-  USE GEOS_TIMERS_MOD       ! For GEOS-Chem timers (optional)
   USE GC_Environment_Mod    ! For allocating derived type objects
   USE GC_GRID_MOD           ! For defining the lons/lats/areas of the grid
   USE Input_Opt_Mod         ! Derived type for Input Options
@@ -56,6 +55,7 @@ PROGRAM GEOS_Chem
   USE State_Grid_Mod        ! Derived type for Grid State object
   USE State_Met_Mod         ! Derived type for Meteorology State object
   USE TIME_MOD              ! For computing date & time
+  USE TIMERS_MOD            ! For GEOS-Chem timers (optional)
   USE UnitConv_Mod          ! For species conc unit conversions
 
   !-----------------------------------------------------------------
@@ -304,11 +304,11 @@ PROGRAM GEOS_Chem
 #endif
 
   ! Assume a successful return until otherwise
-  RC                      = GC_SUCCESS
+  RC      = GC_SUCCESS
 
-      ! For error trapping
-  ErrMsg                  = ''
-  ThisLoc                 = ' -> at GEOS-Chem (in GeosCore/main.F90)'
+  ! For error trapping
+  ErrMsg  = ''
+  ThisLoc = ' -> at GEOS-Chem (in GeosCore/main.F90)'
 
   ! Display model information
   CALL Display_Model_Info()
@@ -317,48 +317,48 @@ PROGRAM GEOS_Chem
   !            ***** I N I T I A L I Z A T I O N *****
   !=================================================================
 
-#ifdef USE_TIMERS
-  !-----------------------------------------------------------------
-  ! Initialize GEOS-Chem timers (if compiled with TIMERS=1)
-  !-----------------------------------------------------------------
+  IF ( Input_Opt%useTimers ) THEN
+     !-----------------------------------------------------------------
+     ! Initialize GEOS-Chem timers
+     !-----------------------------------------------------------------
 
-  ! Call timer initilization
-  CALL GEOS_Timer_Setup( 1 )
+     ! Call timer initilization
+     CALL Timer_Setup( 1 )
 
-  ! Add timers for various operations
-  CALL GEOS_Timer_Add( "GEOS-Chem",                    RC )
-  CALL GEOS_Timer_Add( "Initialization",               RC )
-  CALL GEOS_Timer_Add( "Timesteps",                    RC )
-  CALL GEOS_Timer_Add( "HEMCO",                        RC )
-  CALL GEOS_Timer_Add( "All chemistry",                RC )
-  CALL GEOS_Timer_Add( "=> Gas-phase chem",            RC )
-  CALL GEOS_Timer_Add( "=> FAST-JX photolysis",        RC )
-  CALL GEOS_Timer_Add( "=> All aerosol chem",          RC )
-  CALL GEOS_Timer_Add( "=> Strat chem",                RC )
-  CALL GEOS_Timer_Add( "=> Unit conversions",          RC )
-  CALL GEOS_Timer_Add( "Transport",                    RC )
-  CALL GEOS_Timer_Add( "Convection",                   RC )
-  CALL GEOS_Timer_Add( "Boundary layer mixing",        RC )
-  CALL GEOS_Timer_Add( "Dry deposition",               RC )
-  CALL GEOS_Timer_Add( "Wet deposition",               RC )
+     ! Add timers for various operations
+     CALL Timer_Add( "GEOS-Chem",                    RC )
+     CALL Timer_Add( "Initialization",               RC )
+     CALL Timer_Add( "Timesteps",                    RC )
+     CALL Timer_Add( "HEMCO",                        RC )
+     CALL Timer_Add( "All chemistry",                RC )
+     CALL Timer_Add( "=> Gas-phase chem",            RC )
+     CALL Timer_Add( "=> FAST-JX photolysis",        RC )
+     CALL Timer_Add( "=> All aerosol chem",          RC )
+     CALL Timer_Add( "=> Strat chem",                RC )
+     CALL Timer_Add( "=> Unit conversions",          RC )
+     CALL Timer_Add( "Transport",                    RC )
+     CALL Timer_Add( "Convection",                   RC )
+     CALL Timer_Add( "Boundary layer mixing",        RC )
+     CALL Timer_Add( "Dry deposition",               RC )
+     CALL Timer_Add( "Wet deposition",               RC )
 #ifdef RRTMG
-  CALL GEOS_Timer_Add( "RRTMG",                        RC )
+     CALL Timer_Add( "RRTMG",                        RC )
 #endif
-  CALL GEOS_Timer_Add( "All diagnostics",              RC )
-  CALL GEOS_Timer_Add( "=> HEMCO diagnostics",         RC )
+     CALL Timer_Add( "All diagnostics",              RC )
+     CALL Timer_Add( "=> HEMCO diagnostics",         RC )
 #ifdef BPCH_DIAG
-  CALL GEOS_Timer_Add( "=> Binary punch diagnostics",  RC )
+     CALL Timer_Add( "=> Binary punch diagnostics",  RC )
 #endif
-  CALL GEOS_Timer_Add( "=> ObsPack diagnostics",       RC )
-  CALL GEOS_Timer_Add( "=> History (netCDF diags)",    RC )
-  CALL GEOS_Timer_Add( "Input",                        RC )
-  CALL GEOS_Timer_Add( "Output",                       RC )
-  CALL GEOS_Timer_Add( "Finalization",                 RC )
+     CALL Timer_Add( "=> ObsPack diagnostics",       RC )
+     CALL Timer_Add( "=> History (netCDF diags)",    RC )
+     CALL Timer_Add( "Input",                        RC )
+     CALL Timer_Add( "Output",                       RC )
+     CALL Timer_Add( "Finalization",                 RC )
 
-  ! Start running the main and initialization timer
-  CALL GEOS_Timer_Start( "GEOS-Chem",                  RC )
-  CALL GEOS_Timer_Start( "Initialization",             RC )
-#endif
+     ! Start running the main and initialization timer
+     CALL Timer_Start( "GEOS-Chem",                  RC )
+     CALL Timer_Start( "Initialization",             RC )
+  ENDIF
 
   !-----------------------------------------------------------------
   ! Read the user-defined options for the simulation, etc.
@@ -492,11 +492,10 @@ PROGRAM GEOS_Chem
   ! (ewl, 9/26/17)
   !-----------------------------------------------------------------
   IF ( notDryRun ) THEN
-#ifdef USE_TIMERS
-     CALL GEOS_Timer_Start( "All diagnostics",           RC )
-     CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
-#endif
-
+     IF ( Input_Opt%useTimers ) THEN
+        CALL Timer_Start( "All diagnostics",           RC )
+        CALL Timer_Start( "=> History (netCDF diags)", RC )
+     ENDIF
      ! Don't initialize diagnostics when in dry-run mode
      historyConfigFile = 'HISTORY.rc' ! InputOpt not yet initialized
      CALL Init_DiagList( Input_Opt, historyConfigFile, Diag_List, RC )
@@ -514,10 +513,10 @@ PROGRAM GEOS_Chem
      IF ( prtDebug ) CALL Print_DiagList( Input_Opt, Diag_List, RC )
      IF ( prtDebug ) CALL Print_TaggedDiagList( Input_Opt, TaggedDiag_List, RC )
 
-#ifdef USE_TIMERS
-     CALL GEOS_Timer_End( "All diagnostics",           RC )
-     CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
+     IF ( Input_Opt%useTimers ) THEN
+        CALL Timer_End( "All diagnostics",           RC )
+        CALL Timer_End( "=> History (netCDF diags)", RC )
+     ENDIF
   ENDIF
 
   !-----------------------------------------------------------------
@@ -702,12 +701,10 @@ PROGRAM GEOS_Chem
   !-----------------------------------------------------------------
   !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
   !-----------------------------------------------------------------
-#ifdef USE_TIMERS
-  IF ( notDryRun ) THEN
-     CALL GEOS_Timer_Start( "All diagnostics",           RC )
-     CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
+  IF ( Input_Opt%useTimers .and. notDryRun ) THEN
+     CALL Timer_Start( "All diagnostics",           RC )
+     CALL Timer_Start( "=> History (netCDF diags)", RC )
   ENDIF
-#endif
 
   ! For now, just hardwire the input file for the History component
   Input_Opt%HistoryInputFile = './HISTORY.rc'
@@ -722,12 +719,10 @@ PROGRAM GEOS_Chem
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
-#ifdef USE_TIMERS
-  IF ( notDryRun ) THEN
-     CALL GEOS_Timer_End( "All diagnostics",           RC )
-     CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
+  IF ( Input_Opt%useTimers .and. notDryRun ) THEN
+     CALL Timer_End( "All diagnostics",           RC )
+     CALL Timer_End( "=> History (netCDF diags)", RC )
   ENDIF
-#endif
 
   !-----------------------------------------------------------------
   !        ***** I N I T I A L I Z A T I O N  continued *****
@@ -749,9 +744,9 @@ PROGRAM GEOS_Chem
   !
   ! This call will also initialize the three built-in HEMCO
   ! diagnostics (default, manual, restart).
-#ifdef USE_TIMERS
-  CALL GEOS_Timer_Start( "HEMCO", RC )
-#endif
+  IF ( Input_Opt%useTimers ) THEN
+     CALL Timer_Start( "HEMCO", RC )
+  ENDIF
 
   CALL Emissions_Init( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
@@ -774,9 +769,9 @@ PROGRAM GEOS_Chem
      CALL Error_Stop( ErrMsg, ThisLoc, Instr )
   ENDIF
 
-#ifdef USE_TIMERS
-  CALL GEOS_Timer_End ( "HEMCO", RC )
-#endif
+  IF ( Input_Opt%useTimers ) THEN
+     CALL Timer_End ( "HEMCO", RC )
+  ENDIF
 
   ! Skip certain initializations
   IF ( notDryRun ) THEN
@@ -874,17 +869,17 @@ PROGRAM GEOS_Chem
 #endif
 !-----------------------------------------------------------------------------
 
-#ifdef USE_TIMERS
-  CALL GEOS_Timer_End( "Initialization", RC )
-#endif
+  IF ( Input_Opt%useTimers ) THEN
+     CALL Timer_End( "Initialization", RC )
+  ENDIF
 
   !=================================================================
   !        ***** O U T E R   T I M E S T E P   L O O P  *****
   !=================================================================      
 
-#ifdef USE_TIMERS
-  CALL GEOS_Timer_Start( "Timesteps", RC )
-#endif
+  IF ( Input_Opt%useTimers ) THEN
+     CALL Timer_Start( "Timesteps", RC )
+  ENDIF
 
   ! Echo message before first timestep
   IF ( notDryRun ) THEN
@@ -962,10 +957,10 @@ PROGRAM GEOS_Chem
        ! out with #ifdef BPCH_DIAG. (bmy, 10/4/19)
        !--------------------------------------------------------------
        IF ( ITS_A_MERCURY_SIM .and. notDryRun ) THEN
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "All diagnostics",           RC )
-          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All diagnostics",           RC )
+             CALL Timer_Start( "=> History (netCDF diags)", RC )
+          ENDIF
 
           CALL Reset_Hg_Diags( Input_Opt, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) THEN
@@ -973,10 +968,10 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "All diagnostics",           RC )
-          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "All diagnostics",           RC )
+          CALL Timer_End( "=> History (netCDF diags)", RC )
+       ENDIF
        ENDIF
 #endif
 
@@ -989,10 +984,10 @@ PROGRAM GEOS_Chem
        !    and before using any of the HEMCO data list fields.
        !    (ckeller, 4/1/15)
        !==============================================================
-#ifdef USE_TIMERS
-       CALL GEOS_Timer_Start( "HEMCO", RC )
-       CALL GEOS_Timer_Start( "Input", RC )
-#endif
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "HEMCO", RC )
+          CALL Timer_Start( "Input", RC )
+       ENDIF
 
        ! Is it time for emissions?
        TimeForEmis = ITS_TIME_FOR_EMIS()
@@ -1007,10 +1002,10 @@ PROGRAM GEOS_Chem
           CALL Error_Stop( ErrMsg, ThisLoc )
        ENDIF
 
-#ifdef USE_TIMERS
-       CALL GEOS_Timer_End( "HEMCO", RC )
-       CALL GEOS_Timer_End( "Input", RC )
-#endif
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "HEMCO", RC )
+          CALL Timer_End( "Input", RC )
+       ENDIF
 
        IF ( prtDebug ) THEN
           CALL Debug_Msg( '### MAIN: a HEMCO PHASE 1' )
@@ -1020,11 +1015,12 @@ PROGRAM GEOS_Chem
        !  ***** W R I T E   H E M C O   D I A G N O S T I C S *****
        !==============================================================
        IF ( notDryRun ) THEN
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "All diagnostics",       RC )
-          CALL GEOS_Timer_Start( "=> HEMCO diagnostics",  RC )
-          CALL GEOS_Timer_Start( "Output",                RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All diagnostics",       RC )
+             CALL Timer_Start( "=> HEMCO diagnostics",  RC )
+             CALL Timer_Start( "Output",                RC )
+          ENDIF
+
           ! Do not do actual output for dry-run
           ! Write HEMCO diagnostics (ckeller, 4/1/15)
           CALL HCOI_GC_WriteDiagn( Input_Opt, .FALSE., RC )
@@ -1036,11 +1032,11 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "All diagnostics",      RC )
-          CALL GEOS_Timer_End( "=> HEMCO diagnostics", RC )
-          CALL GEOS_Timer_End( "Output",               RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All diagnostics",      RC )
+             CALL Timer_End( "=> HEMCO diagnostics", RC )
+             CALL Timer_End( "Output",               RC )
+          ENDIF
        ENDIF
 
        !==============================================================
@@ -1049,10 +1045,11 @@ PROGRAM GEOS_Chem
        IF ( Input_Opt%Do_ObsPack .and. &
           ( ELAPSED_TODAY == 0 ) .and. notDryRun ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "All diagnostics",         RC )
-          CALL GEOS_Timer_Start( "=> ObsPack diagnostics",  RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All diagnostics",         RC )
+             CALL Timer_Start( "=> ObsPack diagnostics",  RC )
+          ENDIF
+
           ! Initialize Obspack for the new day
           CALL ObsPack_Init( NYMD,  NHMS, Input_Opt, State_Diag, RC )
 
@@ -1062,10 +1059,10 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "All diagnostics",         RC )
-          CALL GEOS_Timer_End( "=> ObsPack diagnostics",  RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All diagnostics",         RC )
+             CALL Timer_End( "=> ObsPack diagnostics",  RC )
+          ENDIF
        ENDIF
 
 #ifdef BPCH_DIAG
@@ -1076,11 +1073,11 @@ PROGRAM GEOS_Chem
           ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
           !===========================================================
           IF ( notDryRun ) THEN
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_Start( "All diagnostics",              RC )
-             CALL GEOS_Timer_Start( "=> Binary punch diagnostics",  RC )
-             CALL GEOS_Timer_Start( "Output",                       RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "All diagnostics",              RC )
+                CALL Timer_Start( "=> Binary punch diagnostics",  RC )
+                CALL Timer_Start( "Output",                       RC )
+             ENDIF
 
              ! Set time at end of diagnostic timestep
              CALL SET_DIAGe( TAU )
@@ -1094,19 +1091,19 @@ PROGRAM GEOS_Chem
                 CALL CTM_FLUSH()
              ENDIF
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End( "All diagnostics",              RC )
-             CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
-             CALL GEOS_Timer_End( "Output",                       RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "All diagnostics",              RC )
+                CALL Timer_End( "=> Binary punch diagnostics",  RC )
+                CALL Timer_End( "Output",                       RC )
+             ENDIF
 
              !========================================================
              !    ***** W R I T E   H E M C O   R E S T A R T S *****
              !========================================================
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_Start( "HEMCO",  RC )
-             CALL GEOS_Timer_Start( "Output", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "HEMCO",  RC )
+                CALL Timer_Start( "Output", RC )
+             ENDIF
 
              ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
              CALL HCOI_GC_WriteDiagn( Input_Opt, .TRUE., RC )
@@ -1117,10 +1114,10 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End( "HEMCO",  RC )
-             CALL GEOS_Timer_End( "Output", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "HEMCO",  RC )
+                CALL Timer_End( "Output", RC )
+             ENDIF
 
              ! Set time at beginning of next diagnostic timestep
              CALL SET_DIAGb( TAU )
@@ -1355,9 +1352,9 @@ PROGRAM GEOS_Chem
        !==============================================================
        IF ( ITS_TIME_FOR_DYN() .and. notDryRun ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "Transport", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "Transport", RC )
+          ENDIF
 
           !--------------------------------------------------------------------
           ! TWO-WAY NESTING OPTION
@@ -1437,9 +1434,9 @@ PROGRAM GEOS_Chem
           ENDIF
 #endif
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "Transport", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Transport", RC )
+          ENDIF
 
        ENDIF
 
@@ -1452,9 +1449,9 @@ PROGRAM GEOS_Chem
        !     ***** C O M P U T E   P B L   H E I G H T  etc. *****
        !==============================================================
        IF ( notDryRun ) THEN
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "Boundary layer mixing", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "Boundary layer mixing", RC )
+          ENDIF
 
           ! Move this call from the PBL mixing routines because the PBL
           ! height is used by drydep and some of the emissions routines.
@@ -1467,9 +1464,9 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "Boundary layer mixing", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Boundary layer mixing", RC )
+          ENDIF
 
           IF ( prtDebug ) THEN
              CALL Debug_Msg( '### MAIN: a COMPUTE_PBL_HEIGHT' )
@@ -1496,9 +1493,10 @@ PROGRAM GEOS_Chem
           !===========================================================
           IF ( LDRYD .and. notDryRun ) THEN
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_Start( "Dry deposition", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "Dry deposition", RC )
+             ENDIF
+
              ! Compute drydep velocities
              CALL Do_Drydep( Input_Opt,  State_Chm, State_Diag, &
                              State_Grid, State_Met, RC )
@@ -1509,9 +1507,9 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End ( "Dry deposition", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End ( "Dry deposition", RC )
+             ENDIF
 
              IF ( prtDebug ) THEN
                 CALL Debug_Msg( '### MAIN: a DO_DRYDEP' )
@@ -1527,9 +1525,9 @@ PROGRAM GEOS_Chem
           !
           ! http://wiki-geos-chem.org/Distributing_emissions_in_the_PBL
           !===========================================================
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "HEMCO", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "HEMCO", RC )
+          ENDIF
 
           ! Is it time for emissions?
           TimeForEmis = ITS_TIME_FOR_EMIS()
@@ -1551,9 +1549,9 @@ PROGRAM GEOS_Chem
              CALL Debug_Msg( '### MAIN: a HEMCO PHASE 2' )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "HEMCO", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "HEMCO", RC )
+          ENDIF
        ENDIF
 
        !--------------------------------------------------------------
@@ -1569,9 +1567,9 @@ PROGRAM GEOS_Chem
           !===========================================================
           !      ***** M I X E D   L A Y E R   M I X I N G *****
           !===========================================================
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "Boundary layer mixing", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "Boundary layer mixing", RC )
+          ENDIF
 
           ! Note: mixing routine expects tracers in v/v
           ! DO_MIXING applies the tracer tendencies (dry deposition,
@@ -1594,9 +1592,9 @@ PROGRAM GEOS_Chem
              CALL ERror_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "Boundary layer mixing", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Boundary layer mixing", RC )
+          ENDIF
 
           IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a TURBDAY:2' )
 
@@ -1604,9 +1602,9 @@ PROGRAM GEOS_Chem
           !        ***** C L O U D   C O N V E C T I O N *****
           !===========================================================
           IF ( LCONV ) THEN
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_Start( "Convection", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "Convection", RC )
+             ENDIF
 
              ! Call the appropriate convection routine
              ! NOTE: Tracer concentration units are converted locally
@@ -1624,9 +1622,9 @@ PROGRAM GEOS_Chem
                 CALL Debug_Msg( '### MAIN: a CONVECTION' )
              ENDIF
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End( "Convection", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "Convection", RC )
+             ENDIF
           ENDIF
 
        ENDIF
@@ -1635,9 +1633,10 @@ PROGRAM GEOS_Chem
        !               ***** C H E M I S T R Y *****
        !============================================================== 
        IF ( notDryRun ) THEN
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "All chemistry", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All chemistry", RC )
+          ENDIF
+
           ! Get the overhead column O3 for use with FAST-J
           ! NOTE: Move to CHEMISTRY section.  This now has to come after
           ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
@@ -1679,9 +1678,9 @@ PROGRAM GEOS_Chem
 
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "All chemistry", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All chemistry", RC )
+          ENDIF
        ENDIF
 
        !==============================================================
@@ -1689,9 +1688,9 @@ PROGRAM GEOS_Chem
        !==============================================================
        IF ( LWETD .and. ITS_TIME_FOR_DYN() .and. notDryRun ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "Wet deposition", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "Wet deposition", RC )
+          ENDIF
 
           ! Do wet deposition
           ! NOTE: Tracer concentration units are converted locally
@@ -1706,9 +1705,9 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "Wet deposition", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Wet deposition", RC )
+          ENDIF
 
        ENDIF
 
@@ -1717,10 +1716,10 @@ PROGRAM GEOS_Chem
        !==============================================================
        IF ( ITS_TIME_FOR_CHEM() .and. notDryRun ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "All chemistry",       RC )
-          CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All chemistry",       RC )
+             CALL Timer_Start( "=> All aerosol chem", RC )
+          ENDIF
 
           ! Recalculate the optical depth at the wavelength(s) specified
           ! in the Radiation Menu. This must be done before the call to any
@@ -1735,10 +1734,10 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "All chemistry",       RC )
-          CALL GEOS_Timer_End( "=> All aerosol chem", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All chemistry",       RC )
+             CALL Timer_End( "=> All aerosol chem", RC )
+          ENDIF
        ENDIF
 
 #ifdef RRTMG
@@ -1752,9 +1751,9 @@ PROGRAM GEOS_Chem
        IF ( Input_opt%LRAD  .and. ITS_TIME_FOR_RT() .and.  &
             notDryRun ) THEN
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "RRTMG", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "RRTMG", RC )
+          ENDIF
 
           ! Splash page
           IF ( am_I_Root .and. FIRST_RT ) THEN
@@ -1836,9 +1835,9 @@ PROGRAM GEOS_Chem
              CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "RRTMG", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "RRTMG", RC )
+          ENDIF
        ENDIF
 #endif
 
@@ -1850,11 +1849,12 @@ PROGRAM GEOS_Chem
           !-----------------------------------------------------------
           !        ***** H I S T O R Y   U P D A T E  *****
           !-----------------------------------------------------------
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "All diagnostics",           RC )
-          CALL GEOS_Timer_Start( "Output",                    RC )
-          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All diagnostics",           RC )
+             CALL Timer_Start( "Output",                    RC )
+             CALL Timer_Start( "=> History (netCDF diags)", RC )
+          ENDIF
+
           ! Set State_Diag arrays that rely on state at end of timestep
           CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm,  &
                                               State_Diag, State_Grid, &
@@ -1902,30 +1902,30 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "All diagnostics",           RC )
-          CALL GEOS_Timer_End( "Output",                    RC )
-          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All diagnostics",           RC )
+             CALL Timer_End( "Output",                    RC )
+             CALL Timer_End( "=> History (netCDF diags)", RC )
+          ENDIF
 
           !-----------------------------------------------------------
           !     ***** O B S P A C K   D I A G N O S T I C S *****
           !-----------------------------------------------------------
           IF ( Input_Opt%Do_ObsPack ) THEN
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_Start( "All diagnostics",        RC )
-             CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "All diagnostics",        RC )
+                CALL Timer_Start( "=> ObsPack diagnostics", RC )
+             ENDIF
 
              ! Sample the observations in today's ObsPack file
              CALL ObsPack_Sample( NYMD, NHMS, Input_Opt,  State_Chm, &
                                   State_Diag, State_Grid, State_Met, RC )
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End( "All diagnostics",        RC )
-             CALL GEOS_Timer_End( "=> ObsPack diagnostics", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "All diagnostics",        RC )
+                CALL Timer_End( "=> ObsPack diagnostics", RC )
+             ENDIF
 
           ENDIF
 
@@ -1939,11 +1939,11 @@ PROGRAM GEOS_Chem
           !--------------------------------------------------------------
           IF ( ND40 > 0 .and. DO_DIAG_WRITE .and.  ITS_A_NEW_DAY() ) THEN
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_Start( "All diagnostics",             RC) 
-             CALL GEOS_Timer_Start( "Output",                      RC)
-             CALL GEOS_Timer_Start( "=> Binary punch diagnostics", RC)
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "All diagnostics",             RC) 
+                CALL Timer_Start( "Output",                      RC)
+                CALL Timer_Start( "=> Binary punch diagnostics", RC)
+             ENDIF
 
              ! Initialize planeflight diagnostic
              CALL Setup_PlaneFlight( Input_Opt, State_Chm, State_Grid, &
@@ -1955,11 +1955,11 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-#ifdef USE_TIMERS
-             CALL GEOS_Timer_End( "All diagnostics",             RC )
-             CALL GEOS_Timer_End( "Output",                      RC )
-             CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC )
-#endif
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "All diagnostics",             RC )
+                CALL Timer_End( "Output",                      RC )
+                CALL Timer_End( "=> Binary punch diagnostics", RC )
+             ENDIF
 
           ENDIF
 
@@ -2009,11 +2009,11 @@ PROGRAM GEOS_Chem
           !
           !             ***** C O N T I N U E D *****
           !===========================================================
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "All diagnostics",              RC )
-          CALL GEOS_Timer_Start( "Output",                       RC )
-          CALL GEOS_Timer_Start( "=> Binary punch diagnostics",  RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All diagnostics",              RC )
+             CALL Timer_Start( "Output",                       RC )
+             CALL Timer_Start( "=> Binary punch diagnostics",  RC )
+          ENDIF
 
           !-----------------------------------------------------------
           !  ***** P L A N E F L I G H T   D I A G N O S T I C  *****
@@ -2093,11 +2093,11 @@ PROGRAM GEOS_Chem
 
           IF ( prtDebug ) CALL Debug_Msg('### MAIN: after TIMESERIES')
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "All diagnostics",              RC )
-          CALL GEOS_Timer_End( "Output",                       RC )
-          CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All diagnostics",              RC )
+             CALL Timer_End( "Output",                       RC )
+             CALL Timer_End( "=> Binary punch diagnostics",  RC )
+          ENDIF
        ENDIF
 #endif
 
@@ -2121,11 +2121,11 @@ PROGRAM GEOS_Chem
        !            ***** H I S T O R Y   W R I T E *****
        !--------------------------------------------------------------
        IF ( notDryRun ) THEN
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_Start( "All diagnostics",           RC )
-          CALL GEOS_Timer_Start( "Output",                    RC )
-          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "All diagnostics",           RC )
+             CALL Timer_Start( "Output",                    RC )
+             CALL Timer_Start( "=> History (netCDF diags)", RC )
+          ENDIF
 
           ! Write HISTORY ITEMS in each diagnostic collection to disk
           ! (or skip writing if it is not the proper output time.
@@ -2137,11 +2137,11 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
-#ifdef USE_TIMERS
-          CALL GEOS_Timer_End( "All diagnostics",           RC )
-          CALL GEOS_Timer_End( "Output",                    RC )
-          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "All diagnostics",           RC )
+             CALL Timer_End( "Output",                    RC )
+             CALL Timer_End( "=> History (netCDF diags)", RC )
+          ENDIF
        ENDIF
 
        !==============================================================
@@ -2158,9 +2158,9 @@ PROGRAM GEOS_Chem
   ! Skip operations when running in dry-run mode
   IF ( notDryRun ) THEN
 
-#ifdef USE_TIMERS
-    CALL GEOS_Timer_End ( "Timesteps", RC )
-#endif
+     IF ( Input_Opt%useTimers ) THEN
+        CALL Timer_End ( "Timesteps", RC )
+     ENDIF
 
 #ifndef BPCH_DIAG
     !--------------------------------------------------------------
@@ -2170,10 +2170,10 @@ PROGRAM GEOS_Chem
     ! ITS_TIME_FOR_BPCH is TRUE.   If BPCH_DIAG=n, then we have to
     ! add this here to make sure we get HEMCO restart otuput.
     !--------------------------------------------------------------
-#ifdef USE_TIMERS
-    CALL GEOS_Timer_Start( "HEMCO",  RC )
-    CALL GEOS_Timer_Start( "Output", RC )
-#endif
+     IF ( Input_Opt%useTimers ) THEN
+        CALL Timer_Start( "HEMCO",  RC )
+        CALL Timer_Start( "Output", RC )
+     ENDIF
 
     ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
     CALL HCOI_GC_WriteDiagn( Input_Opt, .TRUE., RC )
@@ -2184,10 +2184,10 @@ PROGRAM GEOS_Chem
        CALL Error_Stop( ErrMsg, ThisLoc )
     ENDIF
 
-#ifdef USE_TIMERS
-    CALL GEOS_Timer_End( "HEMCO",  RC )
-    CALL GEOS_Timer_End( "Output", RC )
-#endif
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO",  RC )
+       CALL Timer_End( "Output", RC )
+    ENDIF
 #endif
 
     !-----------------------------------------------------------------
@@ -2197,10 +2197,10 @@ PROGRAM GEOS_Chem
     !-----------------------------------------------------------------
     IF ( Input_Opt%Do_ObsPack ) THEN
 
-#ifdef USE_TIMERS
-       CALL GEOS_Timer_Start( "All diagnostics",        RC )
-       CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
-#endif
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "All diagnostics",        RC )
+          CALL Timer_Start( "=> ObsPack diagnostics", RC )
+       ENDIF
 
        ! Write any remaining ObsPack data to disk, and immediately
        ! thereafter free the ObsPack pointer fields of State_Diag
@@ -2219,10 +2219,10 @@ PROGRAM GEOS_Chem
           CALL Error_Stop( ErrMsg, ThisLoc )
        ENDIF
 
-#ifdef USE_TIMERS
-       CALL GEOS_Timer_End( "All diagnostics",        RC )
-       CALL GEOS_Timer_End( "=> ObsPack diagnostics", RC )
-#endif
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "All diagnostics",        RC )
+          CALL Timer_End( "=> ObsPack diagnostics", RC )
+       ENDIF
     ENDIF
 
     !--------------------------------------------------------------
@@ -2240,9 +2240,9 @@ PROGRAM GEOS_Chem
   !-----------------------------------------------------------------
   ! Finalize GEOS-Chem
   !-----------------------------------------------------------------
-#ifdef USE_TIMERS
-  CALL GEOS_Timer_Start( "Finalization", RC )
-#endif
+  IF ( Input_Opt%useTimers ) THEN
+     CALL Timer_Start( "Finalization", RC )
+  ENDIF
 
   ! Cleanup the dry-run simulation (if necessary)
   CALL Cleanup_Dry_Run( Input_Opt, RC )
@@ -2349,16 +2349,16 @@ PROGRAM GEOS_Chem
 
   IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a CLEANUP' )
 
-#ifdef USE_TIMERS
-  ! Stop remaining timers
-  CALL GEOS_Timer_End( "Finalization", RC )
-  CALL GEOS_Timer_End( "GEOS-Chem",    RC )
+  IF ( Input_Opt%useTimers ) THEN
+     ! Stop remaining timers
+     CALL Timer_End( "Finalization", RC )
+     CALL Timer_End( "GEOS-Chem",    RC )
 
-  ! Print timer output (skip if a dry-run)
-  IF ( am_I_Root .and. notDryRun ) THEN
-     CALL GEOS_Timer_PrintAll( RC )
+     ! Print timer output (skip if a dry-run)
+     IF ( notDryRun ) THEN
+        CALL Timer_PrintAll( Input_Opt, RC )
+     ENDIF
   ENDIF
-#endif
 
   ! Print ending time of simulation
   CALL Display_End_Time()

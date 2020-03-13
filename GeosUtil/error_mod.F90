@@ -456,8 +456,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE GEOS_TIMERS_MOD
+    USE Timers_Mod
 #if defined( ESMF_ )
     !-----------------------------------------------------------------
     !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
@@ -493,20 +492,19 @@ CONTAINS
     ! Only write to stdout if we are on the root CPU
     am_I_Root = .TRUE.
 
-#if defined( USE_TIMERS )
-    CALL GEOS_Timer_StopAll( RC )
-    CALL GEOS_Timer_PrintAll( RC )
-#endif
-
+    IF ( SHADOW_Input_Opt%useTimers ) THEN
+       CALL Timer_StopAll( RC )
+       CALL Timer_PrintAll( RC )
+    ENDIF
 
 #else
     ! Only write to stdout if we are on the root CPU
     am_I_Root = .TRUE.
 
-#if defined( USE_TIMERS )
-    CALL GEOS_Timer_StopAll( RC )
-    CALL GEOS_Timer_PrintAll( RC )
-#endif
+    IF ( SHADOW_Input_Opt%useTimers ) THEN
+       CALL Timer_StopAll( RC )
+       CALL Timer_PrintAll( SHADOW_Input_Opt, RC )
+    ENDIF
 
     !-----------------------------------------------------------------
     !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%

@@ -124,19 +124,6 @@ function(configureGCClassic)
     # Always set USE_REAL8. See https://github.com/geoschem/geos-chem/issues/43.
     target_compile_definitions(BaseTarget INTERFACE "USE_REAL8")
 
-    # Build with timers?
-    if("${RUNDIR_SIM}" STREQUAL "benchmark")
-        set(TIMERS_DEFAULT "ON")
-    else()
-        set(TIMERS_DEFAULT "OFF")
-    endif()
-    set(TIMERS "${TIMERS_DEFAULT}" CACHE BOOL "Switch to enable GEOS-Chem's timers")
-    gc_pretty_print(VARIABLE TIMERS IS_BOOLEAN)
-    # Set USE_TIMERS
-    if(${TIMERS})
-        target_compile_definitions(BaseTarget INTERFACE "USE_TIMERS")
-    endif()
-
     gc_pretty_print(SECTION "Components")
 
     # Build APM?
