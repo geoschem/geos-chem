@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Tue Feb  4 13:33:16 2020
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/SOA_SVPOA
+! Time                 : Fri Mar 13 14:32:09 2020
+! Working directory    : /n/home05/msulprizio/GC/Code.GCHP/KPP/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -64,10 +64,10 @@ MODULE gckpp_Parameters
 !   VAR(ind_spc) = C(ind_spc)
 
   INTEGER, PARAMETER :: ind_CH2I2 = 1 
-  INTEGER, PARAMETER :: ind_CH2ICl = 2 
-  INTEGER, PARAMETER :: ind_CH2IBr = 3 
-  INTEGER, PARAMETER :: ind_NITs = 4 
-  INTEGER, PARAMETER :: ind_NIT = 5 
+  INTEGER, PARAMETER :: ind_CH2IBr = 2 
+  INTEGER, PARAMETER :: ind_CH2ICl = 3 
+  INTEGER, PARAMETER :: ind_NIT = 4 
+  INTEGER, PARAMETER :: ind_NITs = 5 
   INTEGER, PARAMETER :: ind_AERI = 6 
   INTEGER, PARAMETER :: ind_CO2 = 7 
   INTEGER, PARAMETER :: ind_INDIOL = 8 
@@ -276,8 +276,8 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_INO2D = 211 
   INTEGER, PARAMETER :: ind_MVK = 212 
   INTEGER, PARAMETER :: ind_MACRNO2 = 213 
-  INTEGER, PARAMETER :: ind_HAC = 214 
-  INTEGER, PARAMETER :: ind_MACR = 215 
+  INTEGER, PARAMETER :: ind_MACR = 214 
+  INTEGER, PARAMETER :: ind_HAC = 215 
   INTEGER, PARAMETER :: ind_IHOO4 = 216 
   INTEGER, PARAMETER :: ind_IHOO1 = 217 
   INTEGER, PARAMETER :: ind_ATO2 = 218 
@@ -295,14 +295,14 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_OH = 230 
   INTEGER, PARAMETER :: ind_MCO3 = 231 
   INTEGER, PARAMETER :: ind_Br = 232 
-  INTEGER, PARAMETER :: ind_B3O2 = 233 
-  INTEGER, PARAMETER :: ind_RCO3 = 234 
+  INTEGER, PARAMETER :: ind_NO = 233 
+  INTEGER, PARAMETER :: ind_B3O2 = 234 
   INTEGER, PARAMETER :: ind_A3O2 = 235 
   INTEGER, PARAMETER :: ind_MO2 = 236 
   INTEGER, PARAMETER :: ind_HO2 = 237 
-  INTEGER, PARAMETER :: ind_NO = 238 
+  INTEGER, PARAMETER :: ind_O3 = 238 
   INTEGER, PARAMETER :: ind_Cl = 239 
-  INTEGER, PARAMETER :: ind_O3 = 240 
+  INTEGER, PARAMETER :: ind_RCO3 = 240 
 
 ! Index declaration for fixed species in C
 !   C(ind_spc)

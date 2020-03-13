@@ -174,7 +174,6 @@ BrO        = IGNORE; {BrO; Bromine monoxide}
 BRO2       = IGNORE; {C6H5O2 ; Peroxy radical from BENZ oxidation}
 BrSALA     = IGNORE; {Br; Fine sea salt bromine}
 BrSALC     = IGNORE; {Br; Course sea salt bromine}
-C2H4       = IGNORE; {C2H4; Ethylene}
 C2H6       = IGNORE; {C2H6; Ethane}
 C3H8       = IGNORE; {C3H8; Propane}
 C4HVP1     = IGNORE; {C4 hydroxy-vinyl-peroxy radicals from HPALDs}
@@ -394,13 +393,8 @@ XRO2       = IGNORE; {Peroxy radical from XYLE oxidation}
 #DEFFIX
 
 CH4        = IGNORE; {CH4; Methane}
-H          = IGNORE; {H; Atomic hydrogen}
 H2         = IGNORE; {H2; Molecular hydrogen}
 H2O        = IGNORE; {H2O; Water vapor}
-N2         = IGNORE; {N2; Molecular nitrogen}
-NH2        = IGNORE; {NH2; Ammonia radical}
-NH3        = IGNORE; {NH3; Ammonia}
-O          = IGNORE; {O(3P); Ground state atomic oxygen}
 O2         = IGNORE; {O2; Molecular oxygen}
 RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 

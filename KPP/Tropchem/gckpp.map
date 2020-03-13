@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp.map
-! Time                 : Tue Feb  4 13:33:11 2020
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Tropchem
+! Time                 : Fri Mar 13 14:32:03 2020
+! Working directory    : /n/home05/msulprizio/GC/Code.GCHP/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -50,10 +50,10 @@ REORDER  - ON
 
 Variable species
   1 = CH2I2 (r)  80 = IDC (r)   159 = PROPNN (r)
-  2 = CH2ICl (r) 81 = OClO (r)  160 = HCOOH (r) 
-  3 = CH2IBr (r) 82 = ETP (r)   161 = MCRHN (r) 
-  4 = NITs (r)   83 = ALK4 (r)  162 = MONITU (r)
-  5 = NIT (r)    84 = PP (r)    163 = R4N2 (r)  
+  2 = CH2IBr (r) 81 = OClO (r)  160 = HCOOH (r) 
+  3 = CH2ICl (r) 82 = ETP (r)   161 = MCRHN (r) 
+  4 = NIT (r)    83 = ALK4 (r)  162 = MONITU (r)
+  5 = NITs (r)   84 = PP (r)    163 = R4N2 (r)  
   6 = AERI (n)   85 = PRPN (r)  164 = MVKOHOO (r)
   7 = CO2 (n)    86 = IEPOXD (r)165 = MCROHOO (r)
   8 = INDIOL (n) 87 = MVKDH (r) 166 = ICPDH (r) 
@@ -66,16 +66,16 @@ Variable species
  15 = LTRO2H (n) 94 = C3H8 (r)  173 = PO2 (r)   
  16 = LTRO2N (n) 95 = INA (r)   174 = IO (r)    
  17 = LVOCOA (n) 96 = MP (r)    175 = ETO2 (r)  
- 18 = LVOC (r)   97 = IDCHP (r) 176 = BrO (r)   
- 19 = LXRO2H (n) 98 = Cl2 (r)   177 = ITCN (r)  
- 20 = LXRO2N (n) 99 = SO2 (r)   178 = IHN4 (r)  
+ 18 = LVOC (r)   97 = IDCHP (r) 176 = ITCN (r)  
+ 19 = LXRO2H (n) 98 = Cl2 (r)   177 = IHN4 (r)  
+ 20 = LXRO2N (n) 99 = SO2 (r)   178 = BrO (r)   
  21 = MSA (n)   100 = HPALD3 (r)179 = GLYX (r)  
  22 = SO4 (n)   101 = Br2 (r)   180 = IHPNBOO (r)
  23 = SO4H1 (n) 102 = HPALD4 (r)181 = ACET (r)  
  24 = SO4H2 (n) 103 = MCRDH (r) 182 = MOH (r)   
- 25 = SOAGX (n) 104 = IEPOXA (r)183 = OLNN (r)  
- 26 = SOAIE (n) 105 = HONIT (r) 184 = OLND (r)  
- 27 = POx (n)   106 = IEPOXB (r)185 = ISOP (r)  
+ 25 = SOAGX (n) 104 = IEPOXA (r)183 = ISOP (r)  
+ 26 = SOAIE (n) 105 = HONIT (r) 184 = OLNN (r)  
+ 27 = POx (n)   106 = IEPOXB (r)185 = OLND (r)  
  28 = LOx (n)   107 = EOH (r)   186 = IHN1 (r)  
  29 = PCO (n)   108 = MACR1OOH (r)187 = HNO3 (r)  
  30 = LCO (n)   109 = BrSALC (r)188 = LIMO2 (r) 
@@ -117,13 +117,13 @@ Variable species
  66 = NPRNO3 (r)145 = INPB (r)  224 = NO2 (r)   
  67 = OIO (r)   146 = IHPOO1 (r)225 = MCO3 (r)  
  68 = R4P (r)   147 = IHPOO2 (r)226 = Cl (r)    
- 69 = RA3P (r)  148 = MVKHCB (r)227 = B3O2 (r)  
+ 69 = RA3P (r)  148 = MVKHCB (r)227 = NO3 (r)   
  70 = RB3P (r)  149 = IHPOO3 (r)228 = A3O2 (r)  
- 71 = RP (r)    150 = HPALD1 (r)229 = O3 (r)    
- 72 = XYLE (r)  151 = HPALD2 (r)230 = NO3 (r)   
+ 71 = RP (r)    150 = HPALD1 (r)229 = B3O2 (r)  
+ 72 = XYLE (r)  151 = HPALD2 (r)230 = OH (r)    
  73 = ClNO2 (r) 152 = ATOOH (r) 231 = HO2 (r)   
  74 = DMS (r)   153 = HC5A (r)  232 = Br (r)    
- 75 = CH3Cl (r) 154 = IHPNDOO (r)233 = OH (r)    
+ 75 = CH3Cl (r) 154 = IHPNDOO (r)233 = O3 (r)    
  76 = IONITA (r)155 = ACTA (r)  234 = NO (r)    
  77 = IONO (r)  156 = ICHOO (r) 235 = RCO3 (r)  
  78 = ClOO (r)  157 = HOCl (r)  236 = MO2 (r)   

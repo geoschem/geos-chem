@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Tue Feb  4 13:33:10 2020
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Tropchem
+! Time                 : Fri Mar 13 14:32:03 2020
+! Working directory    : /n/home05/msulprizio/GC/Code.GCHP/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -64,10 +64,10 @@ MODULE gckpp_Parameters
 !   VAR(ind_spc) = C(ind_spc)
 
   INTEGER, PARAMETER :: ind_CH2I2 = 1 
-  INTEGER, PARAMETER :: ind_CH2ICl = 2 
-  INTEGER, PARAMETER :: ind_CH2IBr = 3 
-  INTEGER, PARAMETER :: ind_NITs = 4 
-  INTEGER, PARAMETER :: ind_NIT = 5 
+  INTEGER, PARAMETER :: ind_CH2IBr = 2 
+  INTEGER, PARAMETER :: ind_CH2ICl = 3 
+  INTEGER, PARAMETER :: ind_NIT = 4 
+  INTEGER, PARAMETER :: ind_NITs = 5 
   INTEGER, PARAMETER :: ind_AERI = 6 
   INTEGER, PARAMETER :: ind_CO2 = 7 
   INTEGER, PARAMETER :: ind_INDIOL = 8 
@@ -238,16 +238,16 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_PO2 = 173 
   INTEGER, PARAMETER :: ind_IO = 174 
   INTEGER, PARAMETER :: ind_ETO2 = 175 
-  INTEGER, PARAMETER :: ind_BrO = 176 
-  INTEGER, PARAMETER :: ind_ITCN = 177 
-  INTEGER, PARAMETER :: ind_IHN4 = 178 
+  INTEGER, PARAMETER :: ind_ITCN = 176 
+  INTEGER, PARAMETER :: ind_IHN4 = 177 
+  INTEGER, PARAMETER :: ind_BrO = 178 
   INTEGER, PARAMETER :: ind_GLYX = 179 
   INTEGER, PARAMETER :: ind_IHPNBOO = 180 
   INTEGER, PARAMETER :: ind_ACET = 181 
   INTEGER, PARAMETER :: ind_MOH = 182 
-  INTEGER, PARAMETER :: ind_OLNN = 183 
-  INTEGER, PARAMETER :: ind_OLND = 184 
-  INTEGER, PARAMETER :: ind_ISOP = 185 
+  INTEGER, PARAMETER :: ind_ISOP = 183 
+  INTEGER, PARAMETER :: ind_OLNN = 184 
+  INTEGER, PARAMETER :: ind_OLND = 185 
   INTEGER, PARAMETER :: ind_IHN1 = 186 
   INTEGER, PARAMETER :: ind_HNO3 = 187 
   INTEGER, PARAMETER :: ind_LIMO2 = 188 
@@ -289,13 +289,13 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_NO2 = 224 
   INTEGER, PARAMETER :: ind_MCO3 = 225 
   INTEGER, PARAMETER :: ind_Cl = 226 
-  INTEGER, PARAMETER :: ind_B3O2 = 227 
+  INTEGER, PARAMETER :: ind_NO3 = 227 
   INTEGER, PARAMETER :: ind_A3O2 = 228 
-  INTEGER, PARAMETER :: ind_O3 = 229 
-  INTEGER, PARAMETER :: ind_NO3 = 230 
+  INTEGER, PARAMETER :: ind_B3O2 = 229 
+  INTEGER, PARAMETER :: ind_OH = 230 
   INTEGER, PARAMETER :: ind_HO2 = 231 
   INTEGER, PARAMETER :: ind_Br = 232 
-  INTEGER, PARAMETER :: ind_OH = 233 
+  INTEGER, PARAMETER :: ind_O3 = 233 
   INTEGER, PARAMETER :: ind_NO = 234 
   INTEGER, PARAMETER :: ind_RCO3 = 235 
   INTEGER, PARAMETER :: ind_MO2 = 236 

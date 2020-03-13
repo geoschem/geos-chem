@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Tue Feb  4 13:32:58 2020
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Standard
+! Time                 : Fri Mar 13 14:31:50 2020
+! Working directory    : /n/home05/msulprizio/GC/Code.GCHP/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -64,10 +64,10 @@ MODULE gckpp_Parameters
 !   VAR(ind_spc) = C(ind_spc)
 
   INTEGER, PARAMETER :: ind_CH2I2 = 1 
-  INTEGER, PARAMETER :: ind_CH2ICl = 2 
-  INTEGER, PARAMETER :: ind_CH2IBr = 3 
-  INTEGER, PARAMETER :: ind_NITs = 4 
-  INTEGER, PARAMETER :: ind_NIT = 5 
+  INTEGER, PARAMETER :: ind_CH2IBr = 2 
+  INTEGER, PARAMETER :: ind_CH2ICl = 3 
+  INTEGER, PARAMETER :: ind_NIT = 4 
+  INTEGER, PARAMETER :: ind_NITs = 5 
   INTEGER, PARAMETER :: ind_AERI = 6 
   INTEGER, PARAMETER :: ind_CO2 = 7 
   INTEGER, PARAMETER :: ind_INDIOL = 8 
@@ -310,15 +310,15 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_HBr = 245 
   INTEGER, PARAMETER :: ind_NO3 = 246 
   INTEGER, PARAMETER :: ind_NO2 = 247 
-  INTEGER, PARAMETER :: ind_H2O = 248 
+  INTEGER, PARAMETER :: ind_HO2 = 248 
   INTEGER, PARAMETER :: ind_Br = 249 
   INTEGER, PARAMETER :: ind_OH = 250 
-  INTEGER, PARAMETER :: ind_Cl = 251 
+  INTEGER, PARAMETER :: ind_BrO = 251 
   INTEGER, PARAMETER :: ind_HCl = 252 
   INTEGER, PARAMETER :: ind_ClO = 253 
   INTEGER, PARAMETER :: ind_O1D = 254 
-  INTEGER, PARAMETER :: ind_BrO = 255 
-  INTEGER, PARAMETER :: ind_HO2 = 256 
+  INTEGER, PARAMETER :: ind_Cl = 255 
+  INTEGER, PARAMETER :: ind_H2O = 256 
   INTEGER, PARAMETER :: ind_O3 = 257 
   INTEGER, PARAMETER :: ind_O = 258 
 

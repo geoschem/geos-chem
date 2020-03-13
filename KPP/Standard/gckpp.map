@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp.map
-! Time                 : Tue Feb  4 13:32:58 2020
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Standard
+! Time                 : Fri Mar 13 14:31:50 2020
+! Working directory    : /n/home05/msulprizio/GC/Code.GCHP/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -50,10 +50,10 @@ REORDER  - ON
 
 Variable species
   1 = CH2I2 (r)  88 = HCFC123 (r)175 = PROPNN (r)
-  2 = CH2ICl (r) 89 = HCFC141b (r)176 = MCRHN (r) 
-  3 = CH2IBr (r) 90 = IONITA (r)177 = MONITU (r)
-  4 = NITs (r)   91 = CH3Cl (r) 178 = R4N1 (r)  
-  5 = NIT (r)    92 = CH3Br (r) 179 = PRN1 (r)  
+  2 = CH2IBr (r) 89 = HCFC141b (r)176 = MCRHN (r) 
+  3 = CH2ICl (r) 90 = IONITA (r)177 = MONITU (r)
+  4 = NIT (r)    91 = CH3Cl (r) 178 = R4N1 (r)  
+  5 = NITs (r)   92 = CH3Br (r) 179 = PRN1 (r)  
   6 = AERI (n)   93 = HNO4 (r)  180 = MVKOHOO (r)
   7 = CO2 (n)    94 = PYAC (r)  181 = MCROHOO (r)
   8 = INDIOL (n) 95 = ClOO (r)  182 = ICPDH (r) 
@@ -122,15 +122,15 @@ Variable species
  71 = HCFC142b (r)158 = BrNO3 (r) 245 = HBr (r)   
  72 = HCFC22 (r)159 = MONITS (r)246 = NO3 (r)   
  73 = HMHP (r)  160 = I2 (r)    247 = NO2 (r)   
- 74 = HMML (r)  161 = Cl2 (r)   248 = H2O (r)   
+ 74 = HMML (r)  161 = Cl2 (r)   248 = HO2 (r)   
  75 = DMS (r)   162 = INPB (r)  249 = Br (r)    
  76 = IONO (r)  163 = IHPOO1 (r)250 = OH (r)    
- 77 = IPRNO3 (r)164 = IHPOO2 (r)251 = Cl (r)    
+ 77 = IPRNO3 (r)164 = IHPOO2 (r)251 = BrO (r)   
  78 = MENO3 (r) 165 = MVKHCB (r)252 = HCl (r)   
  79 = NPRNO3 (r)166 = CH4 (r)   253 = ClO (r)   
  80 = OIO (r)   167 = IHPNDOO (r)254 = O1D (r)   
- 81 = R4P (r)   168 = HPALD1 (r)255 = BrO (r)   
- 82 = RA3P (r)  169 = IHPOO3 (r)256 = HO2 (r)   
+ 81 = R4P (r)   168 = HPALD1 (r)255 = Cl (r)    
+ 82 = RA3P (r)  169 = IHPOO3 (r)256 = H2O (r)   
  83 = RB3P (r)  170 = HPALD2 (r)257 = O3 (r)    
  84 = RP (r)    171 = HC5A (r)  258 = O (r)     
  85 = ETNO3 (r) 172 = H2O2 (r)  
