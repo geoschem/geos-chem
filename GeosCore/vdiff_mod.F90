@@ -2358,14 +2358,14 @@ contains
     enddo
 !$OMP END PARALLEL DO
 
-#ifdef DEVEL
-    ! Print debug output for the advected species
-    write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
-    do NA = 1, nAdvect
-       write(*,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
-       write(*,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
-    enddo
-#endif
+    !IF ( prtDebug ) THEN
+    !   ! Print debug output for the advected species
+    !   write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
+    !   do NA = 1, nAdvect
+    !      write(*,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
+    !      write(*,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
+    !   enddo
+    !ENDIF
 
     !=======================================================================
     ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]

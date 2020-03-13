@@ -206,31 +206,6 @@ COMPILER_MAJOR_VERSION   :=$(word 1,$(subst ., ,$(COMPILER_VERSION)))
 # Special flags for enabling experimental or development code
 #------------------------------------------------------------------------------
 
-# %%%%% DEVEL: Enable user-added experimental code %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DDEVEL
-endif
-
-# %%%%% DIAG_DEVEL: Enable experimental code specific to HEMCO %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(DIAG_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DDIAG_DEVEL
-  BPCH_DIAG          :=no
-endif
-
-# %%%%% HCO_DEVEL: Enable experimental code specific to HEMCO %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(HCO_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DHCO_DEVEL
-endif
-
-# %%%%% HPC_DEVEL: Enable experimental code specific to GCHP %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(HPC_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DHPC_DEVEL
-endif
-
 # %%%%% Turn on Luo et al (2019) wetdep scheme %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(LUO_WETDEP)" =~ $(REGEXP) ]] && echo true),true)

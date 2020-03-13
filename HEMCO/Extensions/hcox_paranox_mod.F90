@@ -512,7 +512,7 @@ CONTAINS
 !------------------------------------------------------------------------
 
     ! Loop over all grid boxes
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Note: there seems to be a problem with the OMP loop in that
     ! the species concentrations (O3molec, NOmolec, NO2molec)
     ! differ slightly in a few grid boxes. Don't know exactly what
@@ -520,14 +520,12 @@ CONTAINS
     ! evaluation and testing.
     !
     ! Now use #if defined( 0 ) to block of this code (bmy, 6/6/14)
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#if defined( NULL )
-!$OMP PARALLEL DO                                                   &
-!$OMP DEFAULT( SHARED )                                             &
-!$OMP PRIVATE( I, J, L,   MSG, iFlx, iMass,    TMP                ) &
-!$OMP PRIVATE( SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE, FNO_NOx  ) &
-!$OMP SCHEDULE( DYNAMIC )
-#endif
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!$OMP PARALLEL DO                                                   &
+    !!!$OMP DEFAULT( SHARED )                                             &
+    !!!$OMP PRIVATE( I, J, L,   MSG, iFlx, iMass,    TMP                ) &
+    !!!$OMP PRIVATE( SHIP_FNOx, SHIP_DNOx, SHIP_OPE, SHIP_MOE, FNO_NOx  ) &
+    !!!$OMP SCHEDULE( DYNAMIC )
     DO J = 1, HcoState%NY
     DO I = 1, HcoState%NX
 
@@ -720,9 +718,7 @@ CONTAINS
 
     ENDDO !I
     ENDDO !J
-#if defined( NULL )
-!$OMP END PARALLEL DO
-#endif
+    !!!$OMP END PARALLEL DO
 
     ! Error check
     IF ( ERR ) THEN

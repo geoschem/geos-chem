@@ -155,11 +155,6 @@ MODULE HCOX_SoilNOx_Mod
      REAL(sp),          ALLOCATABLE :: SpcScalVal(:)
      CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
-     ! Diagnostics to write out the pulse (testing only)
-#if defined(DEVEL)
-     REAL(sp), ALLOCATABLE          :: DGN_PULSE    (:,:  )
-#endif
-
      TYPE(MyInst), POINTER          :: NextInst => NULL()
   END TYPE MyInst
 
@@ -615,11 +610,6 @@ CONTAINS
     CALL HCO_RestartWrite( HcoState, 'DRYPERIOD', Inst%DRYPERIOD, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-#if defined(DEVEL)
-    CALL HCO_RestartWrite( HcoState, 'SOILNO_PULSE', Inst%DGN_PULSE, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-#endif
-
     ! Leave w/ success
     Inst => NULL()
     CALL HCO_LEAVE( HcoState%Config%Err,RC )
@@ -815,11 +805,6 @@ CONTAINS
     Inst%DEP_RESERVOIR = 0.0_sp
     Inst%CANOPYNOX     = 0e+0_hp
 
-#if defined(DEVEL)
-    ALLOCATE( Inst%DGN_PULSE(I,J) )
-    Inst%DGN_PULSE = 0.0_sp
-#endif
-
     ! Initialize pointers
     !Inst%CLIMARID  => NULL()
     !Inst%CLIMNARID => NULL()
@@ -843,12 +828,6 @@ CONTAINS
     CALL HCO_RestartDefine( HcoState, '   DEP_RESERVOIR', &
                             Inst%DEP_RESERVOIR, 'kg/m3', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-#if defined(DEVEL)
-    CALL HCO_RestartDefine( HcoState, 'SOILNO_PULSE', &
-                            Inst%DGN_PULSE, '1',  RC  )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-#endif
 
     ! ----------------------------------------------------------------------
     ! Set HEMCO extensions variables
@@ -1066,10 +1045,6 @@ CONTAINS
     ! Cumulative multiplication factor (over baseline emissions)
     ! that accounts for soil pulsing
     PULSE = PULSING( GWET, TS_EMIS, GWET_PREV, PFACTOR, DRYPERIOD )
-
-#if defined(DEVEL)
-    Inst%DGN_PULSE(I,J) = PULSE
-#endif
 
     ! ------Loop Over MODIS/Koppen  Landtypes
     DO K = 1, 24
@@ -2356,9 +2331,6 @@ CONTAINS
        IF ( ALLOCATED  ( Inst%DEP_RESERVOIR ) ) DEALLOCATE ( Inst%DEP_RESERVOIR )
        IF ( ALLOCATED  ( Inst%SpcScalVal    ) ) DEALLOCATE ( Inst%SpcScalVal    )
        IF ( ALLOCATED  ( Inst%SpcScalFldNme ) ) DEALLOCATE ( Inst%SpcScalFldNme )
-#if defined(DEVEL)
-       IF ( ALLOCATED  ( Inst%DGN_PULSE     ) ) DEALLOCATE ( Inst%DGN_PULSE     )
-#endif
 
        ! Deallocate LANDTYPE vector
        IF ( ASSOCIATED(Inst%LANDTYPE) ) THEN

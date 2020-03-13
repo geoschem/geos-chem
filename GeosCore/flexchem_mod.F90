@@ -836,14 +836,6 @@ CONTAINS
           ENDDO
        ENDIF
 
-!#if defined( DEVEL )
-!       ! Get time when rate computation finished
-!       CALL CPU_TIME( finish )
-!
-!       ! Compute how long it took for KPP to compute rates
-!       rtim = rtim + finish - start
-!#endif
-
        !=================================================================
        ! Set options for the KPP Integrator (M. J. Evans)
        !
@@ -881,22 +873,6 @@ CONTAINS
           ENDIF
        ENDIF
 #endif
-
-!#if defined( DEVEL )
-!       ! Get time when integrator ends
-!       CALL CPU_TIME( finish )
-!
-!       ! Compute how long the integrator took
-!       itim     = itim + finish - start
-!
-!       ! Compute other statistics from the integrator
-!       totfuncs = totfuncs + ISTATUS(1)
-!       totjacob = totjacob + ISTATUS(2)
-!       totsteps = totsteps + ISTATUS(3)
-!       totaccep = totaccep + ISTATUS(4)
-!       totrejec = totrejec + ISTATUS(5)
-!       totnumLU = totnumLU + ISTATUS(6)
-!#endif
 
        !------------------------------------------------------------------
        ! HISTORY: Archive KPP solver diagnostics
@@ -1184,16 +1160,6 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-!!!#if defined( DEVEL )
-!    write(*,'(a,F10.3)') 'Flex Rate Time     : ', rtim
-!    write(*,'(a,F10.3)') 'Flex Intg Time     : ', itim
-!    write(*,'(a,I9)'   ) 'Flex Function Calls: ', totfuncs
-!    write(*,'(a,I9)'   ) 'Flex Jacobian Calls: ', totjacob
-!    write(*,'(a,I9)'   ) 'Flex Total Steps   : ', totsteps
-!    write(*,'(a,I9)'   ) 'Flex Rejected Steps: ', totrejec
-!    write(*,'(a,I9)'   ) 'Flex LU Decompos.  : ', totnumLU
-!!!#endif
 
     !=======================================================================
     ! Archive OH, HO2, O1D, O3P concentrations after FlexChem solver
