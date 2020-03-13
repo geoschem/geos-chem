@@ -381,7 +381,6 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -390,6 +389,7 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
+      USE HCO_State_GC_Mod,   ONLY : HcoState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
@@ -4384,9 +4384,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
+      USE HCO_INTERFACE_COMMON,  ONLY : GetHcoDiagn
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -4515,7 +4515,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
          ! Anthropogenic emissions
          DgnName = 'HG0_ANTHRO'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                     DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4526,7 +4527,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
          ! Artisanal emissions
          DgnName = 'HG0_ARTISANAL'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                     DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4542,7 +4544,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
          ! Anthropogenic emissions
          DgnName = 'HG2_ANTHRO'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                     DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4554,7 +4557,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ! Natural emissions
       DgnName = 'HG0_NATURAL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .TRUE., RC, Ptr2D=Ptr2D )
       IF ( RC /= HCO_SUCCESS ) THEN
          ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6190,7 +6194,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_State_GC_Mod,   ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Grid_Mod,     ONLY : GrdState
@@ -6311,7 +6315,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_State_GC_Mod,   ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
@@ -7446,7 +7450,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
-      USE HCO_INTERFACE_MOD, ONLY : HcoState
+      USE HCO_State_GC_Mod,  ONLY : HcoState
       USE HCO_ExtList_Mod,   ONLY : GetExtOpt
       USE Input_Opt_Mod,     ONLY : OptInput
       USE State_Grid_Mod,    ONLY : GrdState

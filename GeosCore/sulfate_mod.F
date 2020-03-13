@@ -217,7 +217,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_State_GC_Mod,   ONLY : HcoState
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
@@ -916,7 +916,8 @@
       USE TOMAS_MOD,          ONLY : Xk
       USE TOMAS_MOD,          ONLY : SUBGRIDCOAG, MNFIX
       USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
+      USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
+      USE HCO_Interface_Common, ONLY : GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -1056,8 +1057,9 @@
       ! READ IN HEMCO EMISSIONS
       !================================================================
       DgnName = 'SO4_ANTH'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
-     &  Ptr3D=Ptr3D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., ERR,
+     &                  Ptr3D=Ptr3D )
       IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
@@ -2302,7 +2304,8 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
+      USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
+      USE HCO_Interface_Common, ONLY: GetHcoDiagn
 #ifdef APM
       USE APM_DRIV_MOD,       ONLY : PSO4GAS
       USE APM_DRIV_MOD,       ONLY : XO3
@@ -2490,7 +2493,8 @@
       IF ( FIRST ) THEN
 
          ! Sea salt density, fine mode
-         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE',
+         CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &          'SEASALT_DENS_FINE',
      &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
 
          ! Trap potential errors
@@ -2501,7 +2505,8 @@
          ENDIF
 
          ! Sea salt density, coarse mode
-         CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE',
+         CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &          'SEASALT_DENS_COARSE',
      &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
 
          ! Trap potential errors
@@ -7141,16 +7146,16 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD,       ONLY : NDUST
+      USE CMN_SIZE_MOD,          ONLY : NDUST
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : IT_IS_NAN, ERROR_STOP
-      USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal
+      USE ERROR_MOD,             ONLY : IT_IS_NAN, ERROR_STOP
+      USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
 ! (jas, 8/4/15) calculate kt using sea salt surface area concentration
-      USE CMN_SIZE_MOD,       ONLY : NDUST
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Grid_Mod,     ONLY : GrdState
-      USE State_Met_Mod,      ONLY : MetState
+      USE CMN_SIZE_MOD,          ONLY : NDUST
+      USE Input_Opt_Mod,         ONLY : OptInput
+      USE State_Chm_Mod,         ONLY : ChmState
+      USE State_Grid_Mod,        ONLY : GrdState
+      USE State_Met_Mod,         ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -7251,8 +7256,8 @@
 
          ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in
          ! kg/m2/s.
-         CALL GetHcoVal( id_SALA, I, J, 1, FOUND, Emis=ALK1 )
-         CALL GetHcoVal( id_SALC, I, J, 1, FOUND, Emis=ALK2 )
+         CALL GetHcoValEmis( id_SALA, I, J, 1, FOUND, ALK1 )
+         CALL GetHcoValEmis( id_SALC, I, J, 1, FOUND, ALK2 )
 
          ! kg/m2/s --> kg. Weight by fraction of PBL
          ALK1 = MAX(ALK1,0.0e+0_fp)

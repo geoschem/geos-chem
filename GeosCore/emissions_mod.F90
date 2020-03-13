@@ -65,7 +65,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCOI_GC_Main_Mod,   ONLY : HCoi_GC_Init
+    USE HCO_Interface_GC_Mod, ONLY : HCoi_GC_Init
     USE HCO_Types_Mod,      ONLY : ConfigObj
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
@@ -152,7 +152,7 @@ CONTAINS
     USE CO2_MOD,            ONLY : EMISSCO2
     USE ErrCode_Mod
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
-    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
+    USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Precision_Mod
     USE State_Chm_Mod,      ONLY : ChmState
@@ -390,7 +390,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCOI_GC_Main_Mod, ONLY : HCOI_GC_Final
+    USE HCO_Interface_GC_Mod, ONLY : HCOI_GC_Final
 !
 ! !INPUT PARAMETERS:
 !
@@ -450,7 +450,7 @@ CONTAINS
 !
     USE CMN_SIZE_Mod
     USE ErrCode_Mod
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
     USE Input_Opt_Mod,      ONLY : OptInput

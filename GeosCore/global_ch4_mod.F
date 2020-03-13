@@ -162,7 +162,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
+      USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
+      USE HCO_INTERFACE_COMMON, ONLY : GetHcoDiagn
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
@@ -302,7 +303,8 @@
       ! Oil
       !-------------------
       DgnName = 'CH4_OIL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -324,7 +326,8 @@
       ! Gas
       !-------------------
       DgnName = 'CH4_GAS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -347,7 +350,8 @@
       ! Coal
       !-------------------
       DgnName = 'CH4_COAL'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -369,7 +373,8 @@
       ! Livestock
       !-------------------
       DgnName = 'CH4_LIVESTOCK'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -391,7 +396,8 @@
       ! Landfills
       !-------------------
       DgnName = 'CH4_LANDFILLS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -413,7 +419,8 @@
       ! Wastewater
       !-------------------
       DgnName = 'CH4_WASTEWATER'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -435,7 +442,8 @@
       ! Rice
       !-------------------
       DgnName = 'CH4_RICE'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -457,7 +465,8 @@
       ! Other anthropogenic
       !-------------------
       DgnName = 'CH4_ANTHROTHER'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -480,7 +489,8 @@
       !-------------------
 !      DgnName = 'BIOMASS_CH4'
       DgnName = 'CH4_BIOMASS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -502,7 +512,8 @@
       ! Wetland
       !-------------------
       DgnName = 'CH4_WETLAND'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -524,7 +535,8 @@
       ! Global seeps
       !-------------------
       DgnName = 'CH4_SEEPS'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -546,7 +558,8 @@
       ! Lakes
       !-------------------
       DgnName = 'CH4_LAKES'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -568,7 +581,8 @@
       ! Termites
       !-------------------
       DgnName = 'CH4_TERMITES'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -590,7 +604,8 @@
       ! Soil absorption (those are negative!)
       !-------------------
       DgnName = 'CH4_SOILABSORB'
-      CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+      CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                  DgnName, .FALSE., RC, Ptr2D=Ptr2D )
 
       ! Trap potential errors
       IF ( RC /= HCO_SUCCESS ) THEN
@@ -660,7 +675,7 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_State_GC_Mod,   ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState

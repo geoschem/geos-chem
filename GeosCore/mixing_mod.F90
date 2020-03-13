@@ -358,22 +358,24 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
-    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
+    USE Diagnostics_Mod,      ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod,      ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : SAFE_DIV
-    USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal, GetHcoDiagn
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE PhysConstants,      ONLY : AVO
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE ERROR_MOD,            ONLY : SAFE_DIV
+    USE GET_NDEP_MOD,         ONLY : SOIL_DRYDEP
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE PhysConstants,        ONLY : AVO
+    USE Species_Mod,          ONLY : Species
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
+    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
 #ifdef USE_TEND
     USE TENDENCIES_MOD
 #endif
@@ -427,6 +429,7 @@ CONTAINS
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  10 Oct 2017 - R. Yantosca - Archive drydep fluxes due to mixing for History
 !  19 Sep 2018 - E. Lundgren - Implement emis/drydep budget diagnostic
+!  12 Mar 2020 - H.P. Lin    - Now use GC interface to HEMCO GetHcoValEmis
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -571,9 +574,9 @@ CONTAINS
        ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F.
        !  (ckeller, 4/10/2015)
        IF ( .NOT. Input_Opt%LNLPBL ) THEN
-          CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
+          CALL GetHcoDiagn( am_I_Root, HcoState, ExtState, 'PARANOX_O3_DEPOSITION_FLUX'  , &
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          )
-          CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
+          CALL GetHcoDiagn( am_I_Root, HcoState, ExtState, 'PARANOX_HNO3_DEPOSITION_FLUX', &
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        )
        ENDIF
        FIRST = .FALSE.
@@ -630,7 +633,7 @@ CONTAINS
           ! Check if this is a HEMCO drydep species
           DryDepSpec = ( DryDepId > 0 )
           IF ( .NOT. DryDepSpec ) THEN
-             CALL GetHcoVal ( N, 1, 1, 1, DryDepSpec, dep = TMP )
+             CALL GetHcoValDep ( N, 1, 1, 1, DryDepSpec, TMP )
           ENDIF
 
           ! Special case for O3 or HNO3: include PARANOX loss
@@ -644,7 +647,7 @@ CONTAINS
        ! Check if we need to do emissions for this species
        !--------------------------------------------------------------------
        IF ( LEMIS ) THEN
-          CALL GetHcoVal ( N, 1, 1, 1, EmisSpec, emis = TMP )
+          CALL GetHcoValEmis ( N, 1, 1, 1, EmisSpec, TMP )
        ELSE
           EmisSpec = .FALSE.
        ENDIF
@@ -757,7 +760,7 @@ CONTAINS
                 ! dry deposition frequencies for air-sea exchange and
                 ! from ship NOx plume parameterization (PARANOx). The
                 ! units are [s-1].
-                CALL GetHcoVal ( N, I, J, 1, FND, dep=TMP )
+                CALL GetHcoValDep ( N, I, J, 1, FND, TMP )
 
                 ! Add to dry dep frequency from drydep_mod.F
                 IF ( FND ) FRQ = FRQ + TMP
@@ -861,7 +864,7 @@ CONTAINS
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
 
                 ! Get HEMCO emissions. Units are [kg/m2/s].
-                CALL GetHcoVal ( N, I, J, L, FND, emis=TMP )
+                CALL GetHcoValEmis ( N, I, J, L, FND, TMP )
 
                 ! Add emissions (if any)
                 ! Bug fix: allow negative fluxes. (ckeller, 4/12/17)
@@ -893,7 +896,7 @@ CONTAINS
 
                       ! Get soil absorption from HEMCO. Units are [kg/m2/s].
                       ! CH4_SAB is species #15
-                      CALL GetHcoVal ( 15, I, J, L, FND, emis=TMP )
+                      CALL GetHcoValEmis ( 15, I, J, L, FND, TMP )
 
                       ! Remove soil absorption from total CH4 emissions
                       IF ( FND ) THEN

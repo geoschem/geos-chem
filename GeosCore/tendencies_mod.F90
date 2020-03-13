@@ -621,7 +621,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
 !
 ! !INPUT PARAMETERS:
 !
@@ -893,7 +893,7 @@ CONTAINS
 !
     USE UNITCONV_MOD
     USE PHYSCONSTANTS,      ONLY : AIRMW
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
 !
 ! !INPUT PARAMETERS:
 !

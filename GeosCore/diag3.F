@@ -59,7 +59,7 @@
       USE HCO_TYPES_MOD, ONLY : DiagnCont
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
-      USE HCO_INTERFACE_MOD
+      USE HCO_State_GC_Mod,   ONLY : HcoState
 
       ! Species database
       USE Species_Mod,       ONLY : Species

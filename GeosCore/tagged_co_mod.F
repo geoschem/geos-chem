@@ -102,7 +102,8 @@
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_Error_Mod
-      USE HCO_Interface_Mod,  ONLY : HcoState, GetHcoID
+      USE HCO_State_GC_Mod,   ONLY : HcoState
+      USE HCO_State_Mod,      ONLY : HCO_GetHcoID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
@@ -364,7 +365,7 @@
          kgs_to_atomsC = ( AVO / 12e-3_fp ) * DTCHEM
 
          ! SUMACETCO (convert [kgC/m2/s] to [atoms C])
-         HcoId = GetHcoId( 'ACET' )
+         HcoId = HCO_GetHcoId( 'ACET', HcoState )
          IF ( HcoId > 0 ) THEN
             SUMACETCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
             SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
@@ -376,7 +377,7 @@
          ENDIF
 
          ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
-         HcoId = GetHcoId( 'ISOP' )
+         HcoId = HCO_GetHcoId( 'ISOP', HcoState )
          IF ( HcoId > 0 ) THEN
             SUMISOPCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
             SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
@@ -388,7 +389,7 @@
          ENDIF
 
          ! SUMMONOCO (Total monoterpene = MTPA + LIMO + MTPO)
-         HcoId = GetHcoId( 'MTPA' )
+         HcoId = HCO_GetHcoId( 'MTPA', HcoState )
          IF ( HcoId > 0 ) THEN
             ! kgC/m2/s
             SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
@@ -397,7 +398,7 @@
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
-         HcoId = GetHcoId( 'LIMO' )
+         HcoId = HCO_GetHcoId( 'LIMO', HcoState )
          IF ( HcoId > 0 ) THEN
             ! kgC/m2/s
             SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
@@ -406,7 +407,7 @@
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
-         HcoId = GetHcoId( 'MTPO' )
+         HcoId = HCO_GetHcoId( 'MTPO', HcoState )
          IF ( HcoId > 0 ) THEN
             ! kgC/m2/s
             SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)

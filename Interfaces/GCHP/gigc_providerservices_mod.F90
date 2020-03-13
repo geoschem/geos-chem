@@ -1446,7 +1446,7 @@ CONTAINS
 !
     USE HCO_ERROR_MOD
     USE HCO_DIAGN_MOD,     ONLY : Diagn_Get
-    USE HCO_INTERFACE_MOD, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE HCO_TYPES_MOD,     ONLY : DiagnCont
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Chm_Mod,     ONLY : IND_

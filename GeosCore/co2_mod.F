@@ -157,7 +157,7 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_State_GC_Mod,   ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
       USE Input_Opt_Mod,      ONLY : OptInput

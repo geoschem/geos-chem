@@ -2940,7 +2940,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE HCO_INTERFACE_MOD,       ONLY : HcoState
+    USE HCO_State_GC_Mod,        ONLY : HcoState
     USE MAPL_MemUtilsMod
     USE Olson_Landmap_Mod,       ONLY : Compute_Olson_Landmap
     USE Precision_Mod
@@ -4507,9 +4507,9 @@ CONTAINS
     USE State_Diag_Mod,        ONLY : DgnState, Cleanup_State_Diag
     USE State_Grid_Mod,        ONLY : GrdState, Cleanup_State_Grid
     USE State_Met_Mod,         ONLY : MetState, Cleanup_State_Met
-    USE HCOI_GC_MAIN_MOD,      ONLY : HCOI_GC_FINAL
+    USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_FINAL
 #if defined( MODEL_GEOS )
-    USE HCO_INTERFACE_MOD,     ONLY : HcoState
+    USE HCO_State_GC_Mod,      ONLY : HcoState
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -7408,7 +7408,7 @@ CONTAINS
     USE HCO_ERROR_MOD
     USE HCO_TYPES_MOD,     ONLY : DiagnCont
     USE HCO_DIAGN_MOD,     ONLY : Diagn_Get
-    USE HCO_INTERFACE_MOD, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
 !
 ! !INPUT PARAMETERS:
 !

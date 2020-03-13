@@ -717,7 +717,7 @@ CONTAINS
 !
 ! !USES:
 !
-  USE HCOI_GC_Main_Mod, ONLY : HCOI_GC_WriteDiagn
+  USE HCO_Interface_GC_Mod, ONLY : HCOI_GC_WriteDiagn
   USE Input_Opt_Mod,    ONLY : OptInput
 !
 ! !INPUT PARAMETERS:

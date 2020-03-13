@@ -49,8 +49,9 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	global_ch4_mod.F
 	gosat_ch4_mod.F
 	hcoi_gc_diagn_mod.F90
-	hcoi_gc_main_mod.F90
-	hco_interface_mod.F90
+	hco_state_gc_mod.F90
+	hco_interface_gc_mod.F90
+	hco_utilities_gc_mod.F90
 	initialize.F
 	input_mod.F
 	isorropiaII_mod.F

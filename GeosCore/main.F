@@ -99,7 +99,7 @@
       USE OBSPACK_MOD           ! For ObsPack diagnostics
       USE GOSAT_CH4_MOD         ! For GOSAT observation operator
       USE TCCON_CH4_MOD         ! For TCCON observation operator
-      USE HCOI_GC_MAIN_MOD      ! Writes out HEMCO diagnostics (C. Keller)
+      USE HCO_Interface_GC_Mod  ! Writes out HEMCO diagnostics (C. Keller)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -2859,7 +2859,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE HCO_Interface_Mod, ONLY : HcoState
+      USE HCO_State_GC_Mod,   ONLY : HcoState
       USE Input_Opt_Mod,     ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS:

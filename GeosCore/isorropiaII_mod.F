@@ -134,7 +134,7 @@
       USE ERROR_MOD,            ONLY : DEBUG_MSG
       USE ERROR_MOD,            ONLY : ERROR_STOP
       USE ERROR_MOD,            ONLY : SAFE_DIV
-      USE HCO_INTERFACE_MOD,    ONLY : HcoState
+      USE HCO_State_GC_Mod,     ONLY : HcoState
       USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr
       USE Input_Opt_Mod,        ONLY : OptInput
       USE State_Chm_Mod,        ONLY : ChmState

@@ -214,8 +214,8 @@
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
-      USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_INTERFACE_COMMON,  ONLY : GetHcoDiagn
+      USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -288,7 +288,8 @@
          ! by HEMCO automatically. Output unit is as specified when
          ! defining diagnostics (kg/m2/s).
          DgnName = 'BIOMASS_HG0'
-         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         CALL GetHcoDiagn( am_I_Root, HcoState, ExtState,
+     &                     DgnName, .TRUE., RC, Ptr2D=Ptr2D )
          IF ( RC /= HCO_SUCCESS ) THEN
             ErrMsg = 'Could not find HEMCO field ' // TRIM( DgnName )
             CALL GC_Error( ErrMsg, RC, ThisLoc )

@@ -363,7 +363,7 @@ CONTAINS
 !
     USE CMN_SIZE_Mod,      ONLY : NSURFTYPE
     USE ErrCode_Mod
-    USE Hco_Interface_Mod, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE Hco_EmisList_Mod,  ONLY : Hco_GetPtr
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Met_Mod,     ONLY : MetState
