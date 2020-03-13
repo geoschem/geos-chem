@@ -103,7 +103,7 @@ fi
 source runConfig.sh > /dev/null
 
 # Monthly diagnostic option automatically updates HISTORY.rc freq/duration
-# with number of hours for the month of the run
+# with number of hours for the month of the run. Includes leap year handling.
 # NOTE: This feature is enabled from runConfig.sh where Monthly_Diag is defined
 if [ ${Monthly_Diag} = "1" ]; then
    if [ -e cap_restart ]; then    
@@ -115,7 +115,7 @@ if [ ${Monthly_Diag} = "1" ]; then
    fi
    feb_hrs=672
    if [ "$((yr_str%4))" = "0" ]; then
-      if [ ! "$((yr_str%100))" = "0" ] | [ "$((yr_str%400))" = "0" ]; then
+      if [ ! "$((yr_str%100))" = "0" ] || [ "$((yr_str%400))" = "0" ]; then
          feb_hrs=696   
       fi
       fi
