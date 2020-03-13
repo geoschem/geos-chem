@@ -56,16 +56,29 @@ function(configureGCClassic)
 
     # Determine the appropriate chemistry mechanism base on the simulation
     set(STANDARD_MECHS
-        "standard"      "benchmark"         "aciduptake"    "marinePOA"
-        "masscons"      "TransportTracers"  "POPs"          "CH4"
-        "tagCH4"        "tagO3"             "tagCO"
-        "tagHg"         "CO2"               "aerosol"
+        "standard"
+        "benchmark"
+        "aciduptake"
+        "marinePOA"
+        "TransportTracers"
+        "POPs"
+        "CH4"
+        "tagCH4"
+        "tagO3"
+        "tagCO"
+        "tagHg"
+        "CO2"
+        "aerosol"
         "Hg"
         "HEMCO" # doesn't matter for the HEMCO standalone
     )
     set(TROPCHEM_MECHS
-        "tropchem"      "RRTMG"     "TOMAS15"
-        "TOMAS40"       "APM"       "complexSOA"
+        "tropchem"
+        "RRTMG"
+        "TOMAS15"
+        "TOMAS40"
+        "APM"
+        "complexSOA"
     )
     set(SOA_SVPOA_MECHS
         "complexSOA_SVPOA"
@@ -87,9 +100,7 @@ function(configureGCClassic)
 
     # Definitions for specific run directories
     set(TOMAS FALSE)
-    if("${RUNDIR_SIM}" STREQUAL "masscons")
-        target_compile_definitions(BaseTarget INTERFACE MASSCONS)
-    elseif("${RUNDIR_SIM}" MATCHES "TOMAS15")
+    if("${RUNDIR_SIM}" MATCHES "TOMAS15")
         target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS15)
         set(TOMAS TRUE)
     elseif("${RUNDIR_SIM}" MATCHES "TOMAS40")

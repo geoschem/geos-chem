@@ -500,14 +500,6 @@ ifeq ($(shell [[ "$(GPROF)" =~ $(REGEXP) ]] && echo true),true)
   IS_GPROF           :=1
 endif
 
-#------------------------------------------------------------------------------
-# Add test for mass conservation
-#------------------------------------------------------------------------------
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(MASSCONS)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DMASSCONS
-endif
-
 ###############################################################################
 ###                                                                         ###
 ###  Set linker commands for local and external libraries (incl. netCDF)    ###

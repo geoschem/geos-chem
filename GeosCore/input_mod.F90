@@ -712,7 +712,6 @@ CONTAINS
          TRIM(Sim) /= 'HEMCO'            .and. &
          TRIM(Sim) /= 'HG'               .and. &
          TRIM(Sim) /= 'MARINEPOA'        .and. &
-         TRIM(Sim) /= 'MASSCONS'         .and. &
          TRIM(Sim) /= 'POPS'             .and. &
          TRIM(Sim) /= 'RRTMG'            .and. &
          TRIM(Sim) /= 'STANDARD'         .and. &
@@ -730,7 +729,7 @@ CONTAINS
                 ' valid simulation. Supported simulations are:'     // &
                 ' AcidUptake, Aerosol, APM, Benchmark, CH4, CO2,'   // &
                 ' ComplexSOA, ComplexSOA_SVPOA, HEMCO, Hg,'         // &
-                ' MarinePOA, MassCons, POPs, RRTMG, Standard,'      // &
+                ' MarinePOA, POPs, RRTMG, Standard,'                // &
                 ' TransportTracers, Tropchem, TagCO, TagCH4, TagHg,'// &
                 ' TagO3, TOMAS12, TOMAS15, TOMAS30, and TOMAS40.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -740,8 +739,7 @@ CONTAINS
     ! Set simulation type flags in Input_Opt
     Input_Opt%ITS_A_CH4_SIM      = ( TRIM(Sim) == 'CH4'              .or. &
                                      TRIM(Sim) == 'TAGCH4'           )
-    Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'              .or. &
-                                     TRIM(Sim) == 'MASSCONS'         )
+    Input_Opt%ITS_A_CO2_SIM      = ( TRIM(Sim) == 'CO2'              )
     Input_Opt%ITS_A_FULLCHEM_SIM = ( TRIM(Sim) == 'ACIDUPTAKE'       .or. &
                                      TRIM(Sim) == 'APM'              .or. &
                                      TRIM(Sim) == 'BENCHMARK'        .or. &
@@ -2000,28 +1998,6 @@ CONTAINS
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        Input_Opt%LSETH2O = .FALSE.
     ENDIF
-
-#ifdef MASSCONS
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%%  MASS CONSERVATION TEST:                                  %%%
-    !%%%  Always turn off emissions for the mass conservation      %%%
-    !%%%  test.  (ewl, 6/24/15)                                    %%%
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    ! Reset quantities
-    Input_Opt%LEMIS = .FALSE.
-
-    ! Print info to stdout stating that rint results
-    WRITE( 6, '(a)' )
-    WRITE( 6, '(a)' ) REPEAT( '%', 79 )
-    WRITE( 6, 200   )
-    WRITE( 6, 205   )
-    WRITE( 6, 210   )
-    WRITE( 6, '(a)' ) REPEAT( '%', 79 )
-200 FORMAT( '%%% MASS CONSERVATION TEST'                             )
-205 FORMAT( '%%% Automatically reset these EMISSIONS MENU settings:' )
-210 FORMAT( '%%% LEMIS is now FALSE'                                 )
-#endif
 
     ! Return success
     RC = GC_SUCCESS
