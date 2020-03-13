@@ -2679,7 +2679,7 @@ contains
 !
 ! !USES:
 !
-    USE Derived_Met_Mod,    ONLY : AIRQNT
+    USE Calc_Met_Mod,       ONLY : AIRQNT
     USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
     USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
     USE ERROR_MOD,          ONLY : DEBUG_MSG

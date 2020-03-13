@@ -1,6 +1,6 @@
 add_library(Transport STATIC EXCLUDE_FROM_ALL
 	diag_mod.F90
-	derived_met_mod.F90
+	calc_met_mod.F90
 	diagnostics_mod.F90
 	pjc_pfix_mod.F90
 	tpcore_fvdas_mod.F90

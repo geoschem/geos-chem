@@ -16,7 +16,6 @@ MODULE DRYDEP_MOD
 ! !USES:
 !
   USE CMN_SIZE_Mod,     ONLY : NPOLY, NSURFTYPE
-  USE Derived_Met_Mod        ! Met field subroutines
   USE ERROR_MOD              ! Error handling routines
 #ifdef TOMAS                 
   USE TOMAS_MOD              ! For TOMAS microphysics
@@ -544,6 +543,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Calc_Met_Mod,       ONLY : GET_OBK
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
 !

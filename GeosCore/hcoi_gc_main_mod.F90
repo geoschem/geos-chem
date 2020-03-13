@@ -3343,7 +3343,7 @@ CONTAINS
 !
 ! ! USES:
 !
-   USE Derived_Met_Mod
+   USE Calc_Met_Mod
    USE ErrCode_Mod
    USE FlexGrid_Read_Mod
    USE HCO_INTERFACE_MOD,      ONLY : HcoState

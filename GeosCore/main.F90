@@ -117,9 +117,9 @@ PROGRAM GEOS_Chem
   USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
 
   !-----------------------------------------------------------------
-  ! GEOS-Chem met field I/O modules
+  ! GEOS-Chem meteorology field modules
   !-----------------------------------------------------------------
-  USE Derived_Met_Mod       ! Met field calculations
+  USE Calc_Met_Mod          ! Met field calculations
   USE FLEXGRID_READ_MOD     ! For reading FLEXGRID data
 #ifdef EXCHANGE
   USE EXCHANGE_MOD          ! For two-way coupled simulations

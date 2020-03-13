@@ -3,15 +3,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: derived_met_mod.F90
+! !MODULE: calc_met_mod.F90
 !
-! !DESCRIPTION: Module DERIVED\_MET\_MOD (formerly DAO\_MOD) contains
+! !DESCRIPTION: Module CALC\_MET\_MOD (formerly DAO\_MOD) contains
 !  subroutines that compute, interpolate, or otherwise process met field data.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE DERIVED_MET_MOD
+MODULE CALC_MET_MOD
 !
 ! !USES:
 !
@@ -1497,4 +1497,4 @@ CONTAINS
 
   END SUBROUTINE Set_Met_AgeOfAir
 !EOC
-END MODULE DERIVED_MET_MOD
+END MODULE CALC_MET_MOD

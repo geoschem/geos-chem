@@ -10,7 +10,6 @@ add_library(GeosUtil STATIC EXCLUDE_FROM_ALL
 	error_mod.F90
 	file_mod.F90
 	gc_grid_mod.F90
-	geos_timers_mod.F90
 	grid_registry_mod.F90
         henry_mod.F90
 	ifort_errmsg.F90
@@ -18,6 +17,7 @@ add_library(GeosUtil STATIC EXCLUDE_FROM_ALL
 	regrid_a2a_mod.F90
         roundoff_mod.F90
 	time_mod.F90
+	timers_mod.F90
 	transfer_mod.F90
 	unitconv_mod.F90
 )

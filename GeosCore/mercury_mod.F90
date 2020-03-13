@@ -4817,7 +4817,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Derived_Met_Mod,    ONLY : GET_OBK
+    USE Calc_Met_Mod,       ONLY : GET_OBK
     USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
     USE ERROR_MOD,          ONLY : SAFE_DIV
     USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP

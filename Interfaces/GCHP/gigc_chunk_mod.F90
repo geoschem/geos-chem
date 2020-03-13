@@ -333,8 +333,8 @@ CONTAINS
     USE WetScav_Mod,        ONLY : Setup_WetScav, Do_WetDep
 
     ! Specialized subroutines
-    USE Derived_Met_Mod,    ONLY : AirQnt, Set_Dry_Surface_Pressure
-    USE Derived_Met_Mod,    ONLY : GIGC_Cap_Tropopause_Prs
+    USE Calc_Met_Mod,       ONLY : AirQnt, Set_Dry_Surface_Pressure
+    USE Calc_Met_Mod,       ONLY : GIGC_Cap_Tropopause_Prs
     USE Set_Global_CH4_Mod, ONLY : Set_CH4
     USE MODIS_LAI_Mod,      ONLY : Compute_XLAI
     USE PBL_Mix_Mod,        ONLY : Compute_PBL_Height

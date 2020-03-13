@@ -382,6 +382,8 @@ carbon_mod.o                : carbon_mod.F90                                 \
                               tomas_mod.o             vdiff_pre_mod.o        \
                               hco_interface_mod.o     aerosol_mod.o
 
+calc_met_mod.o              : calc_met_mod.F90
+
 chemistry_mod.o             : chemistry_mod.F90                              \
                               aerosol_mod.o           isorropiaII_mod.o      \
                               carbon_mod.o                                   \
@@ -459,7 +461,7 @@ diag_oh_mod.o               : diag_oh_mod.F90
 diagnostics_mod.o           : diagnostics_mod.F90
 
 drydep_mod.o                : drydep_mod.F90                                 \
-                              apm_driv_mod.o                                 \
+                              apm_driv_mod.o          calc_met_mod.o         \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
                               hco_interface_mod.o     diagnostics_mod.o
@@ -539,7 +541,7 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               modis_lai_mod.o         fast_jx_mod.o          \
                               hcoi_gc_diagn_mod.o     tomas_mod.o            \
                               hco_interface_mod.o     flexgrid_read_mod.o    \
-                              ocean_mercury_mod.o
+                              ocean_mercury_mod.o     calc_met_mod.o
 
 initialize.o                : initialize.F90                                 \
                               diag_mod.o              diag03_mod.o           \
@@ -562,7 +564,7 @@ main.o                      : main.F90                                       \
                               chemistry_mod.o                                \
                               carbon_mod.o            convection_mod.o       \
                               diag51_mod.o            diag51b_mod.o          \
-                              diag_oh_mod.o           derived_met_mod.o      \
+                              diag_oh_mod.o           calc_met_mod.o         \
                               depo_mercury_mod.o      drydep_mod.o           \
                               diagnostics_mod.o       toms_mod.o             \
                               gc_environment_mod.o    global_ch4_mod.o       \
@@ -583,7 +585,7 @@ main.o                      : main.F90                                       \
                               gc_classic_version.H
 
 mercury_mod.o               : mercury_mod.F90                                \
-                              derived_met_mod.o                              \
+                              calc_met_mod.o                                 \
                               depo_mercury_mod.o      diag03_mod.o           \
                               diag_mod.o              drydep_mod.o           \
                               global_br_mod.o         vdiff_pre_mod.o        \
@@ -701,14 +703,14 @@ ifeq ($(PRECISION),8)
 endif
 
 transport_mod.o             : transport_mod.F90                              \
-                              diag_mod.o              derived_met_mod.o      \
+                              calc_met_mod.o          diag_mod.o             \
                               pjc_pfix_mod.o                                 \
                               tpcore_fvdas_mod.o      tpcore_window_mod.o    \
                               tendencies_mod.o        pjc_pfix_window_mod.o  \
                               diagnostics_mod.o
 
 ucx_mod.o                   : ucx_mod.F90                                    \
-                              derived_met_mod.o       fast_jx_mod.o          \
+                              calc_met_mod.o          fast_jx_mod.o          \
                               global_ch4_mod.o        hco_interface_mod.o
 
 uvalbedo_mod.o              : uvalbedo_mod.F90                               \
@@ -720,7 +722,7 @@ ifeq ($(COMPILER),sun)
 endif
 
 vdiff_mod.o                 : vdiff_mod.F90                                  \
-                              derived_met_mod.o                              \
+                              calc_met_mod.o                                 \
                               depo_mercury_mod.o      diag_mod.o             \
                               drydep_mod.o            ocean_mercury_mod.o    \
                               pbl_mix_mod.o           vdiff_pre_mod.o        \

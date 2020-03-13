@@ -3704,7 +3704,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Derived_Met_Mod,    ONLY : AIRQNT
+    USE Calc_Met_Mod,       ONLY : AIRQNT
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
