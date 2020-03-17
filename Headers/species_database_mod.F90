@@ -1218,7 +1218,7 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = F
              Is_Wetdep     = F
-             Henry_K0      = 4.76e+1_f8
+             Henry_K0      = 4.80e-1_f8
              Henry_CR      = 3100.0_f8
 
           CASE( 'DST1', 'DSTAL1', 'NITD1', 'SO4D1' )
