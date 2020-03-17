@@ -246,7 +246,7 @@ CONTAINS
       ! ---------------------------------------------------------------------
       ! Try to open diagnostics definition file
       ! ---------------------------------------------------------------------
-      CALL DiagnFileOpen( am_I_Root, HcoConfig, LUN, RC )
+      CALL DiagnFileOpen( HcoConfig, LUN, RC )
       ASSERT_(RC == HCO_SUCCESS )
 
       ! ---------------------------------------------------------------------
@@ -260,9 +260,10 @@ CONTAINS
          DO
 
             ! Get next line
-            CALL DiagnFileGetNext( am_I_Root, HcoConfig, LUN, cName, &
-               SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC, &
-               lName=lName, UnitName=UnitName )
+            CALL DiagnFileGetNext( HcoConfig, LUN,     cName,       &
+                                   SpcName,   ExtNr,   Cat,   Hier, &
+                                   SpaceDim,  OutUnit, EOF,   RC,   &
+                                   lName=lName, UnitName=UnitName )
             IF ( RC /= HCO_SUCCESS ) RETURN
 
             ! Leave here if end of file

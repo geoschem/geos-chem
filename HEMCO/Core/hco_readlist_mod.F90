@@ -77,15 +77,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Set( am_I_Root, HcoState, Dct, RC )
+  SUBROUTINE ReadList_Set( HcoState, Dct, RC )
 !
 ! !USES:
 !
     USE HCO_LOGFILE_MOD, ONLY : HCO_PrintDataCont
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -224,7 +220,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Read( am_I_Root, HcoState, RC, ReadAll )
+  SUBROUTINE ReadList_Read( HcoState, RC, ReadAll )
 !
 ! !USES:
 !
@@ -237,7 +233,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL, OPTIONAL, INTENT(IN   )  :: ReadAll    ! read all fields?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -285,7 +280,7 @@ CONTAINS
           WRITE(MSG,*) 'Now reading once list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Once, RC )
+       CALL ReadList_Fill( HcoState, HcoState%ReadLists%Once, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           PRINT *, "Error in ReadList_Fill (1) called from HEMCO ReadList_Read"
           RETURN
@@ -298,7 +293,7 @@ CONTAINS
           WRITE(MSG,*) 'Now reading year list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Year, RC )
+       CALL ReadList_Fill( HcoState, HcoState%ReadLists%Year, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           PRINT *, "Error in ReadList_Fill (2) called from HEMCO ReadList_Read"
           RETURN
@@ -311,7 +306,7 @@ CONTAINS
           WRITE(MSG,*) 'Now reading month list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Month, RC )
+       CALL ReadList_Fill( HcoState, HcoState%ReadLists%Month, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           PRINT *, "Error in ReadList_Fill (3) called from HEMCO ReadList_Read"
           RETURN
@@ -324,7 +319,7 @@ CONTAINS
           WRITE(MSG,*) 'Now reading day list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Day, RC )
+       CALL ReadList_Fill( HcoState, HcoState%ReadLists%Day, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           PRINT *, "Error in ReadList_Fill (4) called from HEMCO ReadList_Read"
           RETURN
@@ -337,7 +332,7 @@ CONTAINS
           WRITE(MSG,*) 'Now reading hour list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour, RC )
+       CALL ReadList_Fill( HcoState, HcoState%ReadLists%Hour, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           PRINT *, "Error in ReadList_Fill (5) called from HEMCO ReadList_Read"
           RETURN
@@ -350,7 +345,7 @@ CONTAINS
           WRITE(MSG,*) 'Now reading 3-hour list!'
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
-       CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Hour3, RC )
+       CALL ReadList_Fill( HcoState, HcoState%ReadLists%Hour3, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           PRINT *, "Error in ReadList_Fill (6) called from HEMCO ReadList_Read"
           RETURN
@@ -362,7 +357,7 @@ CONTAINS
        WRITE(MSG,*) 'Now reading always list!'
        CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
-    CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Always, RC )
+    CALL ReadList_Fill( HcoState, HcoState%ReadLists%Always, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        PRINT *, "Error in called ReadList_Fill (7) from HEMCO ReadList_Read"
        RETURN
@@ -400,7 +395,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Fill( am_I_Root, HcoState, ReadList, RC )
+  SUBROUTINE ReadList_Fill( HcoState, ReadList, RC )
 !
 ! !USES:
 !
@@ -412,10 +407,6 @@ CONTAINS
     USE HCO_EmisList_Mod,   ONLY : EmisList_Pass
     USE HCO_DataCont_Mod,   ONLY : DataCont_Cleanup
     USE HCO_TIDX_MOD,       ONLY : tIDx_Assign
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -494,7 +485,7 @@ CONTAINS
 
           ! Read from other source if it's not a netCDF file
           IF ( .NOT. Lct%Dct%Dta%NcRead ) THEN
-             CALL HCOIO_ReadOther ( am_I_Root, HcoState, Lct, RC )
+             CALL HCOIO_ReadOther( HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 PRINT *, "Error in HCOIO_ReadOther called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
                 RETURN
@@ -504,13 +495,11 @@ CONTAINS
           ELSE
 
              ! Read data
-             CALL HCOIO_DATAREAD ( am_I_Root, HcoState, Lct, RC )
+             CALL HCOIO_DATAREAD( HcoState, Lct, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 PRINT *, "Error in HCOIO_DATAREAD called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
                 RETURN
              ENDIF
-
-
           ENDIF
 
           ! We now have touched this data container
@@ -535,7 +524,7 @@ CONTAINS
           ENDIF
 
           ! Container is now read to be passed to emissions list.
-          CALL EmisList_Pass( am_I_Root, HcoState, Lct, RC )
+          CALL EmisList_Pass( HcoState, Lct, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              PRINT *, "Error in EmisList_Pass called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
              RETURN
@@ -548,7 +537,7 @@ CONTAINS
     ENDDO
 
     ! Make sure that all netCDF files are closed
-    CALL HCOIO_CloseAll ( am_I_Root, HcoState, RC )
+    CALL HCOIO_CloseAll ( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        PRINT *, "Error in HCOIO_CloseAll called from HEMCO ReadList_Fill: ", TRIM(Lct%Dct%cname)
        RETURN
@@ -687,11 +676,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Init( am_I_Root, ReadLists, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
+  SUBROUTINE ReadList_Init( ReadLists, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -756,7 +741,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Print( am_I_Root, HcoState, ReadLists, verb )
+  SUBROUTINE ReadList_Print( HcoState, ReadLists, verb )
 !
 ! !USES:
 !
@@ -764,7 +749,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root
     TYPE(HCO_State), POINTER       :: HcoState
     TYPE(RdList),    POINTER       :: ReadLists
     INTEGER,         INTENT(IN)    :: verb   ! verbose number
@@ -786,7 +770,7 @@ CONTAINS
     IF ( .NOT. HCO_IsVerb(HcoState%Config%Err,verb) ) RETURN
 
     ! Print content of all lists
-    IF ( ASSOCIATED(ReadLists) .and. am_I_Root ) THEN
+    IF ( ASSOCIATED(ReadLists) .and. HcoState%amIRoot ) THEN
 
        WRITE(MSG,*) 'Contents of one-time list:'
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='=')
@@ -837,14 +821,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadList_Remove( am_I_Root, HcoState, cName, RC )
+  SUBROUTINE ReadList_Remove( HcoState, cName, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )   :: am_I_Root
     TYPE(HCO_State),  POINTER         :: HcoState
     CHARACTER(LEN=*), INTENT(IN   )   :: cName
 !

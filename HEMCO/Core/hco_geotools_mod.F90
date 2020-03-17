@@ -359,7 +359,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetSUNCOS( am_I_Root, HcoState, SUNCOS, DT, RC )
+  SUBROUTINE HCO_GetSUNCOS( HcoState, SUNCOS, DT, RC )
 !
 ! !USES
 !
@@ -369,7 +369,6 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: DT             ! Time shift relative to current date [hrs]
 !
@@ -414,7 +413,7 @@ CONTAINS
     !-------------------------------
 
     ! Get current time information
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cDOY=DOY, cH=HOUR, RC=RC )
+    CALL HcoClock_Get( HcoState%Clock, cDOY=DOY, cH=HOUR, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add time adjustment
@@ -538,7 +537,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC )
+  SUBROUTINE HCO_GetHorzIJIndex( HcoState, N, Lon, Lat, idx, jdx, RC )
 !
 ! !USES
 !
@@ -549,7 +548,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: N
     REAL(hp),        INTENT(IN   )  :: Lon(N)
@@ -618,7 +616,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetHorzIJIndex( am_I_Root, HcoState, N, Lon, Lat, idx, jdx, RC )
+  SUBROUTINE HCO_GetHorzIJIndex( HcoState, N, Lon, Lat, idx, jdx, RC )
 !
 ! !USES:
 !
@@ -626,7 +624,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: N
     REAL(hp),        INTENT(IN   )  :: Lon(N)
@@ -750,8 +747,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CalcVertGrid ( am_I_Root, HcoState, PSFC,    &
-                                ZSFC,  TK, BXHEIGHT, PEDGE, RC )
+  SUBROUTINE HCO_CalcVertGrid ( HcoState, PSFC, ZSFC, TK, BXHEIGHT, PEDGE, RC )
 !
 ! !USES
 !
@@ -761,7 +757,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
     REAL(hp),        POINTER        :: PSFC(:,:)       ! surface pressure (Pa)
     REAL(hp),        POINTER        :: ZSFC(:,:)       ! surface geopotential height (m)
@@ -818,7 +813,8 @@ CONTAINS
     ThisTK        => NULL()
 
     ! Verbose statements
-    IF ( am_I_Root .AND. FIRST .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+    IF ( HcoState%amIRoot .AND. FIRST .AND. &
+         HCO_IsVerb(HcoState%Config%Err,2) ) THEN
        Verb = .TRUE.
     ENDIF
     IF ( Verb ) THEN
@@ -858,7 +854,7 @@ CONTAINS
 
     ELSEIF ( EVAL_TK ) THEN
        ALLOCATE(TmpTK(HcoState%NX,HcoState%NY,HcoState%NZ))
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'TK', TmpTK, RC, FOUND=FoundTK )
+       CALL HCO_EvalFld ( HcoState, 'TK', TmpTK, RC, FOUND=FoundTK )
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_TK = FoundTK
        IF ( FoundTK ) ThisTK => TmpTk
@@ -905,7 +901,7 @@ CONTAINS
 
     ! Otherwise, try to read from HEMCO configuration file
     ELSEIF ( EVAL_PSFC ) THEN
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'PSFC', HcoState%Grid%PSFC%Val, RC, FOUND=FoundPSFC )
+       CALL HCO_EvalFld ( HcoState, 'PSFC', HcoState%Grid%PSFC%Val, RC, FOUND=FoundPSFC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_PSFC = FoundPSFC
 
@@ -951,7 +947,7 @@ CONTAINS
 
     ! Otherwise, try to read from HEMCO configuration file
     ELSEIF ( EVAL_ZSFC ) THEN
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'ZSFC', HcoState%Grid%ZSFC%Val, RC, FOUND=FoundZSFC )
+       CALL HCO_EvalFld ( HcoState, 'ZSFC', HcoState%Grid%ZSFC%Val, RC, FOUND=FoundZSFC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_ZSFC = FoundZSFC
 
@@ -997,7 +993,7 @@ CONTAINS
        ENDIF
 
     ELSEIF ( EVAL_PEDGE ) THEN
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'PEDGE', &
+       CALL HCO_EvalFld ( HcoState, 'PEDGE', &
                           HcoState%Grid%PEDGE%Val, RC, FOUND=FoundPEDGE )
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_PEDGE = FoundPEDGE
@@ -1045,7 +1041,7 @@ CONTAINS
 
     ! Otherwise, try to read from HEMCO configuration file
     ELSEIF ( EVAL_BXHEIGHT ) THEN
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'BXHEIGHT_M', &
+       CALL HCO_EvalFld ( HcoState, 'BXHEIGHT_M', &
                           HcoState%Grid%BXHEIGHT_M%Val, RC, FOUND=FoundBXHEIGHT )
        IF ( RC /= HCO_SUCCESS ) RETURN
        EVAL_BXHEIGHT = FoundBXHEIGHT
@@ -1094,7 +1090,7 @@ CONTAINS
           ENDIF
        ELSE
           HcoState%Grid%PSFC%Val(:,:) = 101325.0_hp
-          IF ( FIRST .AND. am_I_Root ) THEN
+          IF ( FIRST .AND. HcoState%amIRoot ) THEN
              MSG = 'Surface pressure PSFC uniformly set to 101325 Pa! ' // &
                    'This may affect the accuracy of vertical grid '     // &
                    'quantities. It is recommended you provide PSFC via '// &
@@ -1222,14 +1218,14 @@ CONTAINS
 
        ! PEDGE and/or TK not defined
        ELSE
-          IF ( .NOT. FoundZSFC .AND. FIRST .AND. am_I_Root ) THEN
+          IF ( .NOT. FoundZSFC .AND. FIRST .AND. HcoState%amIRoot ) THEN
              MSG = 'Cannot set surface height ZSFC. This may cause '      // &
                    'some extensions to fail. HEMCO tries to calculate '   // &
                    'ZSFC from surface pressure and air temperature, but ' // &
                    'at least one of these variables seem to be missing.'
              CALL HCO_WARNING( HcoState%Config%Err,MSG, RC, THISLOC=LOC, WARNLEV=1 )
           ENDIF
-          IF ( .NOT. FoundBXHEIGHT .AND. FIRST .AND. am_I_Root ) THEN
+          IF ( .NOT. FoundBXHEIGHT .AND. FIRST .AND. HcoState%amIRoot ) THEN
              MSG = 'Cannot set boxheights BXHEIGHT_M. This may cause '      // &
                    'some extensions to fail. HEMCO tries to calculate '     // &
                    'BXHEIGHT from pressure edges and air temperature, but ' // &
@@ -1276,7 +1272,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_SetPBLm ( am_I_Root, HcoState, FldName, PBLM, DefVal, RC )
+  SUBROUTINE HCO_SetPBLm( HcoState, FldName, PBLM, DefVal, RC )
 !
 ! !USES
 !
@@ -1286,7 +1282,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )            :: am_I_Root   ! Root CPU?
     TYPE(HCO_State),  POINTER                  :: HcoState    ! HEMCO state object
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   )  :: FldName     ! field name
     REAL(hp),         OPTIONAL, POINTER        :: PBLM(:,:)   ! pbl mixing height
@@ -1318,12 +1313,12 @@ CONTAINS
 
     ! Try to read from file first
     IF ( PRESENT( FldName ) ) THEN
-       CALL HCO_EvalFld ( am_I_Root, HcoState, FldName, &
+       CALL HCO_EvalFld ( HcoState, FldName, &
           HcoState%Grid%PBLHEIGHT%Val, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Verbose
-       IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+       IF ( HcoState%amIRoot .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
           IF ( FOUND ) THEN
              WRITE(MSG,*) 'HEMCO PBL heights obtained from field ',TRIM(FldName)
              CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
@@ -1332,7 +1327,6 @@ CONTAINS
     ENDIF
 
     ! Pass 2D field if available
-!    IF ( .NOT. FOUND .AND. PRESENT(PBLM) ) THEN
     IF ( .not. FOUND ) THEN
        IF ( PRESENT( PBLM ) ) THEN
           IF ( ASSOCIATED(PBLM) ) THEN
@@ -1355,7 +1349,7 @@ CONTAINS
              FOUND                       = .TRUE.
 
              ! Verbose
-             IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+             IF ( HcoState%amIRoot .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
                 WRITE(MSG,*) 'HEMCO PBL heights obtained from provided 2D field.'
                 CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
              ENDIF
@@ -1377,7 +1371,7 @@ CONTAINS
           FOUND                       = .TRUE.
 
           ! Verbose
-          IF ( am_I_Root .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
+          IF ( HcoState%amIRoot .AND. HCO_IsVerb(HcoState%Config%Err,2) ) THEN
              WRITE(MSG,*) 'HEMCO PBL heights uniformly set to ', DefVal
              CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
           ENDIF
@@ -1409,7 +1403,7 @@ CONTAINS
 !!\\
 !! !INTERFACE:
 !!
-!  SUBROUTINE HCO_CalcPBLlev3D ( am_I_Root, HcoState, PBLFRAC, RC )
+!  SUBROUTINE HCO_CalcPBLlev3D ( HcoState, PBLFRAC, RC )
 !!
 !! !USES
 !!
@@ -1418,7 +1412,6 @@ CONTAINS
 !!
 !! !INPUT PARAMETERS:
 !!
-!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU?
 !    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
 !    REAL(hp),        POINTER        :: PBLFRAC(:,:,:)  ! planetary PBL fraction
 !!
@@ -1492,7 +1485,7 @@ CONTAINS
 !!\\
 !! !INTERFACE:
 !!
-!  SUBROUTINE HCO_CalcPBLlev2D ( am_I_Root, HcoState, PBLlev, RC )
+!  SUBROUTINE HCO_CalcPBLlev2D ( HcoState, PBLlev, RC )
 !!
 !! !USES
 !!
@@ -1501,7 +1494,6 @@ CONTAINS
 !!
 !! !INPUT PARAMETERS:
 !!
-!    LOGICAL,         INTENT(IN   )  :: am_I_Root       ! Root CPU?
 !    TYPE(HCO_State), POINTER        :: HcoState        ! HEMCO state object
 !    INTEGER,         POINTER        :: PBLlev(:,:)     ! planetary PBL lev
 !!

@@ -22,7 +22,7 @@
 #
 # !REVISION HISTORY:
 #  08 Jul 2014 - R. Yantosca - Initial version
-#  See the Gitk browser for complete history
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

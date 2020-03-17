@@ -20,7 +20,7 @@
 !\\
 ! !REVISION HISTORY: 
 !  10 Oct 2012 - M. Long     - Initial version, for grid-independent model
-!  See the gitk browser for revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

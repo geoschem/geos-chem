@@ -108,10 +108,7 @@ MODULE DiagList_Mod
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
-!  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
-!  25 Jan 2018 - E. Lundgren - Add collection items and linked list
-!  01 Feb 2018 - E. Lundgren - Rename module: diagnostics_mod -> diaglist_mod
-!                              and make collection name list publicly available
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,16 +136,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_DiagList ( am_I_Root, historyConfigFile, DiagList, RC )
+  SUBROUTINE Init_DiagList ( Input_Opt, historyConfigFile, DiagList, RC )
 !
 ! !USES:
 !
     USE Charpak_Mod
-    USE InquireMod,       ONLY: findFreeLun
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE InquireMod,       ONLY : findFreeLun
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,              INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),       INTENT(IN)    :: Input_Opt    ! Input Options object
     CHARACTER(LEN=*),     INTENT(IN)    :: historyConfigFile
 !
 ! !INPUT AND OUTPUT PARAMETERS:
@@ -161,12 +159,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
-!  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
-!  29 Dec 2017 - C. Keller   - Look for GEOSCHEMCHEM instead of GIGCchem when
-!                              on NCCS Discover.
-!  22 Jan 2018 - E. Lundgren - Allow use of AOD wavelengths in diagnostic names
-!  26 Jan 2018 - E. Lundgren - Read collection names and skip collection diags
-!                              where HISTORY.rc declared col name commented out
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -338,8 +331,8 @@ CONTAINS
 
              ! Add name to collection list if not commented out
              IF ( collname(1:1) /= "#"  ) THEN
-                CALL Init_ColItem( am_I_Root, NewCollItem, collname )
-                CALL InsertBeginning_ColList( am_I_Root, NewCollItem, &
+                CALL Init_ColItem( Input_Opt, NewCollItem, collname )
+                CALL InsertBeginning_ColList( Input_Opt, NewCollItem, &
                                               CollList, RC )
              ENDIF
 
@@ -359,7 +352,7 @@ CONTAINS
              collname = CleanText( Line )
 
           ENDDO
-          CALL Print_ColList( am_I_Root, CollList, RC )
+          CALL Print_ColList( Input_Opt, CollList, RC )
           CYCLE
        ENDIF
 
@@ -373,7 +366,7 @@ CONTAINS
           CALL CStrip( Line, KeepSpaces=.TRUE. )
           CALL StrSplit( Line, ".", SubStrs, N )
           collname = CleanText( SubStrs(1) )
-          CALL Search_CollList( am_I_Root, CollList, collname, Found, RC )
+          CALL Search_CollList( Input_Opt, CollList, collname, Found, RC )
 
           ! Skip this collection if not found in list
           IF ( .NOT. Found ) THEN
@@ -392,7 +385,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
        !====================================================================
        ! Add some extra error checks for collections that are in the
        ! collection name list (and therefore will be archived)
@@ -595,7 +588,7 @@ CONTAINS
        ! Skip line if GIGCchem not present
        ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
        ! scan accordingly (ckeller, 12/29/17)
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
 #else
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
@@ -614,7 +607,7 @@ CONTAINS
        IF ( name(1:1) == '#' ) CYCLE
 
        ! Skip if name is already in diag list
-       CALL Search_DiagList( am_I_Root, DiagList, name, Found, RC )
+       CALL Search_DiagList( Input_Opt, DiagList, name, Found, RC )
        IF ( Found ) CYCLE
 
        ! Set GC state
@@ -623,14 +616,14 @@ CONTAINS
           state = 'MET'
        ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
           state = 'CHEM'
-#if defined( ESMF_ )
+#ifdef ESMF_
        ! Emissions diagnostics are included in HISTORY.rc in GCHP only
        ELSEIF ( nameAllCaps(1:4) == 'EMIS' ) THEN
           state = 'EMISSIONS'
        ! Emissions inventory diagnostics are included in HISTORY.rc in GCHP only
        ELSEIF ( nameAllCaps(1:3) == 'INV' ) THEN
           state = 'EMISSIONS'
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        ! GEOS uses a different internal state prefix than GCHP and
        ! and also can have custom diagnostics
        ELSEIF ( nameAllCaps(1:5) == 'GEOS_' ) THEN
@@ -650,7 +643,7 @@ CONTAINS
        isWildcard = .FALSE.
        wildcard   = ''
        IF ( INDEX( name, '?' ) > 0 ) THEN
-#if defined( ESMF_ )
+#ifdef ESMF_
           ! Exit with an error if using GCHP and wildcard is present
           ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
                    'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
@@ -791,7 +784,7 @@ CONTAINS
        !====================================================================
        ! Create a new DiagItem object
        !====================================================================
-       CALL Init_DiagItem( am_I_Root, NewDiagItem, &
+       CALL Init_DiagItem( Input_Opt, NewDiagItem, &
                            name=name,              &
                            state=state,            &
                            metadataID=metadataID,  &
@@ -810,7 +803,7 @@ CONTAINS
        !====================================================================
        ! Add new DiagItem to linked list
        !====================================================================
-       CALL InsertBeginning_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
+       CALL InsertBeginning_DiagList( Input_Opt, NewDiagItem, DiagList, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDDO
@@ -836,13 +829,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_DiagItem ( am_I_Root,  NewDiagItem, name,       state,     &
+  SUBROUTINE Init_DiagItem ( Input_Opt,  NewDiagItem, name,       state,     &
                              metadataID, registryID,  isWildcard, wildcard,  &
                              isTagged,   tag,         RC  )
 !
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+!
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN) :: am_I_Root
+   TYPE(OptInput),       INTENT(IN) :: Input_Opt    ! Input Options object
     CHARACTER(LEN=*),    OPTIONAL   :: name
     CHARACTER(LEN=*),    OPTIONAL   :: state
     CHARACTER(LEN=*),    OPTIONAL   :: metadataID
@@ -859,6 +856,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -898,20 +896,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_ColItem ( am_I_Root, NewCollItem, cname, RC  )
+  SUBROUTINE Init_ColItem ( Input_Opt, NewCollItem, cname, RC  )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,       INTENT(IN) :: am_I_Root
-    TYPE(ColItem), POINTER    :: NewCollItem
-    CHARACTER(LEN=*)          :: cname
+    TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input Options object
+    TYPE(ColItem),  POINTER    :: NewCollItem
+    CHARACTER(LEN=*)           :: cname
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,       OPTIONAL   :: RC
+    INTEGER,        OPTIONAL   :: RC
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -942,11 +945,15 @@ CONTAINS
 !!\\
 !! !INTERFACE:
 !!
-!  SUBROUTINE Get_ColItem ( am_I_Root, CollName, CollList, CollItem, Found, RC )
+!  SUBROUTINE Get_ColItem ( Input_Opt, CollName, CollList, CollItem, Found, RC )
+!!
+!! !USES:
+!!
+!    USE Input_Opt_Mod, ONLY : OptInput
 !!
 !! !INPUT PARAMETERS:
 !!
-!    LOGICAL,          INTENT(IN) :: am_I_Root
+!    TYPE(OptInput),   INTENT(IN) :: Input_Opt    ! Input Options object
 !    CHARACTER(LEN=*), INTENT(IN) :: CollName
 !    TYPE(ColList),    INTENT(IN) :: CollList
 !!
@@ -958,6 +965,7 @@ CONTAINS
 !!
 !! !REVISION HISTORY:
 !!  25 Jan 2018 - E. Lundgren - Initial version
+!!  See https://github.com/geoschem/geos-chem for complete history
 !!EOP
 !!------------------------------------------------------------------------------
 !!BOC
@@ -1003,11 +1011,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_ColItem ( am_I_Root, Collname, CollList, Found, RC  )
+  SUBROUTINE Set_ColItem ( Input_Opt, Collname, CollList, Found, RC  )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN) :: am_I_Root
+    TYPE(OptInput), INTENT(IN)   :: Input_Opt    ! Input Options object
     CHARACTER(LEN=*)             :: CollName
     TYPE(ColList)                :: CollList
 !
@@ -1018,6 +1030,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1069,14 +1082,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InsertBeginning_DiagList ( am_I_Root, DiagItem, DiagList, RC )
+  SUBROUTINE InsertBeginning_DiagList ( Input_Opt, DiagItem, DiagList, RC )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),  INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(DgnItem),   POINTER       :: DiagItem
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1089,6 +1103,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1122,14 +1137,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InsertBeginning_ColList ( am_I_Root, CollItem, CollList, RC )
+  SUBROUTINE InsertBeginning_ColList ( Input_Opt, CollItem, CollList, RC )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),  INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(ColItem),   POINTER       :: CollItem
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1142,6 +1158,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1175,11 +1192,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Search_DiagList ( am_I_Root, DiagList, name, found, RC )
+  SUBROUTINE Search_DiagList ( Input_Opt, DiagList, name, found, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN) :: am_I_Root
+    TYPE(OptInput),    INTENT(IN) :: Input_Opt    ! Input Options object
     TYPE(DgnList),     INTENT(IN) :: DiagList
     CHARACTER(LEN=*),  INTENT(IN) :: name
 !
@@ -1190,6 +1211,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1230,11 +1252,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Search_CollList ( am_I_Root, CollList, name, found, RC )
+  SUBROUTINE Search_CollList ( Input_Opt, CollList, name, found, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN) :: am_I_Root
+    TYPE(OptInput),    INTENT(IN) :: Input_Opt    ! Input Options object
     TYPE(ColList),     INTENT(IN) :: CollList
     CHARACTER(LEN=*),  INTENT(IN) :: name
 !
@@ -1245,6 +1271,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1286,15 +1313,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_DiagList( am_I_Root, DiagList, name, found, RC, partial )
+  SUBROUTINE Check_DiagList( DiagList, name, found, RC, partial )
 !
 ! !USES:
 !
-    USE Charpak_Mod, ONLY : To_UpperCase
+    USE Charpak_Mod,   ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(DgnList),     INTENT(IN)  :: DiagList    ! Diagnostic list object
     CHARACTER(LEN=*),  INTENT(IN)  :: name        ! Diagnostic metadata name
     LOGICAL,           OPTIONAL    :: partial     ! Allow partial name match?
@@ -1306,7 +1332,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
-!  01 Nov 2017 - R. Yantosca - Now use To_UpperCase from charpak_mod.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1401,11 +1427,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_DiagList( am_I_Root, DiagList, RC )
+  SUBROUTINE Print_DiagList( Input_Opt, DiagList, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt     ! Input Options object
     TYPE(DgnList),     INTENT(IN)    :: DiagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1414,6 +1444,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1429,7 +1460,7 @@ CONTAINS
     thisLoc = 'Print_DiagList (diaglist_mod.F90)'
     current => DiagList%head
 
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        PRINT *, " "
        PRINT *, "===================="
        PRINT *, "Contents of DiagList"
@@ -1438,7 +1469,7 @@ CONTAINS
     DO WHILE ( ASSOCIATED( current ) )
 
        ! Print info
-       IF ( am_I_Root ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
           PRINT *, TRIM(current%name)
           PRINT *, "   state:      ", TRIM(current%state)
           PRINT *, "   metadataID: ", TRIM(current%metadataID)
@@ -1460,7 +1491,7 @@ CONTAINS
 
     ! cleanup
     current => NULL()
-    IF ( am_I_Root ) PRINT *, " "
+    IF ( Input_Opt%amIRoot ) PRINT *, " "
 
   END SUBROUTINE Print_DiagList
 !EOC
@@ -1477,11 +1508,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_ColList( am_I_Root, CollList, RC )
+  SUBROUTINE Print_ColList( Input_Opt, CollList, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+    TYPE(OptInput),    INTENT(IN)    :: Input_Opt     ! Input Options object
     TYPE(ColList),     INTENT(IN)    :: CollList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1490,6 +1525,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1505,7 +1541,7 @@ CONTAINS
     thisLoc = 'Print_ColList (diaglist_mod.F90)'
     current => CollList%head
 
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        PRINT *, " "
        PRINT *, "======================"
        PRINT *, "Contents of  CollList"
@@ -1514,7 +1550,7 @@ CONTAINS
     DO WHILE ( ASSOCIATED( current ) )
 
        ! Print info
-       IF ( am_I_Root ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
           PRINT *, TRIM(current%cname)
        ENDIF
 
@@ -1524,7 +1560,7 @@ CONTAINS
 
     ! cleanup
     current => NULL()
-    IF ( am_I_Root ) PRINT *, " "
+    IF ( Input_Opt%amIRoot ) PRINT *, " "
 
   END SUBROUTINE Print_ColList
 !EOC
@@ -1542,11 +1578,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_DiagList ( am_I_Root, DiagList, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+  SUBROUTINE Cleanup_DiagList( DiagList, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1558,6 +1590,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1585,7 +1618,7 @@ CONTAINS
     ENDDO
 
     ! Also get rid of module-level collection list when cleanup up diaglist
-    CALL Cleanup_ColList( am_I_Root, CollList, RC )
+    CALL Cleanup_ColList( CollList, RC )
 
     ! Final cleanup
     current => NULL()
@@ -1607,11 +1640,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_ColList ( am_I_Root, CollList, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+  SUBROUTINE Cleanup_ColList ( CollList, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1623,6 +1652,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

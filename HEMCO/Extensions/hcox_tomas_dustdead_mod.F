@@ -199,8 +199,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCOX_TOMAS_DustDead_Run( am_I_Root, ExtState, HcoState
-     & , RC )
+      SUBROUTINE HCOX_TOMAS_DustDead_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -212,7 +211,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,         INTENT(IN   )  :: am_I_Root
       TYPE(Ext_State), POINTER        :: ExtState    ! Module options
       TYPE(HCO_State), POINTER        :: HcoState    ! Hemco state
 !
@@ -247,7 +245,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                :: aIR,    ERR
+      LOGICAL                :: ERR
       INTEGER                :: I,      J,      L,       N
       INTEGER                :: M,      IOS,    INC,     LAT_IDX
       INTEGER                :: NDB,    NSTEP,  intDOY
@@ -312,9 +310,6 @@
      & (hcox_tomas_dustdead_mod.F)', RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
-      ! am I root?
-      aIR = am_I_Root
-
       ! Get instance
       Inst => NULL()
       CALL InstGet ( ExtState%TOMAS_DustDead, Inst, RC )
@@ -346,35 +341,35 @@
       ! SFC_TYP        ; surface type:                 HcoState%NX HcoState%NY
       !=================================================================
       !IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_EF_GEO',
+         CALL HCO_EvalFld( HcoState, 'DEAD_EF_GEO',
      &                     Inst%ERD_FCT_GEO, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_LF_DRY',
+         CALL HCO_EvalFld( HcoState, 'DEAD_LF_DRY',
      &                     Inst%LND_FRC_DRY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CACO3',
+         CALL HCO_EvalFld( HcoState, 'DEAD_MF_CACO3',
      &                     Inst%MSS_FRC_CACO3,  RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_CLY',
+         CALL HCO_EvalFld( HcoState, 'DEAD_MF_CLY',
      &                     Inst%MSS_FRC_CLY, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_MF_SND',
+         CALL HCO_EvalFld( HcoState, 'DEAD_MF_SND',
      &                     Inst%MSS_FRC_SND, RC)
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_SFC_TYP',
+         CALL HCO_EvalFld( HcoState, 'DEAD_SFC_TYP',
      &                     Inst%SFC_TYP, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_GOC_SRC',
+         CALL HCO_EvalFld( HcoState, 'DEAD_GOC_SRC',
      &                     Inst%SRCE_FUNC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         CALL HCO_EvalFld( aIR, HcoState, 'DEAD_VAI',
+         CALL HCO_EvalFld( HcoState, 'DEAD_VAI',
      &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -386,14 +381,14 @@
       !=================================================================
 
       ! Make OROGRAPHY array from GEOS-CHEM LWI
-      CALL GET_ORO( aIR, HcoState, ExtState, OROGRAPHY, RC )
+      CALL GET_ORO( HcoState, ExtState, OROGRAPHY, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Get emissions time step
       DTSRCE = HcoState%TS_EMIS
 
       ! Get day of year, convert to real!!
-      CALL HcoClock_Get( aIR, HcoState%Clock, cDOY = intDOY, RC=RC )
+      CALL HcoClock_Get( HcoState%Clock, cDOY = intDOY, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
       DOY = intDOY
 
@@ -465,7 +460,7 @@
          YMID_R = HcoState%Grid%YMID%Val(1,J) * HcoState%Phys%PI /180.d0
 
          ! Call DEAD dust mobilization
-         CALL DST_MBL( aIR,    HcoState, ExtState,  Inst, DOY,
+         CALL DST_MBL( HcoState, ExtState,  Inst, DOY,
      &                 BHT2,   J,      YMID_R, ORO,
      &                 PTHICK, PMID,  Q_H2O,  DSRC,   SNW_HGT_LQD,
      &                 DTSRCE, TLON,  THLON,  VLON,   ULON,
@@ -510,7 +505,7 @@
             !print*, 'DUST EMISS: ', FLUX(ii,jj,N)
             !print*, 'DUST EMISS TOT: ', sum(FLUX(:,:,N))
             ! Add to emissions array
-            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX(:,:,N),
+            CALL HCO_EmisAdd( HcoState, FLUX(:,:,N),
      &                        Inst%HcoIDs(N), RC,  ExtNr=Inst%ExtNr )
             IF ( RC /= HCO_SUCCESS ) THEN
                WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
@@ -565,7 +560,7 @@
             HcoID = HCO_GetHcoID( TRIM(SpcName), HcoState )
 
             ! Add number to the HEMCO data structure
-            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXN(:,:,N), HcoID,
+            CALL HCO_EmisAdd( HcoState, FLUXN(:,:,N), HcoID,
      &                        RC)
             IF ( RC /= HCO_SUCCESS ) THEN
                CALL HCO_ERROR( HcoState%Config%Err,
@@ -595,8 +590,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCOX_TOMAS_DustDead_Init ( am_I_Root, HcoState
-     &                             ,ExtName, ExtState,    RC     )
+      SUBROUTINE HCOX_TOMAS_DustDead_Init( HcoState, ExtName, ExtState,
+     &                                     RC )
 !
 ! !USES:
 !
@@ -605,7 +600,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,          INTENT(IN   )  :: am_I_Root
       TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco state
       CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
       TYPE(Ext_State),  POINTER        :: ExtState     ! Module options
@@ -687,7 +681,7 @@
          Inst%FLX_MSS_FDG_FCT = TmpScal
       ELSE
          Inst%FLX_MSS_FDG_FCT =
-     &      HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root, HcoState )
+     &      HCOX_TOMAS_DustDead_GetFluxTun( HcoState )
          IF ( Inst%FLX_MSS_FDG_FCT < 0.0_dp ) THEN
             MSG = 'Error in getting TOMAS dust DEAD mass tuning factor'
             CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
@@ -696,7 +690,7 @@
       ENDIF
 
       ! Verbose mode
-      IF ( am_I_Root ) THEN
+      IF ( Hcostate%amIRoot ) THEN
          MSG = 'Use DEAD dust emissions (extension module)'
          CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
 
@@ -1013,7 +1007,7 @@
 ! ORIGINAL ROUTINES FOLLOW BELOW
 !******************************************************************************
 
-      SUBROUTINE DST_MBL( am_I_Root,   HcoState,    ExtState, Inst,
+      SUBROUTINE DST_MBL( HcoState,    ExtState, Inst,
      &                    DOY,         HGT_MDP,     LAT_IDX,
      &                    LAT_RDN,     ORO,         PRS_DLT,
      &                    PRS_MDP,     Q_H2O_VPR,   DSRC,
@@ -1075,7 +1069,6 @@
 !******************************************************************************
 !
       ! Arguments
-      LOGICAL,        INTENT(IN)    :: am_I_Root
       TYPE(HCO_State), POINTER      :: HcoState   ! Hemco state
       TYPE(Ext_State), POINTER      :: ExtState    ! Module options
       TYPE(MyInst),    POINTER      :: Inst
@@ -1336,8 +1329,7 @@
       ! of each gridcell suitable for dust mobilization
       !=================================================================
       CALL LND_FRC_MBL_GET(
-     &    am_I_Root,
-     %    HcoState,
+     &    HcoState,
      &    DOY,                 ! I [day] Day of year [1.0..366.0)
      &    FLG_MBL_SLICE,       ! O [flg] Mobilization candidate flag
      &    LAT_RDN,             ! I [rdn] Latitude
@@ -2119,7 +2111,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_ORO( am_I_Root, HcoState, ExtState, OROGRAPHY, RC )
+      SUBROUTINE GET_ORO( HcoState, ExtState, OROGRAPHY, RC )
 !
 ! !USES:
 !
@@ -2144,7 +2136,6 @@
 !
 
       ! Arguments
-      LOGICAL,         INTENT(IN   ) :: am_I_Root
       TYPE(HCO_State), POINTER       :: HcoState
       Type(Ext_State), POINTER       :: ExtState
       INTEGER,         INTENT(OUT  ) :: OROGRAPHY(HcoState%NX,
@@ -3661,7 +3652,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE FRC_THR_NCR_WTR_GET( HcoState,    FLG_MBL,
+      SUBROUTINE FRC_THR_NCR_WTR_GET( HcoState, FLG_MBL,
      &               FRC_THR_NCR_WTR, MSS_FRC_CLY_SLC, GWC_SFC )
 !
 !******************************************************************************
@@ -4490,7 +4481,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE LND_FRC_MBL_GET( am_I_Root,   HcoState,    DOY,
+      SUBROUTINE LND_FRC_MBL_GET( HcoState,    DOY,
      &                            FLG_MBL,     LAT_RDN,
      &                            LND_FRC_DRY_SLC, LND_FRC_MBL, MBL_NBR,
      &                            ORO,         SFC_TYP_SLC,     SNW_FRC,
@@ -4545,7 +4536,6 @@
       !------------------
       ! Arguments
       !------------------
-      LOGICAL, INTENT(IN)  :: am_I_Root
       TYPE(HCO_State), POINTER  :: HcoState
       INTEGER, INTENT(IN)  :: SFC_TYP_SLC(HcoState%NX)
       REAL*8,  INTENT(IN)  :: DOY
@@ -5465,7 +5455,7 @@ c Fix up for negative argument, erf, etc.
 
 !******************************************************************************
 
-      FUNCTION HCOX_TOMAS_DustDead_GetFluxTun( am_I_Root, HcoState )
+      FUNCTION HCOX_TOMAS_DustDead_GetFluxTun( HcoState )
      & RESULT( FLX_MSS_FDG_FCT )
 !
 !******************************************************************************
@@ -5474,7 +5464,6 @@ c Fix up for negative argument, erf, etc.
 !******************************************************************************
 !
       ! Input argument
-      LOGICAL :: am_I_Root
       TYPE(HCO_State), POINTER :: HcoState    ! Hemco state
 
       ! Output argument

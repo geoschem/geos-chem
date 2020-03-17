@@ -53,7 +53,7 @@
 # the user's input, and will make errors less likely.
 #
 # !REVISION HISTORY:
-#  See the Git history with the gitk browser!
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -132,11 +132,6 @@ ifndef PRECISION
  PRECISION           :=8
 endif
 
-# %%%%% Default to Timers disabled %%%%%
-ifndef TIMERS
- TIMERS              :=0
-endif
-
 # %%%%% Turn on traceback (error stack report) by default %%%%%
 ifndef TRACEBACK
  TRACEBACK           :=yes
@@ -212,38 +207,6 @@ COMPILER_MAJOR_VERSION   :=$(word 1,$(subst ., ,$(COMPILER_VERSION)))
 #------------------------------------------------------------------------------
 # Special flags for enabling experimental or development code
 #------------------------------------------------------------------------------
-
-# %%%%% DEVEL: Enable user-added experimental code %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DDEVEL
-endif
-
-# %%%%% DIAG_DEVEL: Enable experimental code specific to HEMCO %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(DIAG_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DDIAG_DEVEL
-  BPCH_DIAG          :=no
-endif
-
-# %%%%% HCO_DEVEL: Enable experimental code specific to HEMCO %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(HCO_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DHCO_DEVEL
-endif
-
-# %%%%% HPC_DEVEL: Enable experimental code specific to GCHP %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(HPC_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DHPC_DEVEL
-endif
-
-# %%%%% Turn on tendencies computation  %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(USE_TEND)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DUSE_TEND
-  BPCH_DIAG          :=no
-endif
 
 # %%%%% Turn on Luo et al (2019) wetdep scheme %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
@@ -518,14 +481,6 @@ IS_GPROF             :=0
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(GPROF)" =~ $(REGEXP) ]] && echo true),true)
   IS_GPROF           :=1
-endif
-
-#------------------------------------------------------------------------------
-# Add test for mass conservation
-#------------------------------------------------------------------------------
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(MASSCONS)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DMASSCONS
 endif
 
 ###############################################################################
@@ -838,11 +793,6 @@ ifeq ($(COMPILER_FAMILY),GNU)
     USER_DEFS        += -DUSE_REAL8
   endif
 
-  # Add timers declaration
-  ifeq ($(TIMERS),1)
-    USER_DEFS        += -DUSE_TIMERS
-  endif
-
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -964,11 +914,6 @@ ifeq ($(COMPILER_FAMILY),Intel)
     USER_DEFS        += -DUSE_REAL8
   endif
 
-  # Add timers declaration
-  ifeq ($(TIMERS),1)
-    USER_DEFS        += -DUSE_TIMERS
-  endif
-
   # Append the user options in USER_DEFS to FFLAGS
   FFLAGS             += $(USER_DEFS)
 
@@ -1035,7 +980,6 @@ export RRTMG_NEEDED
 export RRTMG_CLEAN
 export RRTMG_NO_CLEAN
 export KPP_CHEM
-export TIMERS
 export IS_GNU_8
 
 #EOC

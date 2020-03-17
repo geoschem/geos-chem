@@ -78,7 +78,7 @@ MODULE TaggedDiagList_Mod
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,14 +96,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_TaggedDiagList ( am_I_Root, DiagList, TaggedDiagList, RC )
+  SUBROUTINE Init_TaggedDiagList( Input_Opt, DiagList, TaggedDiagList, RC )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,              INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),       INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(DgnList),        INTENT(IN)    :: DiagList
 !
 ! !INPUT AND OUTPUT PARAMETERS:
@@ -115,8 +116,8 @@ CONTAINS
     INTEGER,              INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
-!  See gitk browser for rest of revision history
+!  18 Nov 2019 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,7 +141,7 @@ CONTAINS
     DO WHILE ( ASSOCIATED( current ) )
        IF ( current%state == 'DIAG' .AND. &
             ( current%isTagged .OR. current%isWildcard ) ) THEN
-          CALL Query_TaggedDiagList( am_I_Root, TaggedDiagList, &
+          CALL Query_TaggedDiagList( Input_Opt, TaggedDiagList, &
                                      name=current%metadataID,   &
                                      FOUND=FOUND,               &
                                      RC=RC)
@@ -150,20 +151,20 @@ CONTAINS
              tagName = current%wildcard
           ENDIF
           IF ( FOUND ) THEN
-             CALL Update_TaggedDiagList( am_I_Root,                 &
+             CALL Update_TaggedDiagList( Input_Opt,                 &
                                          current%metadataID,        &
                                          current%isWildcard,        &
                                          tagName,                   &
                                          TaggedDiagList,            &
                                          RC)
           ELSE
-             CALL Init_TaggedDiagItem( am_I_Root,                     &
+             CALL Init_TaggedDiagItem( Input_Opt,                     &
                                        NewTaggedDiagItem,             &
                                        metadataID=current%metadataID, &
                                        isWildcard=current%isWildcard, &
                                        tagName=tagName,               &
                                        RC=RC)
-             CALL InsertBeginning_TaggedDiagList( am_I_Root,         &
+             CALL InsertBeginning_TaggedDiagList( Input_Opt,         &
                                                   NewTaggedDiagItem, &
                                                   TaggedDiagList, RC )
           ENDIF
@@ -187,11 +188,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_TaggedDiagList( am_I_Root, TaggedDiagList, RC )
+  SUBROUTINE Print_TaggedDiagList( Input_Opt, TaggedDiagList, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt      ! Input Options object
     TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -200,7 +205,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -216,27 +221,27 @@ CONTAINS
     thisLoc = 'Print_TaggedDiagList (taggeddiaglist_mod.F90)'
     current => TaggedDiagList%head
 
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        PRINT *, " "
        PRINT *, "============================="
        PRINT *, "Summary of tagged diagnostics"
        PRINT *, " "
     ENDIF
     DO WHILE ( ASSOCIATED( current ) )
-       IF ( am_I_Root ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
           PRINT *, TRIM(current%metadataID)
           PRINT '(A15,L3)', ADJUSTL('isWildcard:'), current%isWildcard
           PRINT '(A15,I3)', ADJUSTL('numWildcards:'), &
                               current%wildcardList%count
-          CALL Print_TagList( am_I_Root, current%wildcardList, RC )
+          CALL Print_TagList( Input_Opt, current%wildcardList, RC )
           PRINT '(A15,I3)', ADJUSTL('numTags:'), current%tagList%count
-          CALL Print_TagList( am_I_Root, current%tagList, RC )
+          CALL Print_TagList( Input_Opt, current%tagList, RC )
           PRINT *, " "
        ENDIF
        current => current%next
     ENDDO
     current => NULL()
-    IF ( am_I_Root ) PRINT *, " "
+    IF ( Input_Opt%amIRoot ) PRINT *, " "
 
   END SUBROUTINE Print_TaggedDiagList
 !EOC
@@ -255,17 +260,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Query_TaggedDiagList ( am_I_Root, TaggedDiagList, name, &
+  SUBROUTINE Query_TaggedDiagList ( Input_Opt, TaggedDiagList, name, &
                                     found, isWildcard, numWildcards, &
                                     numTags, wildcardList, tagList, RC )
 !
 ! !USES:
 !
-    USE Charpak_Mod, ONLY : To_UpperCase
+    USE Charpak_Mod,   ONLY : To_UpperCase
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN) :: am_I_Root
+    TYPE(OptInput),      INTENT(IN) :: Input_Opt      ! Input Options object
     TYPE(TaggedDgnList), INTENT(IN) :: TaggedDiagList
     CHARACTER(LEN=*),    INTENT(IN) :: name
 !
@@ -281,7 +287,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -329,11 +335,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_TaggedDiagList ( am_I_Root, TaggedDiagList, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)    :: am_I_Root
+  SUBROUTINE Cleanup_TaggedDiagList( TaggedDiagList, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -345,7 +347,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,8 +367,8 @@ CONTAINS
     current => TaggedDiagList%head
     IF ( ASSOCIATED( current ) ) next => current%next
     DO WHILE ( ASSOCIATED( current ) )
-       CALL cleanup_TagList(am_I_Root, current%taglist, RC)
-       CALL cleanup_TagList(am_I_Root, current%wildcardlist, RC)
+       CALL Cleanup_TagList( current%taglist, RC )
+       CALL Cleanup_TagList( current%wildcardlist, RC )
        DEALLOCATE( current, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
           PRINT *, "Error in ", trim(thisLoc)
@@ -393,12 +395,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_TaggedDiagItem ( am_I_Root, NewTaggedDiagItem, metadataID, &
+  SUBROUTINE Init_TaggedDiagItem ( Input_Opt, NewTaggedDiagItem, metadataID, &
                                    isWildcard, tagName, RC  )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN) :: am_I_Root
+    TYPE(OptInput),      INTENT(IN) :: Input_Opt      ! Input Options object
     CHARACTER(LEN=*),    OPTIONAL   :: metadataID
     LOGICAL,             OPTIONAL   :: isWildcard
     CHARACTER(LEN=*),    OPTIONAL   :: tagName
@@ -410,7 +416,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -441,12 +447,12 @@ CONTAINS
     IF (PRESENT(metadataID) ) NewTaggedDiagItem%metadataID = TRIM(metadataID)
     IF (PRESENT(isWildcard) ) NewTaggedDiagItem%isWildcard = isWildcard
     IF (PRESENT(tagName) .AND. PRESENT(isWildcard) ) THEN
-       CALL Init_TagItem( am_I_Root, NewTagItem, tagName, RC )
+       CALL Init_TagItem( Input_Opt, NewTagItem, tagName, RC )
        IF ( isWildcard ) THEN
-          CALL InsertBeginning_TagList( am_I_Root, NewTagItem, &
+          CALL InsertBeginning_TagList( Input_Opt, NewTagItem, &
                                         NewTaggedDiagItem%wildcardList, RC )
        ELSE
-          CALL InsertBeginning_TagList( am_I_Root, NewTagItem, &
+          CALL InsertBeginning_TagList( Input_Opt, NewTagItem, &
                                         NewTaggedDiagItem%tagList, RC )
        ENDIF
     ENDIF
@@ -465,21 +471,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_TagItem ( am_I_Root, NewTagItem, name, RC  )
+  SUBROUTINE Init_TagItem ( Input_Opt, NewTagItem, name, RC  )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,       INTENT(IN) :: am_I_Root
-    TYPE(DgnTagItem), POINTER :: NewTagItem
-    CHARACTER(LEN=*)          :: name
+    TYPE(OptInput),   INTENT(IN) :: Input_Opt      ! Input Options object
+    TYPE(DgnTagItem), POINTER    :: NewTagItem
+    CHARACTER(LEN=*)             :: name
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,       OPTIONAL   :: RC
+    INTEGER,          OPTIONAL   :: RC
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -511,15 +521,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InsertBeginning_TaggedDiagList ( am_I_Root, TaggedDiagItem, &
+  SUBROUTINE InsertBeginning_TaggedDiagList ( Input_Opt, TaggedDiagItem, &
                                               TaggedDiagList, RC )
 !
 ! !USES:
 !
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt      ! Input Options object
     TYPE(TaggedDgnItem), POINTER       :: TaggedDiagItem
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -531,8 +542,8 @@ CONTAINS
     INTEGER,             INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
-!  See gitk browser for rest of revision history
+!  18 Nov 2019 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -567,11 +578,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InsertBeginning_TagList ( am_I_Root, TagItem, TagList, RC )
+  SUBROUTINE InsertBeginning_TagList ( Input_Opt, TagItem, TagList, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt      ! Input Options object
     TYPE(DgnTagItem), POINTER       :: TagItem
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -583,8 +598,8 @@ CONTAINS
     INTEGER,          INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
-!  See gitk browser for rest of revision history
+!  18 Nov 2019 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -618,16 +633,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Query_Tag_in_TagList( am_I_Root, TagList, name, found, RC )
+  SUBROUTINE Query_Tag_in_TagList( Input_Opt, TagList, name, found, RC )
 !
 ! !USES:
 !
-    USE Charpak_Mod, ONLY : To_UpperCase
+    USE Charpak_Mod,   ONLY : To_UpperCase
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
     TYPE(DgnTagList), INTENT(IN)  :: TagList
     CHARACTER(LEN=*), INTENT(IN)  :: name
 !
@@ -638,7 +654,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -679,11 +695,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_TagList( am_I_Root, TagList, RC )
+  SUBROUTINE Print_TagList( Input_Opt, TagList, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt      ! Input Options object
     TYPE(DgnTagList), INTENT(IN)    :: TagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -692,7 +712,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -709,7 +729,7 @@ CONTAINS
     current => TagList%head
 
     DO WHILE ( ASSOCIATED( current ) )
-       IF ( am_I_Root ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
           PRINT *, '                  ', TRIM(current%name)
        ENDIF
        current => current%next
@@ -731,16 +751,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Update_TaggedDiagList ( am_I_Root, metadataID, isWildcard, &
+  SUBROUTINE Update_TaggedDiagList ( Input_Opt, metadataID, isWildcard, &
                                      tagName, TaggedDiagList, RC  )
 !
 ! !USES:
 !
-    USE Charpak_Mod, ONLY : To_UpperCase
+    USE Charpak_Mod,   ONLY : To_UpperCase
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)    :: am_I_Root
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt      ! Input Options object
     CHARACTER(LEN=*),    INTENT(IN)    :: metadataID
     LOGICAL,             INTENT(IN)    :: isWildcard
     CHARACTER(LEN=*),    INTENT(IN)    :: tagName
@@ -755,7 +776,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -776,13 +797,13 @@ CONTAINS
     DO WHILE ( ASSOCIATED( current ) )
        thisDiagName = To_Uppercase(current%metadataID)
        IF ( TRIM(ThisDiagName) == TRIM(To_Uppercase(metadataID)) ) THEN
-          CALL Init_TagItem( am_I_Root, NewTagItem, tagName, RC )
+          CALL Init_TagItem( Input_Opt, NewTagItem, tagName, RC )
           IF ( isWildcard ) THEN
              current%isWildcard = .TRUE.
-             CALL InsertBeginning_TagList( am_I_Root, NewTagItem, &
+             CALL InsertBeginning_TagList( Input_Opt, NewTagItem, &
                                            current%wildcardList, RC )
           ELSE
-             CALL InsertBeginning_TagList( am_I_Root, NewTagItem, &
+             CALL InsertBeginning_TagList( Input_Opt, NewTagItem, &
                                            current%tagList, RC )
           ENDIF
        ENDIF
@@ -805,11 +826,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_TagList ( am_I_Root, TagList, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN)    :: am_I_Root
+  SUBROUTINE Cleanup_TagList( TagList, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -821,7 +838,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Sep 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

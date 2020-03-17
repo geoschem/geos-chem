@@ -141,7 +141,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AddExt( am_I_Root, HcoConfig, ExtName, ExtNr, InUse, Spcs, RC )
+  SUBROUTINE AddExt( HcoConfig, ExtName, ExtNr, InUse, Spcs, RC )
 !
 ! !USES:
 !
@@ -149,7 +149,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS::
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root
     TYPE(ConfigObj),  POINTER       :: HcoConfig
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName
     INTEGER,          INTENT(IN   ) :: ExtNr
@@ -247,7 +246,7 @@ CONTAINS
     ENDIF
 
     ! Verbose
-    IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) .AND. InUse ) THEN
+    IF ( HcoConfig%amIRoot .AND. HCO_IsVerb(HcoConfig%Err,2) .AND. InUse ) THEN
        WRITE(MSG,*) 'Added HEMCO extension: ', TRIM(ExtName), ExtNr
        CALL HCO_MSG(HcoConfig%Err,MSG)
     ENDIF
@@ -277,7 +276,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AddExtOpt( am_I_Root, HcoConfig, Opt, ExtNr, RC, IgnoreIfExist )
+  SUBROUTINE AddExtOpt( HcoConfig, Opt, ExtNr, RC, IgnoreIfExist )
 !
 ! !USES:
 !
@@ -285,7 +284,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(ConfigObj),  POINTER                 :: HcoConfig      ! Configuration object
     CHARACTER(LEN=*), INTENT(IN   )           :: Opt            ! Option name & value
     INTEGER,          INTENT(IN   )           :: ExtNr          ! Add to this extension
@@ -337,7 +335,7 @@ CONTAINS
     ENDIF
 
     ! Pass to options
-    CALL HCO_AddOpt( am_I_Root, HcoConfig, OptName, OptValue, ExtNr, RC, &
+    CALL HCO_AddOpt( HcoConfig, OptName, OptValue, ExtNr, RC, &
                      IgnoreIfExist=IgnoreIfExist )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -906,7 +904,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SetExtNr( am_I_Root, HcoConfig, ExtNr, ExtName, RC )
+  SUBROUTINE SetExtNr( HcoConfig, ExtNr, ExtName, RC )
 !
 ! !USES:
 !
@@ -914,7 +912,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root
     TYPE(ConfigObj),  POINTER                 :: HcoConfig
     INTEGER,          INTENT(IN   )           :: ExtNr
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: ExtName
@@ -1139,12 +1136,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_AddOpt ( am_I_Root, HcoConfig, OptName, OptValue, ExtNr, RC, &
+  SUBROUTINE HCO_AddOpt ( HcoConfig, OptName, OptValue, ExtNr, RC, &
                           VERB,      IgnoreIfExist )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(ConfigObj),  POINTER                 :: HcoConfig      ! HEMCO config obj
     CHARACTER(LEN=*), INTENT(IN   )           :: OptName        ! OptName
     CHARACTER(LEN=*), INTENT(IN   )           :: OptValue       ! OptValue
@@ -1251,7 +1247,7 @@ CONTAINS
     ThisExt%Opts => NewOpt
 
     ! Verbose
-    IF ( VRB .AND. am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,2) ) THEN
+    IF ( VRB .AND. HcoConfig%amIRoot .AND. HCO_IsVerb(HcoConfig%Err,2) ) THEN
        MSG = 'Added the following option: ' // TRIM(OptName)//': '//TRIM(OptValue)
        CALL HCO_MSG(HcoConfig%Err,MSG)
     ENDIF
@@ -1468,14 +1464,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_SetDefaultToken ( am_I_Root, CF, RC )
+  SUBROUTINE HCO_SetDefaultToken( CF, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root  ! Root CPU?
     TYPE(ConfigObj),  POINTER                 :: CF         ! Config object
 !
 ! !OUTPUT PARAMETERS:
@@ -1523,25 +1518,25 @@ CONTAINS
     CALL GetExtOpt( CF, CoreNr, 'Wildcard', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_WILDCARD
-    CALL HCO_AddOpt( am_I_Root, CF, 'Wildcard', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'Wildcard', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Separator
     CALL GetExtOpt( CF, CoreNr, 'Separator', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_SEPARATOR
-    CALL HCO_AddOpt( am_I_Root, CF, 'Separator', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'Separator', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Colon
     CALL GetExtOpt( CF, CoreNr, 'Colon', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_COLON
-    CALL HCO_AddOpt( am_I_Root, CF, 'Colon', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'Colon', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Root directory
     CALL GetExtOpt( CF, CoreNr, 'ROOT', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_ROOT
-    CALL HCO_AddOpt( am_I_Root, CF, 'ROOT', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'ROOT', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Also save in local variable (for fast access via HCO_ROOT)
     CF%ROOT = ADJUSTL( TRIM(DUM) )
@@ -1550,31 +1545,31 @@ CONTAINS
     CALL GetExtOpt( CF, CoreNr, 'MET', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_MET_UC
-    CALL HCO_AddOpt( am_I_Root, CF, 'MET', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'MET', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Meteorology token (lowercase)
     CALL GetExtOpt( CF, CoreNr, 'met', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_MET_LC
-    CALL HCO_AddOpt( am_I_Root, CF, 'met', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'met', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Year for constant met fields
     CALL GetExtOpt( CF, CoreNr, 'CNYR', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_CN_YR
-    CALL HCO_AddOpt( am_I_Root, CF, 'CNYR', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'CNYR', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! NetCDF version extension
     CALL GetExtOpt( CF, CoreNr, 'NC', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_NC_VER
-    CALL HCO_AddOpt( am_I_Root, CF, 'NC', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'NC', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Resolution token
     CALL GetExtOpt( CF, CoreNr, 'RES', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) DUM = DEF_RES
-    CALL HCO_AddOpt( am_I_Root, CF, 'RES', DUM, CoreNr, RC, VERB=.FALSE. )
+    CALL HCO_AddOpt( CF, 'RES', DUM, CoreNr, RC, VERB=.FALSE. )
 
     ! Return w/ success
     RC =  HCO_SUCCESS

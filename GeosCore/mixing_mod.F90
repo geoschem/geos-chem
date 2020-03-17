@@ -26,10 +26,9 @@ MODULE MIXING_MOD
   PUBLIC :: DO_MIXING
   PUBLIC :: DO_TEND
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller   - Initial version.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -52,8 +51,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_MIXING ( am_I_Root,  Input_Opt,  State_Chm,                 &
-                           State_Diag, State_Grid, State_Met, RC             )
+  SUBROUTINE INIT_MIXING ( Input_Opt,  State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -69,7 +68,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid  ! Grid State
 !
@@ -87,10 +85,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller   - Initial version
-!  26 Oct 2016 - R. Yantosca - Now also call COMPUTE_PBL_HEIGHT so that we
-!                              populate PBL quantities w/ the initial met
-!  09 Mar 2017 - C. Keller   - Do not call COMPUTE_PBL_HEIGHT in ESMF env.
-!   6 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,8 +109,8 @@ CONTAINS
     IF ( Input_Opt%LNLPBL ) THEN
 
        ! Initialize non-local PBL mixing scheme
-       CALL DO_PBL_MIX_2( am_I_Root, .FALSE.,     Input_Opt, State_Chm,      &
-                          State_Diag, State_Grid, State_Met, RC             )
+       CALL DO_PBL_MIX_2( .FALSE.,    Input_Opt,  State_Chm, &
+                          State_Diag, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -127,8 +122,8 @@ CONTAINS
     ELSE
 
        ! Initialize full PBL mixing scheme
-       CALL DO_PBL_MIX( am_I_Root,  .FALSE.,    Input_Opt, State_Chm,        &
-                        State_Diag, State_Grid, State_Met, RC               )
+       CALL DO_PBL_MIX( .FALSE.,    Input_Opt, State_Chm,  &
+                        State_Diag, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -153,7 +148,7 @@ CONTAINS
     ! required met quantities are also not defined until GIGC_Chunk_Run,
     ! so also skip this here (hplin, 8/9/18)
     !-----------------------------------------------------------------------
-    CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Grid, State_Met, RC )
+    CALL COMPUTE_PBL_HEIGHT( State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -177,8 +172,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_MIXING( am_I_Root,  Input_Opt,  State_Chm,                   &
-                        State_Diag, State_Grid, State_Met, RC               )
+  SUBROUTINE DO_MIXING( Input_Opt,  State_Chm, State_Diag, &
+                        State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -193,7 +188,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     TYPE(OptInput),   INTENT(IN   )  :: Input_Opt   ! Input Options
     TYPE(GrdState),   INTENT(IN   )  :: State_Grid  ! Grid State
 !
@@ -211,15 +205,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller   - Initial version
-!  12 Aug 2015 - E. Lundgren - Input tracer units are now [kg/kg] and
-!                              are converted to [v/v] for mixing
-!  30 Sep 2014 - E. Lundgren - Move unit conversion for DO_TEND to DO_TEND
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  08 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!  28 Sep 2017 - E. Lundgren - Move unit conversions to individual routines
-!  07 Nov 2017 - R. Yantosca - Now return error condition to calling routine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,9 +251,8 @@ CONTAINS
        ENDIF
 
        ! Non-local mixing
-       CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
-                          State_Chm, State_Diag,      State_Grid,            &
-                          State_Met, RC                                     )
+       CALL DO_PBL_MIX_2( Input_Opt%LTURB, Input_Opt,  State_Chm, &
+                          State_Diag,      State_Grid, State_Met, RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -295,8 +280,8 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Apply tendencies
-    CALL DO_TEND( am_I_Root,  Input_Opt, State_Chm,    State_Diag,          &
-                  State_Grid, State_Met, OnlyAbovePBL, RC                  )
+    CALL DO_TEND( Input_Opt, State_Chm,  State_Diag, &
+                  State_Grid, State_Met, OnlyAbovePBL, RC )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -325,9 +310,8 @@ CONTAINS
        ENDIF
 
        ! Full PBL mixing
-       CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt,               &
-                        State_Chm, State_Diag,      State_Grid,              &
-                        State_Met, RC                                       )
+       CALL DO_PBL_MIX( Input_Opt%LTURB, Input_Opt,  State_Chm, &
+                        State_Diag,      State_Grid, State_Met, RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -353,8 +337,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_TEND( am_I_Root,  Input_Opt, State_Chm,    State_Diag,       &
-                      State_Grid, State_Met, OnlyAbovePBL, RC,        DT    )
+  SUBROUTINE DO_TEND( Input_Opt, State_Chm,    State_Diag, State_Grid, &
+                      State_Met, OnlyAbovePBL, RC,         DT )
 !
 ! !USES:
 !
@@ -374,13 +358,9 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#ifdef USE_TEND
-    USE TENDENCIES_MOD
-#endif
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root    ! root CPU?
     TYPE(OptInput),   INTENT(IN   )           :: Input_Opt    ! Input opts
     TYPE(MetState),   INTENT(IN   )           :: State_Met    ! Met state
     TYPE(GrdState),   INTENT(IN   )           :: State_Grid   ! Grid state
@@ -395,38 +375,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller   - Initial version
-!  09 Mar 2015 - R. Yantosca - Bug fix: Use the drydep ID number instead of the
-!                              tracer number to index the AD44 drydep array
-!  09 Mar 2015 - R. Yantosca - Bug fix: Remove an IF ( L1 == 1 ) block where
-!                              we define DRYDEPID.  This isn't needed here.
-!  10 Apr 2015 - C. Keller   - Now exchange PARANOX loss fluxes via HEMCO
-!                              diagnostics.
-!  12 Jun 2015 - R. Yantosca - Bug fix in SAFE_DIV: the denominator was
-!                              arranged wrongly.  Now corrected.
-!  18 Jun 2015 - C. Keller   - Now restrict all emissions to chemistry grid
-!                              if UCX=false.
-!  30 Sep 2015 - E. Lundgren - Now convert locally to kg/m2 for area-independent
-!                              compatibility between tracer units and flux
-!  22 Mar 2016 - C. Keller   - Bug fix: make sure drydep velocities are written
-!                              to diagnostics if emissions are zero.
-!  16 Mar 2016 - E. Lundgren - Exclude specialty simulations in restriction of
-!                              all emissions to chemistry grid if UCX=false
-!  29 Feb 2016 - C. Keller   - Make sure PARANOx fluxes are applied to tracers.
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
-!                              database field emMW_g (emitted species g/mol)
-!  16 Jun 2016 - C. Miller   - Now define species ID's with the Ind_ function
-!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
-!  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
-!  12 Apr 2017 - C. Keller   - Bug fix: now allow negative emission fluxes
-!  27 Sep 2017 - E. Lundgren - Apply unit conversion within routine instead
-!                              of in do_mixing
-!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  10 Oct 2017 - R. Yantosca - Archive drydep fluxes due to mixing for History
-!  19 Sep 2018 - E. Lundgren - Implement emis/drydep budget diagnostic
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,7 +451,7 @@ CONTAINS
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
        ! Get initial column masses
-       CALL Compute_Column_Mass( am_I_Root, Input_Opt,                    &
+       CALL Compute_Column_Mass( Input_Opt,                               &
                                  State_Chm, State_Grid, State_Met,        &
                                  State_Chm%Map_Advect,                    &
                                  State_Diag%Archive_BudgetEmisDryDepFull, &
@@ -521,9 +470,8 @@ CONTAINS
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
     ! remove area-dependency (ewl, 9/30/15)
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'kg/m2',   &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'kg/m2', RC, OrigUnit=OrigUnit )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -568,22 +516,16 @@ CONTAINS
        ! respective diagnostics. The pointers will remain unassociated if
        ! the diagnostics do not exist.
        ! This is only needed if non-local PBL scheme is not being used.
-       ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F.
+       ! Otherwise, PARANOX fluxes are applied in vdiff_mod.F90.
        !  (ckeller, 4/10/2015)
        IF ( .NOT. Input_Opt%LNLPBL ) THEN
-          CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
+          CALL GetHcoDiagn( 'PARANOX_O3_DEPOSITION_FLUX'  , &
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_O3          )
-          CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
+          CALL GetHcoDiagn( 'PARANOX_HNO3_DEPOSITION_FLUX', &
                             .FALSE.,   RC, Ptr2D = PNOXLOSS_HNO3        )
        ENDIF
        FIRST = .FALSE.
     ENDIF
-
-#if defined( USE_TEND )
-    ! Archive concentrations for tendencies (ckeller, 7/15/2015)
-    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                      State_Met, 'FLUX', RC )
-#endif
 
     !-----------------------------------------------------------------------
     ! For tagged CH4 simulations
@@ -623,7 +565,7 @@ CONTAINS
        ! processes below the PBL...
        IF ( LDRYD .AND. .NOT. OnlyAbovePBL ) THEN
 
-          ! Get dry deposition ID (used by drydep_mod.F) for this species.
+          ! Get dry deposition ID (used by drydep_mod.F90) for this species.
           ! This is now stored in the species database object. (bmy, 7/6/16)
           DryDepID = SpcInfo%DryDepId
 
@@ -691,8 +633,7 @@ CONTAINS
           ! in stratosphere wants to be avoided.
           ChemGridOnly = .FALSE.
 
-          ! Set emissions to zero above chemistry grid for the following
-          ! VOCs (adopted from aeic_mod.F).
+          ! Set emissions to zero above chemistry grid for the following VOCs
           IF ( N == id_MACR .OR. N == id_RCHO .OR. &
                N == id_ACET .OR. N == id_ALD2 .OR. &
                N == id_ALK4 .OR. N == id_C2H6 .OR. &
@@ -747,7 +688,7 @@ CONTAINS
                 ! Init
                 FRQ = 0.0_fp
 
-                ! Dry deposition frequency from drydep_mod.F. This is
+                ! Dry deposition frequency from drydep_mod.F90. This is
                 ! stored in DEPSAV. Units are [s-1].
                 IF ( DRYDEPID > 0 ) THEN
                    FRQ = DEPSAV(I,J,DRYDEPID)
@@ -759,7 +700,7 @@ CONTAINS
                 ! units are [s-1].
                 CALL GetHcoVal ( N, I, J, 1, FND, dep=TMP )
 
-                ! Add to dry dep frequency from drydep_mod.F
+                ! Add to dry dep frequency from drydep_mod.F90
                 IF ( FND ) FRQ = FRQ + TMP
 
                 ! Get PARANOX deposition loss. Apply to surface level only.
@@ -967,16 +908,9 @@ CONTAINS
 
     ENDIF
 
-#if defined( USE_TEND )
-    ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
-    CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm, &
-                      State_Grid, State_Met, 'FLUX',    &
-                      TS,         RC )
-#endif
-
     ! Convert State_Chm%Species back to original units
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit, RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        MSG = 'Unit conversion error!'
        CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
@@ -988,7 +922,7 @@ CONTAINS
     !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
        ! Get final column masses and compute diagnostics
-       CALL Compute_Column_Mass( am_I_Root, Input_Opt,                        &
+       CALL Compute_Column_Mass( Input_Opt,                                   &
                                  State_Chm, State_Grid, State_Met,            &
                                  State_Chm%Map_Advect,                        &
                                  State_Diag%Archive_BudgetEmisDryDepFull,     &
@@ -996,8 +930,7 @@ CONTAINS
                                  State_Diag%Archive_BudgetEmisDryDepPBL,      &
                                  State_Diag%BudgetMass2,                      &
                                  RC )
-       CALL Compute_Budget_Diagnostics( am_I_Root,                            &
-                                     State_Grid,                              &
+       CALL Compute_Budget_Diagnostics( State_Grid,                           &
                                      State_Chm%Map_Advect,                    &
                                      TS,                                      &
                                      State_Diag%Archive_BudgetEmisDryDepFull, &

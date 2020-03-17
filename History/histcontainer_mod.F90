@@ -174,22 +174,7 @@ MODULE HistContainer_Mod
 !
 ! !REVISION HISTORY:
 !  12 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
-!  07 Aug 2017 - R. Yantosca - Add FileWriteYmd, FileWriteHms
-!  08 Aug 2017 - R. Yantosca - Add IsFileDefined, IsFileOpen, nX, nY, nZ and
-!                              the ouptuts xDimId, yIDimd, zDimId, tDimId
-!  16 Aug 2017 - R. Yantosca - Rename Archival* variables to Update*
-!  17 Aug 2017 - R. Yantosca - Added the *Alarm variables
-!  18 Aug 2017 - R. Yantosca - Added EpochJd so that we can compute Julian
-!                              dates as relative to the start of the run
-!  18 Aug 2017 - R. Yantosca - Added ElapsedMin
-!  18 Aug 2017 - R. Yantosca - Add HistContainer_ElapsedTime routine
-!  21 Aug 2017 - R. Yantosca - Removed *_AlarmCheck, *_AlarmSet routines
-!  24 Aug 2017 - R. Yantosca - Added iDimId as the dimension ID for ilev,
-!                               which is the vertical dimension on interfaces
-!  28 Aug 2017 - R. Yantosca - Added SpcUnits, FirstInst to type HistContainer
-!  06 Sep 2017 - R. Yantosca - Split HistContainer_AlarmIntervalSet into 3
-!                               separate routines, now made public
-!  18 Sep 2017 - R. Yantosca - Elapsed time and alarms are now in seconds
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,7 +194,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_Create( am_I_Root,      Container,                &
+  SUBROUTINE HistContainer_Create( Input_Opt,      Container,                &
                                    Id,             Name,                     &
                                    RC,             EpochJd,                  &
                                    CurrentYmd,     CurrentHms,               &
@@ -229,16 +214,17 @@ CONTAINS
 !
 ! !USES:
 !
-  USE ErrCode_Mod
-  USE History_Util_Mod
-  USE MetaHistItem_Mod, ONLY : MetaHistItem
+    USE ErrCode_Mod
+    USE History_Util_Mod
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE MetaHistItem_Mod, ONLY : MetaHistItem
 !
 ! !INPUT PARAMETERS:
 !
     !-----------------------------------------------------------------------
     ! REQUIRED INPUTS
     !-----------------------------------------------------------------------
-    LOGICAL,             INTENT(IN)  :: am_I_Root      ! Root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt      ! Input Options object
     INTEGER,             INTENT(IN)  :: Id             ! Container Id #
     CHARACTER(LEN=*),    INTENT(IN)  :: Name           ! Container name
 
@@ -306,28 +292,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on history_list_mod.F90
-!  07 Aug 2017 - R. Yantosca - Add FileWriteYmd and FileWriteHms
-!  09 Aug 2017 - R. Yantosca - Add nX, ny, and, nZ
-!  11 Aug 2017 - R. Yantosca - Add FileCloseYmd, FileCloseHms, ReferenceYmd,
-!                              ReferenceHms, and CurrTimeSlice
-!  14 Aug 2017 - R. Yantosca - Add FileCloseYmd and FileCloseHms arguments
-!  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
-!  17 Aug 2017 - R. Yantosca - Add *Alarm and Reference* arguments
-!  18 Aug 2017 - R. Yantosca - Now initialize CurrentJd with EpochJd
-!  21 Aug 2017 - R. Yantosca - Reorganize arguments, now define several time
-!                              fields from EpochJd, CurrentYmd, CurrentHms
-!  21 Aug 2017 - R. Yantosca - Now define initial alarm intervals and alarms
-!  28 Aug 2017 - R. Yantosca - Now initialize Container%Spc_Units to null str
-!  29 Aug 2017 - R. Yantosca - Reset NcFormat if netCDF compression is off
-!                              for GEOS-Chem "Classic" simulations.
-!  29 Aug 2017 - R. Yantosca - Now define the heartbeat timestep fields
-!  30 Aug 2017 - R. Yantosca - Subtract the heartbeat timestep from the
-!                               UpdateAlarm value so as to update collections
-!                               at the same times w/r/t the "legacy" diags
-!  18 Sep 2017 - R. Yantosca - Now accept heartbeat dt in seconds
-!  02 Jan 2018 - R. Yantosca - Fix construction of default file template
-!  05 Mar 2019 - R. Yantosca - Do not subtract the heartbeat timestep from
-!                              the initial update alarm.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -759,7 +724,7 @@ CONTAINS
     !----------------------------------
     ! Initial UpdateAlarm interval
     !----------------------------------
-    CALL HistContainer_UpdateIvalSet( am_I_Root, Container, RC )
+    CALL HistContainer_UpdateIvalSet( Input_Opt, Container, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -771,7 +736,7 @@ CONTAINS
     !----------------------------------
     ! Initial FileCloseAlarm interval
     !----------------------------------
-    CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+    CALL HistContainer_FileCloseIvalSet( Input_Opt, Container, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -783,7 +748,7 @@ CONTAINS
     !----------------------------------
     ! Initial FileWriteAlarm interval
     !----------------------------------
-    CALL HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
+    CALL HistContainer_FileWriteIvalSet( Input_Opt, Container, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -879,15 +844,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_Print( am_I_Root, Container, RC )
+  SUBROUTINE HistContainer_Print( Input_Opt, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt  ! Input Options object
     TYPE(HistContainer), POINTER     :: Container  ! HISTORY CONTAINER object
 !
 ! !OUTPUT PARAMETERS:
@@ -896,10 +862,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
-!  16 Aug 2017 - R. Yantosca - Renamed Archival* variables to Update*
-!  17 Aug 2017 - R. Yantosca - Now print *Alarm variables.  Also use the
-!                              Item%DimNames field to print the data dims
-!  18 Sep 2017 - R. Yantosca - Updated for elapsed time in seconds
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -931,7 +894,7 @@ CONTAINS
     ! Print information about this HISTORY CONTAINER
     ! only if we are on the root CPU
     !=======================================================================
-    IF ( ASSOCIATED( Container ) .and. am_I_Root ) THEN
+    IF ( ASSOCIATED( Container ) .and. Input_Opt%amIRoot ) THEN
        WRITE( 6, 110 ) REPEAT( '-', 78 )
        WRITE( 6, 110 ) REPEAT( '-', 78 )
        WRITE( 6, 120 ) 'Container Name   : ', TRIM( Container%Name  )
@@ -1042,16 +1005,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_Destroy( am_I_Root, Container, RC )
+  SUBROUTINE HistContainer_Destroy( Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE MetaHistItem_Mod, ONLY : MetaHistItem_Destroy
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1063,6 +1022,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1083,7 +1043,7 @@ CONTAINS
     ! Destroy the METAHISTORY ITEM belonging to this HISTORY CONTAINER
     !=======================================================================
     IF ( ASSOCIATED( Container%HistItems ) ) THEN
-       CALL MetaHistItem_Destroy( am_I_Root, Container%HistItems, RC )
+       CALL MetaHistItem_Destroy( Container%HistItems, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'MetaHistItem_Destroy returned with error!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1117,17 +1077,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_UpdateIvalSet( am_I_root, Container, RC )
+  SUBROUTINE HistContainer_UpdateIvalSet( Input_Opt, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE History_Util_Mod
+    USE Input_Opt_Mod,    ONLY : OptInput
     USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1144,15 +1105,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Sep 2017 - R. Yantosca - Initial version
-!  18 Sep 2017 - R. Yantosca - Now return update interval in seconds
-!  26 Oct 2017 - R. Yantosca - Now allow update interval to be greater
-!                              than one month (similar to write, close)
-!  08 Mar 2018 - R. Yantosca - Fixed logic bug that was causing incorrect
-!                              computation of UpdateIvalSec for simulations
-!                              longer than a day.
-!  08 Aug 2018 - R. Yantosca - Modify algorithm following FileWriteAlarm:
-!                              allow for update intervals of months or years
-!  26 Feb 2019 - R. Yantosca - Alarm intervals are more robust for leap years
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1238,17 +1191,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+  SUBROUTINE HistContainer_FileCloseIvalSet( Input_Opt, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE History_Util_Mod
+    USE Input_Opt_Mod,    ONLY : OptInput
     USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1265,9 +1219,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Sep 2017 - R. Yantosca - Initial version
-!  18 Sep 2017 - R. Yantosca - Now return file close interval in seconds
-!  26 Oct 2017 - R. Yantosca - Add modifications for a little more efficiency
-!  26 Feb 2019 - R. Yantosca - Alarm intervals are more robust for leap years
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1353,17 +1305,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
+  SUBROUTINE HistContainer_FileWriteIvalSet( Input_Opt, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE History_Util_Mod
+    USE Input_Opt_Mod,    ONLY : OptInput
     USE Time_Mod,         ONLY : Its_A_Leapyear, Ymd_Extract
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt  ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1380,9 +1333,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  18 Sep 2017 - R. Yantosca - Now return file write interval in seconds
-!  26 Oct 2017 - R. Yantosca - Add modifications for a little more efficiency
-!  26 Feb 2019 - R. Yantosca - Alarm intervals are more robust for leap years
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1472,17 +1423,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistContainer_SetTime( am_I_Root, Container, HeartBeatDt, RC )
+  SUBROUTINE HistContainer_SetTime( Input_Opt, Container, HeartBeatDt, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE History_Util_Mod
+    USE Input_Opt_Mod,   ONLY : OptInput
     USE Julday_Mod,      ONLY :CALDATE
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(HistContainer), POINTER     :: Container   ! HISTORY CONTAINER object
     REAL(f8),            OPTIONAL    :: HeartBeatDt ! Heartbeat increment for
                                                     !  for timestepping [days]
@@ -1498,10 +1450,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Aug 2017 - R. Yantosca - Initial version
-!  29 Aug 2017 - R. Yantosca - Now make HeartBeatDt an optional field; if not
-!                              specified, use Container%HeartBeatDtDays
-!  11 Jul 2018 - R. Yantosca - Now increment time in seconds instead of days
-!                              to avoid roundoff error in computation
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1587,6 +1536,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Feb 2019 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1653,6 +1603,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Feb 2019 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

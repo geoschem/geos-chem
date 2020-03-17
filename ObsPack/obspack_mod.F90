@@ -51,7 +51,7 @@ MODULE ObsPack_Mod
 !  04 Jun 2015 - A. Jacobson - Adapted from v10.1 planeflight_mod.f, following
 !                              similar work done in v9.2 by Andrew Schuh.
 !  05 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -81,8 +81,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_Init( am_I_Root,  yyyymmdd,   hhmmss,                   &
-                           Input_Opt,  State_Diag, RC                       )
+  SUBROUTINE ObsPack_Init( yyyymmdd, hhmmss, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -95,7 +94,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root core?
     INTEGER,        INTENT(IN)    :: yyyymmdd    ! Current date
     INTEGER,        INTENT(IN)    :: hhmmss      ! Current time
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -110,7 +108,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  05 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -130,7 +128,7 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Init (in module ObsPack/obspack_mod.F90' 
 
@@ -150,7 +148,7 @@ CONTAINS
 
        ! Write any remaining ObsPack data to disk, and immediately
        ! thereafter free the ObsPack pointer fields of State_Diag
-       CALL ObsPack_Write_Output( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL ObsPack_Write_Output( Input_Opt, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "ObsPack_Write_Output"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -187,7 +185,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get the list of lon/lat/alt at which to save out GEOS-Chem data
     !-----------------------------------------------------------------------
-    CALL ObsPack_Read_Input( am_I_Root, Input_Opt, State_Diag, RC )
+    CALL ObsPack_Read_Input( Input_Opt, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "ObsPack_Write_Output"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -197,7 +195,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Print info about diagnostics that will be saved out
     !-----------------------------------------------------------------------
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
 
        ! Print info
        WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
@@ -233,7 +231,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_Read_Input( am_I_root, Input_Opt, State_Diag, RC )
+  SUBROUTINE ObsPack_Read_Input( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -250,7 +248,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root core
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
@@ -269,7 +266,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - first version
 !  06 Dec 2018 - R. Yantosca - Implemented into the standard GEOS_Chem code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,7 +302,7 @@ CONTAINS
     ! could happen in a multi-day run with daily input files.
     !=======================================================================
     IF ( ASSOCIATED( State_Diag%ObsPack_Id ) ) THEN
-       CALL ObsPack_Write_Output( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL ObsPack_Write_Output( Input_Opt, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "ObsPack_Write_Output"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -318,7 +315,7 @@ CONTAINS
     !
     ! Or for MPI (e.g. WRF-GC), gather inforamation here from all cores
     !=======================================================================
-    IF ( .not. am_I_Root ) RETURN
+    IF ( .not. Input_Opt%amIRoot ) RETURN
 
     !=======================================================================
     ! Get the number of observations in the input netCDF file
@@ -610,7 +607,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE ObsPack_Cleanup( am_I_Root, Input_Opt, State_Diag, RC )
+ SUBROUTINE ObsPack_Cleanup( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !     
@@ -620,7 +617,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -634,7 +630,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - first version
 !  05 Dec 2018 - R. Yantosca - Implemented into GEOS-Chem standard code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -772,7 +768,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_Write_Output( am_I_Root, Input_Opt, State_Diag, RC )
+  SUBROUTINE ObsPack_Write_Output( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -794,7 +790,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -808,7 +803,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jun 2015 - A. Jacobson - First version
 !  06 Dec 2018 - R. Yantosca - Implemented into the standard GEOS-Chem code
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -920,7 +915,7 @@ CONTAINS
     !=======================================================================
 
     ! Print info
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 100 ) TRIM( State_Diag%ObsPack_OutFile )
 100    FORMAT( '     - OBSPACK: Writing file ', a ) 
     ENDIF
@@ -1191,7 +1186,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    CALL ObsPack_Cleanup( am_I_Root, Input_Opt, State_Diag, RC )
+    CALL ObsPack_Cleanup( Input_Opt, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "ObsPack_Cleanup!"'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1213,8 +1208,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_Sample( am_I_Root, yyyymmdd,   hhmmss,     Input_Opt,    &
-                             State_Chm, State_Diag, State_Grid, State_Met, RC )
+  SUBROUTINE ObsPack_Sample( yyyymmdd,   hhmmss,     Input_Opt, State_Chm, &
+                             State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1230,7 +1225,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     INTEGER,        INTENT(IN)    :: yyyymmdd    ! Current date
     INTEGER,        INTENT(IN)    :: hhmmss      ! Current time
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -1254,7 +1248,7 @@ CONTAINS
 !                                        ct_mod.F, itself modified from
 !                                        planeflight_mod.F
 !  03 Mar 2017 - A. Jacobson - Update to v11 (get species in "v/v dry")
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1278,8 +1272,8 @@ CONTAINS
     RC       =  GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
-    prtLog   = ( am_I_Root .and. ( .not. Input_Opt%ObsPack_Quiet ) )
-    prtDebug = ( am_I_Root .and. Input_Opt%LPRT                    )
+    prtLog   = (Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) )
+    prtDebug = (Input_Opt%amIRoot .and. Input_Opt%LPRT                    )
 
     ! Return if ObsPack sampling is turned off (perhaps
     ! because there are no data at this time).
@@ -1290,8 +1284,8 @@ CONTAINS
     ! what the units are prior to this call.  After we sample
     ! the species, we'll call this again requesting that the
     ! species are converted back to the InUnit values.
-    CALL Convert_Spc_Units( am_I_root, Input_Opt, State_Chm, State_Grid,    &
-                            State_Met, "v/v dry", RC,       PriorUnit       )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,  State_Met, &
+                            'v/v dry', RC, PriorUnit )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1427,8 +1421,8 @@ CONTAINS
 
     ! Return State_Chm%SPECIES to whatever units they had
     ! coming into this routine
-    call Convert_Spc_Units( am_I_root, Input_Opt, State_Chm, State_Grid,     &
-                            State_Met, PriorUnit, RC                        )
+    call Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            PriorUnit, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1480,7 +1474,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  5 Jun 2015 - A. Jacobson - First version
 !  3 Mar 2017 - A. Jacobson - Update to v11 (use State_Met%BXHEIGHT instead of my own hypsometry)
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1604,7 +1598,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Dec 2018 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1648,8 +1642,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_SpeciesMap_Init( am_I_Root,  Input_Opt,                 &
-                                      State_Chm,  State_Diag, RC            )
+  SUBROUTINE ObsPack_SpeciesMap_Init( Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -1661,7 +1654,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1679,7 +1671,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Jan 2019 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1812,7 +1804,7 @@ CONTAINS
     !=======================================================================
     ! Print output of Obspack requested species names
     !=======================================================================
-    IF ( am_I_Root .and. ( .not. Input_Opt%ObsPack_Quiet ) ) THEN
+    IF ( Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) ) THEN
 
        ! Header
        WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
@@ -1851,8 +1843,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_SpeciesMap_Cleanup( am_I_Root,  Input_Opt,              &
-                                         State_Diag, RC                     )
+  SUBROUTINE ObsPack_SpeciesMap_Cleanup( Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
@@ -1863,7 +1854,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1880,7 +1870,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Jan 2019 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

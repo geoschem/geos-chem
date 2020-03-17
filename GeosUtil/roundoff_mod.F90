@@ -35,6 +35,7 @@ MODULE Roundoff_Mod
 !
 ! !REVISION HISTORY:
 !  18 Aug 2017 - R. Yantosca - Initial version, split off from gc_grid_mod.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -81,12 +82,11 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2010 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES
-!
+
     ! Round and truncate X to N decimal places
     Y = INT( NINT( X*(10.0_f4**(N+1)) + SIGN( 5.0_f4, X ) ) / 10.0_f4 ) / (10.0_f4**N)
 
@@ -133,12 +133,11 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2010 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES
-!
+
     ! Round and truncate X to N decimal places
     Y = INT( NINT( X*(10.0_f8**(N+1)) + SIGN( 5.0_f8, X ) ) / 10.0_f8 ) / (10.0_f8**N)
 

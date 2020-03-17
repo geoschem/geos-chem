@@ -34,12 +34,7 @@ MODULE ErrCode_Mod
 !
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Initial version
-!  16 Aug 2016 - M. Sulprizio- Rename from gigc_errcode_mod.F90 to
-!                              errcode_mod.F90. The "gigc" nomenclature is
-!                              no longer used.
-!  23 Jun 2017 - R. Yantosca - Moved subroutine GC_Error here
-!  27 Jun 2017 - R. Yantosca - Added routine GC_CheckVar
-!  20 Dec 2017 - R. Yantosca - Added routine GC_Warning
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -77,11 +72,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
-!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
-!  23 Jun 2017 - R. Yantosca - Now moved from error_mod.F to errcode_mod.F90
-!  28 Aug 2017 - R. Yantosca - Now flush the error msg to stdout/log file
-!  28 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
-!  22 Jan 2018 - R. Yantosca - Add optional instructions text
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -156,11 +147,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
-!  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
-!  23 Jun 2017 - R. Yantosca - Now moved from error_mod.F to errcode_mod.F90
-!  28 Aug 2017 - R. Yantosca - Now flush the error msg to stdout/log file
-!  08 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
-!  22 Jan 2018 - R. Yantosca - Add optional instructions text
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -236,6 +223,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Jun 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

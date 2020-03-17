@@ -584,19 +584,6 @@ CONTAINS
  real   q2(im,jfirst-ng:jlast+ng)      ! local 2D q array
  logical ffsl(jfirst-ng:jlast+ng,km)   ! Flag to compute Integer fluxes
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-#ifdef BPCH_DIAG
-! Local arrays for mass fluxes to save memory if diagnostics not used.
-! (ccc, 9/9/10)
- real MFLEW(im, jm), MFLNS(im, jm)
-#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 ! Local variables:
  integer i,j,k,iq
  integer iord_bg                    ! E-W scheme for background mass flux
@@ -751,13 +738,6 @@ CONTAINS
 
 !$omp parallel do                                   &
 !$omp default( shared ) &
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$omp private( i, j, k, q2 )
 
 ! Vertical_OMP:
@@ -896,18 +876,6 @@ CONTAINS
                               AREA_M2(J) * g0_100
 
        DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
-
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-!#if defined( BPCH_DIAG )
-!       MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
-!
-!#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ENDDO
     ENDDO
@@ -1289,19 +1257,6 @@ CONTAINS
 
    real, intent(inout) :: h(im,jfirst-ng:jlast+ng)
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Declare MFLEW, MFLNS, AREA_M2, TCVV, ND24, ND25, DT for the
- !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
- !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
- !%%%
-!#if defined( BPCH_DIAG )
-!   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)   ! E/W mass flux array
-!   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)   ! N/S mass flux array
-!#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
    REAL,    INTENT(IN)    :: AREA_M2(JM)    ! Grid bos surface area [m2]
    INTEGER, INTENT(IN)    :: ND24           ! flux diag
    INTEGER, INTENT(IN)    :: ND25           ! flux diag
@@ -1372,31 +1327,9 @@ CONTAINS
 
             DTC = FX(I,J) * AREA_M2(J) * g0_100 / DT
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-!#if defined( BPCH_DIAG )
-!            MFLEW(I,J) = MFLEW(I,J) + DTC
-!#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          ENDDO
 
          DTC = FX(IM,J) * AREA_M2(J) * g0_100 / DT
-
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-!#if defined( BPCH_DIAG )
-!         MFLEW(IM,J) = MFLEW(I,J) + DTC
-!#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO
    ENDIF
@@ -1413,17 +1346,6 @@ CONTAINS
 
          DTC = FY(I,J) * RGW_25(J) * AREA_M2(J) * g0_100 / DT
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-!#if defined( BPCH_DIAG )
-!         MFLNS(I,J) = MFLNS(I,J) + DTC
-!#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       ENDDO
       ENDDO
 
@@ -1433,17 +1355,6 @@ CONTAINS
 
             DTC = -FY(I,2) * RGW_25(1) * AREA_M2(1) * g0_100 / DT
 
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-!#if defined( BPCH_DIAG )
-!            MFLNS(I,1) = MFLNS(I,1) + DTC
-!#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
          ENDDO
       ENDIF
 
@@ -1452,17 +1363,6 @@ CONTAINS
          DO I = 1, IM
 
             DTC = FY(I,JM) * RGW_25(JM) * AREA_M2(JM) * g0_100 / DT
-
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
- !%%%
- !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
- !%%% code with pre-processor blocks (ewl, 1/11/2016)
- !%%%
-!#if defined( BPCH_DIAG )
-!            MFLNS(I,JM) = MFLNS(I,JM) + DTC
-!#endif
- !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
       ENDIF

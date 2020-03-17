@@ -39,7 +39,7 @@ MODULE Modis_Lai_Mod
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -58,7 +58,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_XlaiNative_from_HEMCO( am_I_Root, Input_Opt, State_Met, RC )
+  SUBROUTINE Get_XlaiNative_from_HEMCO( Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
@@ -72,7 +72,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -85,6 +84,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Feb 2019 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,7 +121,7 @@ CONTAINS
        ! (variable names are XLAI00, XLAI01, .. XLAI72)
        WRITE( Name, 100 ) T-1
  100   FORMAT( 'XLAI' , i2.2 )
-       CALL HCO_GetPtr( am_I_Root, HcoState, Name, Ptr2D, RC )
+       CALL HCO_GetPtr( HcoState, Name, Ptr2D, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -155,7 +155,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Xlai( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
+  SUBROUTINE Compute_Xlai( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -167,7 +167,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -191,8 +190,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Oct 2016 - E. Lundgren - Initial version
-!  14 Feb 2019 - R. Yantosca - Renamed to Compute_XLAI, because this is
-!                              now also used for GC-Classic etc.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

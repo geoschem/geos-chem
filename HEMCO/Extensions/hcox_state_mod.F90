@@ -1017,9 +1017,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_2R ( am_I_Root, HcoState, ExtDat,  &
-                             FldName,   RC,       First,   &
-                             Trgt,      Filled,   NotFillOk )
+  SUBROUTINE ExtDat_Set_2R ( HcoState, ExtDat,           &
+                             FldName,  RC,     First,    &
+                             Trgt,     Filled, NotFillOk )
 !
 ! !USES:
 !
@@ -1029,7 +1029,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )                   :: am_I_Root
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_2R),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
@@ -1095,7 +1094,7 @@ CONTAINS
        ENDIF
 
        ! Try to get data from list
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
@@ -1213,9 +1212,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_2S ( am_I_Root, HcoState, ExtDat,  &
-                             FldName,   RC,       First,   &
-                             Trgt,      Filled,   NotFillOk )
+  SUBROUTINE ExtDat_Set_2S ( HcoState, ExtDat,           &
+                             FldName,  RC,     First,    &
+                             Trgt,     Filled, NotFillOk )
 !
 ! !USES:
 !
@@ -1225,7 +1224,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )                   :: am_I_Root
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_2S),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
@@ -1291,7 +1289,7 @@ CONTAINS
        ENDIF
 
        ! Try to get data from list
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
@@ -1409,9 +1407,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_2I ( am_I_Root, HcoState, ExtDat, &
-                             FldName,   RC,       First,  &
-                             Trgt,      Filled,   NotFillOk )
+  SUBROUTINE ExtDat_Set_2I ( HcoState, ExtDat,           &
+                             FldName,  RC,     First,    &
+                             Trgt,     Filled, NotFillOk )
 !
 ! !USES:
 !
@@ -1421,7 +1419,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )                   :: am_I_Root
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_2I),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
@@ -1487,7 +1484,7 @@ CONTAINS
        ENDIF
 
        ! Try to get data from list
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
@@ -1609,9 +1606,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3R ( am_I_Root, HcoState, ExtDat, FldName,   &
-                             RC,        First,    Trgt,   OnLevEdge, &
-                             Filled,    NotFillOk                     )
+  SUBROUTINE ExtDat_Set_3R ( HcoState, ExtDat,   FldName,            &
+                             RC,       First,    Trgt,   OnLevEdge,  &
+                             Filled,   NotFillOk                     )
 !
 ! !USES:
 !
@@ -1621,7 +1618,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )                   :: am_I_Root
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_3R),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
@@ -1697,7 +1693,7 @@ CONTAINS
        ENDIF
 
        ! Try to get data from list
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr3D, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr3D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks
@@ -1823,9 +1819,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtDat_Set_3S ( am_I_Root, HcoState, ExtDat, FldName,   &
-                             RC,        First,    Trgt,   OnLevEdge, &
-                             Filled,    NotFillOk                     )
+  SUBROUTINE ExtDat_Set_3S ( HcoState, ExtDat,   FldName,            &
+                             RC,       First,    Trgt,    OnLevEdge, &
+                             Filled,   NotFillOk                     )
 !
 ! !USES:
 !
@@ -1835,7 +1831,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )                   :: am_I_Root
     TYPE(HCO_State),  POINTER                         :: HcoState
     TYPE(ExtDat_3S),  POINTER                         :: ExtDat
     CHARACTER(LEN=*), INTENT(IN   )                   :: FldName
@@ -1911,7 +1906,7 @@ CONTAINS
        ENDIF
 
        ! Try to get data from list
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FldName), Arr3D, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr3D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! On first call, need to make additional checks

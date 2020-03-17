@@ -16,7 +16,6 @@ MODULE Diagnostics_mod
 !
 ! !USES:
 !
-  USE CMN_Size_Mod
   USE ErrCode_Mod
   USE Precision_Mod
 
@@ -42,6 +41,7 @@ MODULE Diagnostics_mod
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -60,9 +60,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Diagnostics_EndofTimestep ( am_I_Root,  Input_Opt,  &
-                                             State_Chm,  State_Diag, &
-                                             State_Grid, State_Met, RC )
+  SUBROUTINE Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
+                                            State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -75,7 +74,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt      ! Input Options object
     TYPE(GrdState),   INTENT(IN)    :: State_Grid     ! Grid state object
     TYPE(MetState),   INTENT(IN)    :: State_Met      ! Meteorology state object
@@ -91,6 +89,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - E. Lundgren - initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,8 +124,7 @@ CONTAINS
 !    ! Set species concentration diagnostic in units specified in state_diag_mod
 !    !-----------------------------------------------------------------------
 !    IF ( State_Diag%Archive_SpeciesConc ) THEN
-!       CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesConc',                &
-!                                    State_Diag%SpeciesConc,                  &
+!       CALL Set_SpcConc_Diagnostic( 'SpeciesConc', State_Diag%SpeciesConc,   &
 !                                    Input_Opt,  State_Chm,                   &
 !                                    State_Grid, State_Met,  RC              )
 !
@@ -141,8 +139,8 @@ CONTAINS
     ! Set species concentration for diagnostics in units of
     ! v/v dry air = mol/mol dry air
     !-----------------------------------------------------------------------
-    CALL Set_SpcConc_Diags_VVDry( am_I_Root,  Input_Opt,  State_Chm,          &
-                                  State_Diag, State_Grid, State_Met, RC      )
+    CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag, &
+                                  State_Grid, State_Met, RC      )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -250,8 +248,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Zero_Diagnostics_StartofTimestep( am_I_Root,  State_Chm,        &
-                                               State_Diag, RC               )
+  SUBROUTINE Zero_Diagnostics_StartofTimestep( State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -260,7 +257,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root
     TYPE(ChmState),   INTENT(INOUT) :: State_Chm      ! Chemistry state obj
 !
 ! !INPUT AND OUTPUT PARAMETERS:
@@ -273,6 +269,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - E. Lundgren - initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -310,9 +307,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_SpcConc_Diagnostic( am_I_Root, DiagMetadataID, Ptr2Data,    &
-                                     Input_Opt, State_Chm,      State_Grid,  &
-                                     State_Met, RC                           )
+  SUBROUTINE Set_SpcConc_Diagnostic( DiagMetadataID, Ptr2Data, Input_Opt, &
+                                     State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -325,7 +321,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root      ! Are we on the root CPU?
     CHARACTER(LEN=*), INTENT(IN)  :: DiagMetadataID ! Diagnostic id
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
     TYPE(GrdState),   INTENT(IN)  :: State_Grid     ! Grid state object
@@ -362,9 +357,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Sep 2017 - E. Lundgren - Initial version
-!  06 Nov 2018 - M. Sulprizio- Only allow for different units in GCHP and GEOS-5
-!                              and force units to v/v for GEOS-Chem Classic to
-!                              avoid issues with the GEOS-Chem restart file
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -396,7 +389,7 @@ CONTAINS
        ELSE
 
           ! Retrieve the units of the diagnostic from the metadata
-          CALL Get_Metadata_State_Diag( am_I_Root, TRIM(DiagMetadataID), &
+          CALL Get_Metadata_State_Diag( Input_Opt, TRIM(DiagMetadataID), &
                                         Found, RC, Units=Units )
 
           ! Allow for alternate format of units
@@ -408,9 +401,8 @@ CONTAINS
        ENDIF
 
        ! Convert State_Chm%Species unit to diagnostic units
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                               State_grid, State_Met, Units,     &
-                               RC,         OrigUnit=OrigUnit )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_grid, State_Met, &
+                               Units, RC, OrigUnit=OrigUnit )
 
        ! Copy species concentrations to diagnostic array
        !$OMP PARALLEL DO           &
@@ -428,8 +420,8 @@ CONTAINS
        !$OMP END PARALLEL DO
 
        ! Convert State_Chm%Species back to original unit
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                               State_Grid, State_Met, OrigUnit, RC )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               OrigUnit, RC )
 
        ! Error handling
        IF ( RC /= GC_SUCCESS ) THEN
@@ -454,8 +446,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_SpcConc_Diags_VVDry( am_I_Root,  Input_Opt,  State_Chm,     &
-                                      State_Diag, State_Grid, State_Met, RC )
+  SUBROUTINE Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag, &
+                                      State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -468,7 +460,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(GrdState),   INTENT(IN)    :: State_Grid   ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met    ! Meteorology State obj
@@ -498,7 +489,7 @@ CONTAINS
 !  ensure that State_Diag%SpeciesConc will get set to the proper units.
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -527,9 +518,8 @@ CONTAINS
     Units   = 'v/v dry'
 
     ! Convert State_Chm%Species unit to [v/v dry]
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt,         State_Chm,        &
-                            State_Grid, State_Met,         Units,            &
-                            RC,         OrigUnit=OrigUnit                   )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            Units, RC, OrigUnit=OrigUnit )
 
     ! Error handling
     IF ( RC /= GC_SUCCESS ) THEN
@@ -590,7 +580,7 @@ CONTAINS
     !
     !    C(Z1) is the ozone concentration at Z1.
     !
-    ! Ra(Z1,Zc) is calculated to the lowest model level in drydep_mod.F.
+    ! Ra(Z1,Zc) is calculated to the lowest model level in drydep_mod.F90.
     ! We recalculate Ra using Z1 using a value specified in input.geos;
     ! usually 10m, which is the height of the CASTNET measurement for O3.
     ! This new Ra is stored in State_Diag%DryDepRaALT1.
@@ -642,8 +632,8 @@ CONTAINS
     ENDIF
 
     ! Convert State_Chm%Species back to original unit
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,                &
-                            State_Grid, State_Met, OrigUnit,  RC            )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
 
     ! Error handling
     IF ( RC /= GC_SUCCESS ) THEN
@@ -668,9 +658,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Column_Mass( am_I_Root,  Input_Opt,  State_Chm,       &
-                                  State_Grid, State_Met,  SpcMap,          &
-                                  isFull,     isTrop,     isPBL,           &
+  SUBROUTINE Compute_Column_Mass( Input_Opt, State_Chm, State_Grid, State_Met, &
+                                  SpcMap,    isFull,    isTrop,     isPBL,     &
                                   ColMass,    RC      )
 !
 ! !USES:
@@ -684,7 +673,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid       ! Grid state object
     TYPE(MetState), INTENT(IN)    :: State_Met        ! Meteorology state object
@@ -708,6 +696,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Aug 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -824,7 +813,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Budget_Diagnostics( am_I_Root,    State_Grid, &
+  SUBROUTINE Compute_Budget_Diagnostics( State_Grid,               &
                                          SpcMap,       TS,         &
                                          isFull,       isTrop,     &
                                          isPBL,        diagFull,   &
@@ -838,7 +827,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
     TYPE(GrdState), INTENT(IN)  :: State_Grid      ! Grid State object
     INTEGER,        POINTER     :: SpcMap(:)       ! Map to species indexes
     REAL(fp),       INTENT(IN)  :: TS              ! timestep [s]
@@ -862,6 +850,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Aug 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

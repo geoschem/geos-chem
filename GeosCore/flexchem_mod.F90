@@ -31,7 +31,7 @@ MODULE FlexChem_Mod
 !
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -88,8 +88,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( am_I_Root,  Input_Opt,  State_Chm,  &
-                          State_Diag, State_Grid, State_Met, RC )
+  SUBROUTINE Do_FlexChem( Input_Opt,  State_Chm, State_Diag, &
+                          State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -110,7 +110,7 @@ CONTAINS
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
     USE GcKPP_Util,           ONLY : Get_OHreactivity
-    USE GEOS_Timers_Mod
+    USE Timers_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE PRESSURE_MOD
@@ -138,7 +138,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
@@ -154,7 +153,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -217,9 +216,9 @@ CONTAINS
     ! Initialize
     RC        =  GC_SUCCESS
     ErrMsg    =  ''
-    ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F)'
+    ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F90)'
     SpcInfo   => NULL()
-    prtDebug  =  ( Input_Opt%LPRT .and. am_I_Root )
+    prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     itim      =  0.0_fp
     rtim      =  0.0_fp
     totsteps  =  0
@@ -235,7 +234,7 @@ CONTAINS
     ! Turn heterogeneous chemistry and photolysis on/off for testing
     DO_HETCHEM  = .TRUE.
     DO_PHOTCHEM = .TRUE.
-    IF ( FIRSTCHEM .AND. am_I_Root ) THEN
+    IF ( FIRSTCHEM .AND. Input_Opt%amIRoot ) THEN
        IF ( .not. DO_HETCHEM ) THEN
           WRITE( 6, '(a)' ) REPEAT( '#', 32 )
           WRITE( 6, '(a)' )  ' # Do_FlexChem: Heterogeneous chemistry' // &
@@ -301,8 +300,8 @@ CONTAINS
        IF ( Input_Opt%LUCX ) THEN
 
           ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-          CALL CALC_STRAT_AER( am_I_Root,  Input_Opt, State_Chm,             &
-                               State_Grid, State_Met, RC                    )
+          CALL CALC_STRAT_AER( Input_Opt, State_Chm, State_Grid, &
+                               State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -319,8 +318,8 @@ CONTAINS
        ENDIF
 
        ! Compute aerosol concentrations
-       CALL AEROSOL_CONC( am_I_Root,  Input_Opt,  State_Chm,                 &
-                          State_Diag, State_Grid, State_Met, RC             )
+       CALL AEROSOL_CONC( Input_Opt,  State_Chm, State_Diag, &
+                          State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -374,16 +373,15 @@ CONTAINS
     !=======================================================================
     ! Call RDAER -- computes aerosol optical depths
     !=======================================================================
-#ifdef USE_TIMERS
-    CALL GEOS_Timer_End  ( "=> Gas-phase chem",   RC )
-    CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
-#endif
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End  ( "=> Gas-phase chem",   RC )
+       CALL Timer_Start( "=> All aerosol chem", RC )
+    ENDIF
 
     ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
-    CALL RDAER( am_I_Root,  Input_Opt,  State_Chm,      &
-                State_Diag, State_Grid, State_Met, RC,  &
-                MONTH,      YEAR,       WAVELENGTH )
+    CALL RDAER( Input_Opt, State_Chm, State_Diag, State_Grid, State_Met, RC,  &
+                MONTH,     YEAR,       WAVELENGTH )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -407,7 +405,7 @@ CONTAINS
     ! (rjp, tdf, bmy, 4/1/04)
     !=======================================================================
     IF ( Input_Opt%LDUST ) THEN
-       CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Chm,  State_Diag,    &
+       CALL RDUST_ONLINE( Input_Opt, State_Chm,  State_Diag, &
                           State_Grid, State_Met, SOILDUST,   WAVELENGTH, RC )
 
        ! Trap potential errors
@@ -423,10 +421,10 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after RDUST' )
     ENDIF
 
-#ifdef USE_TIMERS
-    CALL GEOS_Timer_End  ( "=> All aerosol chem", RC )
-    CALL GEOS_Timer_Start( "=> Gas-phase chem",   RC )
-#endif
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End  ( "=> All aerosol chem", RC )
+       CALL Timer_Start( "=> Gas-phase chem",   RC )
+    ENDIF
 
     !=======================================================================
     ! Archive initial species mass for stratospheric tendency
@@ -452,9 +450,8 @@ CONTAINS
     !======================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !======================================================================
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   &
-                            State_Grid, State_Met, 'molec/cm3', &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'molec/cm3', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90')
@@ -464,14 +461,14 @@ CONTAINS
     !=======================================================================
     ! Call photolysis routine to compute J-Values
     !=======================================================================
-#ifdef USE_TIMERS
-    CALL GEOS_Timer_End  ( "=> Gas-phase chem",     RC )
-    CALL GEOS_Timer_Start( "=> FAST-JX photolysis", RC )
-#endif
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End  ( "=> Gas-phase chem",     RC )
+       CALL Timer_Start( "=> FAST-JX photolysis", RC )
+    ENDIF
 
     ! Do Photolysis
-    CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, State_Chm,               &
-                  State_Diag, State_Grid, State_Met, RC                      )
+    CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm, &
+                  State_Diag, State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -480,10 +477,10 @@ CONTAINS
        RETURN
     ENDIF
 
-#ifdef USE_TIMERS
-    CALL GEOS_Timer_End  ( "=> FAST-JX photolysis", RC )
-    CALL GEOS_Timer_Start( "=> Gas-phase chem",     RC )
-#endif
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End  ( "=> FAST-JX photolysis", RC )
+       CALL Timer_Start( "=> Gas-phase chem",     RC )
+    ENDIF
 
     !### Debug
     IF ( prtDebug ) THEN
@@ -582,7 +579,7 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! NOTE: The following variables are held THREADPRIVATE and
-    ! therefore do not need to be included in the !$OMP+PRIVATE
+    ! therefore do not need to be included in the !$OMP PRIVATE
     ! statements below: C, VAR, FIX, RCONST, TIME, TEMP, NUMDEN,
     ! H2O, PRESS, PHOTOL, HET, and CFACTOR. (bmy, 3/28/16)
     !-----------------------------------------------------------------------
@@ -674,10 +671,10 @@ CONTAINS
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
           ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
           ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
-          CALL PHOTRATE_ADJ( am_I_root, Input_Opt, State_Diag,               &
-                             I,         J,         L,                        &
-                             NUMDEN,    TEMP,      H2O,                      &
-                             SO4_FRAC,  IERR                                )
+          CALL PHOTRATE_ADJ( Input_Opt, State_Diag,      &
+                             I,         J,          L,   &
+                             NUMDEN,    TEMP,       H2O, &
+                             SO4_FRAC,  IERR )
 
           ! Loop over the FAST-JX photolysis species
           DO N = 1, JVN_
@@ -701,7 +698,7 @@ CONTAINS
              ! and noontime photolysis rates [s-1]
              !
              !    NOTE: Attach diagnostics here instead of in module
-             !    fast_jx_mod.F so that we can get the adjusted photolysis
+             !    fast_jx_mod.F90 so that we can get the adjusted photolysis
              !    rates (output from routne PHOTRATE_ADJ above).
              !
              ! The mapping between the GEOS-Chem photolysis species and
@@ -721,7 +718,7 @@ CONTAINS
              !    photolysis species index (range: 1..State_Chm%nPhotol)
              !    for each of the FAST-JX photolysis species (range;
              !    1..JVN_) in the GC_PHOTO_ID array (located in module
-             !    CMN_FJX_MOD.F).
+             !    CMN_FJX_MOD.F90).
              !
              ! To match the legacy bpch diagnostic, we archive the sum of
              ! photolysis rates for a given GEOS-Chem species over all of
@@ -842,14 +839,6 @@ CONTAINS
           ENDDO
        ENDIF
 
-!#if defined( DEVEL )
-!       ! Get time when rate computation finished
-!       CALL CPU_TIME( finish )
-!
-!       ! Compute how long it took for KPP to compute rates
-!       rtim = rtim + finish - start
-!#endif
-
        !=================================================================
        ! Set options for the KPP Integrator (M. J. Evans)
        !
@@ -887,22 +876,6 @@ CONTAINS
           ENDIF
        ENDIF
 #endif
-
-!#if defined( DEVEL )
-!       ! Get time when integrator ends
-!       CALL CPU_TIME( finish )
-!
-!       ! Compute how long the integrator took
-!       itim     = itim + finish - start
-!
-!       ! Compute other statistics from the integrator
-!       totfuncs = totfuncs + ISTATUS(1)
-!       totjacob = totjacob + ISTATUS(2)
-!       totsteps = totsteps + ISTATUS(3)
-!       totaccep = totaccep + ISTATUS(4)
-!       totrejec = totrejec + ISTATUS(5)
-!       totnumLU = totnumLU + ISTATUS(6)
-!#endif
 
        !------------------------------------------------------------------
        ! HISTORY: Archive KPP solver diagnostics
@@ -1191,27 +1164,16 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-!!!#if defined( DEVEL )
-!    write(*,'(a,F10.3)') 'Flex Rate Time     : ', rtim
-!    write(*,'(a,F10.3)') 'Flex Intg Time     : ', itim
-!    write(*,'(a,I9)'   ) 'Flex Function Calls: ', totfuncs
-!    write(*,'(a,I9)'   ) 'Flex Jacobian Calls: ', totjacob
-!    write(*,'(a,I9)'   ) 'Flex Total Steps   : ', totsteps
-!    write(*,'(a,I9)'   ) 'Flex Rejected Steps: ', totrejec
-!    write(*,'(a,I9)'   ) 'Flex LU Decompos.  : ', totnumLU
-!!!#endif
-
     !=======================================================================
     ! Archive OH, HO2, O1D, O3P concentrations after FlexChem solver
-    ! (NOTE: This was formerly done by ohsave.F and diagoh.F)
     !=======================================================================
     IF ( Do_Diag_OH_HO2_O1D_O3P ) THEN
 
        ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
        ! NOTE: These might not be needed for netCDF, as they will already
        ! have been archived in State_Chm%Species output.
-       CALL Diag_OH_HO2_O1D_O3P( am_I_Root,  Input_Opt,  State_Chm,           &
-                                 State_Diag, State_Grid, State_Met, RC       )
+       CALL Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
+                                 State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1236,8 +1198,8 @@ CONTAINS
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit,  RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm,  State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90' )
@@ -1329,12 +1291,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diag_OH_HO2_O1D_O3P( am_I_Root,  Input_Opt,  State_Chm,          &
-                                  State_Diag, State_Grid, State_Met, RC      )
+  SUBROUTINE Diag_OH_HO2_O1D_O3P( Input_Opt,  State_Chm, State_Diag, &
+                                  State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1344,7 +1305,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -1370,7 +1330,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1631,11 +1591,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_FlexChem( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
+  SUBROUTINE Init_FlexChem( Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE Gckpp_Monitor,    ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Parameters, ONLY : nFam, nReact
@@ -1646,7 +1605,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Diagnostics State object
     TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
@@ -1657,7 +1615,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Dec 2015 - M.S. Long   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1688,7 +1646,7 @@ CONTAINS
     !=======================================================================
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_FlexChem (in module GeosCore/flexchem_mod.F90)'
-    prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Debug output
     IF ( prtDebug ) THEN
@@ -1871,15 +1829,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_FlexChem( am_I_Root, RC )
+  SUBROUTINE Cleanup_FlexChem( RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1887,7 +1841,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  24 Aug 2016 - M. Sulprizio- Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

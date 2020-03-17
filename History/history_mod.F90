@@ -42,7 +42,7 @@ MODULE History_Mod
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -104,8 +104,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Init( am_I_root, Input_Opt,  State_Met,                 &
-                           State_Chm, State_Diag, RC                        )
+  SUBROUTINE History_Init( Input_Opt, State_Met, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -118,7 +117,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt
     TYPE(ChmState),   INTENT(IN)  :: State_Chm
     TYPE(DgnState),   INTENT(IN)  :: State_Diag
@@ -134,7 +132,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,8 +155,8 @@ CONTAINS
     ! ("collection" = a netCDF file with a specific update frequency)
     !=======================================================================
     IF ( .not. Input_Opt%DryRun ) THEN
-       CALL History_ReadCollectionNames( am_I_root,  Input_Opt, State_Chm,   &
-                                         State_Diag, State_Met, RC          )
+       CALL History_ReadCollectionNames( Input_Opt,  State_Chm, &
+                                         State_Diag, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -172,8 +170,8 @@ CONTAINS
     ! Then determine the fields that will be saved to each collection
     ! NOTE: For dry-run, enter to print out file name & status
     !=======================================================================
-    CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,       &
-                                     State_Diag, State_Met, RC              )
+    CALL History_ReadCollectionData( Input_Opt,  State_Chm, &
+                                     State_Diag, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -198,8 +196,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_ReadCollectionNames( am_I_Root,  Input_Opt, State_Chm,  &
-                                          State_Diag, State_Met, RC         )
+  SUBROUTINE History_ReadCollectionNames( Input_Opt, State_Chm,  &
+                                          State_Diag, State_Met, RC )
 !
 ! !USES:
 !
@@ -215,7 +213,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt    ! Input Options object
     TYPE(ChmState),   INTENT(IN)  :: State_Chm    ! Chemistry State object
     TYPE(DgnState),   INTENT(IN)  :: State_Diag   ! Diagnostic State object
@@ -230,7 +227,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -472,8 +469,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_ReadCollectionData( am_I_Root,  Input_Opt, State_Chm,   &
-                                         State_Diag, State_Met, RC          )
+  SUBROUTINE History_ReadCollectionData( Input_Opt, State_Chm,  &
+                                         State_Diag, State_Met, RC )
 !
 ! !USES:
 !
@@ -495,7 +492,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt    ! Input Options object
     TYPE(ChmState),   INTENT(IN)  :: State_Chm    ! Chemistry State object
     TYPE(DgnState),   INTENT(IN)  :: State_Diag   ! Diagnostic State object
@@ -510,7 +506,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -678,8 +674,10 @@ CONTAINS
        !====================================================================
 
        ! Lookup latitude centers
-       CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LAT',     &
-                         Ptr1d_8   = Grid_Lat,   RC        = RC             )
+       CALL Lookup_Grid( Input_Opt = Input_Opt,  &
+                         Variable  = 'GRID_LAT', &
+                         Ptr1d_8   = Grid_Lat,   &
+                         RC        = RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to latitudes (aka GRID_LAT)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -687,8 +685,10 @@ CONTAINS
        ENDIF
 
        ! Lookup latitude edges
-       CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LATE',    &
-                         Ptr1d_8   = Grid_LatE,  RC        = RC             )
+       CALL Lookup_Grid( Input_Opt = Input_Opt,   &
+                         Variable  = 'GRID_LATE', &
+                         Ptr1d_8   = Grid_LatE,   &
+                         RC        = RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to latitude edges (aka GRID_LATE)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -696,8 +696,10 @@ CONTAINS
        ENDIF
 
        ! Lookup longitude centers
-       CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LON',     &
-                         Ptr1d_8   = Grid_Lon,   RC        = RC             )
+       CALL Lookup_Grid( Input_Opt = Input_Opt,  &
+                         Variable  = 'GRID_LON', &
+                         Ptr1d_8   = Grid_Lon,   &
+                         RC        = RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to longitudes (aka GRID_LON)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc)
@@ -705,8 +707,10 @@ CONTAINS
        ENDIF
 
        ! Lookup longitude edges
-       CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LONE',    &
-                         Ptr1d_8   = Grid_LonE,  RC        = RC             )
+       CALL Lookup_Grid( Input_Opt = Input_Opt,   &
+                         Variable  = 'GRID_LONE', &
+                         Ptr1d_8   = Grid_LonE,   &
+                         RC        = RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to longitude edges (aka GRID_LONE)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc)
@@ -846,7 +850,7 @@ CONTAINS
        ! Can be omitted if "template" is specified
        Pattern = 'filename'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
           IF ( C > 0 ) CollectionFileName(C) = Metadata
        ENDIF
 
@@ -854,14 +858,14 @@ CONTAINS
        ! Can be omitted if "filename" is specified
        Pattern = 'template'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
           IF ( C > 0 ) CollectionTemplate(C) = Metadata
        ENDIF
 
        ! "format": Specifies the file output format (e.g. netCDF-4, CFIO)
        Pattern = 'format'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
           IF ( C > 0 ) CollectionFormat(C) = Metadata
        ENDIF
 
@@ -869,7 +873,7 @@ CONTAINS
        ! Must be either in "YYYYMMDD hhmmss" or "hhmmss" format.
        Pattern = 'frequency'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
           IF ( C > 0 ) THEN
              IF ( LEN_TRIM( MetaData ) == 6     .or.                         &
                   LEN_TRIM( MetaData ) == 14    .or.                         &
@@ -897,7 +901,7 @@ CONTAINS
        !%%%%% leave this as an "undocumented feature". (bmy, 3/26/18)
        Pattern = 'acc_interval'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
           IF ( C > 0 ) THEN
              IF ( LEN_TRIM( MetaData ) == 6   .or.                           &
                   LEN_TRIM( MetaData ) == 14 ) THEN
@@ -921,7 +925,7 @@ CONTAINS
        ! If omitted, "duration" will be set from "frequency"
        Pattern = 'duration'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
           IF ( C > 0 ) THEN
              IF ( LEN_TRIM( MetaData ) == 6     .or.                         &
                   LEN_TRIM( MetaData ) == 14    .or.                         &
@@ -945,7 +949,7 @@ CONTAINS
        ! Throw an error if anything else is specified
        Pattern = 'mode'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
+          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
           IF ( C > 0 ) THEN
              TmpMode = Metadata
              CALL TranUc( TmpMode )
@@ -1146,7 +1150,7 @@ CONTAINS
 
              ! This means skipping over all of the fields listed under
              ! this collection until we get to the :: separator
-             CALL Search_CollList( am_I_Root, CollList, CName, Found, RC )
+             CALL Search_CollList( Input_Opt, CollList, CName, Found, RC )
              IF ( .not. Found ) THEN
                 DO
                    Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
@@ -1414,7 +1418,7 @@ CONTAINS
 
           ! Create the HISTORY CONTAINER object itself.
           ! This will also define the alarm intervals and initial alarm times
-          CALL HistContainer_Create( am_I_Root      = am_I_Root,             &
+          CALL HistContainer_Create( Input_Opt      = Input_Opt,             &
                                      Container      = Container,             &
                                      Id             = C,                     &
                                      Name           = CollectionName(C),     &
@@ -1455,7 +1459,7 @@ CONTAINS
           ENDIF
 
           ! Set elapsed time quantities in the HISTORY CONTAINER object
-          CALL HistContainer_SetTime( am_I_Root   = am_I_Root,               &
+          CALL HistContainer_SetTime( Input_Opt   = Input_Opt,               &
                                       Container   = Container,               &
                                       HeartBeatDt = 0.0_f8,                  &
                                       RC          = RC                      )
@@ -1507,7 +1511,8 @@ CONTAINS
                 ! the name of the HISTORY ITEM will be the first substring
                 ! of MetaData (split on spaces).
                 !----------------------------------------------------------
-                CALL GetCollectionMetaData( Line, 'fields', MetaData, C )
+                CALL GetCollectionMetaData( Input_Opt, Line, 'fields', &
+                                            MetaData, C )
                 CALL StrSplit( MetaData, " ", Subs1, nSubs1 )
                 ItemName = Subs1(1)
 
@@ -1569,7 +1574,7 @@ CONTAINS
                 ItemPrefix = SubStrs(1)
 
                 ! Get number of tags for this wildcard
-                CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,    &
+                CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
                                   nTags=nTags )
                 IF ( RC /= GC_SUCCESS ) THEN
                    ErrMsg = 'Error retrieving # of tags for' //              &
@@ -1584,7 +1589,7 @@ CONTAINS
                    ! Construct the item name
 
                    ! Get tag, if any
-                   CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+                   CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
                                      N=N, tagName=tagName )
                    IF ( RC /= GC_SUCCESS ) THEN
                       ErrMsg = 'Error retrieving tag name for' //            &
@@ -1598,7 +1603,7 @@ CONTAINS
                    ItemName = TRIM( ItemPrefix ) // TRIM( tagName )
 
                    ! Update the ItemName if dependent on input parameters
-                   CALL Get_NameInfo( am_I_Root, ItemName, OutputName, RC )
+                   CALL Get_NameInfo( Input_Opt, ItemName, OutputName, RC )
 
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
@@ -1606,7 +1611,6 @@ CONTAINS
                    ! Create the a HISTORY ITEM object for this diagnostic
                    ! and add it to the given DIAGNOSTIC COLLECTION
                    CALL History_AddItemToCollection(                         &
-                            am_I_Root    = am_I_Root,                        &
                             Input_Opt    = Input_Opt,                        &
                             State_Chm    = State_Chm,                        &
                             State_Diag   = State_Diag,                       &
@@ -1637,7 +1641,7 @@ CONTAINS
                 !-----------------------------------------------------------
 
                 ! Update the ItemName if dependent on input parameters
-                CALL Get_NameInfo( am_I_Root, ItemName, OutputName, RC )
+                CALL Get_NameInfo( Input_Opt, ItemName, OutputName, RC )
 
                 ! Increment the number of HISTORY items
                 ItemCount = ItemCount + 1
@@ -1645,7 +1649,6 @@ CONTAINS
                 ! Create the a HISTORY ITEM object for this diagnostic
                 ! and add it to the given DIAGNOSTIC COLLECTION
                 CALL History_AddItemToCollection(                            &
-                         am_I_Root    = am_I_Root,                           &
                          Input_Opt    = Input_Opt,                           &
                          State_Chm    = State_Chm,                           &
                          State_Diag   = State_Diag,                          &
@@ -1673,7 +1676,7 @@ CONTAINS
           ! Add this HISTORY CONTAINER object (i.e. this collection) into
           ! the METAHISTORY OBJECT (i.e. the master list of collections).
           !=================================================================
-          CALL MetaHistContainer_AddNew( am_I_Root   = am_I_Root,            &
+          CALL MetaHistContainer_AddNew( Input_Opt   = Input_Opt,            &
                                          Node        = CollectionList,       &
                                          Container   = Container,            &
                                          RC          = RC                   )
@@ -1711,7 +1714,7 @@ CONTAINS
 
              ! Search for this collection in the list of active collections
              ! and skip to the next collection if not found
-             CALL Search_CollList( am_I_Root, CollList, CName, Found, RC )
+             CALL Search_CollList( Input_Opt, CollList, CName, Found, RC )
              IF ( .not. Found ) THEN
                 DO
                    Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
@@ -1762,7 +1765,7 @@ CONTAINS
     CLOSE( fId )
 
     ! Write output
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
        WRITE( 6, '(a  )' ) 'DEFINED DIAGNOSTIC COLLECTIONS:'
        WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
@@ -1804,9 +1807,9 @@ CONTAINS
        ENDDO
     ENDIF
 
-    IF ( Input_Opt%LPRT .and. am_I_Root ) THEN
+    IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
        ! Print information about each diagnostic collection
-       CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
+       CALL MetaHistContainer_Print( Input_Opt, CollectionList, RC )
     ENDIF
 
     ! Write spacer
@@ -1829,7 +1832,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_AddItemToCollection( am_I_Root,    Input_Opt,           &
+  SUBROUTINE History_AddItemToCollection( Input_Opt,                         &
                                           State_Chm,    State_Diag,          &
                                           State_Met,    Collection,          &
                                           CollectionId, ItemName,            &
@@ -1854,7 +1857,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     ! Required arguments
-    LOGICAL,             INTENT(IN)  :: am_I_Root      ! Are we on the root CPU?
     TYPE(OptInput),      INTENT(IN)  :: Input_Opt      ! Input Options State
     TYPE(ChmState),      INTENT(IN)  :: State_Chm      ! Chemistry State
     TYPE(DgnState),      INTENT(IN)  :: State_Diag     ! Diagnostic State
@@ -1880,7 +1882,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1974,7 +1976,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Chemistry State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( am_I_Root    = am_I_Root,                       &
+       CALL Registry_Lookup( Input_Opt    = Input_Opt,                       &
                              Registry     = State_Chm%Registry,              &
                              State        = State_Chm%State,                 &
                              Variable     = ItemName,                        &
@@ -2015,7 +2017,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Meteorology State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( am_I_Root    = am_I_Root,                       &
+       CALL Registry_Lookup( Input_Opt    = Input_Opt,                       &
                              Registry     = State_Met%Registry,              &
                              State        = State_Met%State,                 &
                              Variable     = ItemName,                        &
@@ -2056,7 +2058,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Diagnostic State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( am_I_Root    = am_I_Root,                       &
+       CALL Registry_Lookup( Input_Opt    = Input_Opt,                       &
                              Registry     = State_Diag%Registry,             &
                              State        = State_Diag%State,                &
                              Variable     = ItemName,                        &
@@ -2182,7 +2184,7 @@ CONTAINS
     ! corresponding to the given diagnostic quantity, use that to create
     ! a HISTORY ITEM object for that diagnostic quantity.
     !=======================================================================
-    CALL HistItem_Create( am_I_Root      = am_I_Root,                        &
+    CALL HistItem_Create( Input_Opt      = Input_Opt,                       &
                           Item           = Item,                             &
                           Id             = ItemCount,                        &
                           ContainerId    = CollectionId,                     &
@@ -2229,7 +2231,7 @@ CONTAINS
     ! These quantities will be written to the netCDF file described by
     ! the collection, with the specified update frequency.
     !=======================================================================
-    CALL MetaHistItem_AddNew( am_I_Root = am_I_Root,                         &
+    CALL MetaHistItem_AddNew( Input_Opt = Input_Opt,                         &
                               Node      = Collection%HistItems,              &
                               Item      = Item,                              &
                               RC        = RC                                )
@@ -2352,22 +2354,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_SetTime( am_I_Root, RC )
+  SUBROUTINE History_SetTime( Input_Opt, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistContainer_Mod,     ONLY : HistContainer_SetTime
     USE History_Util_Mod
+    USE Input_Opt_Mod,         ONLY : OptInput
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,  INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt        ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,  INTENT(OUT) :: RC               ! Success or failure
+    INTEGER,        INTENT(OUT) :: RC               ! Success or failure
 !
 ! !REMARKS:
 !  This routine is meant to be called after History_Update() but before
@@ -2375,7 +2378,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Aug 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2408,7 +2411,7 @@ CONTAINS
     DO WHILE( ASSOCIATED( Collection ) )
 
        ! Update the time settings for the next timestep
-       CALL HistContainer_SetTime( am_I_Root   = am_I_Root,                  &
+       CALL HistContainer_SetTime( Input_Opt   = Input_Opt,                  &
                                    Container   = Collection%Container,       &
                                    RC          = RC                         )
 
@@ -2447,7 +2450,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Update( am_I_Root, RC )
+  SUBROUTINE History_Update( Input_Opt, RC )
 !
 ! !USES:
 !
@@ -2456,13 +2459,14 @@ CONTAINS
     USE HistContainer_Mod,     ONLY : HistContainer
     USE HistContainer_Mod,     ONLY : HistContainer_UpdateIvalSet
     USE History_Util_Mod
+    USE Input_Opt_Mod,         ONLY : OptInput
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2474,7 +2478,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2535,13 +2539,11 @@ CONTAINS
           CYCLE
        ENDIF
 
-#if defined( DEBUG )
        ! Debug output
-       IF ( am_I_Root ) THEN
+       IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
           WRITE( 6, 100 ) Container%Name
  100      FORMAT( '     - Updating collection: ', a20 )
        ENDIF
-#endif
 
        !--------------------------------------------------------------------
        ! If it is time to update the collection, then loop through all of
@@ -2737,9 +2739,8 @@ CONTAINS
           END SELECT
 
 ! Uncomment more detailed debug output if you need it!
-!#if defined( DEBUG )
 !          ! Debug output
-!          IF ( am_I_Root ) THEN
+!          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
 !             WRITE( 6, 110 ) TRIM(Container%Name),                        &
 !                             TRIM(Item%Name),       Item%nUpdates
 ! 110         FORMAT( a20, 1x, a20, 1x, f7.1 )
@@ -2760,7 +2761,7 @@ CONTAINS
        ! Recompute the update alarm interval if it 1 month or longer,
        ! as we will have to take into account leap years, etc.
        IF ( Container%UpdateYmd >= 000100 ) THEN
-          CALL HistContainer_UpdateIvalSet( am_I_Root, Container, RC )
+          CALL HistContainer_UpdateIvalSet( Input_Opt, Container, RC )
        ENDIF
 
        ! Update the "UpdateAlarm" time for the next updating interval.
@@ -2801,7 +2802,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Write( am_I_Root, Spc_Units, RC )
+  SUBROUTINE History_Write( Input_Opt, Spc_Units, RC )
 !
 ! !USES:
 !
@@ -2810,13 +2811,14 @@ CONTAINS
     USE HistItem_Mod,          ONLY : HistItem
     USE History_Netcdf_Mod
     USE History_Util_Mod
+    USE Input_Opt_Mod,         ONLY : OptInput
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
     CHARACTER(LEN=*), INTENT(IN)  :: Spc_Units   ! Units of SC%Species array
 !
 ! !OUTPUT PARAMETERS:
@@ -2829,7 +2831,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2902,8 +2904,7 @@ CONTAINS
           ! If the netCDF file specified by this collection is open,
           ! then close it and undefine all relevant object fields.
           !-----------------------------------------------------------------
-          CALL History_Netcdf_Close( am_I_Root = am_I_Root,                  &
-                                     Container = Container,                  &
+          CALL History_Netcdf_Close( Container = Container,                  &
                                      RC        = RC                         )
 
           ! Trap error
@@ -2918,9 +2919,9 @@ CONTAINS
           ! Defines each variable, saves global attributes, and writes
           ! the index variable data to the file.
           !-----------------------------------------------------------------
-          CALL History_Netcdf_Define( am_I_Root  = am_I_Root,                &
-                                      Container  = Container,                &
-                                      RC         = RC                       )
+          CALL History_Netcdf_Define( Input_Opt = Input_Opt,                &
+                                      Container = Container,                &
+                                      RC        = RC                       )
 
           ! Trap error
           IF ( RC /= GC_SUCCESS ) THEN
@@ -2936,7 +2937,7 @@ CONTAINS
           ! Recompute the file close alarm interval if it 1 month or longer,
           ! as we will have to take into account leap years, etc.
           IF ( Container%FileCloseYmd >= 000100 ) THEN
-             CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+             CALL HistContainer_FileCloseIvalSet( Input_Opt, Container, RC )
           ENDIF
 
           ! Update the alarm
@@ -2955,7 +2956,7 @@ CONTAINS
           !-----------------------------------------------------------------
           ! Write the HISTORY ITEMS for this collection to the netCDF file.
           !-----------------------------------------------------------------
-          CALL History_Netcdf_Write( am_I_Root = am_I_Root,                  &
+          CALL History_Netcdf_Write( Input_Opt = Input_Opt,                  &
                                      Container = Container,                  &
                                      RC        = RC                         )
 
@@ -2973,7 +2974,7 @@ CONTAINS
           ! Recompute the file write alarm interval if it 1 month or longer,
           ! as we will have to take into account leap years, etc.
           IF ( Container%FileWriteYmd >= 000100 ) THEN
-             CALL HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
+             CALL HistContainer_FileWriteIvalSet( Input_Opt, Container, RC )
           ENDIF
 
           ! Update the alarm
@@ -3007,16 +3008,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetCollectionMetaData( Line, Pattern, MetaData, nCollection )
+  SUBROUTINE GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, &
+                                    nCollection )
 !
 ! !USES:
 !
-    USE Charpak_Mod,      ONLY: CleanText, StrSplit
-    USE DiagList_Mod,     ONLY: CollList,  Search_CollList
+    USE Charpak_Mod,      ONLY : CleanText, StrSplit
+    USE DiagList_Mod,     ONLY : CollList,  Search_CollList
     USE History_Util_Mod
+    USE Input_Opt_Mod,    ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
+    TYPE(OptInput),     INTENT(IN)  :: Input_Opt     ! Input Options object
     CHARACTER(LEN=*),   INTENT(IN)  :: Line          ! Line to be searched
     CHARACTER(LEN=*),   INTENT(IN)  :: Pattern       ! Search pattern
 !
@@ -3027,7 +3031,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3057,7 +3061,7 @@ CONTAINS
     Name = Line(1:Ind-1)
 
     ! Exit if the collection name is not in the list of active collections
-    CALL Search_CollList( .TRUE., CollList, Name, Found, RC )
+    CALL Search_CollList( Input_Opt, CollList, Name, Found, RC )
     IF ( .not. Found ) RETURN
 
     ! Non-white-space lengths of the collection cname and search pattern
@@ -3115,7 +3119,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Close_AllFiles( am_I_Root, RC )
+  SUBROUTINE History_Close_AllFiles( RC )
 !
 ! !USES:
 !
@@ -3123,13 +3127,9 @@ CONTAINS
     USE History_Netcdf_Mod,    ONLY : History_Netcdf_Close
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
 !
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  This is called from History_Cleanup, but may also be called in other
@@ -3137,7 +3137,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3171,9 +3171,8 @@ CONTAINS
 
        ! Close the file (if it's open) and reset all relevant fields
        ! in the HISTORY CONTAINER object
-       CALL History_Netcdf_Close( am_I_Root = am_I_Root,                    &
-                                  Container = Current%Container,            &
-                                  RC        = RC                           )
+       CALL History_Netcdf_Close( Container = Current%Container, &
+                                  RC        = RC                 )
 
        ! Trap error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -3209,24 +3208,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Cleanup( am_I_Root, RC )
+  SUBROUTINE History_Cleanup( RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer_Destroy
 !
-! !INPUT PARAMETERS:
-!
-     LOGICAL, INTENT(IN)  :: am_I_Root
-!
 ! !OUTPUT PARAMETERS:
 !
-     INTEGER, INTENT(OUT) :: RC
+     INTEGER,       INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3250,7 +3245,7 @@ CONTAINS
      !======================================================================
      ! Close all remanining netCDF files
      !======================================================================
-     CALL History_Close_AllFiles( am_I_Root, RC )
+     CALL History_Close_AllFiles( RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error returned from "History_Close_AllFiles"!'
         CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3261,7 +3256,7 @@ CONTAINS
      ! And deallocate variables belonging to history_mod.F90
      !======================================================================
      IF ( ASSOCIATED( CollectionList ) ) THEN
-        CALL MetaHistContainer_Destroy( am_I_Root, CollectionList, RC )
+        CALL MetaHistContainer_Destroy( CollectionList, RC )
         IF ( RC /= GC_SUCCESS ) THEN
            ErrMsg = 'Could not destroy "CollectionList"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )

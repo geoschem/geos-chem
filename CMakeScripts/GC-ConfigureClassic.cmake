@@ -62,16 +62,29 @@ function(configureGCClassic)
 
     # Determine the appropriate chemistry mechanism base on the simulation
     set(STANDARD_MECHS
-        "standard"      "benchmark"         "aciduptake"    "marinePOA"
-        "masscons"      "TransportTracers"  "POPs"          "CH4"
-        "tagCH4"        "tagO3"             "tagCO"
-        "tagHg"         "CO2"               "aerosol"
+        "standard"
+        "benchmark"
+        "aciduptake"
+        "marinePOA"
+        "TransportTracers"
+        "POPs"
+        "CH4"
+        "tagCH4"
+        "tagO3"
+        "tagCO"
+        "tagHg"
+        "CO2"
+        "aerosol"
         "Hg"
         "HEMCO" # doesn't matter for the HEMCO standalone
     )
     set(TROPCHEM_MECHS
-        "tropchem"      "RRTMG"     "TOMAS15"
-        "TOMAS40"       "APM"       "complexSOA"
+        "tropchem"
+        "RRTMG"
+        "TOMAS15"
+        "TOMAS40"
+        "APM"
+        "complexSOA"
     )
     set(SOA_SVPOA_MECHS
         "complexSOA_SVPOA"
@@ -93,11 +106,7 @@ function(configureGCClassic)
 
     # Definitions for specific run directories
     set(TOMAS FALSE)
-    if("${RUNDIR_SIM}" STREQUAL "masscons")
-        target_compile_definitions(GEOSChemBuildProperties
-		INTERFACE MASSCONS
-	)
-    elseif("${RUNDIR_SIM}" MATCHES "TOMAS15")
+    if("${RUNDIR_SIM}" MATCHES "TOMAS15")
         target_compile_definitions(GEOSChemBuildProperties
 		INTERFACE TOMAS TOMAS15
 	)
@@ -144,21 +153,6 @@ function(configureGCClassic)
     target_compile_definitions(GEOSChemBuildProperties
 	INTERFACE "USE_REAL8"
     )
-
-    # Build with timers?
-    if("${RUNDIR_SIM}" STREQUAL "benchmark")
-        set(TIMERS_DEFAULT "ON")
-    else()
-        set(TIMERS_DEFAULT "OFF")
-    endif()
-    set(TIMERS "${TIMERS_DEFAULT}" CACHE BOOL "Switch to enable GEOS-Chem's timers")
-    gc_pretty_print(VARIABLE TIMERS IS_BOOLEAN)
-    # Set USE_TIMERS
-    if(${TIMERS})
-        target_compile_definitions(GEOSChemBuildProperties
-		INTERFACE "USE_TIMERS"
-	)
-    endif()
 
     gc_pretty_print(SECTION "Components")
 

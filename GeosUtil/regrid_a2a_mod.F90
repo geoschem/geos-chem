@@ -51,27 +51,7 @@ MODULE Regrid_A2A_Mod
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - M. Cooper   - Initial version
-!  03 Apr 2012 - M. Payer    - Now use functions GET_AREA_CM2(I,J,L),
-!                              GET_YEDGE(I,J,L) and GET_YSIN(I,J,L) from the
-!                              new grid_mod.F90
-!  22 May 2012 - L. Murray   - Implemented several bug fixes
-!  23 Aug 2012 - R. Yantosca - Add capability for starting from hi-res grids
-!                              (generic 0.5x0.5, generic 0.25x0.25, etc.)
-!  23 Aug 2012 - R. Yantosca - Add subroutine READ_INPUT_GRID, which reads the
-!                              grid parameters (lon & lat edges) w/ netCDF
-!  27 Aug 2012 - R. Yantosca - Now parallelize key DO loops
-!  19 May 2014 - C. Keller   - MAP_A2A now accepts single and double precision
-!                              input/output.
-!  14 Jul 2014 - R. Yantosca - Now save IIPAR, JJPAR, OUTLON, OUTSIN, OUTAREA
-!                              as module variables.  This helps us remove a
-!                              dependency for the HEMCO emissions package.
-!                              input/output.
-!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  11 Feb 2015 - C. Keller   - Add capability for regridding local grids onto
-!                              global grids. To do so, xmap now only operates
-!                              within the longitude range spanned by the input
-!                              domain.
-! 08 Apr 2017 - C. Keller    - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -171,11 +151,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
-!      Also updated comments. (bmy, 9/21/00)
-!  21 Sep 2000 - R. Yantosca - Initial version
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  02 Mar 2015 - C. Keller   - Added optional argument missval
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,11 +283,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
-!      Also updated comments. (bmy, 9/21/00)
-!  21 Sep 2000 - R. Yantosca - Initial version
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  02 Mar 2015 - C. Keller   - Added optional argument missval
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -444,11 +416,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
-!      Also updated comments. (bmy, 9/21/00)
-!  21 Sep 2000 - R. Yantosca - Initial version
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  02 Mar 2015 - C. Keller   - Added optional argument missval
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -581,11 +549,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
-!      Also updated comments. (bmy, 9/21/00)
-!  21 Sep 2000 - R. Yantosca - Initial version
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  02 Mar 2015 - C. Keller   - Added optional argument missval
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -726,12 +690,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
-!                                values in nested grids
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -925,12 +884,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
-!                                values in nested grids
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1123,12 +1077,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
-!                                values in nested grids
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1322,12 +1271,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
-!                                values in nested grids
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1514,16 +1458,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
-!                                to valid range n1:(n2-1). Do not initialize q2
-!                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers.
-!  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
-!  21 Aug 2018 - H.P. Lin      - Return missing value if no overlap between lon1, lon2
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1817,16 +1752,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
-!                                to valid range n1:(n2-1). Do not initialize q2
-!                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers.
-!  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
-!  21 Aug 2018 - H.P. Lin      - Return missing value if no overlap between lon1, lon2
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2121,14 +2047,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
-!                                to valid range n1:(n2-1). Do not initialize q2
-!                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers.
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2412,15 +2331,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
-!                                to valid range n1:(n2-1). Do not initialize q2
-!                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers.
-!  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2674,6 +2585,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2014 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2737,6 +2649,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2014 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

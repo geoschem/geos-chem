@@ -5,7 +5,7 @@
 #
 # !REVISION HISTORY:
 #  16Aug2006  da Silva   First Version
-#  See the gitk browser for revision history
+#  See https://github.com/geoschem/geos-chem for complete history
 # -----------------------------------------------------------------
 
   COMP_NAME: GIGCchem

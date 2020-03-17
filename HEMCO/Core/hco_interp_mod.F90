@@ -118,7 +118,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE REGRID_MAPA2A ( am_I_Root, HcoState, NcArr, LonE, LatE, Lct, RC )
+  SUBROUTINE REGRID_MAPA2A( HcoState, NcArr, LonE, LatE, Lct, RC )
 !
 ! !USES:
 !
@@ -128,7 +128,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root         ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState          ! HEMCO state object
     REAL(sp),         POINTER        :: NcArr(:,:,:,:)    ! 4D input data
     REAL(hp),         POINTER        :: LonE(:)           ! Input grid longitude edges
@@ -367,7 +366,7 @@ CONTAINS
 
        ! Eventually inflate/collapse levels onto simulation levels.
        IF ( Lct%Dct%Dta%SpaceDim == 3 ) THEN
-          CALL ModelLev_Interpolate ( am_I_Root, HcoState, REGR_4D, Lct, RC )
+          CALL ModelLev_Interpolate( HcoState, REGR_4D, Lct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
@@ -460,7 +459,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ModelLev_Check ( am_I_Root, HcoState, nLev, IsModelLev, RC )
+  SUBROUTINE ModelLev_Check( HcoState, nLev, IsModelLev, RC )
 !
 ! !USES:
 !
@@ -468,7 +467,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root         ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState          ! HEMCO state object
     INTEGER,          INTENT(IN   )  :: nlev              ! number of levels
 !
@@ -579,7 +577,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ModelLev_Interpolate ( am_I_Root, HcoState, REGR_4D, Lct, RC )
+  SUBROUTINE ModelLev_Interpolate( HcoState, REGR_4D, Lct, RC )
 !
 ! !USES:
 !
@@ -587,7 +585,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root         ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState          ! HEMCO state object
     REAL(sp),         POINTER        :: REGR_4D(:,:,:,:)  ! 4D input data
 !

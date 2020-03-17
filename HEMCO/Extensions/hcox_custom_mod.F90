@@ -67,7 +67,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Custom_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_Custom_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -76,7 +76,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(Ext_State), POINTER       :: ExtState    ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -192,8 +191,8 @@ CONTAINS
     DO N = 1, Inst%nOcWind
 
        ! Emissions array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXWIND, Inst%OcWindIDs(N), &
-                         RC,        ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, FLUXWIND, Inst%OcWindIDs(N), &
+                         RC,       ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO !N
 
@@ -201,8 +200,8 @@ CONTAINS
     DO N = 1, Inst%nIceSrc
 
        ! Emissions array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXICE, Inst%IceSrcIDs(N), &
-                         RC,        ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, FLUXICE, Inst%IceSrcIDs(N), &
+                         RC,       ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO !N
 
@@ -225,8 +224,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Custom_Init( am_I_Root, HcoState, ExtName, &
-                               ExtState,  RC                  )
+  SUBROUTINE HCOX_Custom_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -235,7 +233,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName    ! Extension name
     TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !

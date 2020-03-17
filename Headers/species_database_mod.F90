@@ -53,11 +53,9 @@ MODULE Species_Database_Mod
 !#define NEW_HENRY_CONSTANTS 1
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
-! !REMARKS:
-!
 ! !REVISION HISTORY:
 !  28 Aug 2015 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,7 +91,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Species_Database( am_I_Root, Input_Opt, SpcData, RC )
+  SUBROUTINE Init_Species_Database( Input_Opt, SpcData, RC )
 !
 ! !USES:
 !
@@ -103,7 +101,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -138,7 +135,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Jul 2015 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,7 +210,7 @@ CONTAINS
     HgP_CAT       = 0
 
     ! Copy values from Input_Opt
-    prtDebug      = ( Input_Opt%LPRT .and. am_I_Root )
+    prtDebug      = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Store the list unique GEOS-Chem species names in work arrays for use
     ! below.  This is the combined list of advected species (from input.geos)
@@ -221,10 +218,10 @@ CONTAINS
     ! duplicates removed.  Also stores the corresponding indices in the
     ! KPP VAR and FIX arrays.  For simulations that do not use KPP, the
     ! unique species list is the list of advected species from input.geos.
-    CALL Unique_Species_Names( am_I_Root, Input_Opt, nSpecies, RC )
+    CALL Unique_Species_Names( Input_Opt, nSpecies, RC )
 
     ! Initialize the species vector
-    CALL SpcData_Init( am_I_Root, nSpecies, SpcData, RC )
+    CALL SpcData_Init( Input_Opt, nSpecies, SpcData, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        PRINT*, '### Could not initialize species vector!'
        CALL EXIT( -999 )
@@ -241,8 +238,7 @@ CONTAINS
        CALL TranUc( NameAllCaps )
 
        ! Get species info, now write into local variable
-       CALL Spc_Info( am_I_Root       = am_I_Root,                           &
-                      iName           = TRIM(NameAllCaps),                   &
+       CALL Spc_Info( iName           = TRIM(NameAllCaps),                   &
                       Input_Opt       = Input_Opt,                           &
                       KppSpcId        = KppSpcId(N),                         &
                       oFullName       = FullName,                            &
@@ -298,7 +294,7 @@ CONTAINS
        IF ( TRIM(Name) == 'POx' ) Name = 'POX'
        IF ( TRIM(Name) == 'LOx' ) Name = 'LOX'
        IF ( TRIM(FullName) == '' ) FullName = TRIM(Name)
-       CALL Spc_Create( am_I_Root      = am_I_Root,                          &
+       CALL Spc_Create( Input_Opt      = Input_Opt,                          &
                         ThisSpc        = SpcData(N)%Info,                    &
                         ModelID        = N,                                  &
                         KppSpcId       = KppSpcId(N),                        &
@@ -352,13 +348,13 @@ CONTAINS
 
        ! Print info about each species
        ! testing only
-       IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
+       IF ( prtDebug ) CALL Spc_Print( Input_Opt, SpcData(N)%Info, RC )
 
     ENDDO
 
     ! Print Species Database to JSON format
-    IF ( am_I_Root ) THEN
-       CALL SpcData_To_JSON( am_I_Root, SpcData, RC )
+    IF ( Input_Opt%amIRoot ) THEN
+       CALL SpcData_To_JSON( Input_Opt, SpcData, RC )
     ENDIF
 
     ! Deallocate temporary work arrays
@@ -379,7 +375,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,           &
+  SUBROUTINE Spc_Info( iName,           Input_Opt,                           &
                        KppSpcId,        oFullName,      oFormula,            &
                        oMW_g,           oEmMW_g,        oMolecRatio,         &
                        oBackgroundVV,   oHenry_K0,      oHenry_CR,           &
@@ -404,7 +400,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
     CHARACTER(LEN=*),  INTENT(IN)  :: iName            ! Short name of species
     TYPE(OptInput),    OPTIONAL    :: Input_Opt        ! Input Options object
     INTEGER,           INTENT(IN)  :: KppSpcId         ! KPP ID
@@ -462,12 +457,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  14 Sep 2018 - C. Keller   - Created standalone subroutine so that species
 !                              info can be queried independently.
-!  23 Oct 2018 - R. Yantosca - Cosmetic changes (consistent indentation)
-!  10 Apr 2019 - R. Yantosca - DHDC should photolyze, not DHDN
-!  10 Oct 2019 - K. Bates    - Updated Henry_K0 and Henry_CR values for most 
-!                              organics with values from Safieddine et al. 2017;
-!                              added species for new isoprene mechanism from
-!                              Bates & Jacob 2019, removed unused species
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -615,7 +605,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.7e-1_f8 * To_M_atm
              Henry_CR      = 5500.0_f8
 #else
@@ -649,7 +639,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.30e-01_f8 * To_M_atm
              Henry_CR      = 5900.0_f8
 #else
@@ -668,7 +658,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.22e-3_f8 * To_M_atm
              Henry_CR      = 3100.0_f8
 #endif
@@ -704,7 +694,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.00e+5_f8
              Henry_CR      = 6039.0_f8
 #else
@@ -803,7 +793,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 3.40e-4_f8 * To_M_atm
              Henry_CR      = 1800.0_f8
 #endif
@@ -817,7 +807,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 7.20e-3_f8 * To_M_atm
              Henry_CR      = 4400.0_f8
 #else
@@ -875,7 +865,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.90e-5_f8 * To_M_atm
              Henry_CR      = 2400.0_f8
 #else
@@ -892,7 +882,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.50e-5_f8 * To_M_atm
              Henry_CR      = 2700.0_f8
 #else
@@ -975,7 +965,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 3.2e+1_f8 * To_M_atm
              Henry_CR      = 6800.0_f8
 #else
@@ -1216,7 +1206,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 9.70e-6_f8 * To_M_atm
              Henry_CR      = 1300.0_f8
 #endif
@@ -1440,7 +1430,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 4.10e+2_f8 * To_M_atm
              Henry_CR      = 4600.0_f8
 #else
@@ -1510,7 +1500,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 4.93e+5_f8 * To_M_atm
              Henry_CR      = 6600.0_f8
              Henry_pKa     = 11.6_f8
@@ -1532,7 +1522,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 7.70e+1_f8 * To_M_atm
              Henry_CR      = 0.0_f8
 #else
@@ -1550,7 +1540,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.40e-1_f8 * To_M_atm
              Henry_CR      = 370.0_f8
 #else
@@ -1704,7 +1694,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.10e+3_f8 * To_M_atm
              Henry_CR      = 8700.0_f8
 #else
@@ -1725,7 +1715,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              !!!Henry_K0      = 3.90e1X_f8 * To_M_atm
              Henry_K0      = 3.90e-1_f8 * To_M_atm
              Henry_CR      = 8400.0_f8
@@ -1740,7 +1730,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.30e+0_f8 * To_M_atm
              Henry_CR      = 4000.0_f8
 #else
@@ -2092,7 +2082,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
              DD_Hstar_old  = 2.00e+6_fp
@@ -2164,7 +2154,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 3.40e-4_f8 * To_M_atm
              Henry_CR      = 4400.0_f8
 #else
@@ -2258,7 +2248,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 4.8e-2_f8 * To_M_atm
              Henry_CR      = 4300.0_f8
 #else
@@ -2337,7 +2327,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
              DD_Hstar_old  = 2.00e+6_fp
@@ -2355,7 +2345,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
              DD_Hstar_old  = 2.00e+6_fp
@@ -2388,7 +2378,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = T
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.90e+02_f8 * To_M_atm
              Henry_CR      = 5700.0_f8
 #else
@@ -2549,7 +2539,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = T
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.90e+0_f8 * To_M_atm
              Henry_CR      = 5200.0_f8
 #else
@@ -2649,7 +2639,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.6e-1_f8 * To_M_atm
              Henry_CR      = 4800.0_f8
 #else
@@ -2723,7 +2713,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
              DD_Hstar_old  = 2.00e+6_fp
@@ -2770,7 +2760,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.10e-2_f8 * To_M_atm
              Henry_CR      = 3400.0_f8
 #else
@@ -2805,7 +2795,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 5.90e-1_f8 * To_M_atm
              Henry_CR      = 4200.0_f8
 #else
@@ -2938,7 +2928,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.90e-5_f8 * To_M_atm
              Henry_CR      = 1600.0_f8
 #endif
@@ -2953,7 +2943,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 0.1_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.20e-4_f8 * To_M_atm
              Henry_CR      = 2400.0_f8
 #else
@@ -2970,7 +2960,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 3.80e-4_f8 * To_M_atm
              Henry_CR      = 1900.0_f8
 #endif
@@ -3039,7 +3029,7 @@ CONTAINS
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.90e-05_f8 * To_M_atm
              Henry_CR      = 1600.0_f8
 #else
@@ -3175,7 +3165,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0e+0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.90e+02_f8 * To_M_atm
              Henry_CR      = 5700.0_f8
 #else
@@ -3311,7 +3301,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.9e-2_fp * To_M_atm
              Henry_CR      = 0.0_f8
 #else
@@ -3330,7 +3320,7 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 7.3e-5_f8 * To_M_atm
              Henry_CR      = 3400.0_f8
 #else
@@ -3362,7 +3352,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 4.93e+3_f8 * To_M_atm
              Henry_CR      = 0.0_f8
 #else
@@ -3397,7 +3387,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 1.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.0e-2_f8 * To_M_atm
              Henry_CR      = 5800.0_f8
 #else
@@ -3457,7 +3447,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 9.5e-2_f8 * To_M_atm
              Henry_CR      = 6200.0_f8
 #else
@@ -3640,7 +3630,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.30e-2_f8 * To_M_atm
              Henry_CR      = 2900.0_f8
 #else
@@ -3926,7 +3916,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3945,7 +3935,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3964,7 +3954,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -3983,7 +3973,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -4018,7 +4008,7 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -4055,7 +4045,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -4074,7 +4064,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -4093,7 +4083,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -4112,7 +4102,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -4131,7 +4121,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = -1.0e+0_f8 * To_M_atm
              Henry_CR      = -1.0e+0_f8
 #else
@@ -4625,7 +4615,7 @@ CONTAINS
              Is_Wetdep     = T
              Is_Hg2        = T
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 1.40e+4_f8 * To_M_atm
              Henry_CR      = 5300.0_f8
 #else
@@ -4759,7 +4749,7 @@ CONTAINS
           CASE( 'POPG' )
 
              !----------------------------------------------------------------
-             ! Notes for DD_Hstar_old from the v11-01c drydep_mod.F
+             ! Notes for DD_Hstar_old from the v11-01c drydep_mod.F90
              ! (cf. Carey Friedman and Helen Amos
              !----------------------------------------------------------------
              ! HSTAR is Henry's Law in mol/L/atm.
@@ -4774,7 +4764,7 @@ CONTAINS
              !  All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819
              !
              !----------------------------------------------------------------
-             ! Notes for DD_KOA from the v11-01c drydep_mod.F
+             ! Notes for DD_KOA from the v11-01c drydep_mod.F90
              ! (cf. Carey Friedman and Helen Amos)
              !----------------------------------------------------------------
              ! Adding Koa (octanol-ar partition coefficient) for POPs to
@@ -4792,7 +4782,7 @@ CONTAINS
              ! Now add factor of 0.8 to account for 80% vol content of octanol
              !
              !----------------------------------------------------------------
-             ! Notes for Henry_K0, Henry_CR from the v11-01c wetscav_mod.F
+             ! Notes for Henry_K0, Henry_CR from the v11-01c wetscav_mod.F90
              ! (cf. Carey Friedman and Helen Amos
              !----------------------------------------------------------------
              ! Cocmpute liquid to gas ratio for POPs using
@@ -5033,7 +5023,7 @@ CONTAINS
              Is_Drydep     = F
              Is_Wetdep     = F
 
-#if defined( APM )
+#ifdef APM
           CASE( 'APMH2SO4' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -5572,7 +5562,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 5.90e-1_f8 * To_M_atm
              Henry_CR      = 4200.0_f8
 #else
@@ -5597,7 +5587,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 5.90e-1_f8 * To_M_atm
              Henry_CR      = 4200.0_f8
 #else
@@ -5622,7 +5612,7 @@ CONTAINS
              DD_DvzAerSnow = 0.03_fp
              DD_DvzMinVal  = DvzMinVal
              DD_F0         = 0.0_fp
-#if defined( NEW_HENRY_CONSTANTS )
+#ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 5.90e-1_f8 * To_M_atm
              Henry_CR      = 4200.0_f8
 #else
@@ -5635,7 +5625,7 @@ CONTAINS
              WD_ConvFacI2G = 6.17395e-1_fp
 #endif
 
-#if defined( TOMAS )
+#ifdef TOMAS
           !==================================================================
           ! Species for the TOMAS microphysics simulations
           !==================================================================
@@ -6256,16 +6246,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Species_Database( am_I_Root, SpcData, RC )
+  SUBROUTINE Cleanup_Species_Database( SpcData, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE Species_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -6279,6 +6265,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Jul 2015 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6318,12 +6305,13 @@ CONTAINS
 !
 ! !REMARKS:
 !  Keep a private shadow copy of this routine here so as not to
-!  incur a dependency with GeosUtil/charpak_mod.F.  This lets us
+!  incur a dependency with GeosUtil/charpak_mod.F90.  This lets us
 !  keep species_datbase_mod.F90 in the Headers/ folder together
 !  with state_chm_mod.F90 and species_mod.F90.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6357,18 +6345,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Unique_Species_Names( am_I_Root, Input_Opt, nSpecies, RC )
+  SUBROUTINE Unique_Species_Names( Input_Opt, nSpecies, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE GcKpp_Monitor,      ONLY : Spc_Names
     USE GcKpp_Parameters,   ONLY : NFIX, NSPEC, NVAR
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
@@ -6383,8 +6370,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  09 May 2016 - R. Yantosca - Initial version
-!  02 Aug 2016 - M. Sulprizio- Add KppSpcId; Also only set KppVarId if loop
-!                              indexis <= NVAR.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6573,7 +6559,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 May 2016 - R. Yantosca - Initial version
-!  05 Jul 2018 - H.P. Lin    - Add missing KppSpcId
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6600,19 +6586,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SpcData_To_JSON( am_I_Root, SpcData, RC )
-
+  SUBROUTINE SpcData_To_JSON( Input_Opt, SpcData, RC )
+!
+! !USES:
+!
     USE ErrCode_Mod
-    USE Species_Mod, ONLY : Species, SpcPtr
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Species_Mod,   ONLY : Species, SpcPtr
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,      INTENT(IN)  :: am_I_Root    ! Are we on the root CPU
-    TYPE(SpcPtr), POINTER     :: SpcData(:)   ! GEOS-Chem Species Database
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
+    TYPE(SpcPtr),   POINTER     :: SpcData(:)   ! GEOS-Chem Species Database
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,      INTENT(OUT) :: RC           ! Success or failure
+    INTEGER,        INTENT(OUT) :: RC           ! Success or failure
 !
 ! !REMARKS:
 !  This routine can be used to generate JSON output for use with Python
@@ -6627,6 +6616,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Feb 2019 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

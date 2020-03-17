@@ -357,7 +357,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE cIDList_Create( am_I_Root, HcoState, List, RC )
+  SUBROUTINE cIDList_Create( HcoState, List, RC )
 !
 ! !USES:
 !
@@ -365,7 +365,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root
     TYPE(HCO_State), POINTER       :: HcoState
     TYPE(ListCont),  POINTER       :: List
     INTEGER,         INTENT(INOUT) :: RC
@@ -528,7 +527,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Pnt2DataCont( am_I_Root, HcoState, cID, Dct, RC )
+  SUBROUTINE Pnt2DataCont( HcoState, cID, Dct, RC )
 !
 ! !USES:
 !
@@ -536,7 +535,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)     :: am_I_Root
     TYPE(HCO_State), POINTER       :: HcoState
     INTEGER,        INTENT(IN)     :: cID
     TYPE(DataCont), POINTER        :: Dct

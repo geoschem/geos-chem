@@ -31,7 +31,7 @@
 # F90, LD, LINK_NC are included from "Makefile_header.mk"
 #
 # !REVISION HISTORY:
-#  See the Git history with the gitk browser!
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

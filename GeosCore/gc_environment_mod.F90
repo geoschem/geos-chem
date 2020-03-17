@@ -49,7 +49,7 @@ MODULE GC_Environment_Mod
 !
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Created module file
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -69,7 +69,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Allocate_All( am_I_Root,       Input_Opt,       &
+  SUBROUTINE GC_Allocate_All( Input_Opt,                        &
                               State_Grid,      RC,              &
                               value_I_LO,      value_J_LO,      &
                               value_I_HI,      value_J_HI,      &
@@ -85,7 +85,6 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod
     USE State_Grid_Mod,     ONLY : GrdState
-    USE VDIFF_PRE_Mod,      ONLY : Init_Vdiff_Pre
 #ifdef BPCH_DIAG
     USE CMN_DIAG_MOD,       ONLY : Init_CMN_DIAG
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
@@ -95,7 +94,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
     TYPE(GrdState), INTENT(IN)    :: State_Grid       ! Grid State object
     INTEGER,        OPTIONAL      :: value_I_LO       ! Min local lon index
     INTEGER,        OPTIONAL      :: value_J_LO       ! Min local lat index
@@ -123,7 +121,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,7 +146,7 @@ CONTAINS
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
     ! Set dimensions in CMN_SIZE
-    CALL Init_CMN_SIZE( am_I_Root, Input_Opt, RC )
+    CALL Init_CMN_SIZE( Input_Opt, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -157,18 +155,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Initialize vdiff_pre_mod.F90
-    CALL Init_VDIFF_PRE( am_I_Root, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_Vdiff_Pre"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Initialize CMN_FJX_mod.F
-    CALL Init_CMN_FJX( am_I_Root, Input_Opt, State_Grid, RC )
+    ! Initialize CMN_FJX_mod.F90
+    CALL Init_CMN_FJX( Input_Opt, State_Grid, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -182,8 +170,8 @@ CONTAINS
     ! THESE ROUTINES ARE ONLY USED WHEN COMPILING GEOS-CHEM w/ BPCH_DIAG=y
     !=======================================================================
 
-    ! Set dimensions in CMN_DEP_mod.F and allocate arrays
-    CALL Init_CMN_DIAG( am_I_Root, State_Grid, RC )
+    ! Set dimensions in CMN_DEP_mod.F90 and allocate arrays
+    CALL Init_CMN_DIAG( Input_Opt, State_Grid, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -192,8 +180,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Initialize CMN_O3_mod.F
-    CALL Init_CMN_O3( am_I_Root, State_Grid, RC )
+    ! Initialize CMN_O3_mod.F90
+    CALL Init_CMN_O3( Input_Opt, State_Grid, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -219,8 +207,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_StateObj( am_I_Root,  Diag_List,  Input_Opt, State_Chm, &
-                               State_Diag, State_Grid, State_Met, RC         )
+  SUBROUTINE GC_Init_StateObj( Diag_List,  Input_Opt,  State_Chm, &
+                               State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -235,7 +223,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -255,7 +242,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,8 +260,7 @@ CONTAINS
     !=======================================================================
     ! Initialize the Chemistry State object
     !=======================================================================
-    CALL Init_State_Chm(  am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
-                          Input_Opt  = Input_Opt,   &  ! Input Options
+    CALL Init_State_Chm(  Input_Opt  = Input_Opt,   &  ! Input Options
                           State_Chm  = State_Chm,   &  ! Chemistry State
                           State_Grid = State_Grid,  &  ! Grid State
                           RC         = RC          )   ! Success or failure
@@ -289,8 +275,7 @@ CONTAINS
     !=======================================================================
     ! Initialize the Diagnostics State object
     !=======================================================================
-    CALL Init_State_Diag( am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
-                          Input_Opt  = Input_Opt,   &  ! Input Options
+    CALL Init_State_Diag( Input_Opt  = Input_Opt,   &  ! Input Options
                           State_Chm  = State_Chm,   &  ! Chemistry State
                           State_Grid = State_Grid,  &  ! Grid State
                           Diag_List  = Diag_List,   &  ! Diagnostic list obj
@@ -307,8 +292,7 @@ CONTAINS
     !=======================================================================
     ! Initialize the Meteorology State object
     !=======================================================================
-    CALL Init_State_Met( am_I_Root   = am_I_Root,   &  ! Root CPU (T/F?)
-                         Input_Opt   = Input_Opt,   &  ! Input Options
+    CALL Init_State_Met( Input_Opt   = Input_Opt,   &  ! Input Options
                          State_Grid  = State_Grid,  &  ! Grid State
                          State_Met   = State_Met,   &  ! Meteorology State
                          RC          = RC          )   ! Success or failure?
@@ -335,7 +319,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+  SUBROUTINE GC_Init_Grid( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -349,7 +333,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -372,7 +355,7 @@ CONTAINS
 !                                                                             .
 ! !REVISION HISTORY:
 !  01 Mar 2012 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -396,7 +379,7 @@ CONTAINS
     !=================================================================
 
     ! Allocate State_Grid arrays
-    CALL Allocate_State_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+    CALL Allocate_State_Grid( Input_Opt, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Compute_Grid"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -404,7 +387,7 @@ CONTAINS
     ENDIF
 
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
-    CALL Compute_Grid( am_I_Root, Input_Opt, State_Grid, RC)
+    CALL Compute_Grid( Input_Opt, State_Grid, RC)
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Compute_Grid"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -428,14 +411,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt, &
-                            State_Chm, State_Diag, State_Grid, RC )
+  SUBROUTINE GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm, &
+                            State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE CO2_Mod,            ONLY : Init_CO2
+    USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
@@ -446,6 +430,10 @@ CONTAINS
     USE Global_CH4_Mod,     ONLY : Init_Global_CH4
     USE Input_Mod,          ONLY : Do_Error_Checks
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
+    USE Mercury_Mod,        ONLY : Init_Mercury
+    USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
+    USE POPs_Mod,           ONLY : Init_POPs
     USE Seasalt_Mod,        ONLY : Init_SeaSalt
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -457,21 +445,15 @@ CONTAINS
     USE Vdiff_Pre_Mod,      ONLY : Set_Vdiff_Values
     USE WetScav_Mod,        ONLY : Init_WetScav
 #ifdef BPCH_DIAG
-    USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE Diag03_Mod,         ONLY : Init_Diag03
     USE Diag51_Mod,         ONLY : Init_Diag51
     USE Diag51b_Mod,        ONLY : Init_Diag51b
     USE Diag53_Mod,         ONLY : Init_Diag53
     USE Gamap_Mod,          ONLY : Do_Gamap
-    USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
-    USE Mercury_Mod,        ONLY : Init_Mercury
-    USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
-    USE POPs_Mod,           ONLY : Init_POPs
 #endif
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(DgnList ), INTENT(IN)    :: Diag_List   ! Diagnostics list object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -493,7 +475,7 @@ CONTAINS
 !                                                                             .
 ! !REVISION HISTORY:
 !  04 Mar 2013 - R. Yantosca - Initial revision
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -509,7 +491,7 @@ CONTAINS
 
     ! Initialize
     RC        = GC_SUCCESS
-    prtDebug  = ( am_I_Root .and. Input_Opt%LPRT )
+    prtDebug  = ( Input_Opt%amIRoot .and. Input_Opt%LPRT )
     ErrMsg    = ''
     ThisLoc   = &
        ' -> at GC_Init_Extra (in module GeosCore/gc_environment_mod.F90)'
@@ -520,7 +502,7 @@ CONTAINS
 
     ! Make sure various input options are consistent with the
     ! species that are defined for the simulation
-    CALL Do_Error_Checks( am_I_Root, Input_Opt, RC )
+    CALL Do_Error_Checks( Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Do_Error_Checks"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -533,8 +515,7 @@ CONTAINS
     IF ( Input_Opt%LDRYD ) THEN
 
        ! Setup for dry deposition
-       CALL Init_DryDep( am_I_Root,  Input_Opt,  State_Chm,                  &
-                         State_Diag, State_Grid, RC                         )
+       CALL Init_DryDep( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Drydep"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -571,8 +552,7 @@ CONTAINS
     IF ( Input_Opt%LCONV   .or.                                              &
          Input_Opt%LWETD   .or.                                              &
          Input_Opt%LCHEM ) THEN
-       CALL Init_WetScav( am_I_Root,  Input_Opt, State_Chm,                  &
-                          State_Diag, State_Grid, RC                        )
+       CALL Init_WetScav( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Wetscav"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -586,11 +566,10 @@ CONTAINS
 
     !-----------------------------------------------------------------
     ! Call SET_VDIFF_VALUES so that we can pass several values from
-    ! Input_Opt to the vdiff_mod.F90.  This replaces the functionality
-    ! of logical_mod.F and tracer_mod.F..  This has to be called
+    ! Input_Opt to the vdiff_mod.F90. This has to be called
     ! after the input.geos file has been read from disk.
     !-----------------------------------------------------------------
-    CALL Set_Vdiff_Values( am_I_Root, Input_Opt, State_Chm, RC )
+    CALL Set_Vdiff_Values( Input_Opt, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Set_Vdiff_Values"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -600,7 +579,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
     !-----------------------------------------------------------------
-    CALL Init_Get_Ndep( am_I_Root, Input_Opt, State_Chm, State_Diag, RC  )
+    CALL Init_Get_Ndep( Input_Opt, State_Chm, State_Diag, RC  )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_Get_Ndep"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -608,11 +587,10 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Initialize "carbon_mod.F"
+    ! Initialize "carbon_mod.F90"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LCARB ) THEN
-       CALL Init_Carbon( am_I_Root,  Input_Opt,  State_Chm,                  &
-                         State_Diag, State_Grid, RC                         )
+       CALL Init_Carbon( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in ""!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -621,11 +599,10 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Initialize "dust_mod.F"
+    ! Initialize "dust_mod.F90"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LDUST ) then
-       CALL Init_Dust( am_I_Root,  Input_Opt,  State_Chm,                    &
-                       State_Diag, State_Grid, RC                           )
+       CALL Init_Dust( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Dust"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -634,11 +611,10 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Initialize "seasalt_mod.F
+    ! Initialize "seasalt_mod.F90"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LSSALT ) THEN
-       CALL Init_Seasalt( am_I_Root,  Input_Opt,  State_Chm,                 &
-                          State_Diag, State_Grid, RC                        )
+       CALL Init_Seasalt( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Seasalt"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -647,11 +623,10 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Initialize "sulfate_mod.F"
+    ! Initialize "sulfate_mod.F90"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LSULF ) THEN
-       CALL Init_Sulfate( am_I_Root,  Input_Opt,  State_Chm,                 &
-                          State_Diag, State_Grid, RC                        )
+       CALL Init_Sulfate( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Sulfate"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -660,12 +635,11 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Initialize "aerosol_mod.F"
+    ! Initialize "aerosol_mod.F90"
     !-----------------------------------------------------------------
-    IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or.                        &
+    IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or. &
          Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
-       CALL Init_Aerosol( am_I_Root,  Input_Opt,  State_Chm,                 &
-                          State_Diag, State_Grid, RC                        )
+       CALL Init_Aerosol( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Aerosol"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -674,10 +648,9 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Initialize "toms_mod.F"
+    ! Initialize "toms_mod.F90"
     !-----------------------------------------------------------------
-    CALL Init_Toms( am_I_Root,  Input_Opt,  State_Chm,                       &
-                    State_Diag, State_Grid, RC                              )
+    CALL Init_Toms( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_Toms"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -692,7 +665,7 @@ CONTAINS
     ! CO2
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL Init_CO2( am_I_Root, Input_Opt, State_Grid, RC )
+       CALL Init_CO2( Input_Opt, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_CO2"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -704,8 +677,7 @@ CONTAINS
     ! CH4
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-       CALL Init_Global_Ch4( am_I_Root,  Input_Opt, State_Diag,              &
-                             State_Grid, RC                                 )
+       CALL Init_Global_Ch4( Input_Opt, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Global_CH4"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -717,8 +689,7 @@ CONTAINS
     ! Tagged CO
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-       CALL Init_Tagged_CO( am_I_Root,  Input_Opt, State_Diag,               &
-                            State_Grid, RC                                  )
+       CALL Init_Tagged_CO( Input_Opt, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Tagged_CO"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -730,7 +701,7 @@ CONTAINS
     ! Tagged O3
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-       CALL Init_Tagged_O3( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
+       CALL Init_Tagged_O3( Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Tagged_O3"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -739,13 +710,7 @@ CONTAINS
     ENDIF
 
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-    CALL Init_Diag_OH( am_I_Root, Input_Opt, State_Grid, RC )
-
-#ifdef BPCH_DIAG
-    !=================================================================
-    ! These routines are only needed when compiling GEOS-Chem
-    ! with BPCH_DIAG=y. (bmy, 10/4/19)
-    !=================================================================
+    CALL Init_Diag_OH( Input_Opt, State_Grid, RC )
 
 #ifdef TOMAS
     !-----------------------------------------------------------------
@@ -753,8 +718,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Initialize the TOMAS microphysics package, if necessary
-    CALL Init_Tomas_Microphysics( am_I_Root,  Input_Opt, State_Chm,          &
-                                  State_Grid, RC                            )
+    CALL Init_Tomas_Microphysics( Input_Opt, State_Chm, State_Grid, RC )
 #endif
 
     !-----------------------------------------------------------------
@@ -763,7 +727,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Main mercury module
-       CALL Init_Mercury( am_I_Root, Input_Opt, State_Chm, State_Grid, RC )
+       CALL Init_Mercury( Input_Opt, State_Chm, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -771,7 +735,7 @@ CONTAINS
        ENDIF
 
        ! Land mercury module
-       CALL Init_Land_Mercury( am_I_Root, Input_Opt, State_Chm, RC )
+       CALL Init_Land_Mercury( Input_Opt, State_Chm, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Land_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -779,8 +743,7 @@ CONTAINS
        ENDIF
 
        ! Mercury deposition module
-       CALL Init_Depo_Mercury( am_I_Root,  Input_Opt, State_Chm, &
-                               State_Grid, RC )
+       CALL Init_Depo_Mercury( Input_Opt, State_Chm, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Depo_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -788,8 +751,7 @@ CONTAINS
        ENDIF
 
        ! Ocean mercury module
-       CALL Init_Ocean_Mercury( am_I_Root,  Input_Opt, State_Chm, &
-                                State_Grid, RC )
+       CALL Init_Ocean_Mercury( Input_Opt, State_Chm, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Ocean_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -801,7 +763,7 @@ CONTAINS
     ! POPs
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-       CALL Init_POPs( am_I_Root, Input_Opt, State_Chm, State_Grid, RC )
+       CALL Init_POPs( Input_Opt, State_Chm, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_POPs"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -809,22 +771,28 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifdef BPCH_DIAG
+    !=================================================================
+    ! These routines are only needed when compiling GEOS-Chem
+    ! with BPCH_DIAG=y. (bmy, 10/4/19)
+    !=================================================================
+
     !-----------------------------------------------------------------
     ! Diagnostics
     !-----------------------------------------------------------------
 
     ! Allocate and initialize variables
-    CALL Ndxx_Setup( am_I_Root, Input_Opt, State_Chm, State_Grid, RC )
+    CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
 
     ! Initialize the Hg diagnostics (bpch)
     CALL Init_Diag03( State_Chm, State_Grid )
 
     ! Satellite timeseries (bpch)
     IF ( Input_Opt%DO_ND51 ) THEN
-       CALL Init_Diag51 ( am_I_Root, Input_Opt, State_Grid, RC )
+       CALL Init_Diag51 ( Input_Opt, State_Grid, RC )
     ENDIF
     IF ( Input_Opt%DO_ND51b ) THEN
-       CALL Init_Diag51b( am_I_Root, Input_Opt, State_Grid, RC )
+       CALL Init_Diag51b( Input_Opt, State_Grid, RC )
     ENDIF
 
     ! POPs (bpch)
@@ -840,7 +808,7 @@ CONTAINS
     ! ALSO NOTE: Eventually we will remove the ESMF_ C-preprocessor
     ! but we have to keep it for the time being (bmy, 4/11/18)
     !--------------------------------------------------------------------
-    CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
+    CALL Do_Gamap( Input_Opt, State_Chm, RC )
 #endif
 #endif
 
@@ -861,11 +829,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Init_Regridding( am_I_Root, Input_Opt, State_Grid, RC )
+  SUBROUTINE GC_Init_Regridding( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE GC_Grid_Mod
@@ -874,7 +841,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
@@ -890,7 +856,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Jul 2014 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -955,8 +921,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_TOMAS_MICROPHYSICS( am_I_Root, Input_Opt,      &
-                                      State_Chm, State_Grid, RC )
+  SUBROUTINE INIT_TOMAS_MICROPHYSICS( Input_Opt, State_Chm, State_Grid, RC )
 !
 ! !USES:
 !
@@ -969,7 +934,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
@@ -997,7 +961,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1017,8 +981,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = 'Error reading the "input.geos" file!'
-    ThisLoc = &
-       ' -> at Init_Tomas_Microphysics (in GeosCore/input_mod.F)'
+    ThisLoc = ' -> at Init_Tomas_Microphysics (in GeosCore/gc_environment_mod.F90)'
 
     ! Halt with error if we are trying to run TOMAS in a simulation
     ! that does not have any defined aerosols
@@ -1076,7 +1039,7 @@ CONTAINS
     !=================================================================
     ! All error checks are satisfied, so initialize TOMAS
     !=================================================================
-    CALL INIT_TOMAS( am_I_Root, Input_Opt, State_Chm, State_Grid, RC )
+    CALL INIT_TOMAS( Input_Opt, State_Chm, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_TOMAS"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

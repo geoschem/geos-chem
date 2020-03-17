@@ -55,6 +55,9 @@ MODULE HCO_State_Mod
   TYPE, PUBLIC :: HCO_State
 
      !%%%%% Species information %%%%%
+     LOGICAL                     :: amIRoot    ! Is this the root CPU?
+
+     !%%%%% Species information %%%%%
      INTEGER                     :: nSpc       ! # of species
      TYPE(HcoSpc),       POINTER :: Spc(:)     ! list of species
 
@@ -156,7 +159,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoState_Init( am_I_Root, HcoState, HcoConfig, nSpecies, RC )
+  SUBROUTINE HcoState_Init( HcoState, HcoConfig, nSpecies, RC )
 !
 ! !USES:
 !
@@ -165,7 +168,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root ! root CPU?
     INTEGER,          INTENT(IN)    :: nSpecies  ! # HEMCO species
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -210,6 +212,9 @@ CONTAINS
        RETURN
     ENDIF
     ALLOCATE ( HcoState )
+
+    ! Is this the Root CPU?
+    HcoState%amIRoot = HcoConfig%amIRoot
 
     ! Initialize vector w/ species information
     HcoState%nSpc = nSpecies
@@ -289,7 +294,7 @@ CONTAINS
 
     ! Initialize vertical grid
     HcoState%Grid%ZGRID => NULL()
-    CALL HCO_VertGrid_Init( am_I_Root, HcoState%Grid%ZGRID, RC )
+    CALL HCO_VertGrid_Init( HcoState%Grid%ZGRID, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=====================================================================
