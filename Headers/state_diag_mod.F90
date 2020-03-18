@@ -23,6 +23,7 @@ MODULE State_Diag_Mod
 
   USE CMN_Size_Mod,     ONLY : NDUST
   USE DiagList_Mod
+  USE TaggedDiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
   USE Registry_Mod
@@ -698,8 +699,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm, &
-                              State_Grid, Diag_List, State_Diag, RC )
+  SUBROUTINE Init_State_Diag( Input_Opt, State_Chm,       State_Grid,        &
+                              Diag_List, TaggedDiag_List, State_Diag, RC    )
 !
 ! !USES:
 !
@@ -708,18 +709,19 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
-    TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt        ! Input otions object
+    TYPE(ChmState),      INTENT(IN)    :: State_Chm        ! Chemistry state
+    TYPE(GrdState),      INTENT(IN)    :: State_Grid       ! Grid state object
+    TYPE(DgnList),       INTENT(IN)    :: Diag_List        ! Diagnostics list
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostic State object
+    TYPE(DgnState),      INTENT(INOUT) :: State_Diag       ! Diagnostic State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Return code
+    INTEGER,             INTENT(OUT)   :: RC               ! Return code
 !
 ! !REMARKS:
 !  For consistency, maybe this should be moved to a different module.
@@ -734,17 +736,19 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
-    CHARACTER(LEN=5  )     :: TmpWL
-    CHARACTER(LEN=10 )     :: TmpHt
-    CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
-    CHARACTER(LEN=255)     :: arrayID,  diagID
+    CHARACTER(LEN=5  ) :: TmpWL
+    CHARACTER(LEN=10 ) :: TmpHt
+    CHARACTER(LEN=255) :: ErrMsg,    ThisLoc
+    CHARACTER(LEN=255) :: arrayID,   diagID
 
     ! Scalars
-    INTEGER                :: N,        IM,      JM,      LM
-    INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
-    INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
-    INTEGER                :: nHygGrth, nRad,    nDryAlt
-    LOGICAL                :: EOF,      Found,   Found2,  am_I_Root
+    INTEGER            :: N,         IM,      JM,      LM
+    INTEGER            :: nSpecies,  nAdvect, nDryDep, nKppSpc
+    INTEGER            :: nWetDep,   nPhotol, nProd,   nLoss
+    INTEGER            :: nHygGrth,  nRad,    nDryAlt
+    LOGICAL            :: am_I_Root, EOF,     Found,   Found2
+
+    integer :: actualsize
 
     !=======================================================================
     ! Initialize
@@ -757,10 +761,8 @@ CONTAINS
     Found     = .FALSE.
     TmpWL     = ''
     TmpHt     = AltAboveSfc
-
-    ! Save shadow variables from Input_Opt
-    Is_UCX    = Input_Opt%LUCX
     am_I_Root = Input_Opt%amIRoot
+    Is_UCX    = Input_Opt%LUCX
 
     ! Shorten grid parameters for readability
     IM        = State_Grid%NX ! # latitudes
@@ -1367,7 +1369,11 @@ CONTAINS
     diagID  = 'SpeciesRst'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       IF ( Input_Opt%amIRoot ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+
+       CALL Get_TagDiagInfo( am_I_Root, TaggedDiag_List, diagId,             &
+                             nSpecies,  State_Chm,       actualSize, RC     )
+
        ALLOCATE( State_Diag%SpeciesRst( IM, JM, LM, nSpecies ), STAT=RC )
        CALL GC_CheckVar( arrayId, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1996,6 +2002,13 @@ CONTAINS
     diagID  = 'AdvFluxVert'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
+       !Call Query_TaggedDiagList
+       
+       CALL Get_TagDiagInfo( am_I_Root, TaggedDiag_List, diagId,             &
+                             nSpecies,  State_Chm,       actualSize, RC     )
+
+       STOP
+
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
@@ -11452,4 +11465,85 @@ CONTAINS
 
   END SUBROUTINE Init_RRTMG_Indices
 !EOC
+  SUBROUTINE Get_TagDiagInfo( am_I_Root, TaggedDiagList, name, maxSize,       &
+                              State_Chm, actualSize,     RC )
+    
+
+    LOGICAL,             INTENT(IN)  :: am_I_Root
+    TYPE(TaggedDgnList), INTENT(IN)  :: TaggedDiagList
+    CHARACTER(LEN=*),    INTENT(IN)  :: name
+    INTEGER,             INTENT(IN)  :: maxSize
+
+    
+    TYPE(ChmState),      INTENT(IN)  :: State_Chm
+
+    INTEGER,             INTENT(OUT) :: actualSize
+    INTEGER,             INTENT(OUT) :: RC
+
+    LOGICAL            :: found
+    LOGICAL            :: isWildCard
+    INTEGER            :: numWildCards
+    INTEGER            :: nTags
+    INTEGER            :: numTags
+    INTEGER            :: N
+    TYPE(DgnTagList)   :: wildCardList
+    TYPE(DgnTagList)   :: tagList
+    CHARACTER(LEN=255) :: tagName
+    CHARACTER(LEN=255) :: tagId
+
+    TYPE(DgnTagItem), POINTER :: current
+
+    CALL Query_TaggedDiagList( am_I_Root      = am_I_Root,                   &
+                               TaggedDiagList = TaggedDiagList,              &
+                               name           = name,                        &
+                               found          = found,                       &
+                               isWildCard     = isWildCard,                  &
+                               numWildCards   = numWildCards,                &
+                               numTags        = numTags,                     &
+                               wildCardList   = wildCardList,                &
+                               tagList        = tagList,                     &
+                               RC             = RC                          )
+    IF ( RC /= GC_SUCCESS ) THEN
+    ENDIF
+    
+    print*, '### name       : ', TRIM(name)
+    print*, '### found      : ', found
+    print*, '### isWildCard : ', isWildCard
+    print*, '### numWildCard: ', numWildCards
+    print*, '### numTags    : ', numTags
+
+    IF ( .not. isWildCard ) THEN
+
+       print*, '%%% wildcardlist:'
+       call print_taglist(am_I_Root, tagList, RC)
+
+       current => TagList%head
+       N = 0
+
+       DO WHILE ( ASSOCIATED( current ) )
+          tagId = ADJUSTL(ADJUSTR(current%name))
+          N = N + 1
+          print*, '### tagID: ', tagId
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found,              & 
+                            RC,        N,     tagName,   nTags              )
+          print*, '### tagname: ', tagname
+          current => current%next
+       ENDDO
+       current => NULL()
+       actualsize = N
+       print*, '### actualSize  : ', actualSize
+
+!    ELSE
+!
+!       print*, '%%% wildcardlist:'
+!       call print_taglist(am_I_Root, wildcardlist, RC)
+!       actualSize = numTags
+!       print*, '### actualSize  : ', actualSize
+
+    ENDIF
+
+!    print*, '### Ntags      : ', ntags
+    END SUBROUTINE Get_TagDiagInfo
+
+
 END MODULE State_Diag_Mod

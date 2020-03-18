@@ -28,6 +28,7 @@ MODULE TaggedDiagList_Mod
   PUBLIC  :: Query_TaggedDiagList
   PUBLIC  :: Query_Tag_in_TagList
   PUBLIC  :: Cleanup_TaggedDiagList
+  PUBLIC  :: Print_TagList
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -36,7 +37,6 @@ MODULE TaggedDiagList_Mod
   PRIVATE :: Update_TaggedDiagList
   PRIVATE :: Init_TagItem
   PRIVATE :: InsertBeginning_TagList
-  PRIVATE :: Print_TagList
   PRIVATE :: Cleanup_TagList
 !
 ! !PUBLIC DATA TYPES:
@@ -46,6 +46,7 @@ MODULE TaggedDiagList_Mod
   !=========================================================================
   TYPE, PUBLIC :: DgnTagItem
      CHARACTER(LEN=63)         :: name
+     INTEGER                   :: index
      TYPE(DgnTagItem), POINTER :: next
   END TYPE DgnTagItem
 

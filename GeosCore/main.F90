@@ -536,10 +536,17 @@ PROGRAM GEOS_Chem
   !-----------------------------------------------------------------
 
   ! Initialize State_Met, State_Chm, and State_Diag objects
-  CALL GC_Init_StateObj( Diag_List,  Input_Opt,  State_Chm, &
-                         State_Diag, State_Grid, State_Met, RC )
+  CALL GC_Init_StateObj( am_I_Root       = am_I_Root,                       &
+                         Diag_List       = Diag_List,                       &
+                         TaggedDiag_List = TaggedDiag_List,                 &
+                         Input_Opt       = Input_Opt,                       &
+                         State_Chm       = State_Chm,                       &
+                         State_Diag      = State_Diag,                      &
+                         State_Grid      = State_Grid,                      &
+                         State_Met       = State_Met,                       &
+                         RC              = RC                              )
   IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "GC_Init_All!"!'
+     ErrMsg = 'Error encountered in "GC_Init_StateObj!"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
 
