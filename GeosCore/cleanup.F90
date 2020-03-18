@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
+SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 !
 ! !USES:
 !
@@ -31,6 +31,7 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
   USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
   USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
   USE History_Mod,             ONLY : History_Cleanup
+  USE Input_Opt_Mod,           ONLY : OptInput
   USE ISORROPIAII_MOD,         ONLY : CLEANUP_ISORROPIAII
   USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
   USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
@@ -76,7 +77,7 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
 !
 ! !INPUT PARAMETERS:
 !
-  LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+  TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input options
   TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid state object
   LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error?
 
@@ -107,7 +108,7 @@ SUBROUTINE CLEANUP( am_I_Root, State_Grid, ERROR, RC )
   ThisLoc = ' -> at CLEANUP (in module GeosCore/cleanup.F)'
 
   ! Echo info
-  IF ( am_I_Root ) THEN
+  IF ( Input_Opt%amIRoot ) THEN
      WRITE( 6, 100 )
   ENDIF
 100 FORMAT( '     - CLEANUP: deallocating arrays now...' )

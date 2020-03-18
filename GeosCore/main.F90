@@ -2203,14 +2203,6 @@ PROGRAM GEOS_Chem
   !%%% NOTE: Call HISTORY_CLEANUP from cleanup.F.  This will
   !%%% close all netCDF files upon both normal or abnormal exits.
 
-  ! Deallocate fields of the Input Options object
-  CALL Cleanup_Input_Opt( Input_Opt, RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_Input_Opt"!'
-     CALL Error_Stop( ErrMsg, ThisLoc )
-  ENDIF
-  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup Input_Opt' )
-
   ! Deallocate fields of the Chemistry State object
   CALL Cleanup_State_Chm( State_Chm, RC )
   IF ( RC /= GC_SUCCESS ) THEN
@@ -2236,11 +2228,20 @@ PROGRAM GEOS_Chem
   IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Met' )
 
   ! Deallocate dynamic module arrays
-  CALL CleanUp( State_Grid, .FALSE., RC )
+  CALL CleanUp( Input_Opt, State_Grid, .FALSE., RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
   ENDIF
+  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup modules' )
+
+  ! Deallocate fields of the Input Options object
+  CALL Cleanup_Input_Opt( Input_Opt, RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered in "Cleanup_Input_Opt"!'
+     CALL Error_Stop( ErrMsg, ThisLoc )
+  ENDIF
+  IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup Input_Opt' )
 
   ! Deallocate fields of the Grid State object
   CALL Cleanup_State_Grid( State_Grid, RC )
