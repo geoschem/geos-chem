@@ -4337,6 +4337,7 @@
       id_PAN    = IND_('PAN'   )
       id_ISOPND = IND_('ISOPND')
 
+#if defined ( MODEL_WRF )
       ! If the dry deposition module has already been initialized,
       ! the arrays do not need to be allocated again, as they are only
       ! dependent on the chemistry configuration (State_Chm%nDryDep)
@@ -4344,7 +4345,8 @@
       ! This is necessary for integrating GEOS-Chem with a variable
       ! domain model like WRF-GC, where multiple instances of GEOS-Chem
       ! run in the same CPU. (hplin, 2/16/2019)
-      !GanLuoIF ( ALLOCATED( A_DEN ) ) RETURN
+      IF ( ALLOCATED( A_DEN ) ) RETURN
+#endif
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species
