@@ -2121,7 +2121,7 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
     ! Pass Monin Obukhov diagnostics
     IF ( ASSOCIATED ( State_Diag%MoninObukhov ) ) THEN
        State_Diag%MoninObukhov(:,:) = OBK(:,:)
@@ -4097,6 +4097,7 @@ CONTAINS
     id_PAN    = IND_('PAN'   )
     id_IHN1   = IND_('IHN1'  )
 
+#ifdef MODEL_WRF
     ! If the dry deposition module has already been initialized,
     ! the arrays do not need to be allocated again, as they are only
     ! dependent on the chemistry configuration (State_Chm%nDryDep)
@@ -4104,7 +4105,8 @@ CONTAINS
     ! This is necessary for integrating GEOS-Chem with a variable
     ! domain model like WRF-GC, where multiple instances of GEOS-Chem
     ! run in the same CPU. (hplin, 2/16/2019)
-    !GanLuoIF ( ALLOCATED( A_DEN ) ) RETURN
+    IF ( ALLOCATED( A_DEN ) ) RETURN
+#endif
 
     !===================================================================
     ! Arrays that hold information about dry-depositing species
