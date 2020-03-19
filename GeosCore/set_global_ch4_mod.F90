@@ -109,6 +109,7 @@ CONTAINS
     INTEGER             :: I, J, L, PBL_TOP
     CHARACTER(LEN=63)   :: OrigUnit
     REAL(fp)            :: CH4
+    LOGICAL             :: FOUND
 #if defined( MODEL_GEOS )
     INTEGER             :: DT
     REAL(fp)            :: dCH4, MWCH4
@@ -142,24 +143,18 @@ CONTAINS
        ! Get species ID
        id_CH4 = Ind_( 'CH4' )
 
-       ! Get pointer to surface CH4 data
-       IF ( HcoState%Clock%ThisEYear > 1978 ) THEN
-           ! Use the NOAA spatially resolved data where available
-          CALL HCO_GetPtr( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4! Make sure it is turned on in HEMCO_Config.rc.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ELSE
+       ! Use the NOAA spatially resolved data where available
+       CALL HCO_GetPtr( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC, FOUND=FOUND )
+       IF (.NOT. FOUND ) THEN
+          FOUND = .TRUE.
           ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
           ! https://doi.org/10.5194/gmd-10-2057-2017a
-          CALL HCO_GetPtr( HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to CMIP6_Sfc_CH4! Make sure it is turned on in HEMCO_Config.rc.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
+          CALL HCO_GetPtr( HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC, FOUND=FOUND )
+       ENDIF
+       IF (.NOT. FOUND ) THEN
+          ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4 or CMIP6_Sfc_CH4 in SET_CH4! Make sure the data source that corresponds to your emissions year is turned on in HEMCO_Config.rc (NOAA GMD for years since 1978; else CMIP6).'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
        ! Reset first-time flag
