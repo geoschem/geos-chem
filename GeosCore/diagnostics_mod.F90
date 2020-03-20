@@ -389,7 +389,8 @@ CONTAINS
        ELSE
 
           ! Retrieve the units of the diagnostic from the metadata
-          CALL Get_Metadata_State_Diag( Input_Opt, TRIM(DiagMetadataID), &
+          CALL Get_Metadata_State_Diag( Input_Opt%amIRoot,     &
+                                        TRIM(DiagMetadataID),  &
                                         Found, RC, Units=Units )
 
           ! Allow for alternate format of units
