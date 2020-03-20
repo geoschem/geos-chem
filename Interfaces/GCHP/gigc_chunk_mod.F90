@@ -187,7 +187,7 @@ CONTAINS
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Allocate_All')
 
     ! Set grid based on passed mid-points
-    CALL SetGridFromCtr( State_Grid, lonCtr, latCtr, RC )
+    CALL SetGridFromCtr( Input_Opt, State_Grid, lonCtr, latCtr, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error caling')
 
     ! Update Input_Opt with timing fields
@@ -212,7 +212,7 @@ CONTAINS
                         Diagnos    = Input_Opt%TS_DIAG         )
 
     ! Initialize derived-type objects for met, chem, and diag
-    CALL GC_Init_StateObj( Input_Opt%AmIRoot, HistoryConfig%DiagList, Input_Opt, &
+    CALL GC_Init_StateObj( HistoryConfig%DiagList, Input_Opt, &
                            State_Chm, State_Diag, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_StateObj')
 
@@ -232,7 +232,7 @@ CONTAINS
     CALL Init_Pressure( Input_Opt, State_Grid, RC )
 
     ! Initialize the PBL mixing module
-    CALL INIT_PBL_MIX( State_Grid, RC )
+    CALL INIT_PBL_MIX( Input_Opt, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_PBL_MIX')
 
     ! Initialize chemistry mechanism
@@ -862,7 +862,8 @@ CONTAINS
 
        ! Calculate TOMS O3 overhead. For now, always use it from the
        ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
-       CALL COMPUTE_OVERHEAD_O3( State_Grid, DAY, .TRUE., State_Met%TO3 )
+       CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, DAY, .TRUE., &
+                                 State_Met%TO3 )
 
 #if !defined( MODEL_GEOS )
        ! Set H2O to species value if H2O is advected

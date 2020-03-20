@@ -816,7 +816,7 @@ CONtAINS
     !=======================================================================
     ! Look up a variable; Return metadata and/or a pointer to the data
     !=======================================================================
-    CALL Registry_Lookup( Input_Opt    = Input_Opt,                          &
+    CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,                  &
                           Registry     = Registry,                           &
                           State        = State,                              &
                           Variable     = Variable,                           &

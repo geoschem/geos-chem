@@ -2365,7 +2365,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Metadata_State_Chm( Input_Opt,  metadataID, Found,      &
+  SUBROUTINE Get_Metadata_State_Chm( am_I_Root,  metadataID, Found,      &
                                      RC,         Desc,       Units,      &
                                      PerSpecies, Rank,       Type,       &
                                      VLoc )
@@ -2373,12 +2373,11 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod,        ONLY : To_UpperCase
-    USE Input_Opt_Mod,      ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt   ! Input Options object
+    LOGICAL,             INTENT(IN)  :: am_I_Root
     CHARACTER(LEN=*),    INTENT(IN)  :: metadataID  ! State_Chm field name
 !
 ! !OUTPUT PARAMETERS:
@@ -3144,7 +3143,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( Input_Opt, metadataID,  Found,  RC,         &
+    CALL Get_Metadata_State_Chm( Input_Opt%amIRoot, metadataID,  Found,  RC, &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
 
@@ -3269,7 +3268,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( Input_Opt, metadataID,  Found,  RC,         &
+    CALL Get_Metadata_State_Chm( Input_Opt%amIRoot, metadataID,  Found,  RC, &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
 
@@ -3392,7 +3391,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Get metadata
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( Input_Opt, metadataID,  Found,  RC,         &
+    CALL Get_Metadata_State_Chm( Input_Opt%amIRoot, metadataID,  Found,  RC, &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
 
@@ -3562,7 +3561,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Initialize
     !-----------------------------------------------------------------------
-    CALL Get_Metadata_State_Chm( Input_Opt, metadataID,  Found,  RC,         &
+    CALL Get_Metadata_State_Chm( Input_Opt%amIRoot, metadataID,  Found,  RC, &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc, perSpecies=perSpecies )
 

@@ -494,7 +494,7 @@ CONTAINS
 
     IF ( SHADOW_Input_Opt%useTimers ) THEN
        CALL Timer_StopAll( RC )
-       CALL Timer_PrintAll( RC )
+       CALL Timer_PrintAll( SHADOW_Input_Opt, RC )
     ENDIF
 
 #else

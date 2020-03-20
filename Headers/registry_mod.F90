@@ -441,7 +441,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_Lookup( Input_Opt,    Registry,  State,                &
+  SUBROUTINE Registry_Lookup( am_I_Root,    Registry,  State,                &
                               Variable,     RC,        Description,          &
                               Dimensions,   KindVal,   MemoryInKb,           &
                               OnLevelEdges, Rank,      Units,                &
@@ -456,11 +456,10 @@ CONTAINS
 !
     USE Charpak_Mod,   ONLY : Str2Hash31, To_UpperCase
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN) :: Input_Opt         ! Input Options
+    LOGICAL,           INTENT(IN) :: am_I_Root         ! Root CPU?
     TYPE(MetaRegItem), POINTER    :: Registry          ! Registry obj
     CHARACTER(LEN=*),  INTENT(IN) :: State             ! State name
     CHARACTER(LEN=*),  INTENT(IN) :: Variable          ! Variable name

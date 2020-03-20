@@ -1150,7 +1150,7 @@ CONTAINS
 
              ! This means skipping over all of the fields listed under
              ! this collection until we get to the :: separator
-             CALL Search_CollList( Input_Opt, CollList, CName, Found, RC )
+             CALL Search_CollList( Input_Opt%amIRoot, CollList, CName, Found, RC )
              IF ( .not. Found ) THEN
                 DO
                    Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
@@ -1714,7 +1714,7 @@ CONTAINS
 
              ! Search for this collection in the list of active collections
              ! and skip to the next collection if not found
-             CALL Search_CollList( Input_Opt, CollList, CName, Found, RC )
+             CALL Search_CollList( Input_Opt%amIRoot, CollList, CName, Found, RC )
              IF ( .not. Found ) THEN
                 DO
                    Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
@@ -1976,7 +1976,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Chemistry State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( Input_Opt    = Input_Opt,                       &
+       CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
                              Registry     = State_Chm%Registry,              &
                              State        = State_Chm%State,                 &
                              Variable     = ItemName,                        &
@@ -2017,7 +2017,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Meteorology State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( Input_Opt    = Input_Opt,                       &
+       CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
                              Registry     = State_Met%Registry,              &
                              State        = State_Met%State,                 &
                              Variable     = ItemName,                        &
@@ -2058,7 +2058,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Diagnostic State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( Input_Opt    = Input_Opt,                       &
+       CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
                              Registry     = State_Diag%Registry,             &
                              State        = State_Diag%State,                &
                              Variable     = ItemName,                        &
@@ -3061,7 +3061,7 @@ CONTAINS
     Name = Line(1:Ind-1)
 
     ! Exit if the collection name is not in the list of active collections
-    CALL Search_CollList( Input_Opt, CollList, Name, Found, RC )
+    CALL Search_CollList( Input_Opt%amIRoot, CollList, Name, Found, RC )
     IF ( .not. Found ) RETURN
 
     ! Non-white-space lengths of the collection cname and search pattern

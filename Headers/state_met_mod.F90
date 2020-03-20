@@ -3159,19 +3159,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Metadata_State_Met( Input_Opt, metadataID, Found,  &
+  SUBROUTINE Get_Metadata_State_Met( am_I_Root, metadataID, Found,  &
                                      RC,        Desc,       Units,  &
                                      Rank,      Type,       VLoc )
 !
 ! !USES:
 !
     USE Charpak_Mod,         ONLY: To_UpperCase
-    USE Input_Opt_Mod,       ONLY : OptInput
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt  ! Input Options object
+    LOGICAL,             INTENT(IN)  :: am_I_Root
     CHARACTER(LEN=*),    INTENT(IN)  :: metadataID ! State_Met field ID
 !
 ! !OUTPUT PARAMETERS:
@@ -4009,7 +4008,7 @@ CONTAINS
     !---------------------
     ! Get metadata
     !---------------------
-    CALL Get_Metadata_State_Met( Input_Opt, metadataID,  found, RC,          &
+    CALL Get_Metadata_State_Met( Input_Opt%amIRoot, metadataID,  found, RC,  &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc                       )
 
@@ -4108,7 +4107,7 @@ CONTAINS
     !---------------------
     ! Get metadata
     !---------------------
-    CALL Get_Metadata_State_Met( Input_Opt, metadataID,  found, RC,          &
+    CALL Get_Metadata_State_Met( Input_Opt%amIRoot, metadataID,  found, RC,  &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc )
 
@@ -4211,7 +4210,7 @@ CONTAINS
     !---------------------
     ! Get metadata
     !---------------------
-    CALL Get_Metadata_State_Met( Input_Opt, metadataID,  found, RC,          &
+    CALL Get_Metadata_State_Met( Input_Opt%amIRoot, metadataID,  found, RC,  &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc                       )
 
@@ -4310,7 +4309,7 @@ CONTAINS
     !---------------------
     ! Get metadata
     !---------------------
-    CALL Get_Metadata_State_Met( Input_Opt, metadataID,  found, RC,          &
+    CALL Get_Metadata_State_Met( Input_Opt%amIRoot, metadataID,  found, RC,  &
                                  desc=desc, units=units, rank=rank,          &
                                  type=type, vloc=vloc                       )
 

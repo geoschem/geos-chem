@@ -136,17 +136,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_DiagList ( Input_Opt, historyConfigFile, DiagList, RC )
+  SUBROUTINE Init_DiagList ( am_I_Root, historyConfigFile, DiagList, RC )
 !
 ! !USES:
 !
     USE Charpak_Mod
-    USE Input_Opt_Mod,    ONLY : OptInput
     USE InquireMod,       ONLY : findFreeLun
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),       INTENT(IN)    :: Input_Opt    ! Input Options object
+    LOGICAL,              INTENT(IN)    :: am_I_Root
     CHARACTER(LEN=*),     INTENT(IN)    :: historyConfigFile
 !
 ! !INPUT AND OUTPUT PARAMETERS:
@@ -331,8 +330,8 @@ CONTAINS
 
              ! Add name to collection list if not commented out
              IF ( collname(1:1) /= "#"  ) THEN
-                CALL Init_ColItem( Input_Opt, NewCollItem, collname )
-                CALL InsertBeginning_ColList( Input_Opt, NewCollItem, &
+                CALL Init_ColItem( am_I_Root, NewCollItem, collname )
+                CALL InsertBeginning_ColList( am_I_Root, NewCollItem, &
                                               CollList, RC )
              ENDIF
 
@@ -352,7 +351,7 @@ CONTAINS
              collname = CleanText( Line )
 
           ENDDO
-          CALL Print_ColList( Input_Opt, CollList, RC )
+          CALL Print_ColList( am_I_Root, CollList, RC )
           CYCLE
        ENDIF
 
@@ -366,7 +365,7 @@ CONTAINS
           CALL CStrip( Line, KeepSpaces=.TRUE. )
           CALL StrSplit( Line, ".", SubStrs, N )
           collname = CleanText( SubStrs(1) )
-          CALL Search_CollList( Input_Opt, CollList, collname, Found, RC )
+          CALL Search_CollList( am_I_Root, CollList, collname, Found, RC )
 
           ! Skip this collection if not found in list
           IF ( .NOT. Found ) THEN
@@ -607,7 +606,7 @@ CONTAINS
        IF ( name(1:1) == '#' ) CYCLE
 
        ! Skip if name is already in diag list
-       CALL Search_DiagList( Input_Opt, DiagList, name, Found, RC )
+       CALL Search_DiagList( am_I_Root, DiagList, name, Found, RC )
        IF ( Found ) CYCLE
 
        ! Set GC state
@@ -784,7 +783,8 @@ CONTAINS
        !====================================================================
        ! Create a new DiagItem object
        !====================================================================
-       CALL Init_DiagItem( Input_Opt, NewDiagItem, &
+       CALL Init_DiagItem( am_I_Root,              &
+                           NewDiagItem,            &
                            name=name,              &
                            state=state,            &
                            metadataID=metadataID,  &
@@ -803,7 +803,7 @@ CONTAINS
        !====================================================================
        ! Add new DiagItem to linked list
        !====================================================================
-       CALL InsertBeginning_DiagList( Input_Opt, NewDiagItem, DiagList, RC )
+       CALL InsertBeginning_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDDO
@@ -829,17 +829,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_DiagItem ( Input_Opt,  NewDiagItem, name,       state,     &
+  SUBROUTINE Init_DiagItem ( am_I_Root,  NewDiagItem, name,       state,     &
                              metadataID, registryID,  isWildcard, wildcard,  &
                              isTagged,   tag,         RC  )
 !
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
-!
 ! !INPUT PARAMETERS:
 !
-   TYPE(OptInput),       INTENT(IN) :: Input_Opt    ! Input Options object
+    LOGICAL,             INTENT(IN) :: am_I_Root
     CHARACTER(LEN=*),    OPTIONAL   :: name
     CHARACTER(LEN=*),    OPTIONAL   :: state
     CHARACTER(LEN=*),    OPTIONAL   :: metadataID
@@ -896,15 +892,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_ColItem ( Input_Opt, NewCollItem, cname, RC  )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Init_ColItem ( am_I_Root, NewCollItem, cname, RC  )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input Options object
+    LOGICAL,        INTENT(IN) :: am_I_Root
     TYPE(ColItem),  POINTER    :: NewCollItem
     CHARACTER(LEN=*)           :: cname
 !
@@ -945,15 +937,11 @@ CONTAINS
 !!\\
 !! !INTERFACE:
 !!
-!  SUBROUTINE Get_ColItem ( Input_Opt, CollName, CollList, CollItem, Found, RC )
-!!
-!! !USES:
-!!
-!    USE Input_Opt_Mod, ONLY : OptInput
+!  SUBROUTINE Get_ColItem ( am_I_Root, CollName, CollList, CollItem, Found, RC )
 !!
 !! !INPUT PARAMETERS:
 !!
-!    TYPE(OptInput),   INTENT(IN) :: Input_Opt    ! Input Options object
+!    LOGICAL,          INTENT(IN) :: am_I_Root
 !    CHARACTER(LEN=*), INTENT(IN) :: CollName
 !    TYPE(ColList),    INTENT(IN) :: CollList
 !!
@@ -1011,15 +999,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_ColItem ( Input_Opt, Collname, CollList, Found, RC  )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Set_ColItem ( am_I_Root, Collname, CollList, Found, RC  )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)   :: Input_Opt    ! Input Options object
+    LOGICAL,          INTENT(IN) :: am_I_Root
     CHARACTER(LEN=*)             :: CollName
     TYPE(ColList)                :: CollList
 !
@@ -1082,15 +1066,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InsertBeginning_DiagList ( Input_Opt, DiagItem, DiagList, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE InsertBeginning_DiagList ( am_I_Root, DiagItem, DiagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),  INTENT(IN)    :: Input_Opt    ! Input Options object
+    LOGICAL,         INTENT(IN)    :: am_I_Root
     TYPE(DgnItem),   POINTER       :: DiagItem
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1137,15 +1117,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InsertBeginning_ColList ( Input_Opt, CollItem, CollList, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE InsertBeginning_ColList ( am_I_Root, CollItem, CollList, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),  INTENT(IN)    :: Input_Opt    ! Input Options object
+    LOGICAL,         INTENT(IN)    :: am_I_Root
     TYPE(ColItem),   POINTER       :: CollItem
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1192,15 +1168,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Search_DiagList ( Input_Opt, DiagList, name, found, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Search_DiagList ( am_I_Root, DiagList, name, found, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN) :: Input_Opt    ! Input Options object
+    LOGICAL,           INTENT(IN) :: am_I_Root
     TYPE(DgnList),     INTENT(IN) :: DiagList
     CHARACTER(LEN=*),  INTENT(IN) :: name
 !
@@ -1252,15 +1224,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Search_CollList ( Input_Opt, CollList, name, found, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Search_CollList ( am_I_Root, CollList, name, found, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN) :: Input_Opt    ! Input Options object
+    LOGICAL,           INTENT(IN) :: am_I_Root
     TYPE(ColList),     INTENT(IN) :: CollList
     CHARACTER(LEN=*),  INTENT(IN) :: name
 !
@@ -1313,14 +1281,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_DiagList( DiagList, name, found, RC, partial )
+  SUBROUTINE Check_DiagList( am_I_Root, DiagList, name, found, RC, partial )
 !
 ! !USES:
 !
-    USE Charpak_Mod,   ONLY : To_UpperCase
+    USE Charpak_Mod, ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(DgnList),     INTENT(IN)  :: DiagList    ! Diagnostic list object
     CHARACTER(LEN=*),  INTENT(IN)  :: name        ! Diagnostic metadata name
     LOGICAL,           OPTIONAL    :: partial     ! Allow partial name match?
@@ -1427,15 +1396,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_DiagList( Input_Opt, DiagList, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Print_DiagList( am_I_Root, DiagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt     ! Input Options object
+    LOGICAL,           INTENT(IN)    :: am_I_Root
     TYPE(DgnList),     INTENT(IN)    :: DiagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1460,7 +1425,7 @@ CONTAINS
     thisLoc = 'Print_DiagList (diaglist_mod.F90)'
     current => DiagList%head
 
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( am_I_Root ) THEN
        PRINT *, " "
        PRINT *, "===================="
        PRINT *, "Contents of DiagList"
@@ -1469,7 +1434,7 @@ CONTAINS
     DO WHILE ( ASSOCIATED( current ) )
 
        ! Print info
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( am_I_Root ) THEN
           PRINT *, TRIM(current%name)
           PRINT *, "   state:      ", TRIM(current%state)
           PRINT *, "   metadataID: ", TRIM(current%metadataID)
@@ -1491,7 +1456,7 @@ CONTAINS
 
     ! cleanup
     current => NULL()
-    IF ( Input_Opt%amIRoot ) PRINT *, " "
+    IF ( am_I_Root ) PRINT *, " "
 
   END SUBROUTINE Print_DiagList
 !EOC
@@ -1508,15 +1473,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_ColList( Input_Opt, CollList, RC )
-!
-! !USES:
-!
-    USE Input_Opt_Mod, ONLY : OptInput
+  SUBROUTINE Print_ColList( am_I_Root, CollList, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),    INTENT(IN)    :: Input_Opt     ! Input Options object
+    LOGICAL,           INTENT(IN)    :: am_I_Root
     TYPE(ColList),     INTENT(IN)    :: CollList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1541,7 +1502,7 @@ CONTAINS
     thisLoc = 'Print_ColList (diaglist_mod.F90)'
     current => CollList%head
 
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( am_I_Root ) THEN
        PRINT *, " "
        PRINT *, "======================"
        PRINT *, "Contents of  CollList"
@@ -1550,7 +1511,7 @@ CONTAINS
     DO WHILE ( ASSOCIATED( current ) )
 
        ! Print info
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( am_I_Root ) THEN
           PRINT *, TRIM(current%cname)
        ENDIF
 
@@ -1560,7 +1521,7 @@ CONTAINS
 
     ! cleanup
     current => NULL()
-    IF ( Input_Opt%amIRoot ) PRINT *, " "
+    IF ( am_I_Root ) PRINT *, " "
 
   END SUBROUTINE Print_ColList
 !EOC
