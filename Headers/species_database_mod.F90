@@ -1723,12 +1723,12 @@ CONTAINS
              Is_Photolysis = T
              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-             Henry_K0      = 1.30e+0_f8 * To_M_atm
+             Henry_K0      = 1.30e+1_f8 * To_M_atm
              Henry_CR      = 4000.0_f8
 #else
-             DD_Hstar_old  = 6.10e+3_fp
-             Henry_K0      = 6.10e+3_f8
-             Henry_CR      = 6014.0_f8
+             DD_Hstar_old  = 1.30e+3_fp
+             Henry_K0      = 1.30e+3_f8
+             Henry_CR      = 4000.0_f8
 #endif
              WD_RetFactor  = 0.0_fp
 
