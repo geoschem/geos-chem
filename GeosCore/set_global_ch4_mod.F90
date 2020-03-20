@@ -152,7 +152,7 @@ CONTAINS
           CALL HCO_GetPtr( HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC, FOUND=FOUND )
        ENDIF
        IF (.NOT. FOUND ) THEN
-          ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4 or CMIP6_Sfc_CH4 in SET_CH4! Make sure the data source that corresponds to your emissions year is turned on in HEMCO_Config.rc (NOAA GMD for years since 1978; else CMIP6).'
+          ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4 or CMIP6_Sfc_CH4 in SET_CH4! Make sure the data source corresponds to your emissions year in HEMCO_Config.rc (NOAA GMD for 1978 and later; else CMIP6).'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
