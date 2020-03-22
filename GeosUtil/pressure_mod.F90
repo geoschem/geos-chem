@@ -794,11 +794,13 @@ CONTAINS
 
     ELSE
 
+#if !defined( MODEL_WRF )
        WRITE( nLev, * ) State_Grid%NZ
        ErrMSg = 'Ap and Bp not defined for ' // TRIM( nLev ) // &
                 ' levels. See subroutine INIT_PRESSURE.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+#endif
 
     ENDIF
 
