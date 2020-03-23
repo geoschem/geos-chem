@@ -307,6 +307,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
      REAL(f4),  POINTER :: AdvFluxMerid    (:,:,:,:) ! NW Advective Flux
      REAL(f4),  POINTER :: AdvFluxVert     (:,:,:,:) ! Vertical Advective Flux
+     INTEGER,   POINTER :: Map_AdvFluxVert (:      )
      LOGICAL :: Archive_AdvFluxZonal
      LOGICAL :: Archive_AdvFluxMerid
      LOGICAL :: Archive_AdvFluxVert
@@ -1370,10 +1371,6 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-
-       CALL Get_TagDiagInfo( am_I_Root, TaggedDiag_List, diagId,             &
-                             nSpecies,  State_Chm,       actualSize, RC     )
-
        ALLOCATE( State_Diag%SpeciesRst( IM, JM, LM, nSpecies ), STAT=RC )
        CALL GC_CheckVar( arrayId, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -2002,12 +1999,14 @@ CONTAINS
     diagID  = 'AdvFluxVert'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       !Call Query_TaggedDiagList
-       
-       CALL Get_TagDiagInfo( am_I_Root, TaggedDiag_List, diagId,             &
-                             nSpecies,  State_Chm,       actualSize, RC     )
-
-       STOP
+ 
+! Leave for future development 
+!       CALL Get_TagDiagInfo( Input_Opt, TaggedDiag_List, State_Chm, RC )
+!
+!       ! Get the number of species and the mapping array
+!       CALL Get_Mapping( Input_Opt,  TaggedDiag_List, diagId,
+!                         State_Chm,  nFields, State_Diag%Map_AdvFluxVert, 
+!                         fieldList,  RC,      IndFlag='A')
 
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
@@ -11465,19 +11464,14 @@ CONTAINS
 
   END SUBROUTINE Init_RRTMG_Indices
 !EOC
-  SUBROUTINE Get_TagDiagInfo( am_I_Root, TaggedDiagList, name, maxSize,       &
-                              State_Chm, actualSize,     RC )
+  SUBROUTINE Get_TagDiagInfo( Input_Opt, TaggedDiagList, State_Chm, RC    )
     
 
-    LOGICAL,             INTENT(IN)  :: am_I_Root
+    USE Input_Opt_Mod, ONLY : OptInput
+
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt
     TYPE(TaggedDgnList), INTENT(IN)  :: TaggedDiagList
-    CHARACTER(LEN=*),    INTENT(IN)  :: name
-    INTEGER,             INTENT(IN)  :: maxSize
-
-    
     TYPE(ChmState),      INTENT(IN)  :: State_Chm
-
-    INTEGER,             INTENT(OUT) :: actualSize
     INTEGER,             INTENT(OUT) :: RC
 
     LOGICAL            :: found
@@ -11486,64 +11480,210 @@ CONTAINS
     INTEGER            :: nTags
     INTEGER            :: numTags
     INTEGER            :: N
+    INTEGER            :: index
+    INTEGER            :: count
     TYPE(DgnTagList)   :: wildCardList
     TYPE(DgnTagList)   :: tagList
     CHARACTER(LEN=255) :: tagName
     CHARACTER(LEN=255) :: tagId
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
 
     TYPE(DgnTagItem), POINTER :: current
 
-    CALL Query_TaggedDiagList( am_I_Root      = am_I_Root,                   &
-                               TaggedDiagList = TaggedDiagList,              &
-                               name           = name,                        &
-                               found          = found,                       &
-                               isWildCard     = isWildCard,                  &
-                               numWildCards   = numWildCards,                &
-                               numTags        = numTags,                     &
-                               wildCardList   = wildCardList,                &
-                               tagList        = tagList,                     &
-                               RC             = RC                          )
-    IF ( RC /= GC_SUCCESS ) THEN
-    ENDIF
-    
-    print*, '### name       : ', TRIM(name)
-    print*, '### found      : ', found
-    print*, '### isWildCard : ', isWildCard
-    print*, '### numWildCard: ', numWildCards
-    print*, '### numTags    : ', numTags
+    !=======================================================================
+    ! Get TagDiagInfo begins here!
+    !=======================================================================
 
-    IF ( .not. isWildCard ) THEN
+    ! Initialize
+    RC         = GC_SUCCESS
 
-       print*, '%%% wildcardlist:'
-       call print_taglist(am_I_Root, tagList, RC)
+    call Print_TaggedDiagList(Input_Opt, TaggedDiagList, RC)
 
-       current => TagList%head
-       N = 0
-
-       DO WHILE ( ASSOCIATED( current ) )
-          tagId = ADJUSTL(ADJUSTR(current%name))
-          N = N + 1
-          print*, '### tagID: ', tagId
-          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found,              & 
-                            RC,        N,     tagName,   nTags              )
-          print*, '### tagname: ', tagname
-          current => current%next
-       ENDDO
-       current => NULL()
-       actualsize = N
-       print*, '### actualSize  : ', actualSize
-
-!    ELSE
-!
-!       print*, '%%% wildcardlist:'
-!       call print_taglist(am_I_Root, wildcardlist, RC)
-!       actualSize = numTags
-!       print*, '### actualSize  : ', actualSize
-
-    ENDIF
-
-!    print*, '### Ntags      : ', ntags
     END SUBROUTINE Get_TagDiagInfo
-
-
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Mapping
+!
+! !DESCRIPTION: Computes a mapping array which contains the index of each
+!  species in its State_Diag array.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Mapping( am_I_Root,  tagList,    State_Chm, nFields,        &
+                          Map_Fields, uniqFields, RC,        IndFlag        )
+!
+! !USES:
+!   
+    USE CharPak_Mod,   ONLY : CntMat
+    USE CharPak_Mod,   ONLY : Unique
+    USE State_Chm_Mod, ONLY : Ind_
+!    USE State_Chm_Mod, ONLY : NumSpecies_
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)                :: am_I_Root     ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)                :: tagList(:)    ! List of tags
+    TYPE(ChmState),    INTENT(IN)                :: State_Chm     ! Chem State
+    CHARACTER(LEN=1),  OPTIONAL                  :: IndFlag       ! Ind_ arg.
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT)               :: nFields       ! # species
+    INTEGER, POINTER,  INTENT(OUT)               :: Map_Fields(:) ! Map array
+    CHARACTER(LEN=*),  INTENT(OUT), ALLOCATABLE  :: uniqFields(:) ! Field list
+    INTEGER,           INTENT(OUT)               :: RC            ! Success?
+!
+! !REVISION HISTORY:
+!  23 Jul 2019 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+!    ! Scalars
+!    LOGICAL            :: Found,     hasIndFlag
+!    INTEGER            :: N,         NN,          nMap
+!    INTEGER            :: nTags,     nSpc,        S
+!    INTEGER            :: Indx
+!
+!    ! Strings
+!    CHARACTER(LEN=31 ) :: spcName
+!    CHARACTER(LEN=255) :: ErrMsg,    ThisLoc
+!    CHARACTER(LEN=255) :: tagId,     tagName
+!
+!    ! Arrays
+!    CHARACTER(LEN=31)  :: tmpFields(5000)
+!    
+!    !=======================================================================
+!    ! Get_Mapping begins here!
+!    !=======================================================================
+!
+!    ! Initialize
+!    RC         = GC_SUCCESS
+!    ErrMsg     = ''
+!    ThisLoc    = ' -> at Get_Mapping (in module Headers/state_diag_mod.F90)'
+!    tmpFields  = ''
+!    S          = 0
+!    hasIndFlag = PRESENT( IndFlag )
+!    nTags      = SIZE( tagList )
+!
+!    !=======================================================================
+!    ! Create a unique list of tags.  Here a "tag" is either a species name
+!    ! (e.g. O3, NO, DST1), or a wildcard (e.g. ?ADV?, ?DRY?).
+!    ! If the tag is a wildcard, find all of its associated fields.
+!    !=======================================================================
+!
+!    ! Loop over the number of tags in tagList
+!    DO N = 1, nTags
+!
+!       ! Get the tag name.  This will either be the species name 
+!       ! (e.g. "NO", "O3"), or a wildcard (e.g. "?ADV?").
+!       tagId = TRIM( tagList(N) )
+!       
+!       ! Test if the tagID is a wilcard
+!       IF ( INDEX( tagId, '?' ) > 0 ) THEN
+!
+!          ! If it is a wildcard, then discard the ? characters
+!          tagId = tagId(2:LEN_TRIM(tagId)-1)
+!
+!          ! Find the number of fields associated with this wildcard
+!          CALL Get_TagInfo( am_I_Root, tagId, State_Chm,                    &
+!                            Found,     RC,    nTags=nSpc                   )
+!
+!          ! Trap potential errors
+!          IF ( RC /= GC_SUCCESS ) THEN
+!             ErrMsg = 'No fields associated with wildcard: '// TRIM( tagID )
+!             CALL GC_Error( ErrMsg, RC, ThisLoc )
+!             RETURN
+!          ENDIF
+!
+!          ! Loop over the number of species associated with the wildcard
+!          DO NN = 1, nSpc
+!          
+!             ! Find the model ID associated with each species name
+!             CALL Get_TagInfo( am_I_Root, tagId, State_Chm,       Found,    &
+!                               RC,        N=NN,  tagname=tagName           )
+!
+!             ! Add the species name to the tmpFields array
+!             IF ( Found ) THEN
+!                S             = S + 1
+!                tmpFields(S) = TRIM( tagName )
+!             ENDIF
+!             
+!          ENDDO
+!
+!       ELSE
+!
+!          ! If tagID is not a wildcard, then it will be the species
+!          ! name itself.  Add tagId to the tmpFields array.
+!          S             = S + 1
+!          tmpFields(S) = tagID
+!       ENDIF
+!    ENDDO
+!
+!    ! Get the unique list of species
+!    ! Also drop off the last element, which is the null space value
+!    IF ( ALLOCATED( uniqFields ) ) DEALLOCATE( uniqFields )
+!    CALL Unique( tmpFields, uniqFields )
+!    nFields = SIZE( UniqFields )
+!
+!    ! Trap potential errors
+!    IF ( nFields < 1 ) THEN
+!       ErrMsg = 'Number of unqiue diagnostic fields found is < 1!'
+!       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!       RETURN
+!    ENDIF
+!
+!    !=======================================================================
+!    ! Create the mapping array
+!    !=======================================================================
+!
+!    ! Get the number of species of the given type
+!    ! found in the species database
+!    IF ( hasIndFlag ) THEN
+!       nMap = NumSpecies_( State_Chm, IndFlag )
+!    ELSE
+!       nMap = NumSpecies_( State_Chm          )
+!    ENDIF
+!
+!    ! Trap potential errors
+!    IF ( nMap < 1 ) THEN
+!       ErrMsg = 'Invalid number of species for IndFlag = ' // TRIM(IndFlag)
+!       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!       RETURN
+!    ENDIF
+!
+!    ! Initialize the mapping array
+!    IF ( ASSOCIATED( Map_Fields ) ) DEALLOCATE( Map_Fields )
+!    ALLOCATE( Map_Fields( nMap ), STAT=RC )
+!    CALL GC_CheckVar( 'Map_Fields', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    Map_Fields = -1
+!
+!    ! Loop over the number of unique field names
+!    DO S = 1, nFields
+!
+!       ! Get the index for the given species type
+!       ! (e.g. modelId, advectId, drydepId, etc...)
+!       IF ( hasIndFlag ) THEN
+!          Indx = Ind_( TRIM( uniqFields(S) ), IndFlag )
+!       ELSE
+!          Indx = Ind_( TRIM( uniqFields(S) )          )
+!       ENDIF
+!
+!       ! Save model ID into mapping array
+!       Map_Fields(Indx) = S
+!
+!    ENDDO
+!
+  END SUBROUTINE Get_Mapping
+!EOC
 END MODULE State_Diag_Mod
