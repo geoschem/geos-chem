@@ -1108,15 +1108,16 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef BPCH_DIAG
+    USE CMN_DIAG_MOD,       ONLY : ND59
+    USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
+#endif
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE ERROR_MOD,          ONLY : IT_IS_NAN
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_EMIS
     USE TOMAS_MOD,          ONLY : IBINS, Xk
-#ifdef BPCH_DIAG
-    USE DIAG_MOD,           ONLY : ND59, AD59_NUMB, AD59_SALT
-#endif
 !
 ! !INPUT PARAMETERS:
 !

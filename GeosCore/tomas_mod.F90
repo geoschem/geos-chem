@@ -4151,8 +4151,8 @@ CONTAINS
     ! Save changes to diagnostic
     MPNUM = 6
 #ifdef BPCH_DIAG
-    IF ( ND60 > 0 )
-    CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
+    IF ( ND60 > 0 ) &
+       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL, State_Grid )
 #endif
 
     ! Fix any inconsistencies in M/N distribution

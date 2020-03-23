@@ -3507,6 +3507,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_DIAG_MOD        ! Needed for timeseries diags (binary only)
+    USE CMN_SIZE_MOD,  ONLY : NDSTBIN
     USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
     USE DIAG03_MOD,    ONLY : ND03,      PD03,      PD03_PL
     USE DIAG53_MOD,    ONLY : ND53,      PD53
@@ -3534,24 +3535,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: M, N, N_MAX, N_TMP, N_ADVECT
-
-    ! Define shadow variables so that we can still use certain
-    ! flags (e.g. ND70) even when compiling with BPCH_DIAG=n
-    INTEGER            :: ND01x, ND02x, ND03x, ND04x, ND05x, ND06x
-    INTEGER            :: ND07x, ND08x, ND09x, ND10x, ND11x, ND12x
-    INTEGER            :: ND13x, ND14x, ND15x, ND16x, ND17x, ND18x
-    INTEGER            :: ND19x, ND21x, ND22x, ND24x
-    INTEGER            :: ND25x, ND26x, ND27x, ND28x, ND29x, ND30x
-    INTEGER            :: ND31x, ND32x, ND33x, ND34x, ND35x, ND36x
-    INTEGER            :: ND37x, ND38x, ND39x, ND41x, ND42x
-    INTEGER            :: ND43x, ND44x, ND45x, ND46x, ND47x
-    INTEGER            :: ND52x, ND53x, ND54x
-    INTEGER            :: ND55x, ND56x, ND57x, ND58x, ND59x, ND60x
-    INTEGER            :: ND61x, ND62x, ND64x, ND66x
-    INTEGER            :: ND67x, ND68x, ND69x, ND70x, ND71x, ND72x
-    INTEGER            :: ND73x, HR1_JVx, HR2_JVx, HR1_OHx, HR2_OHx
-    INTEGER            :: HR1_OTHx, HR2_OTHx
+    INTEGER            :: M, N, N_TMP
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, BPCH_FILE
@@ -3569,9 +3553,6 @@ CONTAINS
     ErrMsg  = 'Error reading the "input.geos" file!'
     ThisLoc = ' -> at Read_Diagnostic_Menu (in module GeosCore/input_mod.F90)'
 
-    ! Get fields from Input_Opt
-    N_ADVECT = Input_Opt%N_ADVECT
-
     ! Error check
     IF ( CT1 /= 2 ) THEN
        ErrMsg= 'SIMULATION MENU & ADVECTED SPECIES MENU ' // &
@@ -3580,15 +3561,10 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Get max number of species
-    N_MAX = N_ADVECT
-
     IF ( .not. Input_Opt%LEMIS ) THEN
        WRITE( 6, '(a)' ) 'WARNING: Emissions are turned off. The'
        WRITE( 6, '(a)' ) ' following diagnostics will also be turned'
-       WRITE( 6, '(a)' ) ' off:  ND01, ND04, ND06, ND07, ND08, ND11,'
-       WRITE( 6, '(a)' ) ' ND13, ND28, ND29, ND32, ND34, ND36, ND46,'
-       WRITE( 6, '(a)' ) ' ND53, ND56, ND58'
+       WRITE( 6, '(a)' ) ' off:  ND06, ND53'
     ENDIF
 
     ! Binary punch file name
@@ -3606,11 +3582,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%% FOR NOW, READ LINES BUT DON'T DO ANYTHING
-    !%%% FOR THOSE BPCH DIAGNOSTICS THAT AREN'T ACTIVATED
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
     !--------------------------
     ! ND03: Hg diagnostics
     !--------------------------
@@ -3619,9 +3590,9 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    READ( SUBSTRS(1), * ) ND03x
-    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) ND03x = 0
-    CALL SET_TINDEX( Input_Opt, 03, ND03x, SUBSTRS(2:N), N-1, PD03 )
+    READ( SUBSTRS(1), * ) ND03
+    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) ND03 = 0
+    CALL SET_TINDEX( Input_Opt, 03, ND03, SUBSTRS(2:N), N-1, PD03 )
 
     !--------------------------
     ! ND06: Dust emissions
@@ -3632,10 +3603,10 @@ CONTAINS
        RETURN
     ENDIF
 #ifdef TOMAS
-    READ( SUBSTRS(1), * ) ND06x
+    READ( SUBSTRS(1), * ) ND06
     IF ( .not. Input_Opt%LDUST .or. &
-         .not. Input_Opt%LEMIS ) ND06x = 0
-    CALL SET_TINDEX( Input_Opt, 06, ND06x, SUBSTRS(2:N), N-1, NDSTBIN)
+         .not. Input_Opt%LEMIS ) ND06 = 0
+    CALL SET_TINDEX( Input_Opt, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN)
 #endif
 
     !--------------------------
@@ -3655,8 +3626,8 @@ CONTAINS
        RETURN
     ENDIF
 #ifdef TOMAS
-    READ( SUBSTRS(1), * ) ND44x
-    IF ( .not. Input_Opt%LDRYD ) ND44x = 0
+    READ( SUBSTRS(1), * ) ND44
+    IF ( .not. Input_Opt%LDRYD ) ND44 = 0
     CALL SET_TINDEX( Input_Opt, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
 #endif
 
@@ -3668,10 +3639,10 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    READ( SUBSTRS(1), * ) ND53x
+    READ( SUBSTRS(1), * ) ND53
     IF ( .not. Input_Opt%ITS_A_POPS_SIM .or. &
-         .not. Input_Opt%LEMIS) ND53x = 0
-    CALL SET_TINDEX( Input_Opt, 53, ND53x, SUBSTRS(2:N), N-1, PD53 )
+         .not. Input_Opt%LEMIS) ND53 = 0
+    CALL SET_TINDEX( Input_Opt, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
     !--------------------------
     ! ND59: TOMAS aerosol emiss
@@ -3682,8 +3653,8 @@ CONTAINS
        RETURN
     ENDIF
 #ifdef TOMAS
-    READ( SUBSTRS(1), * ) ND59x
-    CALL SET_TINDEX( Input_Opt, 59, ND59x, SUBSTRS(2:N), N-1, PD59 )
+    READ( SUBSTRS(1), * ) ND59
+    CALL SET_TINDEX( Input_Opt, 59, ND59, SUBSTRS(2:N), N-1, PD59 )
 #endif
 
     !--------------------------
@@ -3696,8 +3667,8 @@ CONTAINS
        RETURN
     ENDIF
 #ifdef TOMAS
-    READ( SUBSTRS(1), * ) ND60x
-    CALL SET_TINDEX( Input_Opt, 60, ND60x, SUBSTRS(2:N), N-1, PD60 )
+    READ( SUBSTRS(1), * ) ND60
+    CALL SET_TINDEX( Input_Opt, 60, ND60, SUBSTRS(2:N), N-1, PD60 )
 #endif
 
     !--------------------------
@@ -3709,8 +3680,8 @@ CONTAINS
        RETURN
     ENDIF
 #ifdef TOMAS
-    READ( SUBSTRS(1), * ) ND61x
-    CALL SET_TINDEX( Input_Opt, 61, ND61x, SUBSTRS(2:N), N-1, PD61 )
+    READ( SUBSTRS(1), * ) ND61
+    CALL SET_TINDEX( Input_Opt, 61, ND61, SUBSTRS(2:N), N-1, PD61 )
 #endif
 
     !--------------------------
@@ -3725,18 +3696,18 @@ CONTAINS
     !output fields are nspecies*nradfields but user can only specify
     !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
     !divided by number of allowed species (PD72R)
-    READ( SUBSTRS(1), * ) ND72x
+    READ( SUBSTRS(1), * ) ND72
     CALL SET_TINDEX( Input_Opt, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
-#endif
 
     !If LRAD is on then ND72 must be on (so the diagnostic is
     !available to write into). Check for this
-    IF ( (Input_Opt%LRAD) .AND. (ND72x.EQ.0) ) THEN
+    IF ( (Input_Opt%LRAD) .AND. (ND72.EQ.0) ) THEN
        ErrMsg = 'If LRAD is true then ' // &
                 'ND72 diagnostic must be switched on'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
     !=================================================================
     ! %%%%% IF BPCH DIAGNOSTICS ARE ACTIVATED (BPCH_DIAG=y) %%%%%
@@ -3744,29 +3715,19 @@ CONTAINS
     ! Copy shadow variables to diagnostic variables and
     ! call various bpch diagnostic setup routines
     !=================================================================
-    ND53            = ND53x
-    Input_Opt%ND53  = ND53x
+    Input_Opt%ND53  = ND53
 
 #ifdef TOMAS
-    ND06            = ND06x
-    ND44            = ND44x
-    ND59            = ND59x
-    ND60            = ND60x
-    ND61            = ND61x
-    Input_Opt%ND06  = ND06x
-    Input_Opt%ND44  = ND44x
-    Input_Opt%ND59  = ND59x
-    Input_Opt%ND60  = ND60x
-    Input_Opt%ND61  = ND61x
+    Input_Opt%ND06  = ND06
+    Input_Opt%ND44  = ND44
+    Input_Opt%ND59  = ND59
+    Input_Opt%ND60  = ND60
+    Input_Opt%ND61  = ND61
 #endif
 
 #ifdef RRTMG
-    ND72            = ND72x
-    Input_Opt%ND72  = ND72x
+    Input_Opt%ND72  = ND72
 #endif
-
-    ! Debug switch
-    Input_Opt%LPRT  = ( ND70x > 0 )
 
     ! Loop over # of diagnostics
     DO M = 1, Input_Opt%Max_BPCH_Diag

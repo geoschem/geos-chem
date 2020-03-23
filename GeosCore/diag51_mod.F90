@@ -406,7 +406,7 @@ CONTAINS
        id_N2O5    = Ind_('N2O5'   )
        id_NO      = Ind_('NO'     )
        id_PAN     = Ind_('PAN'    )
-       id_NPMN    = Ind_('MPAN'   )
+       id_MPAN    = Ind_('MPAN'   )
        id_PPN     = Ind_('PPN'    )
        id_O3      = Ind_('O3'     )
        id_R4N2    = Ind_('R4N2'   )

@@ -1432,7 +1432,9 @@ CONTAINS
     USE TIME_MOD
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 #ifdef TOMAS
+#ifdef BPCH_DIAG
     USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
+#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -2091,6 +2093,7 @@ CONTAINS
                 IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
 #ifdef TOMAS
+#ifdef BPCH_DIAG
              !-------------------------------
              ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
              !-------------------------------
@@ -2107,6 +2110,8 @@ CONTAINS
                                'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
                 ENDIF
 #endif
+#endif
+
              !--------------------------
              ! Otherwise it's an error!
              !--------------------------

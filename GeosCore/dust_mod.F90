@@ -475,9 +475,9 @@ CONTAINS
              !--------------------------------------------------------
              !%%% NOTE: Now use TOMAS_IDDEP, which replicates the
              !%%% since-removed Input_Opt%IDDEP field (bmy, 3/17/17)
-             AD44(I,J,TOMAS_IDDEP(BIN),1) = &
-               AD44(I,J,TOMAS_IDDEP(BIN),1) + FLUXN &
-               AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
+             AD44(I,J,TOMAS_IDDEP(BIN),1) = AD44(I,J,TOMAS_IDDEP(BIN),1) +  &
+                                            FLUXN
+             AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
           ENDIF
 #endif
 
