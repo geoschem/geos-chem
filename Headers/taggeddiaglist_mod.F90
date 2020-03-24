@@ -377,9 +377,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Cleanup and quit
     !-----------------------------------------------------------------------
-    diagnostic          => NULL()
-    current             => NULL()
-    TaggedDiagList%head => NULL()
+    diagnostic => NULL()
+    current    => NULL()
 
   END SUBROUTINE Init_TaggedDiagList
 !EOC
@@ -397,6 +396,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Print_TaggedDiagList( Input_Opt, TaggedDiagList, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -426,29 +429,47 @@ CONTAINS
     RC      =  GC_SUCCESS
     current => NULL()
 
-    print*, '### input_opt%amIroot: ', input_opt%amIroot
-
-    ! Print tagged diagnostic list
+    ! Print tagged diagnostic list only if we are on the root core
     IF ( Input_Opt%amIRoot ) THEN
-       PRINT *, " "
-       PRINT *, "============================="
-       PRINT *, "Summary of tagged diagnostics"
-       PRINT *, " "
-       current => TaggedDiagList%head
-       DO WHILE ( ASSOCIATED( current ) )
-          PRINT *, TRIM(current%metadataID)
-          PRINT '(A15,L3)', ADJUSTL('isWildcard:'), current%isWildcard
-          PRINT '(A15,I3)', ADJUSTL('numWildcards:'), &
-                                                    current%wildcardList%count
-          CALL  Print_TagList( Input_Opt, current%wildcardList, RC )
-          PRINT '(A15,I3)', ADJUSTL('numTags:'), current%tagList%count
+       WRITE( 6, 100 ) REPEAT( '=', 30 )
+       WRITE( 6, 110 ) 'Summary of tagged diagnostics'
 
-          CALL Print_TagList( Input_Opt, current%tagList, RC )
-          PRINT *, " "
+       ! Point to the first item in the TaggedDiagList
+       current => TaggedDiagList%head
+
+       ! Keep looping over all items in TaggedDiagList
+       DO WHILE ( ASSOCIATED( current ) )
+
+          ! Print name of diagnostic and if it is a wildcard
+          WRITE( 6, 120 ) TRIM(current%metadataID)
+
+          ! Print info about wildcards or tags
+          IF ( current%isWildCard ) THEN
+             WRITE( 6, 130 ) ADJUSTL('numWildcards:'),                       &
+                             current%wildcardList%count
+             CALL Print_TagList( Input_Opt, current%wildcardList, RC )
+          ELSE
+             WRITE( 6, 130 )  ADJUSTL('numTags:'), current%tagList%count
+             CALL Print_TagList( Input_Opt, current%tagList, RC )
+          ENDIF
+          WRITE( 6, 120 ) ""
+
+          ! Advance to next item in TaggedDiagList
           current => current%next
        ENDDO
+
+       ! Spacer
+       WRITE( 6, 120 ) ""
+
+       ! Free pointer
        current => NULL()
-       PRINT *, " "
+
+       ! FORMAT statements
+ 100   FORMAT( /,   A  )
+ 110   FORMAT( A,   /  )
+ 120   FORMAT( A       )
+ 130   FORMAT( A15, I5 )
+
     ENDIF
 
   END SUBROUTINE Print_TaggedDiagList
@@ -468,30 +489,32 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Query_TaggedDiagList( Input_Opt, TaggedDiagList, name,          &
-                                   found,     isWildcard,     numWildcards,  &
-                                   numTags,   wildcardList,   tagList,       &
-                                   RC                                       )
+  SUBROUTINE Query_TaggedDiagList( Input_Opt,    TaggedDiagList,             &
+                                   name,         RC,                         &
+                                   found,        isWildcard,                 &
+                                   numWildcards, numTags,                    &
+                                   wildcardList, tagList                    )
 !
 ! !USES:
 !
-    USE Charpak_Mod, ONLY : To_UpperCase
+    USE Charpak_Mod,   ONLY : To_UpperCase
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN) :: am_I_Root
-    TYPE(TaggedDgnList), INTENT(IN) :: TaggedDiagList
-    CHARACTER(LEN=*),    INTENT(IN) :: name
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt
+    TYPE(TaggedDgnList), INTENT(IN)  :: TaggedDiagList
+    CHARACTER(LEN=*),    INTENT(IN)  :: name
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,             OPTIONAL   :: found
-    LOGICAL,             OPTIONAL   :: isWildcard
-    INTEGER,             OPTIONAL   :: numWildcards
-    INTEGER,             OPTIONAL   :: numTags
-    TYPE(DgnTagList),    OPTIONAL   :: wildcardList
-    TYPE(DgnTagList),    OPTIONAL   :: tagList
-    INTEGER,             OPTIONAL   :: RC
+    INTEGER,             INTENT(OUT) :: RC
+    LOGICAL,             OPTIONAL    :: found
+    LOGICAL,             OPTIONAL    :: isWildcard
+    INTEGER,             OPTIONAL    :: numWildcards
+    INTEGER,             OPTIONAL    :: numTags
+    TYPE(DgnTagList),    OPTIONAL    :: wildcardList
+    TYPE(DgnTagList),    OPTIONAL    :: tagList
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
@@ -649,6 +672,10 @@ CONTAINS
                                   metadataID, isWildcard,                    &
                                   tagName,    index,                         &
                                   RC                                        )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -844,6 +871,10 @@ CONTAINS
   SUBROUTINE InsertBeginning_TaggedDiagList( Input_Opt,      TaggedDiagItem, &
                                              TaggedDiagList, RC             )
 !
+! USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+!
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),      INTENT(IN)    :: Input_Opt
@@ -954,12 +985,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Query_Tag_in_TagList( am_I_Root, TagList, name, found, RC )
+  SUBROUTINE Query_Tag_in_TagList( Input_Opt, TagList, name, found, RC )
 !
 ! !USES:
 !
-    USE Charpak_Mod, ONLY : To_UpperCase
-!
+    USE Charpak_Mod,   ONLY : To_UpperCase
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1005,6 +1036,8 @@ CONTAINS
        ENDIF
        current => current%next
     ENDDO
+
+    ! Free pointer
     current => NULL()
 
   END SUBROUTINE Query_Tag_in_TagList
@@ -1023,7 +1056,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_TagList( am_I_Root, TagList, RC )
+  SUBROUTINE Print_TagList( Input_Opt, TagList, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -1057,7 +1094,8 @@ CONTAINS
     ! Only print taglist if we are on the root core
     IF ( Input_Opt%amIRoot ) THEN
        DO WHILE ( ASSOCIATED( current ) )
-          PRINT *, '                  ', TRIM(current%name), current%index
+          WRITE( 6, 100 ) ADJUSTL( TRIM( current%name ) ), current%index
+ 100      FORMAT( 21x, A, I5 )
           current => current%next
        ENDDO
     ENDIF
@@ -1085,7 +1123,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod, ONLY : To_UpperCase
+    USE Charpak_Mod,   ONLY : To_UpperCase
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !

@@ -492,22 +492,25 @@ PROGRAM GEOS_Chem
         CALL Timer_Start( "All diagnostics",           RC )
         CALL Timer_Start( "=> History (netCDF diags)", RC )
      ENDIF
-     ! Don't initialize diagnostics when in dry-run mode
+
      historyConfigFile = 'HISTORY.rc' ! InputOpt not yet initialized
-     CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
+     CALL Init_DiagList( Input_Opt%amIroot, historyConfigFile, Diag_List, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_DiagList"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
-     CALL Init_TaggedDiagList( am_I_Root, Diag_List, TaggedDiag_List, RC )
+
+     CALL Init_TaggedDiagList( Input_Opt, Diag_List, TaggedDiag_List, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_TaggedDiagList"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
 
-     !###  Print diagnostic lists if needed for debugging
-     IF ( prtDebug ) CALL Print_DiagList( am_I_Root, Diag_List, RC )
-     IF ( prtDebug ) CALL Print_TaggedDiagList( am_I_Root, TaggedDiag_List, RC )
+     IF ( prtDebug ) THEN
+        CALL Print_DiagList( Input_Opt%amIRoot, Diag_List, RC )
+        CALL Print_TaggedDiagList( Input_Opt, TaggedDiag_List, RC )
+     ENDIF
+     STOP
 
      IF ( Input_Opt%useTimers ) THEN
         CALL Timer_End( "All diagnostics",           RC )
