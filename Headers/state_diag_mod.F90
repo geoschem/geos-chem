@@ -749,7 +749,7 @@ CONTAINS
     INTEGER            :: nHygGrth,  nRad,    nDryAlt
     LOGICAL            :: am_I_Root, EOF,     Found,   Found2
 
-    integer :: actualsize
+    integer :: nfields
 
     !=======================================================================
     ! Initialize
@@ -1999,16 +1999,13 @@ CONTAINS
     diagID  = 'AdvFluxVert'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
- 
-! Leave for future development 
-!       CALL Get_TagDiagInfo( Input_Opt, TaggedDiag_List, State_Chm, RC )
-!
-!       ! Get the number of species and the mapping array
-!       CALL Get_Mapping( Input_Opt,  TaggedDiag_List, diagId,
-!                         State_Chm,  nFields, State_Diag%Map_AdvFluxVert, 
-!                         fieldList,  RC,      IndFlag='A')
-
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+
+       ! Get the number of species and the mapping array
+       CALL Get_Mapping( Input_Opt,       diagId,                            &
+                         TaggedDiag_List, State_Chm,                         &
+                         nFields,         State_Diag%Map_AdvFluxVert, RC   )
+
        ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -11464,44 +11461,6 @@ CONTAINS
 
   END SUBROUTINE Init_RRTMG_Indices
 !EOC
-  SUBROUTINE Get_TagDiagInfo( Input_Opt, TaggedDiagList, State_Chm, RC    )
-    
-
-    USE Input_Opt_Mod, ONLY : OptInput
-
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt
-    TYPE(TaggedDgnList), INTENT(IN)  :: TaggedDiagList
-    TYPE(ChmState),      INTENT(IN)  :: State_Chm
-    INTEGER,             INTENT(OUT) :: RC
-
-    LOGICAL            :: found
-    LOGICAL            :: isWildCard
-    INTEGER            :: numWildCards
-    INTEGER            :: nTags
-    INTEGER            :: numTags
-    INTEGER            :: N
-    INTEGER            :: index
-    INTEGER            :: count
-    TYPE(DgnTagList)   :: wildCardList
-    TYPE(DgnTagList)   :: tagList
-    CHARACTER(LEN=255) :: tagName
-    CHARACTER(LEN=255) :: tagId
-    CHARACTER(LEN=255) :: ErrMsg
-    CHARACTER(LEN=255) :: ThisLoc
-
-    TYPE(DgnTagItem), POINTER :: current
-
-    !=======================================================================
-    ! Get TagDiagInfo begins here!
-    !=======================================================================
-
-    ! Initialize
-    RC         = GC_SUCCESS
-
-    call Print_TaggedDiagList(Input_Opt, TaggedDiagList, RC)
-
-    END SUBROUTINE Get_TagDiagInfo
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -11515,28 +11474,34 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Mapping( am_I_Root,  tagList,    State_Chm, nFields,        &
-                          Map_Fields, uniqFields, RC,        IndFlag        )
+  SUBROUTINE Get_Mapping( Input_Opt, diagId,     TaggedDiagList, State_Chm,  &
+                          nFields,   Map_Fields, RC                         )
 !
 ! !USES:
 !   
-    USE CharPak_Mod,   ONLY : CntMat
-    USE CharPak_Mod,   ONLY : Unique
-    USE State_Chm_Mod, ONLY : Ind_
+    USE CharPak_Mod,        ONLY : CntMat
+    USE CharPak_Mod,        ONLY : Unique
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Chm_Mod,      ONLY : Ind_
+    USE TaggedDiagList_Mod, ONLY : TaggedDgnList
+    USE TaggedDiagList_Mod, ONLY : Print_TaggedDiagItem
+    USE TaggedDiagList_Mod, ONLY : Query_TaggedDiagList
+
 !    USE State_Chm_Mod, ONLY : NumSpecies_
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)                :: am_I_Root     ! Root CPU?
-    CHARACTER(LEN=*),  INTENT(IN)                :: tagList(:)    ! List of tags
-    TYPE(ChmState),    INTENT(IN)                :: State_Chm     ! Chem State
-    CHARACTER(LEN=1),  OPTIONAL                  :: IndFlag       ! Ind_ arg.
+    TYPE(OptInput),      INTENT(IN)               :: Input_Opt     ! Root CPU?
+    CHARACTER(LEN=*),    INTENT(IN)               :: diagId
+    TYPE(TaggedDgnList), INTENT(IN)               :: TaggedDiagList
+    TYPE(ChmState),      INTENT(IN)               :: State_Chm     ! Chem State
+!    CHARACTER(LEN=1),  OPTIONAL                   :: IndFlag       ! Ind_ arg.
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,           INTENT(OUT)               :: nFields       ! # species
     INTEGER, POINTER,  INTENT(OUT)               :: Map_Fields(:) ! Map array
-    CHARACTER(LEN=*),  INTENT(OUT), ALLOCATABLE  :: uniqFields(:) ! Field list
+!    CHARACTER(LEN=*),  INTENT(OUT), ALLOCATABLE  :: uniqFields(:) ! Field list
     INTEGER,           INTENT(OUT)               :: RC            ! Success?
 !
 ! !REVISION HISTORY:
@@ -11545,36 +11510,52 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-!    ! Scalars
-!    LOGICAL            :: Found,     hasIndFlag
-!    INTEGER            :: N,         NN,          nMap
-!    INTEGER            :: nTags,     nSpc,        S
-!    INTEGER            :: Indx
-!
-!    ! Strings
-!    CHARACTER(LEN=31 ) :: spcName
-!    CHARACTER(LEN=255) :: ErrMsg,    ThisLoc
-!    CHARACTER(LEN=255) :: tagId,     tagName
-!
-!    ! Arrays
-!    CHARACTER(LEN=31)  :: tmpFields(5000)
-!    
-!    !=======================================================================
-!    ! Get_Mapping begins here!
-!    !=======================================================================
-!
-!    ! Initialize
-!    RC         = GC_SUCCESS
-!    ErrMsg     = ''
-!    ThisLoc    = ' -> at Get_Mapping (in module Headers/state_diag_mod.F90)'
+
+ !LOCAL VARIABLES:
+
+    ! Scalars
+    LOGICAL            :: Found,     hasIndFlag
+    INTEGER            :: N,         NN,          nMap
+    INTEGER            :: nTags,     nSpc,        S
+    INTEGER            :: Indx
+
+    ! Strings
+    CHARACTER(LEN=31 ) :: spcName
+    CHARACTER(LEN=255) :: ErrMsg,    ThisLoc
+    CHARACTER(LEN=255) :: tagId,     tagName
+
+    ! Arrays
+    CHARACTER(LEN=31)  :: tmpFields(5000)
+    
+    ! Objects
+    TYPE(TaggedDgnItem) :: TaggedDiagItem
+
+    !=======================================================================
+    ! Get_Mapping begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC         = GC_SUCCESS
+    ErrMsg     = ''
+    ThisLoc    = ' -> at Get_Mapping (in module Headers/state_diag_mod.F90)'
 !    tmpFields  = ''
-!    S          = 0
+!   S          = 0
 !    hasIndFlag = PRESENT( IndFlag )
 !    nTags      = SIZE( tagList )
-!
+
+
+    !=======================================================================
+    !=======================================================================
+    CALL Query_TaggedDiagList( Input_Opt      = Input_Opt,       &
+                               TaggedDiagList = TaggedDiagList,  &
+                               diagName       = diagID,          &
+                               Found          = Found,           &
+                               TaggedDiagItem = TaggedDiagItem,  &
+                               RC             = RC              )
+
+    CALL Print_TaggedDiagItem( Input_Opt, TaggedDiagItem, RC ) 
+
+
 !    !=======================================================================
 !    ! Create a unique list of tags.  Here a "tag" is either a species name
 !    ! (e.g. O3, NO, DST1), or a wildcard (e.g. ?ADV?, ?DRY?).

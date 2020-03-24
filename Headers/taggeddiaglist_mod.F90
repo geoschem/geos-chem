@@ -25,21 +25,22 @@ MODULE TaggedDiagList_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Init_TaggedDiagList
-  PUBLIC  :: Print_TaggedDiagList
-  PUBLIC  :: Query_TaggedDiagList
-  PUBLIC  :: Query_Tag_in_TagList
   PUBLIC  :: Cleanup_TaggedDiagList
+  PUBLIC  :: Init_TaggedDiagList
+  PUBLIC  :: Print_TaggedDiagItem
+  PUBLIC  :: Print_TaggedDiagList
   PUBLIC  :: Print_TagList
+  PUBLIC  :: Query_Tag_in_TagList
+  PUBLIC  :: Query_TaggedDiagList
 !
-! !PRIVATE MEMBER FUNCTIONS
+! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: Cleanup_TagList
+  PRIVATE :: Init_TagItem
   PRIVATE :: Init_TaggedDiagItem
+  PRIVATE :: InsertBeginning_TagList
   PRIVATE :: InsertBeginning_TaggedDiagList
   PRIVATE :: Update_TaggedDiagList
-  PRIVATE :: Init_TagItem
-  PRIVATE :: InsertBeginning_TagList
-  PRIVATE :: Cleanup_TagList
 !
 ! !PUBLIC DATA TYPES:
 !
@@ -130,7 +131,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                      :: isWildCard
-    LOGICAL                      :: TaggedDiagListExists
+    LOGICAL                      :: taggedDiagListExists
     INTEGER                      :: numTags
     INTEGER                      :: numWildCards
     INTEGER                      :: reverseIndex
@@ -138,7 +139,7 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=63)            :: tagName
     CHARACTER(LEN=63)            :: tagNameUpper
-    CHARACTER(LEN=255)           :: ErrMsg
+    CHARACTER(LEN=255)           :: errMsg
     CHARACTER(LEN=255)           :: thisLoc
 
     ! Objects
@@ -154,8 +155,8 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = '-> at Init_TaggedDiagList (located in module '            // &
-              'Headers/taggeddiaglist_mod.F90)'
+    thisLoc = &
+     '-> at Init_TaggedDiagList (in module Headers/taggeddiaglist_mod.F90)'
 
     ! Initialize pointers
     diagnostic          => DiagList%head
@@ -179,8 +180,8 @@ CONTAINS
           CALL Query_TaggedDiagList(                                         &
                Input_Opt      = Input_Opt,                                   &
                TaggedDiagList = TaggedDiagList,                              &
-               name           = diagnostic%metadataID,                       &
-               Found          = TaggedDiagListExists,                        &
+               diagName       = diagnostic%metadataID,                       &
+               Found          = taggedDiagListExists,                        &
                RC             = RC                                          )
 
           ! Trap potential errors
@@ -198,7 +199,7 @@ CONTAINS
           ENDIF
 
           ! Check if the list exists
-          IF ( TaggedDiagListExists ) THEN
+          IF ( taggedDiagListExists ) THEN
 
              !--------------------------------------------------------------
              ! If the TaggedDiagList (of wildcards or tags) already exists:
@@ -296,8 +297,8 @@ CONTAINS
           CALL Query_TaggedDiagList(                                         &
                Input_Opt      = Input_Opt,                                   &
                TaggedDiagList = TaggedDiagList,                              &
-               name           = diagnostic%metadataID,                       &
-               Found          = TaggedDiagListExists,                        &
+               diagName       = diagnostic%metadataID,                       &
+               Found          = taggedDiagListExists,                        &
                isWildCard     = isWildCard,                                  &
                numTags        = numTags,                                     &
                numWildCards   = numWildCards,                                &
@@ -313,7 +314,7 @@ CONTAINS
           ! Skip if the TaggedDiagList for this diagnostic does not exist
           ! (but this should never happen since we created a TaggedDiagList
           ! for each diagnostic in the above section!)
-          IF ( .not. TaggedDiagListExists ) CYCLE
+          IF ( .not. taggedDiagListExists ) CYCLE
 
           !-----------------------------------------------------------------
           ! Get the name of each tag or wildcard
@@ -387,10 +388,83 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Print_TaggedDiagItem
+!
+! !DESCRIPTION: Prints information contained in a single TaggedDiagItem object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Print_TaggedDiagItem( Input_Opt, TaggedDiagItem, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt
+    TYPE(TaggedDgnItem), INTENT(IN)  :: TaggedDiagItem
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: RC
+!
+! !REVISION HISTORY:
+!  24 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Return success
+    RC = GC_SUCCESS
+
+    ! Proceed to print info if we are on the root CPU
+    IF ( Input_Opt%amIRoot ) THEN
+
+       IF ( TaggedDiagItem%isWildCard ) THEN
+
+          !---------------------------------
+          ! Print info about wildcards ...
+          !---------------------------------
+          WRITE( 6, 130 ) ADJUSTL( 'numWildCards:' ),                        &
+                          TaggedDiagItem%WildCardList%count
+          CALL Print_TagList( Input_Opt, TaggedDiagItem%WildCardList, RC )
+
+       ELSE
+
+          !----------------------------------
+          ! ... or print info about tags
+          !----------------------------------
+          WRITE( 6, 130 )  ADJUSTL( 'numTags:' ),                            &
+                           TaggedDiagItem%TagList%count
+          CALL Print_TagList( Input_Opt, TaggedDiagItem%TagList, RC )
+
+       ENDIF
+
+       ! Print spacer
+       WRITE( 6, 120 ) ""
+
+       ! FORMAT statemetns
+ 120   FORMAT( A       )
+ 130   FORMAT( A15, I5 )
+
+    ENDIF
+
+  END SUBROUTINE Print_TaggedDiagItem
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Print_TaggedDiagList
 !
-! !DESCRIPTION: Subroutine Print\_TaggedDiagList prints information for all
-!  TaggedDiagItem members in a TaggedDiagList linked list.
+! !DESCRIPTION: Prints information for all TaggedDiagItem members within
+!  a TaggedDiagList linked list.
 !\\
 !\\
 ! !INTERFACE:
@@ -440,19 +514,11 @@ CONTAINS
        ! Keep looping over all items in TaggedDiagList
        DO WHILE ( ASSOCIATED( current ) )
 
-          ! Print name of diagnostic and if it is a wildcard
-          WRITE( 6, 120 ) TRIM(current%metadataID)
+          ! Print name of diagnostic
+          WRITE( 6, 120 ) TRIM( current%metadataID )
 
-          ! Print info about wildcards or tags
-          IF ( current%isWildCard ) THEN
-             WRITE( 6, 130 ) ADJUSTL('numWildcards:'),                       &
-                             current%wildcardList%count
-             CALL Print_TagList( Input_Opt, current%wildcardList, RC )
-          ELSE
-             WRITE( 6, 130 )  ADJUSTL('numTags:'), current%tagList%count
-             CALL Print_TagList( Input_Opt, current%tagList, RC )
-          ENDIF
-          WRITE( 6, 120 ) ""
+          ! Print wildcard or tag info
+          CALL Print_TaggedDiagItem( Input_Opt, current, RC )
 
           ! Advance to next item in TaggedDiagList
           current => current%next
@@ -481,19 +547,22 @@ CONTAINS
 !
 ! !IROUTINE: Query_TaggedDiagList
 !
-! !DESCRIPTION: Return information about a TaggedDiagList option, such
-!  if name is found and information about that named object. Info includes
-!  if is wildcard, a list of wildcards, number of wildcards, a list of
-!  non-wildcard tags, or number of non-wildcard tags.
+! !DESCRIPTION: Returns information about a TaggedDiagItem within a
+!  TaggedDiagList option linked list, given the name of the corresponding
+!  diagnostic.  The information that is returned can include if the
+!  diagnostic is a wildcard, a list of wildcards, number of wildcards, a
+!  list of non-wildcard tags, or number of non-wildcard tags.   The entire
+!  TaggedDiagItem itself may also be returned if so desired.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Query_TaggedDiagList( Input_Opt,    TaggedDiagList,             &
-                                   name,         RC,                         &
-                                   found,        isWildcard,                 &
-                                   numWildcards, numTags,                    &
-                                   wildcardList, tagList                    )
+  SUBROUTINE Query_TaggedDiagList( Input_Opt,     TaggedDiagList,            &
+                                   diagName,      RC,                        &
+                                   found,         isWildcard,                &
+                                   numWildcards,  numTags,                   &
+                                   WildCardList,  TagList,                   &
+                                   TaggedDiagItem                           )
 !
 ! !USES:
 !
@@ -502,19 +571,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)  :: Input_Opt
-    TYPE(TaggedDgnList), INTENT(IN)  :: TaggedDiagList
-    CHARACTER(LEN=*),    INTENT(IN)  :: name
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt       ! Input Options object
+    TYPE(TaggedDgnList), INTENT(IN)  :: TaggedDiagList  ! Tagged diag list
+    CHARACTER(LEN=*),    INTENT(IN)  :: diagName        ! Name of diagnostic
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,             INTENT(OUT) :: RC
-    LOGICAL,             OPTIONAL    :: found
-    LOGICAL,             OPTIONAL    :: isWildcard
-    INTEGER,             OPTIONAL    :: numWildcards
-    INTEGER,             OPTIONAL    :: numTags
-    TYPE(DgnTagList),    OPTIONAL    :: wildcardList
-    TYPE(DgnTagList),    OPTIONAL    :: tagList
+    LOGICAL,             INTENT(OUT) :: found           ! Was name in list?
+    INTEGER,             INTENT(OUT) :: RC              ! Success or failure?
+    LOGICAL,             OPTIONAL    :: isWildcard      ! Is diag a wildcard?
+    INTEGER,             OPTIONAL    :: numWildcards    ! # of wildcards (WCs)
+    TYPE(DgnTagList),    OPTIONAL    :: WildCardList    ! List of wildcards
+    INTEGER,             OPTIONAL    :: numTags         ! # of non-WC tags
+    TYPE(DgnTagList),    OPTIONAL    :: TagList         ! List of non-WC tags
+    TYPE(TaggedDgnItem), OPTIONAL    :: TaggedDiagItem  ! Item in linked list
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
@@ -525,6 +595,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    LOGICAL                      :: P_isWildCard
+    LOGICAL                      :: P_numWildCards
+    LOGICAL                      :: P_numTags
+    LOGICAL                      :: P_WildCardList
+    LOGICAL                      :: P_TagList
+    LOGICAL                      :: P_TagDiagItem
+
     ! Strings
     CHARACTER(LEN=255)           :: thisDiagName
 
@@ -539,18 +617,26 @@ CONTAINS
     RC    = GC_SUCCESS
     found = .FALSE.
 
-    ! Search for name in list
+    ! Test if each optional arguments is present outside of the loop
+    P_isWildCard   = PRESENT( isWildcard      )
+    P_numWildCards = PRESENT( numWildcards    )
+    P_numTags      = PRESENT( numTags         )
+    P_WildCardList = PRESENT( WildCardList    )
+    P_TagList      = PRESENT( TagList         )
+    P_TagDiagItem  = PRESENT( TaggedDiagItem  )
+
+    ! Search for name in list and return optional arguments
     current => TaggedDiagList%head
     DO WHILE ( ASSOCIATED( current ) )
-       thisDiagName = To_Uppercase(current%metadataID)
-       IF ( TRIM(ThisDiagName) == TRIM(To_Uppercase(name)) ) THEN
+       thisDiagName = To_Uppercase( current%metadataID )
+       IF ( TRIM( ThisDiagName ) == TRIM( To_Uppercase( diagName ) ) ) THEN
           found = .TRUE.
-          IF (PRESENT(isWildcard  )) isWildcard   = current%isWildcard
-          IF (PRESENT(numWildcards)) numWildcards = current%wildcardList%count
-          IF (PRESENT(numTags     )) numTags      = current%tagList%count
-          IF (PRESENT(wildcardList)) wildcardList = current%wildcardList
-          IF (PRESENT(tagList     )) tagList      = current%tagList
-          current=> NULL()
+          IF ( P_isWildcard   ) isWildcard      = current%isWildcard
+          IF ( P_numWildcards ) numWildcards    = current%WildCardList%count
+          IF ( P_numTags      ) numTags         = current%TagList%count
+          IF ( P_WildCardList ) WildCardList    = current%WildCardList
+          IF ( P_TagList      ) TagList         = current%TagList
+          IF ( P_TagDiagItem  ) TaggedDiagItem  = current
           EXIT
        ENDIF
        current => current%next
@@ -600,16 +686,15 @@ CONTAINS
     TYPE(TaggedDgnItem), POINTER :: current
     TYPE(TaggedDgnItem), POINTER :: next
 
-
-    ! ================================================================
+    !=======================================================================
     ! Cleanup_TaggedDiagList begins here
-    ! ================================================================
+    !=======================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Cleanup_TaggedDiagList (located in module '          // &
-              'Headers/taggeddiaglist_mod.F90)'
+    thisLoc = &
+    ' -> at Cleanup_TaggedDiagList (in module Headers/taggeddiaglist_mod.F90)'
 
     ! Deallocate each item in the linked list of DiagExport objects
     current => TaggedDiagList%head
@@ -707,15 +792,15 @@ CONTAINS
     ! Objects
     TYPE(DgnTagItem), POINTER :: NewTagItem
 
-    ! ======================================================================
-    ! Init_TaggedDiagList begins here
-    ! ======================================================================
+    !=======================================================================
+    ! Init_TaggedDiagItem begins here
+    !=======================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' ->at Init_TaggedDiagItem (located in module '             // &
-              'Headers/taggeddiaglist_mod.F90)'
+    thisLoc = &
+     ' -> at Init_TaggedDiagItem (in module Headers/taggeddiaglist_mod.F90)'
 
     ! Create a new entry for TaggedDiagList
     ALLOCATE( NewTaggedDiagItem, STAT=RC )
@@ -1088,7 +1173,7 @@ CONTAINS
     ! ================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
+    RC      =  GC_SUCCESS
     current => TagList%head
 
     ! Only print taglist if we are on the root core
@@ -1173,8 +1258,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Update_TaggedDiagItem (located in module '          // &
-              'taggeddiaglist_mod.F90)'
+    thisLoc = ' -> at Update_TaggedDiagItem (in module taggeddiaglist_mod.F90)'
 
     ! Search for item in list and update if found
     current => TaggedDiagList%head

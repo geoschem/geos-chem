@@ -317,7 +317,7 @@ PROGRAM GEOS_Chem
   ! Read the user-defined options for the simulation, etc.
   !-----------------------------------------------------------------
 
-  ! Initialize fields of the Input Options object
+  ! Initialize fields of the Input Options object (including amIRoot)
   CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered within call to "Set_Input_Opt"!'
@@ -493,13 +493,15 @@ PROGRAM GEOS_Chem
         CALL Timer_Start( "=> History (netCDF diags)", RC )
      ENDIF
 
-     historyConfigFile = 'HISTORY.rc' ! InputOpt not yet initialized
+     ! Initialize the Diag_List (list of all diagnostics)
+     historyConfigFile = 'HISTORY.rc'
      CALL Init_DiagList( Input_Opt%amIroot, historyConfigFile, Diag_List, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_DiagList"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
 
+     ! Initialize the TaggedDiag_List (list of wildcards/tags per diagnostic)
      CALL Init_TaggedDiagList( Input_Opt, Diag_List, TaggedDiag_List, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_TaggedDiagList"!'
@@ -510,7 +512,6 @@ PROGRAM GEOS_Chem
         CALL Print_DiagList( Input_Opt%amIRoot, Diag_List, RC )
         CALL Print_TaggedDiagList( Input_Opt, TaggedDiag_List, RC )
      ENDIF
-     STOP
 
      IF ( Input_Opt%useTimers ) THEN
         CALL Timer_End( "All diagnostics",           RC )
