@@ -45,12 +45,7 @@ function(configureGCClassic)
         endif()
     endif()
 
-    # Get information about GEOS-Chem source code repository and print
-    # to screen and store in CMakeCache.txt file for debugging purposes
-    gc_pretty_print(SECTION "GEOS-Chem source code information")
-    gc_pretty_print(VARIABLE CODE_DIR OPTIONS ${CMAKE_CURRENT_SOURCE_DIR})
-
-    # Get branch nane in code repository
+    # Get branch name in code repository, store in CMakeCache for debugging
     macro(get_git_branch VAR)
       execute_process(
         COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse --abbrev-ref HEAD
@@ -59,10 +54,9 @@ function(configureGCClassic)
 	)
     endmacro()
     get_git_branch(CODE_BRANCH)
-    gc_pretty_print(VARIABLE CODE_BRANCH )
     set(GIT_BRANCH ${CODE_BRANCH} CACHE STRING "Current branch in code repo")
 
-    # Get last commit name from code repository
+    # Get last commit name from code repository, store in CMakeCache for debug
     macro(get_git_commit VAR)
       execute_process(
         COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%s"
@@ -70,10 +64,9 @@ function(configureGCClassic)
 	)
     endmacro()
     get_git_commit(LAST_COMMIT)
-    gc_pretty_print(VARIABLE LAST_COMMIT )
     set(GIT_COMMIT ${LAST_COMMIT} CACHE STRING "Last commit in Git repo")
 
-    # Get last commit hash from code repository
+    # Get last commit hash from code repository, store in CMakeCache for debug
     macro(get_git_commit_hash VAR)
       execute_process(
         COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%h"
@@ -81,10 +74,9 @@ function(configureGCClassic)
 	)
     endmacro()
     get_git_commit_hash(COMMIT_HASH)
-    gc_pretty_print(VARIABLE COMMIT_HASH )
     set(GIT_COMMIT_HASH ${COMMIT_HASH} CACHE STRING "Last commit hash in Git repo")
 
-    # Get last commit date from code repository
+    # Get last commit date from code repository, store in CMakeCache for debug
     macro(get_git_commit_date VAR)
       execute_process(
         COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%cd"
@@ -92,19 +84,7 @@ function(configureGCClassic)
 	)
     endmacro()
     get_git_commit_date(COMMIT_DATE)
-    gc_pretty_print(VARIABLE COMMIT_DATE )
     set(GIT_COMMIT_DATE ${COMMIT_DATE} CACHE STRING "Date of last Git commit")
-
-    # Get list of uncommitted files (if any) in the code repository
-    macro(get_git_status VAR)
-      execute_process(
-        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} status -s
-        OUTPUT_VARIABLE ${VAR}
-	)
-    endmacro()
-    get_git_status(CODE_STATUS)
-    gc_pretty_print(VARIABLE "UNCOMMITTED_FILES" OPTIONS ${CODE_STATUS})
-    set(GIT_UNCOMMITTED_FILES ${CODE_STATUS} CACHE STRING "List of uncommitted files (if any)")
     
     # Configure the build based on the run directory. Propagate the configuration variables.
     # Define a macro for inspecting the run directory. Inspecting the run
