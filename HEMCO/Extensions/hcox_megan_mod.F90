@@ -122,7 +122,7 @@ MODULE HCOX_MEGAN_MOD
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (6/2003).  Updated to
 !        latest algorithm and modified for the standard code by May Fu
 !        (11/2004).
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,7 +290,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Megan_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_Megan_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -303,7 +303,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root
     TYPE(Ext_State), POINTER       :: ExtState
     TYPE(HCO_State), POINTER       :: HcoState
 !
@@ -313,7 +312,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Aug 2013 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -435,7 +434,7 @@ CONTAINS
     !----------------------------------------------------------------
 
     ! Generate annual emission factors for MEGAN inventory
-    CALL CALC_AEF( am_I_Root, HcoState, ExtState, Inst, RC )
+    CALL CALC_AEF( HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'Error encountered in MEGAN routine CALC_AEF!'
        CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -443,7 +442,7 @@ CONTAINS
     ENDIF
 
     ! Calculate normalization factor (dbm, 11/2012)
-    CALL CALC_NORM_FAC( am_I_Root, Inst, RC )
+    CALL CALC_NORM_FAC( Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'Error encountered in MEGAN routine CALC_NORM_FAC!'
        CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -451,7 +450,7 @@ CONTAINS
     ENDIF
 
     ! Fill restart variables.
-    CALL FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, Inst, RC )
+    CALL FILL_RESTART_VARS( HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        MSG = 'Error encountered in MEGAN routine FILL_RESTART_VARS!'
        CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -467,7 +466,7 @@ CONTAINS
     IF ( FIRST ) THEN
 
        ! Generate annual emission factors for MEGAN inventory
-       CALL CALC_AEF( am_I_Root, HcoState, ExtState, Inst, RC )
+       CALL CALC_AEF( HcoState, ExtState, Inst, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'Error encountered in MEGAN routine CALC_AEF!'
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -475,7 +474,7 @@ CONTAINS
        ENDIF
 
        ! Calculate normalization factor (dbm, 11/2012)
-       CALL CALC_NORM_FAC( am_I_Root, Inst, RC )
+       CALL CALC_NORM_FAC( Inst, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'Error encountered in MEGAN routine CALC_NORM_FAC!'
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -483,7 +482,7 @@ CONTAINS
        ENDIF
 
        ! Fill restart variables
-       CALL FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, Inst, RC )
+       CALL FILL_RESTART_VARS( HcoState, ExtState, Inst, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'Error encountered in MEGAN routine FILL_RESTART_VARS!'
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -565,7 +564,7 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Isoprene [kg C/m2/s]
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, Inst, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, Inst, &
                                  I, J, 'ISOP', EMIS_ISOP, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -596,7 +595,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! Alpha Pinene emissions
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'APIN', EMIS_APIN, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -608,7 +607,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! Beta Pinene emissions
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'BPIN', EMIS_BPIN, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -620,7 +619,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! Limonene emissions
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'LIMO', EMIS_LIMO, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -632,7 +631,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! Sabinene emissions
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'SABI', EMIS_SABI, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -644,7 +643,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! Mycrene emissions
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'MYRC', EMIS_MYRC, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -656,7 +655,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! 3-Carene emissions
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'CARE', EMIS_CARE, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -668,7 +667,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! Ocimene emissions
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'OCIM', EMIS_OCIM, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -681,7 +680,7 @@ CONTAINS
        ! ---------------------------------------------------
        ! Other monoterpenes
        ! (added 12/2012; dbm)
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'OMON', EMIS_OMON, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -720,7 +719,7 @@ CONTAINS
        ! MEGAN Acetaldehyde
        !--------------------------------------------------------------------
        IF ( Inst%IDTALD2 > 0 ) THEN
-          CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+          CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                     Inst, I, J, 'ALD2', EMIS_ALD2, RC)
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -736,7 +735,7 @@ CONTAINS
        ! ---------------------------------------------------
        ! MEGAN Methanol
        IF ( Inst%IDTMOH > 0 ) THEN
-          CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+          CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                     Inst, I, J, 'MOH', EMIS_MOH, RC)
           IF ( RC /= HCO_SUCCESS ) THEN 
              CALL HCO_ERROR( HcoState%Config%Err,  &
@@ -752,7 +751,7 @@ CONTAINS
        ! ---------------------------------------------------
        ! MEGAN Ethanol
        IF ( Inst%IDTEOH > 0 ) THEN
-          CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+          CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                     Inst, I, J, 'EOH', EMIS_EOH, RC)
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -773,7 +772,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! Methyl butenol
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'MBOX', EMIS_MBOX, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -785,7 +784,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! MEGAN Formic acid
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'FAXX', EMIS_FAXX, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -797,7 +796,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! MEGAN Acetic acid
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'AAXX', EMIS_AAXX, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -877,7 +876,7 @@ CONTAINS
           ! evf, removed obsolete code, replaced with MEGAN acetone
           ! emissions (5/25/2011) Direct Emission now includes emission
           ! from grasses and emission from dry leaf matter
-          CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+          CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                     Inst, I, J, 'ACET', EMIS_ACET, RC)
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -907,7 +906,7 @@ CONTAINS
        ! Now uses MEGAN2.1 (dbm, 12/2012)
        !--------------------------------------------------------------------
        IF ( Inst%IDTPRPE > 0 ) THEN
-          CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+          CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                     Inst, I, J, 'PRPE', EMIS_PRPE, RC)
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -934,7 +933,7 @@ CONTAINS
        ! Now uses MEGAN2.1 (dbm, 12/2012)
        !--------------------------------------------------------------------
        IF ( Inst%IDTC2H4 > 0 ) THEN
-          CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+          CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                     Inst, I, J, 'C2H4', EMIS_C2H4, RC)
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -1009,7 +1008,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! a-Farnesene
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'FARN', EMIS_FARN, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -1021,7 +1020,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! b_Caryophyllene
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'BCAR', EMIS_BCAR, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -1033,7 +1032,7 @@ CONTAINS
 
        ! ---------------------------------------------------
        ! Other sesquiterpene
-       CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+       CALL GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                  Inst, I, J, 'OSQT', EMIS_OSQT, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -1109,7 +1108,7 @@ CONTAINS
     !=================================================================
 
     !! testing only
-    !if(am_I_Root) then
+    !if( HcoState%amIRoot) then
     ! write(*,*) 'ISOP emissions instance ',ExtState%Megan
     ! write(*,*) 'A MGN ',ExtState%Megan,Inst%IDTISOP,SUM(Inst%FLUXISOP)
     ! write(*,*) 'B MGN ',ExtState%Megan,SUM(Inst%LAI_PREVDAY)
@@ -1130,8 +1129,8 @@ CONTAINS
     IF ( Inst%IDTISOP > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXISOP, &
-                         Inst%IDTISOP, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXISOP, Inst%IDTISOP, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXISOP', RC )
@@ -1144,8 +1143,8 @@ CONTAINS
     IF ( Inst%IDTALD2 > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXALD2, &
-                         Inst%IDTALD2, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXALD2, Inst%IDTALD2, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXALD2', RC )
@@ -1158,8 +1157,8 @@ CONTAINS
     IF ( Inst%IDTMOH > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,   HcoState, Inst%FLUXMOH, &
-                         Inst%IDTMOH, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXMOH, Inst%IDTMOH, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXMOH', RC )
@@ -1172,8 +1171,8 @@ CONTAINS
     IF ( Inst%IDTEOH > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,   HcoState, Inst%FLUXEOH, &
-                         Inst%IDTEOH, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXEOH, Inst%IDTEOH, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXEOH', RC )
@@ -1189,24 +1188,24 @@ CONTAINS
        ! have names MEGAN_ACET_MONO, MEGAN_ACET_MBO, and
        ! MEGAN_ACET_DIRECT
        DiagnName =  'InvMEGAN_ACET_MONO'
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+       CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Inst%FLUXACETmo, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        DiagnName =  'InvMEGAN_ACET_MBOX'
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+       CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Inst%FLUXACETmb, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        DiagnName =  'InvMEGAN_ACET_DIRECT'
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+       CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                           cName=TRIM(DiagnName), Array2D=Inst%FLUXACETbg, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Add flux to emission array
        Inst%FLUXACETbg = Inst%FLUXACETbg + Inst%FLUXACETmo + Inst%FLUXACETmb
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXACETbg, &
-                         Inst%IDTACET, RC, ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXACETbg, Inst%IDTACET, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXACETbg', RC )
@@ -1219,8 +1218,8 @@ CONTAINS
     IF (  Inst%IDTSOAP > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXSOAP, &
-                         Inst%IDTSOAP, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXSOAP, Inst%IDTSOAP, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXSOAP', RC )
@@ -1234,8 +1233,8 @@ CONTAINS
     IF (  Inst%IDTSOAS > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXSOAS, &
-                         Inst%IDTSOAS, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXSOAS, Inst%IDTSOAS, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXSOAS', RC )
@@ -1249,8 +1248,8 @@ CONTAINS
     IF ( Inst%IDTPRPE > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXPRPE, &
-                         Inst%IDTPRPE, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXPRPE, Inst%IDTPRPE, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXPRPE', RC )
@@ -1264,8 +1263,8 @@ CONTAINS
     IF ( Inst%IDTC2H4 > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXC2H4, &
-                         Inst%IDTC2H4, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXC2H4, Inst%IDTC2H4, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXC2H4', RC )
@@ -1279,8 +1278,8 @@ CONTAINS
     IF ( Inst%IDTMTPA > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXMTPA, &
-                         Inst%IDTMTPA, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXMTPA, Inst%IDTMTPA, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXMTPA', RC )
@@ -1294,8 +1293,8 @@ CONTAINS
     IF ( Inst%IDTMTPO > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXMTPO, &
-                         Inst%IDTMTPO, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXMTPO, Inst%IDTMTPO, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXMTPO', RC )
@@ -1309,8 +1308,8 @@ CONTAINS
     IF ( Inst%IDTLIMO > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXLIMO, &
-                         Inst%IDTLIMO, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXLIMO, Inst%IDTLIMO, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXLIMO', RC )
@@ -1324,8 +1323,8 @@ CONTAINS
     IF ( Inst%IDTSESQ > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root,    HcoState, Inst%FLUXSESQ, &
-                         Inst%IDTSESQ, RC,       ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Inst%FLUXSESQ, Inst%IDTSESQ, &
+                         RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
                           'HCO_EmisAdd error: FLUXSESQ', RC )
@@ -1341,98 +1340,98 @@ CONTAINS
     ! -------------------------------------------------------------
     ! Alpha Pinene
     DiagnName =  'InvMEGAN_APIN'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXAPIN, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Beta Pinene
     DiagnName =  'InvMEGAN_BPIN'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXBPIN, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Sabinene
     DiagnName =  'InvMEGAN_SABI'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXSABI, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Mycrene
     DiagnName =  'InvMEGAN_MYRC'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXMYRC, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! 3-Carene
     DiagnName =  'InvMEGAN_CARE'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXCARE, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Ocimene
     DiagnName =  'InvMEGAN_OCIM'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXOCIM, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Other monoterpenes
     DiagnName =  'InvMEGAN_OMON'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXOMON, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Total monoterpenes
     DiagnName =  'InvMEGAN_MONX'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXMONO, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! a-Farnesene
     DiagnName =  'InvMEGAN_FARN'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXFARN, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! b_Caryophyllene
     DiagnName =  'InvMEGAN_BCAR'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXBCAR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Other sesquiterpenes
     DiagnName =  'InvMEGAN_OSQT'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXOSQT, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Methyl butenol
     DiagnName =  'InvMEGAN_MBOX'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXMBOX, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! -------------------------------------------------------------
     ! Formic acid
     DiagnName =  'InvMEGAN_FAXX'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXFAXX, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
     ! Acetic acid
     DiagnName =  'InvMEGAN_AAXX'
-    CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+    CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                        cName=TRIM(DiagnName), Array2D=Inst%FLUXAAXX, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1441,27 +1440,27 @@ CONTAINS
     ! ----------------------------------------------------------------
 
     ! LAI_PREVDAY
-    CALL HCO_RestartWrite( am_I_Root, HcoState, &
+    CALL HCO_RestartWrite( HcoState, &
                            'LAI_PREVDAY', Inst%LAI_PREVDAY, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! T_LAST24H
-    CALL HCO_RestartWrite( am_I_Root,    HcoState, &
+    CALL HCO_RestartWrite( HcoState, &
                            'T_PREVDAY',  Inst%T_LAST24H, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! T_LASTXDAYS
-    CALL HCO_RestartWrite( am_I_Root,    HcoState, &
+    CALL HCO_RestartWrite( HcoState, &
                            'T_DAVG',     Inst%T_LASTXDAYS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! PARDR_LASTXDAYS
-    CALL HCO_RestartWrite( am_I_Root,    HcoState, &
+    CALL HCO_RestartWrite( HcoState, &
                            'PARDR_DAVG', Inst%PARDR_LASTXDAYS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! PARDF_LASTXDAYS
-    CALL HCO_RestartWrite( am_I_Root,    HcoState, &
+    CALL HCO_RestartWrite( HcoState, &
                            'PARDF_DAVG', Inst%PARDF_LASTXDAYS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1503,12 +1502,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState, &
+  SUBROUTINE GET_MEGAN_EMISSIONS( HcoState, ExtState, &
                                   Inst, I, J, CMPD, MEGAN_EMIS, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root
     TYPE(HCO_STATE),  POINTER     :: HcoState
     TYPE(Ext_State),  POINTER     :: ExtState
     TYPE(MyInst),     POINTER     :: Inst
@@ -1537,7 +1535,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Original code by Dorian Abbot (9/2003).  Updated to the latest
 !        algorithm and modified for the standard code by May Fu (11/20/04)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1612,7 +1610,7 @@ CONTAINS
     ! --------------------------------------------
     ! Get MEGAN parameters for this compound
     ! --------------------------------------------
-    CALL GET_MEGAN_PARAMS ( am_I_Root, HcoState,              &
+    CALL GET_MEGAN_PARAMS ( HcoState,                         &
                             CMPD, BETA, LDF,  CT1,  CEO,      &
                             ANEW, AGRO, AMAT, AOLD, BIDIR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1621,7 +1619,7 @@ CONTAINS
     ! Get base emission factor for this compound and grid square
     ! Units: kgC/m2/s or kg/m2/s
     ! --------------------------------------------
-    CALL GET_MEGAN_AEF ( am_I_Root, HcoState, Inst, I, J, CMPD, AEF, RC )
+    CALL GET_MEGAN_AEF ( HcoState, Inst, I, J, CMPD, AEF, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------
@@ -1637,7 +1635,7 @@ CONTAINS
        ! Calculate GAMMA PAR only during day
        IF ( SUNCOS > 0.0_hp ) THEN
 
-          GAMMA_PAR = GET_GAMMA_PAR_PCEEA( am_I_Root, HcoState,       &
+          GAMMA_PAR = GET_GAMMA_PAR_PCEEA( HcoState,                  &
                                            ExtState, Inst, I, J,      &
                                            Q_DIR_2,  Q_DIFF_2,        &
                                            Inst%PARDR_LASTXDAYS(I,J), &
@@ -1762,14 +1760,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_MEGAN_PARAMS( am_I_Root, HcoState,                &
+  SUBROUTINE GET_MEGAN_PARAMS( HcoState,                           &
                                CPD,   BTA,   LIDF,  C_T1,  C_EO,   &
                                A_NEW, A_GRO, A_MAT, A_OLD, BI_DIR, &
                                RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN) :: am_I_Root ! Root CPU?
     TYPE(HCO_State),  POINTER    :: HcoState
     CHARACTER(LEN=*), INTENT(IN) :: CPD       ! Compound name
 !
@@ -1796,7 +1793,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) Created by dbm 07/2012
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2011,11 +2008,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_MEGAN_AEF(am_I_Root,HcoState,Inst,I,J,CPD,EMFAC,RC)
+  SUBROUTINE GET_MEGAN_AEF( HcoState, Inst, I, J, CPD, EMFAC, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)  :: am_I_Root   ! Root CPU?
     TYPE(HCO_State),   POINTER     :: HcoState
     TYPE(MyInst),      POINTER     :: Inst
     INTEGER,           INTENT(IN)  :: I, J        ! Lon & lat indices
@@ -2038,7 +2034,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) Created 11/2012 by dbm
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2126,7 +2122,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GET_GAMMA_PAR_PCEEA( am_I_Root, HcoState, ExtState, &
+  FUNCTION GET_GAMMA_PAR_PCEEA( HcoState, ExtState,            &
                                 Inst, I, J, Q_DIR_2, Q_DIFF_2, &
                                 PARDR_AVG_SIM, PARDF_AVG_SIM ) &
     RESULT( GAMMA_P_PCEEA )
@@ -2137,7 +2133,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN) :: am_I_Root
     TYPE(HCO_State), POINTER    :: HcoState
     TYPE(Ext_State), POINTER    :: ExtState
     TYPE(MyInst),    POINTER    :: Inst
@@ -2160,7 +2155,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Code was taken & adapted directly from the MEGAN v2.1 source code.
 !      (mpb,2009)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2198,7 +2193,7 @@ CONTAINS
 
     ! Get day of year, local-time and latitude
     ! TODO: Evaluate RC?
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cDOY = DOY, RC=RC )
+    CALL HcoClock_Get( HcoState%Clock, cDOY = DOY, RC=RC )
     CALL HcoClock_GetLocal( HcoState, I, J, cH = LocalHour, RC=RC )
 
     ! Get solar elevation angle
@@ -2290,7 +2285,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) This code was taken directly from the MEGAN v2.1 source code.(mpb,2009)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2358,7 +2353,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) Original code by Michael Barkley (2009).
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2425,7 +2420,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Includes the latest MEGAN v2.1 temperature algorithm (mpb, 2009).
 !       Note, this temp-dependence is the same for the PCEEA & hybrid models.
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2499,7 +2494,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard
 !        code by May Fu (11/2004)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2572,7 +2567,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Original code by Dorian Abbot (9/2003). Modified for the standard
 !        code by May Fu (11/2004)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2691,7 +2686,7 @@ CONTAINS
 !  (1 ) Created by dbm (6/2012). We are not currently using a soil moisture
 !       effect for isoprene. For all compounds other than acetaldehyde and
 !       ethanol, gamma_sm =1 presently.
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2776,7 +2771,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  (1 ) Implemented in the standard code by A. Tai (Jun 2012).
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2870,11 +2865,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CALC_NORM_FAC( am_I_Root, Inst, RC )
+  SUBROUTINE CALC_NORM_FAC( Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)     :: am_I_Root
     TYPE(MyInst),    POINTER        :: Inst
 !
 ! !INPUT/OUTPUT PARAMETERS
@@ -2899,7 +2893,7 @@ CONTAINS
 !        conifer tree, etc.) then to be correct we should have a
 !        different CCE for each canopy type for each compound class
 !        (which would be 160 slightly different values of CCE)."
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3017,7 +3011,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, Inst, RC )
+  SUBROUTINE FILL_RESTART_VARS( HcoState, ExtState, Inst, RC )
 !
 ! !USES:
 !
@@ -3025,7 +3019,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State), POINTER        :: HcoState
     TYPE(Ext_State), POINTER        :: ExtState
     TYPE(MyInst),    POINTER        :: Inst
@@ -3036,7 +3029,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  19 Dec 2014 - C. Keller    - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3067,7 +3060,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! LAI
     !-----------------------------------------------------------------
-    CALL HCO_RestartGet( am_I_Root, HcoState, 'LAI_PREVDAY', &
+    CALL HCO_RestartGet( HcoState, 'LAI_PREVDAY', &
                          Inst%LAI_PREVDAY, RC, FILLED=FND )
 
     ! Default value
@@ -3080,19 +3073,19 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Temperature over last 24 hours
-    CALL HCO_RestartGet( am_I_Root, HcoState, 'T_PREVDAY', &
+    CALL HCO_RestartGet( HcoState, 'T_PREVDAY', &
                          Inst%T_LAST24H, RC, DefVal = 288.15 )
 
     ! Temperature over last X days
-    CALL HCO_RestartGet( am_I_Root,   HcoState, 'T_DAVG', &
+    CALL HCO_RestartGet( HcoState, 'T_DAVG', &
                          Inst%T_LASTXDAYS, RC, DefVal = 288.15 )
 
     ! Direct radiation (PARDR) over last X days
-    CALL HCO_RestartGet( am_I_Root,       HcoState, 'PARDR_DAVG', &
+    CALL HCO_RestartGet( HcoState, 'PARDR_DAVG', &
                          Inst%PARDR_LASTXDAYS, RC, DefVal = 30.0 )
 
     ! Diffuse radiation (PARDF) over last X days
-    CALL HCO_RestartGet( am_I_Root,       HcoState, 'PARDF_DAVG', &
+    CALL HCO_RestartGet( HcoState, 'PARDF_DAVG', &
                          Inst%PARDF_LASTXDAYS, RC, DefVal = 48.0 )
 
     ! Return w/ success
@@ -3113,7 +3106,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CALC_AEF( am_I_Root, HcoState, ExtState, Inst, RC )
+  SUBROUTINE CALC_AEF( HcoState, ExtState, Inst, RC )
 !
 ! !USES:
 !
@@ -3122,7 +3115,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root
     TYPE(Ext_State), POINTER       :: ExtState
     TYPE(HCO_State), POINTER       :: HcoState
     TYPE(MyInst),    POINTER       :: Inst
@@ -3137,7 +3129,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard
 !        code by May Fu (11/2004)
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3201,35 +3193,35 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Point to external data
     !-----------------------------------------------------------------
-    CALL HCO_EvalFld(am_I_Root, HcoState, 'MEGAN_AEF_ISOP'//TRIM(SFX), &
-                     Inst%AEF_ISOP, RC )
+    CALL HCO_EvalFld( HcoState, 'MEGAN_AEF_ISOP'//TRIM(SFX), &
+                      Inst%AEF_ISOP, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_AEF_MBOX'//TRIM(SFX), &
+    CALL HCO_EvalFld( HcoState, 'MEGAN_AEF_MBOX'//TRIM(SFX), &
                       Inst%AEF_MBOX, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_AEF_BPIN'//TRIM(SFX), &
+    CALL HCO_EvalFld( HcoState, 'MEGAN_AEF_BPIN'//TRIM(SFX), &
                       Inst%AEF_BPIN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_AEF_CARE'//TRIM(SFX), &
+    CALL HCO_EvalFld( HcoState, 'MEGAN_AEF_CARE'//TRIM(SFX), &
                       Inst%AEF_CARE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_AEF_LIMO'//TRIM(SFX), &
+    CALL HCO_EvalFld( HcoState, 'MEGAN_AEF_LIMO'//TRIM(SFX), &
                       Inst%AEF_LIMO, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_AEF_OCIM'//TRIM(SFX), &
+    CALL HCO_EvalFld( HcoState, 'MEGAN_AEF_OCIM'//TRIM(SFX), &
                       Inst%AEF_OCIM, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_AEF_SABI'//TRIM(SFX), &
+    CALL HCO_EvalFld( HcoState, 'MEGAN_AEF_SABI'//TRIM(SFX), &
                       Inst%AEF_SABI, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_ORVC'//TRIM(SFX), &
+    CALL HCO_EvalFld( HcoState, 'MEGAN_ORVC'//TRIM(SFX), &
                       Inst%GEIA_ORVC, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -3256,82 +3248,82 @@ CONTAINS
     ! PFT_C4_GRSS             : Warm C4 grass
     ! PFT_CROP                : Crop
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BARE'//TRIM(SFX), &
                       PFT_BARE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_NDLF_EVGN_TMPT_TREE'//TRIM(SFX), &
                       PFT_NDLF_EVGN_TMPT_TREE, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_NDLF_EVGN_BORL_TREE'//TRIM(SFX), &
                       PFT_NDLF_EVGN_BORL_TREE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_NDLF_DECD_BORL_TREE'//TRIM(SFX), &
                       PFT_NDLF_DECD_BORL_TREE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BDLF_EVGN_TROP_TREE'//TRIM(SFX), &
                       PFT_BDLF_EVGN_TROP_TREE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BDLF_EVGN_TMPT_TREE'//TRIM(SFX), &
                       PFT_BDLF_EVGN_TMPT_TREE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BDLF_DECD_TROP_TREE'//TRIM(SFX), &
                       PFT_BDLF_DECD_TROP_TREE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BDLF_DECD_TMPT_TREE'//TRIM(SFX), &
                       PFT_BDLF_DECD_TMPT_TREE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BDLF_DECD_BORL_TREE'//TRIM(SFX), &
                       PFT_BDLF_DECD_BORL_TREE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BDLF_EVGN_SHRB'//TRIM(SFX), &
                       PFT_BDLF_EVGN_SHRB, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BDLF_DECD_TMPT_SHRB'//TRIM(SFX), &
                       PFT_BDLF_DECD_TMPT_SHRB, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_BDLF_DECD_BORL_SHRB'//TRIM(SFX), &
                       PFT_BDLF_DECD_BORL_SHRB, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_C3_ARCT_GRSS'//TRIM(SFX), &
                       PFT_C3_ARCT_GRSS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_C3_NARC_GRSS'//TRIM(SFX), &
                       PFT_C3_NARC_GRSS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_C4_GRSS'//TRIM(SFX), &
                       PFT_C4_GRSS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_EvalFld( am_I_Root, HcoState, &
+    CALL HCO_EvalFld( HcoState, &
                       'CLM4_PFT_CROP'//TRIM(SFX), &
                       PFT_CROP, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3659,7 +3651,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Megan_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_Megan_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -3670,7 +3662,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName
     TYPE(Ext_State),  POINTER        :: ExtState
@@ -3681,7 +3672,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Aug 2013 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3733,7 +3724,7 @@ CONTAINS
     IF ( FOUND ) Inst%OFFLINE_BIOGENICVOC = OptFound
 
     ! Verbose mode
-    IF ( am_I_Root) THEN
+    IF ( HcoState%amIRoot) THEN
        MSG = 'Use MEGAN biogenic emissions (extension module)'
        CALL HCO_MSG( HcoState%Config%Err, MSG, SEP1='-' )
        WRITE(MSG,*) '- Use offline biogenic VOCs? ', Inst%OFFLINE_BIOGENICVOC
@@ -3856,7 +3847,7 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = ' - Use the following species:'
        CALL HCO_MSG( HcoState%Config%Err, MSG )
     ENDIF
@@ -3991,11 +3982,11 @@ CONTAINS
        END SELECT
 
        ! Verbose
-       IF ( am_I_Root ) CALL HCO_MSG( HcoState%Config%Err, MSG )
+       IF ( HcoState%amIRoot ) CALL HCO_MSG( HcoState%Config%Err, MSG )
     ENDDO
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        WRITE(MSG,*) ' --> Isoprene scale factor is ',Inst%ISOP_SCALING
        CALL HCO_MSG( HcoState%Config%Err, MSG )
        WRITE(MSG,*) ' --> Use CO2 inhibition on isoprene option ', &
@@ -4458,8 +4449,7 @@ CONTAINS
     !=================================================================
     ! Create manual diagnostics
     !=================================================================
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_ACET_MONO',  &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4473,8 +4463,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_ACET_MBOX',  &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4488,8 +4477,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_ACET_DIRECT',&
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4503,8 +4491,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_APIN',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4518,8 +4505,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_BPIN',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4533,8 +4519,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_SABI',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4548,8 +4533,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_MYRC',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4563,8 +4547,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_CARE',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4578,8 +4561,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_OCIM',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4593,8 +4575,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_OMON',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4608,8 +4589,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_MONX',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4623,8 +4603,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_FARN',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4638,8 +4617,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_BCAR',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4653,8 +4631,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_OSQT',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4668,8 +4645,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_MBOX',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4683,8 +4659,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_FAXX',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4698,8 +4673,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                         &
-                       HcoState  = HcoState,              &
+    CALL Diagn_Create( HcoState  = HcoState,              &
                        cName     = 'InvMEGAN_AAXX',       &
                        ExtNr     = ExtNr,                 &
                        Cat       = -1,                    &
@@ -4717,23 +4691,23 @@ CONTAINS
     ! Initialize internal diagnostics. These are the restart variables
     ! that can be used for a 'warm' start of MEGAN.
     !=================================================================
-    CALL HCO_RestartDefine ( am_I_Root, HcoState, 'LAI_PREVDAY', &
+    CALL HCO_RestartDefine ( HcoState, 'LAI_PREVDAY', &
                              Inst%LAI_PREVDAY, '1', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_RestartDefine ( am_I_Root, HcoState, 'T_PREVDAY', &
+    CALL HCO_RestartDefine ( HcoState, 'T_PREVDAY', &
                              Inst%T_LAST24H,   'K', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_RestartDefine ( am_I_Root,HcoState, 'T_DAVG', &
+    CALL HCO_RestartDefine ( HcoState, 'T_DAVG', &
                              Inst%T_LASTXDAYS, 'K', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_RestartDefine ( am_I_Root,  HcoState, 'PARDR_DAVG', &
+    CALL HCO_RestartDefine (  HcoState, 'PARDR_DAVG', &
                              Inst%PARDR_LASTXDAYS, 'W/m2', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_RestartDefine ( am_I_Root, HcoState, 'PARDF_DAVG', &
+    CALL HCO_RestartDefine ( HcoState, 'PARDF_DAVG', &
                              Inst%PARDF_LASTXDAYS, 'W/m2', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -4779,14 +4753,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_MEGAN_FINAL ( am_I_Root, HcoState, ExtState, RC )
+  SUBROUTINE HCOX_MEGAN_FINAL ( HcoState, ExtState, RC )
 !
 ! !USES
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
     TYPE(Ext_State), POINTER        :: ExtState      ! Extension State obj
 !
@@ -4796,7 +4769,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Aug 2013 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4830,7 +4803,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4893,7 +4866,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4961,7 +4934,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
-!  See the Gitk browser for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

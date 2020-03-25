@@ -5,10 +5,16 @@ function(configureGCClassic)
     gc_pretty_print(VARIABLE OMP IS_BOOLEAN)
     if("${OMP}")
        find_package(OpenMP REQUIRED)
-       target_compile_options(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
-       target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
+       target_compile_options(GEOSChemBuildProperties
+		INTERFACE ${OpenMP_Fortran_FLAGS}
+       )
+       target_link_libraries(GEOSChemBuildProperties
+		INTERFACE ${OpenMP_Fortran_FLAGS}
+       )
     else()
-        target_compile_definitions(BaseTarget INTERFACE "NO_OMP")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "NO_OMP"
+        )
     endif()
 
     # Check that GEOS-Chem's version number matches the run directory's version
@@ -39,6 +45,47 @@ function(configureGCClassic)
         endif()
     endif()
 
+    # Get branch name in code repository, store in CMakeCache for debugging
+    macro(get_git_branch VAR)
+      execute_process(
+        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse --abbrev-ref HEAD
+        OUTPUT_VARIABLE ${VAR}
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+    endmacro()
+    get_git_branch(CODE_BRANCH)
+    set(GIT_BRANCH ${CODE_BRANCH} CACHE STRING "Current branch in code repo")
+
+    # Get last commit name from code repository, store in CMakeCache for debug
+    macro(get_git_commit VAR)
+      execute_process(
+        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%s"
+        OUTPUT_VARIABLE ${VAR}
+	)
+    endmacro()
+    get_git_commit(LAST_COMMIT)
+    set(GIT_COMMIT ${LAST_COMMIT} CACHE STRING "Last commit in Git repo")
+
+    # Get last commit hash from code repository, store in CMakeCache for debug
+    macro(get_git_commit_hash VAR)
+      execute_process(
+        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%h"
+        OUTPUT_VARIABLE ${VAR}
+	)
+    endmacro()
+    get_git_commit_hash(COMMIT_HASH)
+    set(GIT_COMMIT_HASH ${COMMIT_HASH} CACHE STRING "Last commit hash in Git repo")
+
+    # Get last commit date from code repository, store in CMakeCache for debug
+    macro(get_git_commit_date VAR)
+      execute_process(
+        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%cd"
+        OUTPUT_VARIABLE ${VAR}
+	)
+    endmacro()
+    get_git_commit_date(COMMIT_DATE)
+    set(GIT_COMMIT_DATE ${COMMIT_DATE} CACHE STRING "Date of last Git commit")
+    
     # Configure the build based on the run directory. Propagate the configuration variables.
     # Define a macro for inspecting the run directory. Inspecting the run
     # directory is how we determine which compiler definitions need to be set.
@@ -56,16 +103,29 @@ function(configureGCClassic)
 
     # Determine the appropriate chemistry mechanism base on the simulation
     set(STANDARD_MECHS
-        "standard"      "benchmark"         "aciduptake"    "marinePOA"
-        "masscons"      "TransportTracers"  "POPs"          "CH4"
-        "tagCH4"        "tagO3"             "tagCO"
-        "tagHg"         "CO2"               "aerosol"
+        "standard"
+        "benchmark"
+        "aciduptake"
+        "marinePOA"
+        "TransportTracers"
+        "POPs"
+        "CH4"
+        "tagCH4"
+        "tagO3"
+        "tagCO"
+        "tagHg"
+        "CO2"
+        "aerosol"
         "Hg"
         "HEMCO" # doesn't matter for the HEMCO standalone
     )
     set(TROPCHEM_MECHS
-        "tropchem"      "RRTMG"     "TOMAS15"
-        "TOMAS40"       "APM"       "complexSOA"
+        "tropchem"
+        "RRTMG"
+        "TOMAS15"
+        "TOMAS40"
+        "APM"
+        "complexSOA"
     )
     set(SOA_SVPOA_MECHS
         "complexSOA_SVPOA"
@@ -87,13 +147,15 @@ function(configureGCClassic)
 
     # Definitions for specific run directories
     set(TOMAS FALSE)
-    if("${RUNDIR_SIM}" STREQUAL "masscons")
-        target_compile_definitions(BaseTarget INTERFACE MASSCONS)
-    elseif("${RUNDIR_SIM}" MATCHES "TOMAS15")
-        target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS15)
+    if("${RUNDIR_SIM}" MATCHES "TOMAS15")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE TOMAS TOMAS15
+	)
         set(TOMAS TRUE)
     elseif("${RUNDIR_SIM}" MATCHES "TOMAS40")
-        target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS40)
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE TOMAS TOMAS40
+	)
         set(TOMAS TRUE)
     endif()
 
@@ -118,27 +180,20 @@ function(configureGCClassic)
     set(BPCH_DIAG "${BPCH_DIAG_DEFAULT}" CACHE BOOL "Switch to enable GEOS-Chem's bpch diagnostics")
     gc_pretty_print(VARIABLE BPCH_DIAG IS_BOOLEAN)
     if(${BPCH_DIAG})
-        target_compile_definitions(BaseTarget INTERFACE "BPCH_DIAG")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "BPCH_DIAG"
+	)
     endif()
 
     # Always set MODEL_CLASSIC when building GEOS-Chem Classic
-    target_compile_definitions(BaseTarget INTERFACE MODEL_CLASSIC)
+    target_compile_definitions(GEOSChemBuildProperties
+	INTERFACE MODEL_CLASSIC
+    )
 
     # Always set USE_REAL8. See https://github.com/geoschem/geos-chem/issues/43.
-    target_compile_definitions(BaseTarget INTERFACE "USE_REAL8")
-
-    # Build with timers?
-    if("${RUNDIR_SIM}" STREQUAL "benchmark")
-        set(TIMERS_DEFAULT "ON")
-    else()
-        set(TIMERS_DEFAULT "OFF")
-    endif()
-    set(TIMERS "${TIMERS_DEFAULT}" CACHE BOOL "Switch to enable GEOS-Chem's timers")
-    gc_pretty_print(VARIABLE TIMERS IS_BOOLEAN)
-    # Set USE_TIMERS
-    if(${TIMERS})
-        target_compile_definitions(BaseTarget INTERFACE "USE_TIMERS")
-    endif()
+    target_compile_definitions(GEOSChemBuildProperties
+	INTERFACE "USE_REAL8"
+    )
 
     gc_pretty_print(SECTION "Components")
 
@@ -151,7 +206,9 @@ function(configureGCClassic)
     set(APM "${APM_DEFAULT}" CACHE BOOL "Switch to build APM as a component of GEOS-Chem")
     gc_pretty_print(VARIABLE APM IS_BOOLEAN)
     if(${APM})
-        target_compile_definitions(BaseTarget INTERFACE "APM")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "APM"
+	)
     endif()
 
     # Build RRTMG?
@@ -163,14 +220,18 @@ function(configureGCClassic)
     set(RRTMG "${RRTMG_DEFAULT}" CACHE BOOL "Switch to build RRTMG as a component of GEOS-Chem")
     gc_pretty_print(VARIABLE RRTMG IS_BOOLEAN)
     if(${RRTMG})
-        target_compile_definitions(BaseTarget INTERFACE "RRTMG")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "RRTMG"
+	)
     endif()
 
     # Build GTMM?
     set(GTMM "OFF" CACHE BOOL "Switch to build GTMM as a component of GEOS-Chem")
     gc_pretty_print(VARIABLE GTMM IS_BOOLEAN)
     if(${GTMM})
-        target_compile_definitions(BaseTarget INTERFACE "GTMM_Hg")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "GTMM_Hg"
+	)
     endif()
 
     # Build hemco_standalone?
@@ -186,7 +247,9 @@ function(configureGCClassic)
     set(LUO_WETDEP "OFF" CACHE BOOL "Switch to build the Luo et al (2019) wetdep scheme into GEOS-Chem")
     gc_pretty_print(VARIABLE LUO_WETDEP IS_BOOLEAN)
     if(${LUO_WETDEP})
-        target_compile_definitions(BaseTarget INTERFACE "LUO_WETDEP")
+        target_compile_definitions(GEOSChemBuildProperties
+		INTERFACE "LUO_WETDEP"
+	)
     endif()
 
     # Determine which executables should be built

@@ -212,7 +212,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_LightNOx_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_LightNOx_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -220,7 +220,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root
     TYPE(Ext_State), POINTER        :: ExtState   ! Module options
     TYPE(HCO_State), POINTER        :: HcoState   ! HEMCO options
 !
@@ -284,7 +283,7 @@ CONTAINS
     ENDIF
 
     ! Update lightnox NOx emissions (fill SLBASE)
-    CALL LIGHTNOX ( am_I_Root, HcoState, ExtState, Inst, RC )
+    CALL LIGHTNOX( HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=================================================================
@@ -293,7 +292,7 @@ CONTAINS
     IF ( Inst%IDTNO > 0 ) THEN
 
        ! Add flux to emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%SLBASE, Inst%IDTNO, &
+       CALL HCO_EmisAdd( HcoState, Inst%SLBASE, Inst%IDTNO, &
                          RC, ExtNr=Inst%ExtNr)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: SLBASE', RC )
@@ -321,7 +320,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE LightNOx( am_I_Root, HcoState, ExtState, Inst, RC )
+  SUBROUTINE LightNOx( HcoState, ExtState, Inst, RC )
 !
 ! !USES:
 !
@@ -334,7 +333,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State), POINTER        :: HcoState  ! Output obj
     TYPE(Ext_State), POINTER        :: ExtState    ! Module options
     TYPE(MyInst   ), POINTER        :: Inst
@@ -427,7 +425,7 @@ CONTAINS
     LMAX   = HcoState%NZ - 1
 
     ! Get current month (to be passed to LIGHTDIST)
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM=MONTH, RC=RC)
+    CALL HcoClock_Get( HcoState%Clock, cMM=MONTH, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !=================================================================
@@ -673,8 +671,7 @@ CONTAINS
     ENDIF
 
     ! Eventually apply spatiotemporal scale factors
-    CALL HCOX_SCALE ( am_I_Root, HcoState, Inst%SLBASE, &
-                      TRIM(Inst%SpcScalFldNme(1)), RC )
+    CALL HCOX_SCALE( HcoState, Inst%SLBASE, TRIM(Inst%SpcScalFldNme(1)), RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -892,7 +889,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_LightNOx_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_LightNOx_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -907,7 +904,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState   ! Hemco options
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState     ! Module options
@@ -1007,7 +1003,7 @@ CONTAINS
     ENDIF
 
     ! Write file status to stdout and the HEMCO log
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        WRITE( 6,   300 ) TRIM( FileMsg ), TRIM( FileName )
        WRITE( MSG, 300 ) TRIM( FileMsg ), TRIM( FileName )
        CALL HCO_MSG( HcoState%Config%Err, MSG )
@@ -1074,7 +1070,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Echo info about this extension
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use lightning NOx emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        WRITE(MSG,*) ' - Use species ', TRIM(SpcNames(1)), '->', Inst%IDTNO
@@ -1176,8 +1172,7 @@ CONTAINS
     !=======================================================================
     ! Create diagnostics for lightning flash rates and convective cloud height
     !=======================================================================
-    CALL Diagn_Create( am_I_Root,                                   &
-                       HcoState  = HcoState,                        &
+    CALL Diagn_Create( HcoState  = HcoState,                        &
                        cName     = 'LightningFlashRate_Total' ,     &
                        ExtNr     = ExtNr,                           &
                        Cat       = -1,                              &
@@ -1190,8 +1185,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                                   &
-                       HcoState  = HcoState,                        &
+    CALL Diagn_Create( HcoState  = HcoState,                        &
                        cName     = 'LightningFlashRate_IntraCloud', &
                        ExtNr     = ExtNr,                           &
                        Cat       = -1,                              &
@@ -1204,8 +1198,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                                    &
-                       HcoState  = HcoState,                         &
+    CALL Diagn_Create( HcoState  = HcoState,                         &
                        cName     = 'LightningFlashRate_CloudGround', &
                        ExtNr     = ExtNr,                            &
                        Cat       = -1,                               &
@@ -1218,8 +1211,7 @@ CONTAINS
                        RC        = RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL Diagn_Create( am_I_Root,                                    &
-                       HcoState  = HcoState,                         &
+    CALL Diagn_Create( HcoState  = HcoState,                         &
                        cName     = 'ConvectiveCloudTopHeight',       &
                        ExtNr     = ExtNr,                            &
                        Cat       = -1,                               &

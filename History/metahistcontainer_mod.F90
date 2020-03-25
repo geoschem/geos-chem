@@ -86,6 +86,7 @@ MODULE MetaHistContainer_Mod
 
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -106,16 +107,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MetaHistContainer_AddNew( am_I_Root, Node, Container, RC )
+  SUBROUTINE MetaHistContainer_AddNew( Input_Opt, Node, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistContainer_Mod, ONLY : HistContainer
+    USE Input_Opt_Mod,     ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,                 INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    TYPE(OptInput),          INTENT(IN)  :: Input_Opt ! Input Options object
     TYPE(HistContainer),     POINTER     :: Container ! HISTORY CONTAINER
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -128,6 +130,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,7 +158,7 @@ CONTAINS
        ! If not, then create a new METAHISTORY CONTAINER (named "Node"),
        ! and set it at the head of a new linked list
        !--------------------------------------------------------------------
-       CALL MetaHistContainer_Create( am_I_Root, Node, Container, RC )
+       CALL MetaHistContainer_Create( Input_Opt, Node, Container, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not create "Node" as the head node of a list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -168,7 +171,7 @@ CONTAINS
        ! Otherwise, create a new METAHISTORY CONTAINER (named "Node"),
        ! and append it to the list, immediately following the head node
        !--------------------------------------------------------------------
-       CALL MetaHistContainer_Insert( am_I_Root, Node, Container, RC )
+       CALL MetaHistContainer_Insert( Input_Opt, Node, Container, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not insert "Node" into an existing linked list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -192,16 +195,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MetaHistContainer_Create( am_I_Root, Node, Container, RC )
+  SUBROUTINE MetaHistContainer_Create( Input_Opt, Node, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistContainer_Mod, ONLY : HistContainer
+    USE Input_Opt_Mod,     ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,                 INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    TYPE(OptInput),          INTENT(IN)  :: Input_Opt ! Input Options object
     TYPE(HistContainer),     POINTER     :: Container ! HISTORY CONTAINER
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -218,6 +222,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -285,16 +290,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MetaHistContainer_Insert( am_I_Root, Node, Container, RC )
+  SUBROUTINE MetaHistContainer_Insert( Input_Opt, Node, Container, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistContainer_Mod, ONLY : HistContainer
+    USE Input_Opt_Mod,     ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,                 INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    TYPE(OptInput),          INTENT(IN)  :: Input_Opt ! Input Options object
     TYPE(HistContainer),     POINTER     :: Container ! HISTORY CONTAINER
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -311,7 +317,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
-!  06 Oct 2017 - R. Yantosca - Now insert new node at the head of the list
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -399,6 +405,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -458,16 +465,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MetaHistContainer_Print( am_I_Root, List, RC )
+  SUBROUTINE MetaHistContainer_Print( Input_Opt, List, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistContainer_Mod, ONLY : HistContainer, HistContainer_Print
+    USE Input_Opt_Mod,     ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,                 INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+    TYPE(OptInput),          INTENT(IN)  :: Input_Opt ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -481,6 +489,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -506,7 +515,7 @@ CONTAINS
     ! Print information about each METAHISTORY CONTAINER (aka node)
     ! of the linked list, only if we are on the root CPU.
     !=======================================================================
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
 
        ! Point CURRENT to the head node of the list
        Current => List
@@ -515,7 +524,7 @@ CONTAINS
        DO WHILE( ASSOCIATED( Current ) )
 
           ! Print info about the history container corresponding to this node
-          CALL HistContainer_Print( am_I_Root, Current%Container, RC )
+          CALL HistContainer_Print( Input_Opt, Current%Container, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Could not print info for "Current%Container"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -546,16 +555,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MetaHistContainer_Destroy( am_I_Root, List, RC )
+  SUBROUTINE MetaHistContainer_Destroy( List, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE HistContainer_Mod, ONLY : HistContainer, HistContainer_Destroy
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,                 INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -568,6 +573,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -605,7 +611,7 @@ CONTAINS
 
        ! Destroy the HISTORY CONTAINER contained within
        ! this METAHISTORY CONTAINER
-       CALL HistContainer_Destroy( am_I_Root, Current%Container, RC )
+       CALL HistContainer_Destroy( Current%Container, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = &
             'Cannot deallocate the "Current%Container" HISTORY CONTAINER!'

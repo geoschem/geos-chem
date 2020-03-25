@@ -161,7 +161,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOIO_DataRead( am_I_Root, HcoState, Lct, RC )
+  SUBROUTINE HCOIO_DataRead( HcoState, Lct, RC )
 !
 ! !USES:
 !
@@ -173,7 +173,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState
     TYPE(ListCont),   POINTER        :: Lct
 !
@@ -219,7 +218,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Call ESMF I/O routine.
-    CALL HCOIO_READ_ESMF( am_I_Root, HcoState, Lct, RC )
+    CALL HCOIO_READ_ESMF( HcoState, Lct, RC )
 
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN
@@ -255,7 +254,7 @@ CONTAINS
     ENDIF
 
     ! Call standard I/O routines
-    CALL HCOIO_READ_STD( am_I_Root, HcoState, Lct, RC )
+    CALL HCOIO_READ_STD( HcoState, Lct, RC )
 
     ! Trap potential errors
     IF ( RC /= HCO_SUCCESS ) THEN

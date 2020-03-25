@@ -38,8 +38,7 @@ MODULE HCO_EMISLIST_MOD
 !
 ! !REVISION HISTORY:
 !  04 Dec 2012 - C. Keller   - Initialization
-!  08 Jul 2014 - R. Yantosca - Now use F90 free-format indentation
-!  08 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -67,7 +66,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EmisList_Add( am_I_Root, Dct, HcoState, RC )
+  SUBROUTINE EmisList_Add( Dct, HcoState, RC )
 !
 ! !USES:
 !
@@ -76,7 +75,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root  ! Root CPU?
     TYPE(DataCont),    POINTER       :: Dct        ! Data cont.
     TYPE(HCO_State),   POINTER       :: HcoState   ! HEMCO state
 !
@@ -85,11 +83,8 @@ CONTAINS
     INTEGER,           INTENT(INOUT) :: RC         ! Return code
 !
 ! !REVISION HISTORY:
-!  04 Dec 2012 - C. Keller - Initialization
-!  02 Feb 2015 - C. Keller - Moved tIDx_Assign call to hco_readlist_mod
-!                            so that this module can also be used by
-!                            hco_clock_mod.
-!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  04 Dec 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,7 +136,7 @@ CONTAINS
     ! Add the new container to EmisList. The container will be placed
     ! according to data type, species ID, hierarchy, and category.
     ! ----------------------------------------------------------------
-    CALL Add2EmisList ( am_I_Root, HcoState, Lct, RC )
+    CALL Add2EmisList ( HcoState, Lct, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ----------------------------------------------------------------
@@ -173,11 +168,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Add2EmisList( am_I_Root, HcoState, Lct, RC )
+  SUBROUTINE Add2EmisList( HcoState, Lct, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root
     TYPE(HCO_State), POINTER       :: HcoState   ! HEMCO state
     TYPE(ListCont),  POINTER       :: Lct
 !
@@ -187,6 +181,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Dec 2012 - C. Keller - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -347,7 +342,7 @@ CONTAINS
 !!\\
 !! !INTERFACE:
 !!
-!  SUBROUTINE EmisList_Update ( am_I_Root, HcoState, ReadList, RC )
+!  SUBROUTINE EmisList_Update ( HcoState, ReadList, RC )
 !!
 !! !USES:
 !!
@@ -355,7 +350,6 @@ CONTAINS
 !!
 !! !INPUT PARAMETERS:
 !!
-!    LOGICAL,         INTENT(IN   ) :: am_I_Root  ! Root CPU?
 !    TYPE(HCO_State), POINTER       :: HcoState   ! Hemco state object
 !    TYPE(ListCont),  POINTER       :: ReadList   ! reading list
 !!
@@ -365,6 +359,7 @@ CONTAINS
 !!
 !! !REVISION HISTORY:
 !!  20 Apr 2013 - C. Keller - Initial version
+!!  See https://github.com/geoschem/geos-chem for complete history
 !!EOP
 !!------------------------------------------------------------------------------
 !!BOC
@@ -395,7 +390,7 @@ CONTAINS
 !       IF ( FileData_ArrIsDefined(TmpLct%Dct%Dta) ) THEN
 !
 !          ! Pass container to EmisList
-!          CALL EmisList_Pass( am_I_Root, HcoState, TmpLct, RC )
+!          CALL EmisList_Pass( HcoState, TmpLct, RC )
 !          IF ( RC /= HCO_SUCCESS ) RETURN
 !       ENDIF
 !
@@ -424,7 +419,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EmisList_Pass( am_I_Root, HcoState, Lct, RC )
+  SUBROUTINE EmisList_Pass( HcoState, Lct, RC )
 !
 ! !USES:
 !
@@ -433,7 +428,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root
     TYPE(HCO_State),  POINTER       :: HcoState
     TYPE(ListCont),   POINTER       :: Lct        ! list container
 !
@@ -443,13 +437,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  28 Mar 2013 - C. Keller - Initial version
-!  22 Dec 2014 - C. Keller - Bug fix: pass container to EmisList if
-!                            cID is not targetID but data cannot be
-!                            added to targetID because it's not the
-!                            home container.
-!  23 Dec 2014 - C. Keller - Don't cleanup container anymore. This is
-!                            now handled in ReadList_Read.
-!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -667,7 +655,7 @@ CONTAINS
     ! second step of the ReadList_Read call.
     ! ----------------------------------------------------------------
     IF ( Add ) THEN
-       CALL EmisList_Add( am_I_Root, Lct%Dct, HcoState, RC )
+       CALL EmisList_Add( Lct%Dct, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
@@ -701,7 +689,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPtr_3D( am_I_Root, HcoState, DctName, Ptr3D, &
+  SUBROUTINE HCO_GetPtr_3D( HcoState, DctName, Ptr3D, &
                             RC, TIDX, FOUND, FILLED )
 !
 ! !USES:
@@ -710,7 +698,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )         :: am_I_Root      ! root CPU?
     TYPE(HCO_State),  POINTER               :: HcoState       ! HEMCO state obj
     CHARACTER(LEN=*), INTENT(IN   )         :: DctName        ! container name
     INTEGER,          INTENT(IN), OPTIONAL  :: TIDX           ! time index
@@ -726,9 +713,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)         :: RC             ! Success/fail
 !
 ! !REVISION HISTORY:
-!  04 Sep 2013 - C. Keller    - Initialization
-!  19 May 2015 - C. Keller    - Added argument FILLED
-!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  04 Sep 2013 - C. Keller - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -828,7 +814,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_GetPtr_2D( am_I_Root, HcoState, DctName, Ptr2D, &
+  SUBROUTINE HCO_GetPtr_2D( HcoState, DctName, Ptr2D, &
                             RC, TIDX, FOUND, FILLED )
 !
 ! !USES:
@@ -837,7 +823,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )         :: am_I_Root   ! root CPU?
     TYPE(HCO_State),  POINTER               :: HcoState    ! HEMCO state obj
     CHARACTER(LEN=*), INTENT(IN   )         :: DctName     ! container name
     INTEGER,          INTENT(IN), OPTIONAL  :: TIDX        ! time index
@@ -853,9 +838,8 @@ CONTAINS
     INTEGER,          INTENT(INOUT)         :: RC          ! Success/fail
 !
 ! !REVISION HISTORY:
-!  04 Sep 2013 - C. Keller    - Initialization
-!  19 May 2015 - C. Keller    - Added argument FILLED
-!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  04 Sep 2013 - C. Keller - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

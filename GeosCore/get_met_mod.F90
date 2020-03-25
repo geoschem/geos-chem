@@ -17,7 +17,6 @@ MODULE Get_Met_Mod
 ! !USES:
 !
   USE Precision_Mod    ! For GEOS-Chem Precision (fp)
-  USE CMN_SIZE_MOD     ! Size parameters
 
   IMPLICIT NONE
 !
@@ -31,6 +30,7 @@ MODULE Get_Met_Mod
 !
 ! !REVISION HISTORY:
 !  04 Mar 2016 - J.W.Zhuang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -72,7 +72,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Mar 2016 - J.W.Zhuang  - Initial version
-!  03 Oct 2018 - M. Sulprizio- Add time index as input argument
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,7 +82,6 @@ CONTAINS
     ! Scalars
     INTEGER :: T
     LOGICAL :: FND
-    LOGICAL :: am_I_Root   ! Are we on the root CPU?
     INTEGER :: RC          ! Success or failure?
 
     ! Pointers
@@ -106,8 +105,7 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr2D, RC, TIDX=T, &
-                     FOUND=FND )
+    CALL HCO_GetPtr( HcoState, v_name, Ptr2D, RC, TIDX=T, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
@@ -160,7 +158,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Mar 2016 - J.W.Zhuang  - Initial version
-!  03 Oct 2018 - M. Sulprizio- Add time index as input argument
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,7 +168,6 @@ CONTAINS
     ! Scalars
     INTEGER :: T
     LOGICAL :: FND
-    LOGICAL :: am_I_Root   ! Are we on the root CPU?
     INTEGER :: RC          ! Success or failure?
 
     ! Pointers
@@ -194,13 +191,12 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, TIDX=T, &
-                     FOUND=FND )
+    CALL HCO_GetPtr( HcoState, v_name, Ptr3D, RC, TIDX=T, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
        CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), &
-                         'GET_MET_3D(get_met_mod.F90)' )
+                         'GET_MET_3D (get_met_mod.F90)' )
     ENDIF
 
     ! transfer to output array
@@ -248,7 +244,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Mar 2016 - J.W.Zhuang  - Initial version
-!  03 Oct 2018 - M. Sulprizio- Add time index as input argument
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,7 +254,6 @@ CONTAINS
     ! Scalars
     INTEGER :: T
     LOGICAL :: FND
-    LOGICAL :: am_I_Root   ! Are we on the root CPU?
     INTEGER :: RC          ! Success or failure?
 
     ! Pointers
@@ -282,13 +277,12 @@ CONTAINS
     ENDIF
 
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, TIDX=T, &
-                     FOUND=FND )
+    CALL HCO_GetPtr( HcoState, v_name, Ptr3D, RC, TIDX=T, FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
        CALL ERROR_STOP (trim('Could not find '//v_name//' in HEMCO data list!'), &
-                         'GET_MET_3De(get_met_mod.F90)' )
+                         'GET_MET_3De (get_met_mod.F90)' )
     ENDIF
 
     ! transfer to output array

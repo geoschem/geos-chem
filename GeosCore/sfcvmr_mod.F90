@@ -50,7 +50,7 @@ MODULE SfcVmr_Mod
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version.
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -113,7 +113,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2019 - C. Keller   - Updated version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,8 +163,7 @@ CONTAINS
 
        ! Check if file exists
        FldName = TRIM( Prefix ) // TRIM( SpcInfo%Name )
-       CALL HCO_EvalFld( Input_Opt%amIRoot, HcoState, TRIM(FldName),         &
-                         Arr2D,             RC,       FOUND=FOUND           )
+       CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find field : ' // TRIM( FldName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -263,7 +262,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -319,8 +318,7 @@ CONTAINS
     DO WHILE( ASSOCIATED( iObj ) )
 
        ! Get concentration for this species
-       CALL HCO_EvalFld( Input_Opt%amIRoot,  HcoState,                       &
-                         Trim(iObj%FldName), Arr2D,    RC                   )
+       CALL HCO_EvalFld( HcoState, Trim(iObj%FldName), Arr2D, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get surface VMR for species: '//               &
                    TRIM( iObj%FldName ) // '!'
@@ -379,7 +377,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Aug 2019 - C. Keller   - Updated version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

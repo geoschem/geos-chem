@@ -22,7 +22,6 @@ MODULE Regrid_A2A_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: Do_Regrid_A2A
   PUBLIC  :: Map_A2A
   PUBLIC  :: Init_Map_A2A
   PUBLIC  :: Cleanup_Map_A2A
@@ -37,7 +36,6 @@ MODULE Regrid_A2A_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Read_Input_Grid
   PRIVATE :: Map_A2A_R8R8
   PRIVATE :: Map_A2A_R4R4
   PRIVATE :: Map_A2A_R4R8
@@ -53,27 +51,7 @@ MODULE Regrid_A2A_Mod
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - M. Cooper   - Initial version
-!  03 Apr 2012 - M. Payer    - Now use functions GET_AREA_CM2(I,J,L),
-!                              GET_YEDGE(I,J,L) and GET_YSIN(I,J,L) from the
-!                              new grid_mod.F90
-!  22 May 2012 - L. Murray   - Implemented several bug fixes
-!  23 Aug 2012 - R. Yantosca - Add capability for starting from hi-res grids
-!                              (generic 0.5x0.5, generic 0.25x0.25, etc.)
-!  23 Aug 2012 - R. Yantosca - Add subroutine READ_INPUT_GRID, which reads the
-!                              grid parameters (lon & lat edges) w/ netCDF
-!  27 Aug 2012 - R. Yantosca - Now parallelize key DO loops
-!  19 May 2014 - C. Keller   - MAP_A2A now accepts single and double precision
-!                              input/output.
-!  14 Jul 2014 - R. Yantosca - Now save IIPAR, JJPAR, OUTLON, OUTSIN, OUTAREA
-!                              as module variables.  This helps us remove a
-!                              dependency for the HEMCO emissions package.
-!                              input/output.
-!  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
-!  11 Feb 2015 - C. Keller   - Add capability for regridding local grids onto
-!                              global grids. To do so, xmap now only operates
-!                              within the longitude range spanned by the input
-!                              domain.
-! 08 Apr 2017 - C. Keller    - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,142 +92,6 @@ MODULE Regrid_A2A_Mod
   REAL*8, PARAMETER   :: miss_r8 = 0.0d0
 
 CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Do_Regrid_A2A
-!
-! !DESCRIPTION: Subroutine DO\_REGRID\_A2A regrids 2-D data in the
-!  horizontal direction.  This is a wrapper for the MAP\_A2A routine.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DO_REGRID_A2A( FILENAME, IM,      JM,              &
-                            INGRID,   OUTGRID, IS_MASS, netCDF )
-!
-! !INPUT PARAMETERS:
-!
-    ! Name of file with lon and lat edge information on the INPUT GRID
-    CHARACTER(LEN=*), INTENT(IN)    :: FILENAME
-
-    ! Number of lon centers and lat centers on the INPUT GRID
-    INTEGER,          INTENT(IN)    :: IM
-    INTEGER,          INTENT(IN)    :: JM
-
-    ! Data array on the input grid
-    REAL(fp),           INTENT(IN)  :: INGRID(IM,JM)
-
-    ! IS_MASS=0 if data is units of concentration (molec/cm2/s, unitless, etc.)
-    ! IS_MASS=1 if data is units of mass (kg/yr, etc.); we will need to convert
-    !           INGRID to per unit area
-    INTEGER,          INTENT(IN)    :: IS_MASS
-
-    ! Read from netCDF file?  (needed for debugging, will disappear later)
-    LOGICAL, OPTIONAL,INTENT(IN)    :: netCDF
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Data array on the OUTPUT GRID
-    REAL(fp),           INTENT(OUT) :: OUTGRID(OUTNX,OUTNY)
-!
-! !REMARKS:
-!  The netCDF optional argument is now obsolete, because we now always read
-!  the grid definitions from netCDF files instead of ASCII.  Keep it for
-!  the time being in order to avoid having to change many lines of code
-!  everywhere.
-!
-! !REVISION HISTORY:
-!  13 Mar 2012 - M. Cooper   - Initial version
-!  22 May 2012 - L. Murray   - Bug fix: INSIN should be allocated w/ JM+1.
-!  22 May 2012 - R. Yantosca - Updated comments, cosmetic changes
-!  25 May 2012 - R. Yantosca - Bug fix: declare the INGRID argument as
-!                              INTENT(IN) to preserve the values of INGRID
-!                              in the calling routine
-!  06 Aug 2012 - R. Yantosca - Now make IU_REGRID a local variable
-!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  23 Aug 2012 - R. Yantosca - Now use f10.4 format for hi-res grids
-!  23 Aug 2012 - R. Yantosca - Now can read grid info from netCDF files
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  03 Jan 2013 - M. Payer    - Renamed PERAREA to IS_MASS to describe parameter
-!                              more clearly
-!  15 Jul 2014 - R. Yantosca - Now use global module variables
-!  15 Jul 2014 - R. Yantosca - Remove reading from ASCII input files
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER           :: I,        J
-    INTEGER           :: IOS,      M
-    INTEGER           :: IU_REGRID
-    REAL(fp)          :: INAREA,   RLAT
-    CHARACTER(LEN=15) :: HEADER1
-    CHARACTER(LEN=20) :: FMT_LAT,  FMT_LON, FMT_LEN
-    LOGICAL           :: USE_NETCDF
-
-    ! Arrays
-    REAL(fp)          :: INLON  (IM+1    )  ! Lon edges        on INPUT GRID
-    REAL(fp)          :: INSIN  (    JM+1)  ! SIN( lat edges ) on INPUT GRID
-    REAL(fp)          :: IN_GRID(IM, JM  )  ! Shadow variable for INGRID
-
-    !======================================================================
-    ! Initialization
-    !======================================================================
-
-    ! Read the grid specifications from a netCDF file
-    CALL READ_INPUT_GRID( IM, JM, FILENAME, INLON, INSIN )
-
-    !======================================================================
-    ! Regridding
-    !======================================================================
-
-    ! Copy the input argument INGRID to a local shadow variable,
-    ! so that we can preserve the value of INGRID in the calling routine
-    IN_GRID = INGRID
-
-    ! Convert input to per area units if necessary
-    IF ( IS_MASS == 1 ) THEN
-
-       !$OMP PARALLEL DO                   &
-       !$OMP DEFAULT( SHARED             ) &
-       !$OMP PRIVATE( I, J, RLAT, INAREA )
-       DO J = 1, JM
-          RLAT   = INSIN(J+1) - INSIN(J)
-          INAREA = (2e+0_fp * PI * Re * RLAT * 1e+4_fp * Re) / DBLE(IM)
-          DO I = 1, IM
-             IN_GRID(I,J) = IN_GRID(I,J) / INAREA
-          ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-    ENDIF
-
-    ! Call MAP_A2A to do the regridding
-    CALL MAP_A2A( IM,    JM,    INLON,  INSIN,  IN_GRID,        &
-                  OUTNX, OUTNY, OUTLON, OUTSIN, OUTGRID, 0, 0 )
-
-    ! Convert back from "per area" if necessary
-    IF ( IS_MASS == 1 ) THEN
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J   )
-       DO J = 1, OUTNY
-       DO I = 1, OUTNX
-          OUTGRID(I,J) = OUTGRID(I,J) * OUTAREA(I,J)
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-    ENDIF
-
-  END SUBROUTINE Do_Regrid_A2A
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -309,11 +151,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
-!      Also updated comments. (bmy, 9/21/00)
-!  21 Sep 2000 - R. Yantosca - Initial version
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  02 Mar 2015 - C. Keller   - Added optional argument missval
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -445,11 +283,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
-!      Also updated comments. (bmy, 9/21/00)
-!  21 Sep 2000 - R. Yantosca - Initial version
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  02 Mar 2015 - C. Keller   - Added optional argument missval
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -582,11 +416,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
-!      Also updated comments. (bmy, 9/21/00)
-!  21 Sep 2000 - R. Yantosca - Initial version
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  02 Mar 2015 - C. Keller   - Added optional argument missval
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -719,11 +549,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
-!      Also updated comments. (bmy, 9/21/00)
-!  21 Sep 2000 - R. Yantosca - Initial version
-!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
-!  02 Mar 2015 - C. Keller   - Added optional argument missval
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -864,12 +690,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
-!                                values in nested grids
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1063,12 +884,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
-!                                values in nested grids
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1261,12 +1077,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
-!                                values in nested grids
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1460,12 +1271,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  31 Mar 2014 - C. Keller     - Initialize qsum to zero to avoid undefined
-!                                values in nested grids
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1652,16 +1458,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
-!                                to valid range n1:(n2-1). Do not initialize q2
-!                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers.
-!  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
-!  21 Aug 2018 - H.P. Lin      - Return missing value if no overlap between lon1, lon2
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1955,16 +1752,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
-!                                to valid range n1:(n2-1). Do not initialize q2
-!                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers.
-!  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
-!  21 Aug 2018 - H.P. Lin      - Return missing value if no overlap between lon1, lon2
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2259,14 +2047,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
-!                                to valid range n1:(n2-1). Do not initialize q2
-!                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers.
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2550,15 +2331,7 @@ CONTAINS
 !
 ! !REVISION HISTORY
 !  06 Mar 2012 - P. Kasibhatla - Initial version
-!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
-!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL(fp) to better
-!                                ensure numerical stability
-!  15 May 2015 - C. Keller     - Now initialize qtmp to zero, and set q2 pointer
-!                                to valid range n1:(n2-1). Do not initialize q2
-!                                to zero after pointer assignment. This seems to
-!                                cause problems with some compilers.
-!  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
-!  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2788,106 +2561,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Read_Input_Grid
-!
-! !DESCRIPTION: Routine to read variables and attributes from a netCDF
-!  file.  This routine was automatically generated by the Perl script
-!  NcdfUtilities/perl/ncCodeRead.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Read_Input_Grid( IM, JM, fileName, lon_edges, lat_sines )
-!
-! !USES:
-!
-#if defined(ESMF_)
-    USE ESMF
-    USE MAPL_Mod
-#else
-    ! Modules for netCDF read
-    USE m_netcdf_io_open
-    USE m_netcdf_io_get_dimlen
-    USE m_netcdf_io_read
-    USE m_netcdf_io_readattr
-    USE m_netcdf_io_close
-#endif
-
-    IMPLICIT NONE
-
-#if defined(ESMF_)
-#   include "MAPL_Generic.h"
-#else
-#   include "netcdf.inc"
-#endif
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,          INTENT(IN)  :: IM                ! # of longitudes
-    INTEGER,          INTENT(IN)  :: JM                ! # of latitudes
-    CHARACTER(LEN=*), INTENT(IN)  :: fileName          ! File w/ grid info
-!
-! !OUTPUT PARAMETERS:
-!
-    REAL(fp),           INTENT(OUT) :: lon_edges(IM+1)   ! Lon edges [degrees]
-    REAL(fp),           INTENT(OUT) :: lat_sines(JM+1)   ! SIN( latitude edges )
-!
-! !REMARKS:
-!  Created with the ncCodeRead script of the NcdfUtilities package,
-!  with subsequent hand-editing.
-!
-! !REVISION HISTORY:
-!  23 Aug 2012 - R. Yantosca - Initial version
-!  26 Aug 2019 - C. Keller   - (Re)added ESMF_ wrapper
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: fId                          ! netCDF file ID
-
-    ! Arrays
-    INTEGER            :: st1d(1), ct1d(1)             ! netCDF start & count
-
-#if defined(ESMF_)
-    INTEGER            :: RC
-    __Iam__( 'Read_Input_Grid (regrid_a2a_mod.F90)' )
-
-    IF ( MAPL_am_I_Root() ) THEN
-       WRITE(*,*) 'Subroutine `Read_Input_Grid` currently not ESMF-ready!'
-    ENDIF
-    ASSERT_(.FALSE.)
-#else
-    !======================================================================
-    ! Read data from file
-    !======================================================================
-
-    ! Open file for reading
-    CALL Ncop_Rd( fId, TRIM( fileName ) )
-
-    ! Read lon_edges from file
-    st1d = (/ 1    /)
-    ct1d = (/ IM+1 /)
-    CALL NcRd( lon_edges, fId,  "lon_edges", st1d, ct1d )
-
-    ! Read lat_sines from file
-    st1d = (/ 1    /)
-    ct1d = (/ JM+1 /)
-    CALL NcRd( lat_sines, fId,  "lat_sines", st1d, ct1d )
-
-    ! Close netCDF file
-    CALL NcCl( fId )
-#endif
-
-  END SUBROUTINE Read_Input_Grid
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Init_Map_A2A
 !
 ! !DESCRIPTION: Subroutine Init\_Map\_A2A initializes all module variables.
@@ -2912,6 +2585,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2014 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2975,6 +2649,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  14 Jul 2014 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -115,7 +115,7 @@ MODULE GCKPP_HETRATES
 ! !PRIVATE DATA MEMBERS:
 !
   ! Scalars
-  INTEGER  :: NAERO
+  INTEGER  :: NAEROTYPE
   LOGICAL  :: NATSURFACE,   PSCBOX,    STRATBOX
   REAL(fp) :: TEMPK,        RELHUM,    SUNCOS,  SPC_SO4
   REAL(fp) :: SPC_NIT,      GAMMA_HO2, XTEMP,   XDENA
@@ -124,16 +124,18 @@ MODULE GCKPP_HETRATES
   REAL(fp) :: MW_HO2,       MW_NO2,    MW_NO3
   REAL(fp) :: MW_N2O5,      MW_GLYX,   MW_MGLY
   REAL(fp) :: MW_IEPOXA,    MW_IEPOXB, MW_IEPOXD
-  REAL(fp) :: MW_IMAE,      MW_LVOC,   MW_ISN1OG
-  REAL(fp) :: MW_ISOPND,    MW_ISOPNB, MW_MACRN
-  REAL(fp) :: MW_MVKN,      MW_R4N2,   MW_DHDN
+  REAL(fp) :: MW_HMML,      MW_LVOC,   MW_ICHE
+  REAL(fp) :: MW_ITHN,      MW_ITCN,   MW_IDN
+  REAL(fp) :: MW_MVKN,      MW_MCRHN,  MW_MCRHNB
+  REAL(fp) :: MW_R4N2,      MW_INPB,   MW_INPD
+  REAL(fp) :: MW_IHN1,      MW_IHN2,   MW_IHN3
+  REAL(fp) :: MW_IONITA,    MW_MONITA, MW_IHN4
   REAL(fp) :: MW_MONITS,    MW_MONITU, MW_HONIT
-  REAL(fp) :: MW_IONITA,    MW_MONITA, MW_BrNO3
   REAL(fp) :: MW_HOBr,      MW_HBr,    MW_ClNO3
   REAL(fp) :: MW_HOCl,      MW_HI,     MW_HOI
   REAL(fp) :: MW_I2O2,      MW_I2O3,   MW_I2O4
   REAL(fp) :: MW_IONO,      MW_IONO2,  MW_HCl
-  REAL(fp) :: MW_O3
+  REAL(fp) :: MW_O3,        MW_BrNO3,  MW_PYAC
   REAL(fp) :: H_K0_O3,      H_CR_O3,   H_O3_T
   REAL(fp) :: H_K0_HOBr,    H_CR_HOBr, H_HOBr_T
   REAL(fp) :: H_K0_HBr,     H_CR_HBr
@@ -144,7 +146,7 @@ MODULE GCKPP_HETRATES
   REAL(fp) :: XAREA(25), XRADI(25), XVOL(25), XH2O(25)
   REAL(fp) :: KHETI_SLA(11)
 
-!$OMP THREADPRIVATE( NAERO,        NATSURFACE, PSCBOX,   STRATBOX )
+!$OMP THREADPRIVATE( NAEROTYPE,        NATSURFACE, PSCBOX,   STRATBOX )
 !$OMP THREADPRIVATE( TEMPK,        RELHUM,     SPC_NIT,  SPC_SO4  )
 !$OMP THREADPRIVATE( GAMMA_HO2,    XTEMP,      XDENA,    QLIQ     )
 !$OMP THREADPRIVATE( QICE,         KHETI_SLA,  SUNCOS             )
@@ -346,7 +348,7 @@ MODULE GCKPP_HETRATES
       HBr_RTEMP     = 0.0_fp
       HOBr_RTEMP    = 0.0_fp
       KHETI_SLA     = 0.0_fp
-      NAERO         = State_Chm%nAero
+      NAEROTYPE         = State_Chm%nAeroType
       QICE          = 0.0_fp
       QLIQ          = 0.0_fp
       SPC_BrNO3     = 0.0_fp
@@ -420,23 +422,14 @@ MODULE GCKPP_HETRATES
          IND = Ind_( 'IEPOXD' )
          IF ( IND > 0 ) MW_IEPOXD = State_Chm%SpcData(IND)%Info%MW_g
 
-         IND = Ind_( 'IMAE' )
-         IF ( IND > 0 ) MW_IMAE   = State_Chm%SpcData(IND)%Info%MW_g
+         IND = Ind_( 'HMML' )
+         IF ( IND > 0 ) MW_HMML   = State_Chm%SpcData(IND)%Info%MW_g
 
+         IND = Ind_( 'PYAC' )
+         IF ( IND > 0 ) MW_PYAC   = State_Chm%SpcData(IND)%Info%MW_g
+	 
          IND = Ind_( 'LVOC' )
          IF ( IND > 0 ) MW_LVOC   = State_Chm%SpcData(IND)%Info%MW_g
-
-         IND = Ind_( 'ISN1OG' )
-         IF ( IND > 0 ) MW_ISN1OG = State_Chm%SpcData(IND)%Info%MW_g
-
-         IND = Ind_( 'ISOPND' )
-         IF ( IND > 0 ) MW_ISOPND = State_Chm%SpcData(IND)%Info%MW_g
-
-         IND = Ind_( 'ISOPNB' )
-         IF ( IND > 0 ) MW_ISOPNB = State_Chm%SpcData(IND)%Info%MW_g
-
-         IND = Ind_( 'MACRN' )
-         IF ( IND > 0 ) MW_MACRN  = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'MVKN' )
          IF ( IND > 0 ) MW_MVKN   = State_Chm%SpcData(IND)%Info%MW_g
@@ -444,8 +437,41 @@ MODULE GCKPP_HETRATES
          IND = Ind_( 'R4N2' )
          IF ( IND > 0 ) MW_R4N2   = State_Chm%SpcData(IND)%Info%MW_g
 
-         IND = Ind_( 'DHDN' )
-         IF ( IND > 0 ) MW_DHDN   = State_Chm%SpcData(IND)%Info%MW_g
+         IND = Ind_( 'ICHE' )
+         IF ( IND > 0 ) MW_ICHE   = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'ITHN' )
+         IF ( IND > 0 ) MW_ITHN   = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'ITCN' )
+         IF ( IND > 0 ) MW_ITCN   = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'IDN' )
+         IF ( IND > 0 ) MW_IDN    = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'MCRHN' )
+         IF ( IND > 0 ) MW_MCRHN  = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'MCRHNB' )
+         IF ( IND > 0 ) MW_MCRHNB = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'INPB' )
+         IF ( IND > 0 ) MW_INPB   = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'INPD' )
+         IF ( IND > 0 ) MW_INPD   = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'IHN1' )
+         IF ( IND > 0 ) MW_IHN1   = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'IHN2' )
+         IF ( IND > 0 ) MW_IHN2   = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'IHN3' )
+         IF ( IND > 0 ) MW_IHN3   = State_Chm%SpcData(IND)%Info%MW_g
+
+         IND = Ind_( 'IHN4' )
+         IF ( IND > 0 ) MW_IHN4   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'MONITS' )
          IF ( IND > 0 ) MW_MONITS = State_Chm%SpcData(IND)%Info%MW_g
@@ -596,16 +622,17 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
 
       ! Aerosol specific surface area, cm2(aerosol)/cm3(air)
-      XAREA(1:State_Chm%nAero) = State_Chm%AeroArea(I,J,L,:)
+      XAREA(1:State_Chm%nAeroType) = State_Chm%AeroArea(I,J,L,:)
 
       ! Aerosol effective radius, cm
-      XRADI(1:State_Chm%nAero) = State_Chm%AeroRadi(I,J,L,:)
+      XRADI(1:State_Chm%nAeroType) = State_Chm%AeroRadi(I,J,L,:)
 
       ! Aerosol specific volume, cm3(aerosol)/cm3(air)
-      XVOL(1:State_Chm%nAero)  = XAREA(1:State_Chm%nAero) * XRADI(1:State_Chm%nAero) / 3e+0_fp
+      XVOL(1:State_Chm%nAeroType)  = XAREA(1:State_Chm%nAeroType)              &
+                                   * XRADI(1:State_Chm%nAeroType) / 3e+0_fp
 
       ! Aerosol water content, cm3(H2O)/cm3(air) [note: AeroH2O has units g/m3]
-      XH2O(1:State_Chm%nAero)  = State_Chm%AeroH2O(I,J,L,:) * 1e-6_fp
+      XH2O(1:State_Chm%nAeroType)  = State_Chm%AeroH2O(I,J,L,:) * 1e-6_fp
 
       !--------------------------------------------------------------------
       ! Get fields from State_Met, State_Chm, and Input_Opt
@@ -702,15 +729,23 @@ MODULE GCKPP_HETRATES
       HET(ind_IEPOXA, 1) = HetIEPOX(      MW_IEPOXA, 1E-1_fp)
       HET(ind_IEPOXB, 1) = HetIEPOX(      MW_IEPOXB, 1E-1_fp)
       HET(ind_IEPOXD, 1) = HetIEPOX(      MW_IEPOXD, 1E-1_fp)
-      HET(ind_IMAE,   1) = HetIMAE(       MW_IMAE,   1E-1_fp)
+      HET(ind_HMML,   1) = HetIMAE(       MW_HMML,   1E-1_fp)
+      HET(ind_PYAC,   1) = HetMGLY(       MW_PYAC,   1E-1_fp)
+      HET(ind_ICHE,   1) = HetIEPOX(      MW_ICHE,   1E-1_fp)
       HET(ind_LVOC,   1) = HetLVOC(       MW_LVOC,   1E+0_fp)
-      HET(ind_ISN1OG, 1) = HetISN1OG(     MW_ISN1OG, 1E+0_fp)
-      HET(ind_ISOPND, 1) = HetISOPND(     MW_ISOPND, 5E-3_fp)
-      HET(ind_ISOPNB, 1) = HetISOPNB(     MW_ISOPNB, 5E-3_fp)
-      HET(ind_MACRN,  1) = HetMACRN(      MW_MACRN,  5E-3_fp)
+      HET(ind_IHN1,   1) = HetISOPND(     MW_IHN1,   5E-3_fp)
+      HET(ind_IHN2,   1) = HetISOPNB(     MW_IHN2,   5E-2_fp)
+      HET(ind_IHN3,   1) = HetISOPNB(     MW_IHN3,   5E-3_fp)
+      HET(ind_IHN4,   1) = HetISOPND(     MW_IHN4,   5E-3_fp)
+      HET(ind_INPB,   1) = HetISOPNB(     MW_INPB,   5E-3_fp)
+      HET(ind_INPD,   1) = HetISOPND(     MW_INPD,   5E-3_fp)
+      HET(ind_MCRHN,  1) = HetMACRN(      MW_MCRHN,  5E-3_fp)
+      HET(ind_MCRHNB, 1) = HetMACRN(      MW_MCRHNB, 5E-3_fp)
       HET(ind_MVKN,   1) = HetMVKN(       MW_MVKN,   5E-3_fp)
       HET(ind_R4N2,   1) = HetR4N2(       MW_R4N2,   5E-3_fp)
-      HET(ind_DHDN,   1) = HetDHDN(       MW_DHDN,   5E-3_fp)
+      HET(ind_IDN,    1) = HetDHDN(       MW_IDN,    5E-3_fp)
+      HET(ind_ITHN,   1) = HetDHDN(       MW_ITHN,   5E-3_fp)
+      HET(ind_ITCN,   1) = HetDHDN(       MW_ITCN,   5E-3_fp)
       HET(ind_MONITS, 1) = HetMONITS(     MW_MONITS, 1E-2_fp)
       HET(ind_MONITU, 1) = HetMONITU(     MW_MONITU, 1E-2_fp)
       HET(ind_HONIT,  1) = HetHONIT(      MW_HONIT,  1E-2_fp)
@@ -1531,7 +1566,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          XSTKCF = B
 
@@ -1643,7 +1678,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          XSTKCF = B
 
@@ -1745,7 +1780,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          IF (N.gt.12) THEN
             XSTKCF = TINY(1e+0_fp)
@@ -1826,7 +1861,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = STRATBOX
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! jpp, 3/22/11: set the sticking coefficient to
          !  ~0 for aerosol types we don't want reactions on
@@ -1942,7 +1977,7 @@ MODULE GCKPP_HETRATES
       ! D) Divide gamma by SA to get single SA-weighted gamma
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
          ! A) Calculate gamma for each aerosol type
 
          ! Get GAMMA for N2O5 hydrolysis, which is
@@ -2355,7 +2390,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Default value
          XSTKCF = TINY(1e+0_fp)
@@ -2454,7 +2489,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Default value
          XSTKCF = TINY(1e+0_fp)
@@ -2542,7 +2577,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Default value
          XSTKCF = TINY(1e+0_fp)
@@ -2649,7 +2684,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Default value
          XSTKCF = TINY(1e+0_fp)
@@ -2756,7 +2791,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -2832,7 +2867,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -2911,7 +2946,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -2990,7 +3025,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -3069,7 +3104,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -3148,7 +3183,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -3227,7 +3262,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -3306,7 +3341,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -3382,7 +3417,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -3458,7 +3493,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -3534,7 +3569,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma
          XSTKCF = B
@@ -3611,7 +3646,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma for IONITA
          ! Imposed lifetime = 1 hour (Fisher et al., 2016)
@@ -3689,7 +3724,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = .FALSE.
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Define gamma for MONITA
          ! Imposed lifetime = 1 hour (Fisher et al., 2016)
@@ -3772,7 +3807,7 @@ MODULE GCKPP_HETRATES
       ! Directly calculate for sea salt only
       ! Get GAMMA for N2O5 hydrolysis, which is
       ! a function of aerosol type, temp, and RH
-      DO N=8, NAERO
+      DO N=8, NAEROTYPE
          IF ((N.eq.11).or.(N.eq.12)) THEN
             ! Sea salt - follows the N2O5 + Cl- channel
             XSTKCF = N2O5( N, TEMPK, RELHUM )
@@ -3858,7 +3893,7 @@ MODULE GCKPP_HETRATES
       SA_total     = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Assume zero
          XStkCf = 0.0e+0_fp
@@ -4241,7 +4276,7 @@ MODULE GCKPP_HETRATES
       XSTKCF       = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Get the aerosol type
          XStkCf = 0.0e+0_fp
@@ -4401,7 +4436,7 @@ MODULE GCKPP_HETRATES
       XSTKCF       = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Get the aerosol type
          XStkCf = 0.0e+0_fp
@@ -4512,7 +4547,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = STRATBOX
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Get the aerosol type
          IF ( N == 8 ) THEN
@@ -4616,7 +4651,7 @@ MODULE GCKPP_HETRATES
       XSTKCF       = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Get the aerosol type
          IF ( N == 8 ) THEN
@@ -4736,7 +4771,7 @@ MODULE GCKPP_HETRATES
       XSTKCF       = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Get the aerosol type
          IF ( N == 8 ) THEN
@@ -4856,7 +4891,7 @@ MODULE GCKPP_HETRATES
       XSTKCF       = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Get the aerosol type
          IF ( N == 8 ) THEN
@@ -4972,7 +5007,7 @@ MODULE GCKPP_HETRATES
       XSTKCF       = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Get the aerosol type
          IF ( N == 8 ) THEN
@@ -5602,7 +5637,7 @@ MODULE GCKPP_HETRATES
       DO_EDUCT     = STRATBOX
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Get the aerosol type
          IF ( N == 8 ) THEN
@@ -5696,7 +5731,7 @@ MODULE GCKPP_HETRATES
       XSTKCF         = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Assume zero unless proven otherwise
          XSTKCF = 0e+0_fp
@@ -5788,7 +5823,7 @@ MODULE GCKPP_HETRATES
       XSTKCF        = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          ! Default to zero
          XSTKCF = 0.0e+0_fp
@@ -5878,7 +5913,7 @@ MODULE GCKPP_HETRATES
       XSTKCF        = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          XSTKCF        = 0.0_fp
 
@@ -5969,7 +6004,7 @@ MODULE GCKPP_HETRATES
       XSTKCF        = 0.0_fp
 
       ! Loop over aerosol types
-      DO N = 1, NAERO
+      DO N = 1, NAEROTYPE
 
          XSTKCF        = 0.0_fp
 

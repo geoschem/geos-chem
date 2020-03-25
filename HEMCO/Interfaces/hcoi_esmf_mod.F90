@@ -246,7 +246,7 @@ CONTAINS
       ! ---------------------------------------------------------------------
       ! Try to open diagnostics definition file
       ! ---------------------------------------------------------------------
-      CALL DiagnFileOpen( am_I_Root, HcoConfig, LUN, RC )
+      CALL DiagnFileOpen( HcoConfig, LUN, RC )
       ASSERT_(RC == HCO_SUCCESS )
 
       ! ---------------------------------------------------------------------
@@ -260,9 +260,10 @@ CONTAINS
          DO
 
             ! Get next line
-            CALL DiagnFileGetNext( am_I_Root, HcoConfig, LUN, cName, &
-               SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC, &
-               lName=lName, UnitName=UnitName )
+            CALL DiagnFileGetNext( HcoConfig, LUN,     cName,       &
+                                   SpcName,   ExtNr,   Cat,   Hier, &
+                                   SpaceDim,  OutUnit, EOF,   RC,   &
+                                   lName=lName, UnitName=UnitName )
             IF ( RC /= HCO_SUCCESS ) RETURN
 
             ! Leave here if end of file
@@ -443,7 +444,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_SetExtState_ESMF( am_I_Root, HcoState, ExtState, RC )
+      SUBROUTINE HCO_SetExtState_ESMF( HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -452,7 +453,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,             INTENT(IN   )   :: am_I_Root
       TYPE(HCO_State),     POINTER         :: HcoState
       TYPE(Ext_State),     POINTER         :: ExtState
       INTEGER,             INTENT(INOUT)   :: RC
@@ -474,11 +474,11 @@ CONTAINS
       __Iam__('HCO_SetExtState_ESMF (HCOI_ESMF_MOD.F90)')
 
       ! Get pointers to fields
-      CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%BYNCY, 'BYNCY', __RC__ )
+      CALL HCO_Imp2Ext ( HcoState, ExtState%BYNCY, 'BYNCY', __RC__ )
 
 #if defined( MODEL_GEOS )
       ! Get pointers to fields
-      CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%LFR, 'LFR', __RC__ )
+      CALL HCO_Imp2Ext ( HcoState, ExtState%LFR, 'LFR', __RC__ )
 #endif
 
       ! Return success
@@ -499,7 +499,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_Imp2Ext2S( am_I_Root, HcoState, ExtDat, FldName, RC )
+      SUBROUTINE HCO_Imp2Ext2S( HcoState, ExtDat, FldName, RC )
 !
 ! !USES:
 !
@@ -509,7 +509,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,             INTENT(IN   )   :: am_I_Root
       CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
       TYPE(HCO_State),     POINTER         :: HcoState
       TYPE(ExtDat_2S),     POINTER         :: ExtDat
@@ -550,7 +549,7 @@ CONTAINS
          Ptr2D => NULL()
 
          ! Verbose
-         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND.HcoState%amIRoot ) THEN
             CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
          ENDIF
 
@@ -574,7 +573,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_Imp2Ext3S( am_I_Root, HcoState, ExtDat, FldName, RC )
+      SUBROUTINE HCO_Imp2Ext3S( HcoState, ExtDat, FldName, RC )
 !
 ! !USES:
 !
@@ -584,7 +583,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,             INTENT(IN   )   :: am_I_Root
       CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
       TYPE(HCO_State),     POINTER         :: HcoState
       TYPE(ExtDat_3S),     POINTER         :: ExtDat
@@ -634,7 +632,7 @@ CONTAINS
          Ptr3D => NULL()
 
          ! Verbose
-         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. HcoState%amIRoot ) THEN
             CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
          ENDIF
 
@@ -659,7 +657,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_Imp2Ext2R( am_I_Root, HcoState, ExtDat, FldName, RC, Fld )
+      SUBROUTINE HCO_Imp2Ext2R( HcoState, ExtDat, FldName, RC, Fld )
 !
 ! !USES:
 !
@@ -669,7 +667,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,             INTENT(IN   )   :: am_I_Root
       CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
       TYPE(HCO_State),     POINTER         :: HcoState
       TYPE(ExtDat_2R),     POINTER         :: ExtDat
@@ -730,7 +727,7 @@ CONTAINS
          ENDIF
 
          ! Verbose
-         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. HcoState%amIRoot ) THEN
             CALL HCO_MSG(HcoState%Config%Err,'Passed from import to ExtState: '//TRIM(FldName))
          ENDIF
 
@@ -754,7 +751,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_Imp2Ext3R( am_I_Root, HcoState, ExtDat, FldName, RC )
+      SUBROUTINE HCO_Imp2Ext3R( HcoState, ExtDat, FldName, RC )
 !
 ! !USES:
 !
@@ -764,7 +761,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,             INTENT(IN   )   :: am_I_Root
       CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
       TYPE(HCO_State),     POINTER         :: HcoState
       TYPE(ExtDat_3R),     POINTER         :: ExtDat
@@ -814,7 +810,7 @@ CONTAINS
          Ptr3D => NULL()
 
          ! Verbose
-         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. HcoState%amIRoot ) THEN
             CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
          ENDIF
 
@@ -838,7 +834,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_Imp2Ext2I( am_I_Root, HcoState, ExtDat, FldName, RC )
+      SUBROUTINE HCO_Imp2Ext2I( HcoState, ExtDat, FldName, RC )
 !
 ! !USES:
 !
@@ -848,7 +844,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-      LOGICAL,             INTENT(IN   )   :: am_I_Root
       CHARACTER(LEN=*),    INTENT(IN   )   :: FldName
       TYPE(HCO_State),     POINTER         :: HcoState
       TYPE(ExtDat_2I),     POINTER         :: ExtDat
@@ -892,7 +887,7 @@ CONTAINS
          Ptr2D => NULL()
 
          ! Verbose
-         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. HcoState%amIRoot ) THEN
             CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
          ENDIF
 

@@ -46,7 +46,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_Spec2Log( am_I_Root, HcoState, ID )
+  SUBROUTINE HCO_Spec2Log( HcoState, ID )
 !
 ! !USES:
 !
@@ -55,7 +55,6 @@ CONTAINS
 !
 ! !INPUT PARAMETER
 !
-    LOGICAL,          INTENT(IN)     :: am_I_Root  ! Root CPU
     TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
     INTEGER,          INTENT(IN)     :: ID         ! HEMCO species ID
 !

@@ -807,7 +807,7 @@ CONTAINS
     ENDIF
 
     ! Copy emissions data to MAPL exports via HEMCO
-    CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .FALSE., RC )
+    CALL HCOI_GC_WriteDiagn( Input_Opt, .FALSE., RC )
     IF ( RC == GC_FAILURE ) THEN
        ErrMsg = "Error copying emissions data to MAPL via HEMCO"
        CALL GC_ERROR( ErrMsg, RC, Iam )

@@ -73,7 +73,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ScaleInit ( am_I_Root, HcoState, RC )
+  SUBROUTINE HCO_ScaleInit( HcoState, RC )
 !
 ! !USES
 !
@@ -82,7 +82,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
 !
 ! !OUTPUT PARAMETERS:
@@ -197,7 +196,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ScaleArr3D_sp ( am_I_Root, HcoState, HcoID, Arr3D, RC )
+  SUBROUTINE HCO_ScaleArr3D_sp( HcoState, HcoID, Arr3D, RC )
 !
 ! !USES
 !
@@ -206,7 +205,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
@@ -261,7 +259,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ScaleArr3D_dp ( am_I_Root, HcoState, HcoID, Arr3D, RC )
+  SUBROUTINE HCO_ScaleArr3D_dp( HcoState, HcoID, Arr3D, RC )
 !
 ! !USES
 !
@@ -270,7 +268,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
@@ -325,7 +322,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ScaleArr2D_sp ( am_I_Root, HcoState, HcoID, Arr2D, RC )
+  SUBROUTINE HCO_ScaleArr2D_sp( HcoState, HcoID, Arr2D, RC )
 !
 ! !USES
 !
@@ -334,7 +331,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
@@ -388,7 +384,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ScaleArr2D_dp ( am_I_Root, HcoState, HcoID, Arr2D, RC )
+  SUBROUTINE HCO_ScaleArr2D_dp( HcoState, HcoID, Arr2D, RC )
 !
 ! !USES
 !
@@ -397,7 +393,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
@@ -451,7 +446,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ScaleArr1D_sp ( am_I_Root, HcoState, HcoID, Arr1D, RC )
+  SUBROUTINE HCO_ScaleArr1D_sp( HcoState, HcoID, Arr1D, RC )
 !
 ! !USES
 !
@@ -460,7 +455,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !
@@ -513,7 +507,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ScaleArr1D_dp ( am_I_Root, HcoState, HcoID, Arr1D, RC )
+  SUBROUTINE HCO_ScaleArr1D_dp( HcoState, HcoID, Arr1D, RC )
 !
 ! !USES
 !
@@ -522,7 +516,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: HcoID          ! Species ID
 !

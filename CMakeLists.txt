@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(GEOS_Chem VERSION 12.7.1 LANGUAGES Fortran)
+project(GEOS_Chem VERSION 12.8.0 LANGUAGES Fortran)
 
 # Set policies
 cmake_policy(SET CMP0054 NEW)
@@ -15,14 +15,15 @@ endif()
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts)
 include(GC-Helpers)
 
-# Declare the BaseTarget. All GEOS-Chem targets depend on BaseTarget.
-# This is used to control the compiler options and definitions for GEOS-Chem
-# targets (via inheritance).
-add_library(BaseTarget INTERFACE)
+# Declare the GEOSChemBuildProperties. All GEOS-Chem targets depend on
+# GEOSChemBuildProperties. This is used to control the compiler options and
+# definitions for GEOS-Chem targets (via inheritance).
+add_library(GEOSChemBuildProperties INTERFACE)
 
-# Put all of GEOS-Chem's mod files in a subdirectory of the build directory called mod
+# Put all of GEOS-Chem's mod files in a subdirectory of the build directory
+# called mod
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod)
-target_include_directories(BaseTarget
+target_include_directories(GEOSChemBuildProperties
 	INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/mod
 )
 
@@ -40,16 +41,22 @@ list(APPEND CMAKE_PREFIX_PATH
 	$ENV{GC_F_LIB} 		$ENV{GC_LIB}
 )
 
-# Link NetCDF-F to BaseTarget
+# Link NetCDF-F to GEOSChemBuildProperties
 find_package(NetCDF REQUIRED)
-target_include_directories(BaseTarget INTERFACE ${NETCDF_INCLUDE_DIRS})
-target_link_libraries(BaseTarget INTERFACE ${NETCDF_LIBRARIES})
+target_include_directories(GEOSChemBuildProperties
+	INTERFACE ${NETCDF_INCLUDE_DIRS}
+)
+target_link_libraries(GEOSChemBuildProperties
+	INTERFACE ${NETCDF_LIBRARIES}
+)
 
 # Use the NC_HAS_COMPRESSION definition if nf_def_var_deflate is in netcdf.inc
 if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
 	file(READ ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc NCINC)
 	if("${NCINC}" MATCHES ".*nf_def_var_deflate.*")
-		target_compile_definitions(BaseTarget INTERFACE "NC_HAS_COMPRESSION")
+		target_compile_definitions(GEOSChemBuildProperties
+			INTERFACE "NC_HAS_COMPRESSION"
+		)
 	endif()
 endif()
 
@@ -59,8 +66,9 @@ message(STATUS "GEOS-Chem @ ${GC_REPO_VERSION}")
 
 if(NOT GC_EXTERNAL_CONFIG)
 	# This conditional block configures the GEOS-Chem build for GEOS-Chem
-	# Classic. As mentioned above, it sets GCCLASSIC_EXE_TARGETS, RRTMG, GTMM
-	# TOMAS, MECH, and GCHP, and it configures the BaseTarget.
+	# Classic. As mentioned above, it sets GCCLASSIC_EXE_TARGETS,
+        # RRTMG, GTMM, TOMAS, MECH, and GCHP, and it configures the
+        # GEOSChemBuildProperties.
 
 	# Set CMAKE_BUILD_TYPE to Release by default
 	if(NOT CMAKE_BUILD_TYPE)
@@ -106,7 +114,8 @@ if(NOT GC_EXTERNAL_CONFIG)
 	include(GC-DefaultCompilerOptions)
 endif()
 
-# Add all the subdirectories. Each subdirectory specifies how it should be built.
+# Add all the subdirectories. Each subdirectory specifies how it
+# should be built.
 add_subdirectory(KPP)
 add_subdirectory(Headers)
 add_subdirectory(GeosUtil)
@@ -114,7 +123,9 @@ add_subdirectory(NcdfUtil)
 add_subdirectory(History)
 add_subdirectory(ObsPack)
 add_subdirectory(APM)
-add_subdirectory(HEMCO)
+if(NOT GCHPCTM AND NOT GEOS)
+       add_subdirectory(HEMCO)
+endif()
 add_subdirectory(ISORROPIA)
 add_subdirectory(GeosRad)
 add_subdirectory(GTMM)
@@ -123,23 +134,30 @@ if(GCHP)
 	add_subdirectory(Interfaces/GCHP)
 endif()
 
-# Write BaseTarget's configuration to a file
-get_target_property(BT_DEFINITIONS  BaseTarget INTERFACE_COMPILE_DEFINITIONS)
-get_target_property(BT_OPTIONS      BaseTarget INTERFACE_COMPILE_OPTIONS)
-get_target_property(BT_LIBRARIES    BaseTarget INTERFACE_LINK_LIBRARIES)
-get_target_property(BT_INCLUDES     BaseTarget INTERFACE_INCLUDE_DIRECTORIES)
-file(WRITE ${CMAKE_BINARY_DIR}/BaseTarget.txt
-    "# This file shows the BaseTarget's configuration.\n"
+# Write GEOSChemBuildProperties's configuration to a file
+get_target_property(BT_DEFINITIONS  GEOSChemBuildProperties
+	INTERFACE_COMPILE_DEFINITIONS
+)
+get_target_property(BT_OPTIONS      GEOSChemBuildProperties
+	INTERFACE_COMPILE_OPTIONS
+)
+get_target_property(BT_LIBRARIES    GEOSChemBuildProperties
+	INTERFACE_LINK_LIBRARIES
+)
+get_target_property(BT_INCLUDES     GEOSChemBuildProperties
+	INTERFACE_INCLUDE_DIRECTORIES
+)
+file(WRITE ${CMAKE_BINARY_DIR}/GEOSChemBuildProperties.txt
+    "# This file shows the GEOSChemBuildProperties's configuration.\n"
     "\n"
-    "BaseTarget::INTERFACE_COMPILE_DEFINITIONS:${BT_DEFINITIONS}\n"
-    "BaseTarget::INTERFACE_COMPILE_OPTIONS:${BT_OPTIONS}\n"
-    "BaseTarget::INTERFACE_LINK_LIBRARIES:${BT_LIBRARIES}\n"
-    "BaseTarget::INTERFACE_INCLUDE_DIRECTORIES:${BT_INCLUDES}\n"
+    "GEOSChemBuildProperties::INTERFACE_COMPILE_DEFINITIONS:${BT_DEFINITIONS}\n"
+    "GEOSChemBuildProperties::INTERFACE_COMPILE_OPTIONS:${BT_OPTIONS}\n"
+    "GEOSChemBuildProperties::INTERFACE_LINK_LIBRARIES:${BT_LIBRARIES}\n"
+    "GEOSChemBuildProperties::INTERFACE_INCLUDE_DIRECTORIES:${BT_INCLUDES}\n"
     "CMAKE_Fortran_FLAGS_RELEASE:${CMAKE_Fortran_FLAGS_RELEASE}\n"
     "CMAKE_Fortran_FLAGS_DEBUG:${CMAKE_Fortran_FLAGS_DEBUG}\n"
     "CMAKE_Fortran_FLAGS:${CMAKE_Fortran_FLAGS}\n\n"
 )
-
 
 # Try to compile a simple program that uses NetCDF-Fortran and OpenMP
 if(NOT GC_EXTERNAL_CONFIG AND NOT GC_TRY_RUN_PASSED)
@@ -152,8 +170,10 @@ if(NOT GC_EXTERNAL_CONFIG AND NOT GC_TRY_RUN_PASSED)
 	# Try to compile and run try_compile.F90
 	try_run(RUN_FAILED COMPILED_OK
 		${CMAKE_CURRENT_BINARY_DIR}/try_compile 					# binary dir
-		${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts/try_compile.F90	# test source file
-		COMPILE_DEFINITIONS ${TRY_RUN_DEFINITIONS} ${BT_OPTIONS}	# compiler flags
+		# test source file
+		${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts/try_compile.F90
+		# compiler flags
+		COMPILE_DEFINITIONS ${TRY_RUN_DEFINITIONS} ${BT_OPTIONS}
 		LINK_LIBRARIES ${BT_LIBRARIES}								# link flags
 		CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${BT_INCLUDES}"			# include directories
 		COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT

@@ -1,17 +1,17 @@
 add_library(Headers STATIC EXCLUDE_FROM_ALL
 	charpak_mod.F90
-	CMN_DIAG_mod.F
-	CMN_FJX_MOD.F
-	CMN_O3_mod.F
-	CMN_SIZE_mod.F
+	CMN_DIAG_mod.F90
+	CMN_FJX_MOD.F90
+	CMN_O3_mod.F90
+	CMN_SIZE_mod.F90
 	diaglist_mod.F90
 	dictionary_m.F90
 	taggeddiaglist_mod.F90
 	errcode_mod.F90
 	input_opt_mod.F90
 	inquireMod.F90
-	physconstants.F
-	precision_mod.F
+	physconstants.F90
+	precision_mod.F90
 	registry_mod.F90
 	registry_params_mod.F90
 	species_database_mod.F90

@@ -197,7 +197,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
   !
-  SUBROUTINE HCOX_FINN_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_FINN_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -211,7 +211,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! root CPU?
     TYPE(Ext_State), POINTER        :: ExtState   ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -307,37 +306,37 @@ CONTAINS
        ENDIF
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP1'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP1, RC )
+       CALL HCO_EvalFld( HcoState, TRIM(FLDNME), Inst%VEGTYP1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP2'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP2, RC )
+       CALL HCO_EvalFld( HcoState, TRIM(FLDNME), Inst%VEGTYP2, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP3'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP3, RC )
+       CALL HCO_EvalFld( HcoState, TRIM(FLDNME), Inst%VEGTYP3, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP4'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP4, RC )
+       CALL HCO_EvalFld( HcoState, TRIM(FLDNME), Inst%VEGTYP4, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP5'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP5, RC )
+       CALL HCO_EvalFld( HcoState, TRIM(FLDNME), Inst%VEGTYP5, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP9'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP9, RC )
+       CALL HCO_EvalFld( HcoState, TRIM(FLDNME), Inst%VEGTYP9, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
 !       FIRST = .FALSE.
     !ENDIF
 
     ! For logfile
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        IF ( Inst%UseDay ) THEN
           IF ( HcoClock_NewDay( HcoState%Clock, .TRUE. ) ) THEN
-             CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
+             CALL HcoClock_Get( HcoState%Clock, &
                                 cYYYY=cYYYY, cMM=cMM, cDD=cDD, RC=RC )
              IF ( RC/=HCO_SUCCESS ) RETURN
              WRITE(MSG, 100) cYYYY, cMM, cDD
@@ -347,7 +346,7 @@ CONTAINS
           ENDIF
        ELSE
           IF ( HcoClock_NewMonth( HcoState%Clock, .TRUE. ) ) THEN
-             CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
+             CALL HcoClock_Get( HcoState%Clock, &
                                 cYYYY=cYYYY, cMM=cMM, LMD=NDAYS, RC=RC)
              IF ( RC/=HCO_SUCCESS ) RETURN
              WRITE(MSG, 110) cYYYY, cMM
@@ -422,7 +421,7 @@ CONTAINS
        SpcArr = SpcArr * Inst%SpcScal(N)
 
        ! Check for masking
-       CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(Inst%SpcScalFldNme(N)), RC )
+       CALL HCOX_SCALE( HcoState, SpcArr, TRIM(Inst%SpcScalFldNme(N)), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        SELECT CASE ( Inst%SpcNames(N) )
@@ -504,13 +503,13 @@ CONTAINS
 !
 !       ! Add flux to HEMCO emission array
 !       ! Now 3D flux (mps, 3/10/17)
-!       CALL HCO_EmisAdd( am_I_Root, HcoState,    SpcArr3D, HcoID, &
-!                         RC,        ExtNr=ExtNr, Cat=-1,   Hier=-1 )
+!       CALL HCO_EmisAdd( HcoState, SpcArr3D, HcoID, &
+!                         RC,       ExtNr=ExtNr, Cat=-1,   Hier=-1 )
 !==============================================================================
 
        ! Add flux to HEMCO emission array
-       CALL HCO_EmisAdd( am_I_Root, HcoState,    SpcArr, HcoID, &
-                         RC,        ExtNr=Inst%ExtNr, Cat=-1, Hier=-1 )
+       CALL HCO_EmisAdd( HcoState, SpcArr, HcoID, &
+                         RC,       ExtNr=Inst%ExtNr, Cat=-1, Hier=-1 )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoID)%SpcName)
           CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -518,7 +517,7 @@ CONTAINS
        ENDIF
 
        ! Write out total (daily or monthly) emissions to log-file
-       IF ( am_I_Root ) THEN
+       IF ( HcoState%amIRoot ) THEN
           IF ( Inst%UseDay ) THEN
              IF ( HcoClock_NewDay( HcoState%Clock, .TRUE. ) ) THEN
                 TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%AREA_M2%Val(:,:))
@@ -562,7 +561,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_FINN_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_FINN_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -573,7 +572,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root   ! root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState    ! HEMCO state object
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState    ! Extensions object
@@ -859,7 +857,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Write to log file
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use FINN extension'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        WRITE(MSG,*) '   - Use daily data          : ', Inst%UseDay
@@ -980,7 +978,7 @@ CONTAINS
                 Inst%SpcScal(Inst%nSpc)       = tSpcScal(L)
 
                 ! Verbose
-                IF ( am_I_Root ) THEN
+                IF ( HcoState%amIRoot ) THEN
                    MSG = '   - FINN species ' // TRIM(Inst%FINN_SPEC_NAME(N)) // &
                          '     will be emitted as ' // TRIM(Inst%SpcNames(Inst%nSpc))
                    CALL HCO_MSG(HcoState%Config%Err,MSG )
@@ -1025,7 +1023,7 @@ CONTAINS
                                    HcoState%Spc(Inst%HcoIDs(Inst%nSpc))%EmMW_g
                       ENDIF
                       Inst%FINN_EMFAC(N,:) = AdjFact / EMFAC_IN(M,:)
-                      IF ( am_I_Root ) THEN
+                      IF ( HcoState%amIRoot ) THEN
                          WRITE( MSG, 200 ) TRIM( Inst%FINN_SPEC_NAME(N))
                          CALL HCO_MSG(HcoState%Config%Err,MSG )
                       ENDIF
@@ -1047,7 +1045,7 @@ CONTAINS
                       ! First two entries are not species
                       NMOC_RATIO = NMOC_RATIO_IN(M,:)
                       IS_NMOC = .TRUE.
-                      IF ( am_I_Root ) THEN
+                      IF ( HcoState%amIRoot ) THEN
                          WRITE( MSG, 201 ) TRIM( Inst%FINN_SPEC_NAME(N) )
                          CALL HCO_MSG(HcoState%Config%Err,MSG )
                       ENDIF

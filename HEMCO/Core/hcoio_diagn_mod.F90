@@ -71,7 +71,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoDiagn_Write( am_I_Root, HcoState, Restart, RC )
+  SUBROUTINE HcoDiagn_Write( HcoState, Restart, RC )
 !
 ! !USES:
 !
@@ -80,7 +80,6 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )    :: am_I_Root    ! Root CPU?
     TYPE(HCO_State), POINTER          :: HcoState     ! HEMCO state object
     LOGICAL,         INTENT(IN   )    :: Restart      ! write restart (enforced)?
 !
@@ -113,8 +112,7 @@ CONTAINS
 
     ! To write restart (enforced)
     IF ( RESTART ) THEN
-       CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                              &
-                                   HcoState,                               &
+       CALL HCOIO_DIAGN_WRITEOUT ( HcoState,                               &
                                    ForceWrite  = .TRUE.,                   &
                                    UsePrevTime = .FALSE.,                  &
                                    COL = HcoState%Diagn%HcoDiagnIDRestart, &
@@ -122,11 +120,10 @@ CONTAINS
        IF( RC /= HCO_SUCCESS) RETURN
 
        ! Set last flag for use below
-       CALL HcoClock_SetLast ( am_I_Root, HcoState%Clock, .TRUE., RC )
+       CALL HcoClock_SetLast ( HcoState%Clock, .TRUE., RC )
        IF( RC /= HCO_SUCCESS) RETURN
 
-       CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                              &
-                                   HcoState,                               &
+       CALL HCOIO_DIAGN_WRITEOUT ( HcoState,                               &
                                    ForceWrite  = .FALSE.,                  &
                                    UsePrevTime = .FALSE.,                  &
                                    COL = HcoState%Diagn%HcoDiagnIDDefault, &
@@ -135,7 +132,7 @@ CONTAINS
 
        ! Reset IsLast flag. This is to ensure that the last flag is not
        ! carried over (ckeller, 11/1/16).
-       CALL HcoClock_SetLast ( am_I_Root, HcoState%Clock, .FALSE., RC )
+       CALL HcoClock_SetLast ( HcoState%Clock, .FALSE., RC )
        IF( RC /= HCO_SUCCESS) RETURN
 
     ELSE
@@ -168,8 +165,7 @@ CONTAINS
 #endif
 
           ! Restart file
-          CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                       &
-                                      HcoState,                        &
+          CALL HCOIO_DIAGN_WRITEOUT ( HcoState,                        &
                                       ForceWrite  = .FALSE.,           &
                                       UsePrevTime = .FALSE.,           &
                                       COL         = COL,               &
@@ -194,7 +190,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOIO_Diagn_WriteOut( am_I_Root,   HcoState, ForceWrite,  &
+  SUBROUTINE HCOIO_Diagn_WriteOut( HcoState, ForceWrite,  &
                                    RC,          PREFIX,   UsePrevTime, &
                                    OnlyIfFirst, COL                     )
 !
@@ -209,7 +205,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,                    INTENT(IN   ) :: am_I_Root   ! root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState    ! HEMCO state object
     LOGICAL,                    INTENT(IN   ) :: ForceWrite  ! Write all diagnostics?
     CHARACTER(LEN=*), OPTIONAL, INTENT(IN   ) :: PREFIX      ! File prefix
@@ -247,8 +242,7 @@ CONTAINS
     ! ESMF environment: call ESMF output routines
     !-----------------------------------------------------------------
 #if defined(ESMF_)
-    CALL HCOIO_WRITE_ESMF ( am_I_Root,               &
-                            HcoState,                &
+    CALL HCOIO_WRITE_ESMF ( HcoState,                &
                             RC,                      &
                             OnlyIfFirst=OnlyIfFirst, &
                             COL=COL                   )
@@ -258,8 +252,7 @@ CONTAINS
     ! Standard environment: call default output routines
     !-----------------------------------------------------------------
 #else
-    CALL HCOIO_WRITE_STD( am_I_Root,                &
-                          HcoState,                 &
+    CALL HCOIO_WRITE_STD( HcoState,                 &
                           ForceWrite,               &
                           RC,                       &
                           PREFIX      =PREFIX,      &

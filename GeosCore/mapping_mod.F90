@@ -17,7 +17,6 @@ MODULE Mapping_Mod
 !
 ! !USES:
 !
-  USE CMN_SIZE_MOD                    ! Size parameters
   USE ERROR_MOD                       ! Error handling routines
   USE PRECISION_MOD                   ! For GEOS-Chem Precision (fp)
 
@@ -56,11 +55,7 @@ MODULE Mapping_Mod
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
-!  05 Apr 2012 - R. Yantosca - Comment out mapwt field of MapWeight type,
-!                              leave this for future expansion
-!  17 Apr 2012 - R. Yantosca - Rename pointer object "map" to "mapping,
-!                              to remove confusion w/ F90 intrinsic
-!  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -79,17 +74,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Mapping( am_I_Root, Input_Opt, I_FINE,  J_FINE,  &
-                           I_COARSE,  J_COARSE,  mapping, RC      )
+  SUBROUTINE Init_Mapping( Input_Opt, I_FINE, J_FINE, I_COARSE,  J_COARSE, &
+                           mapping,   RC  )
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,       ONLY : NSURFTYPE
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN) :: am_I_Root ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input Options object
     INTEGER,        INTENT(IN) :: I_FINE    ! # of lons on the "fine" grid
     INTEGER,        INTENT(IN) :: J_FINE    ! # of lats on the,"fine" grid
@@ -106,16 +101,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
-!  10 Apr 2012 - R. Yantosca - Now add a different # to FINE_PER_COARSE
-!                              depending on which Olson map we are using
-!  17 Apr 2012 - R. Yantosca - Rename to "map" to "mapping" to avoid confusion
-!                              with a F90 intrinsic function
-!  17 Apr 2012 - R. Yantosca - Add error check for mapping object
-!  18 Apr 2012 - R. Yantosca - Improve error check for sub-fields of mapping
-!                              object so as not to interfere w/ parallel loop
-!  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
-!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
-!                              now the default.
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -233,12 +219,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
-!  21 Mar 2012 - R. Yantosca - Typo: set xOverLap to zero if it is out of the
-!                              range of 0-1.  (We had set yOverLap=0 before)
-!  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computations to avoid
-!                              roundoff errors at hi-res grids
-!  03 Apr 2012 - R. Yantosca - Moved from "olson_landmap_mod.F90" to here;
-!                              renamed "Get_Mapping"
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -344,8 +325,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:'
 !  03 Mar 2012 - R. Yantosca - Initial version
-!  17 Apr 2012 - R. Yantosca - Rename to "map" to "mapping to avoid name
-!                              confusion with a F90 intrinsic function
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

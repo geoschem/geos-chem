@@ -127,7 +127,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Gc_RnPbBe_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_Gc_RnPbBe_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -136,7 +136,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(Ext_State),  POINTER       :: ExtState    ! Options for Rn-Pb-Be sim
     TYPE(HCO_State),  POINTER       :: HcoState    ! HEMCO state
 !
@@ -353,8 +352,8 @@ CONTAINS
 
        ! Add emissions
        Arr2D => Inst%EmissRn222(:,:)
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr2D, Inst%IDTRn222, &
-                         RC,        ExtNr=Inst%ExtNr )
+       CALL HCO_EmisAdd( HcoState, Arr2D, Inst%IDTRn222, &
+                         RC,       ExtNr=Inst%ExtNr )
        Arr2D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, &
@@ -428,8 +427,8 @@ CONTAINS
        ! Add emissions
        IF ( Inst%IDTBe7 > 0 ) THEN
           Arr3D => Inst%EmissBe7(:,:,:)
-          CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, Inst%IDTBe7, &
-                            RC,        ExtNr=Inst%ExtNr )
+          CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTBe7, &
+                            RC,       ExtNr=Inst%ExtNr )
           Arr3D => NULL()
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -441,8 +440,8 @@ CONTAINS
        ! Add emissions
        IF ( Inst%IDTBe7Strat > 0 ) THEN
           Arr3D => Inst%EmissBe7Strat(:,:,:)
-          CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, Inst%IDTBe7Strat, &
-                            RC,        ExtNr=Inst%ExtNr )
+          CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTBe7Strat, &
+                            RC,       ExtNr=Inst%ExtNr )
           Arr3D => NULL()
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -454,8 +453,8 @@ CONTAINS
        ! Add emissions
        IF ( Inst%IDTBe10 > 0 ) THEN
           Arr3D => Inst%EmissBe10(:,:,:)
-          CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, Inst%IDTBe10, &
-                            RC,        ExtNr=Inst%ExtNr )
+          CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTBe10, &
+                            RC,       ExtNr=Inst%ExtNr )
           Arr3D => NULL()
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -467,8 +466,8 @@ CONTAINS
        ! Add emissions
        IF ( Inst%IDTBe10Strat > 0 ) THEN
           Arr3D => Inst%EmissBe10Strat(:,:,:)
-          CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, Inst%IDTBe10Strat, &
-                            RC,        ExtNr=Inst%ExtNr )
+          CALL HCO_EmisAdd( HcoState, Arr3D, Inst%IDTBe10Strat, &
+                            RC,       ExtNr=Inst%ExtNr )
           Arr3D => NULL()
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
@@ -504,7 +503,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_Gc_RnPbBe_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HCOX_Gc_RnPbBe_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -513,7 +512,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName     ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState    ! Module options
 !
@@ -570,7 +568,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use gc_RnPbBe emissions module (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG )
 
@@ -601,19 +599,19 @@ CONTAINS
     ENDDO
 
     ! WARNING: Rn tracer is not found!
-    IF ( Inst%IDTRn222 <= 0 .AND. am_I_Root ) THEN
+    IF ( Inst%IDTRn222 <= 0 .AND. HcoState%amIRoot ) THEN
        CALL HCO_WARNING( HcoState%Config%Err, &
                          'Cannot find Rn222 tracer in list of species!', RC )
     ENDIF
 
     ! WARNING: Be7 tracer is not found
-    IF ( Inst%IDTBe7 <= 0 .AND. am_I_Root ) THEN
+    IF ( Inst%IDTBe7 <= 0 .AND. HcoState%amIRoot ) THEN
        CALL HCO_WARNING( HcoState%Config%Err, &
                          'Cannot find Be7 tracer in list of species!', RC )
     ENDIF
 
     ! WARNING: Be10 tracer is not found
-    IF ( Inst%IDTBe10 <= 0 .AND. am_I_Root ) THEN
+    IF ( Inst%IDTBe10 <= 0 .AND. HcoState%amIRoot ) THEN
        CALL HCO_WARNING( HcoState%Config%Err, &
                         'Cannot find Be10 tracer in list of species!', RC )
     ENDIF

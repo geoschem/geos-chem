@@ -2043,7 +2043,7 @@ CONTAINS
     !=======================================================================
 
     ! Initialize fields of the Grid State object
-    CALL Init_State_Grid( Input_Opt%AmIRoot, State_Grid, RC )
+    CALL Init_State_Grid( Input_Opt, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS,'Error calling Init_State_Grid')
   
     ! Pass grid information obtained from Extract_ to State_Grid
@@ -3871,8 +3871,7 @@ CONTAINS
           ENDDO
 
           ! Compute State_Met variables IREG, ILAND, IUSE, and FRCLND
-          CALL Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Grid, &
-                                      State_Met, RC )
+          CALL Compute_Olson_Landmap( Input_Opt, State_Grid, State_Met, RC )
           _ASSERT(RC==GC_SUCCESS,'Error calling Compute_Olson_Landmap')
        ENDIF
 
@@ -4733,7 +4732,7 @@ CONTAINS
 #endif
 
     ! Finalize HEMCO
-    CALL HCOI_GC_FINAL( Input_Opt%AmIRoot, .FALSE., RC )
+    CALL HCOI_GC_FINAL( .FALSE., RC )
     IF ( Input_Opt%AmIRoot ) THEN
        IF ( RC == GC_SUCCESS ) THEN
           write(*,'(a)') 'HEMCO::Finalize... OK.'
@@ -4743,7 +4742,7 @@ CONTAINS
     ENDIF
 
     ! Deallocate fields of the Chemistry State object
-    CALL Cleanup_State_Chm( Input_Opt%AmIRoot, State_Chm, RC )
+    CALL Cleanup_State_Chm( State_Chm, RC )
     IF ( Input_Opt%AmIRoot ) THEN
        IF ( RC == GC_SUCCESS ) THEN
           write(*,'(a)') 'Chem::State_Chm Finalize... OK.'
@@ -4753,7 +4752,7 @@ CONTAINS
     ENDIF
 
     ! Deallocate fields of the Diagnostics State object
-    CALL Cleanup_State_Diag( Input_Opt%AmIRoot, State_Diag, RC )
+    CALL Cleanup_State_Diag( State_Diag, RC )
     IF ( Input_Opt%AmIRoot ) THEN
        IF ( RC == GC_SUCCESS ) THEN
           write(*,'(a)') 'Chem::State_Diag Finalize... OK.'
@@ -4763,7 +4762,7 @@ CONTAINS
     ENDIF
 
     ! Deallocate fields of the Grid State object
-    CALL Cleanup_State_Grid( Input_Opt%AmIRoot, State_Grid, RC )
+    CALL Cleanup_State_Grid( State_Grid, RC )
     IF ( Input_Opt%AmIRoot ) THEN
        IF ( RC == GC_SUCCESS ) THEN
           write(*,'(a)') 'Chem::State_Grid Finalize... OK.'
@@ -4773,7 +4772,7 @@ CONTAINS
     ENDIF
 
     ! Deallocate fields of the Meteorology State object
-    CALL Cleanup_State_Met( Input_Opt%AmIRoot, State_Met, RC )
+    CALL Cleanup_State_Met( State_Met, RC )
     IF ( Input_Opt%AmIRoot ) THEN
        IF ( RC == GC_SUCCESS ) THEN
           write(*,'(a)') 'Chem::State_Met Finalize... OK.'
@@ -4787,7 +4786,7 @@ CONTAINS
     ! The call to Cleanup_Input_Opt causes a memory leak error. Comment
     ! for now (ckeller, 11/29/16).
     ! Does this still cause a memory leak? (ewl, 12/14/18)
-     CALL Cleanup_Input_Opt( Input_Opt%AmIRoot, Input_Opt, RC )
+     CALL Cleanup_Input_Opt( Input_Opt, RC )
     IF ( Input_Opt%AmIRoot ) THEN
        IF ( RC == GC_SUCCESS ) THEN
           write(*,'(a)') 'Chem::Input_Opt Finalize... OK.'

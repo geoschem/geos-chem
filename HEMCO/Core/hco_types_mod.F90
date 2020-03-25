@@ -455,6 +455,7 @@ MODULE HCO_TYPES_MOD
      CHARACTER(LEN=255)           :: MetField
      CHARACTER(LEN=255)           :: GridRes
      LOGICAL                      :: ConfigFileRead = .FALSE.
+     LOGICAL                      :: amIRoot       ! Is this the root CPU?
   END TYPE ConfigObj
 
   !------------------------------------------------------------------------

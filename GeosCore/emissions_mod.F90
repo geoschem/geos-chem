@@ -32,7 +32,7 @@ MODULE Emissions_Mod
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version.
-!  20 Jun 2016 - R. Yantosca - Declare species ID flags as module variables
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -58,9 +58,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Init( am_I_Root,  Input_Opt, State_Chm,                &
-                             State_Grid, State_Met, RC,                       &
-                             HcoConfig                                       )
+  SUBROUTINE Emissions_Init( Input_Opt, State_Chm, State_Grid, State_Met,  &
+                             RC,        HcoConfig )
 !
 ! !USES:
 !
@@ -75,7 +74,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )          :: am_I_Root  ! root CPU?
     TYPE(ChmState),  INTENT(IN   )          :: State_Chm  ! Chemistry state
     TYPE(GrdState),  INTENT(IN   )          :: State_Grid ! Grid state
     TYPE(MetState),  INTENT(IN   )          :: State_Met  ! Met state
@@ -88,9 +86,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version
-!  16 Jun 2016 - J. Sheng    - Added tracer index retriever
-!  20 Jun 2016 - R. Yantosca - Now define species IDs only in the INIT phase
-!  22 Jan 2018 - R. Yantosca - Return error code to calling routine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -117,9 +113,8 @@ CONTAINS
                            Ind_('GlobSH90dayTracer'  ) > 0 )
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
-    CALL HCOI_GC_Init( am_I_Root,  Input_Opt, State_Chm,                      &
-                       State_Grid, State_Met, RC,                             &
-                       HcoConfig=HcoConfig                                   )
+    CALL HCOI_GC_Init( Input_Opt, State_Chm, State_Grid, State_Met, &
+                       RC,        HcoConfig=HcoConfig )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -143,7 +138,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Run( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
+  SUBROUTINE Emissions_Run( Input_Opt, State_Chm, State_Diag, &
                             State_Grid, State_Met, EmisTime,  Phase, RC   )
 !
 ! !USES:
@@ -160,20 +155,16 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Time_Mod,           ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
     Use SfcVmr_Mod,         Only : FixSfcVmr_Run
-#ifdef BPCH_DIAG
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
     USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
 #ifdef TOMAS
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
 #endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,        INTENT(IN   )  :: EmisTime   ! Emissions in this time step
     INTEGER,        INTENT(IN   )  :: Phase      ! Run phase
     TYPE(GrdState), INTENT(IN   )  :: State_Grid ! Grid State object
@@ -188,22 +179,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version
-!  13 Nov 2014 - C. Keller   - Added EMISSCARBON (for SESQ and POA)
-!  21 Nov 2014 - C. Keller   - Added EMISSVOC to prevent VOC build-up
-!                              above tropopause
-!  22 Sep 2016 - R. Yantosca - Don't call EMISSCARBON unless we are doing
-!                              a fullchem or aerosol simulation
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!  22 Jan 2018 - R. Yantosca - Return error code to calling program
-!  28 Aug 2018 - E. Lundgren - Implement budget diagnostics
-!  15 Oct 2018 - R. Yantosca - Now call GetPopsDiagsFromHemco to copy manual
-!                              diags for the POPS simulation into State_Diag
-!  18 Oct 2018 - R. Yantosca - Now pass State_Diag to EmissCO2 for nc diags
-#if defined ( MODEL_GEOS )
-!  27 Jun 2019 - C. Keller   - Only set surface CH3Br concentrations if flag is
-!                              set accordingly.
-#endif
-!  16 Aug 2019 - C. Keller   - Now call update fixSfcVMR_Run routine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -224,7 +200,7 @@ CONTAINS
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the
     ! HEMCO data list, phase 2 will perform the emission calculations.
-    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+    CALL HCOI_GC_Run( Input_Opt, State_Chm, State_Grid, &
                       State_Met, EmisTime,  Phase,     RC          )
 
     ! Trap potential errors
@@ -243,7 +219,7 @@ CONTAINS
     ! are correctly treated.
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-       CALL EmissCarbon( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
+       CALL EmissCarbon( Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -253,10 +229,9 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if defined ( TOMAS )
+#ifdef TOMAS
     ! Call TOMAS emission routines (JKodros 6/2/15)
-    CALL EmissCarbonTomas( am_I_Root,  Input_Opt, State_Chm, &
-                           State_Grid, State_Met, RC )
+    CALL EmissCarbonTomas( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -265,8 +240,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL EmissSulfateTomas( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, RC )
+    CALL EmissSulfateTomas( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -282,8 +256,8 @@ CONTAINS
     ! (as of GEOS-Chem 12.0.2) are now added via HEMCO, and diagnostics for
     ! these quantities are saved out via HEMCO diagnostics. (bmy, 10/18/18)
     IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL EmissCO2( am_I_Root,  Input_Opt,  State_Chm,                     &
-                      State_Diag, State_Grid, State_Met, RC                 )
+       CALL EmissCO2( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                      State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -304,7 +278,7 @@ CONTAINS
     ! diagnostics output. (bmy, mps, 10/19/18)
     IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
        ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-       CALL EmissCh4( am_I_Root, Input_Opt, State_Met, RC )
+       CALL EmissCh4( Input_Opt, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -314,11 +288,10 @@ CONTAINS
        ENDIF
     ENDIF
 
-#ifdef BPCH_DIAG
     ! For mercury, use old emissions code for now
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EmissMercury( am_I_Root,  Input_Opt,  State_Chm,                 &
-                          State_Diag, State_Grid, State_Met, RC             )
+       CALL EmissMercury( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                          State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -333,7 +306,7 @@ CONTAINS
     ! object into the State_Diag object.  This will allow us to save these
     ! fields to netCDF output via HISTORY. (bmy, 10/15/18)
     IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
-       CALL GetPopsDiagsFromHemco( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL GetPopsDiagsFromHemco( Input_Opt, State_Diag, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -342,7 +315,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -365,8 +337,7 @@ CONTAINS
     IF ( doMaintainMixRatio ) THEN
 
        ! Compute the surface flux needed to restore the total burden
-       CALL MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
-                              State_Grid, State_Met, RC )
+       CALL MMR_Compute_Flux( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
     ENDIF
 
@@ -385,7 +356,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Final( am_I_Root, Error, RC )
+  SUBROUTINE Emissions_Final( Error, RC )
 !
 ! !USES:
 !
@@ -394,7 +365,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root  ! root CPU?
     LOGICAL, INTENT(IN)  :: Error      ! Cleanup arrays after crash?
 !
 ! !OUTPUT PARAMETERS:
@@ -403,6 +373,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller    - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -420,7 +391,7 @@ CONTAINS
     ThisLoc = ' -> at HCOI_GC_Final (in module GeosCore/hcoi_gc_final_mod.F90)'
 
     ! Finalize HEMCO
-    CALL HCOI_GC_Final( am_I_Root, Error, RC )
+    CALL HCOI_GC_Final( Error, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -443,12 +414,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
+  SUBROUTINE MMR_Compute_Flux( Input_Opt, State_Chm, &
                                State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod
     USE ErrCode_Mod
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -463,7 +433,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -479,6 +448,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  31 Jan 2019 - M. Sulprizio- Initial version, modified from MMR code in
 !                              TR_GridCompMod.F90 from GEOS model
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -516,7 +486,7 @@ CONTAINS
     ! Initialize
     RC          = GC_SUCCESS
     ErrMsg      = ''
-    ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F)'
+    ThisLoc     = ' -> at MMR_Compute_Flux (in module GeosCore/emissions_mod.F90)'
 
     ! Point to chemical species array [kg/kg dry air]
     Spc        => State_Chm%Species
@@ -527,9 +497,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units to v/v dry
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,               &
-                            State_Grid, State_Met, 'v/v dry', RC,           &
-                            OrigUnit=OrigUnit                               )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'v/v dry', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -603,8 +572,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                            State_Met, OrigUnit,  RC                     )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

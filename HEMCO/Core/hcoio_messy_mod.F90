@@ -94,7 +94,7 @@ MODULE HCOIO_MESSY_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_MESSY_REGRID ( am_I_Root, HcoState,   NcArr,   &
+  SUBROUTINE HCO_MESSY_REGRID ( HcoState,  NcArr,               &
                                 LonEdge,   LatEdge,    LevEdge, &
                                 Lct,       IsModelLev, RC        )
 !
@@ -109,7 +109,6 @@ MODULE HCOIO_MESSY_MOD
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root       ! Root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState        ! HEMCO obj.
     REAL(sp),         POINTER        :: ncArr(:,:,:,:)  ! Input array(x,y,z,t)
     REAL(hp),         POINTER        :: LonEdge(:)      ! lon edges
@@ -351,7 +350,7 @@ MODULE HCOIO_MESSY_MOD
     lat   => LatEdge
     sigma => LevEdge
 
-    CALL AXIS_CREATE( am_I_Root, HcoState, lon, lat, sigma, axis_src, RC )
+    CALL AXIS_CREATE( HcoState, lon, lat, sigma, axis_src, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Free pointer
@@ -369,7 +368,7 @@ MODULE HCOIO_MESSY_MOD
     lat   => HcoState%Grid%YEDGE%Val(1,:)
     IF( ASSOCIATED(LevEdge) ) sigma => sigout(:,:,1:NZOUT+1)
 
-    CALL AXIS_CREATE( am_I_Root, HcoState, lon, lat, sigma, axis_dst, RC )
+    CALL AXIS_CREATE( HcoState, lon, lat, sigma, axis_dst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Free pointer
@@ -435,7 +434,7 @@ MODULE HCOIO_MESSY_MOD
        ! Map input array onto MESSy array. Different time slices are
        ! stored as individual vector elements of narr_src.
        !-----------------------------------------------------------------
-       CALL HCO2MESSY( am_I_Root, HcoState, ArrIn, narr_src, axis_src, RC )
+       CALL HCO2MESSY( HcoState, ArrIn, narr_src, axis_src, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        !-----------------------------------------------------------------
@@ -448,7 +447,7 @@ MODULE HCOIO_MESSY_MOD
        ! Map the destination array narr_dst onto the data vector in the
        ! HEMCO list container or onto the temporary array ArrOut.
        !-----------------------------------------------------------------
-       CALL MESSY2HCO( am_I_Root, HcoState, narr_dst, Lct, I, ArrOut, RC )
+       CALL MESSY2HCO( HcoState, narr_dst, Lct, I, ArrOut, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Cleanup
@@ -460,7 +459,7 @@ MODULE HCOIO_MESSY_MOD
     ! If these are model levels, do vertical interpolation now
     !-----------------------------------------------------------------
     IF ( ASSOCIATED(ArrOut) ) THEN
-       CALL ModelLev_Interpolate( am_I_Root, HcoState, ArrOut, Lct, RC )
+       CALL ModelLev_Interpolate( HcoState, ArrOut, Lct, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        DEALLOCATE(ArrOut)
     ENDIF
@@ -520,7 +519,7 @@ MODULE HCOIO_MESSY_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AXIS_CREATE ( am_I_Root, HcoState, lon, lat, lev, ax, RC )
+  SUBROUTINE AXIS_CREATE( HcoState, lon, lat, lev, ax, RC )
 !
 ! !USES:
 !
@@ -528,7 +527,6 @@ MODULE HCOIO_MESSY_MOD
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),  POINTER                 :: HcoState
     TYPE(ListCont),   POINTER                 :: Lct
     REAL(hp),         POINTER                 :: Lon(:)
@@ -840,14 +838,13 @@ MODULE HCOIO_MESSY_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO2MESSY( am_I_Root, HcoState, InArr, narr, ax, RC )
+  SUBROUTINE HCO2MESSY( HcoState, InArr, narr, ax, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState
     REAL(sp),         POINTER        :: InArr(:,:,:,:)
     TYPE(narray),     POINTER        :: narr(:)
@@ -965,14 +962,13 @@ MODULE HCOIO_MESSY_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MESSY2HCO( am_I_Root, HcoState, narr, Lct, LEV, Ptr4D, RC )
+  SUBROUTINE MESSY2HCO( HcoState, narr, Lct, LEV, Ptr4D, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )          :: am_I_Root
     TYPE(HCO_State),  POINTER                :: HcoState
     TYPE(narray),     POINTER                :: narr(:)
     TYPE(ListCont),   POINTER                :: Lct

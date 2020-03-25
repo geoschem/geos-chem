@@ -19,7 +19,7 @@ MODULE VDIFF_MOD
   USE PhysConstants                                ! Physical constants
   USE PRECISION_MOD                                ! For GEOS-Chem Precision(fp)
   USE VDIFF_PRE_MOD, ONLY : PCNST                  ! N_TRACERS
-  USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
+  USE VDIFF_PRE_MOD, ONLY : prtDebug               ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
 
   IMPLICIT NONE
@@ -127,7 +127,7 @@ MODULE VDIFF_MOD
 !
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,8 +158,7 @@ contains
     real(fp), intent(in) :: gravx     !  acceleration of gravity
 !
 ! !REVISION HISTORY:
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,7 +279,7 @@ contains
 !  f = sqrt(1 - 18*ri)
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,7 +381,7 @@ contains
     sum_qp1  = 0.0_fp
 
     !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
 
     !Populate local variables with values from arguments.(ccc, 11/17/09)
@@ -433,7 +432,7 @@ contains
     end do
 
 !      !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: diffusion begins' )
 
 !-----------------------------------------------------------------------
@@ -455,7 +454,7 @@ contains
     end do
 
 !      !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: compute free atmos. diffusion' )
 
 !-----------------------------------------------------------------------
@@ -504,7 +503,7 @@ contains
     end do
 
     !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: pbldif begins' )
 
 !-----------------------------------------------------------------------
@@ -533,7 +532,7 @@ contains
     endif
 
     !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
 
 !-----------------------------------------------------------------------
@@ -695,7 +694,7 @@ contains
     end do
 
     !### Debug
-    IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
+    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
 
 !-----------------------------------------------------------------------
@@ -855,8 +854,7 @@ contains
          qpert(plonl)               ! convective humidity excess
 !
 ! !REVISION HISTORY:
-!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
-!                              involve explicitly using "D" exponents
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1292,7 +1290,7 @@ contains
 !  Richtmyer and Morton (1967,pp 198-199)
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1398,7 +1396,7 @@ contains
          as2(:,:,:,:)     ! moist, tracers after vert. diff
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1629,7 +1627,7 @@ contains
          cgq(plonl,plevp,pcnst)  ! counter-gradient term for constituents
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1687,17 +1685,18 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE VDINTI( am_I_Root, State_Grid, RC )
+  SUBROUTINE VDINTI( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE PRESSURE_MOD,   ONLY : GET_AP, GET_BP
     USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input Options object
     TYPE(GrdState), INTENT(IN ) :: State_Grid ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
@@ -1705,7 +1704,7 @@ contains
     INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1818,12 +1817,11 @@ contains
 !
 ! !INTERFACE:
 !
-  SUBROUTINE VDIFFDR( am_I_Root,  Input_Opt,  State_Chm,                    &
-                      State_Diag, State_Grid, State_Met, RC                  )
+  SUBROUTINE VDIFFDR( Input_Opt,  State_Chm, State_Diag, &
+                      State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
@@ -1836,17 +1834,12 @@ contains
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
-#ifdef BPCH_DIAG
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
     USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
     USE MERCURY_MOD,        ONLY : HG_EMIS
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
-#endif
-#ifdef USE_TEND
-    USE TENDENCIES_MOD
-#endif
 
     ! HEMCO update
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
@@ -1855,7 +1848,6 @@ contains
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
 !
@@ -1882,7 +1874,7 @@ contains
 !      to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
 
 ! !REVISION HISTORY:
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1981,7 +1973,7 @@ contains
     ThisLoc = ' -> at VDIFF (in module GeosCore/vdiff_mod.F90)'
 
     !### Debug
-    IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
+    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
 
     ! NOTE: The prior behavior of the code assumed that NUMDEP=0 when
     ! drydep was shut off.  NUMDEP=0 prevented the main drydep loops
@@ -2043,21 +2035,14 @@ contains
        ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
        ! respective diagnostics. The pointers will remain unassociated if
        ! the diagnostics do not exist (ckeller, 4/10/2015).
-       CALL GetHcoDiagn( am_I_Root, 'PARANOX_O3_DEPOSITION_FLUX'  , &
-                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3         )
-       CALL GetHcoDiagn( am_I_Root, 'PARANOX_HNO3_DEPOSITION_FLUX', &
-                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3       )
+       CALL GetHcoDiagn( 'PARANOX_O3_DEPOSITION_FLUX'  , &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3 )
+       CALL GetHcoDiagn( 'PARANOX_HNO3_DEPOSITION_FLUX', &
+                         .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3 )
 
        ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
-
-#ifdef USE_TEND
-    ! Archive concentrations for tendencies calculations. Tracers array
-    ! is already in v/v (ckeller, 7/15/2015).
-    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                      State_Met, 'PBLMIX', RC )
-#endif
 
 ! (Turn off parallelization for now, skim 6/20/12)
 
@@ -2167,7 +2152,7 @@ contains
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
           ! array. These values are stored in 1/s. They are added in the
-          ! same manner as the DEPSAV values from drydep_mod.F.
+          ! same manner as the DEPSAV values from drydep_mod.F90.
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
           CALL GetHcoVal ( NA, I, J, 1, fnd, dep=dep )
           IF ( fnd ) THEN
@@ -2179,7 +2164,7 @@ contains
 
        !--------------------------------------------------------------------
        ! Overwrite emissions for offline CH4 simulation.
-       ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F.
+       ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F90.
        ! We use CH4_EMIS here instead of the HEMCO internal emissions
        ! only to make sure that total CH4 emissions are properly defined
        ! in a multi-tracer CH4 simulation. For a single-tracer simulation
@@ -2193,10 +2178,9 @@ contains
           enddo
        ENDIF
 
-#ifdef BPCH_DIAG
        !--------------------------------------------------------------------
        ! Overwrite emissions for offline mercury simulation
-       ! HG emissions become stored in HG_EMIS in mercury_mod.F.
+       ! HG emissions become stored in HG_EMIS in mercury_mod.F90.
        ! This is a workaround to ensure backwards compatibility.
        ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
        !--------------------------------------------------------------------
@@ -2205,11 +2189,10 @@ contains
              eflx(I,J,NA) = HG_EMIS(I,J,NA)
           enddo
        ENDIF
-#endif
 
        !--------------------------------------------------------------------
        ! Apply dry deposition frequencies
-       ! These are the frequencies calculated in drydep_mod.F
+       ! These are the frequencies calculated in drydep_mod.F90
        ! The HEMCO drydep frequencies (from air-sea exchange and
        ! PARANOX) were already added above.
        !
@@ -2272,7 +2255,6 @@ contains
                          ( AIRMW / SpcInfo%emMW_g )
           endif
 
-#ifdef BPCH_DIAG
           ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
           ! so disable deposition over water here.
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
@@ -2289,7 +2271,6 @@ contains
                                MAX(1e+0_fp - FRAC_NO_HG0_DEP, 0e+0_fp)
              ENDIF
           ENDIF
-#endif
 
           ! Free species database pointer
           SpcInfo => NULL()
@@ -2319,7 +2300,6 @@ contains
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
-#ifdef BPCH_DIAG
        !--------------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
        !--------------------------------------------------------------------
@@ -2365,20 +2345,19 @@ contains
              SpcInfo => NULL()
           ENDDO
        ENDIF
-#endif
 
     enddo
     enddo
 !$OMP END PARALLEL DO
 
-#ifdef DEVEL
-    ! Print debug output for the advected species
-    write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
-    do NA = 1, nAdvect
-       write(*,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
-       write(*,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
-    enddo
-#endif
+    !IF ( prtDebug ) THEN
+    !   ! Print debug output for the advected species
+    !   write(*,*) 'eflx and dflx values HEMCO [kg/m2/s]'
+    !   do NA = 1, nAdvect
+    !      write(*,*) 'eflx TRACER ', NA, ': ', SUM(eflx(:,:,NA))
+    !      write(*,*) 'dflx TRACER ', NA, ': ', SUM(dflx(:,:,NA))
+    !   enddo
+    !ENDIF
 
     !=======================================================================
     ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]
@@ -2478,7 +2457,7 @@ contains
 	!Maasa, Add SoilNOx deposition to allow SN code to work with NLPBL on.
 
     !### Debug
-    IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
+    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
 
     if( divdiff ) then
 
@@ -2532,7 +2511,7 @@ contains
        p_shp              =  p_shp * 1.e-3_fp
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )
@@ -2549,7 +2528,7 @@ contains
 !$OMP END PARALLEL DO
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
        ! Convert kg/kg -> v/v
        DO NA = 1, nAdvect
@@ -2603,7 +2582,7 @@ contains
        enddo
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiffar' )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: before vdiffar' )
 
 !!$OMP PARALLEL DO DEFAULT( SHARED )   &
 !!$OMP PRIVATE( J )
@@ -2614,7 +2593,7 @@ contains
 !!$OMP END PARALLEL DO
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiffar' )
+       IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after vdiffar' )
 
        ! Convert from m/m (i.e. kg/kg) -> v/v
        do NA = 1, nAdvect
@@ -2637,7 +2616,7 @@ contains
        State_Met%PBLH = pblh
 
        ! Compute PBL quantities
-       CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Grid, State_Met, RC )
+       CALL COMPUTE_PBL_HEIGHT( State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2648,15 +2627,8 @@ contains
 
     endif
 
-#ifdef USE_TEND
-    ! Compute tendencies and write to diagnostics (ckeller, 7/15/2015)
-    CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm, &
-                      State_Grid, State_Met, 'PBLMIX',  &
-                      dtime,      RC )
-#endif
-
-!      !### Debug
-    IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
+    !### Debug
+    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
     ! Nullify pointers
     NULLIFY( DEPSAV )
@@ -2678,19 +2650,18 @@ contains
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_PBL_MIX_2( am_I_Root,  DO_VDIFF,   Input_Opt, State_Chm,     &
-                           State_Diag, State_Grid, State_Met, RC            )
+  SUBROUTINE DO_PBL_MIX_2( DO_VDIFF,   Input_Opt,  State_Chm, &
+                           State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE DAO_MOD,            ONLY : AIRQNT
+    USE Calc_Met_Mod,       ONLY : AIRQNT
     USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
     USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : INIT_PBL_MIX
-    USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
@@ -2711,7 +2682,6 @@ contains
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
     LOGICAL,        INTENT(IN)    :: DO_VDIFF     ! Switch which turns on PBL
                                                   !  mixing of tracers
     TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
@@ -2729,7 +2699,7 @@ contains
 !
 ! !REVISION HISTORY:
 !  11 Feb 2005 - R. Yantosca - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2753,8 +2723,8 @@ contains
     !=======================================================================
 
     ! Initialize
-    RC       =  GC_SUCCESS                          ! Assume success
-    prtDebug = ( Input_Opt%LPRT .and. am_I_Root )   ! Print debug output?
+    RC       =  GC_SUCCESS                                ! Assume success
+    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) ! Print debug output?
     ErrMsg   = ''
     ThisLoc  = ' -> at DO_PBL_MIX_2 (in module GeosCore/vdiff_mod.F90)'
 
@@ -2765,7 +2735,7 @@ contains
     IF ( FIRST ) THEN
 
        ! Make sure the various PBL arrays are allocated
-       CALL INIT_PBL_MIX( am_I_Root, State_Grid, RC )
+       CALL INIT_PBL_MIX( Input_Opt, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "INIT_PBL_MIX"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2773,7 +2743,7 @@ contains
        ENDIF
 
        ! Perform more internal initializations
-       CALL Vdinti( am_I_Root, State_Grid, RC )
+       CALL Vdinti( Input_Opt, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "VDINTI"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2810,7 +2780,7 @@ contains
        !------------------------------------------------------
        IF ( State_Diag%Archive_BudgetMixing ) THEN
           ! Get initial column masses
-          CALL Compute_Column_Mass( am_I_Root, Input_Opt,                &
+          CALL Compute_Column_Mass( Input_Opt,                           &
                                     State_Chm, State_Grid, State_Met,    &
                                     State_Chm%Map_Advect,                &
                                     State_Diag%Archive_BudgetMixingFull, &
@@ -2830,9 +2800,8 @@ contains
        !----------------------------------------
 
        ! Convert species concentration to v/v dry
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                               State_grid, State_Met, 'v/v dry', &
-                               RC,         OrigUnit=OrigUnit      )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_grid, State_Met, &
+                               'v/v dry', RC, OrigUnit=OrigUnit )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2846,8 +2815,8 @@ contains
        !----------------------------------------
 
        ! Do non-local PBL mixing
-       CALL VDIFFDR( am_I_Root,  Input_Opt,  State_Chm,                     &
-                     State_Diag, State_Grid, State_Met, RC                 )
+       CALL VDIFFDR( Input_Opt,  State_Chm, State_Diag, &
+                     State_Grid, State_Met, RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2871,8 +2840,8 @@ contains
        ! NOTE: Prior to October 2015, air quantities were not updated
        ! with specific humidity modified in VDIFFDR at this point in
        ! the model
-       CALL AIRQNT( am_I_Root, Input_Opt, State_Chm, State_Grid,             &
-                    State_Met, RC,        Update_Mixing_Ratio=.TRUE.        )
+       CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met, &
+                    RC, Update_Mixing_Ratio=.TRUE. )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2891,8 +2860,8 @@ contains
        !----------------------------------------
 
        ! Convert species back to the original units
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,              &
-                               State_Grid, State_Met, OrigUnit,  RC           )
+       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               OrigUnit,  RC )
 
        ! Trap potential error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2910,7 +2879,7 @@ contains
           DT_Dyn = Get_Ts_Dyn()
 
           ! Get final column masses and compute diagnostics
-          CALL Compute_Column_Mass( am_I_Root, Input_Opt,                   &
+          CALL Compute_Column_Mass( Input_Opt,                              &
                                     State_Chm, State_Grid, State_Met,       &
                                     State_Chm%Map_Advect,                   &
                                     State_Diag%Archive_BudgetMixingFull,    &
@@ -2918,8 +2887,7 @@ contains
                                     State_Diag%Archive_BudgetMixingPBL,     &
                                     State_Diag%BudgetMass2,                 &
                                     RC )
-          CALL Compute_Budget_Diagnostics( am_I_Root,                       &
-                                       State_Grid,                          &
+          CALL Compute_Budget_Diagnostics( State_Grid,                      &
                                        State_Chm%Map_Advect,                &
                                        DT_Dyn,                              &
                                        State_Diag%Archive_BudgetMixingFull, &

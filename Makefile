@@ -26,22 +26,7 @@
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
-#  24 Nov 2009 - R. Yantosca - Now call libbpch and libcore targets in
-#                              the Makefile in the GeosCore sub-directory
-#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
-#  25 Jan 2010 - R. Yantosca - Added Makefile targets for TOMAS microphysics
-#  16 Feb 2011 - R. Yantosca - Added Makefile targets for APM microphysics
-#  04 Nov 2011 - R. Yantosca - Remove ESMF targets, those are not needed
-#  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
-#  11 May 2012 - R. Yantosca - Now make sure that all targets of the 
-#                              GeosCore/Makefile are pointed to properly
-#  20 Aug 2013 - R. Yantosca - Make sure Makefile names are consistent
-#  18 Sep 2013 - R. Yantosca - Remove GeosTomas, that is now gone
-#  18 Sep 2013 - M. Long     - Add Makefile target "hpc"
-#  15 Jan 2014 - R. Yantosca - Updated comments
-#  19 Mar 2014 - R. Yantosca - Add more visible comment section dividers
-#  04 Jun 2015 - R. Yantosca - Now add "wipeout" and "debug" targets
-#  23 Jun 2016 - R. Yantosca - Remove references to GeosApm
+#  See https://github.com/geoschem/geos-chem for complete history
 #EOP
 #------------------------------------------------------------------------------
 #BOC

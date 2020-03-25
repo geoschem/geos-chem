@@ -686,8 +686,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_ERROR_SET( am_I_Root, Err, LogFile,   &
-                            Verbose,   WarningLevel, RC )
+  SUBROUTINE HCO_ERROR_SET( am_I_Root, Err, LogFile, &
+                            Verbose, WarningLevel, RC )
 !
 !  !INPUT PARAMETERS:
 !
@@ -731,7 +731,7 @@ CONTAINS
     ENDIF
 
     ! Pass values
-    Err%IsRoot       = am_I_Root
+    Err%IsRoot       = am_I_Root 
     Err%LogFile      = TRIM(LogFile)
     Err%Verbose      = Verbose
     Err%Warnings     = WarningLevel

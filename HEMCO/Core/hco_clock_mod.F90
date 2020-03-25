@@ -139,16 +139,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_Init ( am_I_Root, HcoState, RC )
+  SUBROUTINE HcoClock_Init ( HcoState, RC )
 !
 ! !USES:
 !
     USE HCO_ARR_MOD,     ONLY : HCO_ArrInit
     USE HCO_STATE_MOD,   ONLY : HCO_State
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN   )  :: am_I_Root ! Root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -288,7 +284,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_InitTzPtr( am_I_Root, HcoState, RC )
+  SUBROUTINE HcoClock_InitTzPtr( HcoState, RC )
 !
 ! !USES:
 !
@@ -297,7 +293,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState  ! HcoState object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -313,7 +308,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Feb 2015 - R. Yantosca - Initial version
-!  10 Mar 2015 - C. Keller   - Packed message into am_I_Root statement
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,11 +326,11 @@ CONTAINS
     ENDIF
 
     ! Look for the time zone pointer
-    CALL HCO_GetPtr ( am_I_Root, HcoState, 'TIMEZONES', &
+    CALL HCO_GetPtr ( HcoState, 'TIMEZONES', &
                       HcoState%Clock%TIMEZONES%Val, RC, FOUND=FOUND )
 
     ! Print a message
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        IF ( FOUND ) THEN
           CALL HCO_MSG( HcoState%Config%Err, &
            'TIMEZONES (i.e. OFFSETS FROM UTC) WERE READ FROM A FILE' )
@@ -362,8 +357,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_Set ( am_I_Root, HcoState, cYr,  cMt,   cDy, cHr, &
-                            cMin,      cSec,     cDOY, IsEmisTime, RC    )
+  SUBROUTINE HcoClock_Set ( HcoState, cYr, cMt, cDy, cHr, &
+                            cMin, cSec, cDOY, IsEmisTime, RC    )
 !
 ! !USES:
 !
@@ -373,7 +368,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )           :: am_I_Root ! Root CPU?
     INTEGER,         INTENT(IN   )           :: cYr       ! Current year
     INTEGER,         INTENT(IN   )           :: cMt       ! Current month
     INTEGER,         INTENT(IN   )           :: cDy       ! Current day
@@ -537,7 +531,7 @@ CONTAINS
        ! ----------------------------------------------------------------
        ! Set local times
        ! ----------------------------------------------------------------
-       CALL Set_LocalTime ( am_I_Root, HcoState, Clock, UTC, RC )
+       CALL Set_LocalTime ( HcoState, Clock, UTC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! ----------------------------------------------------------------
@@ -638,23 +632,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_Get ( am_I_Root, Clock,             &
-                            cYYYY,   cMM, cDD,  cH,       &
-                            cM,      cS,  cDOY, cWEEKDAY, &
-                            pYYYY,   pMM, pDD,  pH,       &
-                            pM,      pS,  pDOY, pWEEKDAY, &
-                            sYYYY,   sMM, sDD,  sH,       &
-                            sM,      sS,                  &
-                            LMD,     nSteps,    cMidMon,  &
+  SUBROUTINE HcoClock_Get ( Clock,                          &
+                            cYYYY,   cMM, cDD,  cH,         &
+                            cM,      cS,  cDOY, cWEEKDAY,   &
+                            pYYYY,   pMM, pDD,  pH,         &
+                            pM,      pS,  pDOY, pWEEKDAY,   &
+                            sYYYY,   sMM, sDD,  sH,         &
+                            sM,      sS,                    &
+                            LMD,     nSteps,    cMidMon,    &
                             dslmm,   dbtwmm,    IsEmisTime, &
                             IsLast,  RC )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   )               :: am_I_Root  ! Root CPU
     TYPE(HcoClock), POINTER              :: Clock   ! HEMCO clock obj
 !
 ! !OUTPUT PARAMETERS:
@@ -1445,7 +1435,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_LocalTime ( am_I_Root, HcoState, Clock, UTC, RC )
+  SUBROUTINE Set_LocalTime ( HcoState, Clock, UTC, RC )
 !
 ! !USES:
 !
@@ -1453,7 +1443,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU?
     TYPE(HCO_STATE), POINTER       :: HcoState
     TYPE(HcoClock),  POINTER       :: Clock  ! Clock object
     REAL(sp),        INTENT(IN   ) :: UTC       ! UTC time
@@ -1639,7 +1628,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_Increase ( am_I_Root, HcoState, TimeStep, EmisTime, RC )
+  SUBROUTINE HcoClock_Increase ( HcoState, TimeStep, EmisTime, RC )
 !
 ! !USES:
 !
@@ -1647,7 +1636,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU
     TYPE(HCO_State), POINTER       :: HcoState  ! Hemco state
     REAL(sp),        INTENT(IN   ) :: TimeStep  ! Time step increase [s]
     LOGICAL,         INTENT(IN   ) :: EmisTime  ! Is new time step emission time?
@@ -1699,7 +1687,7 @@ CONTAINS
     Sc = FLOOR ( MOD(   HHMMSS, 100      ) / 1.0e0_dp )
 
     ! Update HEMCO clock to new values
-    CALL HcoClock_Set ( am_I_Root, HcoState, Yr, Mt, Dy, Hr, Mn, Sc, &
+    CALL HcoClock_Set ( HcoState, Yr, Mt, Dy, Hr, Mn, Sc, &
                         IsEmisTime=EmisTime, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1726,11 +1714,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_EmissionsDone( am_I_Root, Clock, RC )
+  SUBROUTINE HcoClock_EmissionsDone( Clock, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU
     TYPE(HcoClock),  POINTER       :: Clock     ! HEMCO clock obj
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1763,11 +1750,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoClock_SetLast( am_I_Root, Clock, IsLast, RC )
+  SUBROUTINE HcoClock_SetLast( Clock, IsLast, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root ! Root CPU
     TYPE(HcoClock),  POINTER       :: Clock     ! HEMCO clock obj
     LOGICAL,         INTENT(IN   ) :: IsLast    ! Is last time step?
 !

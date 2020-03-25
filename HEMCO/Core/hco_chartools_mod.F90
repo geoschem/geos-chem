@@ -843,14 +843,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetNextLine( am_I_Root, LUN, LINE, EOF, RC )
+  SUBROUTINE GetNextLine( LUN, LINE, EOF, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     INTEGER,          INTENT(IN   ) :: LUN         ! Stream to read from
 !
 ! !OUTPUT PARAMETERS

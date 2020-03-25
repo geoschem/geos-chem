@@ -133,7 +133,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CalcEmis( am_I_Root, HcoState, UseConc, RC )
+  SUBROUTINE HCO_CalcEmis( HcoState, UseConc, RC )
 !
 ! !USES:
 !
@@ -145,7 +145,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! Root CPU?
     LOGICAL,         INTENT(IN   )  :: UseConc    ! Use concentration fields?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -419,7 +418,7 @@ CONTAINS
           ! Add category emissions to diagnostics at category level
           ! (only if defined in the diagnostics list).
           IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,3) .AND. DoDiagn ) THEN
-             CALL Diagn_Update( am_I_Root,   HcoState, ExtNr=ExtNr,   &
+             CALL Diagn_Update( HcoState,    ExtNr=ExtNr,   &
                                 Cat=PrevCat, Hier=-1,  HcoID=PrevSpc, &
                                 AutoFill=1,  Array3D=CatFlx, COL=-1, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
@@ -461,9 +460,9 @@ CONTAINS
           ! The same diagnostics may be updated multiple times during
           ! the same time step, continuously adding emissions to it.
           IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,2) .AND. DoDiagn ) THEN
-             CALL Diagn_Update(am_I_Root, HcoState,  ExtNr=ExtNr,  &
-                               Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
-                               AutoFill=1,Array3D=SpcFlx, COL=-1, RC=RC )
+             CALL Diagn_Update( HcoState,  ExtNr=ExtNr,  &
+                                Cat=-1,    Hier=-1,  HcoID=PrevSpc, &
+                                AutoFill=1,Array3D=SpcFlx, COL=-1, RC=RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
           ENDIF
 
@@ -550,12 +549,11 @@ CONTAINS
        ! denotes all valid grid boxes for this inventory.
        !--------------------------------------------------------------------
        TmpFlx(:,:,:) = 0.0_hp
-       CALL GET_CURRENT_EMISSIONS( am_I_Root,  HcoState, Dct,    &
-                                   nI, nJ, nL, TmpFlx,   Mask, RC )
+       CALL GET_CURRENT_EMISSIONS( HcoState, Dct, nI, nJ, nL, TmpFlx, Mask, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Eventually add universal scale factor
-       CALL HCO_ScaleArr( am_I_Root, HcoState, ThisSpc, TmpFlx, RC )
+       CALL HCO_ScaleArr( HcoState, ThisSpc, TmpFlx, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Check for negative values according to the corresponding setting
@@ -620,7 +618,7 @@ CONTAINS
        ! Now remove PosOnly flag. TmpFlx is initialized to zero, so it's
        ! ok to keep negative values (ckeller, 7/12/15).
        IF ( Diagn_AutoFillLevelDefined(HcoState%Diagn,4) .AND. DoDiagn ) THEN
-          CALL Diagn_Update( am_I_Root,  HcoState,       ExtNr=ExtNr,   &
+          CALL Diagn_Update( HcoState,       ExtNr=ExtNr,   &
                              Cat=ThisCat,Hier=ThisHir,   HcoID=ThisSpc, &
                              !AutoFill=1, Array3D=TmpFlx, PosOnly=.TRUE.,&
                              AutoFill=1, Array3D=TmpFlx, &
@@ -672,15 +670,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CheckDepv( am_I_Root, HcoState, Depv, RC )
+  SUBROUTINE HCO_CheckDepv( HcoState, Depv, RC )
 !
 ! !USES:
 !
     USE HCO_STATE_MOD,    ONLY : HCO_State
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN   )  :: am_I_Root  ! Root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -724,7 +718,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Current_Emissions( am_I_Root, HcoState,   BaseDct,   &
+  SUBROUTINE Get_Current_Emissions( HcoState,   BaseDct,   &
                                     nI, nJ, nL, OUTARR_3D, MASK, RC, UseLL )
 !
 ! !USES:
@@ -735,7 +729,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN ) :: am_I_Root           ! Root CPU?
     INTEGER,           INTENT(IN)  :: nI                  ! # of lons
     INTEGER,           INTENT(IN)  :: nJ                  ! # of lats
     INTEGER,           INTENT(IN)  :: nL                  ! # of levs
@@ -850,13 +843,13 @@ CONTAINS
 
     ! Check for level index containers
     IF ( BaseDct%levScalID1 > 0 ) THEN
-       CALL Pnt2DataCont( am_I_Root, HcoState, BaseDct%levScalID1, LevDct1, RC )
+       CALL Pnt2DataCont( HcoState, BaseDct%levScalID1, LevDct1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSE
        LevDct1 => NULL()
     ENDIF
     IF ( BaseDct%levScalID2 > 0 ) THEN
-       CALL Pnt2DataCont( am_I_Root, HcoState, BaseDct%levScalID2, LevDct2, RC )
+       CALL Pnt2DataCont( HcoState, BaseDct%levScalID2, LevDct2, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ELSE
        LevDct2 => NULL()
@@ -871,7 +864,7 @@ CONTAINS
     DO I = 1, nI
 
        ! Get current time index for this container and at this location
-       tIDx = tIDx_GetIndx( am_I_Root, HcoState, BaseDct%Dta, I, J )
+       tIDx = tIDx_GetIndx( HcoState, BaseDct%Dta, I, J )
        IF ( tIDx < 1 ) THEN
           WRITE(MSG,*) 'Cannot get time slice index at location ',I,J,&
                        ': ', TRIM(BaseDct%cName), tIDx
@@ -880,7 +873,7 @@ CONTAINS
        ENDIF
 
        ! Get lower and upper vertical index
-       CALL GetVertIndx ( am_I_Root, HcoState, BaseDct, LevDct1, LevDct2, &
+       CALL GetVertIndx ( HcoState, BaseDct, LevDct1, LevDct2, &
                           I, J, LowLL, UppLL, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           WRITE(MSG,*) 'Error getting vertical index at location ',I,J,&
@@ -926,7 +919,7 @@ CONTAINS
 
              ! 2D dilution factor
              ELSE
-                CALL GetDilFact ( am_I_Root, HcoState,    BaseDct%Dta%EmisL1, &
+                CALL GetDilFact ( HcoState,    BaseDct%Dta%EmisL1, &
                                   BaseDct%Dta%EmisL1Unit, BaseDct%Dta%EmisL2,  &
                                   BaseDct%Dta%EmisL2Unit, I, J, L, LowLL,  &
                                   UppLL, DilFact, RC )
@@ -968,7 +961,7 @@ CONTAINS
        IDX = BaseDct%Scal_cID(N)
 
        ! Point to data container with the given container ID
-       CALL Pnt2DataCont( am_I_Root, HcoState, IDX, ScalDct, RC )
+       CALL Pnt2DataCont( HcoState, IDX, ScalDct, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Sanity check: scale field cannot be a base field
@@ -1008,7 +1001,7 @@ CONTAINS
        ! mask field and evaluate scale factors only inside the mask
        ! region.
        IF ( ASSOCIATED(ScalDct%Scal_cID) ) THEN
-          CALL Pnt2DataCont( am_I_Root, HcoState, ScalDct%Scal_cID(1), MaskDct, RC )
+          CALL Pnt2DataCont( HcoState, ScalDct%Scal_cID(1), MaskDct, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Must be mask field
@@ -1046,8 +1039,7 @@ CONTAINS
 
           ! If there is a mask applied to this scale factor ...
           IF ( ASSOCIATED(MaskDct) ) THEN
-             CALL GetMaskVal ( am_I_Root, MaskDct, I, J, &
-                               MaskScale, MaskFractions, RC )
+             CALL GetMaskVal ( MaskDct, I, J, MaskScale, MaskFractions, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 4
                 EXIT
@@ -1058,7 +1050,7 @@ CONTAINS
           IF ( MaskScale <= 0.0_sp ) CYCLE
 
           ! Get current time index for this container and at this location
-          tIDx = tIDx_GetIndx( am_I_Root, HcoState, ScalDct%Dta, I, J )
+          tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
           IF ( tIDx < 1 ) THEN
              WRITE(*,*) 'Cannot get time slice index at location ',I,J,&
                           ': ', TRIM(ScalDct%cName), tIDx
@@ -1075,8 +1067,7 @@ CONTAINS
           IF ( ScalDct%DctType == HCO_DCTTYPE_MASK ) THEN
 
              ! Get mask value
-             CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
-                               TMPVAL,    MaskFractions, RC )
+             CALL GetMaskVal ( ScalDct, I, J, TMPVAL, MaskFractions, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 4
                 EXIT
@@ -1105,7 +1096,7 @@ CONTAINS
           ! ------------------------------------------------------------
 
           ! Get lower and upper vertical index
-          CALL GetVertIndx ( am_I_Root, HcoState, BaseDct, &
+          CALL GetVertIndx ( HcoState, BaseDct, &
                              LevDct1, LevDct2, I, J, LowLL, UppLL, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ERROR = 1 ! Will cause error
@@ -1273,7 +1264,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Current_Emissions_B( am_I_Root, HcoState, BaseDct, &
+  SUBROUTINE Get_Current_Emissions_B( HcoState, BaseDct, &
                                       nI, nJ, nL, OUTARR_3D, MASK, RC )
 !
 ! !USES:
@@ -1284,7 +1275,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root           ! Root CPU?
     INTEGER,         INTENT(IN)    :: nI                  ! # of lons
     INTEGER,         INTENT(IN)    :: nJ                  ! # of lats
     INTEGER,         INTENT(IN)    :: nL                  ! # of levs
@@ -1401,7 +1391,7 @@ CONTAINS
        ! tIdxVec contains the vector index to be used at the current
        ! datetime. This parameter may vary with longitude due to time
        ! zone shifts!
-       tIDx = tIDx_GetIndx( am_I_Root, HcoState, BaseDct%Dta, I, J )
+       tIDx = tIDx_GetIndx( HcoState, BaseDct%Dta, I, J )
        IF ( tIDx < 0 ) THEN
           write(MSG,*) 'Cannot get time slice index at location ',I,J,&
                        ': ', TRIM(BaseDct%cName)
@@ -1453,7 +1443,7 @@ CONTAINS
           IDX = BaseDct%Scal_cID(N)
 
           ! Point to emission container with the given container ID
-          CALL Pnt2DataCont( am_I_Root, HcoState, IDX, ScalDct, RC )
+          CALL Pnt2DataCont( HcoState, IDX, ScalDct, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ERROR = 4
              EXIT
@@ -1479,7 +1469,7 @@ CONTAINS
           ! mask field and evaluate scale factors only inside the mask
           ! region.
           IF ( ASSOCIATED(ScalDct%Scal_cID) ) THEN
-             CALL Pnt2DataCont( am_I_Root, HcoState, ScalDct%Scal_cID(1), MaskDct, RC )
+             CALL Pnt2DataCont( HcoState, ScalDct%Scal_cID(1), MaskDct, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 5
                 EXIT
@@ -1495,8 +1485,7 @@ CONTAINS
              ENDIF
 
              ! Get mask value
-             CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
-                               TMPVAL,    MaskFractions, RC )
+             CALL GetMaskVal( ScalDct, I, J, TMPVAL, MaskFractions, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 6
                 EXIT
@@ -1512,7 +1501,7 @@ CONTAINS
           ENDIF
 
           ! Get current time index
-          tIDx = tIDx_GetIndx( am_I_Root, HcoState, ScalDct%Dta, I, J )
+          tIDx = tIDx_GetIndx( HcoState, ScalDct%Dta, I, J )
           IF ( tIDx < 0 ) THEN
              write(MSG,*) 'Cannot get time slice index at location ',I,J,&
                           ': ', TRIM(ScalDct%cName)
@@ -1530,8 +1519,7 @@ CONTAINS
           IF ( ScalDct%DctType == HCO_DCTTYPE_MASK ) THEN
 
              ! Get mask value
-             CALL GetMaskVal ( am_I_Root, ScalDct, I, J, &
-                               TMPVAL,    MaskFractions, RC )
+             CALL GetMaskVal( ScalDct, I, J, TMPVAL, MaskFractions, RC )
              IF ( RC /= HCO_SUCCESS ) THEN
                 ERROR = 6
                 EXIT
@@ -1693,7 +1681,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EvalFld_3D( am_I_Root, HcoState, cName, Arr3D, RC, FOUND )
+  SUBROUTINE HCO_EvalFld_3D( HcoState, cName, Arr3D, RC, FOUND )
 !
 ! !USES:
 !
@@ -1702,7 +1690,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root    ! Root CPU?
     CHARACTER(LEN=*), INTENT(IN   )  :: cName
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1785,7 +1772,7 @@ CONTAINS
     ENDIF
 
     ! Calculate emissions for base container
-    CALL GET_CURRENT_EMISSIONS( am_I_Root,  HcoState, Lct%Dct, &
+    CALL GET_CURRENT_EMISSIONS( HcoState, Lct%Dct, &
                                 nI, nJ, nL, Arr3D,    Mask, RC  )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1814,7 +1801,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_EvalFld_2D( am_I_Root, HcoState, cName, Arr2D, RC, FOUND )
+  SUBROUTINE HCO_EvalFld_2D( HcoState, cName, Arr2D, RC, FOUND )
 !
 ! !USES:
 !
@@ -1823,7 +1810,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root    ! Root CPU?
     CHARACTER(LEN=*), INTENT(IN   )  :: cName
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1910,7 +1896,7 @@ CONTAINS
     Mask  = 0.0_hp
 
     ! Calculate emissions for base container
-    CALL GET_CURRENT_EMISSIONS( am_I_Root,  HcoState, Lct%Dct, &
+    CALL GET_CURRENT_EMISSIONS( HcoState, Lct%Dct, &
                                 nI, nJ, nL, Arr3D, Mask, RC, UseLL=UseLL )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -1947,14 +1933,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetMaskVal ( am_I_Root, Dct, I, J, MaskVal, Fractions, RC )
+  SUBROUTINE GetMaskVal ( Dct, I, J, MaskVal, Fractions, RC )
 !
 ! !USES:
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root           ! Root CPU?
     INTEGER,         INTENT(IN   ) :: I                   ! # of lons
     INTEGER,         INTENT(IN   ) :: J                   ! # of lats
     LOGICAL,         INTENT(IN   ) :: Fractions           ! Use fractions?
@@ -2028,7 +2013,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_MaskFld ( am_I_Root, HcoState, MaskName, Mask, RC, FOUND )
+  SUBROUTINE HCO_MaskFld ( HcoState, MaskName, Mask, RC, FOUND )
 !
 ! !USES:
 !
@@ -2037,7 +2022,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )           :: am_I_Root    ! Root CPU?
     TYPE(HCO_STATE), POINTER                 :: HcoState
     CHARACTER(LEN=*),INTENT(IN   )           :: MaskName
 !
@@ -2120,7 +2104,7 @@ CONTAINS
 !$OMP SCHEDULE( DYNAMIC )
        DO J = 1, HcoState%NY
        DO I = 1, HcoState%NX
-          CALL GetMaskVal ( am_I_Root, MaskLct%Dct, I, J, Mask(I,J), Fractions, RC )
+          CALL GetMaskVal( MaskLct%Dct, I, J, Mask(I,J), Fractions, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ERR = .TRUE.
              EXIT
@@ -2159,7 +2143,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetVertIndx ( am_I_Root, HcoState, Dct, &
+  SUBROUTINE GetVertIndx ( HcoState, Dct, &
                            LevDct1, LevDct2, I, J, LowLL, UppLL, RC )
 !
 ! !USES:
@@ -2168,7 +2152,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,  INTENT(IN   )           :: am_I_Root   ! Root CPU?
     TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state object
     TYPE(DataCont),  POINTER          :: LevDct1     ! Level index 1 container
     TYPE(DataCont),  POINTER          :: LevDct2     ! Level index 2 container
@@ -2213,12 +2196,12 @@ CONTAINS
        ! --> Check if scale factor is used to determine lower and/or
        !     upper level
        IF ( ASSOCIATED(LevDct1) ) THEN
-          EmisL = GetEmisL ( am_I_Root, HcoState, LevDct1, I, J )
+          EmisL = GetEmisL( HcoState, LevDct1, I, J )
           IF ( EmisL < 0.0_hp ) THEN
              RC = HCO_FAIL
              RETURN
           ENDIF
-          EmisLUnit = GetEmisLUnit ( am_I_Root, HcoState, LevDct1 )
+          EmisLUnit = GetEmisLUnit( HcoState, LevDct1 )
           IF ( EmisLUnit < 0 ) THEN
              RC = HCO_FAIL
              RETURN
@@ -2227,18 +2210,17 @@ CONTAINS
           EmisL     = Dct%Dta%EmisL1
           EmisLUnit = Dct%Dta%EmisL1Unit
        ENDIF
-       CALL GetIdx( am_I_Root, HcoState, I, J, &
-                    EmisL, EmisLUnit, LowLL, RC )
+       CALL GetIdx( HcoState, I, J, EmisL, EmisLUnit, LowLL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Upper level
        IF ( ASSOCIATED(LevDct2) ) THEN
-          EmisL = GetEmisL ( am_I_Root, HcoState, LevDct2, I, J )
+          EmisL = GetEmisL( HcoState, LevDct2, I, J )
           IF ( EmisL < 0.0_hp ) THEN
              RC = HCO_FAIL
              RETURN
           ENDIF
-          EmisLUnit = GetEmisLUnit ( am_I_Root, HcoState, LevDct2 )
+          EmisLUnit = GetEmisLUnit( HcoState, LevDct2 )
           IF ( EmisLUnit < 0 ) THEN
              RC = HCO_FAIL
              RETURN
@@ -2247,8 +2229,7 @@ CONTAINS
           EmisL     = Dct%Dta%EmisL2
           EmisLUnit = Dct%Dta%EmisL2Unit
        ENDIF
-       CALL GetIdx( am_I_Root, HcoState, I, J, &
-                    EmisL, EmisLUnit, UppLL, RC )
+       CALL GetIdx( HcoState, I, J, EmisL, EmisLUnit, UppLL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Upper level must not be lower than lower level
@@ -2272,7 +2253,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GetEmisL ( am_I_Root, HcoState, LevDct, I, J ) RESULT ( EmisL )
+  FUNCTION GetEmisL ( HcoState, LevDct, I, J ) RESULT ( EmisL )
 !
 ! !USES:
 !
@@ -2282,7 +2263,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     TYPE(DataCont),  POINTER        :: LevDct         ! Level index 1 container
     INTEGER,         INTENT(IN   )  :: I, J           ! horizontal index
@@ -2304,7 +2284,7 @@ CONTAINS
     !=================================================================
     ! GetEmisL begins here
     !=================================================================
-    levtidx = tIDx_GetIndx( am_I_Root, HcoState, LevDct%Dta, I, J )
+    levtidx = tIDx_GetIndx( HcoState, LevDct%Dta, I, J )
     IF ( levtidx <= 0 ) THEN
        WRITE(*,*)' Cannot get time slice for field '//&
        TRIM(LevDct%cName)//': GetEmisL (hco_calc_mod.F90)'
@@ -2336,7 +2316,7 @@ END FUNCTION GetEmisL
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GetEmisLUnit ( am_I_Root, HcoState, LevDct ) RESULT( EmisLUnit )
+  FUNCTION GetEmisLUnit ( HcoState, LevDct ) RESULT( EmisLUnit )
 !
 ! !USES:
 !
@@ -2345,7 +2325,6 @@ END FUNCTION GetEmisL
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     TYPE(DataCont),  POINTER        :: LevDct         ! Level index 1 container
 !
@@ -2393,7 +2372,7 @@ END FUNCTION GetEmisLUnit
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetIdx( am_I_Root, HcoState, I, J, alt, altu, lidx, RC )
+  SUBROUTINE GetIdx( HcoState, I, J, alt, altu, lidx, RC )
 !
 ! !USES:
 !
@@ -2402,7 +2381,6 @@ END FUNCTION GetEmisLUnit
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
     INTEGER,         INTENT(IN   )  :: I, J           ! horizontal index
     INTEGER,         INTENT(IN   )  :: altu           ! altitude unit
@@ -2518,7 +2496,7 @@ END FUNCTION GetEmisLUnit
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetDilFact ( am_I_Root, HcoState, EmisL1, EmisL1Unit, &
+  SUBROUTINE GetDilFact ( HcoState, EmisL1, EmisL1Unit, &
                           EmisL2, EmisL2Unit, I, J, L, LowLL, UppLL, &
                           DilFact, RC )
 !
@@ -2528,7 +2506,6 @@ END FUNCTION GetEmisLUnit
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,  INTENT(IN   )           :: am_I_Root   ! Root CPU?
     TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state object
     INTEGER,  INTENT(IN   )           :: I           ! lon index
     INTEGER,  INTENT(IN   )           :: J           ! lat index

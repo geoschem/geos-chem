@@ -174,7 +174,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  12 Sep 2013 - C. Keller   - Initial version
-!  See the Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -207,15 +207,15 @@ CONTAINS
     ENDIF
 
     ! Run the HEMCO standalone
-    CALL HCOI_Sa_Run( am_I_Root, RC                                         )
+    CALL HCOI_Sa_Run( RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "HCO_Sa_Run"!'
+       ErrMsg = 'Error encountered in routine "HCOI_Sa_Run"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc                   )
        RETURN
     ENDIF
 
     ! Finalize the HEMCO standalone
-    CALL HCOI_Sa_Final( am_I_Root )
+    CALL HCOI_Sa_Final( )
 
   END SUBROUTINE HCOI_StandAlone_Run
 !EOC
@@ -284,8 +284,8 @@ CONTAINS
     ! sets the HEMCO error properties (verbose mode? log file name,
     ! etc.) based upon the specifications in the configuration file.
     !=======================================================================
-    CALL Config_ReadFile( am_I_Root, HcoConfig, ConfigFile,                 &
-                          0,         RC,        IsDryRun=IsDryRun          )
+    CALL Config_ReadFile( am_I_Root, HcoConfig, ConfigFile,       &
+                          0,         RC,        IsDryRun=IsDryRun )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Config_Readfile!"'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -310,7 +310,7 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Extract species to use in HEMCO
-    CALL Get_nnMatch( am_I_Root, HcoConfig, nnMatch, RC )
+    CALL Get_nnMatch( HcoConfig, nnMatch, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Get_nnMatch"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -321,7 +321,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Initialize HCO state. Use only species that are used
     ! in HEMCO_sa_Spec.rc and are also found in the HEMCO config. file.
-    CALL HcoState_Init( am_I_Root, HcoState, HcoConfig, nnMatch, RC )
+    CALL HcoState_Init( HcoState, HcoConfig, nnMatch, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HcoState_Init"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -331,7 +331,7 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Set grid
-    CALL Set_Grid ( am_I_Root, HcoState, RC )
+    CALL Set_Grid ( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Set_Grid"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -341,7 +341,7 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Register species
-    CALL Register_Species( am_I_Root, HcoState, RC )
+    CALL Register_Species( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Register_Species"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -351,7 +351,7 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Read time information, incl. timesteps and simulation time(s)
-    CALL Read_Time( am_I_Root, HcoState, RC )
+    CALL Read_Time( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Read_Time"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -396,7 +396,7 @@ CONTAINS
     ! NOTE: The dry-run option is not invoked when we use HEMCO
     ! in external ESMs. (bmy, 11/13/19)
     !=======================================================================
-    CALL Init_Dry_Run( am_I_Root, IsDryRun, RC )
+    CALL Init_Dry_Run( IsDryRun, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Init_Dry_Run"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -410,7 +410,7 @@ CONTAINS
     ! the HEMCO configuration file is removed from buffer in this
     ! step. Also initializes the HEMCO clock
     !=======================================================================
-    CALL HCO_Init( am_I_Root, HcoState, RC )
+    CALL HCO_Init( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HCO_Init"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -423,7 +423,7 @@ CONTAINS
     ! This initializes all (enabled) extensions and selects all met.
     ! fields needed by them.
     !=======================================================================
-    CALL HCOX_Init( am_I_Root, HcoState, ExtState, RC )
+    CALL HCOX_Init( HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HCOX_Init"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -440,8 +440,7 @@ CONTAINS
        ! For dry-run simulations, print the status of the HEMCO
        ! diagnostic configurations file (but do not read from it)
        !--------------------------------------------------------------------
-       CALL DiagnFileOpen( am_I_Root, HcoConfig,      LUN,                  &
-                           RC,        IsDryRun=.TRUE.                      )
+       CALL DiagnFileOpen( HcoConfig, LUN, RC, IsDryRun=.TRUE. )
 
     ELSE
 
@@ -449,7 +448,7 @@ CONTAINS
        ! For regular simulations, read diagnostics configuration file
        ! and define diagnostic variables for output
        !--------------------------------------------------------------------
-       CALL Define_Diagnostics( am_I_Root, HcoState, RC )
+       CALL Define_Diagnostics( HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "Define_Diagnostics"!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -461,7 +460,7 @@ CONTAINS
     !=======================================================================
     ! Leave
     !=======================================================================
-    CALL HCOI_SA_InitCleanup( am_I_Root, RC )
+    CALL HCOI_SA_InitCleanup( RC )
 
     ! Leave w/ success
     RC = HCO_SUCCESS
@@ -480,7 +479,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_SA_Run( am_I_Root, RC )
+  SUBROUTINE HCOI_SA_Run( RC )
 !
 ! !USES:
 !
@@ -490,10 +489,6 @@ CONTAINS
     USE HCO_Clock_Mod,   ONLY : HcoClock_Increase
     USE HCO_Driver_Mod,  ONLY : HCO_RUN
     USE HCOX_Driver_Mod, ONLY : HCOX_RUN
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN   ) :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -550,18 +545,17 @@ CONTAINS
        ! Increase clock by one emission time step otherwise.
        !====================================================================
        IF ( CNT == 1 ) THEN
-          CALL HcoClock_Set ( am_I_Root, HcoState, YRS(1), MTS(1), &
-                              DYS(1),    HRS(1),   MNS(1), SCS(1), &
-                              IsEmisTime=.TRUE.,   RC=RC)
+          CALL HcoClock_Set ( HcoState,  YRS(1), MTS(1), &
+                              DYS(1),    HRS(1), MNS(1), SCS(1), &
+                              IsEmisTime=.TRUE., RC=RC)
           IF ( RC /= HCO_SUCCESS) RETURN
        ELSE
-          CALL HcoClock_Increase ( am_I_Root,        HcoState,    &
-                                   HcoState%TS_EMIS, .TRUE., RC=RC )
+          CALL HcoClock_Increase ( HcoState, HcoState%TS_EMIS, .TRUE., RC=RC )
           IF ( RC /= HCO_SUCCESS) RETURN
        ENDIF
 
        ! Get current time
-       CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cYYYY=YR, &
+       CALL HcoClock_Get ( HcoState%Clock, cYYYY=YR, &
                            cMM=MT, cDD=DY, cH=HR, cM=MN, cS=SC, RC=RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "HcoClock_Get"!'
@@ -621,7 +615,7 @@ CONTAINS
        ! ================================================================
 
        ! Phase 1: Update reading data fields etc.
-       CALL HCO_Run( am_I_Root, HcoState, 1, RC )
+       CALL HCO_Run( HcoState, 1, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "Hco_Run", phase 1!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -630,7 +624,7 @@ CONTAINS
 
        ! Phase 2: Compute emissions (skip for dry-run)
        IF ( notDryRun ) THEN
-          CALL HCO_Run( am_I_Root, HcoState, 2, RC )
+          CALL HCO_Run( HcoState, 2, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in routine "Hco_Run", phase 2!'
              CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -644,7 +638,7 @@ CONTAINS
        IF ( notDryRun ) THEN
 
           ! Set ExtState fields (skip for dry-run)
-          CALL ExtState_SetFields ( am_I_Root, HcoState, ExtState, RC )
+          CALL ExtState_SetFields ( HcoState, ExtState, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in routine "ExtState_SetFields"!'
              CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -652,7 +646,7 @@ CONTAINS
           ENDIF
 
           ! Update ExtState fields (skip for dry-run)
-          CALL ExtState_UpdateFields( am_I_Root, HcoState, ExtState, RC )
+          CALL ExtState_UpdateFields( HcoState, ExtState, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in routine "ExtState_Update_Fields"!'
              CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -662,7 +656,7 @@ CONTAINS
 
        ! Execute all enabled emission extensions. Emissions will be
        ! added to corresponding flux arrays in HcoState.
-       CALL HCOX_Run ( am_I_Root, HcoState, ExtState, RC )
+       CALL HCOX_Run ( HcoState, ExtState, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "HCOX_Run"!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -673,7 +667,7 @@ CONTAINS
        ! Update all autofill diagnostics (skip for dry-run)
        !=================================================================
        IF ( notDryRun ) THEN
-          CALL HcoDiagn_AutoUpdate ( am_I_Root, HcoState, RC )
+          CALL HcoDiagn_AutoUpdate ( HcoState, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'Error encountered in routine "HCOX_AutoUpdate"!'
              CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -699,17 +693,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_SA_Final( am_I_Root )
+  SUBROUTINE HCOI_SA_Final( )
 !
 ! !USES:
 !
     USE HCO_Driver_Mod,  ONLY : HCO_Final
     USE HCOX_Driver_Mod, ONLY : HCOX_Final
     USE HCO_State_Mod,   ONLY : HcoState_Final
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN) :: am_I_Root
 !
 ! !REVISION HISTORY:
 !  12 Sep 2013 - C. Keller   - Initial version
@@ -735,10 +725,10 @@ CONTAINS
     'HCOI_SA_FINAL (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
 
     ! Cleanup the dry-run
-    CALL Cleanup_Dry_Run( am_I_Root, RC )
+    CALL Cleanup_Dry_Run( RC )
 
     ! Cleanup HCO core
-    CALL HCO_FINAL( am_I_Root, HcoState, .FALSE., RC )
+    CALL HCO_FINAL( HcoState, .FALSE., RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HCO_Final"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -747,7 +737,7 @@ CONTAINS
 
     ! Cleanup extensions and ExtState object
     ! This will also nullify all pointer to the met fields.
-    CALL HCOX_FINAL( am_I_Root, HcoState, ExtState, RC )
+    CALL HCOX_FINAL( HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HCOX_Final"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -785,7 +775,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Model_GetSpecies( am_I_Root,      HcoConfig,          &
+  SUBROUTINE Model_GetSpecies( HcoConfig,                          &
                                nModelSpec,     ModelSpecNames,     &
                                ModelSpecIDs,   ModelSpecMW,        &
                                ModelSpecEmMW,  ModelSpecMolecRatio,&
@@ -799,7 +789,6 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN ) :: am_I_Root
     TYPE(ConfigObj),    POINTER     :: HcoConfig
     INTEGER,            INTENT(OUT) :: nModelSpec
     CHARACTER(LEN= 31), POINTER     :: ModelSpecNames     (:)
@@ -862,7 +851,7 @@ CONTAINS
     ! Get number of species
     nModelSpec = 0
     DO
-       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       CALL GetNextLine( IU_FILE, DUM, EOF, RC )
        IF ( EOF               ) EXIT
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'Error encountered in reading SpecFile!.  Please ' // &
@@ -885,7 +874,7 @@ CONTAINS
     REWIND( IU_FILE )
 
     ! Get next valid line
-!    CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+!    CALL GetNextLine( IU_FILE, DUM, EOF, RC )
 !    IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
 !       MSG = 'Error 2 reading ' // TRIM(SpecFile)
 !       CALL HCO_Error( MSG, RC, THISLOC=LOC )
@@ -915,7 +904,7 @@ CONTAINS
     ! Assign variables to each species
     DO N = 1, nModelSpec
 
-       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       CALL GetNextLine( IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           WRITE(MSG,100) N, TRIM(SpecFile)
           CALL HCO_Error( HcoConfig%Err, MSG, RC, THISLOC=LOC )
@@ -1038,17 +1027,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SET_Grid( am_I_Root, HcoState, RC )
+  SUBROUTINE SET_Grid( HcoState, RC )
 !
 ! !USES:
 !
     USE inquireMod,       ONLY  : findFreeLUN
     USE HCO_ExtList_Mod,  ONLY  : HCO_GetOpt, GetExtOpt, CoreNr
     USE HCO_VertGrid_Mod, ONLY  : HCO_VertGrid_Define
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN   ) :: am_I_Root
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1142,7 +1127,7 @@ CONTAINS
     DO N = 1,4
 
        ! Get next valid line
-       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       CALL GetNextLine( IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           ErrMsg= 'Error 2 reading ' // TRIM(GridFile)
           CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, THISLOC=ThisLoc )
@@ -1202,7 +1187,7 @@ CONTAINS
     DO N = 1,3
 
        ! Get next valid line
-       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       CALL GetNextLine( IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           ErrMsg = 'Error 3 reading ' // TRIM(GridFile)
           CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, THISLOC=ThisLoc )
@@ -1255,7 +1240,7 @@ CONTAINS
     DO N = 1, 6 ! check for XEDGE, YEDGE, XMID, YMID
 
        ! Try to read line
-       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       CALL GetNextLine( IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'Error reading grid edges and/or midpoints in ' // TRIM(GridFile)
           CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, THISLOC=ThisLoc )
@@ -1532,11 +1517,11 @@ CONTAINS
 
     ! Vertical grid definition
     IF ( ANY(AP/=HCO_MISSVAL) ) THEN
-       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Config, &
+       CALL HCO_VertGrid_Define( HcoState%Config, &
                                  HcoState%Grid%zGrid, NZ, &
                                  Ap=Ap, Bp=Bp, RC=RC )
     ELSE
-       CALL HCO_VertGrid_Define( am_I_Root, HcoState%Config, &
+       CALL HCO_VertGrid_Define( HcoState%Config, &
                                  HcoState%Grid%zGrid, NZ, RC=RC )
     ENDIF
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -1593,7 +1578,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_nnMatch( am_I_Root, HcoConfig, nnMatch, RC )
+  SUBROUTINE Get_nnMatch( HcoConfig, nnMatch, RC )
 !
 ! !USES:
 !
@@ -1602,7 +1587,6 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root ! Root CPU?
     INTEGER,         INTENT(  OUT)  :: nnMatch   ! Number of HEMCO species that are
                                          ! also species in the atm. model
 !
@@ -1645,7 +1629,7 @@ CONTAINS
     ENDIF
 
     ! Extract species to be used from input file
-    CALL Model_GetSpecies( am_I_Root,      HcoConfig,           &
+    CALL Model_GetSpecies( HcoConfig,                           &
                            nModelSpec,     ModelSpecNames,      &
                            ModelSpecIDs,   ModelSpecMW,         &
                            ModelSpecEmMW,  ModelSpecMolecRatio, &
@@ -1692,15 +1676,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_Species( am_I_Root, HcoState, RC )
+  SUBROUTINE Register_Species( HcoState, RC )
 !
 ! !USES:
 !
     USE HCO_LogFile_Mod, ONLY : HCO_SPEC2LOG
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN   )   :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1749,7 +1729,7 @@ CONTAINS
        HcoState%Spc(cnt)%HenryPKA = ModelSpecPKA(IDX)
 
        ! Logfile I/O
-       CALL HCO_SPEC2LOG( am_I_Root, HcoState, Cnt )
+       CALL HCO_SPEC2LOG( HcoState, Cnt )
 
     ENDDO !I
 
@@ -1773,7 +1753,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Define_Diagnostics( am_I_Root, HcoState, RC, SetDefault )
+  SUBROUTINE Define_Diagnostics( HcoState, RC, SetDefault )
 !
 ! !USES:
 !
@@ -1781,7 +1761,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )             :: am_I_Root   ! Are we on the root CPU?
     TYPE(HCO_STATE),  POINTER                   :: HcoState
     LOGICAL,          INTENT(IN   ), OPTIONAL   :: SetDefault  ! Define default diagnostics?
 !
@@ -1848,7 +1827,7 @@ CONTAINS
 
           ! Create diagnostics
           DiagnName = 'HEMCO__EMIS_' // TRIM(HcoState%Spc(I)%SpcName)
-          CALL Diagn_Create ( am_I_Root,  HcoState,                   &
+          CALL Diagn_Create ( HcoState,                               &
                               cName     = DiagnName,                  &
                               ExtNr     = -1,                         &
                               Cat       = -1,                         &
@@ -1894,7 +1873,7 @@ CONTAINS
           N = 56000 + I
 
           ! Create diagnostic container
-          CALL Diagn_Create( am_I_Root,  HcoState,                   &
+          CALL Diagn_Create( HcoState,                               &
                              cName     = TRIM( DiagnName ),          &
                              cID       = N,                          &
                              ExtNr     = ExtNr,                      &
@@ -1926,7 +1905,7 @@ CONTAINS
        N         = 56004
 
        ! Create diagnostic container
-       CALL Diagn_Create( am_I_Root,  HcoState,                   &
+       CALL Diagn_Create( HcoState,                               &
                           cName     = TRIM( DiagnName ),          &
                           cID       = N,                          &
                           ExtNr     = ExtNr,                      &
@@ -1968,7 +1947,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Read_Time( am_I_Root, HcoState, RC )
+  SUBROUTINE Read_Time( HcoState, RC )
 !
 ! !USES:
 !
@@ -1977,7 +1956,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
     TYPE(HCO_State), POINTER       :: HcoState
 !
 ! !INPUT/OUTPUT PARAMETERS
@@ -2039,7 +2017,7 @@ CONTAINS
     ! Read start and end of simulation
     DO N = 1,2
 
-       CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+       CALL GetNextLine( IU_FILE, DUM, EOF, RC )
        IF ( RC /= HCO_SUCCESS .OR. EOF ) THEN
           ErrMsg = 'Error reading time in ' // TRIM(TimeFile)
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -2078,7 +2056,7 @@ CONTAINS
     ENDDO !I
 
     ! Get emission time step
-    CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
+    CALL GetNextLine( IU_FILE, DUM, EOF, RC )
     IF ( (RC /= HCO_SUCCESS) .OR. EOF ) THEN
        ErrMsg = 'Cannot read emission time step from ' // TRIM(TimeFile)
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -2118,7 +2096,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields ( am_I_Root, HcoState, ExtState, RC )
+  SUBROUTINE ExtState_SetFields ( HcoState, ExtState, RC )
 !
 ! !USES:
 !
@@ -2127,10 +2105,6 @@ CONTAINS
     USE HCO_GEOTOOLS_MOD,   ONLY : HCO_CalcVertGrid
     USE HCOX_STATE_MOD,     ONLY : ExtDat_Set
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_First
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
@@ -2199,7 +2173,7 @@ CONTAINS
     !%%%%% 10-m winds %%%%%
     IF ( ExtState%U10M%DoUse ) THEN
        Name = 'U10M'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%U10M,               &
+       CALL ExtDat_Set( HcoState,     ExtState%U10M,                         &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2212,7 +2186,7 @@ CONTAINS
 
     IF ( ExtState%V10M%DoUse ) THEN
        Name = 'V10M'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%V10M,               &
+       CALL ExtDat_Set( HcoState,     ExtState%V10M,                         &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2226,7 +2200,7 @@ CONTAINS
     !%%%%% Albedo %%%%%
     IF ( ExtState%ALBD%DoUse ) THEN
        Name = 'ALBEDO'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%ALBD,               &
+       CALL ExtDat_Set( HcoState,     ExtState%ALBD,                         &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2240,7 +2214,7 @@ CONTAINS
     !%%%%% Land-water-ice flags  %%%%%
     IF ( ExtState%WLI%DoUse ) THEN
        Name = 'LWI'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%WLI,                &
+       CALL ExtDat_Set( HcoState,     ExtState%WLI,                          &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2254,7 +2228,7 @@ CONTAINS
     !%%%%% Air and skin temperature %%%%%
     IF ( ExtState%T2M%DoUse ) THEN
        Name = 'T2M'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%T2M,                &
+       CALL ExtDat_Set( HcoState,     ExtState%T2M,                          &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2267,7 +2241,7 @@ CONTAINS
 
     IF ( ExtState%TSKIN%DoUse ) THEN
        Name = 'TS'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%TSKIN,              &
+       CALL ExtDat_Set( HcoState,     ExtState%TSKIN,                        &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2281,7 +2255,7 @@ CONTAINS
     !%%%%% Soil moisture %%%%%
     IF ( ExtState%GWETROOT%DoUse ) THEN
        Name = 'GWETROOT'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%GWETROOT,           &
+       CALL ExtDat_Set( HcoState,     ExtState%GWETROOT,                     &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2294,7 +2268,7 @@ CONTAINS
 
     IF ( ExtState%GWETTOP%DoUse ) THEN
        Name = 'GWETTOP'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%GWETTOP,            &
+       CALL ExtDat_Set( HcoState,     ExtState%GWETTOP,                      &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2308,7 +2282,7 @@ CONTAINS
     !%%%%% Snow fields %%%%%
     IF ( ExtState%SNOWHGT%DoUse ) THEN
        Name = 'SNOMAS'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%SNOWHGT,            &
+       CALL ExtDat_Set( HcoState,     ExtState%SNOWHGT,                      &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2321,7 +2295,7 @@ CONTAINS
 
     IF ( ExtState%SNODP%DoUse ) THEN
        Name = 'SNODP'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%SNODP,              &
+       CALL ExtDat_Set( HcoState,     ExtState%SNODP,                        &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2335,7 +2309,7 @@ CONTAINS
     !%%%%% Friction velocity %%%%%
     IF ( ExtState%USTAR%DoUse ) THEN
        Name = 'USTAR'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%USTAR,              &
+       CALL ExtDat_Set( HcoState,     ExtState%USTAR,                        &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2349,7 +2323,7 @@ CONTAINS
     !%%%%% Roughness height %%%%%
     IF ( ExtState%Z0%DoUse ) THEN
        Name = 'Z0M'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%Z0,                 &
+       CALL ExtDat_Set( HcoState,     ExtState%Z0,                           &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2363,7 +2337,7 @@ CONTAINS
     !%%%%% Tropopause pressure %%%%%
     IF ( ExtState%TROPP%DoUse ) THEN
        Name = 'TROPPT'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%TROPP,              &
+       CALL ExtDat_Set( HcoState,     ExtState%TROPP,                        &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2377,7 +2351,7 @@ CONTAINS
     !%%%%% PAR direct and diffuse %%%%%
     IF ( ExtState%PARDR%DoUse ) THEN
        Name = 'PARDR'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%PARDR,              &
+       CALL ExtDat_Set( HcoState,     ExtState%PARDR,                        &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2390,7 +2364,7 @@ CONTAINS
 
     IF ( ExtState%PARDF%DoUse ) THEN
        Name = 'PARDF'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%PARDF,              &
+       CALL ExtDat_Set( HcoState,     ExtState%PARDF,                        &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2403,7 +2377,7 @@ CONTAINS
 
     IF ( ExtState%RADSWG%DoUse ) THEN
        Name = 'SWGDN'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%RADSWG,             &
+       CALL ExtDat_Set( HcoState,     ExtState%RADSWG,                       &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2417,7 +2391,7 @@ CONTAINS
     !%%%%% Cloud fraction @ surface %%%%%
     IF ( ExtState%CLDFRC%DoUse ) THEN
        Name = 'CLDTOT'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%CLDFRC,             &
+       CALL ExtDat_Set( HcoState,     ExtState%CLDFRC,                       &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2431,7 +2405,7 @@ CONTAINS
     !%%%%% Leaf area index %%%%%
     IF ( ExtState%LAI%DoUse ) THEN
        Name = 'LAI'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%LAI,                &
+       CALL ExtDat_Set( HcoState,     ExtState%LAI,                          &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2445,7 +2419,7 @@ CONTAINS
     !%%%%% Flash density %%%%%
     IF ( ExtState%FLASH_DENS%DoUse ) THEN
        Name = 'FLASH_DENS'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FLASH_DENS,         &
+       CALL ExtDat_Set( HcoState,     ExtState%FLASH_DENS,                   &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2459,7 +2433,7 @@ CONTAINS
     !%%%%% Convective depth %%%%%
     IF ( ExtState%CONV_DEPTH%DoUse ) THEN
        Name = 'CONV_DEPTH'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%CONV_DEPTH,         &
+       CALL ExtDat_Set( HcoState,     ExtState%CONV_DEPTH,                   &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2473,7 +2447,7 @@ CONTAINS
     !%%%%% Fractional coverage fields %%%%%
     IF ( ExtState%FRCLND%DoUse ) THEN
        Name = 'FRCLND'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FRCLND,             &
+       CALL ExtDat_Set( HcoState,     ExtState%FRCLND,                       &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2486,7 +2460,7 @@ CONTAINS
 
     IF ( ExtState%FRLAND%DoUse ) THEN
        Name = 'FRLAND'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FRLAND,             &
+       CALL ExtDat_Set( HcoState,     ExtState%FRLAND,                       &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2499,7 +2473,7 @@ CONTAINS
 
     IF ( ExtState%FROCEAN%DoUse ) THEN
        Name = 'FROCEAN'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FROCEAN,            &
+       CALL ExtDat_Set( HcoState,     ExtState%FROCEAN,                      &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2512,7 +2486,7 @@ CONTAINS
 
     IF ( ExtState%FRLAKE%DoUse ) THEN
        Name = 'FRLAKE'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FRLAKE,             &
+       CALL ExtDat_Set( HcoState,     ExtState%FRLAKE,                       &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2525,7 +2499,7 @@ CONTAINS
 
     IF ( ExtState%FRLANDIC%DoUse ) THEN
        Name = 'FRLANDIC'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FRLANDIC,           &
+       CALL ExtDat_Set( HcoState,     ExtState%FRLANDIC,                     &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2539,7 +2513,7 @@ CONTAINS
     !%%%%% Solar zenith angle %%%%%
     IF ( ExtState%SZAFACT%DoUse ) THEN
        Name = 'SZAFACT'
-       CALL ExtDat_Set( am_I_Root,   HcoState, ExtState%SZAFACT,             &
+       CALL ExtDat_Set( HcoState,     ExtState%SZAFACT,                      &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2553,8 +2527,8 @@ CONTAINS
     !%%%%% Photolysis values %%%%%
     IF ( ExtState%JNO2%DoUse ) THEN
        Name = 'JNO2'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%JNO2,               &
-                       TRIM( Name ), RC,       FIRST=FIRST                  )
+       CALL ExtDat_Set( HcoState,     ExtState%JNO2,                         &
+                        TRIM( Name ), RC,       FIRST=FIRST                 )
       IF ( RC == HCO_SUCCESS ) THEN
          ErrMsg = 'Could not find quantity "' // TRIM( Name )             // &
                   '" for the HEMCO standalone simulation!'
@@ -2566,7 +2540,7 @@ CONTAINS
 
    IF ( ExtState%JOH%DoUse ) THEN
       Name = 'JOH'
-      CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%JOH,                 &
+      CALL ExtDat_Set( HcoState,     ExtState%JOH,                           &
                        TRIM( Name ), RC,       FIRST=FIRST                  )
       IF ( RC == HCO_SUCCESS ) THEN
          ErrMsg = 'Could not find quantity "' // TRIM( Name )             // &
@@ -2587,9 +2561,9 @@ CONTAINS
     !%%%%% Cloud convection mass flux %%%%%
     IF ( ExtState%CNV_MFC%DoUse ) THEN
        Name = 'CMFMC'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%CNV_MFC,            &
+       CALL ExtDat_Set( HcoState,     ExtState%CNV_MFC,                      &
                         TRIM( Name ), RC,       FIRST=FIRST,                 &
-                                                OnLevEdge=.TRUE.            )
+                        OnLevEdge=.TRUE.                                    )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
@@ -2602,10 +2576,10 @@ CONTAINS
     !%%%%% Specific humidity %%%%%
     IF ( ExtState%SPHU%DoUse ) THEN
        Name = 'SPHU1'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%SPHU,               &
+       CALL ExtDat_Set( HcoState,     ExtState%SPHU,                         &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Could not find quantity "' // TRIM( Name )              // &
+          ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
           CALL HCO_Leave( HcoState%Config%Err, RC )
@@ -2616,7 +2590,7 @@ CONTAINS
     !%%%%% Temperature %%%%%
     IF ( ExtState%TK%DoUse ) THEN
        Name = 'TMPU1'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%TK,                 &
+       CALL ExtDat_Set( HcoState,     ExtState%TK,                           &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2630,7 +2604,7 @@ CONTAINS
     !%%%%% Air mass, volume, density etc fields %%%%%
     IF ( ExtState%AIR%DoUse ) THEN
        Name = 'AIR'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%AIR,                &
+       CALL ExtDat_Set( HcoState,     ExtState%AIR,                          &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2643,7 +2617,7 @@ CONTAINS
 
     IF ( ExtState%AIRVOL%DoUse ) THEN
        Name = 'AIRVOL'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%AIRVOL,             &
+       CALL ExtDat_Set( HcoState,     ExtState%AIRVOL,                       &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2656,7 +2630,7 @@ CONTAINS
 
     IF ( ExtState%AIRDEN%DoUse ) THEN
        Name = 'AIRDEN'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%AIRDEN,             &
+       CALL ExtDat_Set( HcoState,     ExtState%AIRDEN,                       &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2670,7 +2644,7 @@ CONTAINS
     !%%%%% Concentration fields %%%%%
     IF ( ExtState%O3%DoUse ) THEN
        Name = 'O3'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%O3,                 &
+       CALL ExtDat_Set( HcoState,     ExtState%O3,                           &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2683,7 +2657,7 @@ CONTAINS
 
     IF ( ExtState%NO%DoUse ) THEN
        Name = 'NO'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%NO,                 &
+       CALL ExtDat_Set( HcoState,     ExtState%NO,                           &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2696,7 +2670,7 @@ CONTAINS
 
     IF ( ExtState%NO2%DoUse ) THEN
        Name = 'NO2'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%NO2,                &
+       CALL ExtDat_Set( HcoState,     ExtState%NO2,                          &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2709,7 +2683,7 @@ CONTAINS
 
     IF ( ExtState%HNO3%DoUse ) THEN
        Name = 'HNO3'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%HNO3,               &
+       CALL ExtDat_Set( HcoState,     ExtState%HNO3,                         &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2723,7 +2697,7 @@ CONTAINS
     !%%%%% Deposition fields (for soil NOx) %%%%%
     IF ( ExtState%DRY_TOTN%DoUse ) THEN
        Name = 'DRY_TOTN'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%DRY_TOTN,           &
+       CALL ExtDat_Set( HcoState,     ExtState%DRY_TOTN,                     &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2736,7 +2710,7 @@ CONTAINS
 
     IF ( ExtState%WET_TOTN%DoUse ) THEN
        Name = 'WET_TOTN'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%WET_TOTN,           &
+       CALL ExtDat_Set( HcoState,     ExtState%WET_TOTN,                     &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2750,7 +2724,7 @@ CONTAINS
     !%%%%% Fraction of PBL field (for sea exchange only) %%%%%
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
        Name = 'FRAC_OF_PBL'
-       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FRAC_OF_PBL,        &
+       CALL ExtDat_Set( HcoState,     ExtState%FRAC_OF_PBL,                  &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC == HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
@@ -2776,8 +2750,7 @@ CONTAINS
     IF ( ExtState%TK%DoUse ) TK => ExtState%TK%Arr%Val
 
     ! Attempt to calculate vertical grid quantities
-    CALL HCO_CalcVertGrid( am_I_Root, HcoState, PSFC,    &
-                           ZSFC,  TK, BXHEIGHT, PEDGE, RC  )
+    CALL HCO_CalcVertGrid( HcoState, PSFC, ZSFC, TK, BXHEIGHT, PEDGE, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Reset pointers
@@ -2801,7 +2774,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-       CALL HCO_GetSUNCOS( am_I_Root, HcoState, ExtState%SUNCOS%Arr%Val, 0, RC )
+       CALL HCO_GetSUNCOS( HcoState, ExtState%SUNCOS%Arr%Val, 0, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "HCO_GetSuncos"!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
@@ -2838,14 +2811,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields ( am_I_Root, HcoState, ExtState, RC )
-!
-! !USES:
-!
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+  SUBROUTINE ExtState_UpdateFields ( HcoState, ExtState, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
@@ -2955,14 +2921,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_SA_InitCleanup ( am_I_Root, RC )
-!
-! !USES:
-!
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
+  SUBROUTINE HCOI_SA_InitCleanup ( RC )
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
@@ -3012,7 +2971,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Dry_Run( am_I_Root, IsDryRun, RC )
+  SUBROUTINE Init_Dry_Run( IsDryRun, RC )
 !
 ! !USES:
 !
@@ -3020,7 +2979,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root     ! Are we on the root core?
     LOGICAL,          INTENT(IN)    :: IsDryRun      ! Is it a dry-run?
 !
 ! !OUTPUT PARAMETERS:
@@ -3035,7 +2993,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Nov 2019 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3112,11 +3070,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Dry_Run( am_I_Root, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root core?
+  SUBROUTINE Cleanup_Dry_Run( RC )
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3124,7 +3078,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Nov 2019 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3181,7 +3135,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

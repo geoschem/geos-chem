@@ -227,16 +227,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoDiagn_AutoUpdate( am_I_Root, HcoState, RC )
+  SUBROUTINE HcoDiagn_AutoUpdate( HcoState, RC )
 !
 ! !USES:
 !
     USE HCO_STATE_MOD, ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD, ONLY : HCO_State
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -278,7 +274,7 @@ CONTAINS
        IF ( ASSOCIATED(HcoState%Spc(I)%Emis) ) THEN
           IF ( ASSOCIATED(HcoState%Spc(I)%Emis%Val) ) THEN
              Arr3D => HcoState%Spc(I)%Emis%Val
-             CALL Diagn_Update( am_I_Root, HcoState,    &
+             CALL Diagn_Update( HcoState,               &
                                 ExtNr      = -1,        &
                                 Cat        = -1,        &
                                 Hier       = -1,        &
@@ -315,7 +311,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoDiagn_Init( am_I_Root, HcoState, RC )
+  SUBROUTINE HcoDiagn_Init( HcoState, RC )
 !
 ! !USES:
 !
@@ -324,10 +320,6 @@ CONTAINS
     USE HCO_ExtList_Mod, ONLY : GetExtOpt
     USE HCO_ExtList_Mod, ONLY : CoreNr
     USE CHARPAK_MOD,     ONLY : TRANLC
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -367,8 +359,7 @@ CONTAINS
     ! ------------------------------------------------------------------
     ! Default diagnostics
     ! ------------------------------------------------------------------
-    CALL DiagnCollection_GetDefaultDelta ( am_I_Root, HcoState, &
-                                           deltaYMD,  deltaHMS, RC )
+    CALL DiagnCollection_GetDefaultDelta ( HcoState, deltaYMD, deltaHMS, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Try to get prefix from configuration file
@@ -408,7 +399,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,                &
+    CALL DiagnCollection_Create( HcoState%Diagn,                           &
                                  NX           = HcoState%NX,               &
                                  NY           = HcoState%NY,               &
                                  NZ           = HcoState%NZ,               &
@@ -441,7 +432,7 @@ CONTAINS
 #else
     DiagnPrefix = 'HEMCO_restart'
 #endif
-    CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,                &
+    CALL DiagnCollection_Create( HcoState%Diagn,                           &
                                  NX           = HcoState%NX,               &
                                  NY           = HcoState%NY,               &
                                  NZ           = HcoState%NZ,               &
@@ -474,7 +465,7 @@ CONTAINS
 #else
     DiagnPrefix = 'HEMCO_manual'
 #endif
-    CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,             &
+    CALL DiagnCollection_Create( HcoState%Diagn,                        &
                                  NX        = HcoState%NX,               &
                                  NY        = HcoState%NY,               &
                                  NZ        = HcoState%NZ,               &
@@ -497,7 +488,7 @@ CONTAINS
     ! the HEMCO configuration file. These diagnostics are all written
     ! into the default HEMCO collection.
     ! ------------------------------------------------------------------
-    CALL Diagn_DefineFromConfig( am_I_Root, HcoState, RC )
+    CALL Diagn_DefineFromConfig( HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return w/ success
@@ -545,7 +536,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_DefineFromConfig( am_I_Root, HcoState, RC )
+  SUBROUTINE Diagn_DefineFromConfig( HcoState, RC )
 !
 ! !USES:
 !
@@ -555,10 +546,6 @@ CONTAINS
     USE HCO_STATE_MOD,     ONLY : HCO_GetHcoID
     USE HCO_STATE_MOD,     ONLY : HCO_State
     USE HCO_EXTLIST_MOD,   ONLY : GetExtOpt
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN   )           :: am_I_Root   ! root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -589,7 +576,7 @@ CONTAINS
     LOC = 'Diagn_DefineFromConfig (hco_diagn_mod.F90)'
 
     ! Load DiagnFile into buffer
-    CALL DiagnFileOpen( am_I_Root, HcoState%Config, LUN, RC )
+    CALL DiagnFileOpen( HcoState%Config, LUN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If defined, sequentially get all entries
@@ -599,9 +586,10 @@ CONTAINS
        DO
 
           ! Get next line
-          CALL DiagnFileGetNext( am_I_Root, HcoState%Config, LUN, cName, &
-             SpcName, ExtNr, Cat, Hier, SpaceDim, OutUnit, EOF, RC, &
-             lName=lName )
+          CALL DiagnFileGetNext( HcoState%Config, LUN,     cName,      &
+                                 SpcName,         ExtNr,   Cat, Hier,  &
+                                 SpaceDim,        OutUnit, EOF, RC,    &
+                                 lName=lName )
           IF ( RC /= HCO_SUCCESS ) RETURN
 
           ! Leave here if end of file
@@ -615,7 +603,7 @@ CONTAINS
           ! ------------------------------------------------------------------
           ! Add it to the HEMCO diagnostics collection
           ! ------------------------------------------------------------------
-          CALL Diagn_Create( am_I_Root,  HcoState,          &
+          CALL Diagn_Create( HcoState,                      &
                              cName     = cName,             &
                              long_name = lName,             &
                              HcoID     = HcoID,             &
@@ -670,7 +658,7 @@ CONTAINS
           cName = TRIM(dSname)//TRIM(HcoState%Spc(N)%SpcName)
           lName = TRIM(dLname)//TRIM(HcoState%Spc(N)%SpcName)
 
-          CALL Diagn_Create( am_I_Root,  HcoState,                         &
+          CALL Diagn_Create( HcoState,                                     &
                              cName     = cName,                            &
                              long_name = lName,                            &
                              HcoID     = HcoState%Spc(N)%HcoID,            &
@@ -701,7 +689,6 @@ CONTAINS
 ! !DESCRIPTION: Subroutine Diagn\_Create creates a new diagnostics. This
 ! routine takes the following input arguments:
 !\begin{itemize}
-!\item am\_I\_Root: is this the root CPU?
 !\item cName: distinct diagnostics (container) name.
 !\item long\_name: long\_name attribute used for netCDF output.
 !\item ExtNr: emissions extension number.
@@ -753,7 +740,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Create( am_I_Root, HcoState,   cName,      &
+  SUBROUTINE Diagn_Create( HcoState,  cName,                  &
                            ExtNr,     Cat,        Hier,       &
                            HcoID,     SpaceDim,   OutUnit,    &
                            OutOper,   LevIdx,     AutoFill,   &
@@ -771,7 +758,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root     ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState      ! HEMCO state obj.
     CHARACTER(LEN=*), INTENT(IN   )           :: cName         ! Diagnostics name
     CHARACTER(LEN=*), INTENT(IN   )           :: OutUnit       ! Output units
@@ -905,12 +891,12 @@ CONTAINS
     ! unit conversions, etc. (data will just be returned as is).
     !----------------------------------------------------------------------
     IF ( PRESENT(Trgt2D) ) THEN
-       CALL DiagnCont_Link_2D( am_I_Root, ThisDiagn, ThisColl, Trgt2D, RC, &
+       CALL DiagnCont_Link_2D( ThisDiagn, ThisColl, Trgt2D, RC, &
                                HcoState=HcoState )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
     IF ( PRESENT(Trgt3D) ) THEN
-       CALL DiagnCont_Link_3D( am_I_Root, ThisDiagn, ThisColl, Trgt3D, RC, &
+       CALL DiagnCont_Link_3D( ThisDiagn, ThisColl, Trgt3D, RC, &
                                HcoState=HcoState )
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
@@ -1179,14 +1165,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateSp0d( am_I_Root,   HcoState, cID,   cName,   ExtNr, &
+  SUBROUTINE Diagn_UpdateSp0d( HcoState,    cID,    cName,   ExtNr, &
                                Cat,         Hier,   HcoID,   AutoFill,       &
                                Scalar,      Total,  PosOnly, COL,            &
                                MinDiagnLev, RC                         )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned
                                                                 !  container ID
@@ -1219,7 +1204,7 @@ CONTAINS
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       &
+    CALL Diagn_UpdateDriver( HcoState,                  &
                              cID         = cID,         &
                              cName       = cName,       &
                              ExtNr       = ExtNr,       &
@@ -1250,14 +1235,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateSp2d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     &
+  SUBROUTINE Diagn_UpdateSp2d( HcoState,    cID,   cName,   ExtNr,     &
                                Cat,         Hier,  HcoID,   AutoFill,  &
                                Array2D,     Total, PosOnly, COL,       &
                                MinDiagnLev, RC                        )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned
                                                                 !  container ID
@@ -1290,7 +1274,7 @@ CONTAINS
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       &
+    CALL Diagn_UpdateDriver( HcoState,                  &
                              cID         = cID,         &
                              cName       = cName,       &
                              ExtNr       = ExtNr,       &
@@ -1321,14 +1305,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateSp3d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     &
+  SUBROUTINE Diagn_UpdateSp3d( HcoState,    cID,   cName,   ExtNr,     &
                                Cat,         Hier,  HcoID,   AutoFill,  &
                                Array3D,     Total, PosOnly, COL,       &
                                MinDiagnLev, RC                        )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned
                                                                 !  container ID
@@ -1361,7 +1344,7 @@ CONTAINS
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       &
+    CALL Diagn_UpdateDriver( HcoState,                  &
                              cID         = cID,         &
                              cName       = cName,       &
                              ExtNr       = ExtNr,       &
@@ -1392,14 +1375,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDp0d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     &
+  SUBROUTINE Diagn_UpdateDp0d( HcoState,    cID,   cName,   ExtNr,     &
                                Cat,         Hier,  HcoID,   AutoFill,  &
                                Scalar,      Total, PosOnly, COL,       &
                                MinDiagnLev, RC                        )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned
                                                                 !  container ID
@@ -1432,7 +1414,7 @@ CONTAINS
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       &
+    CALL Diagn_UpdateDriver( HcoState,                  &
                              cID         = cID,         &
                              cName       = cName,       &
                              ExtNr       = ExtNr,       &
@@ -1463,14 +1445,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDp2d( am_I_Root,   HcoState, cID,   cName,   ExtNr,     &
+  SUBROUTINE Diagn_UpdateDp2d( HcoState,    cID,   cName,   ExtNr,     &
                                Cat,         Hier,  HcoID,   AutoFill,  &
                                Array2D,     Total, PosOnly, COL,       &
                                MinDiagnLev, RC                        )
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned
                                                                 !  container ID
@@ -1503,7 +1484,7 @@ CONTAINS
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       &
+    CALL Diagn_UpdateDriver( HcoState,                  &
                              cID         = cID,         &
                              cName       = cName,       &
                              ExtNr       = ExtNr,       &
@@ -1534,7 +1515,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDp3d( am_I_Root,   HcoState, cID,   cName,   ExtNr, &
+  SUBROUTINE Diagn_UpdateDp3d( HcoState,    cID,   cName,   ExtNr,           &
                                Cat,         Hier,  HcoID,   AutoFill,        &
                                Array3D,     Total, PosOnly, COL,             &
                                MinDiagnLev, RC                        )
@@ -1545,7 +1526,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! Assigned
                                                                 !  container ID
@@ -1578,7 +1558,7 @@ CONTAINS
 !BOC
 
     ! Call down to driver routine
-    CALL Diagn_UpdateDriver( am_I_Root, HcoState,       &
+    CALL Diagn_UpdateDriver( HcoState,                  &
                              cID         = cID,         &
                              cName       = cName,       &
                              ExtNr       = ExtNr,       &
@@ -1652,7 +1632,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_UpdateDriver( am_I_Root, HcoState,   cID,        cName,       &
+  SUBROUTINE Diagn_UpdateDriver( HcoState,  cID,        cName,                   &
                                  ExtNr,     Cat,        Hier,       HcoID,       &
                                  AutoFill,  Scalar,     Array2D,    Array3D,     &
                                  Total,     Scalar_SP,  Array2D_SP, Array3D_SP,  &
@@ -1666,7 +1646,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )                   :: am_I_Root         ! Root CPU?
     TYPE(HCO_State),  POINTER                         :: HcoState          ! HEMCO state obj
     INTEGER,          INTENT(IN   ), OPTIONAL         :: cID               ! container ID
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL         :: cName             ! Dgn name
@@ -1786,7 +1765,7 @@ CONTAINS
     IF ( PRESENT(AutoFill) ) AutoFlag = AutoFill
 
     ! Get the update time ID.
-    CALL HcoClock_Get( am_I_Root, HcoState%Clock, nSteps=ThisUpdateID, RC=RC )
+    CALL HcoClock_Get( HcoState%Clock, nSteps=ThisUpdateID, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Count # of containers that are updated
@@ -2242,7 +2221,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_Get( am_I_Root, HcoState,               &
+  SUBROUTINE Diagn_Get( HcoState,                          &
                         EndOfIntvOnly,            DgnCont, &
                         FLAG,      RC,            cName,   &
                         cID,       AutoFill,      COL,     &
@@ -2254,7 +2233,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root       ! Root CPU?
     TYPE(HCO_State),  POINTER                 :: HcoState        ! HEMCO state obj
     LOGICAL,          INTENT(IN   )           :: EndOfIntvOnly   ! End of
                                                                  ! interval
@@ -2317,7 +2295,7 @@ CONTAINS
     IF ( PRESENT(SkipZeroCount) ) SKIPZERO = SkipZeroCount
 
     IF ( EndOfIntvOnly ) THEN
-       TimeToWrite =  DiagnCollection_IsTimeToWrite( am_I_Root, HcoState, PS )
+       TimeToWrite =  DiagnCollection_IsTimeToWrite( HcoState, PS )
        IF ( .NOT. TimeToWrite ) THEN
           DgnCont => NULL()
           RETURN
@@ -2387,7 +2365,7 @@ CONTAINS
 
     ! Before returning container, make sure its data is ready for output.
     IF ( ASSOCIATED (DgnCont ) ) THEN
-       CALL DiagnCont_PrepareOutput ( am_I_Root, HcoState, DgnCont, RC )
+       CALL DiagnCont_PrepareOutput ( HcoState, DgnCont, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
        FLAG = HCO_SUCCESS
 
@@ -2415,12 +2393,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diagn_TotalGet( am_I_Root, Diagn, cName, cID,   COL, &
+  SUBROUTINE Diagn_TotalGet( HcoState, Diagn, cName, cID,   COL, &
                              FOUND,     Total, Reset, RC    )
 !
 ! !INPUT PARAMETERS::
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root      ! Root CPU?
+    TYPE(HCO_State),  POINTER                 :: HcoState       ! HEMCO state obj
     TYPE(DiagnBundle),POINTER                 :: Diagn          ! Diagn bundle obj
     CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL :: cName          ! container name
     INTEGER,          INTENT(IN   ), OPTIONAL :: cID            ! container ID
@@ -2946,7 +2924,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCont_PrepareOutput ( am_I_Root, HcoState, DgnCont, RC )
+  SUBROUTINE DiagnCont_PrepareOutput( HcoState, DgnCont, RC )
 !
 ! !USES:
 !
@@ -2955,7 +2933,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN   ) :: am_I_Root ! Root CPU?
     TYPE(HCO_State),   POINTER       :: HcoState  ! HEMCO state obj
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -3073,8 +3050,7 @@ CONTAINS
     ELSE
 
        ! Get current month and year
-       CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
-                          cYYYY=YYYY, cMM=MM, RC=RC )
+       CALL HcoClock_Get( HcoState%Clock, cYYYY=YYYY, cMM=MM, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Days per year
@@ -3386,7 +3362,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCont_Link_2D( am_I_Root, DgnCont, ThisColl, Trgt2D, RC, HcoState )
+  SUBROUTINE DiagnCont_Link_2D( DgnCont, ThisColl, Trgt2D, RC, HcoState )
 !
 ! !USES:
 !
@@ -3394,7 +3370,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,               INTENT(IN   )          :: am_I_Root   ! Root CPU?
     TYPE(HCO_STATE),       POINTER, OPTIONAL      :: HcoState    ! HEMCO state obj
     REAL(sp),              INTENT(IN   ), TARGET  :: Trgt2D(:,:) ! 2D target data
     TYPE(DiagnCollection), POINTER                :: ThisColl    ! Collection
@@ -3486,7 +3461,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCont_Link_3D( am_I_Root, DgnCont, ThisColl, Trgt3D, RC, HcoState )
+  SUBROUTINE DiagnCont_Link_3D( DgnCont, ThisColl, Trgt3D, RC, HcoState )
 !
 ! !USES:
 !
@@ -3494,7 +3469,6 @@ CONTAINS
 !
 ! !INPUT PARAEMTERS:
 !
-    LOGICAL,               INTENT(IN   )         :: am_I_Root     ! Root CPU?
     TYPE(HCO_STATE),       POINTER,  OPTIONAL    :: HcoState      ! HEMCO state obj
     REAL(sp),              INTENT(IN   ), TARGET :: Trgt3D(:,:,:) ! 3D target data
     TYPE(DiagnCollection), POINTER               :: ThisColl      ! Collection
@@ -3713,8 +3687,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_Create ( am_I_Root, Diagn,  NX, NY, NZ,    &
-                                      TS,   AM2, PREFIX,                &
+  SUBROUTINE DiagnCollection_Create ( Diagn,    NX, NY, NZ,    &
+                                      TS,       AM2, PREFIX,   &
                                       deltaYMD, deltaHMS, OutTimeStamp, &
                                       RC,       COL, HcoState )
 !
@@ -3724,7 +3698,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,            INTENT(IN)           :: am_I_Root    ! Root CPU?
     TYPE(DiagnBundle),  POINTER              :: Diagn        ! Diagn bundle
     INTEGER,            INTENT(IN)           :: NX           ! # of lons
     INTEGER,            INTENT(IN)           :: NY           ! # of lats
@@ -4089,7 +4062,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnCollection_GetDefaultDelta ( am_I_Root, HcoState, &
+  SUBROUTINE DiagnCollection_GetDefaultDelta ( HcoState, &
                                                deltaYMD,  deltaHMS, RC )
 !
 ! !USES:
@@ -4100,7 +4073,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root ! Root CPU?
     TYPE(HCO_STATE),  POINTER                 :: HcoState  ! HEMCO state obj
 !
 ! !OUTPUT PARAMETERS:
@@ -4219,7 +4191,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION DiagnCollection_IsTimeToWrite( am_I_Root, HcoState, PS ) &
+  FUNCTION DiagnCollection_IsTimeToWrite( HcoState, PS ) &
      RESULT ( TimeToWrite )
 !
 ! !USES:
@@ -4228,7 +4200,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN   )     :: am_I_Root   ! Root CPU?
     INTEGER, INTENT(IN   )     :: PS          ! Diagnostics collection
     TYPE(HCO_State), POINTER   :: HcoState    ! HEMCO state obj
 !
@@ -4268,8 +4239,8 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get current simulation date
-    CALL HcoClock_Get(am_I_Root, HcoState%Clock, IsLast=IsLast, &
-                      sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
+    CALL HcoClock_Get( HcoState%Clock, IsLast=IsLast, &
+                       sYYYY=YYYY,sMM=MM,sDD=DD,sH=h,sM=m,sS=s,RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Check for last time step
@@ -4359,7 +4330,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnFileOpen( am_I_Root, HcoConfig, LUN, RC, IsDryRun )
+  SUBROUTINE DiagnFileOpen( HcoConfig, LUN, RC, IsDryRun )
 !
 ! !USES:
 !
@@ -4368,7 +4339,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root   ! root CPU?
     LOGICAL,          INTENT(IN   ), OPTIONAL :: IsDryRun    ! Is it a dry run?
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -4441,7 +4411,7 @@ CONTAINS
           ENDIF
 
           ! Write message to stdout and then return
-          IF ( am_I_Root ) THEN
+          IF ( HcoConfig%amIRoot ) THEN
              WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( DiagnFile )
  300         FORMAT( a, ' ./', a )
           ENDIF
@@ -4491,11 +4461,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DiagnFileGetNext( am_I_Root, HcoConfig, LUN, cName, &
-                               SpcName,   ExtNr,     Cat,        &
-                               Hier,      SpaceDim,  OutUnit,    &
-                               EOF,       RC,        lName,      &
-                               UnitName                           )
+  SUBROUTINE DiagnFileGetNext( HcoConfig, LUN,     cName,       &
+                               SpcName,   ExtNr,   Cat,   Hier, &
+                               SpaceDim,  OutUnit, EOF,   RC,   &
+                               lName,     UnitName              )
 !
 ! !USES:
 !
@@ -4504,7 +4473,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )           :: am_I_Root   ! root CPU?
     INTEGER,          INTENT(IN   )           :: LUN         ! file LUN
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -4554,7 +4522,7 @@ CONTAINS
     SpaceDim = -1
 
     ! Get next line
-    CALL GetNextLine ( am_I_Root, LUN, LINE, EOF, RC )
+    CALL GetNextLine( LUN, LINE, EOF, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Leave here if end of file

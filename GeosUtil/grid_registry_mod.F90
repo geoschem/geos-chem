@@ -34,7 +34,7 @@ MODULE Grid_Registry_Mod
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
-!  24 Aug 2017 - R. Yantosca - Rename variables to be consistent w/ convention
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -76,19 +76,20 @@ CONtAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Grid_Registry( am_I_Root, State_Grid, RC )
+  SUBROUTINE Init_Grid_Registry( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE GC_Grid_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE Pressure_Mod
     USE Registry_Mod,   ONLY : Registry_AddField
     USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
@@ -99,8 +100,7 @@ CONtAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
-!  25 Aug 2017 - R. Yantosca - Now register the P0 as 0-D REAL*8; AREA as
-!                              2-D REAL*4, and all others as 1-D REAL*8
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,7 +140,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -164,7 +164,7 @@ CONtAINS
     P0       = 1000.0_f8
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -193,7 +193,7 @@ CONtAINS
     Time = 0.0_f8
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -224,7 +224,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -255,7 +255,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -286,7 +286,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -317,7 +317,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -349,7 +349,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -381,7 +381,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -413,7 +413,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -444,7 +444,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -475,7 +475,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -506,7 +506,7 @@ CONtAINS
     ENDDO
 
     ! Register
-    CALL Registry_AddField( am_I_Root    = am_I_Root,                        &
+    CALL Registry_AddField( Input_Opt    = Input_Opt,                        &
                             Registry     = Registry,                         &
                             State        = State,                            &
                             Variable     = Variable,                         &
@@ -522,7 +522,7 @@ CONtAINS
     !======================================================================
     ! Print list of fields
     !======================================================================
-    CALL Print_Grid( am_I_Root, RC, ShortFormat=.TRUE. )
+    CALL Print_Grid( Input_Opt, RC, ShortFormat=.TRUE. )
 
     ! Write spacer line for log file
     WRITE( 6, '(a)' )
@@ -541,26 +541,22 @@ CONtAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Grid_Registry( am_I_Root, RC )
+  SUBROUTINE Cleanup_Grid_Registry( RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Destroy
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    USE Registry_Mod,  ONLY : Registry_Destroy
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
-!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify the Registry object
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -656,7 +652,7 @@ CONtAINS
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
-    CALL Registry_Destroy( am_I_Root, Registry, RC )
+    CALL Registry_Destroy( Registry, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object "Registry"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -680,16 +676,17 @@ CONtAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Print_Grid( am_I_Root, RC, ShortFormat )
+  SUBROUTINE Print_Grid( Input_Opt, RC, ShortFormat )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Print
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Registry_Mod,  ONLY : Registry_Print
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
     LOGICAL,        OPTIONAL    :: ShortFormat ! Print truncated info
 !
 ! !OUTPUT PARAMETERS:
@@ -698,6 +695,7 @@ CONtAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -713,6 +711,9 @@ CONtAINS
     ErrMsg  = ''
     ThisLoc = ' -> at Print_GC_Grid (in GeosUtil/grid_registry_mod.F90)'
 
+    ! Only print information on the root CPU
+    IF ( .not. Input_Opt%amIRoot ) RETURN
+
     !=======================================================================
     ! Print info about registered variables
     !=======================================================================
@@ -723,10 +724,10 @@ CONtAINS
     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
     ! Print registry info in truncated format
-    CALL Registry_Print( am_I_Root   = am_I_Root,                            &
-                         Registry    = Registry,                             &
-                         ShortFormat = ShortFormat,                          &
-                         RC          = RC                                   )
+    CALL Registry_Print( Input_Opt   = Input_Opt,             &
+                         Registry    = Registry,              &
+                         ShortFormat = ShortFormat,           &
+                         RC          = RC                    )
 
     ! Trap error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -752,7 +753,7 @@ CONtAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Lookup_Grid( am_I_Root,  Variable,     RC,         Description, &
+  SUBROUTINE Lookup_Grid( Input_Opt,  Variable,     RC,         Description, &
                           Dimensions, KindVal,      MemoryInKb, Rank,        &
                           Units,      OnLevelEdges, Ptr0d_8,    Ptr1d_8,     &
                           Ptr2d_4                                           )
@@ -760,11 +761,12 @@ CONtAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Registry_Mod, ONLY : Registry_Lookup
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Registry_Mod,  ONLY : Registry_Lookup
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)  :: am_I_Root       ! Is this the root CPU?
+    TYPE(OptInput),      INTENT(IN)  :: Input_Opt       ! Input Options object
     CHARACTER(LEN=*),    INTENT(IN)  :: Variable        ! Variable name
 !
 ! !OUTPUT PARAMETERS:
@@ -794,7 +796,7 @@ CONtAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
-!  24 Aug 2017 - R. Yantosca - Added optional OnLevelEdges argument
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -814,7 +816,7 @@ CONtAINS
     !=======================================================================
     ! Look up a variable; Return metadata and/or a pointer to the data
     !=======================================================================
-    CALL Registry_Lookup( am_I_Root    = am_I_Root,                          &
+    CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,                  &
                           Registry     = Registry,                           &
                           State        = State,                              &
                           Variable     = Variable,                           &

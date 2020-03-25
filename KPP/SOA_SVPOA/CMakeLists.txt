@@ -5,7 +5,7 @@ add_library(KPPFirstPass_SOA_SVPOA STATIC EXCLUDE_FROM_ALL
     gckpp_Monitor.F90
 )
 target_link_libraries(KPPFirstPass_SOA_SVPOA
-	PUBLIC BaseTarget
+	PUBLIC GEOSChemBuildProperties
 )
 
 # Add libKPP.a

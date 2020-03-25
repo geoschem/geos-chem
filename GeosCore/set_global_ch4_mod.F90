@@ -27,6 +27,7 @@ MODULE Set_Global_CH4_Mod
 !
 ! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -50,12 +51,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_CH4( am_I_Root,  Input_Opt,  State_Chm, &
-                      State_Diag, State_Grid, State_Met, RC )
+  SUBROUTINE Set_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                      State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD
     USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr
@@ -74,7 +74,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met ! Meteorology State object
@@ -99,6 +98,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,6 +109,7 @@ CONTAINS
     INTEGER             :: I, J, L, PBL_TOP
     CHARACTER(LEN=63)   :: OrigUnit
     REAL(fp)            :: CH4
+    LOGICAL             :: FOUND
 #if defined( MODEL_GEOS )
     INTEGER             :: DT
     REAL(fp)            :: dCH4, MWCH4
@@ -142,24 +143,21 @@ CONTAINS
        ! Get species ID
        id_CH4 = Ind_( 'CH4' )
 
-       ! Get pointer to surface CH4 data
-       IF ( HcoState%Clock%ThisEYear > 1978 ) THEN
-           ! Use the NOAA spatially resolved data where available
-           CALL HCO_GetPtr( am_I_Root, HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4! Make sure it is turned on in HEMCO_Config.rc.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ELSE
-           ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
-           ! https://doi.org/10.5194/gmd-10-2057-2017a
-           CALL HCO_GetPtr( am_I_Root, HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Cannot get pointer to CMIP6_Sfc_CH4! Make sure it is turned on in HEMCO_Config.rc.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
+       ! Use the NOAA spatially resolved data where available
+       CALL HCO_GetPtr( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC, FOUND=FOUND )
+       IF (.NOT. FOUND ) THEN
+          FOUND = .TRUE.
+          ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
+          ! https://doi.org/10.5194/gmd-10-2057-2017a
+          CALL HCO_GetPtr( HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC, FOUND=FOUND )
+       ENDIF
+       IF (.NOT. FOUND ) THEN
+          ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4 or CMIP6_Sfc_CH4 ' // &
+                   'in SET_CH4! Make sure the data source corresponds '   // &
+                   'to your emissions year in HEMCO_Config.rc (NOAA GMD ' // &
+                   'for 1978 and later; else CMIP6).'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
        ! Reset first-time flag
@@ -168,9 +166,8 @@ CONTAINS
     ENDIF
 
     ! Convert species to [v/v dry] for this routine
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'v/v dry', &
-                            RC,         OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'v/v dry', RC, OrigUnit=OrigUnit )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -236,8 +233,8 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original unit
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, OrigUnit, RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            OrigUnit, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -265,6 +262,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

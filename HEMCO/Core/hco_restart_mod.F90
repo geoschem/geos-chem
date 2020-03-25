@@ -117,8 +117,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartDefine_3D( am_I_Root, HcoState, Name, Arr3D, &
-                                   Unit,      RC                      )
+  SUBROUTINE HCO_RestartDefine_3D( HcoState, Name, Arr3D, Unit, RC )
 !
 ! !USES:
 !
@@ -127,7 +126,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )         :: am_I_Root ! Root CPU?
     TYPE(HCO_State),     POINTER               :: HcoState  ! HEMCO state obj.
     CHARACTER(LEN=*),    INTENT(IN   )         :: Name      ! Name of restart variable
     ! Array with data of interest
@@ -151,7 +149,7 @@ CONTAINS
     ! ================================================================
 
     ! Define diagnostics array
-    CALL Diagn_Create ( am_I_Root, HcoState,                    &
+    CALL Diagn_Create ( HcoState,                               &
                         cName      = TRIM(Name),                &
                         ExtNr      = -1,                        &
                         Cat        = -1,                        &
@@ -187,8 +185,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartDefine_2D( am_I_Root, HcoState, Name, Arr2D, &
-                                   Unit,      RC                      )
+  SUBROUTINE HCO_RestartDefine_2D( HcoState, Name, Arr2D, Unit, RC )
 !
 ! !USES:
 !
@@ -197,7 +194,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )         :: am_I_Root ! Root CPU?
     TYPE(HCO_State),     POINTER               :: HcoState  ! HEMCO state obj.
     CHARACTER(LEN=*),    INTENT(IN   )         :: Name      ! Name of restart variable
     ! Array with data of interest
@@ -221,7 +217,7 @@ CONTAINS
     ! ================================================================
 
     ! Define diagnostics array
-    CALL Diagn_Create ( am_I_Root, HcoState,                    &
+    CALL Diagn_Create ( HcoState,                               &
                         cName      = TRIM(Name),                &
                         ExtNr      = -1,                        &
                         Cat        = -1,                        &
@@ -258,8 +254,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartGet_3D( am_I_Root, HcoState, Name,   Arr3D, &
-                                RC,        FILLED,   Def3D,  DefVal  )
+  SUBROUTINE HCO_RestartGet_3D( HcoState, Name,   Arr3D, &
+                                RC,       FILLED, Def3D, DefVal  )
 !
 ! !USES:
 !
@@ -268,7 +264,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )           :: am_I_Root ! Root CPU?
     TYPE(HCO_State),     POINTER                 :: HcoState  ! HEMCO state object
     CHARACTER(LEN=*),    INTENT(IN   )           :: Name      ! Name of restart variable
     ! Default value to be used if restart variable could not be found
@@ -314,8 +309,8 @@ CONTAINS
     ! Try to get from ESMF internal state
     ! ------------------------------------------------------------------
 #if defined(ESMF_)
-    CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name),   &
-                                  1,         FLD,      RC, Arr3D=Arr3D )
+    CALL HCO_CopyFromIntnal_ESMF( HcoState, TRIM(Name),   &
+                                  1,        FLD,      RC, Arr3D=Arr3D )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If field is all zero assume it to be not filled
@@ -325,7 +320,7 @@ CONTAINS
 
     ! Log output
     IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-       IF ( am_I_Root .AND. FLD ) THEN
+       IF ( HcoState%amIRoot .AND. FLD ) THEN
           MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
@@ -338,7 +333,7 @@ CONTAINS
     IF ( .NOT. FLD ) THEN
 
        ! Try to get pointer from HEMCO configuration
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(Name), Ptr3D, RC, FILLED=FLD )
+       CALL HCO_GetPtr( HcoState, TRIM(Name), Ptr3D, RC, FILLED=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Eventually pass data
@@ -347,7 +342,7 @@ CONTAINS
 
           ! Log output
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-             IF ( am_I_Root ) THEN
+             IF ( HcoState%amIRoot ) THEN
                 MSG = 'Obtained restart variable from HEMCO config: '//TRIM(Name)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
@@ -366,7 +361,7 @@ CONTAINS
           Arr3D = Def3D
           FLD   = .TRUE.
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-             IF ( am_I_Root ) THEN
+             IF ( HcoState%amIRoot ) THEN
                 MSG = 'Filled restart variable with default 3D field: '//TRIM(Name)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
@@ -375,7 +370,7 @@ CONTAINS
           Arr3D = DefVal
           FLD   = .TRUE.
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-             IF ( am_I_Root ) THEN
+             IF ( HcoState%amIRoot ) THEN
                 MSG = 'Filled restart variable with default scalar: '//TRIM(Name)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
              ENDIF
@@ -413,8 +408,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartGet_2D( am_I_Root, HcoState, Name,   Arr2D, &
-                                RC,        FILLED,   Def2D,  DefVal  )
+  SUBROUTINE HCO_RestartGet_2D( HcoState, Name,   Arr2D, &
+                                RC,       FILLED, Def2D, DefVal  )
 !
 ! !USES:
 !
@@ -423,7 +418,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )           :: am_I_Root ! Root CPU?
     TYPE(HCO_State),     POINTER                 :: HcoState  ! HEMCO state object
     CHARACTER(LEN=*),    INTENT(IN   )           :: Name      ! Name of restart variable
     ! Default value to be used if restart variable could not be found
@@ -469,8 +463,8 @@ CONTAINS
     ! Try to get from ESMF internal state
     ! ------------------------------------------------------------------
 #if defined(ESMF_)
-    CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name),   &
-                                  1,         FLD,      RC, Arr2D=Arr2D )
+    CALL HCO_CopyFromIntnal_ESMF( HcoState, TRIM(Name),   &
+                                  1,        FLD,      RC, Arr2D=Arr2D )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If field is all zero assume it to be not filled
@@ -480,7 +474,7 @@ CONTAINS
 
     ! Log output
     IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-       IF ( am_I_Root .AND. FLD ) THEN
+       IF ( HcoState%amIRoot .AND. FLD ) THEN
           MSG = 'Obtained restart variable from ESMF internal state: '//TRIM(Name)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(*,*) TRIM(MSG)
@@ -494,7 +488,7 @@ CONTAINS
     IF ( .NOT. FLD ) THEN
 
        ! Try to get pointer from HEMCO configuration
-       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(Name), Ptr2D, RC, FOUND=FLD )
+       CALL HCO_GetPtr( HcoState, TRIM(Name), Ptr2D, RC, FOUND=FLD )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Eventually pass data
@@ -503,7 +497,7 @@ CONTAINS
 
           ! Log output
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-             IF ( am_I_Root ) THEN
+             IF ( HcoState%amIRoot ) THEN
                 MSG = 'Obtained restart variable from HEMCO config: '//TRIM(Name)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
                 WRITE(*,*) TRIM(MSG)
@@ -523,7 +517,7 @@ CONTAINS
           Arr2D = Def2D
           FLD   = .TRUE.
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-             IF ( am_I_Root ) THEN
+             IF ( HcoState%amIRoot ) THEN
                 MSG = 'Filled restart variable with default 2D field: '//TRIM(Name)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
                 WRITE(*,*) TRIM(MSG)
@@ -533,7 +527,7 @@ CONTAINS
           Arr2D = DefVal
           FLD   = .TRUE.
           IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-             IF ( am_I_Root ) THEN
+             IF ( HcoState%amIRoot ) THEN
                 MSG = 'Filled restart variable with default scalar: '//TRIM(Name)
                 CALL HCO_MSG(HcoState%Config%Err,MSG)
                 WRITE(*,*) TRIM(MSG)
@@ -549,7 +543,7 @@ CONTAINS
 
     ! Verbose
     IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-       IF ( am_I_Root .AND. .NOT. FLD ) THEN
+       IF ( HcoState%amIRoot .AND. .NOT. FLD ) THEN
           MSG = 'No restart field found: '//TRIM(Name)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(*,*) TRIM(MSG)
@@ -576,7 +570,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartWrite_3D( am_I_Root, HcoState, Name, Arr3D, RC, FOUND )
+  SUBROUTINE HCO_RestartWrite_3D( HcoState, Name, Arr3D, RC, FOUND )
 !
 ! !USES:
 !
@@ -584,7 +578,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),     POINTER                 :: HcoState
     CHARACTER(LEN=*),    INTENT(IN   )           :: Name
 !
@@ -615,7 +608,7 @@ CONTAINS
     WRITTEN = .FALSE.
 
 #if defined(ESMF_)
-    CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
+    CALL HCO_CopyFromIntnal_ESMF( HcoState, TRIM(Name), &
                                   -1,       WRITTEN,    RC, Arr3D=Arr3D )
 #endif
 
@@ -644,7 +637,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_RestartWrite_2D( am_I_Root, HcoState, Name, Arr2D, RC, FOUND )
+  SUBROUTINE HCO_RestartWrite_2D( HcoState, Name, Arr2D, RC, FOUND )
 !
 ! !USES:
 !
@@ -652,7 +645,6 @@ CONTAINS
 !
 ! !INPUT ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),     POINTER                 :: HcoState
     CHARACTER(LEN=*),    INTENT(IN   )           :: Name
 !
@@ -683,7 +675,7 @@ CONTAINS
     WRITTEN = .FALSE.
 
 #if defined(ESMF_)
-    CALL HCO_CopyFromIntnal_ESMF( am_I_Root, HcoState, TRIM(Name), &
+    CALL HCO_CopyFromIntnal_ESMF( HcoState, TRIM(Name), &
                                   -1,       WRITTEN,    RC, Arr2D=Arr2D )
 #endif
 
@@ -711,7 +703,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_CopyFromIntnal_ESMF ( am_I_Root, HcoState,  Name,    &
+  SUBROUTINE HCO_CopyFromIntnal_ESMF ( HcoState,  Name,    &
                                        Direction, Found, RC, Arr2D, Arr3D )
 !
 ! !USES:
@@ -723,7 +715,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-    LOGICAL,             INTENT(IN   )           :: am_I_Root
     TYPE(HCO_State),     POINTER                 :: HcoState
     CHARACTER(LEN=*),    INTENT(IN   )           :: Name
     INTEGER,             INTENT(IN   )           :: Direction    ! 1: internal to Arr2D; -1: Arr2D to internal

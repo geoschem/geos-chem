@@ -134,11 +134,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_VertGrid_Init( am_I_Root, zGrid, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN   )  :: am_I_Root ! Root CPU?
+  SUBROUTINE HCO_VertGrid_Init( zGrid, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -184,7 +180,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCO_VertGrid_Define( am_I_Root, HcoConfig, zGrid, nz, Ap, Bp, RC )
+  SUBROUTINE HCO_VertGrid_Define( HcoConfig, zGrid, nz, Ap, Bp, RC )
 !
 ! !USES:
 !
@@ -192,7 +188,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN   )            :: am_I_Root ! Root CPU?
     INTEGER,        INTENT(IN   )            :: nz        ! # of vertical levels
     REAL(hp),       INTENT(IN   ), OPTIONAL  :: Ap(nz+1)  ! Ap values
     REAL(hp),       INTENT(IN   ), OPTIONAL  :: Bp(nz+1)  ! Bp values
@@ -261,7 +256,7 @@ CONTAINS
     ENDIF
 
     ! Verbose
-    IF ( am_I_Root .AND. HCO_IsVerb(HcoConfig%Err,1) ) THEN
+    IF ( HcoConfig%amIRoot .AND. HCO_IsVerb(HcoConfig%Err,1) ) THEN
        WRITE(MSG,*) ' HEMCO vertical sigma-hybrid coordinates: '
        CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,*) 'Ap [Pa]       (first and last): ', zGrid%Ap(1), zGrid%Ap(nz+1)

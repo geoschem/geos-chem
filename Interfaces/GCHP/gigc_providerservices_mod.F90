@@ -1147,7 +1147,7 @@ CONTAINS
        ENDDO
     
        ! Fill AERO_DP bundle
-       CALL FillAeroDP ( am_I_Root, Input_Opt, GC, Export, __RC__ )
+       CALL FillAeroDP( Input_Opt, GC, Export, __RC__ )
     
     ENDIF ! DoAero
 
@@ -1440,7 +1440,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FillAeroDP ( am_I_Root, Input_Opt, GC, Export, RC ) 
+  SUBROUTINE FillAeroDP ( Input_Opt, GC, Export, RC ) 
 !
 ! !USES:
 !
@@ -1453,7 +1453,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(IN)    :: am_I_Root ! Root PET?
     TYPE(OptInput),      INTENT(IN)    :: Input_Opt ! Input Options
 !                                                             
 ! !INPUT/OUTPUT PARAMETERS:                                         
@@ -1557,8 +1556,8 @@ CONTAINS
             
              ! Get diagnostics 
              DgnID = 44500 + TrcID
-             CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DgnCont,  &
-                             FLAG, ERR, cID=DgnID, AutoFill=-1,      &
+             CALL Diagn_Get( HcoState, .FALSE., DgnCont,        &
+                             FLAG, ERR, cID=DgnID, AutoFill=-1, &
                              COL=Input_Opt%DIAG_COLLECTION ) 
 
              ! Error check 
@@ -1571,7 +1570,7 @@ CONTAINS
                    Ptr2D = Ptr2D + DgnCont%Arr2D%Val
    
                    ! testing only
-                   if(am_I_Root) then
+                   if( Input_Opt%amIRoot ) then
                       write(*,*) TRIM(DgnCont%cName), ' added to ',  &
                                  TRIM(ExpName)
                    endif
@@ -1597,8 +1596,8 @@ CONTAINS
                 END SELECT
 
                 ! Get diagnostics 
-                CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DgnCont, &
-                                FLAG, ERR, cID=DgnID, AutoFill=-1,     &
+                CALL Diagn_Get( HcoState, .FALSE., DgnCont,        &
+                                FLAG, ERR, cID=DgnID, AutoFill=-1, &
                                 COL=Input_Opt%DIAG_COLLECTION ) 
 
                 ! Error check 
@@ -1613,7 +1612,7 @@ CONTAINS
                       ENDWHERE
 
                       ! testing only
-                      if(am_I_Root) then
+                      if( Input_Opt%amIRoot ) then
                          write(*,*) TRIM(DgnCont%cName), ' added to ', &
                                     TRIM(ExpName)
                       endif

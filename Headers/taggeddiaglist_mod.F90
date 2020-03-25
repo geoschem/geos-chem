@@ -78,7 +78,7 @@ MODULE TaggedDiagList_Mod
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,10 +96,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_TaggedDiagList ( am_I_Root, DiagList, TaggedDiagList, RC )
-!
-! !USES:
-!
+  SUBROUTINE Init_TaggedDiagList( am_I_Root, DiagList, TaggedDiagList, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -115,8 +112,8 @@ CONTAINS
     INTEGER,              INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
-!  See gitk browser for rest of revision history
+!  18 Nov 2019 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -200,7 +197,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,7 +278,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -329,11 +326,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_TaggedDiagList ( am_I_Root, TaggedDiagList, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,             INTENT(IN)    :: am_I_Root
+  SUBROUTINE Cleanup_TaggedDiagList( TaggedDiagList, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -345,7 +338,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,8 +358,8 @@ CONTAINS
     current => TaggedDiagList%head
     IF ( ASSOCIATED( current ) ) next => current%next
     DO WHILE ( ASSOCIATED( current ) )
-       CALL cleanup_TagList(am_I_Root, current%taglist, RC)
-       CALL cleanup_TagList(am_I_Root, current%wildcardlist, RC)
+       CALL Cleanup_TagList( current%taglist, RC )
+       CALL Cleanup_TagList( current%wildcardlist, RC )
        DEALLOCATE( current, STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN
           PRINT *, "Error in ", trim(thisLoc)
@@ -410,7 +403,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -469,17 +462,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,       INTENT(IN) :: am_I_Root
-    TYPE(DgnTagItem), POINTER :: NewTagItem
-    CHARACTER(LEN=*)          :: name
+    LOGICAL,          INTENT(IN) :: am_I_Root
+    TYPE(DgnTagItem), POINTER    :: NewTagItem
+    CHARACTER(LEN=*)             :: name
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,       OPTIONAL   :: RC
+    INTEGER,          OPTIONAL   :: RC
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -514,9 +507,6 @@ CONTAINS
   SUBROUTINE InsertBeginning_TaggedDiagList ( am_I_Root, TaggedDiagItem, &
                                               TaggedDiagList, RC )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 !
     LOGICAL,             INTENT(IN)    :: am_I_Root
@@ -531,8 +521,8 @@ CONTAINS
     INTEGER,             INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
-!  See gitk browser for rest of revision history
+!  18 Nov 2019 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -583,8 +573,8 @@ CONTAINS
     INTEGER,          INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
-!  18 Nov 2019 - E. Lundgren - initial version
-!  See gitk browser for rest of revision history
+!  18 Nov 2019 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -638,7 +628,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -692,7 +682,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -755,7 +745,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Nov 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -805,11 +795,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_TagList ( am_I_Root, TagList, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,          INTENT(IN)    :: am_I_Root
+  SUBROUTINE Cleanup_TagList( TagList, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -821,7 +807,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Sep 2019 - E. Lundgren - Initial version
-!  See gitk browser for rest of revision history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

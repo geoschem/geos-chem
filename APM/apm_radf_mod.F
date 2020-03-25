@@ -188,7 +188,6 @@ C
 
 C
 !      USE APM_INIT_MOD, ONLY : YRLIQ,YRICE
-!      USE DAO_MOD,      ONLY : TAUCLW,TAUCLI
 
       IMPLICIT REAL (A-H,O-Z),
      +INTEGER (I-N)

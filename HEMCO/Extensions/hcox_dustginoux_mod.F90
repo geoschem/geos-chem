@@ -125,7 +125,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_DustGinoux_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HcoX_DustGinoux_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -136,7 +136,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Are we on the root CPU?
     TYPE(Ext_State), POINTER        :: ExtState    ! Options for this ext
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -251,15 +250,15 @@ CONTAINS
     !IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
 
        ! Sand
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_SAND', Inst%SRCE_SAND, RC )
+       CALL HCO_EvalFld( HcoState, 'GINOUX_SAND', Inst%SRCE_SAND, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Silt
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_SILT', Inst%SRCE_SILT, RC )
+       CALL HCO_EvalFld( HcoState, 'GINOUX_SILT', Inst%SRCE_SILT, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Clay
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_CLAY', Inst%SRCE_CLAY, RC )
+       CALL HCO_EvalFld( HcoState, 'GINOUX_CLAY', Inst%SRCE_CLAY, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     !ENDIF
 
@@ -402,7 +401,7 @@ CONTAINS
        IF ( Inst%HcoIDs(N) > 0 ) THEN
 
           ! Add flux to emission array
-          CALL HCO_EmisAdd( am_I_Root,      HcoState, Inst%FLUX(:,:,N), &
+          CALL HCO_EmisAdd( HcoState,       Inst%FLUX(:,:,N), &
                             Inst%HcoIDs(N), RC,       ExtNr=Inst%ExtNr   )
           IF ( RC /= HCO_SUCCESS ) THEN
              WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
@@ -418,7 +417,7 @@ CONTAINS
           IF ( Inst%HcoIDsAlk(N) > 0 ) THEN
 
              ! Add flux to emission array
-             CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%FLUX_Alk(:,:,N), &
+             CALL HCO_EmisAdd( HcoState,          Inst%FLUX_Alk(:,:,N), &
                                Inst%HcoIDsAlk(N), RC, ExtNr=Inst%ExtNrAlk)
              IF ( RC /= HCO_SUCCESS ) THEN
                 WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
@@ -455,7 +454,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_DustGinoux_Init( am_I_Root, HcoState, ExtName, ExtState, RC )
+  SUBROUTINE HcoX_DustGinoux_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -464,7 +463,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Are we on the root CPU?
     TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO State object
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
     TYPE(Ext_State),  POINTER        :: ExtState   ! Extension options
@@ -566,7 +564,7 @@ CONTAINS
     ENDIF
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use Ginoux dust emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG )
 

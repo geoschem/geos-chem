@@ -110,12 +110,7 @@ MODULE HistItem_Mod
 !
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version, based on code by Arjen Markus
-!  06 Jul 2017 - R. Yantosca - Add source pointers to 4-byte and integer data
-!  04 Aug 2017 - R. Yantosca - Declare Data_* accumulator arrays as REAL(fp),
-!                              which should avoid roundoff for long runs
-!  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
-!  25 Aug 2017 - R. Yantosca - Added Source_0d_8 and Source_1d_8 pointers
-!  25 Aug 2017 - R. Yantosca - Added Source_2d_8 and Source_3d_8 pointers
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,7 +129,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistItem_Create( am_I_Root,    Item,           Id,              &
+  SUBROUTINE HistItem_Create( Input_Opt,    Item,           Id,              &
                               ContainerId,  Name,           RC,              &
                               LongName,     Units,          SpaceDim,        &
                               OnLevelEdges, AddOffset,      MissingValue,    &
@@ -151,12 +146,13 @@ CONTAINS
   USE CharPak_Mod,         ONLY : TranLc
   USE ErrCode_Mod
   USE History_Util_Mod
+    USE Input_Opt_Mod,     ONLY : OptInput
   USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
     ! Required arguments
-    LOGICAL,           INTENT(IN)  :: am_I_Root          ! Root CPU?
+    TYPE(OptInput),    INTENT(IN)  :: Input_Opt          ! Input Options object
     INTEGER,           INTENT(IN)  :: Id                 ! History item Id #
     INTEGER,           INTENT(IN)  :: ContainerId        ! Container Id #
     CHARACTER(LEN=*),  INTENT(IN)  :: Name               ! Item's short name
@@ -212,16 +208,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version
-!  03 Aug 2017 - R. Yantosca - Add OPERATION as an optional argument
-!  08 Aug 2017 - R. Yantosca - Now assign NcVarId a default value
-!  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
-!  11 Aug 2017 - R. Yantosca - Added optional DimNames argument
-!  24 Aug 2017 - R. Yantosca - Now size the data accumulator array from
-!                              the size of the data pointer
-!  24 Aug 2017 - R. Yantosca - Set the NcILevDim field to undefined
-!  25 Aug 2017 - R. Yantosca - Added Source_0d_8 and Source_1d_8 arguments
-!  28 Aug 2017 - R. Yantosca - Now define the NcChunkSizes field
-!  25 Aug 2017 - R. Yantosca - Added Source_2d_8 and Source_3d_8 arguments
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -783,16 +770,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistItem_Print( am_I_Root, Item, RC, ShortFormat )
+  SUBROUTINE HistItem_Print( Input_Opt, Item, RC, ShortFormat )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE History_Util_Mod
+    USE Input_Opt_Mod,   ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
     TYPE(HistItem), POINTER     :: Item         ! History Item
     LOGICAL,        OPTIONAL    :: ShortFormat  ! Print truncated format
 !
@@ -802,12 +790,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version
-!  06 Jul 2017 - R. Yantosca - Add option to print truncated output format
-!  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
-!  24 Aug 2017 - R. Yantosca - Now print OnLevelEdges for the full format
-!  24 Aug 2017 - R. Yantosca - Now print NcIDimId for the full format
-!  25 Aug 2017 - R. Yantosca - Now print the vertical cell position: C or E
-!  28 Aug 2017 - R. Yantosca - Now prints the netCDF chunksizes (full format)
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -838,7 +821,7 @@ CONTAINS
     !=======================================================================
     ! Print information about this HISTORY ITEM (only on the root CPU)
     !=======================================================================
-    IF ( ASSOCIATED( Item ) .and. am_I_Root ) THEN
+    IF ( ASSOCIATED( Item ) .and. Input_Opt%amIRoot ) THEN
 
        IF ( Use_ShortFormat ) THEN
 
@@ -937,16 +920,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HistItem_Destroy( am_I_Root, Item, RC )
+  SUBROUTINE HistItem_Destroy( Item, RC )
 !
 ! !USES:
 !
-  USE ErrCode_Mod
-  USE History_Util_Mod
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    USE ErrCode_Mod
+    USE History_Util_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -960,10 +939,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Jun 2017 - R. Yantosca - Initial version
-!  06 Jul 2017 - R. Yantosca - Nullify source pointers to 4-byte & integer data
-!  11 Aug 2017 - R. Yantosca - Remove 0d pointers and data arrays
-!  28 Aug 2017 - R. Yantosca - Deallocate Data_0d and NcChunkSizes fields
-!  06 Oct 2017 - R. Yantosca - Nullify Source_2d_8 and Source_3d_8 pointers
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

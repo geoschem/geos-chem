@@ -245,7 +245,7 @@ cp ./runConfig.sh.template     ${rundir}/runConfig.sh
 cp ./HISTORY.rc.templates/HISTORY.rc.${sim_name}            ${rundir}/HISTORY.rc
 cp ./input.geos.templates/input.geos.${sim_name}            ${rundir}/input.geos
 cp ./ExtData.rc.templates/ExtData.rc.${sim_type}            ${rundir}/ExtData.rc
-cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_type}  ${rundir}/HEMCO_Config.rc
+cp ./HEMCO_Config.rc.templates/HEMCO_Config.rc.${sim_name}  ${rundir}/HEMCO_Config.rc
 cp ./HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${sim_name}    ${rundir}/HEMCO_Diagn.rc
 
 # If benchmark simulation, put gchp.run script in directory; else do not.

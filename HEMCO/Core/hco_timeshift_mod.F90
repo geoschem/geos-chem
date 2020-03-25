@@ -203,7 +203,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE TimeShift_Apply( am_I_Root, HcoState, Lct, &
+  SUBROUTINE TimeShift_Apply( HcoState, Lct, &
                               yr, mt, dy, hr, mn,  RC )
 !
 ! !USES:
@@ -213,7 +213,6 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root ! Root CPU
     TYPE(HCO_State),  POINTER        :: HcoState  ! Hemco state
     TYPE(ListCont),   POINTER        :: Lct       ! List container
     INTEGER,          INTENT(INOUT)  :: yr        ! year

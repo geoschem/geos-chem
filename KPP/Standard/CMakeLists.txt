@@ -5,7 +5,7 @@ add_library(KPPFirstPass_Standard STATIC EXCLUDE_FROM_ALL
     gckpp_Monitor.F90
 )
 target_link_libraries(KPPFirstPass_Standard
-	PUBLIC BaseTarget
+	PUBLIC GEOSChemBuildProperties
 )
 
 # Add libKPP.a

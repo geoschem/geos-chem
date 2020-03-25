@@ -49,12 +49,12 @@ MODULE NCDF_MOD
   PUBLIC  :: NC_GET_SIGMA_LEVELS
   PUBLIC  :: NC_WRITE
   PUBLIC  :: NC_ISMODELLEVEL
+  PUBLIC  :: GET_TAU0
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: GET_TIDX
   PRIVATE :: TIMEUNIT_CHECK
-  PRIVATE :: GET_TAU0
   PRIVATE :: NC_WRITE_3D
   PRIVATE :: NC_WRITE_4D
   PRIVATE :: NC_VAR_WRITE_INT_1D
@@ -4782,7 +4782,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_Tau0_6a
+! !IROUTINE: Get_Tau0
 !
 ! !DESCRIPTION: Function GET\_TAU0\_6A returns the corresponding TAU0 value
 !  for the first day of a given MONTH of a given YEAR.  This is necessary to
@@ -4850,14 +4850,14 @@ CONTAINS
     ! Error checking
     IF ( MONTH < 1 .or. MONTH > 12 ) THEN
        WRITE( 6, 100 )
-100    FORMAT( 'Invalid MONTH selection!  STOP in GET_TAU (ncdf_mod.F90)!' )
+100    FORMAT( 'Invalid MONTH selection!  STOP in GET_TAU0 (ncdf_mod.F90)!' )
        STOP
     ENDIF
 
     ! Error checking
     IF ( DAY < 1 .or. DAY > 31 ) THEN
        WRITE( 6, 110 )
-110    FORMAT( 'Invalid DAY selection!  STOP in GET_TAU (ncdf_mod.F90)!' )
+110    FORMAT( 'Invalid DAY selection!  STOP in GET_TAU0 (ncdf_mod.F90)!' )
        STOP
     ENDIF
 

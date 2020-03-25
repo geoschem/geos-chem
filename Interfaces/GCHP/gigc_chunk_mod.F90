@@ -35,15 +35,7 @@ MODULE GIGC_Chunk_Mod
 !
 ! !REVISION HISTORY:
 !  22 Jun 2009 - R. Yantosca & P. Le Sager - Chunkized & cleaned up.
-!  09 Oct 2012 - R. Yantosca - Now pass am_I_Root to all routines
-!  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
-!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
-!  22 Oct 2012 - R. Yantosca - Renamed to gigc_chunk_mod.F90
-!  01 Nov 2012 - R. Yantosca - Now pass Input Options object to routines
-!  15 Mar 2013 - R. Yantosca - Add routine GIGC_Cap_Tropopause_Prs
-!  08 Mar 2018 - E. Lundgren - Move gigc_initialization_mod contents to 
-!                              gigc_chunk_init now that LOC is much reduced
-!  14 Dec 2018 - E. Lundgren - Combine offline and GEOS-5 code and simplify
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -135,38 +127,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  18 Jul 2011 - M. Long     - Initial Version
-!  28 Mar 2012 - M. Long     - Rewrite per structure of BCC init interface
-!  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
-!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
-!  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Init
-!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
-!  01 Nov 2012 - R. Yantosca - Reordered arguments for clarit
-!  28 Nov 2012 - M. Long     - Now pass lonCtr, latCtr, latEdg as arguments
-!                              to routine GIGC_Init_Simulation
-!  03 Dec 2012 - R. Yantosca - Now call Init_CMN_SIZE (in CMN_SIZE_mod.F)
-!                              instead of GIGC_Init_Dimensions to initialize
-!                              the size parameters.
-!  03 Dec 2012 - R. Yantosca - Rename NI, NJ, NL to IM, JM, LM for clarity
-!  03 Dec 2012 - R. Yantosca - Now pass I_LO, J_LO, I_HI, J_HI, IM_WORLD, 
-!                              JM_WORLD, LM_WORLD via the arg list
-!  05 Dec 2012 - R. Yantosca - Remove latEdg argument
-!  06 Dec 2012 - R. Yantosca - Add nymdB, nhmsB, nymdB, nhmsB arguments,
-!                              and remove nymd, nhms
-!  06 Mar 2018 - E. Lundgren - Remove Set_Initial_MixRatios
-!  08 Mar 2018 - E. Lundgren - Move gigc_initialized_mod code here and move
-!                              dlat/dlon calculation to gc_init_grid;
-!                              GC timesteps are now seconds;
-!                              Call set_input_opt to initialize input_opt vars;
-!                              Add error handling using MAPL Assert_;
-!                              Rename Initialize_Geos_Grid to GC_Init_Grid;
-!                              Now call GC_Allocate_All after input.geos read;
-!                              Restructure grid init based on gcbe v11-02e;
-!                              Remove all unused code and simplify comments
-!  14 Dec 2018 - E. Lundgren - Combine offline and GEOS-5 code and simplify
-!  14 Jan 2019 - E. Lundgren - Read input.geos on all threads; remove broadcast
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,11 +158,11 @@ CONTAINS
 #endif
 
     ! Read input.geos at very beginning of simulation on every thread
-    CALL Read_Input_File( Input_Opt%AmIRoot, Input_Opt, State_Grid, RC )
+    CALL Read_Input_File( Input_Opt, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Read_Input_File')
 
     ! Initialize GEOS-Chem horizontal grid structure
-    CALL GC_Init_Grid( Input_Opt%AmIRoot, Input_Opt, State_Grid, RC )
+    CALL GC_Init_Grid( Input_Opt, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_Grid')
 
     ! Set maximum number of levels in the chemistry grid
@@ -217,16 +178,16 @@ CONTAINS
     
     ! Read LINOZ climatology
     IF ( Input_Opt%LLINOZ ) THEN
-       CALL Linoz_Read( Input_Opt%AmIRoot, Input_Opt, RC ) 
+       CALL Linoz_Read( Input_Opt, RC ) 
        _ASSERT(RC==GC_SUCCESS, 'Error calling Linoz_Read')
     ENDIF
 
     ! Allocate all lat/lon arrays
-    CALL GC_Allocate_All( Input_Opt%AmIRoot, Input_Opt, State_Grid, RC )
+    CALL GC_Allocate_All( Input_Opt, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Allocate_All')
 
     ! Set grid based on passed mid-points
-    CALL SetGridFromCtr( Input_Opt%AmIRoot, State_Grid, lonCtr, latCtr, RC )
+    CALL SetGridFromCtr( Input_Opt, State_Grid, lonCtr, latCtr, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error caling')
 
     ! Update Input_Opt with timing fields
@@ -240,7 +201,7 @@ CONTAINS
     Input_Opt%TS_CONV = INT( tsDyn  )   ! Dynamic   timestep [sec]
 
     ! Set GEOS-Chem timesteps on all CPUs
-    CALL SET_TIMESTEPS( am_I_Root  = Input_Opt%AmIRoot,                          &
+    CALL SET_TIMESTEPS( Input_Opt,                                       &
                         Chemistry  = Input_Opt%TS_CHEM,                  &
                         Convection = Input_Opt%TS_CONV,                  &
                         Dynamics   = Input_Opt%TS_DYN,                   &
@@ -251,12 +212,12 @@ CONTAINS
                         Diagnos    = Input_Opt%TS_DIAG         )
 
     ! Initialize derived-type objects for met, chem, and diag
-    CALL GC_Init_StateObj( Input_Opt%AmIRoot, HistoryConfig%DiagList, Input_Opt, &
+    CALL GC_Init_StateObj( HistoryConfig%DiagList, Input_Opt, &
                            State_Chm, State_Diag, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_StateObj')
 
     ! Initialize other GEOS-Chem modules
-    CALL GC_Init_Extra( Input_Opt%AmIRoot, HistoryConfig%DiagList, Input_Opt,    &
+    CALL GC_Init_Extra( HistoryConfig%DiagList, Input_Opt,    &
                         State_Chm, State_Diag, State_Grid, RC ) 
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_Extra')
 
@@ -268,30 +229,29 @@ CONTAINS
 #endif
 
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
-    CALL Init_Pressure( Input_Opt%AmIRoot, Input_Opt, State_Grid, RC )
+    CALL Init_Pressure( Input_Opt, State_Grid, RC )
 
     ! Initialize the PBL mixing module
-    CALL INIT_PBL_MIX( Input_Opt%AmIRoot, State_Grid, RC )
+    CALL INIT_PBL_MIX( Input_Opt, State_Grid, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_PBL_MIX')
 
     ! Initialize chemistry mechanism
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-       CALL INIT_CHEMISTRY ( Input_Opt%AmIRoot,  Input_Opt,  State_Chm, &
-                             State_Diag, State_Grid, RC )
+       CALL INIT_CHEMISTRY ( Input_Opt,  State_Chm, State_Diag, &
+                             State_Grid, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_CHEMISTRY')
     ENDIF
 
     ! Initialize HEMCO
-    CALL EMISSIONS_INIT ( Input_Opt%AmIRoot,  Input_Opt, State_Chm, &
-                          State_Grid, State_Met, RC, &
-                          HcoConfig=HcoConfig )
+    CALL EMISSIONS_INIT( Input_Opt, State_Chm, State_Grid, State_Met, RC, &
+                         HcoConfig=HcoConfig )
     _ASSERT(RC==GC_SUCCESS, 'Error calling EMISSIONS_INIT')
 
     ! Stratosphere - can't be initialized without HEMCO because of STATE_PSC
     IF ( Input_Opt%LUCX ) THEN
 
        ! Initialize stratospheric routines
-       CALL INIT_UCX( Input_Opt%AmIRoot, Input_Opt, State_Chm, State_Diag, State_Grid )
+       CALL INIT_UCX( Input_Opt, State_Chm, State_Diag, State_Grid )
 
     ENDIF
 
@@ -300,8 +260,7 @@ CONTAINS
     !IF ( Input_Opt%LSCHEM .AND. Input_Opt%LLSTRAT < value_LM ) THEN
 #endif
      IF ( Input_Opt%LSCHEM ) THEN
-       CALL INIT_STRAT_CHEM( Input_Opt%AmIRoot, Input_Opt,  State_Chm, & 
-                             State_Met, State_Grid, RC )
+       CALL INIT_STRAT_CHEM( Input_Opt, State_Chm, State_Met, State_Grid, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_STRAT_CHEM')
     ENDIF
 
@@ -315,15 +274,14 @@ CONTAINS
     ! allocated accordingly when initializing State_Diag. Here, we thus 
     ! only need to initialize the tendencies, which have not been initialized
     ! yet (ckeller, 11/29/17). 
-    CALL Tend_Init ( Input_Opt%AmIRoot, Input_Opt, State_Chm, State_Grid, &
-                     State_Met, RC ) 
+    CALL Tend_Init ( Input_Opt, State_Chm, State_Grid, State_Met, RC ) 
     _ASSERT(RC==GC_SUCCESS, 'Error calling Tend_Init')
 #endif
 
 #if !defined( MODEL_GEOS )
     ! GCHP only: Convert species units to internal state units (v/v dry)
-    CALL Convert_Spc_Units( Input_Opt%AmIRoot,  Input_Opt, State_Chm, &
-                            State_Grid, State_Met, 'v/v dry', RC )
+    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            'v/v dry', RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Convert_Spc_Units')
 #endif
 
@@ -375,8 +333,8 @@ CONTAINS
     USE WetScav_Mod,        ONLY : Setup_WetScav, Do_WetDep
 
     ! Specialized subroutines
-    USE Dao_Mod,            ONLY : AirQnt, Set_Dry_Surface_Pressure
-    USE Dao_Mod,            ONLY : GIGC_Cap_Tropopause_Prs
+    USE Calc_Met_Mod,       ONLY : AirQnt, Set_Dry_Surface_Pressure
+    USE Calc_Met_Mod,       ONLY : GIGC_Cap_Tropopause_Prs
     USE Set_Global_CH4_Mod, ONLY : Set_CH4
     USE MODIS_LAI_Mod,      ONLY : Compute_XLAI
     USE PBL_Mix_Mod,        ONLY : Compute_PBL_Height
@@ -399,7 +357,7 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
 #if defined( MODEL_GEOS )
-    USE DAO_MOD,            ONLY : GET_COSINE_SZA
+    USE Derived_Met_Mod,    ONLY : GET_COSINE_SZA
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn
 #endif
 !
@@ -439,42 +397,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  18 Jul 2011 - M. Long     - Initial Version
-!  09 Oct 2012 - R. Yantosca - Added extra comments & cosmetic changes
-!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
-!  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
-!  17 Oct 2012 - R. Yantosca - Need to call AIRQNT before chemistry
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
-!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Run
-!  25 Oct 2012 - R. Yantosca - Now pass RC to GIGC_DO_CHEM
-!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
-!  08 Nov 2012 - R. Yantosca - Now pass Input_Opt to GIGC_Do_Chem
-!  13 Nov 2012 - M. Long     - Added Dry Deposition method
-!  29 Nov 2012 - R. Yantosca - Now block off calls to GIGC_DO_DRYDEP and
-!                              GIGC_DO_CHEM w/ the appropriate logical flags
-!  04 Dec 2012 - R. Yantosca - Now convert units of State_Chm%TRACERS here
-!                              instead of in lower-level routines
-!  07 Dec 2012 - R. Yantosca - Now call Accept_Date_Time_From_ESMF to pass the
-!                              date & time from ESMF to GeosUtil/time_mod.F
-!  07 Dec 2012 - R. Yantosca - Now pass UTC via Accept_Date_Time_From_ESMF;
-!                              this ensures proper localtime computation
-!  11 Dec 2012 - R. Yantosca - Now call DO_DRYDEP directly; no longer call
-!                              GIGC_DO_DRYDEP, this is moved to obsolete dir.
-!  11 Dec 2012 - R. Yantosca - Now call routine ACCEPT_EXTERNAL_PEDGE to pass
-!                              the pressure edges from ESMF to GEOS-Chem
-!  15 Mar 2013 - R. Yantosca - Now call GIGC_CAP_TROPOPAUSE_PRS to cap the
-!                              State_Met%TROPP field to 200 hPa polewards
-!                              of 60S and 60N.  We do this in the std G-C.
-!  05 Jun 2013 - R. Yantosca - Remove obsolete code
-!  22 Sep 2014 - C. Keller   - Added run phase argument
-!  14 Oct 2014 - C. Keller   - Various updates to include drydep and emissions
-!                              to tracer arrays, etc.
-!  26 Nov 2014 - C. Keller   - Added IsChemTime variable.
-!  19 Oct 2016 - R. Yantosca - Now call Set_Init_Cond_Strat_Chem after the
-!                              1st call to AIRQNT to save initial conditions
-!  01 Dec 2016 - E. Lundgren - Calculate LAI using new routine for GCHP
-!  13 Feb 2018 - E. Lundgren - Call Recompute_OD at end of chem dt for aer diags
-!  14 Dec 2018 - E. Lundgren - Combine offline and GEOS-5 code and simplify
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -593,6 +516,17 @@ CONTAINS
     DoChem   = Input_Opt%LCHEM .AND. IsChemTime   ! chemistry time step
     DoWetDep = Input_Opt%LWETD                    ! dynamic time step 
 
+#if defined( MODEL_GCHP )
+    ! Make sure chemistry timestep components are run in first timestep
+    ! even if IsChemTime is false. This is a temporary kludge pending a
+    ! better solution for the GIGCchem alarm (ewl, 2/21/20)
+    IF ( FIRST ) THEN
+       DoDryDep = Input_Opt%LDRYD
+       DoEmis   = .TRUE.
+       DoChem   = Input_Opt%LCHEM
+    ENDIF
+#endif
+
     ! If Phase is not -1, only do selected processes for given phases: 
     ! Phase 1: disable turbulence, chemistry and wet deposition.
     IF ( Phase == 1 ) THEN
@@ -636,13 +570,11 @@ CONTAINS
 
     ! Eventually initialize/reset wetdep
     IF ( DoConv .OR. DoChem .OR. DoWetDep ) THEN
-       CALL SETUP_WETSCAV( Input_Opt%AmIRoot,  Input_Opt, State_Chm, &
-                           State_Grid, State_Met, RC )
+       CALL SETUP_WETSCAV( Input_Opt, State_Chm, State_Grid, State_Met, RC )
     ENDIF
 
     ! Pass time values obtained from the ESMF environment to GEOS-Chem
-    CALL Accept_External_Date_Time( am_I_Root      = Input_Opt%AmIRoot,  &
-                                    value_NYMD     = nymd,       &  
+    CALL Accept_External_Date_Time( value_NYMD     = nymd,       &  
                                     value_NHMS     = nhms,       &  
                                     value_YEAR     = year,       &  
                                     value_MONTH    = month,      &  
@@ -655,15 +587,14 @@ CONTAINS
                                     RC             = RC         )
 
     ! Set HEMCO time
-    CALL SetHcoTime ( Input_Opt%AmIRoot, DoEmis, RC )
+    CALL SetHcoTime ( DoEmis, RC )
 
     ! Calculate MODIS leaf area indexes needed for dry deposition
-    CALL Compute_XLAI( Input_Opt%AmIRoot, Input_Opt, State_Grid, State_Met, RC )
+    CALL Compute_XLAI( Input_Opt, State_Grid, State_Met, RC )
 
     ! Set the pressure at level edges [hPa] from the ESMF environment
-    CALL Accept_External_Pedge    ( am_I_Root      = Input_Opt%AmIRoot,  &
-                                    State_Met      = State_Met,  &
-                                    RC             = RC         )
+    CALL Accept_External_Pedge( State_Met = State_Met,  &
+                                RC        = RC         )
 
     ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
     CALL SET_DRY_SURFACE_PRESSURE( State_Grid, State_Met, 1 )
@@ -674,13 +605,12 @@ CONTAINS
     ! Initialize surface pressures to match the post-advection pressures
     State_Met%PSC2_WET = State_Met%PS1_WET
     State_Met%PSC2_DRY = State_Met%PS1_DRY
-    CALL SET_FLOATING_PRESSURES( Input_Opt%AmIRoot, State_Grid, State_Met, RC )
+    CALL SET_FLOATING_PRESSURES( State_Grid, State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Define airmass and related quantities
 #if defined( MODEL_GEOS )
-    CALL AirQnt( Input_Opt%AmIRoot, Input_opt, State_Chm, State_Grid, &
-                 State_Met, RC, .FALSE. )
+    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, .FALSE. )
 #else
     ! Scale mixing ratio with changing met only if FV advection is off.
     ! Only do this the first timestep if DELP_DRY found in restart.
@@ -692,29 +622,26 @@ CONTAINS
        _VERIFY(STATUS)
        IF ( .not. ( RST == MAPL_RestartBootstrap .OR. &
                     RST == MAPL_RestartSkipInitial ) ) scaleMR = .TRUE.
-       CALL AirQnt( Input_Opt%AmIRoot, Input_opt, State_Chm, State_Grid, &
-                    State_Met, RC, scaleMR )
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
        scaleMR = .TRUE.
     ELSE
-       CALL AirQnt( Input_Opt%AmIRoot, Input_opt, State_Chm, State_Grid, &
-                    State_Met, RC, scaleMR )
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
     ENDIF
 #endif
 
     ! Cap the polar tropopause pressures at 200 hPa, in order to avoid
     ! tropospheric chemistry from happening too high up (cf. J. Logan)
-    CALL GIGC_Cap_Tropopause_Prs  ( am_I_Root      = Input_Opt%AmIRoot,  &
-                                    Input_Opt      = Input_Opt,  &
-                                    State_Grid     = State_Grid, &
-                                    State_Met      = State_Met,  &
-                                    RC             = RC         )
+    CALL GIGC_Cap_Tropopause_Prs( Input_Opt      = Input_Opt,  &
+                                  State_Grid     = State_Grid, &
+                                  State_Met      = State_Met,  &
+                                  RC             = RC         )
 
     ! Call PBL quantities. Those are always needed
-    CALL COMPUTE_PBL_HEIGHT( Input_Opt%AmIRoot, State_Grid, State_Met, RC )
+    CALL COMPUTE_PBL_HEIGHT( State_Grid, State_Met, RC )
     
     ! Convert to dry mixing ratio
-    CALL Convert_Spc_Units ( Input_Opt%AmIRoot, Input_Opt, State_Chm, State_Grid, &
-                             State_Met, 'kg/kg dry', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             'kg/kg dry', RC, OrigUnit=OrigUnit )
 
     ! SDE 05/28/13: Set H2O to STT if relevant
     IF ( IND_('H2O','A') > 0 ) THEN
@@ -741,8 +668,8 @@ CONTAINS
 #endif
           SetStratH2O = .TRUE.
        ENDIF
-       CALL SET_H2O_TRAC( Input_Opt%AmIRoot, SetStratH2O, Input_Opt, & 
-                          State_Chm, State_Grid,  State_Met, RC )
+       CALL SET_H2O_TRAC( SetStratH2O, Input_Opt, State_Chm, & 
+                          State_Grid,  State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling SET_H2O_TRAC')
 
       ! Only force strat once if using UCX
@@ -756,7 +683,7 @@ CONTAINS
     !    State_Met%SUNCOSmid  => COS(SZA) at the midpt of the chem timestep
     !    COS(SZA) at the midpt of the chem timestep 5hrs ago is now
     !    calculated elsewhere, in the HEMCO PARANOx extension
-    CALL GET_COSINE_SZA( Input_Opt%AmIRoot, Input_Opt, State_Grid, State_Met, RC )
+    CALL GET_COSINE_SZA( Input_Opt, State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GET_COSINE_SZA')
 #endif
 
@@ -766,7 +693,7 @@ CONTAINS
     ! that the HEMCO clock and the HEMCO data list are up to date.
     !=======================================================================
     HCO_PHASE = 1
-    CALL EMISSIONS_RUN( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
+    CALL EMISSIONS_RUN( Input_Opt, State_Chm, State_Diag, &
                         State_Grid, State_Met, DoEmis, HCO_PHASE, RC  )
     _ASSERT(RC==GC_SUCCESS, 'Error calling EMISSIONS_RUN')
 
@@ -786,7 +713,7 @@ CONTAINS
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do convection now'
        CALL MAPL_TimerOn( STATE, 'GC_CONV' )
 
-       CALL DO_CONVECTION ( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
+       CALL DO_CONVECTION ( Input_Opt, State_Chm, State_Diag, &
                             State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling DO_CONVECTION')
  
@@ -807,7 +734,7 @@ CONTAINS
        CALL MAPL_TimerOn( STATE, 'GC_DRYDEP' )
     
        ! Do dry deposition
-       CALL Do_DryDep ( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
+       CALL Do_DryDep ( Input_Opt, State_Chm, State_Diag, &
                         State_Grid, State_Met, RC ) 
        _ASSERT(RC==GC_SUCCESS, 'Error calling Do_DryDep')
 
@@ -839,8 +766,8 @@ CONTAINS
        ! Do emissions. Pass HEMCO Phase 2 which performs the emissions 
        ! calculations.
        HCO_PHASE = 2
-       CALL EMISSIONS_RUN ( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
-                            State_Grid, State_Met, DoEmis, HCO_PHASE, RC )
+       CALL EMISSIONS_RUN( Input_Opt, State_Chm, State_Diag, &
+                           State_Grid, State_Met, DoEmis, HCO_PHASE, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling EMISSIONS_RUN')
 
        CALL MAPL_TimerOff( STATE, 'GC_EMIS' )
@@ -874,8 +801,8 @@ CONTAINS
        DT = HcoState%TS_EMIS 
 
        ! Apply tendencies over entire PBL. Use emission time step.
-       CALL DO_TEND ( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
-                      State_Grid, State_Met, .FALSE., RC, DT=DT )
+       CALL DO_TEND( Input_Opt, State_Chm, State_Diag, &
+                     State_Grid, State_Met, .FALSE., RC, DT=DT )
        _ASSERT(RC==GC_SUCCESS, 'Error calling DO_TEND')
 
        ! testing only
@@ -905,7 +832,7 @@ CONTAINS
 
        ! Do mixing and apply tendencies. This will use the dynamic time step,
        ! which is fine since this call will be executed on every time step. 
-       CALL DO_MIXING ( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
+       CALL DO_MIXING ( Input_Opt, State_Chm, State_Diag, &
                         State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling DO_MIXING')
 
@@ -921,7 +848,7 @@ CONTAINS
     IF ( Phase /= 2 .AND. Input_Opt%ITS_A_FULLCHEM_SIM  &
          .AND. IND_('CH4','A') > 0 ) THEN
 #endif
-       CALL SET_CH4 ( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
+       CALL SET_CH4 ( Input_Opt, State_Chm, State_Diag, &
                       State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling SET_CH4')
     ENDIF
@@ -935,13 +862,13 @@ CONTAINS
 
        ! Calculate TOMS O3 overhead. For now, always use it from the
        ! Met field. State_Met%TO3 is imported from PCHEM (ckeller, 10/21/2014).
-       CALL COMPUTE_OVERHEAD_O3( Input_Opt%AmIRoot, State_Grid, DAY, &
-                                 .TRUE., State_Met%TO3, RC )
+       CALL COMPUTE_OVERHEAD_O3( Input_Opt, State_Grid, DAY, .TRUE., &
+                                 State_Met%TO3, RC )
 
 #if !defined( MODEL_GEOS )
        ! Set H2O to species value if H2O is advected
        IF ( IND_('H2O','A') > 0 ) THEN
-          CALL SET_H2O_TRAC( Input_Opt%AmIRoot, (.not. Input_Opt%LUCX), Input_Opt, &
+          CALL SET_H2O_TRAC( (.not. Input_Opt%LUCX), Input_Opt, &
                              State_Chm, State_Grid, State_Met, RC )
        ENDIF
 #endif
@@ -956,7 +883,7 @@ CONTAINS
        endif
 
        ! Do chemistry
-       CALL Do_Chemistry( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
+       CALL Do_Chemistry( Input_Opt, State_Chm, State_Diag, &
                           State_Grid, State_Met, RC ) 
        _ASSERT(RC==GC_SUCCESS, 'Error calling Do_Chemistr')
 
@@ -982,7 +909,7 @@ CONTAINS
        CALL MAPL_TimerOn( STATE, 'GC_WETDEP' )
 
        ! Do wet deposition
-       CALL DO_WETDEP( Input_Opt%AmIRoot,  Input_Opt, State_Chm, State_Diag, &
+       CALL DO_WETDEP( Input_Opt, State_Chm, State_Diag, &
                        State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling DO_WETDEP')
 
@@ -1002,7 +929,7 @@ CONTAINS
     ! diagnostic and only on a chemistry timestep.
     ! (skim, 02/05/11)
     IF ( DoChem ) THEN
-       CALL RECOMPUTE_OD ( Input_Opt%AmIRoot, Input_Opt, State_Chm, State_Diag, &
+       CALL RECOMPUTE_OD ( Input_Opt, State_Chm, State_Diag, &
                            State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling RECOMPUTE_OD')
     ENDIF
@@ -1012,15 +939,14 @@ CONTAINS
 
     ! Set certain diagnostics dependent on state at end of step. This
     ! includes species concentration and dry deposition flux.
-    CALL Set_Diagnostics_EndofTimestep( Input_Opt%AmIRoot,  Input_Opt,  &
-                                        State_Chm,  State_Diag, &
+    CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
                                         State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
 
     ! Archive aerosol mass and PM2.5 diagnostics
     IF ( State_Diag%Archive_AerMass ) THEN
-       CALL Set_AerMass_Diagnostic( Input_Opt%AmIRoot, Input_Opt,  State_Chm, &
-                                    State_Diag, State_Grid, State_Met, RC )
+       CALL Set_AerMass_Diagnostic( Input_Opt,  State_Chm, State_Diag, &
+                                    State_Grid, State_Met, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Set_AerMass_Diagnostic')
     ENDIF
 
@@ -1030,8 +956,8 @@ CONTAINS
     !=======================================================================
     ! Convert State_Chm%Species units
     !=======================================================================
-    CALL Convert_Spc_Units ( Input_Opt%AmIRoot, Input_Opt, State_Chm, State_Grid, &
-                             State_Met, OrigUnit, RC )
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             OrigUnit, RC )
 
 #if defined( MODEL_GEOS )
     ! Save specific humidity and dry air mass for total mixing ratio 

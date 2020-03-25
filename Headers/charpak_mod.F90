@@ -45,27 +45,7 @@ MODULE Charpak_Mod
 !  made for GEOS-CHEM by Bob Yantosca (1998, 2002, 2004).
 !
 ! !REVISION HISTORY:
-!  (1 ) Moved "cntmat.f", "copytxt.f", "cstrip.f", "fillstr.f", "txt2inum.f",
-!        "txtext.f", into this F90 module for easier bookkeeping
-!        (bmy, 10/15/01)
-!  (2 ) Moved "tranuc.f" into this F90 module (bmy, 11/15/01)
-!  (3 ) Now divide module header into MODULE PRIVATE, MODULE VARIABLES, and
-!        MODULE ROUTINES sections.  Updated comments (bmy, 5/28/02)
-!  (4 ) Wrote a new file "strrepl.f", which replaces a character pattern
-!        within a string with replacement text.  Moved "tranlc.f" into
-!        this module.  Replaced calls to function LENTRIM with F90
-!        intrinsic function LEN_TRIM.  Removed function FILLSTR and
-!        replaced it w/ F90 intrinsic REPEAT. (bmy, 6/25/02)
-!  (5 ) Added routine STRSPLIT as a wrapper for TXTEXT.  Also added
-!        routines STRREPL and STRSQUEEZE. (bmy, 7/30/02)
-!  (6 ) Added function ISDIGIT.  Also replace LEN_TRIM with LEN in routine
-!        STRREPL, to allow us to replace tabs w/ spaces. (bmy, 7/20/04)
-!  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  07 Aug 2017 - R. Yantosca - Add ProTeX headers for subroutines
-!  31 Oct 2017 - R. Yantosca - Converted module to F90 free-format
-!  01 Nov 2017 - R. Yantosca - Added ReadOneLine and CleanText
-!  01 Nov 2017 - R. Yantosca - Added MaxStrLen parameter for ReadOneLine
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -108,8 +88,7 @@ CONTAINS
 !     COMMENTS: Revised slightly (2-5-1996) so that trailing
 !               blanks in str1 are ignored.  Revised again
 !               on 3-6-1996.
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
-!  20 Dec 2017 - R. Yantosca - Now returns the positions where matches occur
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,7 +160,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !     DATE:   DEC. 24, 1993
 !     AUTHOR: R.D. STEWART
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,8 +216,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
-!  07 Aug 2017 - R. Yantosca - Added ProTeX header
-!  30 Jan 2018 - R. Yantosca - Added KEEPSPACES optional argument
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,7 +285,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !     DATE:   NOV. 11, 1993
 !     AUTHOR: R.D. STEWART
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,9 +331,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jun 2002 - R. Yantosca - Initial version
-!  07 Aug 2017 - R. Yantosca - Updated algorithm to allow PATTERN and
-!                              REPLTXT to have different numbers of characters
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -412,7 +388,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Jul 2002 - R. Yantosca - Initial version
-!  30 Sep 2014 - R. Yantosca - WORD now has 2047 chars for extra-long strings
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -472,7 +448,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  11 Jul 2002 - R. Yantosca - Initial version
-!  07 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -509,7 +485,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -553,7 +529,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -633,16 +609,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !      AUTHOR: Robert D. Stewart
 !        DATE: Jan. 1st, 1995
-!
-!      REVISIONS: FEB 22, 1996.  Slight bug fix (introduced by a
-!        (recent = FLIB 1.04) change in the CntMat routine)
-!        so that TxtExt correctlyhandles groups of characters
-!        delimited by blanks).
-!
-!      MODIFICATIONS by Bob Yantosca (6/25/02)
-!        (1) Replace call to FILLSTR with F90 intrinsic REPEAT
-!
-!   7 Aug 2017 - R. Yantosca - Added ProTeX header
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -771,7 +738,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 May 2016 - R. Yantosca - Initial version
-!  05 May 2016 - R. Yantosca - Now make the input string 14 chars long
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -838,6 +805,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Jun 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -916,6 +884,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Jun 2017 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -983,7 +952,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version, based on GEOS-Chem
-!  01 Nov 2017 - R. Yantosca - Moved to charpak_mod.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1044,8 +1013,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
-!  21 Jun 2017 - R. Yantosca - Now call CSTRIP to remove tabs etc.
-!  01 Nov 2017 - R. Yantosca - Moved to charpak_mod.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1091,6 +1059,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Dec 2015 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC

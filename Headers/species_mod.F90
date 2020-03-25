@@ -126,7 +126,7 @@ MODULE Species_Mod
      !%%% we will need to supply the dry deposition code with the same
      !%%% HSTAR values that are currently set in INIT_DRYDEP.  Therefore,
      !%%% add this field as a temporary placeholder for the Hstar quantity
-     !%%% from drydep_mod.F.  We will remove this later on. (bmy, 8/24/15)
+     !%%% from drydep_mod.F90.  We will remove this later on. (bmy, 8/24/15)
      !%%%
      REAL(fp)           :: DD_Hstar_Old     ! HSTAR value in drydep_mod [M/atm]
      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -145,7 +145,7 @@ MODULE Species_Mod
      REAL(fp)           :: WD_KcScaleFac(3) ! Temperature-dependent scale
                                             !  factors to multiply Kc rate
                                             !  (conv of condensate -> precip)
-                                            !  in F_AEROSOL (wetscav_mod.F)
+                                            !  in F_AEROSOL (wetscav_mod.F90)
      REAL(fp)           :: WD_RainoutEff(3) ! Temperature-dependent scale
                                             !  factors for rainout efficiency
 
@@ -189,7 +189,7 @@ MODULE Species_Mod
 !
 ! !REVISION HISTORY:
 !  28 Feb 2014 - C. Keller   - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,11 +210,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SpcData_Init( am_I_Root, nSpecies, SpecDB, RC )
+  SUBROUTINE SpcData_Init( Input_Opt, nSpecies, SpecDB, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,              INTENT(IN)    :: am_I_Root    ! root CPU?
+    TYPE(OptInput),       INTENT(IN)    :: Input_Opt    ! Input Options object
     INTEGER,              INTENT(IN)    :: nSpecies     ! # of species
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -224,7 +228,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -277,7 +281,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,7 +330,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Create( am_I_Root,      ThisSpc,       ModelID,             &
+  SUBROUTINE Spc_Create( Input_Opt,      ThisSpc,       ModelID,             &
                          DryDepID,       Name,          FullName,            &
                          Formula,                                            &
                          MW_g,           EmMW_g,        MolecRatio,          &
@@ -347,11 +351,12 @@ CONTAINS
 ! !USES:
 !
     USE CharPak_Mod,        ONLY : To_UpperCase
+    USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW,      AVO
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt        ! Input Options object
     INTEGER,          OPTIONAL    :: ModelID          ! Model ID number
     INTEGER,          OPTIONAL    :: DryDepID         ! Drydep ID number
     CHARACTER(LEN=*), OPTIONAL    :: Name             ! Short name of species
@@ -380,7 +385,7 @@ CONTAINS
     !%%% we will need to supply the dry deposition code with the same
     !%%% HSTAR values that are currently set in INIT_DRYDEP.  Therefore,
     !%%% add this field as a temporary placeholder for the Hstar quantity
-    !%%% from drydep_mod.F.  We will remove this later on. (bmy, 8/24/15)
+    !%%% from drydep_mod.F90.  We will remove this later on. (bmy, 8/24/15)
     !%%%
     REAL(fp),         OPTIONAL    :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -433,8 +438,8 @@ CONTAINS
 !  (11) If Is_Wetdep = T, this will automatically update WetDepId.
 !
 ! !REVISION HISTORY:
-!!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
-!   See the subsequent Git history with the gitk browser!
+!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -675,7 +680,7 @@ CONTAINS
 
     !---------------------------------------------------------------------
     ! Scale factor used to multiply the Kc rate (condensate -> precip)
-    ! in routine F_AEROSOL in wetscav_mod.F.  This implments the
+    ! in routine F_AEROSOL in wetscav_mod.F90.  This implments the
     ! impaction scavenging for aerosol species.
     !---------------------------------------------------------------------
     IF ( PRESENT( WD_KcScaleFac ) ) THEN
@@ -1059,11 +1064,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Print( am_I_Root, ThisSpc, RC )
+  SUBROUTINE Spc_Print( Input_Opt, ThisSpc, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
     TYPE(Species),    POINTER       :: ThisSpc      ! Object w/ species info
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1076,7 +1085,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  27 Jul 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1084,7 +1093,7 @@ CONTAINS
     !=====================================================================
     ! Spc_Create begins here!
     !=====================================================================
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
 
        !-------------------------
        ! Print general info
@@ -1249,7 +1258,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAero,    nDryAlt, nDryDep,        &
+  SUBROUTINE Spc_GetNumSpecies( nAdvect,  nAeroSpc, nDryAlt, nDryDep,        &
                                 nGasSpc,  nHygGrth, nKppVar, nKppFix,        &
                                 nKppSpc,  nPhotol,  nWetDep, nHg0Cats,       &
                                 nHg2Cats, nHgPCats                          )
@@ -1257,7 +1266,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER, INTENT(OUT) :: nAdvect     ! # of advected species
-    INTEGER, INTENT(OUT) :: nAero       ! # of aerosol species
+    INTEGER, INTENT(OUT) :: nAeroSpc    ! # of aerosol species
     INTEGER, INTENT(OUT) :: nDryAlt     ! # of dry-dep species to save at a
                                         !  user-defined altitude above sfc.
     INTEGER, INTENT(OUT) :: nDryDep     ! # of dry-deposited species
@@ -1274,14 +1283,14 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  02 Sep 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Return module variables
     nAdvect  = AdvectCount
-    nAero    = AeroCount
+    nAeroSpc = AeroCount
     nDryAlt  = DryAltCount
     nDryDep  = DryDepCount
     nGasSpc  = GasSpcCount

@@ -155,11 +155,6 @@ MODULE HCOX_SoilNOx_Mod
      REAL(sp),          ALLOCATABLE :: SpcScalVal(:)
      CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
 
-     ! Diagnostics to write out the pulse (testing only)
-#if defined(DEVEL)
-     REAL(sp), ALLOCATABLE          :: DGN_PULSE    (:,:  )
-#endif
-
      TYPE(MyInst), POINTER          :: NextInst => NULL()
   END TYPE MyInst
 
@@ -268,7 +263,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SoilNOx_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_SoilNOx_Run( ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -285,7 +280,6 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root
     TYPE(Ext_State), POINTER        :: ExtState    ! Module options
 
 !
@@ -350,9 +344,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Pass arguments from options object
-    aIR   = am_I_Root
-
     ! Conversion factor from ng N to kg NO
     UNITCONV = 1.0e-12_hp / 14.0e+0_hp * HcoState%Spc(Inst%IDTNO)%EmMW_g
 
@@ -362,59 +353,59 @@ CONTAINS
     FIRST = HcoClock_First ( HcoState%Clock, .TRUE. )
 
     !IF ( FIRST ) THEN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK1',  Inst%LANDTYPE(1)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK1',  Inst%LANDTYPE(1)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK2',  Inst%LANDTYPE(2)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK2',  Inst%LANDTYPE(2)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK3',  Inst%LANDTYPE(3)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK3',  Inst%LANDTYPE(3)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK4',  Inst%LANDTYPE(4)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK4',  Inst%LANDTYPE(4)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK5',  Inst%LANDTYPE(5)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK5',  Inst%LANDTYPE(5)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK6',  Inst%LANDTYPE(6)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK6',  Inst%LANDTYPE(6)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK7',  Inst%LANDTYPE(7)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK7',  Inst%LANDTYPE(7)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK8',  Inst%LANDTYPE(8)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK8',  Inst%LANDTYPE(8)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK9',  Inst%LANDTYPE(9)%VAL,  RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK9',  Inst%LANDTYPE(9)%VAL,  RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK10', Inst%LANDTYPE(10)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK10', Inst%LANDTYPE(10)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK11', Inst%LANDTYPE(11)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK11', Inst%LANDTYPE(11)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK12', Inst%LANDTYPE(12)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK12', Inst%LANDTYPE(12)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK13', Inst%LANDTYPE(13)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK13', Inst%LANDTYPE(13)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK14', Inst%LANDTYPE(14)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK14', Inst%LANDTYPE(14)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK15', Inst%LANDTYPE(15)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK15', Inst%LANDTYPE(15)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK16', Inst%LANDTYPE(16)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK16', Inst%LANDTYPE(16)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK17', Inst%LANDTYPE(17)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK17', Inst%LANDTYPE(17)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK18', Inst%LANDTYPE(18)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK18', Inst%LANDTYPE(18)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK19', Inst%LANDTYPE(19)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK19', Inst%LANDTYPE(19)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK20', Inst%LANDTYPE(20)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK20', Inst%LANDTYPE(20)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK21', Inst%LANDTYPE(21)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK21', Inst%LANDTYPE(21)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK22', Inst%LANDTYPE(22)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK22', Inst%LANDTYPE(22)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK23', Inst%LANDTYPE(23)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK23', Inst%LANDTYPE(23)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_LANDK24', Inst%LANDTYPE(24)%VAL, RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_LANDK24', Inst%LANDTYPE(24)%VAL, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_FERT',    Inst%SOILFERT,         RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_FERT',    Inst%SOILFERT,         RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_ARID',    Inst%CLIMARID,         RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_ARID',    Inst%CLIMARID,         RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EvalFld( aIR, HcoState, 'SOILNOX_NONARID', Inst%CLIMNARID,        RC )
+       CALL HCO_EvalFld( HcoState, 'SOILNOX_NONARID', Inst%CLIMNARID,        RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     IF ( FIRST ) THEN
@@ -457,48 +448,48 @@ CONTAINS
     IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
 
        ! DEP_RESERVOIR. Read in kg NO/m3
-       CALL HCO_EvalFld( am_I_Root, HcoState, 'DEP_RESERVOIR_DEFAULT', &
+       CALL HCO_EvalFld( HcoState, 'DEP_RESERVOIR_DEFAULT', &
                          Tmp2D, RC, FOUND=FOUND )
        IF ( FOUND ) THEN
           Def2D = Tmp2D
        ELSE
           Def2D = 1.0e-4_sp
        ENDIF
-       CALL HCO_RestartGet( am_I_Root, HcoState,   'DEP_RESERVOIR', &
+       CALL HCO_RestartGet( HcoState, 'DEP_RESERVOIR', &
                             Inst%DEP_RESERVOIR, RC, Def2D=Def2D )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! GWET_PREV [unitless]
-       CALL HCO_RestartGet( am_I_Root, HcoState, 'GWET_PREV', &
-                            Inst%GWET_PREV, RC,  FILLED=FOUND )
+       CALL HCO_RestartGet( HcoState, 'GWET_PREV', &
+                            Inst%GWET_PREV, RC, FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           Inst%GWET_PREV = 0.0_sp
-          IF ( am_I_Root ) THEN
+          IF ( HcoState%amIRoot ) THEN
              MSG = 'Cannot find GWET_PREV restart variable - initialized to 0.0!'
              CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
 
        ! PFACTOR [unitless]
-       CALL HCO_RestartGet( am_I_Root, HcoState, 'PFACTOR', &
-                            Inst%PFACTOR,   RC,  FILLED=FOUND )
+       CALL HCO_RestartGet( HcoState, 'PFACTOR', &
+                            Inst%PFACTOR, RC, FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           Inst%PFACTOR = 1.0_sp
-          IF ( am_I_Root ) THEN
+          IF ( HcoState%amIRoot ) THEN
              MSG = 'Cannot find PFACTOR restart variable - initialized to 1.0!'
              CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
        ENDIF
 
        ! DRYPERIOD [unitless]
-       CALL HCO_RestartGet( am_I_Root, HcoState, 'DRYPERIOD', &
-                            Inst%DRYPERIOD, RC,  FILLED=FOUND )
+       CALL HCO_RestartGet( HcoState, 'DRYPERIOD', &
+                            Inst%DRYPERIOD, RC, FILLED=FOUND )
        IF ( RC /= HCO_SUCCESS ) RETURN
        IF ( .NOT. FOUND ) THEN
           Inst%DRYPERIOD = 0.0_sp
-          IF ( am_I_Root ) THEN
+          IF ( HcoState%amIRoot ) THEN
              MSG = 'Cannot find DRYPERIOD restart variable - initialized to 0.0!'
              CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
           ENDIF
@@ -510,7 +501,7 @@ CONTAINS
     ! Now need to call GET_CANOPY_NOX to break ugly dependency between
     ! drydep and soil NOx emissions. (bmy, 6/22/09)
     ! Now a function of the new MODIS/Koppen biome map (J.D. Maasakkers)
-    CALL GET_CANOPY_NOX( aIR, HcoState, ExtState, Inst, RC )
+    CALL GET_CANOPY_NOX( HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Init
@@ -573,7 +564,7 @@ CONTAINS
     ENDIF
 
     ! Eventually apply spatiotemporal scale factors
-    CALL HCOX_SCALE ( am_I_Root, HcoState, FLUX_2D, TRIM(Inst%SpcScalFldNme(1)), RC )
+    CALL HCOX_SCALE ( HcoState, FLUX_2D, TRIM(Inst%SpcScalFldNme(1)), RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     !-----------------------------------------------------------------
@@ -581,8 +572,8 @@ CONTAINS
     !-----------------------------------------------------------------
 
     ! Add flux to emission array
-    CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX_2D, Inst%IDTNO, &
-                      RC,        ExtNr=Inst%ExtNr )
+    CALL HCO_EmisAdd( HcoState, FLUX_2D, Inst%IDTNO, &
+                      RC,       ExtNr=Inst%ExtNr )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error', RC )
        RETURN
@@ -594,7 +585,7 @@ CONTAINS
     ! diagnostics are treated as zeros!
     IF ( DoDiagn ) THEN
        DiagnName = 'EmisNO_Fert'
-       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, &
+       CALL Diagn_Update( HcoState, ExtNr=Inst%ExtNr, &
                           cName=TRIM(DiagnName), Array2D=DIAG, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
@@ -604,30 +595,20 @@ CONTAINS
     ! ----------------------------------------------------------------
 
     ! DEP_RESERVOIR [kg/m3]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, &
-                          'DEP_RESERVOIR', Inst%DEP_RESERVOIR, RC )
+    CALL HCO_RestartWrite( HcoState, 'DEP_RESERVOIR', Inst%DEP_RESERVOIR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! GWET_PREV [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, &
-                          'GWET_PREV', Inst%GWET_PREV, RC )
+    CALL HCO_RestartWrite( HcoState, 'GWET_PREV', Inst%GWET_PREV, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! PFACTOR [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, &
-                          'PFACTOR', Inst%PFACTOR, RC )
+    CALL HCO_RestartWrite( HcoState, 'PFACTOR', Inst%PFACTOR, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! DRYPERIOD [unitless]
-    CALL HCO_RestartWrite( am_I_Root, HcoState, &
-                          'DRYPERIOD', Inst%DRYPERIOD, RC )
+    CALL HCO_RestartWrite( HcoState, 'DRYPERIOD', Inst%DRYPERIOD, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-#if defined(DEVEL)
-    CALL HCO_RestartWrite( am_I_Root, HcoState, &
-                          'SOILNO_PULSE', Inst%DGN_PULSE, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-#endif
 
     ! Leave w/ success
     Inst => NULL()
@@ -648,8 +629,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SoilNOx_Init( am_I_Root, HcoState, ExtName, &
-                                ExtState,    RC                  )
+  SUBROUTINE HCOX_SoilNOx_Init( HcoState, ExtName, ExtState, RC )
 !
 ! !USES:
 !
@@ -660,10 +640,9 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-    LOGICAL,          INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State),  POINTER        :: HcoState   ! Output obj
     CHARACTER(LEN=*), INTENT(IN   )  :: ExtName    ! Extension name
-    TYPE(Ext_State),  POINTER        :: ExtState     ! Module options
+    TYPE(Ext_State),  POINTER        :: ExtState   ! Module options
     INTEGER,          INTENT(INOUT)  :: RC
 !
 ! !REMARKS:
@@ -739,7 +718,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Verbose mode
-    IF ( am_I_Root ) THEN
+    IF ( HcoState%amIRoot ) THEN
        MSG = 'Use soil NOx emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
 
@@ -826,11 +805,6 @@ CONTAINS
     Inst%DEP_RESERVOIR = 0.0_sp
     Inst%CANOPYNOX     = 0e+0_hp
 
-#if defined(DEVEL)
-    ALLOCATE( Inst%DGN_PULSE(I,J) )
-    Inst%DGN_PULSE = 0.0_sp
-#endif
-
     ! Initialize pointers
     !Inst%CLIMARID  => NULL()
     !Inst%CLIMNARID => NULL()
@@ -839,27 +813,21 @@ CONTAINS
     ! ----------------------------------------------------------------------
     ! Set diagnostics
     ! ----------------------------------------------------------------------
-    CALL HCO_RestartDefine( am_I_Root, HcoState, 'PFACTOR', &
-                            Inst%PFACTOR,   '1',  RC          )
+    CALL HCO_RestartDefine( HcoState, 'PFACTOR', &
+                            Inst%PFACTOR, '1',  RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_RestartDefine( am_I_Root, HcoState, 'DRYPERIOD', &
-                            Inst%DRYPERIOD, '1',  RC          )
+    CALL HCO_RestartDefine( HcoState, 'DRYPERIOD', &
+                            Inst%DRYPERIOD, '1',  RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_RestartDefine( am_I_Root, HcoState, 'GWET_PREV', &
-                            Inst%GWET_PREV, '1',  RC          )
+    CALL HCO_RestartDefine( HcoState, 'GWET_PREV', &
+                            Inst%GWET_PREV, '1',  RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL HCO_RestartDefine( am_I_Root,     HcoState, '   DEP_RESERVOIR', &
-                            Inst%DEP_RESERVOIR, 'kg/m3', RC                )
+    CALL HCO_RestartDefine( HcoState, '   DEP_RESERVOIR', &
+                            Inst%DEP_RESERVOIR, 'kg/m3', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-#if defined(DEVEL)
-    CALL HCO_RestartDefine( am_I_Root, HcoState, 'SOILNO_PULSE', &
-                            Inst%DGN_PULSE, '1',  RC                )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-#endif
 
     ! ----------------------------------------------------------------------
     ! Set HEMCO extensions variables
@@ -901,14 +869,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SoilNOx_Final( am_I_Root, HcoState, ExtState, RC )
+  SUBROUTINE HCOX_SoilNOx_Final( HcoState, ExtState, RC )
 !
 ! !USES
 !
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
     TYPE(Ext_State),  POINTER       :: ExtState      ! Extension state
 !
@@ -1079,10 +1046,6 @@ CONTAINS
     ! that accounts for soil pulsing
     PULSE = PULSING( GWET, TS_EMIS, GWET_PREV, PFACTOR, DRYPERIOD )
 
-#if defined(DEVEL)
-    Inst%DGN_PULSE(I,J) = PULSE
-#endif
-
     ! ------Loop Over MODIS/Koppen  Landtypes
     DO K = 1, 24
 
@@ -1142,7 +1105,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Canopy_NOx( am_I_Root, HcoState, ExtState, Inst, RC )
+  SUBROUTINE Get_Canopy_NOx( HcoState, ExtState, Inst, RC )
 !
 ! !USES:
 !
@@ -1150,7 +1113,6 @@ CONTAINS
 !
 ! !ARGUMENTS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root
     TYPE(HCO_State), POINTER        :: HcoState
     TYPE(Ext_State), POINTER        :: ExtState
     TYPE(MyInst),    POINTER        :: Inst
@@ -2369,9 +2331,6 @@ CONTAINS
        IF ( ALLOCATED  ( Inst%DEP_RESERVOIR ) ) DEALLOCATE ( Inst%DEP_RESERVOIR )
        IF ( ALLOCATED  ( Inst%SpcScalVal    ) ) DEALLOCATE ( Inst%SpcScalVal    )
        IF ( ALLOCATED  ( Inst%SpcScalFldNme ) ) DEALLOCATE ( Inst%SpcScalFldNme )
-#if defined(DEVEL)
-       IF ( ALLOCATED  ( Inst%DGN_PULSE     ) ) DEALLOCATE ( Inst%DGN_PULSE     )
-#endif
 
        ! Deallocate LANDTYPE vector
        IF ( ASSOCIATED(Inst%LANDTYPE) ) THEN

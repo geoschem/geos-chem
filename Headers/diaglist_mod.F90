@@ -108,10 +108,7 @@ MODULE DiagList_Mod
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
-!  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
-!  25 Jan 2018 - E. Lundgren - Add collection items and linked list
-!  01 Feb 2018 - E. Lundgren - Rename module: diagnostics_mod -> diaglist_mod
-!                              and make collection name list publicly available
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -144,7 +141,7 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod
-    USE InquireMod,       ONLY: findFreeLun
+    USE InquireMod,       ONLY : findFreeLun
 !
 ! !INPUT PARAMETERS:
 !
@@ -161,12 +158,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
-!  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
-!  29 Dec 2017 - C. Keller   - Look for GEOSCHEMCHEM instead of GIGCchem when
-!                              on NCCS Discover.
-!  22 Jan 2018 - E. Lundgren - Allow use of AOD wavelengths in diagnostic names
-!  26 Jan 2018 - E. Lundgren - Read collection names and skip collection diags
-!                              where HISTORY.rc declared col name commented out
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -392,7 +384,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
        !====================================================================
        ! Add some extra error checks for collections that are in the
        ! collection name list (and therefore will be archived)
@@ -595,7 +587,7 @@ CONTAINS
        ! Skip line if GIGCchem not present
        ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
        ! scan accordingly (ckeller, 12/29/17)
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
 #else
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
@@ -623,14 +615,14 @@ CONTAINS
           state = 'MET'
        ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
           state = 'CHEM'
-#if defined( ESMF_ )
+#ifdef ESMF_
        ! Emissions diagnostics are included in HISTORY.rc in GCHP only
        ELSEIF ( nameAllCaps(1:4) == 'EMIS' ) THEN
           state = 'EMISSIONS'
        ! Emissions inventory diagnostics are included in HISTORY.rc in GCHP only
        ELSEIF ( nameAllCaps(1:3) == 'INV' ) THEN
           state = 'EMISSIONS'
-#if defined( MODEL_GEOS )
+#ifdef MODEL_GEOS
        ! GEOS uses a different internal state prefix than GCHP and
        ! and also can have custom diagnostics
        ELSEIF ( nameAllCaps(1:5) == 'GEOS_' ) THEN
@@ -650,7 +642,7 @@ CONTAINS
        isWildcard = .FALSE.
        wildcard   = ''
        IF ( INDEX( name, '?' ) > 0 ) THEN
-#if defined( ESMF_ )
+#ifdef ESMF_
           ! Exit with an error if using GCHP and wildcard is present
           ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
                    'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
@@ -791,7 +783,8 @@ CONTAINS
        !====================================================================
        ! Create a new DiagItem object
        !====================================================================
-       CALL Init_DiagItem( am_I_Root, NewDiagItem, &
+       CALL Init_DiagItem( am_I_Root,              &
+                           NewDiagItem,            &
                            name=name,              &
                            state=state,            &
                            metadataID=metadataID,  &
@@ -859,6 +852,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -902,16 +896,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,       INTENT(IN) :: am_I_Root
-    TYPE(ColItem), POINTER    :: NewCollItem
-    CHARACTER(LEN=*)          :: cname
+    LOGICAL,        INTENT(IN) :: am_I_Root
+    TYPE(ColItem),  POINTER    :: NewCollItem
+    CHARACTER(LEN=*)           :: cname
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,       OPTIONAL   :: RC
+    INTEGER,        OPTIONAL   :: RC
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -958,6 +953,7 @@ CONTAINS
 !!
 !! !REVISION HISTORY:
 !!  25 Jan 2018 - E. Lundgren - Initial version
+!!  See https://github.com/geoschem/geos-chem for complete history
 !!EOP
 !!------------------------------------------------------------------------------
 !!BOC
@@ -1018,6 +1014,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1071,9 +1068,6 @@ CONTAINS
 !
   SUBROUTINE InsertBeginning_DiagList ( am_I_Root, DiagItem, DiagList, RC )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN)    :: am_I_Root
@@ -1089,6 +1083,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1124,9 +1119,6 @@ CONTAINS
 !
   SUBROUTINE InsertBeginning_ColList ( am_I_Root, CollItem, CollList, RC )
 !
-! !USES:
-!
-!
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN)    :: am_I_Root
@@ -1142,6 +1134,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1190,6 +1183,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1245,6 +1239,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1306,7 +1301,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
-!  01 Nov 2017 - R. Yantosca - Now use To_UpperCase from charpak_mod.F90
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1405,7 +1400,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+    LOGICAL,           INTENT(IN)    :: am_I_Root
     TYPE(DgnList),     INTENT(IN)    :: DiagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1414,6 +1409,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1481,7 +1477,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+    LOGICAL,           INTENT(IN)    :: am_I_Root
     TYPE(ColList),     INTENT(IN)    :: CollList
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1490,6 +1486,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2018 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1542,11 +1539,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_DiagList ( am_I_Root, DiagList, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+  SUBROUTINE Cleanup_DiagList( DiagList, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1558,6 +1551,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1585,7 +1579,7 @@ CONTAINS
     ENDDO
 
     ! Also get rid of module-level collection list when cleanup up diaglist
-    CALL Cleanup_ColList( am_I_Root, CollList, RC )
+    CALL Cleanup_ColList( CollList, RC )
 
     ! Final cleanup
     current => NULL()
@@ -1607,11 +1601,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_ColList ( am_I_Root, CollList, RC )
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+  SUBROUTINE Cleanup_ColList ( CollList, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1623,6 +1613,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  21 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
