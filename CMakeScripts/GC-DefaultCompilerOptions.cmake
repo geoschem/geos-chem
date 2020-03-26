@@ -1,6 +1,5 @@
 if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
-    target_compile_options(GEOSChemBuildProperties
-	INTERFACE
+    target_compile_options(GEOSChemBuildProperties INTERFACE
         -cpp -w -auto -noalign -convert big_endian -fp-model source -mcmodel=medium
         -shared-intel -traceback -DLINUX_IFORT
     )
@@ -8,8 +7,7 @@ if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2") # same as release for GEOS-Chem
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -check arg_temp_created -debug all -DDEBUG")
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
-    target_compile_options(GEOSChemBuildProperties
-	INTERFACE
+    target_compile_options(GEOSChemBuildProperties INTERFACE
         -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian
         -fno-range-check -mcmodel=medium -fbacktrace -g -DLINUX_GFORTRAN
     )

@@ -1,3 +1,5 @@
+# GeosCore/CMakeLists.txt
+
 add_library(Transport STATIC EXCLUDE_FROM_ALL
 	diag_mod.F90
 	calc_met_mod.F90
@@ -115,17 +117,18 @@ target_link_libraries(GeosCore
 		Isorropia
 )
 
-if("geos" IN_LIST GCCLASSIC_EXE_TARGETS)
-	# Add geos executable target
-	add_executable(geos
-		main.F90
-	)
-	target_link_libraries(geos
-		PUBLIC GeosCore
-	)
-	set_target_properties(geos PROPERTIES
-		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-	install(TARGETS geos
-		RUNTIME DESTINATION ${RUNDIR}
-	)
-endif()
+# Need to turn this off for new GC Classic repo. Need better way...
+#if("geos" IN_LIST GCCLASSIC_EXE_TARGETS)
+#	# Add geos executable target
+#	add_executable(geos
+#		main.F
+#	)
+#	target_link_libraries(geos
+#		PUBLIC GeosCore
+#	)
+#	set_target_properties(geos PROPERTIES
+#		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#	install(TARGETS geos
+#		RUNTIME DESTINATION ${RUNDIR}
+#	)
+#endif()
