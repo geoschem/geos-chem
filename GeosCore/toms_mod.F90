@@ -234,8 +234,7 @@ CONTAINS
        CALL GC_CheckVar( 'toms_mod.F: TOMS1', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        TOMS1 = 0.0_fp
-       CALL HCO_EvalFld( Input_Opt%amIRoot, HcoState, 'TOMS1_O3_COL', &
-                         TOMS1, RC )
+       CALL HCO_EvalFld( HcoState, 'TOMS1_O3_COL', TOMS1, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find TOMS1_O3_COL in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )
@@ -247,8 +246,7 @@ CONTAINS
        CALL GC_CheckVar( 'toms_mod.F: TOMS2', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        TOMS2 = 0.0_fp
-       CALL HCO_EvalFld( Input_Opt%amIRoot, HcoState, 'TOMS2_O3_COL', &
-                         TOMS2, RC )
+       CALL HCO_EvalFld( HcoState, 'TOMS2_O3_COL', TOMS2, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find TOMS2_O3_COL in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'toms_mod.F' )
@@ -259,17 +257,6 @@ CONTAINS
        ! Here we are returning the default FAST-J overhead O3
        ! climatology with the TOMS/SBUV O3 columns (where data exists)
        !---------------------------------------------------------------
-       ! Calc difference
-       !$OMP PARALLEL DO     &
-       !$OMP PRIVATE( I, J ) &
-       !$OMP DEFAULT( SHARED )
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          STOMS(I,J) = (TOMS2(I,J)-TOMS1(I,J))/30.0_fp
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
        ! Interpolate O3 to current day (w/in 2nd half of month)
        !$OMP PARALLEL DO     &
        !$OMP PRIVATE( I, J ) &

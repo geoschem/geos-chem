@@ -119,7 +119,7 @@ CONTAINS
     CALL GC_CheckVar( 'uvalbedo_mod.F: uvalbedo', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     uvalbedo = 0.0_fp
-    CALL HCO_EvalFld( am_I_Root, HcoState, 'UV_ALBEDO', uvalbedo, RC )
+    CALL HCO_EvalFld( HcoState, 'UV_ALBEDO', uvalbedo, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not find UV_ALBEDO in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

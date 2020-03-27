@@ -378,19 +378,21 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    LOGICAL, SAVE            :: FIRST = .TRUE.
+    LOGICAL, SAVE :: FIRST = .TRUE.
 
     ! Scalars
-    INTEGER                  :: I,     J,      L,  N,  NA, nAdvect
-    REAL(fp)                 :: BOXVL, DTCHEM, DT, LL, PL
+    INTEGER  :: I,     J,      L,  N,  NA, nAdvect
+    REAL(fp) :: BOXVL, DTCHEM, DT, LL, PL
 
     ! Arrays
     REAL(fp), ALLOCATABLE, TARGET :: P24H(:,:,:)
     REAL(fp), ALLOCATABLE         :: L24H(:,:,:)
+
     REAL(fp) :: PP(State_Grid%NX,State_Grid%NY, State_grid%NZ, N_TAGGED)
 
     ! Pointers
-    REAL(fp),        POINTER :: Spc(:,:,:,:)
+    REAL(fp), POINTER :: Spc(:,:,:,:)
+    REAL(fp), POINTER :: P24Hptr(:,:,:)
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
@@ -410,7 +412,6 @@ CONTAINS
 
     ! Pointers
     Spc       => State_Chm%Species   ! Points to chemical species [kg]
-    P24Hptr   => NULL()
 
     ! Chemistry timestep [s]
     DTCHEM    =  GET_TS_CHEM()
@@ -448,32 +449,32 @@ CONTAINS
 
     ENDIF
 
-      ! Evalulate O3 production from HEMCO
-      ALLOCATE( P24H(State_Grid%NX, State_Grid%NY, State_Grid%NZ), STAT=RC )
-      CALL GC_CheckVar( 'tagged_o3_mod.F: P24H', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      P24H = 0.0_fp
-      CALL HCO_EvalFld( am_I_Root, HcoState, 'O3_PROD', P24H, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Cannot get pointer to O3_PROD!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
+    ! Evalulate O3 production from HEMCO
+    ALLOCATE( P24H(State_Grid%NX, State_Grid%NY, State_Grid%NZ), STAT=RC )
+    CALL GC_CheckVar( 'tagged_o3_mod.F: P24H', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    P24H = 0.0_fp
+    CALL HCO_EvalFld( HcoState, 'O3_PROD', P24H, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot get pointer to O3_PROD!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
-      ! Set pointer to O3 production
-      P24Hptr => P24H
+    ! Set pointer to O3 production
+    P24Hptr => P24H
 
-      ! Evaluate O3 loss from HEMCO
-      ALLOCATE( L24H(State_Grid%NX, State_Grid%NY, State_Grid%NZ), STAT=RC )
-      CALL GC_CheckVar( 'tagged_o3_mod.F: L24H', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      L24H = 0.0_fp
-      CALL HCO_EvalFld( am_I_Root, HcoState, 'O3_LOSS', L24H, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Cannot get pointer to O3_LOSS!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
+    ! Evaluate O3 loss from HEMCO
+    ALLOCATE( L24H(State_Grid%NX, State_Grid%NY, State_Grid%NZ), STAT=RC )
+    CALL GC_CheckVar( 'tagged_o3_mod.F: L24H', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    L24H = 0.0_fp
+    CALL HCO_EvalFld( HcoState, 'O3_LOSS', L24H, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot get pointer to O3_LOSS!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! DT is the ratio of the chemistry and emission time step.
     ! Use this value to convert from kg/m3 or 1/m3 per emission

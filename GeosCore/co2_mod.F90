@@ -268,7 +268,7 @@ CONTAINS
        CALL GC_CheckVar( 'co2_mod.F: CO2_COPROD', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        CO2_COPROD = 0.0_fp
-       CALL HCO_EvalFld( am_I_Root, HcoState, 'CO2_COPROD', CO2_COPROD, RC )
+       CALL HCO_EvalFld( HcoState, 'CO2_COPROD', CO2_COPROD, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'CO2 production is not defined in HEMCO!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
