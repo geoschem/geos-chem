@@ -41,6 +41,7 @@ MODULE State_Diag_Mod
   PUBLIC :: Cleanup_State_Diag
   PUBLIC :: Get_Metadata_State_Diag
   PUBLIC :: Get_NameInfo
+  PUBLIC :: Get_NumTags
   PUBLIC :: Get_TagInfo
 !
 ! !PRIVATE MEMBER FUNCTIONS
@@ -68,6 +69,7 @@ MODULE State_Diag_Mod
 
      ! Concentrations
      REAL(f8),  POINTER :: SpeciesConc(:,:,:,:) ! Spc Conc for diag output
+     INTEGER,   POINTER :: Map_SpeciesConc(:)
      LOGICAL :: Archive_SpeciesConc
 
      ! Time spent in the troposphere
@@ -671,6 +673,15 @@ MODULE State_Diag_Mod
 !
 ! !MODULE INTERFACES:
 !
+  INTERFACE Initialize
+     !MODULE PROCEDURE Initialize_R4_2D
+     !MODULE PROCEDURE Initialize_R4_3D
+     !MODULE PROCEDURE Initialize_R4_4D
+     !MODULE PROCEDURE Initialize_R8_2D
+     !MODULE PROCEDURE Initialize_R8_3D
+     MODULE PROCEDURE Initialize_R8_4D
+  END INTERFACE Initialize
+
   INTERFACE Register_DiagField
      MODULE PROCEDURE Register_DiagField_R4_2D
      MODULE PROCEDURE Register_DiagField_R4_3D
@@ -1402,20 +1413,70 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Species Concentration
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%SpeciesConc'
-    diagID  = 'SpeciesConc'
+    diagId  = 'SpeciesConc'
+    arrayId = 'State_Diag%' // TRIM( diagId )
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
-       CALL GC_CheckVar( arrayId, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%SpeciesConc = 0.0_f8
-       State_Diag%Archive_SpeciesConc = .TRUE.
-       CALL Register_DiagField( Input_Opt, diagID, State_Diag%SpeciesConc,   &
-                                State_Chm, State_Diag, RC                   )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       CALL Initialize(                                                      &
+            Input_Opt      = Input_Opt,                                      & 
+            State_Chm      = State_Chm,                                      & 
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            TaggedDiagList = TaggedDiag_List,                                & 
+            Ptr2Data       = State_Diag%SpeciesConc,                         &
+            archiveData    = State_Diag%Archive_SpeciesConc,                 &
+            mapData        = State_Diag%Map_SpeciesConc,                     &
+            arrayId        = arrayId,                                        &
+            diagId         = diagId,                                         &
+            RC             = RC                                            )
     ENDIF
+    print*, '### size 4 :', size( state_diag%speciesConc, 4 )
+
+    CALL Registry_Print( Input_Opt   = Input_Opt,                            &
+                         Registry    = State_Diag%Registry,                  &
+                         ShortFormat = .TRUE.,                               &
+                         RC          = RC                                   )
+    STOP
+
+!       ! Get the number of species and the mapping array
+!       CALL Get_Mapping(                                                     &
+!            Input_Opt      = Input_Opt,                                      &
+!            State_Chm      = State_Chm,                                      &
+!            TaggedDiagList = TaggedDiag_List,                                &
+!            diagId         = diagId,                                         &
+!            mapping        = State_Diag%Map_SpeciesConc,                     &
+!            nFields        = nFields,                                        &
+!            RC             = RC                                          )
+!       IF ( RC /= GC_SUCCESS ) THEN
+!          errMsg = 'Error encountered in "Get_Mapping": '// TRIM( diagId )
+!          CALL GC_Error( errMsg, RC, thisLoc )
+!          RETURN
+!       ENDIF
+!       
+!       ! Allocate diagnostic array
+!       ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nFields ), STAT=RC )
+!       CALL GC_CheckVar( arrayId, 0, RC )
+!       IF ( RC /= GC_SUCCESS ) RETURN
+!       State_Diag%SpeciesConc = 0.0_f8
+!       State_Diag%Archive_SpeciesConc = .TRUE.
+!
+!       ! Register diagnostic
+!       CALL Register_DiagField(                                              &
+!            Input_Opt, = Input_Opt,                                          &
+!            State_Chm  = State_Chm,                                          &
+!            State_Diag = State_Diag,                                         &
+!            metadataId = diagId,                                             &
+!            Ptr2Data   = State_Diag%SpeciesConc,                             &
+!            mapping    = State_Diag%Map_SpeciesConc                          &
+!            nFields    = nFields,                                            &
+!            RC         = RC                                                 )
+!
+!       IF ( RC /= GC_SUCCESS ) THEN
+!          errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+!          CALL GC_Error( errMsg, RC, thisLoc )
+!          RETURN
+!       ENDIF
+!    ENDIF
 
     !------------------------------------------------------------------------
     ! Fraction of total time each grid box spent in the troposphere
@@ -2000,13 +2061,7 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-
-       ! Get the number of species and the mapping array
-       CALL Get_Mapping( Input_Opt,       diagId,                            &
-                         TaggedDiag_List, State_Chm,                         &
-                         nFields,         State_Diag%Map_AdvFluxVert, RC   )
-
-       ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nFields ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AdvFluxVert = 0.0_f4
@@ -9847,7 +9902,118 @@ CONTAINS
        RETURN
     ENDIF
 
-   END SUBROUTINE Get_Metadata_State_Diag
+  END SUBROUTINE Get_Metadata_State_Diag
+  !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_NumTags
+!
+! !DESCRIPTION: Returns the number of tags (i.e. individual species or
+!  other quantities) per GEOS-Chem wildcard.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_NumTags( tagId, State_Chm, numTags, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS: 
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: tagId      ! Wildcard name
+    TYPE(ChmState),   INTENT(IN)  :: State_Chm  ! Chemistry state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: numTags    ! Number of tags per wildcard
+    INTEGER,          INTENT(OUT) :: RC         ! Success or failure?
+!
+! !REMARKS:
+!  Split off from routine Get_TagInfo.
+!
+! !REVISION HISTORY:
+!  27 Mar 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !=======================================================================
+    ! Get_NumTags begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = '' 
+    thisLoc = ' -> at Get_NumTags (in module "Headers/state_diag_mod.F90)'
+     
+    ! Get the number of tags per wildcard name
+    SELECT CASE( TRIM( tagId ) )
+       CASE( 'ALL'     )
+          numTags = State_Chm%nSpecies
+       CASE( 'ADV'     )
+          numTags = State_Chm%nAdvect
+       CASE( 'AER'     )
+          numTags = State_Chm%nAeroSpc
+       CASE( 'DRY'     )
+          numTags = State_Chm%nDryDep
+       CASE( 'DRYALT'  )
+          numTags = State_Chm%nDryAlt
+       CASE( 'DUSTBIN' )
+          numTags = NDUST
+       CASE( 'FIX'     )
+          numTags = State_Chm%nKppFix
+       CASE( 'GAS'     )
+          numTags = State_Chm%nGasSpc
+      !------------------------------------------------------
+      ! Prior to 10/24/18:
+      ! Disable Hg tagging for now, but leave commented out
+      ! for future reference (bmy, 10/24/18)
+      !CASE( 'HG0'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !CASE( 'HG2'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !CASE( 'HGP'     )
+      !   numTags = State_Chm%N_Hg_Cats
+      !------------------------------------------------------
+       CASE( 'HYG'     )
+          numTags = State_Chm%nHygGrth
+       CASE( 'KPP'     )
+          numTags = State_Chm%nKppSpc
+       CASE( 'LOS'     )
+          numTags = State_Chm%nLoss
+       CASE( 'PHO'     )
+          numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
+       CASE( 'UVFLX'   )
+          numTags = W_
+       CASE( 'PRD'     )
+          numTags = State_Chm%nProd
+       CASE( 'RRTMG'   )
+          numTags = nRadFlux
+       CASE( 'RXN'     )
+          numTags = NREACT
+       CASE( 'VAR'     )
+          numTags = State_Chm%nKppVar
+       CASE( 'WET'     )
+          numTags = State_Chm%nWetDep
+       CASE DEFAULT
+          ErrMsg = 'Handling of wildCard ' // TRIM( tagId ) // &
+                   ' is not implemented for getting number of tags'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+    END SELECT
+
+  END SUBROUTINE Get_NumTags
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -9907,9 +10073,9 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    ErrMsg     = ''
-    ThisLoc    = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
-    Found      = .TRUE.
+    errMsg     = ''
+    thisLoc    = ' -> at Get_TagInfo (in Headers/state_diag_mod.F90)'
+    found      = .TRUE.
     numTags    = 0
 
     ! Optional arguments present?
@@ -9919,7 +10085,7 @@ CONTAINS
 
     ! Exit with error if getting tag name but index not specified
     IF ( isTagName .AND. .NOT. isN ) THEN
-       ErrMsg = 'Index must be specified if retrieving an individual tag name'
+       errMsg = 'Index must be specified if retrieving an individual tag name'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -9927,61 +10093,12 @@ CONTAINS
     !=======================================================================
     ! Get number of tags
     !=======================================================================
-    SELECT CASE( TRIM( tagId ) )
-       CASE( 'ALL'     )
-          numTags = State_Chm%nSpecies
-       CASE( 'ADV'     )
-          numTags = State_Chm%nAdvect
-       CASE( 'AER'     )
-          numTags = State_Chm%nAeroSpc
-       CASE( 'DRY'     )
-          numTags = State_Chm%nDryDep
-       CASE( 'DRYALT'  )
-          numTags = State_Chm%nDryAlt
-       CASE( 'DUSTBIN' )
-          numTags = NDUST
-       CASE( 'FIX'     )
-          numTags = State_Chm%nKppFix
-       CASE( 'GAS'     )
-          numTags = State_Chm%nGasSpc
-       !------------------------------------------------------
-       ! Prior to 10/24/18:
-       ! Disable Hg tagging for now, but leave commented out
-       ! for future reference (bmy, 10/24/18)
-       !CASE( 'HG0'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !CASE( 'HG2'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !CASE( 'HGP'     )
-       !   numTags = State_Chm%N_Hg_Cats
-       !------------------------------------------------------
-       CASE( 'HYG'     )
-          numTags = State_Chm%nHygGrth
-       CASE( 'KPP'     )
-          numTags = State_Chm%nKppSpc
-       CASE( 'LOS'     )
-          numTags = State_Chm%nLoss
-       CASE( 'PHO'     )
-          numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
-       CASE( 'UVFLX'   )
-          numTags = W_
-       CASE( 'PRD'     )
-          numTags = State_Chm%nProd
-       CASE( 'RRTMG'   )
-          numTags = nRadFlux
-       CASE( 'RXN'     )
-          numTags = NREACT
-       CASE( 'VAR'     )
-          numTags = State_Chm%nKppVar
-       CASE( 'WET'     )
-          numTags = State_Chm%nWetDep
-       CASE DEFAULT
-          FOUND = .FALSE.
-          ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &
-                   ' is not implemented for getting number of tags'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-    END SELECT
+    CALL Get_NumTags( tagId, State_Chm, numTags, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in routine "Get_NumTags"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Sanity checks -- exit under certain conditions
@@ -9995,9 +10112,9 @@ CONTAINS
 
     ! Exit with error if index exceeds number of tags for this wildcard
     IF ( isTagName .AND. .NOT. isN ) THEN
-       ErrMsg = 'Index must be greater than total number of tags for wildcard' &
+       errMsg = 'Index must be greater than total number of tags for wildcard' &
                 // TRIM(tagId)
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
@@ -10043,10 +10160,10 @@ CONTAINS
        CASE( 'WET'  )
           D = State_Chm%Map_WetDep(N)
        CASE DEFAULT
-          FOUND = .FALSE.
-          ErrMsg = 'Handling of tagId ' // TRIM( tagId ) // &
+          found= .FALSE.
+          errMsg = 'Handling of tagId ' // TRIM( tagId ) // &
                    ' is not implemented for getting tag name'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
     END SELECT
 
@@ -10271,7 +10388,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_2D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       nFields,   mapping                   )
 !
 ! !USES:
 !
@@ -10285,6 +10403,8 @@ CONTAINS
     REAL(f4),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
     TYPE(DgnState),    INTENT(IN)    :: State_Diag      ! Obj for diag state
+    INTEGER,           OPTIONAL      :: nFields
+    INTEGER,  POINTER, OPTIONAL      :: mapping(:)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -10305,8 +10425,8 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found
+    INTEGER                :: N, nTags, rank, type, vloc, index
+    LOGICAL                :: found, hasMapping
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -10315,6 +10435,7 @@ CONTAINS
     ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
     ErrMsg  = ''
     ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    hasMapping = PRESENT( mapping )
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10348,18 +10469,19 @@ CONTAINS
     IF ( tagId /= '' ) THEN
 
        ! Get number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                ' get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+       IF ( PRESENT( nFields ) ) THEN
+          nTags = nFields
+       ELSE
+          CALL Get_NumTags( tagId, State_Chm, nTags, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )            // &
+                '; Abnormal exit from routine "Get_TagInfo", could  '     // &
+                'not get nTags!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
-
+          
        ! Check that number of tags is consistent with array size
        IF ( nTags /=  SIZE(Ptr2Data,2) ) THEN
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
@@ -10371,9 +10493,21 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
+          ! Specify the tag index
+          IF ( hasMapping ) THEN
+             index = mapping(N)
+          ELSE
+             index = N
+          ENDIF
+
           ! Get the tag name
-          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+          CALL Get_TagInfo( Input_Opt = Input_Opt,                           &
+                            tagId     = tagId,                               &
+                            State_Chm = State_Chm,                           &
+                            found     = found,                               &
+                            N         = index,                               &
+                            tagName   = tagName,                             &
+                            RC        = RC                                  )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -10450,7 +10584,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_3D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       nFields,   mapping                   )
 !
 ! !USES:
 !
@@ -10464,7 +10599,9 @@ CONTAINS
     REAL(f4),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
     TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
-!
+    INTEGER,           OPTIONAL      :: nFields
+    INTEGER,  POINTER, OPTIONAL      :: mapping(:)
+!!
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
@@ -10484,8 +10621,9 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagID, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
+    INTEGER                :: N, nTags, rank, type,  vloc, index
     LOGICAL                :: Found, onEdges
+    LOGICAL                :: hasMapping
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -10494,6 +10632,7 @@ CONTAINS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
     ErrMsg  = ''
     ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    hasMapping = PRESENT( mapping )
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10530,17 +10669,21 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( tagID /= '' ) THEN
 
-       ! Get the number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
+       ! Get the total number of tags
+       IF ( PRESENT( nFields ) ) THEN
+          nTags = nFields
+       ELSE
+          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,          &
+                            nTags=nTags )
 
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )            // &
+                  '; Abnormal exit from routine "Get_TagInfo", could '    // &
+                  'not get nTags!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -10554,9 +10697,16 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
+          ! Get the modelId of each tag
+          IF ( hasMapping ) THEN
+             index = mapping(N)
+          ELSE
+             index = N
+          ENDIF
+          
           ! Get the tag name
           CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+                            N=index, tagName=tagName )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -10636,7 +10786,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_4D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC )
+                                       State_Chm, State_Diag, RC,            &
+                                       nFields,   mapping                   )
 !
 ! !USES:
 !
@@ -10650,6 +10801,8 @@ CONTAINS
     REAL(f4),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
     TYPE(DgnState),    INTENT(IN)    :: State_Diag        ! Obj for diag state
+    INTEGER,           OPTIONAL      :: nFields
+    INTEGER,  POINTER, OPTIONAL      :: mapping(:)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -10673,8 +10826,9 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
+    INTEGER                :: N, nTags, rank, type, vloc, index
     LOGICAL                :: found, onEdges
+    LOGICAL                :: hasMapping
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -10683,6 +10837,7 @@ CONTAINS
     ThisLoc = ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
     ErrMsg  = ''
     ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    hasMapping = PRESENT( Mapping )
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10715,22 +10870,26 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Assume always tagged if 4D, get number of tags
     !-----------------------------------------------------------------------
-    CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,                &
-                      nTags=nTags )
+    IF ( PRESENT( nFields ) ) THEN
+       nTags = nFields
+    ELSE
+       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
+                         nTags=nTags )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
-               '; Abnormal exit from routine "Get_TagInfo", could not '   // &
-               'get nTags!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                  '; Abnormal exit from routine "Get_TagInfo", could not '// &
+                  'get nTags!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     ! Check that number of tags is consistent with array size
     IF ( nTags /=  SIZE(Ptr2Data,4) ) THEN
        ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-             '; number of tags is inconsistent with array size'
+            '; number of tags is inconsistent with array size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -10740,9 +10899,15 @@ CONTAINS
     !-----------------------------------------------------------------------
     DO N = 1, nTags
 
+       IF ( hasMapping ) THEN
+          index = mapping(N)
+       ELSE
+          index = N
+       ENDIF
+
        ! Get the tag name
        CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                         N=N, tagName=tagName )
+                         N=index, tagName=tagName )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -10795,7 +10960,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_2D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       nFields,   mapping                   )
 !
 ! !USES:
 !
@@ -10809,6 +10975,8 @@ CONTAINS
     REAL(f8),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
     TYPE(DgnState),    INTENT(IN)    :: State_Diag      ! Obj for diag state
+    INTEGER,           OPTIONAL      :: nFields
+    INTEGER,  POINTER, OPTIONAL      :: mapping(:)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -10829,8 +10997,8 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found
+    INTEGER                :: N, nTags, rank, type, vloc, index
+    LOGICAL                :: found, hasMapping
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -10839,6 +11007,7 @@ CONTAINS
     ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
     ErrMsg  = ''
     ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    hasMapping = PRESENT( mapping )
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -10872,16 +11041,20 @@ CONTAINS
     IF ( tagId /= '' ) THEN
 
        ! Get number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
+       IF ( PRESENT( nFields ) ) THEN
+          nTags = nFields
+       ELSE
+          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,          &
+                            nTags=nTags )
 
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                ' get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )            // &
+                  '; Abnormal exit from routine "Get_TagInfo", could '    // &
+                  'not get nTags!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -10895,9 +11068,15 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
+          IF ( hasMapping ) THEN
+             index = mapping(N)
+          ELSE
+             index = N
+          ENDIF
+
           ! Get the tag name
           CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+                            N=index, tagName=tagName )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -10974,7 +11153,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_3D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       nFields,   mapping                   )
 !
 ! !USES:
 !
@@ -10988,6 +11168,8 @@ CONTAINS
     REAL(f8),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
     TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
+    INTEGER,           OPTIONAL      :: nFields 
+    INTEGER,  POINTER, OPTIONAL      :: mapping(:)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -11008,8 +11190,8 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagID, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: Found, onEdges
+    INTEGER                :: N, nTags, rank, type, vloc, index
+    LOGICAL                :: Found, onEdges, hasMapping
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -11018,6 +11200,7 @@ CONTAINS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
     ErrMsg  = ''
     ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    hasMapping = PRESENT( mapping )
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -11055,16 +11238,20 @@ CONTAINS
     IF ( tagID /= '' ) THEN
 
        ! Get the number of tags
-       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         nTags=nTags )
+       IF ( PRESENT( nFields ) ) THEN
+          nTags = nFields
+       ELSE
+          CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,          &
+                            nTags=nTags )
 
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )            // &
+                '; Abnormal exit from routine "Get_TagInfo", could '      // &
+                'not get nTags!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Check that number of tags is consistent with array size
@@ -11078,9 +11265,15 @@ CONTAINS
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags
 
+          IF ( hasMapping ) THEN
+             index = mapping(N)
+          ELSE
+             index = N
+          ENDIF
+
           ! Get the tag name
           CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, &
-                            N=N, tagName=tagName )
+                            N=index, tagName=tagName )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -11118,7 +11311,7 @@ CONTAINS
        ENDDO
 
     !-----------------------------------------------------------------------
-    ! If not tied to species then simply add the single field
+    ! If not tied to species, then simply add the single field
     !-----------------------------------------------------------------------
     ELSE
 
@@ -11160,7 +11353,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R8_4D( Input_Opt, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC,            &
+                                       nFields,   mapping                   )
 !
 ! !USES:
 !
@@ -11174,9 +11368,8 @@ CONTAINS
     REAL(f8),          POINTER       :: Ptr2Data(:,:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm         ! Obj for chem state
     TYPE(DgnState),    INTENT(IN)    :: State_Diag        ! Obj for diag state
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
+    INTEGER,           OPTIONAL      :: nFields
+    INTEGER,  POINTER, OPTIONAL      :: mapping(:)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -11197,8 +11390,8 @@ CONTAINS
     CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: found, onEdges
+    INTEGER                :: N, nTags, rank, type, vloc, index
+    LOGICAL                :: found, onEdges, hasMapping
 
     !-----------------------------------------------------------------------
     ! Initialize
@@ -11207,6 +11400,7 @@ CONTAINS
     ThisLoc = ' -> at Register_DiagField_R8_4D (in Headers/state_diag_mod.F90)'
     ErrMsg  = ''
     ErrMsg_reg = 'Error encountered while registering State_Diag%'
+    hasMapping = PRESENT( mapping )
 
     !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
@@ -11238,15 +11432,19 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Assume always tagged. Get number of tags.
     !-----------------------------------------------------------------------
-    CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, nTags=nTags   )
+    IF ( PRESENT( nFields ) ) THEN
+       nTags = nFields
+    ELSE
+       CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC, nTags=nTags )
 
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
-                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
-                'get nTags!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; Abnormal exit from routine "Get_TagInfo", could  '     // &
+                'not get nTags!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     ! Check that number of tags is consistent with array size
@@ -11262,9 +11460,16 @@ CONTAINS
     !-----------------------------------------------------------------------
     DO N = 1, nTags
 
+       IF ( hasMapping ) THEN
+          index = mapping(N)
+       ELSE
+          index = N
+       ENDIF
+
        ! Get the tag name
        CALL Get_TagInfo( Input_Opt, tagId, State_Chm, Found, RC,             &
-                         N=N, tagName=tagName )
+                         N=index, tagName=tagName )
+
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
@@ -11474,8 +11679,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Mapping( Input_Opt, diagId,     TaggedDiagList, State_Chm,  &
-                          nFields,   Map_Fields, RC                         )
+  SUBROUTINE Get_Mapping( Input_Opt,   State_Chm, TaggedDiagList,            &
+                          metadataID,  mapData,   sizeMapData,    RC        )
 !
 ! !USES:
 !   
@@ -11483,26 +11688,21 @@ CONTAINS
     USE CharPak_Mod,        ONLY : Unique
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : Ind_
-    USE TaggedDiagList_Mod, ONLY : TaggedDgnList
-    USE TaggedDiagList_Mod, ONLY : Print_TaggedDiagItem
-    USE TaggedDiagList_Mod, ONLY : Query_TaggedDiagList
 
 !    USE State_Chm_Mod, ONLY : NumSpecies_
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(IN)               :: Input_Opt     ! Root CPU?
-    CHARACTER(LEN=*),    INTENT(IN)               :: diagId
-    TYPE(TaggedDgnList), INTENT(IN)               :: TaggedDiagList
-    TYPE(ChmState),      INTENT(IN)               :: State_Chm     ! Chem State
-!    CHARACTER(LEN=1),  OPTIONAL                   :: IndFlag       ! Ind_ arg.
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt       ! Root CPU?
+    TYPE(ChmState),      INTENT(IN)    :: State_Chm       ! Chem State
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiagList  ! Tags or wildcards
+    CHARACTER(LEN=*),    INTENT(IN)    :: metadataId      ! Diagnostic name
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT)               :: nFields       ! # species
-    INTEGER, POINTER,  INTENT(OUT)               :: Map_Fields(:) ! Map array
-!    CHARACTER(LEN=*),  INTENT(OUT), ALLOCATABLE  :: uniqFields(:) ! Field list
-    INTEGER,           INTENT(OUT)               :: RC            ! Success?
+    INTEGER, POINTER,    INTENT(OUT)   :: mapData(:)      ! Map array
+    INTEGER,             INTENT(OUT)   :: sizeMapData     ! Size of MapData
+    INTEGER,             INTENT(OUT)   :: RC              ! Success?
 !
 ! !REVISION HISTORY:
 !  23 Jul 2019 - R. Yantosca - Initial version
@@ -11514,21 +11714,27 @@ CONTAINS
  !LOCAL VARIABLES:
 
     ! Scalars
-    LOGICAL            :: Found,     hasIndFlag
-    INTEGER            :: N,         NN,          nMap
-    INTEGER            :: nTags,     nSpc,        S
-    INTEGER            :: Indx
+    LOGICAL                   :: found
+    LOGICAL                   :: isWildCard
+    INTEGER                   :: numTags
+    INTEGER                   :: numWildCards
+
+    INTEGER                   :: nTags
+    INTEGER                   :: index
 
     ! Strings
-    CHARACTER(LEN=31 ) :: spcName
-    CHARACTER(LEN=255) :: ErrMsg,    ThisLoc
-    CHARACTER(LEN=255) :: tagId,     tagName
+    CHARACTER(LEN=255)        :: errMsg
+    CHARACTER(LEN=255)        :: mapName
+    CHARACTER(LEN=255)        :: tagName
+    CHARACTER(LEN=255)        :: thisLoc
+    CHARACTER(LEN=255)        :: spcName
+    CHARACTER(LEN=255)        :: wcName
 
-    ! Arrays
-    CHARACTER(LEN=31)  :: tmpFields(5000)
-    
     ! Objects
-    TYPE(TaggedDgnItem) :: TaggedDiagItem
+    TYPE(DgnTagItem), POINTER :: TagItem
+    TYPE(DgnTagList)          :: TagList
+    TYPE(DgnTagList)          :: WildCardList
+    TYPE(TaggedDgnItem)       :: TaggedDiagItem
 
     !=======================================================================
     ! Get_Mapping begins here!
@@ -11536,135 +11742,288 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    ErrMsg     = ''
-    ThisLoc    = ' -> at Get_Mapping (in module Headers/state_diag_mod.F90)'
-!    tmpFields  = ''
-!   S          = 0
-!    hasIndFlag = PRESENT( IndFlag )
-!    nTags      = SIZE( tagList )
-
+    mapName    = 'Map_ ' // TRIM( metadataId )
+    spcName    = ''
+    wcName     = ''
+    errMsg     = ''
+    thisLoc    = ' -> at Get_Mapping (in module Headers/state_diag_mod.F90)'
 
     !=======================================================================
+    ! Get info about the TaggedDiagList attached to this diagnostic
     !=======================================================================
     CALL Query_TaggedDiagList( Input_Opt      = Input_Opt,       &
                                TaggedDiagList = TaggedDiagList,  &
-                               diagName       = diagID,          &
+                               diagName       = metadataId,      &
                                Found          = Found,           &
+                               isWildCard     = isWildCard,      &
+                               numWildCards   = numWildCards,    &
+                               WildCardList   = WildCardList,    &
+                               numTags        = numTags,         &
+                               TagList        = TagList,         &
                                TaggedDiagItem = TaggedDiagItem,  &
                                RC             = RC              )
 
-    CALL Print_TaggedDiagItem( Input_Opt, TaggedDiagItem, RC ) 
+    IF ( isWildCard ) THEN
 
+       !====================================================================
+       ! Diagnostic has a wildcard
+       !====================================================================
+       
+       ! Find the number of tags for this wildcard
+       TagItem => WildCardList%head
+       DO WHILE ( ASSOCIATED( TagItem ) )
+          wcName = TagItem%name
+          CALL Get_NumTags( wcName, State_Chm, sizeMapData, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "Get_NumTags"!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             TagItem => NULL()  
+             RETURN
+          ENDIF
 
-!    !=======================================================================
-!    ! Create a unique list of tags.  Here a "tag" is either a species name
-!    ! (e.g. O3, NO, DST1), or a wildcard (e.g. ?ADV?, ?DRY?).
-!    ! If the tag is a wildcard, find all of its associated fields.
-!    !=======================================================================
-!
-!    ! Loop over the number of tags in tagList
-!    DO N = 1, nTags
-!
-!       ! Get the tag name.  This will either be the species name 
-!       ! (e.g. "NO", "O3"), or a wildcard (e.g. "?ADV?").
-!       tagId = TRIM( tagList(N) )
-!       
-!       ! Test if the tagID is a wilcard
-!       IF ( INDEX( tagId, '?' ) > 0 ) THEN
-!
-!          ! If it is a wildcard, then discard the ? characters
-!          tagId = tagId(2:LEN_TRIM(tagId)-1)
-!
-!          ! Find the number of fields associated with this wildcard
-!          CALL Get_TagInfo( am_I_Root, tagId, State_Chm,                    &
-!                            Found,     RC,    nTags=nSpc                   )
-!
-!          ! Trap potential errors
-!          IF ( RC /= GC_SUCCESS ) THEN
-!             ErrMsg = 'No fields associated with wildcard: '// TRIM( tagID )
-!             CALL GC_Error( ErrMsg, RC, ThisLoc )
-!             RETURN
-!          ENDIF
-!
-!          ! Loop over the number of species associated with the wildcard
-!          DO NN = 1, nSpc
-!          
-!             ! Find the model ID associated with each species name
-!             CALL Get_TagInfo( am_I_Root, tagId, State_Chm,       Found,    &
-!                               RC,        N=NN,  tagname=tagName           )
-!
-!             ! Add the species name to the tmpFields array
-!             IF ( Found ) THEN
-!                S             = S + 1
-!                tmpFields(S) = TRIM( tagName )
-!             ENDIF
-!             
-!          ENDDO
-!
-!       ELSE
-!
-!          ! If tagID is not a wildcard, then it will be the species
-!          ! name itself.  Add tagId to the tmpFields array.
-!          S             = S + 1
-!          tmpFields(S) = tagID
-!       ENDIF
+          ! Advance to next wildcard in list
+          ! NOTE: Most diagnostics will only have one wildcard!
+          TagItem => TagItem%next
+       ENDDO
+       TagItem => NULL()  
+
+       ! Allocate the mapData array
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       ALLOCATE( mapData( sizeMapData ), STAT=RC )
+       CALL GC_CheckVar( mapName, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData = -1
+
+       ! Get the modelId for each species indicated by wildcard
+       DO index = 1, sizeMapData
+          CALL Get_TagInfo( Input_Opt = Input_Opt,                           &
+                            State_Chm = State_Chm,                           &
+                            tagId     = wcName,                              &
+                            N         = index,                               &
+                            tagName   = spcName,                             &
+                            found     = found,                               &
+                            RC        = RC                                  )
+
+           ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "Get_Mapping!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+
+          ! Save the modelID of each species in Map_Fields
+          mapData(index) =  Ind_(spcName)
+       ENDDO
+
+    ELSE
+       
+       !====================================================================
+       ! Diagnostic has tags (i.e. individual non-wildcard species)
+       !====================================================================
+
+       ! Allocate the Map_Fields array 
+       sizeMapData = numTags
+       IF ( ASSOCIATED( mapData ) ) DEALLOCATE( mapData )
+       ALLOCATE( mapData( sizeMapData ), STAT=RC )
+       CALL GC_CheckVar( mapName, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData = -1
+
+       ! Loop thru the list of tags and find the relevant ID
+       TagItem => TagList%head
+       DO WHILE ( ASSOCIATED( TagItem ) )
+          spcName        =  TagItem%name
+          index          =  TagItem%index
+          mapData(index) =  Ind_(spcName)
+          TagItem        => TagItem%next
+       ENDDO
+       TagItem => NULL()   
+
+    ENDIF
+
+!    !### debug
+!    DO N = 1, nFields
+!       WRITE( 6, 100 )  N, Map_Fields(N),                                    &
+!                        TRIM( State_Chm%SpcData(Map_Fields(N))%Info%Name )
+! 100   FORMAT( 2(i6,2x), a)
 !    ENDDO
-!
-!    ! Get the unique list of species
-!    ! Also drop off the last element, which is the null space value
-!    IF ( ALLOCATED( uniqFields ) ) DEALLOCATE( uniqFields )
-!    CALL Unique( tmpFields, uniqFields )
-!    nFields = SIZE( UniqFields )
-!
-!    ! Trap potential errors
-!    IF ( nFields < 1 ) THEN
-!       ErrMsg = 'Number of unqiue diagnostic fields found is < 1!'
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!
-!    !=======================================================================
-!    ! Create the mapping array
-!    !=======================================================================
-!
-!    ! Get the number of species of the given type
-!    ! found in the species database
-!    IF ( hasIndFlag ) THEN
-!       nMap = NumSpecies_( State_Chm, IndFlag )
-!    ELSE
-!       nMap = NumSpecies_( State_Chm          )
-!    ENDIF
-!
-!    ! Trap potential errors
-!    IF ( nMap < 1 ) THEN
-!       ErrMsg = 'Invalid number of species for IndFlag = ' // TRIM(IndFlag)
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!
-!    ! Initialize the mapping array
-!    IF ( ASSOCIATED( Map_Fields ) ) DEALLOCATE( Map_Fields )
-!    ALLOCATE( Map_Fields( nMap ), STAT=RC )
-!    CALL GC_CheckVar( 'Map_Fields', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    Map_Fields = -1
-!
-!    ! Loop over the number of unique field names
-!    DO S = 1, nFields
-!
-!       ! Get the index for the given species type
-!       ! (e.g. modelId, advectId, drydepId, etc...)
-!       IF ( hasIndFlag ) THEN
-!          Indx = Ind_( TRIM( uniqFields(S) ), IndFlag )
-!       ELSE
-!          Indx = Ind_( TRIM( uniqFields(S) )          )
-!       ENDIF
-!
-!       ! Save model ID into mapping array
-!       Map_Fields(Indx) = S
-!
-!    ENDDO
-!
+   
   END SUBROUTINE Get_Mapping
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Initialize_R8_4D( Input_Opt,  State_Chm,      State_Diag,       &
+                               State_Grid, TaggedDiagList, Ptr2Data,         &  
+                               arrayId,    diagId,         archiveData,      &
+                               RC,         mapData,        nFields          )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),      INTENT(IN)    :: Input_Opt         ! Input Options
+    TYPE(ChmState),      INTENT(IN)    :: State_Chm         ! Chemistry State
+    TYPE(GrdState),      INTENT(IN)    :: State_Grid        ! Grid State
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiagList    ! Tags and WCs 
+    CHARACTER(LEN=*),    INTENT(IN)    :: diagId            ! Diagnostic name 
+    CHARACTER(LEN=*),    INTENT(IN)    :: arrayId           ! Name for Ptr2Data
+    INTEGER,             OPTIONAL      :: nFields           ! 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState),      INTENT(INOUT) :: State_Diag        ! Diagnostic State
+    LOGICAL,             INTENT(INOUT) :: archiveData       ! Save this diag?
+    REAL(f8),   POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:) ! Pointer to data
+    INTEGER,    POINTER, OPTIONAL      :: mapData(:)        ! Mapping array
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)   :: RC                ! Success/failure!
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: hasMapData, hasnFields
+    INTEGER            :: NX,         NY
+    INTEGER            :: NZ,         numSlots
+    
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg,     thisLoc
+
+    !=======================================================================
+    ! Initialize_R8_4D begins here!
+    !=======================================================================
+
+    ! Initialzie
+    RC         = GC_SUCCESS
+    hasMapData = PRESENT( mapData )
+    hasnFields = PRESENT( nFields )
+    errMsg     = ''
+    thisLoc    = &
+         ' -> at Initialize_R8_4D (in module Headers/state_diag_mod.F90)'
+
+    !=======================================================================
+    ! Determine the number of slots to allocate the 4th 
+    ! dimension of the diagnostic with
+    !=======================================================================
+    IF ( hasMapData ) THEN 
+
+       ! If the mapping array is passed, then get the vector which contains
+       ! the list of ModelID's from the species database for each
+       ! quantity in the diagnostic, as well as the number of slots
+       ! to allocate for the 4th dimension of Ptr2Data.
+       CALL Get_Mapping( Input_Opt      = Input_Opt,                         &
+                         State_Chm      = State_Chm,                         &
+                         TaggedDiagList = TaggedDiagList,                    &
+                         metadataId     = diagId,                            &
+                         mapData        = mapData,                           &
+                         sizeMapData    = numSlots,                          &
+                         RC             = RC                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Get_Mapping": '// TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ELSE IF ( hasNFields ) THEN
+       
+       ! If the mapping array is not passed, but nFields is passed,
+       ! then set nTags = nFields.  Use this option for those
+       ! diagnostics for which mapping arrays are not necessary
+       ! (i.e. restart files, where you will always save all fields.)
+       numSlots = nFields
+
+    ELSE
+
+       ! Otherwise throw an error
+       errMsg = 'Both "mapping" and "nFields" arguments are not passed!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+
+    ENDIF
+
+    !=======================================================================
+    ! Allocate diagnostic array
+    !=======================================================================
+
+    ! Dimensions of the grid
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate array
+    ALLOCATE( Ptr2Data( NX, NY, NZ, numSlots ), STAT=RC )
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Initialize diagnostic array and set its archival flag to TRUE
+    Ptr2Data    = 0.0_f8
+    archiveData = .TRUE.
+
+    !=======================================================================
+    ! Register the diagnostic
+    !=======================================================================
+    IF ( hasMapData ) THEN
+
+       ! Register the diagnostic: pass mapping array and number of slots
+       CALL Register_DiagField( Input_Opt   = Input_Opt,                     & 
+                                State_Chm   = State_Chm,                     &
+                                State_Diag  = State_Diag,                    &
+                                metadataId  = diagId,                        &
+                                Ptr2Data    = Ptr2Data,                      &
+                                mapping     = mapData,                       &
+                                nFields     = numSlots,                      &
+                                RC          = RC                            )
+
+     ELSE IF ( hasnFields ) THEN
+
+       ! Register the diagnostic: get number of slots internally
+       CALL Register_DiagField( Input_Opt  = Input_Opt,                      & 
+                                State_Chm  = State_Chm,                      &
+                                State_Diag = State_Diag,                     &
+                                metadataId = diagId,                         &
+                                Ptr2Data   = Ptr2Data,                       &
+                                RC         = RC                             )
+     ENDIF
+
+     ! Trap potential errors
+     IF ( RC /= GC_SUCCESS ) THEN
+        errMsg = 'Error encountered in "Register_DiagField": '// TRIM(diagID)
+        CALL GC_Error( errMsg, RC, thisLoc )
+        RETURN
+     ENDIF
+
+    ! Print info
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
+ 100   FORMAT( 1x, a32, ' is registered as: ', a )
+    ENDIF
+
+  END SUBROUTINE Initialize_R8_4D
+!EOC
+
+
 END MODULE State_Diag_Mod

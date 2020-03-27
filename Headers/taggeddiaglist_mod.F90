@@ -425,6 +425,9 @@ CONTAINS
     ! Proceed to print info if we are on the root CPU
     IF ( Input_Opt%amIRoot ) THEN
 
+       ! Print name of diagnostic to which this TaggedDataItem belongs
+       WRITE( 6, 120 ) TRIM( TaggedDiagItem%metadataID )
+
        IF ( TaggedDiagItem%isWildCard ) THEN
 
           !---------------------------------
@@ -513,9 +516,6 @@ CONTAINS
 
        ! Keep looping over all items in TaggedDiagList
        DO WHILE ( ASSOCIATED( current ) )
-
-          ! Print name of diagnostic
-          WRITE( 6, 120 ) TRIM( current%metadataID )
 
           ! Print wildcard or tag info
           CALL Print_TaggedDiagItem( Input_Opt, current, RC )
