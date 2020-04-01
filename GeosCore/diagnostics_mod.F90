@@ -97,7 +97,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                 :: I, J, L, N
+    INTEGER                 :: I, J, L, M, N
     REAL(fp)                :: ToPptv
 
     ! SAVEd scalars
@@ -126,7 +126,8 @@ CONTAINS
 !    IF ( State_Diag%Archive_SpeciesConc ) THEN
 !       CALL Set_SpcConc_Diagnostic( 'SpeciesConc', State_Diag%SpeciesConc,   &
 !                                    Input_Opt,  State_Chm,                   &
-!                                    State_Grid, State_Met,  RC              )
+!                                    State_Grid, State_Met,                   &
+!                                    RC,         State_Diag%Map_SpeciesConc  )
 !
 !       ! Trap potential errors
 !       IF ( RC /= GC_SUCCESS ) THEN
@@ -153,16 +154,16 @@ CONTAINS
     ! Set total dry deposition flux
     !-----------------------------------------------------------------------
     IF ( State_Diag%Archive_DryDep ) THEN
-       !$OMP PARALLEL DO          &
-       !$OMP DEFAULT( SHARED  )   &
-       !$OMP PRIVATE( I, J, N )
-       DO N = 1, State_Chm%nDryDep
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Diag%DryDep(I,J,N) = State_Diag%DryDepChm(I,J,N)             &
-                                   + State_Diag%DryDepMix(I,J,N)
-       ENDDO
-       ENDDO
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( I, J, M, N )
+       DO M = 1, State_Diag%Map_DryDep%count
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+             State_Diag%DryDep(I,J,M) = State_Diag%DryDepChm(I,J,M)          &
+                                      + State_Diag%DryDepMix(I,J,M)
+          ENDDO
+          ENDDO
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
@@ -307,33 +308,38 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_SpcConc_Diagnostic( DiagMetadataID, Ptr2Data, Input_Opt, &
-                                     State_Chm, State_Grid, State_Met, RC )
+  SUBROUTINE Set_SpcConc_Diagnostic( DiagMetadataID, Ptr2Data,               &
+                                     Input_Opt,      State_Chm,              &
+                                     State_Grid,     State_Met,              &
+                                     RC,             mapData                )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState, Get_Metadata_State_Diag
+    USE State_Diag_Mod, ONLY : DgnMap
+    USE State_Diag_Mod, ONLY : DgnState
+    USE State_Diag_Mod, ONLY : Get_Metadata_State_Diag
     USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN)  :: DiagMetadataID ! Diagnostic id
-    TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
-    TYPE(GrdState),   INTENT(IN)  :: State_Grid     ! Grid state object
-    TYPE(MetState),   INTENT(IN)  :: State_Met      ! Meteorology state object
+    CHARACTER(LEN=*),      INTENT(IN)    :: DiagMetadataID    ! Diagnostic id
+    TYPE(OptInput),        INTENT(IN)    :: Input_Opt         ! Input Options
+    TYPE(GrdState),        INTENT(IN)    :: State_Grid        ! Grid State
+    TYPE(MetState),        INTENT(IN)    :: State_Met         ! Met State
+    TYPE(DgnMap), POINTER, OPTIONAL      :: mapData           ! Mapping obj
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm         ! Chemistry state obj
-    REAL(f8),         POINTER       :: Ptr2Data(:,:,:,:) ! Diagnostics array
+    TYPE(ChmState),        INTENT(INOUT) :: State_Chm         ! Chem State
+    REAL(f8),     POINTER, INTENT(INOUT) :: Ptr2Data(:,:,:,:) ! Diag array
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT)   :: RC      ! Success or failure?
+    INTEGER,               INTENT(OUT)   :: RC                ! Success?
 !
 ! !REMARKS:
 !  The name argument is used to retrieve metadata (units) for the diagnostic
@@ -364,9 +370,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
-    LOGICAL            :: Found
-    INTEGER            :: I, J, L, N
+
+    ! Scalars
+    LOGICAL               :: Found
+    INTEGER               :: I,      J,       L,     M,        N
+
+    ! Strings
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
 
     !====================================================================
     ! Set_SpcConc_Diagnostic begins here!
@@ -405,20 +415,33 @@ CONTAINS
        CALL Convert_Spc_Units( Input_Opt, State_Chm, State_grid, State_Met, &
                                Units, RC, OrigUnit=OrigUnit )
 
-       ! Copy species concentrations to diagnostic array
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( I, J, L, N )
-       DO N = 1, State_Chm%nSpecies
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          Ptr2Data(I,J,L,N) = State_Chm%Species(I,J,L,N)
-       ENDDO
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
+       IF ( PRESENT( mapData ) ) THEN
+
+          ! Copy species concentrations to diagnostic array.  Only loop
+          ! over as many species as indicated by the mapping object.
+          !$OMP PARALLEL DO        &
+          !$OMP DEFAULT( SHARED  ) &
+          !$OMP PRIVATE( I, M, N )
+          DO M = 1, mapData%count
+             N = mapData%modelId(M)
+             Ptr2Data(:,:,:,M) = State_Chm%Species(:,:,:,N)
+          ENDDO
+          !$OMP END PARALLEL DO
+
+       ELSE
+
+          ! Copy all species concentrations to diagnostic array
+          !$OMP PARALLEL DO       &
+          !$OMP DEFAULT( SHARED ) &
+          !$OMP PRIVATE( I, N   )
+          DO N = 1, State_Chm%nSpecies
+             Ptr2Data(:,:,:,N) = State_Chm%Species(:,:,:,N)
+          ENDDO
+          !$OMP END PARALLEL DO
+
+       ENDIF
+
+       mapData => NULL()
 
        ! Convert State_Chm%Species back to original unit
        CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -447,14 +470,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag, &
-                                      State_Grid, State_Met, RC )
+  SUBROUTINE Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,     &
+                                      State_Grid, State_Met, RC            )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
@@ -498,12 +522,15 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: Found
-    INTEGER            :: D, I, J, L, N
-    REAL(fp)           :: TmpVal, Conv
+    LOGICAL               :: Found
+    INTEGER               :: C, D, I, J, L, N
+    REAL(fp)              :: TmpVal, Conv
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc, Units, OrigUnit
+
+    ! Objects
+    TYPE(DgnMap), POINTER :: mapData
 
     !====================================================================
     ! Set_SpcConc_Diags_VVDry begins here!
@@ -530,39 +557,75 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Copy species concentrations to diagnostic arrays [v/v dry]
+    ! Copy species to SpeciesConc (concentrations diagnostic) [v/v dry]
+    !
+    ! NOTE: If you change the units of SpeciesConc in state_diag_mod.F90,
+    ! then comment this IF block out and then also uncomment the IF block
+    ! in the main routine above where Set_SpcConc_Diagnostic is called.
     !=======================================================================
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( I, J, L, N )
-    DO N = 1, State_Chm%nSpecies
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
+    IF ( State_Diag%Archive_SpeciesConc ) THEN
 
-       ! Boundary conditions for nested grid [v/v dry]
-       IF ( State_Diag%Archive_SpeciesBC ) THEN
-          State_Diag%SpeciesBC(I,J,L,N) = State_Chm%Species(I,J,L,N)
-       ENDIF
+       ! Point to mapping obj
+       mapData => State_Diag%Map_SpeciesConc
 
-       ! Species concentrations diagnostic [v/v dry]
-       ! NOTE: If you change the units of SpeciesConc in state_diag_mod.F90,
-       ! then comment this IF block out and then also uncomment the IF block
-       ! in the main routine above where Set_SpcConc_Diagnostic is called.
-       IF ( State_Diag%Archive_SpeciesConc ) THEN
-          State_Diag%SpeciesConc(I,J,L,N) = State_Chm%Species(I,J,L,N)
-       ENDIF
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( C, N   )
+       DO C = 1, mapData%count
+          N = mapData%modelId(C)
+          State_Diag%SpeciesConc(:,:,:,C) = State_Chm%Species(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
 
-       ! Species concentrations for restart file [v/v dry]
-       IF ( State_Diag%Archive_SpeciesRst ) THEN
-          State_Diag%SpeciesRst(I,J,L,N) = State_Chm%Species(I,J,L,N)
-       ENDIF
+       ! Free pointer
+       mapData => NULL()
 
-    ENDDO
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
+    ENDIF
+
+    !=======================================================================
+    ! Copy species to SpeciesBC (transport boundary conditions) [v/v dry]
+    !
+    ! NOTE: If you change the units of SpeciesBC in state_diag_mod.F90,
+    ! then comment this IF block out and then also uncomment the IF block
+    ! in the main routine above where Set_SpcConc_Diagnostic is called.
+    !=======================================================================
+    IF ( State_Diag%Archive_SpeciesBC ) THEN
+
+       ! Point to mapping obj
+       mapData => State_Diag%Map_SpeciesBC
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( C, N   )
+       DO C = 1, mapData%count
+          N = mapData%modelId(C)
+          State_Diag%SpeciesBC(:,:,:,C) = State_Chm%Species(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Free pointer
+       mapData => NULL()
+
+    ENDIF
+
+    !=======================================================================
+    ! Copy species to SpeciesRst (restart file output) [v/v dry]
+    !
+    ! NOTE: If you change the units of SpeciesBC in state_diag_mod.F90,
+    ! then comment this IF block out and then also uncomment the IF block
+    ! in the main routine above where Set_SpcConc_Diagnostic is called.
+    !=======================================================================
+    IF ( State_Diag%Archive_SpeciesRst ) THEN
+
+       !$OMP PARALLEL DO        &
+       !$OMP DEFAULT( SHARED  ) &
+       !$OMP PRIVATE( N )
+       DO N = 1, State_Chm%nSpecies
+          State_Diag%SpeciesRst(:,:,:,N) = State_Chm%Species(:,:,:,N)
+       ENDDO
+       !$OMP END PARALLEL DO
+
+    ENDIF
 
     !=======================================================================
     ! Diagnostic for correcting species concentrations from the height
