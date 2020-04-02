@@ -97,7 +97,7 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 
 # Fixes #64: If GCC>=8.0.0 then ocean_mercury_mod.F90 should be compiled with -O1
 if(("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU") AND NOT (CMAKE_Fortran_COMPILER_VERSION VERSION_LESS "8.0.0") AND NOT("${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
-	set_source_files_properties(ocean_mercury_mod.F
+	set_source_files_properties(ocean_mercury_mod.F90
 		PROPERTIES COMPILE_FLAGS -O1
 	)
 endif()
