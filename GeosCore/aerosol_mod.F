@@ -2019,7 +2019,7 @@
 
                   ! Wet effective radius, um
                   REFF = RW(1) * min( 3d0, 
-     &                 ( 1d0 + safe_div( VH2O, VDry, 0d0 ) )**(1d0/3d0) )
+     &                ( 1d0 + safe_div( VH2O, VDry, 0d0 ) )**(1d0/3d0) )
 
                ENDIF
 
