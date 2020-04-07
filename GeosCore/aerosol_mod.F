@@ -2013,10 +2013,13 @@
                   ! Volume of wet aerosol is also: VWet = 4/3*pi * RWet**3 * n
                   ! So RWet = ( 3*VWet / (4 pi n) )**(1/3)
                   ! RWet = RDry * ( 1 + VH2O/Vdry )**(1/3)
+                  ! In cases where VDry is tiny, VH2O/VDry can be huge
+                  ! because VH2O includes fine sea salt water. Limit
+                  ! growth to 3X dry radius (27X volume growth)
 
                   ! Wet effective radius, um
-                  REFF = RW(1) * ( 1d0 +
-     &                 safe_div( VH2O, VDry, 0d0 ) )**(1d0/3d0)
+                  REFF = RW(1) * min( 3d0, 
+     &                 ( 1d0 + safe_div( VH2O, VDry, 0d0 ) )**(1d0/3d0) )
 
                ENDIF
 
