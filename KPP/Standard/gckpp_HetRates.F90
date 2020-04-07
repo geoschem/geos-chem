@@ -642,12 +642,6 @@ MODULE GCKPP_HETRATES
       AClRADI = State_Chm%AClRadi(I,J,L)    !Fine Cl- aerosol radius [cm]
       AWATER(:) = State_Chm%WaterSav(I,J,L,:) 
 
-      ! Aerosol area [cm2/cm3]
-      XAREA(1:State_Chm%nAero) = State_Chm%AeroArea(I,J,L,:)
-
-      ! Aerosol radius [cm]
-      XRADI(1:State_Chm%nAero) = State_Chm%AeroRadi(I,J,L,:)
-
       TEMPK  = State_Met%T(I,J,L)              ! Temperature [K]
       XTEMP  = sqrt(State_Met%T(I,J,L))        ! Square root of temperature
       XDENA  = State_Met%AIRNUMDEN(I,J,L)      ! Dry air density [molec/cm3]
