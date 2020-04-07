@@ -16,8 +16,10 @@ MODULE Grid_Registry_Mod
 !
 ! !USES:
 !
+  USE Dictionary_M,  ONLY : dictionary_t
   USE Precision_Mod
-  USE Registry_Mod, ONLY : MetaRegItem
+  USE Registry_Mod,  ONLY : MetaRegItem
+  USE Registry_Mod,  ONLY : Registry_Set_LookupTable
 
   IMPLICIT NONE
   PRIVATE
@@ -59,8 +61,9 @@ MODULE Grid_Registry_Mod
   ! Registry of variables contained within gc_grid_mod.F90
   CHARACTER(LEN=4)              :: State     = 'GRID'   ! Name of this state
   TYPE(MetaRegItem),    POINTER :: Registry  => NULL()  ! Registry object
+  TYPE(dictionary_t)            :: RegDict              ! Lookup table
 
-CONtAINS
+CONTAINS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -519,6 +522,19 @@ CONtAINS
     CALL GC_CheckVar( 'GRID_LONE', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    !=======================================================================
+    ! Once we are done registering all fields, we need to define the
+    ! registry lookup table.  This algorithm will avoid hash collisions.
+    !=======================================================================
+    CALL Registry_Set_LookupTable( Registry, RegDict, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Registry_Set_LookupTable"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     !======================================================================
     ! Print list of fields
     !======================================================================
@@ -652,7 +668,7 @@ CONtAINS
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
-    CALL Registry_Destroy( Registry, RC )
+    CALL Registry_Destroy( Registry, RegDict, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object "Registry"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -818,6 +834,7 @@ CONtAINS
     !=======================================================================
     CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,                  &
                           Registry     = Registry,                           &
+                          RegDict      = RegDict,                            &
                           State        = State,                              &
                           Variable     = Variable,                           &
                           Description  = Description,                        &

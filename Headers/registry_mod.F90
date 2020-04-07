@@ -28,6 +28,7 @@ MODULE Registry_Mod
   PUBLIC  :: Registry_Lookup
   PUBLIC  :: Registry_Print
   PUBLIC  :: Registry_Destroy
+  PUBLIC  :: Registry_Set_LookupTable
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -147,7 +148,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CharPak_Mod,   ONLY : Str2Hash31, To_Uppercase
+    USE CharPak_Mod,   ONLY : To_Uppercase
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -441,26 +442,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_Lookup( am_I_Root,    Registry,  State,                &
-                              Variable,     RC,        Description,          &
-                              Dimensions,   KindVal,   MemoryInKb,           &
-                              OnLevelEdges, Rank,      Units,                &
-                              DimNames,     Ptr0d,     Ptr1d,                &
-                              Ptr2d,        Ptr3d,     Ptr0d_8,              &
-                              Ptr1d_8,      Ptr2d_8,   Ptr3d_8,              &
-                              Ptr0d_4,      Ptr1d_4,   Ptr2d_4,              &
-                              Ptr3d_4,      Ptr0d_I,   Ptr1d_I,              &
-                              Ptr2d_I,      Ptr3d_I                         )
+  SUBROUTINE Registry_Lookup( am_I_Root,    Registry,     RegDict,           &
+                              State,        Variable,     RC,                &
+                              Description,  Dimensions,   KindVal,           &
+                              MemoryInKb,   OnLevelEdges, Rank,              &
+                              Units,        DimNames,     Ptr0d,             &
+                              Ptr1d,        Ptr2d,        Ptr3d,             &
+                              Ptr0d_8,      Ptr1d_8,      Ptr2d_8,           &
+                              Ptr3d_8,      Ptr0d_4,      Ptr1d_4,           &
+                              Ptr2d_4,      Ptr3d_4,      Ptr0d_I,           &
+                              Ptr1d_I,      Ptr2d_I,      Ptr3d_I           )
 !
 ! !USES:
 !
-    USE Charpak_Mod,   ONLY : Str2Hash31, To_UpperCase
+    USE Charpak_Mod,   ONLY : To_UpperCase
+    USE Dictionary_M,  ONLY : dictionary_t
     USE ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,           INTENT(IN) :: am_I_Root         ! Root CPU?
     TYPE(MetaRegItem), POINTER    :: Registry          ! Registry obj
+    TYPE(dictionary_t)            :: RegDict           ! Registry lookup table
     CHARACTER(LEN=*),  INTENT(IN) :: State             ! State name
     CHARACTER(LEN=*),  INTENT(IN) :: Variable          ! Variable name
 !
@@ -535,8 +538,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=5)           :: TmpState
-    CHARACTER(LEN=31)          :: FullName31,      ItemName31
-    CHARACTER(LEN=255)         :: TmpName,         TmpFullName
+    CHARACTER(LEN=67)          :: FullName,        ItemName
     CHARACTER(LEN=255)         :: ErrMsg,          ThisLoc
     CHARACTER(LEN=255)         :: VariableUC
 
@@ -558,17 +560,24 @@ CONTAINS
     ! (2) If it's a field from State_Diag, which requires no prefix
     IF ( ( TRIM( State ) == 'DIAG' ) .OR.  &
          ( INDEX( VariableUC, TRIM( TmpState ) ) > 0 ) ) THEN
-       TmpFullName  = VariableUC
+       FullName  = VariableUC
     ELSE
-       TmpFullName  = TRIM( TmpState ) // TRIM( VariableUC )
+       FullName  = TRIM( TmpState ) // TRIM( VariableUC )
     ENDIF
 
-    ! Construct a hash for the full name (i.e. "State_Variable"
-    FullName31      =  TmpFullName
-    FullHash        =  Str2Hash31( FullName31 )
+    ! Construct a hash for the full name (i.e. "State_Variable")
+    FullHash =  RegDict%Get( TRIM( FullName ) )
+
+    ! Return with an error if fullname is not found in this registry
+    IF ( FullHash == -1 ) THEN
+       errMsg = TRIM( fullName ) // ' is not found in the registry for '  // &
+                'the ' // TRIM( State ) // ' object!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     ! Set a flag to denote that we've found the field
-    Found           = .FALSE.
+    Found = .FALSE.
 
     !=======================================================================
     ! Test if the optional variables are present outside of the main loop.
@@ -638,11 +647,10 @@ CONTAINS
     DO WHILE( ASSOCIATED( Current ) )
 
        ! Construct a hash for the full name of this REGISTRY ITEM
-       ItemName31 = Current%Item%FullName
-       ItemHash   = Str2Hash31( ItemName31 )
+       ItemHash   = RegDict%Get( TRIM( Current%Item%FullName ) )
 
-       ! If the name-hashes match ...
-       IF ( FullHash == ItemHash ) THEN
+       ! If the name-hashes match (and are not missing data "-1")
+       IF ( FullHash == ItemHash .and. ItemHash > 0 ) THEN
 
           ! Return rank, units and memory usage, etc. if found
           IF ( Is_Description  ) Description  = Current%Item%Description
@@ -1138,6 +1146,105 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Registry_Set_LookupTable
+!
+! !DESCRIPTION: Defines the lookup table for registry items, using the
+!  dictionary_m algorithm.  This will avoid hash collisions.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Registry_Set_LookupTable( Registry, RegDict, RC )
+!
+! !USES:
+!
+    USE Dictionary_M
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(MetaRegItem),  POINTER       :: Registry   ! Registry of state fields
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(dictionary_t), INTENT(INOUT) :: RegDict    ! Registry lookup table
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,            INTENT(OUT)   :: RC         ! Success or failure?!
+!
+! !REVISION HISTORY:
+!  07 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                    :: index
+    INTEGER                    :: nDiags
+
+
+    ! Strings
+    CHARACTER(LEN=255)         :: errMsg
+    CHARACTER(LEN=255)         :: thisLoc
+
+    ! Objects
+    TYPE(MetaRegItem), POINTER :: current
+
+    !=======================================================================
+    ! Registry_Set_LookupTable begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    index   = 0
+    nDiags  = 0
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Registry_Set_LookupTable (in module Headers/registry_mod.F90)'
+
+    !-----------------------------------------------------------------------
+    ! First find out how many diagnostics have been registered
+    ! so that we can initialize the lookup table accordingly.
+    !-----------------------------------------------------------------------
+    current => Registry
+    DO WHILE( ASSOCIATED( current ) )
+       IF ( ASSOCIATED( current%Item ) ) THEN
+          nDiags = nDiags + 1
+       ENDIF
+       current => current%next
+    ENDDO
+    current => NULL()
+    
+    ! Initialize the lookup table
+    CALL RegDict%Init( nDiags )
+
+    !-----------------------------------------------------------------------
+    ! Then populate the lookup table with the index with which each
+    ! diagnostic is found in the list.  NOTE: Registry names are
+    ! already uppercase, so no need to convert again.
+    !-----------------------------------------------------------------------
+    current => Registry
+    DO WHILE( ASSOCIATED( current ) )
+       IF ( ASSOCIATED( current%Item ) ) THEN
+          index = index + 1
+          CALL RegDict%Set( TRIM( current%Item%fullName ), index )
+       ENDIF
+       current => current%next
+    ENDDO
+    current => NULL()
+
+  END SUBROUTINE Registry_Set_LookupTable
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Registry_Destroy
 !
 ! !DESCRIPTION: Destroys a METAREGISTRY ITEM (i.e. a linked list of REGISTRY
@@ -1147,19 +1254,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Registry_Destroy( Registry, RC )
+  SUBROUTINE Registry_Destroy( Registry, RegDict, RC )
 !
 ! !USES:
 !
+    USE Dictionary_M
     USE ErrCode_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetaRegItem), POINTER     :: Registry    ! Registry of state fields
+    TYPE(MetaRegItem), POINTER     :: Registry   ! Registry of state fields
+    TYPE(dictionary_t)             :: RegDict    ! Registry lookup table
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,           INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,           INTENT(OUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  23 Jun 2017 - R. Yantosca - Initial version
@@ -1187,6 +1296,11 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    !=======================================================================
+    ! Destroy the lookup table for this registry
+    !=======================================================================
+    CALL RegDict%Destroy()
 
   END SUBROUTINE Registry_Destroy
 !EOC

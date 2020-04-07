@@ -21,6 +21,7 @@ MODULE State_Met_Mod
 !
 ! USES:
 !
+  USE Dictionary_M, ONLY : dictionary_t
   USE ErrCode_Mod
   USE Precision_Mod
   USE Registry_Mod
@@ -262,6 +263,7 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      CHARACTER(LEN=3)             :: State     = 'MET'    ! Name of this state
      TYPE(MetaRegItem), POINTER   :: Registry  => NULL()  ! Registry object
+     TYPE(dictionary_t)           :: RegDict              ! Reg. lookup table
 
   END TYPE MetState
 !
@@ -1945,8 +1947,23 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !=======================================================================
-    ! Print information about the registered fields (short format)
+    ! Once we are done registering all fields, we need to define the
+    ! registry lookup table.  This algorithm will avoid hash collisions.
     !=======================================================================
+    CALL Registry_Set_LookupTable( Registry  = State_Met%Registry,           &
+                                   RegDict   = State_Met%RegDict,            &
+                                   RC        = RC                           )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Registry_Set_LookupTable"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Print information about the registered fields (short format)
+    !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 10 )
 10     FORMAT( /, 'Registered variables contained within the State_Met object:')
@@ -3134,7 +3151,7 @@ CONTAINS
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
-    CALL Registry_Destroy( State_Met%Registry, RC )
+    CALL Registry_Destroy( State_Met%Registry, State_Met%RegDict, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object State_Met%Registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

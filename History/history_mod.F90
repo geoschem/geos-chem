@@ -1978,6 +1978,7 @@ CONTAINS
        !--------------------------------------------------------------------
        CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
                              Registry     = State_Chm%Registry,              &
+                             RegDict      = State_Chm%RegDict,               &
                              State        = State_Chm%State,                 &
                              Variable     = ItemName,                        &
                              Description  = Description,                     &
@@ -2019,6 +2020,7 @@ CONTAINS
        !--------------------------------------------------------------------
        CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
                              Registry     = State_Met%Registry,              &
+                             RegDict      = State_Met%RegDict,               &
                              State        = State_Met%State,                 &
                              Variable     = ItemName,                        &
                              Description  = Description,                     &
@@ -2060,6 +2062,7 @@ CONTAINS
        !--------------------------------------------------------------------
        CALL Registry_Lookup( am_I_Root    = Input_Opt%amIRoot,               &
                              Registry     = State_Diag%Registry,             &
+                             RegDict      = State_Diag%RegDict,              &
                              State        = State_Diag%State,                &
                              Variable     = ItemName,                        &
                              Description  = Description,                     &
