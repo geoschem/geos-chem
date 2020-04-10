@@ -1410,7 +1410,8 @@ CONTAINS
 
           CASE( 'ETP' )
              FullName      = 'Ethylhydroperoxide'
-             Formula       = 'CH3CH2OOH '
+             Formula       = 'CH3CH2OOH'
+             Mw_g          = 62.1
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T
@@ -2382,8 +2383,8 @@ CONTAINS
              Henry_K0      = 2.90e+02_f8 * To_M_atm
              Henry_CR      = 5700.0_f8
 #else
-              Henry_K0      = 1.82e+1_f8
-              Henry_CR      = 5700.0_f8
+             Henry_K0      = 1.82e+1_f8
+             Henry_CR      = 5700.0_f8
 #endif
              WD_RetFactor  = 2.0e-2_fp
 
@@ -4016,7 +4017,7 @@ CONTAINS
              Henry_K0      = 7.43e+13_f8
              Henry_CR      = 3.1872e+3_f8
 #endif
-                              WD_RetFactor  = 1.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'OIO' )
              FullName      = 'Iodine dioxide'

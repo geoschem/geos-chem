@@ -1,307 +1,270 @@
 A3O2:
-  EmMW_g: 1.0
-  Fullname: A3O2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: CH3CH2CH2OO
+  Fullname: Primary peroxy radical from C3H8
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 75.1
 ACET:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+5
   EmMW_g: 12.0
   Formula: CH3C(O)CH3
   Fullname: Acetone
   Henry_CR: 5500.0
-  Henry_K0: 27.4
+  Henry_K0: 2.74e+1
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 58.08
-  MolecRatio: 3.0
 ACTA:
-  EmMW_g: 60.0
+  DD_F0: 1.0
+  DD_Hstar: 4.1e+3
   Formula: CH3C(O)OH
   Fullname: Acetic acid
   Henry_CR: 6200.0
-  Henry_K0: 4050.0
+  Henry_K0: 4.05e+3
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 60.0
-  MolecRatio: 1.0
+  MW_g: 60.1
+  WD_RetFactor: 2.0e-2
 AERI:
-  EmMW_g: 127.0
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Formula: I
-  Fullname: iodine on aerosol
+  Fullname: Iodine on aerosol
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 127.0
-  MolecRatio: 1.0
+  MW_g: 126.9
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 ALD2:
+  DD_F0: 1.0
+  DD_Hstar: 1.1e+1
   EmMW_g: 12.0
   Formula: CH3CHO
   Fullname: Acetaldehyde
   Henry_CR: 5900.0
-  Henry_K0: 13.2
+  Henry_K0: 13.2e+1
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 44.05
   MolecRatio: 2.0
+  WD_RetFactor: 2.0e-2
 ALK4:
   EmMW_g: 12.0
   Fullname: Lumped >= C4 Alkanes
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 58.12
   MolecRatio: 4.3
 ASOA1:
-  EmMW_g: 150.0
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Fullname: Lumped non-volatile aerosol products of light aromatics + IVOCs
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 150.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
 ASOA2:
-  EmMW_g: 150.0
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Fullname: Lumped non-volatile aerosol products of light aromatics + IVOCs
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 150.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
 ASOA3:
-  EmMW_g: 150.0
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Fullname: Lumped non-volatile aerosol products of light aromatics + IVOCs
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 150.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
 ASOAN:
-  EmMW_g: 150.0
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Fullname: Lumped non-volatile aerosol products of light aromatics + IVOCs
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 150.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
 ASOG1:
-  EmMW_g: 150.0
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
   Fullname: Lumped non-volatile gas products of light aromatics + IVOCs
   Henry_CR: 6039.0
-  Henry_K0: 100000.0
+  Henry_K0: 1.0e+5
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 150.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 ASOG2:
-  EmMW_g: 150.0
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
   Fullname: Lumped non-volatile gas products of light aromatics + IVOCs
   Henry_CR: 6039.0
-  Henry_K0: 100000.0
+  Henry_K0: 1.0e+5
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 150.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 ASOG3:
-  EmMW_g: 150.0
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
   Fullname: Lumped non-volatile gas products of light aromatics + IVOCs
   Henry_CR: 6039.0
-  Henry_K0: 100000.0
+  Henry_K0: 1.0e+5
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 150.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 ATO2:
-  EmMW_g: 1.0
-  Fullname: ATO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: CH3C(O)CH2O2
+  Fullname: Peroxy radical from acetone
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 89.1
 ATOOH:
-  EmMW_g: 90.0
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
   Formula: CH3C(O)CH2OOH
   Fullname: ATO2 peroxide
   Henry_CR: 5200.0
-  Henry_K0: 294.0
+  Henry_K0: 2.94e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 90.0
-  MolecRatio: 1.0
+  MW_g: 90.1
+  WD_RetFactor: 2.0e-2
 B3O2:
-  EmMW_g: 1.0
+  Formula: CH3CH(OO)CH3
   Fullname: B3O2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 75.1
 BCPI:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 1800.0
-  EmMW_g: 12.0
+  Formula: C
   Fullname: Hydrophilic black carbon aerosol
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
   Is_HygroGrowth: true
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 12.01
-  MolecRatio: 1.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.5, 0.0, 0.5]
 BCPO:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 1800.0
-  EmMW_g: 12.0
+  Formula: C
   Fullname: Hydrophobic black carbon aerosol
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 12.01
-  MolecRatio: 1.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 0.5]
+  WD_KcScaleFac_Luo: [1.0, 1.0, 0.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 Be10:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar_old: 0.0_fp
-  EmMW_g: 10.0
+  DD_HStar: 0.0
   Formula: Be10
-  FullName: Beryllium-7 isotope
+  FullName: Beryllium-10 isotope
   Is_Advected: true
-  Is_Aero: false
   Is_Drydep: true
   Is_Gas: true
-  Is_HydroGrowth: false
   Is_Wetdep: true
   MW_g: 10.0
-  WD_AerScavEff: 1.0_fp
+  WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 Be10Strat:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar_old: 0.0_fp
-  EmMW_g: 10.0
+  DD_HStar: 0.0
   Formula: Be10
-  FullName: Beryllium-7 isotope in stratosphere
+  FullName: Beryllium-10 isotope in stratosphere
   Is_Advected: true
-  Is_Aero: false
   Is_Drydep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Wetdep: true
   MW_g: 10.0
-  WD_AerScavEff: 1.0_fp
+  WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 Be7:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar_old: 0.0_fp
-  EmMW_g: 7.0
+  DD_HStar: 0.0
   Formula: Be7
   FullName: Beryllium-7 isotope
   Is_Advected: true
-  Is_Aero: false
   Is_Drydep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Wetdep: true
   MW_g: 7.0
-  MolecRatio: 1.0
-  WD_AerScavEff: 1.0_fp
+  WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 Be7Strat:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar_old: 0.0_fp
-  EmMW_g: 7.0
+  DD_HStar: 0.0
   Formula: Be7
   FullName: Beryllium-7 isotope in stratosphere
   Is_Advected: true
-  Is_Aero: false
   Is_Drydep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Wetdep: true
   MW_g: 7.0
-  WD_AerScavEff: 1.0_fp
+  WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 BENZ:
@@ -309,3864 +272,3035 @@ BENZ:
   Formula: C6H6
   Fullname: Benzene
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 78.11
   MolecRatio: 6.0
-BRO2:
-  EmMW_g: 1.0
-  Fullname: BRO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
 Br:
-  EmMW_g: 80.0
   Formula: Br
   Fullname: Atomic bromine
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 80.0
-  MolecRatio: 1.0
+  MW_g: 79.9
 Br2:
-  EmMW_g: 160.0
+  DD_F0: 0.0
+  DD_Hstar: 7.6e-1
   Formula: Br2
   Fullname: Molecular Bromine
   Henry_CR: 3720.0
-  Henry_K0: 0.76
+  Henry_K0: 7.6e-1
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 160.0
-  MolecRatio: 1.0
+  MW_g: 159.8
+  WD_RetFactor: 0.0
 BrCl:
-  EmMW_g: 115.0
   Formula: BrCl
   Fullname: Bromine chloride
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 115.0
-  MolecRatio: 1.0
+  MW_g: 115.4
 BrNO2:
-  EmMW_g: 126.0
   Formula: BrNO2
   Fullname: Nitryl bromide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 126.0
-  MolecRatio: 1.0
+  MW_g: 125.9
 BrNO3:
-  EmMW_g: 142.0
   Formula: BrNO3
   Fullname: Bromine nitrate
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 142.0
-  MolecRatio: 1.0
+  MW_g: 141.9
 BrO:
-  EmMW_g: 96.0
   Formula: BrO
   Fullname: Bromine monoxide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 96.0
-  MolecRatio: 1.0
+  MW_g: 95.9
+BRO2:
+  Fullname: Peroxy radical from BENZ oxidation
+  Is_Gas: true
+  MW_g: NEEDED
 BrSALA:
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2200.0
-  EmMW_g: 80.0
   Formula: Br
   Fullname: Fine sea salt bromine
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 80.0
-  MolecRatio: 1.0
-  Radius: 0.0
+  MW_g: 79.9
+  Radius: 2.55e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 BrSALC:
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2200.0
-  EmMW_g: 80.0
   Formula: Br
   Fullname: Coarse sea salt bromine
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 80.0
-  MolecRatio: 1.0
-  Radius: 0.0
+  MW_g: 79.9
+  Radius: 4.25e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 C2H6:
   EmMW_g: 12.0
   Formula: C2H6
   Fullname: Ethane
   Henry_CR: 2400.0
-  Henry_K0: 0.00193
+  Henry_K0: 1.93e-3
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 30.07
+  MW_g: 30.1
   MolecRatio: 2.0
 C3H8:
   EmMW_g: 12.0
   Formula: C3H8
   Fullname: Propane
   Henry_CR: 2400.0
-  Henry_K0: 0.00152
+  Henry_K0: 1.52e-3
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 44.1
   MolecRatio: 3.0
 C4HVP1:
-  EmMW_g: 1.0
-  Fullname: C4HVP1
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: C4 hydroxy-vinyl peroxy radicals from HPALDS
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 C4HVP2:
-  EmMW_g: 1.0
   Fullname: C4HVP2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 CCl4:
-  EmMW_g: 152.0
   Formula: CCl4
   Fullname: Carbon tetrachloride
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 152.0
-  MolecRatio: 1.0
+  MW_g: 153.8
 CFC11:
-  EmMW_g: 137.0
   Formula: CCl3F
   Fullname: CFC-11
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 137.0
-  MolecRatio: 1.0
+  MW_g: 137.4
 CFC113:
-  EmMW_g: 187.0
   Formula: C2Cl3F3
   Fullname: CFC-113
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 187.0
-  MolecRatio: 1.0
+  MW_g: 187.4
 CFC114:
-  EmMW_g: 187.0
   Formula: C2Cl2F4
   Fullname: CFC-114
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 187.0
-  MolecRatio: 1.0
+  MW_g: 170.9
 CFC115:
-  EmMW_g: 187.0
   Formula: C2ClF5
   Fullname: CFC-115
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 187.0
-  MolecRatio: 1.0
+  MW_g: 154.5
 CFC12:
-  EmMW_g: 121.0
   Formula: CCl2F2
   Fullname: CFC-12
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 121.0
-  MolecRatio: 1.0
+  MW_g: 120.9
 CH2Br2:
-  EmMW_g: 174.0
   Formula: CH2Br2
   Fullname: Dibromomethane
   Henry_CR: 5000.0
   Henry_K0: 1.22
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 174.0
-  MolecRatio: 1.0
+  MW_g: 173.8
 CH2Cl2:
-  EmMW_g: 85.0
   Formula: CH2Cl2
   Fullname: Dichloromethane
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 85.0
-  MolecRatio: 1.0
+  MW_g: 84.9
 CH2I2:
-  EmMW_g: 268.0
   Formula: CH2I2
   Fullname: Diiodomethane
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 268.0
-  MolecRatio: 1.0
+  MW_g: 267.8
 CH2IBr:
-  EmMW_g: 221.0
   Formula: CH2IBr
   Fullname: Bromoiodomethane
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 221.0
-  MolecRatio: 1.0
+  MW_g: 220.8
 CH2ICl:
-  EmMW_g: 167.0
   Formula: CH2ICl
   Fullname: Chloroiodomethane
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 167.0
-  MolecRatio: 1.0
+  MW_g: 176.4
 CH2O:
-  EmMW_g: 30.0
+  Background_VV: 4.0e-15
+  DD_F0: 1.0
+  DD_Hstar: 3.0e+3
   Formula: CH2O
   Fullname: Formaldehyde
   Henry_CR: 6800.0
-  Henry_K0: 3240.0
+  Henry_K0: 3.24e+3
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 30.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 CH2OO:
-  EmMW_g: 1.0
-  Fullname: CH2OO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: CH2OO
+  Fullname: Criegee intermediate
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 46.0
 CH3Br:
-  EmMW_g: 95.0
   Formula: CH3Br
   Fullname: Methyl bromide
   Henry_CR: 2800.0
-  Henry_K0: 0.132
+  Henry_K0: 1.32e-1
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 95.0
-  MolecRatio: 1.0
+  MW_g: 94.9
 CH3CCl3:
-  EmMW_g: 133.0
   Formula: CH3CCl3
   Fullname: Methyl chloroform
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 133.0
-  MolecRatio: 1.0
+  MW_g: 133.4
 CH3CHOO:
-  EmMW_g: 1.0
-  Fullname: CH3CHOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: CH3CHOO
+  Fullname: Criegee intermediate
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 60.1
 CH3Cl:
-  EmMW_g: 50.0
   Formula: CH3Cl
   Fullname: Chloromethane
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 50.0
-  MolecRatio: 1.0
+  MW_g: 50.5
 CH3I:
-  EmMW_g: 142.0
   Formula: CH3I
   Fullname: Methyl iodide
-  Henry_CR: 3600.0
+  Henry_CR: 3.6e+3
   Henry_K0: 0.20265
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 142.0
-  MolecRatio: 1.0
+  MW_g: 141.9
 CH3ITracer:
-  EmMW_g: 142.0
   Fullname: Methyl_iodide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 142.0
-  MolecRatio: 1.0
+  MW_g: 141.9
 CH4:
-  EmMW_g: 16.0
   Formula: CH4
   Fullname: Methane
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 16.0
-  MolecRatio: 1.0
 CHBr3:
-  EmMW_g: 253.0
   Formula: CHBr3
   Fullname: Bromoform
   Henry_CR: 5200.0
   Henry_K0: 1.72
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 253.0
-  MolecRatio: 1.0
+  MW_g: 252.7
 CHCl3:
-  EmMW_g: 119.0
   Formula: CHCl3
   Fullname: Chloroform
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 119.0
-  MolecRatio: 1.0
-CO:
-  EmMW_g: 28.0
-  Formula: CO
-  Fullname: Carbon monoxide
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 28.0
-  MolecRatio: 1.0
-CO2:
-  EmMW_g: 44.0
-  Formula: CO2
-  Fullname: Carbon dioxide
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 44.0
-  MolecRatio: 1.0
-COAnthroEmis25dayTracer:
-  EmMW_g: 28.0
-  Fullname: Anthropogenic_CO_with_25day_lifetime
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 28.0
-  MolecRatio: 1.0
-COAnthroEmis50dayTracer:
-  EmMW_g: 28.0
-  Fullname: Anthropogenic_CO_with_50day_lifetime
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 28.0
-  MolecRatio: 1.0
-COUniformEmis25dayTracer:
-  EmMW_g: 28.0
-  Fullname: CO_with_uniform_emission_and_25day_lifetime
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 28.0
-  MolecRatio: 1.0
+  MW_g: 119.4
 Cl:
-  EmMW_g: 35.0
   Formula: Cl
   Fullname: Atomic chlorine
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 35.0
-  MolecRatio: 1.0
+  MW_g: 35.5
 Cl2:
-  EmMW_g: 71.0
   Formula: Cl2
   Fullname: Molecular chlorine
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 71.0
-  MolecRatio: 1.0
 Cl2O2:
-  EmMW_g: 103.0
   Formula: Cl2O2
   Fullname: Dichlorine dioxide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 103.0
-  MolecRatio: 1.0
+  MW_g: 102.9
 ClNO2:
-  EmMW_g: 81.0
   Formula: ClNO2
   Fullname: Nitryl chloride
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 81.0
-  MolecRatio: 1.0
+  MW_g: 81.5
 ClNO3:
-  EmMW_g: 97.0
   Formula: ClNO3
   Fullname: Chlorine nitrate
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 97.0
-  MolecRatio: 1.0
+  MW_g: 97.5
 ClO:
-  EmMW_g: 51.0
   Formula: ClO
   Fullname: Chlorine monoxide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 51.0
-  MolecRatio: 1.0
+  MW_g: 51.5
 ClOO:
-  EmMW_g: 67.0
   Formula: ClOO
   Fullname: Chlorine dioxide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 67.0
-  MolecRatio: 1.0
+  MW_g: 67.5
+CO:
+  Formula: CO
+  Fullname: Carbon monoxide
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 28.0
+CO2:
+  Formula: CO2
+  Fullname: Carbon dioxide
+  Is_Gas: true
+  MW_g: 44.0
+COAnthroEmis25dayTracer:
+  Formula: CO
+  Fullname: Anthropogenic_CO_with_25day_lifetime
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 28.0
+COAnthroEmis50dayTracer:
+  Formula: CO
+  Fullname: Anthropogenic_CO_with_50day_lifetime
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 28.0
+COUniformEmis25dayTracer:
+  Formula: CO
+  Fullname: CO_with_uniform_emission_and_25day_lifetime
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 28.0
 DMS:
-  EmMW_g: 62.0
   Formula: (CH3)2S
   Fullname: Dimethyl sulfide
   Henry_CR: 3100.0
   Henry_K0: 0.48
   Is_Advected: true
   Is_Aero: true
-  Is_DryDep: false
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 62.0
-  MolecRatio: 1.0
+  MW_g: 62.1
 DST1:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2500.0
-  EmMW_g: 29.0
   Fullname: Dust aerosol, Reff = 0.7 microns
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 29.0
-  MolecRatio: 1.0
-  Radius: 0.0
+  Radius: 7.3e-7
+  WD_AerScavEff: 1.0_fp
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 DST2:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2650.0
-  EmMW_g: 29.0
   Fullname: Dust aerosol, Reff = 1.4 microns
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 29.0
-  MolecRatio: 1.0
-  Radius: 0.0
+  Radius: 1.4e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0. 0.0]
 DST3:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2650.0
-  EmMW_g: 29.0
   Fullname: Dust aerosol, Reff = 2.4 microns
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 29.0
-  MolecRatio: 1.0
-  Radius: 0.0
+  Radius: 2.4e-6
+  WD_AerScavEff: 1.0_fp
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 DST4:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2650.0
-  EmMW_g: 29.0
   Fullname: Dust aerosol, Reff = 4.5 microns
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 29.0
-  MolecRatio: 1.0
-  Radius: 0.0
+  Radius: 4.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+DSTAL1:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Fullname: Dust alkalynity, Reff = 0.7 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 7.3e-7
+  WD_AerScavEff: 1.0_fp
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+DSTAL2:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Dust alkalinity, Reff = 1.4 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 1.4e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0. 0.0]
+DSTAL3:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Dust alkalinity, Reff = 2.4 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 2.4e-6
+  WD_AerScavEff: 1.0_fp
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+DSTAL4:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Dust alkalinity, Reff = 4.5 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 4.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 EOH:
+  DD_F0: 0.0
+  DD_Hstar: 1.9e+2
   EmMW_g: 12.0
   Formula: C2H5OH
   Fullname: Ethanol
   Henry_CR: 6400.0
-  Henry_K0: 193.0
+  Henry_K0: 1.93e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 46.07
   MolecRatio: 2.0
+  WD_RetFactor: 2.0e-2
 ETHLN:
-  EmMW_g: 105.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: CHOCH2ONO2
   Fullname: Ethanol nitrate
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 105.0
-  MolecRatio: 1.0
+  MW_g: 105.1
+  WD_RetFactor: 2.0e-2
 ETNO3:
-  EmMW_g: 91.07
+  DD_F0: 0.1
+  DD_Hstar: 1.6
   Formula: C2H5ONO2
   Fullname: Ethyl nitrate
   Henry_CR: 5400.0
   Henry_K0: 1.6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 91.07
-  MolecRatio: 1.0
 ETO2:
-  EmMW_g: 1.0
+  Formula: CH3CH2OO
   Fullname: ETO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 61.1
 ETP:
-  EmMW_g: 1.0
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
   Formula: CH3CH2OOH
   Fullname: Ethylhydroperoxide
   Henry_CR: 6000.0
-  Henry_K0: 334.0
+  Henry_K0: 3.34e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 62.1
+  WD_RetFactor: 2.0e-2
 GlobEmis90dayTracer:
-  EmMW_g: 1.0
   Fullname: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 1.0
-  MolecRatio: 1.0
 GLYC:
-  EmMW_g: 60.0
+  DD_F0: 1.0
+  DD_Hstar: 4.1e+4
   Formula: HOCH2CHO
   Fullname: Glycoaldehyde
   Henry_CR: 4600.0
-  Henry_K0: 41500.0
+  Henry_K0: 4.15e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 60.0
-  MolecRatio: 1.0
+  MW_g: 60.1
+  WD_RetFactor: 2.0e-2
 GLYX:
-  EmMW_g: 58.0
+  DD_F0: 1.0
+  DD_Hstar: 3.6e+5
   Formula: CHOCHO
   Fullname: Glyoxal
   Henry_CR: 7500.0
-  Henry_K0: 415000.0
+  Henry_K0: 4.15e+5
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 58.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 H:
-  EmMW_g: 1.0
+  Formula: H
   Fullname: H
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 1.0
-  MolecRatio: 1.0
 H1211:
-  EmMW_g: 165.0
   Formula: CBrClF2
   Fullname: Halon 1211, Freon 12B1
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 165.0
-  MolecRatio: 1.0
+  MW_g: 165.4
 H1301:
-  EmMW_g: 149.0
   Formula: CBrF3
   Fullname: Halon 1301, Freon 13B1
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 149.0
-  MolecRatio: 1.0
+  MW_g: 148.9
 H2:
-  EmMW_g: 1.0
   Formula: H2
   Fullname: Molecular hydrogen
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 2.0
 H2402:
-  EmMW_g: 260.0
   Formula: C2Br2F4
   Fullname: Halon 2402
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 260.0
-  MolecRatio: 1.0
+  MW_g: 259.8
 H2O:
-  EmMW_g: 18.0
+  BackgroundVV: 1.839e-2
   Formula: H2O
   Fullname: Water vapor
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 18.0
-  MolecRatio: 1.0
 H2O2:
-  EmMW_g: 34.0
+  BackgroundVV: 4.0e-15
+  DD_F0: 1.0
+  DD_Hstar: 5.0e+7
   Formula: H2O2
   Fullname: Hydrogen peroxide
   Henry_CR: 7400.0
-  Henry_K0: 83000.0
+  Henry_K0: 8.3e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 34.0
-  MolecRatio: 1.0
+  WD_RetFactor: 5e-2
+  WD_LiqAndGas: true
+  WD_ConvFacI2G: 4.36564e-1
 HAC:
-  EmMW_g: 74.0
+  DD_F0: 1.0
+  DD_Hstar: 1.4e+6
   Formula: HOCH2C(O)CH3
   Fullname: Hydroxyacetone
+  Henry_CR: 0.0
   Henry_K0: 7800.0
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 74.0
-  MolecRatio: 1.0
+  MW_g: 74.1
+  WD_RetFactor: 2.0e-2
 HBr:
-  EmMW_g: 81.0
+  DD_F0: 0.0
+  DD_Hstar: 7.1e+15
   Formula: HBr
   Fullname: Hypobromic acid
   Henry_CR: 10200.0
-  Henry_K0: 71000000000000.0
+  Henry_K0: 7.1e+13
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 81.0
-  MolecRatio: 1.0
+  MW_g: 80.9
+  WD_RetFactor: 2.0e-2
 HC5A:
-  EmMW_g: 100.0
+  DD_F0: 0.0
+  DD_Hstar: 7.8e+3
   Formula: C5H8O2
   Fullname: isoprene-4,1-hydroxyaldehyde
-  Henry_K0: 7800.0
+  Henry_CR: 0.0
+  Henry_K0: 7.8e+3
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 100.0
-  MolecRatio: 1.0
+  MW_g: 100.1
+  WD_RetFactor: 2.0e-2
 HCFC123:
-  EmMW_g: 117.0
   Formula: C2HCl2F3
   Fullname: HCFC-123, Freon 123
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 117.0
-  MolecRatio: 1.0
+  MW_g: 152.9
 HCFC141b:
-  EmMW_g: 117.0
   Formula: C(CH3)Cl2F
   Fullname: HCFC-141b, Freon 141b
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 117.0
-  MolecRatio: 1.0
+  MW_g: 116.9
 HCFC142b:
-  EmMW_g: 117.0
   Formula: C(CH3)ClF2
   Fullname: HCFC-142b, Freon 142b
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 117.0
-  MolecRatio: 1.0
+  MW_g: 100.5
 HCFC22:
-  EmMW_g: 86.0
   Formula: CHClF2
   Fullname: HCFC-22, Freon 22
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 86.0
-  MolecRatio: 1.0
-HCOOH:
-  EmMW_g: 46.0
-  Formula: HCOOH
-  Fullname: Formic acid
-  Henry_CR: 6100.0
-  Henry_K0: 8920.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 46.0
-  MolecRatio: 1.0
+  MW_g: 86.5
 HCl:
-  EmMW_g: 36.0
+  DD_F0: 0.0
+  DD_Hstar: 2.05e+13
   Formula: HCl
   Fullname: Hydrochloric acid
   Henry_CR: 11000.0
-  Henry_K0: 70000000000.0
+  Henry_K0: 7.0e+10
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 36.0
-  MolecRatio: 1.0
+  MW_g: 36.5
+  WD_RetFactor: 2.0e-2
+HCOOH:
+  DD_F0: 1.0
+  DD_Hstar: 8.90e+3
+  Formula: HCOOH
+  Fullname: Formic acid
+  Henry_CR: 6100.0
+  Henry_K0: 8.92e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 46.0
+  WD_RetFactor: 2.0e-2
 HI:
-  EmMW_g: 128.0
+  DD_F0: 0.0
+  DD_Hstar: 2.35e+16
   Formula: HI
   Fullname: Hydrogen iodide
-  Henry_CR: 3187.2
-  Henry_K0: 74300000000000.0
+  Henry_CR: 3.1872e+3
+  Henry_K0: 7.43e+13
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 128.0
-  MolecRatio: 1.0
+  MW_g: 127.9
+  WD_RetFactor: 1.0
 HMHP:
-  EmMW_g: 64.0
+  DD_F0: 1.0
+  DD_Hstar: 1.3e+6
   Formula: HOCH2OOH
   Fullname: Hydroxymethyl hydroperoxide
   Henry_CR: 5200.0
-  Henry_K0: 1300000.0
+  Henry_K0: 1.3e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 64.0
-  MolecRatio: 1.0
+  MW_g: 64.1
+  WD_RetFactor: 2.0e-2
 HMML:
-  EmMW_g: 102.0
+  DD_F0: 1.0
+  DD_Hstar: 1.2e+5
   Formula: C4H6O3
   Fullname: hydroxymethyl-methyl-a-lactone
   Henry_CR: 7200.0
-  Henry_K0: 120000.0
+  Henry_K0: 1.2e+5
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 102.0
-  MolecRatio: 1.0
+  MW_g: 102.1
 HNO2:
-  EmMW_g: 47.0
+  BackgroundVV: 4.0e-15
   Formula: HNO2
   Fullname: Nitrous acid
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 47.0
-  MolecRatio: 1.0
 HNO3:
-  EmMW_g: 63.0
+  BackgroundVV: 4.0e-15
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+14
   Formula: HNO3
   Fullname: Nitric acid
   Henry_CR: 7400.0
-  Henry_K0: 83000.0
+  Henry_K0: 8.3e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 63.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_KcScaleFac_Luo: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 1.0]
+  WD_RainoutEff_Luo: [1.0, 0.0, 1.0]
 HNO4:
-  EmMW_g: 79.0
+  BackgroundVV: 4.0e-15
   Formula: HNO4
   Fullname: Peroxynitric acid
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 79.0
-  MolecRatio: 1.0
 HO2:
-  EmMW_g: 1.0
   Formula: HO2
   Fullname: Hydroperoxyl radical
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 33.0
 HOBr:
-  EmMW_g: 97.0
+  DD_F0: 0.0
+  DD_Hstar: 6.1e+3
   Formula: HOBr
   Fullname: Hypobromous acid
   Henry_CR: 6014.0
-  Henry_K0: 6100.0
+  Henry_K0: 6.1e+3
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 97.0
-  MolecRatio: 1.0
+  MW_g: 96.9
+  WD_RetFactor: 0.0
 HOCl:
-  EmMW_g: 52.0
+  DD_F0: 0.0
+  DD_Hstar: 6.5e+2
   Formula: HOCl
   Fullname: Hypochlorous acid
   Henry_CR: 5900.0
-  Henry_K0: 650.0
+  Henry_K0: 6.50e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 52.0
-  MolecRatio: 1.0
+  MW_g: 52.5
+  WD_RetFactor: 0.0
 HOI:
-  EmMW_g: 144.0
+  DD_F0: 0.0
+  DD_Hstar: 1.54e+4
   Formula: HOI
   Fullname: Hypoiodous acid
   Henry_CR: 8371.0
-  Henry_K0: 15400.0
+  Henry_K0: 1.54e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 144.0
-  MolecRatio: 1.0
+  MW_g: 143.9
+  WD_RetFactor: 2.0e-2
 HONIT:
-  EmMW_g: 215.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Fullname: 2nd gen monoterpene organic nitrate
   Henry_CR: 5487.0
-  Henry_K0: 26900000000000.0
+  Henry_K0: 2.69e+13
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 HPALD1:
-  EmMW_g: 116.0
+  DD_F0: 0.0
+  DD_Hstar: 4.0e+4
   Formula: C5H8O3
   Fullname: d-4,1-C5-hydroperoxyaldehyde
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 116.0
-  MolecRatio: 1.0
+  MW_g: 116.1
 HPALD1OO:
-  EmMW_g: 1.0
+  Formula: C5H8O5
   Fullname: HPALD1OO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 148.1
 HPALD2:
-  EmMW_g: 116.0
+  DD_F0: 0.0
+  DD_Hstar: 4.0e+4
   Formula: C5H8O3
   Fullname: d-1,4-C5-hydroperoxyaldehyde
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 116.0
-  MolecRatio: 1.0
+  MW_g: 116.1
 HPALD2OO:
-  EmMW_g: 1.0
+  Formula: C5H8O5
   Fullname: HPALD2OO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 148.1
 HPALD3:
-  EmMW_g: 116.0
+  DD_F0: 0.0
+  DD_Hstar: 4.0e+4
   Formula: C5H8O3
   Fullname: b-2,1-C5-hydroperoxyaldehyde
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 116.0
-  MolecRatio: 1.0
+  MW_g: 116.1
 HPALD4:
-  EmMW_g: 116.0
+  DD_F0: 0.0
+  DD_Hstar: 4.0e+4
   Formula: C5H8O3
   Fullname: b-3,4-C5-hydroperoxyaldehyde
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 116.0
-  MolecRatio: 1.0
+  MW_g: 116.1
 HPETHNL:
-  EmMW_g: 76.0
+  DD_F0: 1.0
+  DD_Hstar: 4.1e+4
   Formula: HOOCH2CHO
   Fullname: Hydroperoxy ethanal
   Henry_CR: 4600.0
-  Henry_K0: 41000.0
+  Henry_K0: 4.1e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 76.0
-  MolecRatio: 1.0
+  MW_g: 76.1
+  WD_RetFactor: 2.0e-2
 I:
-  EmMW_g: 127.0
   Formula: I
   Fullname: Atomic iodine
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 127.0
-  MolecRatio: 1.0
+  MW_g: 126.9
 I2:
-  EmMW_g: 254.0
+  DD_F0: 0.0
+  DD_Hstar: 2.7
   Formula: I2
   Fullname: Molecular iodine
-  Henry_CR: 7507.4
+  Henry_CR: 7.5074e+3
   Henry_K0: 2.7
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 254.0
-  MolecRatio: 1.0
+  MW_g: 253.8
 I2O2:
-  EmMW_g: 286.0
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+20
   Formula: I2O2
   Fullname: Diiodine dioxide
-  Henry_CR: 18900.0
-  Henry_K0: 1e+20
+  Henry_CR: 1.89e+4
+  Henry_K0: 1.0e+20
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 286.0
-  MolecRatio: 1.0
+  MW_g: 285.8
+  WD_RetFactor: 1.0
 I2O3:
-  EmMW_g: 302.0
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+20
   Formula: I2O3
   Fullname: Diiodine trioxide
-  Henry_CR: 13400.0
-  Henry_K0: 1e+20
+  Henry_CR: 1.34e+4
+  Henry_K0: 1.0e+20
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 302.0
-  MolecRatio: 1.0
+  MW_g: 301.8
+  WD_RetFactor: 1.0
 I2O4:
-  EmMW_g: 318.0
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+20
   Formula: I2O4
   Fullname: Diiodine tetraoxide
-  Henry_CR: 13400.0
-  Henry_K0: 1e+20
+  Henry_CR: 1.34e+4
+  Henry_K0: 1.0e+20
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 318.0
-  MolecRatio: 1.0
+  MW_g: 317.8
+  WD_RetFactor: 1.0
 IBr:
-  EmMW_g: 207.0
+  DD_F0: 0.0
+  DD_Hstar: 2.43e+1
   Formula: IBr
   Fullname: Iodine monobromide
-  Henry_CR: 4916.7
-  Henry_K0: 24.0
+  Henry_CR: 4.9167e+3
+  Henry_K0: 2.4e+1
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 207.0
-  MolecRatio: 1.0
+  MW_g: 206.9
+  WD_RetFactor: 0.0
 ICHE:
-  EmMW_g: 116.0
+  DD_F0: 1.0
+  DD_Hstar: 8.0e+7
   Formula: C5H8O3
-  Fullname: isoprene hydroxy-carbonyl-epoxides
-  Henry_K0: 80000000.0
+  Fullname: Isoprene hydroxy-carbonyl-epoxides
+  Henry_CR: 0.0
+  Henry_K0: 8.0e+7
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 116.0
-  MolecRatio: 1.0
+  MW_g: 116.1
+  WD_RetFactor: 2.0e-2
 ICHOO:
-  EmMW_g: 1.0
-  Fullname: ICHOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-ICN:
-  EmMW_g: 145.0
-  Formula: C5H7NO4
-  Fullname: lumped isoprene carbonyl-nitrates
-  Henry_CR: 9200.0
-  Henry_K0: 17000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 145.0
-  MolecRatio: 1.0
-ICNOO:
-  EmMW_g: 1.0
-  Fullname: ICNOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-ICPDH:
-  EmMW_g: 150.0
   Formula: C5H10O5
-  Fullname: isoprene dihydroxy hydroperoxycarbonyl
-  Henry_CR: 7200.0
-  Henry_K0: 100000000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
+  Fullname: Peroxy radical from IEPOXD
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
+  MW_g: 150.2
 ICl:
-  EmMW_g: 162.0
+  DD_F0: 0.0
+  DD_Hstar: 1.11e+2
   Formula: ICl
   Fullname: Iodine monochloride
-  Henry_CR: 2105.5
-  Henry_K0: 111.0
+  Henry_CR: 2.1055e+3
+  Henry_K0: 1.11e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 162.0
-  MolecRatio: 1.0
-IDC:
-  EmMW_g: 98.0
-  Formula: C5H6O2
-  Fullname: lumped isoprene dicarbonyls
+  MW_g: 162.4
+  WD_RetFactor: 0.0
+ICN:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
+  Formula: C5H7NO4
+  Fullname: Lumped isoprene carbonyl-nitrates
+  Henry_CR: 9200.0
+  Henry_K0: 1.70e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 98.0
-  MolecRatio: 1.0
-IDCHP:
-  EmMW_g: 148.0
-  Formula: C5H8O5
-  Fullname: isoprene dicarbonyl hydroxy dihydroperoxide
-  Henry_CR: 7200.0
-  Henry_K0: 100000000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 148.0
-  MolecRatio: 1.0
-IDHDP:
-  EmMW_g: 168.0
-  Formula: C5H12O6
-  Fullname: isoprene dihydroxy dihydroperoxide
-  Henry_CR: 7200.0
-  Henry_K0: 100000000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
+  MW_g: 145.1
+  WD_RetFactor: 2.0e-2
+ICNOO:
+  Formula: C5H7NO6
+  Fullname: Peroxy radicals from ICN
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 168.0
-  MolecRatio: 1.0
-IDHNBOO:
-  EmMW_g: 1.0
-  Fullname: IDHNBOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-IDHNDOO1:
-  EmMW_g: 1.0
-  Fullname: IDHNDOO1
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-IDHNDOO2:
-  EmMW_g: 1.0
-  Fullname: IDHNDOO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-IDHPE:
-  EmMW_g: 150.0
+  MW_g: 177.1
+ICPDH:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+8
   Formula: C5H10O5
-  Fullname: isoprene dihydroxy hydroperoxy epoxide
+  Fullname: Isoprene dihydroxy hydroperoxycarbonyl
+  Henry_CR: 7200.0
+  Henry_K0: 1.0e+8
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 150.2
+  WD_RetFactor: 2.0e-2
+IDC:
+  DD_F0: 0.0
+  DD_Hstar: 4.0e+4
+  Formula: C5H6O2
+  Fullname: Lumped isoprene dicarbonyls
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  MW_g: 98.1
+IDCHP:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+8
+  Formula: C5H8O5
+  Fullname: Isoprene dicarbonyl hydroxy dihydroperoxide
+  Henry_CR: 7200.0
+  Henry_K0: 1.8e+8
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 148.1
+  WD_RetFactor: 2.0e-2
+IDHDP:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+8
+  Formula: C5H12O6
+  Fullname: Isoprene dihydroxy dihydroperoxide
+  Henry_CR: 7200.0
+  Henry_K0: 1.0e+8
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 168.2
+  WD_RetFactor: 2.0e-2
+IDHNBOO:
+  Formula: C5H9NO7
+  Fullname: Peroxy radicals from INPB
+  Is_Gas: true
+  MW_g: 195.1
+IDHNDOO1:
+  Formula: C5H9NO7
+  Fullname: Peroxy radicals from INPD
+  Is_Gas: true
+  MW_g: 195.1
+IDHNDOO2:
+  Formula: C5H9NO7
+  Fullname: Peroxy radicals from INPD
+  Is_Gas: true
+  MW_g: 195.1
+IDHPE:
+  Formula: C5H10O5
+  Fullname: Isoprene dihydroxy hydroperoxy epoxide
   Henry_CR: 7200.0
   Henry_K0: 100000000.0
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
+  MW_g: 150.2
 IDN:
-  EmMW_g: 208.0
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+8
   Formula: C5H8N2O6
-  Fullname: lumped isoprene dinitrates
+  Fullname: Lumped isoprene dinitrates
   Henry_CR: 7200.0
-  Henry_K0: 100000000.0
+  Henry_K0: 1.0e_8
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 208.0
-  MolecRatio: 1.0
+  MW_g: 192.1
+  WD_RetFactor: 2.0e-2
 IDNOO:
-  EmMW_g: 1.0
+  Formula: C5H8N2O8
   Fullname: IDNOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 224.1
 IEPOXA:
-  EmMW_g: 118.0
+  DD_F0: 1.0
+  DD_Hstar: 8.0e+7
   Formula: C5H10O3
   Fullname: trans-Beta isoprene epoxydiol
-  Henry_K0: 80000000.0
+  Henry_CR: 0.0
+  Henry_K0: 8.0e+7
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
+  MW_g: 118.2
+  WD_RetFactor: 2.0e-2
 IEPOXAOO:
-  EmMW_g: 1.0
-  Fullname: IEPOXAOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H10O5
+  Fullname: Peroxy radical from trans-Beta isoprene epoxydiol
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 150.2
 IEPOXB:
-  EmMW_g: 118.0
+  DD_F0: 1.0
+  DD_Hstar: 8.0e+7
   Formula: C5H10O3
   Fullname: cis-Beta isoprene epoxydiol
-  Henry_K0: 80000000.0
+  Henry_CR: 0.0
+  Henry_K0: 8.0e+7
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
+  MW_g: 118.2
+  WD_RetFactor: 2.0e-2
 IEPOXBOO:
-  EmMW_g: 1.0
-  Fullname: IEPOXBOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H10O5
+  Fullname: peroxy radical from cis-Beta isoprene epoxydiol
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 150.2
 IEPOXD:
-  EmMW_g: 118.0
+  DD_F0: 1.0
+  DD_Hstar: 8.0e+7
   Formula: C5H10O3
   Fullname: Delta isoprene epoxydiol
-  Henry_K0: 80000000.0
+  Henry_CR: 0.0
+  Henry_K0: 8.0e+7
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
+  MW_g: 118.2
+  WD_RetFactor: 2.0e-2
 IHN1:
-  EmMW_g: 147.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: C5H9NO4
-  Fullname: isoprene-d-4,1-hydroxynitrate
+  Fullname: Isoprene-d-4,1-hydroxynitrate
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.0
-  MolecRatio: 1.0
+  MW_g: 147.1
+  WD_RetFactor: 2.0e-2
 IHN2:
-  EmMW_g: 147.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: C5H9NO4
-  Fullname: isoprene-b-1,2-hydroxynitrate
+  Fullname: Isoprene-b-1,2-hydroxynitrate
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.0
-  MolecRatio: 1.0
+  MW_g: 147.1
+  WD_RetFactor: 2.0e-2
 IHN3:
-  EmMW_g: 147.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: C5H9NO4
-  Fullname: isoprene-b-4,3-hydroxynitrate
+  Fullname: Isoprene-b-4,3-hydroxynitrate
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.0
-  MolecRatio: 1.0
+  MW_g: 147.1
+  WD_RetFactor: 2.0e-2
 IHN4:
-  EmMW_g: 147.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: C5H9NO4
-  Fullname: isoprene-d-4,1-hydroxynitrate
+  Fullname: Isoprene-d-4,1-hydroxynitrate
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.0
-  MolecRatio: 1.0
+  MW_g: 147.1
+  WD_RetFactor: 2.0e-2
 IHOO1:
-  EmMW_g: 1.0
-  Fullname: IHOO1
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9O
+  Fullname: Peroxy radical from OH addition to isoprene at C1
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 85.1
 IHOO4:
-  EmMW_g: 1.0
-  Fullname: IHOO4
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9O
+  Fullname: Peroxy radical from OH addition to isoprene at C4
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 85.1
 IHPNBOO:
-  EmMW_g: 1.0
-  Fullname: IHPNBOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9NO7
+  Fullname: Peroxy radicals from INPB
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 195.1
 IHPNDOO:
-  EmMW_g: 1.0
-  Fullname: IHPNDOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9NO7
+  Fullname: Peroxy radicals from INPD
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 195.1
 IHPOO1:
-  EmMW_g: 1.0
-  Fullname: IHPOO1
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9O4
+  Fullname: Peroxy radical from ISOPOOH
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 133.1
 IHPOO2:
-  EmMW_g: 1.0
-  Fullname: IHPOO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9O4
+  Fullname: Peroxy radical from ISOPOOH
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 133.1
 IHPOO3:
-  EmMW_g: 1.0
-  Fullname: IHPOO3
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9O4
+  Fullname: Peroxy radical from ISOPOOH
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 133.1
 INA:
-  EmMW_g: 1.0
-  Fullname: INA
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: Alkoxy radical from INO2D
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 INDIOL:
-  EmMW_g: 102.0
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Fullname: Generic aerosol-phase organonitrate hydrolysis product
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 102.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
 INO:
-  EmMW_g: 157.0
   Formula: INO
   Fullname: Nitrosyl iodide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 157.0
-  MolecRatio: 1.0
+  MW_g: 156.9
 INO2B:
-  EmMW_g: 1.0
-  Fullname: INO2B
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: beta-peroxy radicals from isoprene + NO3
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 INO2D:
-  EmMW_g: 1.0
-  Fullname: INO2D
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: delta-peroxy radicals from isoprene + NO3
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 INPB:
-  EmMW_g: 163.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: C5H9NO5
-  Fullname: lumped b-hydroperoxy isoprene nitrates
+  Fullname: Lumped b-hydroperoxy isoprene nitrates
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 163.0
-  MolecRatio: 1.0
+  MW_g: 163.1
+  WD_RetFactor: 2.0e-2
 INPD:
-  EmMW_g: 163.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: C5H9NO5
-  Fullname: lumped d-hydroperoxy isoprene nitrates
+  Fullname: Lumped d-hydroperoxy isoprene nitrates
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 163.0
-  MolecRatio: 1.0
+  MW_g: 163.1
+  WD_RetFactor: 2.0e-2
 IO:
-  EmMW_g: 143.0
   Formula: IO
   Fullname: Iodine monoxide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 143.0
-  MolecRatio: 1.0
+  MW_g: 142.9
 IONITA:
-  EmMW_g: 14.0
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Formula: NO3
   Fullname: Aer-phase organic nitrate from isoprene precursors
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 14.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
 IONO:
-  EmMW_g: 173.0
+  DD_F0: 0.0
+  DD_Hstar: 3.0e-1
   Formula: IONO
   Fullname: Nitryl iodide
-  Henry_CR: 7240.4
-  Henry_K0: 0.3
+  Henry_CR: 7.2404e+3
+  Henry_K0: 3.0e-1
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 173.0
-  MolecRatio: 1.0
+  MW_g: 172.9
+  WD_RetFactor: 2.0e-2
 IONO2:
-  EmMW_g: 189.0
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+20
   Formula: IONO2
   Fullname: Iodine nitrate
-  Henry_CR: 3980.0
-  Henry_K0: 1e+20
+  Henry_CR: 3.98e+3
+  Henry_K0: 1.0e+20
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 189.0
-  MolecRatio: 1.0
+  MW_g: 188.9
+  WD_RetFactor: 1.0
 IPRNO3:
-  EmMW_g: 105.09
+  DD_F0: 0.1
+  DD_Hstar: 7.9e-1
   Formula: C3H7ONO2
   Fullname: Isopropyl nitrate
   Henry_CR: 5400.0
   Henry_K0: 0.79
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 105.09
-  MolecRatio: 1.0
 ISALA:
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2200.0
-  EmMW_g: 127.0
   Formula: I
   Fullname: Fine sea salt iodine
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 127.0
-  MolecRatio: 1.0
-  Radius: 0.0
+  MW_g: 126.9
+  Radius: 2.55e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 ISALC:
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2200.0
-  EmMW_g: 127.0
   Formula: I
   Fullname: Coarse sea salt iodine
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 127.0
-  MolecRatio: 1.0
-  Radius: 0.0
+  MW_g: 126.9
+  Radius: 4.25e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 ISOP:
   EmMW_g: 12.0
   Formula: CH2=C(CH3)CH=CH2
   Fullname: Isoprene
   Henry_CR: 4400.0
-  Henry_K0: 0.0345
+  Henry_K0: 3.45e-2
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 68.12
   MolecRatio: 5.0
 ISOPNOO1:
-  EmMW_g: 1.0
-  Fullname: ISOPNOO1
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9NO6
+  Fullname: Peroxy radicals from IHN2
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 179.1
 ISOPNOO2:
-  EmMW_g: 1.0
-  Fullname: ISOPNOO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C5H9NO6
+  Fullname: Peroxy radicals from IHN3
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 179.1
 ITCN:
-  EmMW_g: 195.0
+  DD_F0: 1.0
+  DD_Hstar: 1.00e+8
   Formula: C5H9NO7
   Fullname: lumped isoprene tetrafunctional carbonylnitrates
   Henry_CR: 7200.0
-  Henry_K0: 100000000.0
+  Henry_K0: 1.0e+8
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 195.0
-  MolecRatio: 1.0
+  MW_g: 195.1
+  WD_RetFactor: 2.0e-2
 ITHN:
-  EmMW_g: 197.0
+  DD_F0: 1.0
+  DD_Hstar: 1.00e+8
   Formula: C5H11NO7
-  Fullname: lumped isoprene tetrafunctional hydroxynitrates
+  Fullname: Lumped isoprene tetrafunctional hydroxynitrates
   Henry_CR: 7200.0
-  Henry_K0: 100000000.0
+  Henry_K0: 1.0e+8
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 197.0
-  MolecRatio: 1.0
+  MW_g: 197.2
+  WD_RetFactor: 2.0e-2
 KO2:
-  EmMW_g: 1.0
-  Fullname: KO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: Peroxy radical from >3 ketones
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 LBRO2H:
-  EmMW_g: 1.0
-  Fullname: LBRO2H
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track oxidation of BRO2 by HO2
 LBRO2N:
-  EmMW_g: 1.0
-  Fullname: LBRO2N
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track oxidation of BRO2 by NO
 LCH4:
-  EmMW_g: 1.0
-  Fullname: LCH4
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track loss rate of CH4
 LCO:
-  EmMW_g: 1.0
-  Fullname: LCO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track loss rate of CO
 LIMO:
-  EmMW_g: 136.23
+  DD_F0: 0.0
+  DD_Hstar: 7.0e-2
   Formula: C10H16
   Fullname: Limonene
-  Henry_K0: 0.07
+  Henry_CR: 0.0
+  Henry_K0: 7.0e-2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 136.23
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 LIMO2:
-  EmMW_g: 1.0
-  Fullname: LIMO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C10H16O2
+  Fullname: Peroxy radical from LIMO
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 152.2
 LISOPNO3:
-  EmMW_g: 1.0
-  Fullname: LISOPNO3
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track oxidation of ISOP by NO3
 LISOPOH:
-  EmMW_g: 1.0
-  Fullname: LISOPOH
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track oxidation of ISOP by OH
 LOX:
-  EmMW_g: 1.0
-  Fullname: LOX
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track loss rate of Ox
 LTRO2H:
-  EmMW_g: 1.0
-  Fullname: LTRO2H
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track oxidation of TRO2 by HO2
 LTRO2N:
-  EmMW_g: 1.0
-  Fullname: LTRO2N
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track oxidation of TRO2 by NO
 LVOC:
-  EmMW_g: 154.0
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+8
   Formula: C5H14O5
   Fullname: Gas-phase low-volatility non-IEPOX product of RIP ox
   Henry_CR: 7200.0
-  Henry_K0: 100000000.0
+  Henry_K0: 1.0e+8
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 154.0
-  MolecRatio: 1.0
+  MW_g: 154.2
+  WD_RetFactor: 2.0e-2
 LVOCOA:
-  EmMW_g: 154.0
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_HStar: 0.0
   Formula: C5H14O5
   Fullname: Aer-phase low-volatility non-IEPOX product of RIP ox
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 154.0
-  MolecRatio: 1.0
+  MW_g: 154.2
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
 LXRO2H:
-  EmMW_g: 1.0
-  Fullname: LXRO2H
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track oxidation of XRO2 by HO2
 LXRO2N:
-  EmMW_g: 1.0
-  Fullname: LXRO2N
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  Fullname: Dummy species to track oxidation of XRO2 by NO
 MACR:
-  EmMW_g: 70.0
+  DD_F0: 1.0
+  DD_Hstar: 6.5
   Formula: CH2=C(CH3)CHO
   Fullname: Methacrolein
   Henry_CR: 4300.0
   Henry_K0: 4.86
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 70.0
-  MolecRatio: 1.0
+  MW_g: 70.1
 MACR1OO:
-  EmMW_g: 1.0
-  Fullname: MACR1OO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: CH2=C(CH3)C(O)OO
+  Fullname: Peroxyacyl radical from MACR + OH
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 101.1
 MACR1OOH:
-  EmMW_g: 102.0
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
   Formula: CH2=C(CH3)C(O)OOH
   Fullname: Peracid from MACR
   Henry_CR: 5200.0
-  Henry_K0: 294.0
+  Henry_K0: 2.94e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 102.0
-  MolecRatio: 1.0
+  MW_g: 102.1
+  WD_RetFactor: 2.0e-2
 MACRNO2:
-  EmMW_g: 1.0
-  Fullname: MACRNO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C4H8NO6
+  Fullname: Product of MCRHN + OH
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 152.1
 MAP:
-  EmMW_g: 76.0
+  DD_F0: 1.0
+  DD_Hstar: 8.4e+2
   Formula: CH3C(O)OOH
   Fullname: Peroxyacetic acid
   Henry_CR: 5300.0
-  Henry_K0: 840.0
+  Henry_K0: 8.4e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 76.0
-  MolecRatio: 1.0
+  MW_g: 76.1
+  WD_RetFactor: 2.0e-2
 MCO3:
-  EmMW_g: 1.0
-  Fullname: MCO3
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: CH3C(O)OO
+  Fullname: Peroxyacetyl radical
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 75.1
 MCRDH:
-  EmMW_g: 104.0
+  DD_F0: 1.0
+  DD_Hstar: 1.4e+6
   Formula: C4H8O3
   Fullname: Dihydroxy-methacrolein
   Henry_CR: 7200.0
-  Henry_K0: 1400000.0
+  Henry_K0: 1.4e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 104.0
-  MolecRatio: 1.0
+  MW_g: 104.1
+  WD_RetFactor: 2.0e-2
 MCRENOL:
-  EmMW_g: 86.0
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
   Formula: C4H6O2
   Fullname: Lumped enols from MVK/MACR
   Henry_CR: 5200.0
-  Henry_K0: 294.0
+  Henry_K0: 2.94e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 86.0
-  MolecRatio: 1.0
+  MW_g: 86.1
+  WD_RetFactor: 2.0e-2
 MCRHN:
-  EmMW_g: 149.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: HOCH2C(ONO2)(CH3)CHO
   Fullname: Nitrate from MACR
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 149.0
-  MolecRatio: 1.0
+  MW_g: 149.1
+  WD_RetFactor: 2.0e-2
 MCRHNB:
-  EmMW_g: 149.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: O2NOCH2C(OH)(CH3)CHO
   Fullname: Nitrate from MACR
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 149.0
-  MolecRatio: 1.0
+  MW_g: 149.1
+  WD_RetFactor: 2.0e-2
 MCRHP:
-  EmMW_g: 120.0
+  DD_F0: 1.0
+  DD_Hstar: 1.4e+6
   Formula: HOCH2C(OOH)(CH3)CHO
   Fullname: Hydroxy-hydroperoxy-methacrolein
   Henry_CR: 7200.0
-  Henry_K0: 1400000.0
+  Henry_K0: 1.4e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 120.0
-  MolecRatio: 1.0
+  MW_g: 120.1
+  WD_RetFactor: 2.0e-2
 MCROHOO:
-  EmMW_g: 1.0
-  Fullname: MCROHOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: Peroxy radical from MACR + OH
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 MEK:
   EmMW_g: 12.0
   Formula: RC(O)R
   Fullname: Methyl Ethyl Ketone
   Henry_CR: 5700.0
-  Henry_K0: 18.2
+  Henry_K0: 1.82e+1
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 72.11
   MolecRatio: 4.0
+  WD_RetFactor: 2.0e-2
 MENO3:
-  EmMW_g: 77.04
+  DD_F0: 0.1
+  DD_Hstar: 2.0
   Formula: CH3ONO2
   Fullname: Methyl nitrate
   Henry_CR: 4700.0
-  Henry_K0: 11.0
+  Henry_K0: 1.1e+1
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 77.04
-  MolecRatio: 1.0
 MGLY:
-  EmMW_g: 72.0
+  DD_F0: 1.0
+  DD_Hstar: 3.7e+3
   Formula: CH3COCHO
   Fullname: Methylglyoxal
   Henry_CR: 6200.0
-  Henry_K0: 32400.0
+  Henry_K0: 3.24e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 72.0
-  MolecRatio: 1.0
+  MW_g: 72.1
+  WD_RetFactor: 2.0e-2
 MO2:
-  EmMW_g: 1.0
   Formula: CH3O2
   Fullname: Methylperoxy radical
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 47.0
 MOH:
-  EmMW_g: 32.04
+  DD_F0: 1.0
+  DD_Hstar: 2.03e+2
   Formula: CH3OH
   Fullname: Methanol
   Henry_CR: 5600.0
-  Henry_K0: 203.0
+  Henry_K0: 2.03e+2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 32.04
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 MONITA:
-  EmMW_g: 14.0
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Fullname: Aer-phase organic nitrate from monoterpene precursors
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 14.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
 MONITS:
-  EmMW_g: 215.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Fullname: Saturated 1st gen monoterpene organic nitrate
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 MONITU:
-  EmMW_g: 215.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Fullname: Unsaturated 1st gen monoterpene organic nitrate
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
+MOPI:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1300.0
+  Formula: C
+  Fullname: Hydrophilic marine organic carbon aerosol
+  Is_Advected: true
+  Is_Aero: true
+  Is_Drydep: true
+  Is_HygroGrowth: true
+  Is_Wetdep: true
+  MW_g: 12.01
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+MOPI:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 1300.0
+  Formula: C
+  Fullname: Hydrophobic marine organic carbon aerosol
+  Is_Advected: true
+  Is_Aero: true
+  Is_Drydep: true
+  Is_Wetdep: true
+  MW_g: 12.01
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [0.5, 0.5, 0.5]
+  WD_RainoutEff: [0.0, 0.0, 0.0]
 MP:
-  EmMW_g: 48.0
+  BackgroundVV: 4.0e-15
   Formula: CH3OOH
   Fullname: Methyl hydro peroxide
   Henry_CR: 5200.0
-  Henry_K0: 294.0
+  Henry_K0: 2.94e+2
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 48.0
-  MolecRatio: 1.0
+  MW_g: 48.1
+  WD_RetFactor: 2.0e-2
 MPAN:
-  EmMW_g: 147.0
+  DD_F0: 1.0
+  DD_Hstar: 1.72
   Formula: CH2=C(CH3)C(O)OONO2
   Fullname: Peroxymethacroyl nitrate (PMN)
+  Henry_CR: 0.0
   Henry_K0: 1.72
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.0
-  MolecRatio: 1.0
+  MW_g: 147.1
+  WD_RetFactor: 2.0e-2
 MPN:
-  EmMW_g: 93.0
   Formula: CH3O2NO2
   Fullname: Methyl peroxy nitrate
   Henry_CR: 5200.0
-  Henry_K0: 294.0
+  Henry_K0: 2.94e+2
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 93.0
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 MSA:
-  EmMW_g: 96.0
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Formula: CH4SO3
   Fullname: Methyl sulfonic acid
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 96.0
-  MolecRatio: 1.0
+  MW_g: 96.1
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0. 1.0]
 MTPA:
-  EmMW_g: 136.23
+  DD_F0: 0.0
+  DD_Hstar: 4.9e-2
   Fullname: a-pinene, b-pinene, sabinene, carene
-  Henry_K0: 0.049
+  Henry_CR: 0.0
+  Henry_K0: 4.9e-2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 136.23
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 MTPO:
+  DD_F0: 0.0
+  DD_Hstar: 4.9e-2
   EmMW_g: 136.23
   Fullname: Terpinene, terpinolene, myrcene, ocimene, other monoterpenes
-  Henry_K0: 0.049
+  Henry_CR: 0.0
+  Henry_K0: 4.9e-2
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 136.23
-  MolecRatio: 1.0
+  WD_RetFactor: 2.0e-2
 MVK:
-  EmMW_g: 70.0
+  DD_F0: 1.0
+  DD_Hstar: 4.4e+1
   Formula: CH2=CHC(=O)CH3
   Fullname: Methyl vinyl ketone
   Henry_CR: 4800.0
-  Henry_K0: 26.3
+  Henry_K0: 2.63e+1
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 70.0
-  MolecRatio: 1.0
+  MW_g: 70.1
+  WD_RetFactor: 2.0e-2
 MVKDH:
-  EmMW_g: 104.0
+  DD_F0: 1.0
+  DD_Hstar: 1.4e+6
   Formula: HOCH2CH2OHC(O)CH3
   Fullname: dihydroxy-MVK
   Henry_CR: 7200.0
-  Henry_K0: 1400000.0
+  Henry_K0: 1.4e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
-  MW_g: 104.0
-  MolecRatio: 1.0
+  MW_g: 105.1
+  WD_RetFactor: 2.0e-2
 MVKHC:
-  EmMW_g: 102.0
+  DD_F0: 1.0
+  DD_Hstar: 1.4e+6
   Formula: C4H6O3
   Fullname: MVK hydroxy-carbonyl
   Henry_CR: 7200.0
-  Henry_K0: 1400000.0
+  Henry_K0: 1.4e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 102.0
-  MolecRatio: 1.0
+  MW_g: 102.1
+  WD_RetFactor: 2.0e-2
 MVKHCB:
-  EmMW_g: 102.0
+  DD_F0: 1.0
+  DD_Hstar: 1.4e+6
   Formula: C4H6O3
   Fullname: MVK hydroxy-carbonyl
   Henry_CR: 7200.0
-  Henry_K0: 1400000.0
+  Henry_K0: 1.4e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 102.0
-  MolecRatio: 1.0
+  MW_g: 102.1
+  WD_RetFactor: 2.0e-2
 MVKHP:
-  EmMW_g: 120.0
+  DD_F0: 1.0
+  DD_Hstar: 1.4e+6
   Formula: C4H8O4
   Fullname: MVK hydroxy-hydroperoxide
   Henry_CR: 7200.0
-  Henry_K0: 1400000.0
+  Henry_K0: 1.4e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 120.0
-  MolecRatio: 1.0
+  MW_g: 120.1
+  WD_RetFactor: 2.0e-2
 MVKN:
-  EmMW_g: 149.0
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
   Formula: HOCH2CH(ONO2)C(=O)CH3
   Fullname: Nitrate from MVK
   Henry_CR: 9200.0
-  Henry_K0: 17000.0
+  Henry_K0: 1.7e+4
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 149.0
-  MolecRatio: 1.0
+  MW_g: 149.1
+  WD_RetFactor: 2.0e-2
 MVKOHOO:
-  EmMW_g: 1.0
-  Fullname: MVKOHOO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: C4H7O2
+  Fullname: Peroxy radical from MVK + OH
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 87.1
 MVKPC:
-  EmMW_g: 118.0
+  DD_F0: 1.0
+  DD_Hstar: 1.4e+6
   Formula: OCHCH(OOH)C(O)CH3
   Fullname: MVK hydroperoxy-carbonyl
   Henry_CR: 7200.0
-  Henry_K0: 1400000.0
+  Henry_K0: 1.4e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
+  MW_g: 118.1
+  WD_RetFactor: 2.0e-2
 N:
-  EmMW_g: 1.0
   Formula: N
   Fullname: Atomic nitrogen
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 14.0
 N2:
-  EmMW_g: 1.0
   Formula: N2
   Fullname: Molecular nitrogen
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 28.0
 N2O:
-  EmMW_g: 44.0
+  BackgroundVV: 3.0e-7
   Formula: N2O
   Fullname: Nitrous oxide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 44.0
-  MolecRatio: 1.0
 N2O5:
-  EmMW_g: 108.0
+  BackgroundVV: 4.0e-15
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+14
   Formula: N2O5
   Fullname: Dinitrogen pentoxide
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 108.0
-  MolecRatio: 1.0
+NAP:
+  Formula: C10H8
+  FullName: Naphtalene/IVOC surrogate
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 128.17
 NH3:
-  EmMW_g: 17.0
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.2, 0.3]
+  DD_F0: 0.0
+  DD_Hstar: 2.0e+4
   Formula: NH3
   Fullname: Ammonia
   Henry_CR: 4100.0
-  Henry_K0: 3300000.0
+  Henry_K0: 3.3e+6
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 17.0
-  MolecRatio: 1.0
+  WD_RetFactor: 5.0e-2
+  WD_LiqAndGas: true
+  WD_ConvFacI2G: 6.17395e-1
 NH4:
-  EmMW_g: 18.0
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar_old : 0.0
   Formula: NH4
   Fullname: Ammonium
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 18.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 NHEmis90dayTracer:
-  EmMW_g: 1.0
   Fullname: Northern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mi
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 1.0
-  MolecRatio: 1.0
 NIT:
-  EmMW_g: 62.0
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Fullname: Inorganic nitrates
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 62.0
-  MolecRatio: 1.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+NITD1:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Fullname: Nitrate on dust, Reff = 0.7 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 7.3e-7
+  WD_AerScavEff: 1.0_fp
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+NITD2:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Nitrate on dust, Reff = 1.4 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 1.4e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0. 0.0]
+NITD3:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Nitrate on dust, Reff = 2.4 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 2.4e-6
+  WD_AerScavEff: 1.0_fp
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+NITD4:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Nitrate on dust, Reff = 4.5 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 4.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 NITs:
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 2200.0
-  EmMW_g: 31.4
   Fullname: Inorganic nitrates on surface of seasalt aerosol
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 31.4
-  MolecRatio: 1.0
-  Radius: 0.0
+  Radius: 4.25e-6
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 'NO':
-  EmMW_g: 30.0
+  BackgroundVV: 4.0e-13
   Formula: 'NO'
   Fullname: Nitrogen oxide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 30.0
-  MolecRatio: 1.0
 NO2:
-  EmMW_g: 46.0
+  BackgroundVV: 4.0e-15
+  DD_F0: 0.1
+  DD_Hstar: 1.0e-2
   Formula: NO2
   Fullname: Nitrogen dioxide
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 46.0
-  MolecRatio: 1.0
 NO3:
-  EmMW_g: 62.0
+  BackgroundVV: 4.0e-15
   Formula: NO3
   Fullname: Nitrate radical
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 62.0
-  MolecRatio: 1.0
 NPRNO3:
-  EmMW_g: 105.09
+  DD_F0: 0.1
+  DD_Hstar: 1.1
   Formula: C3H7ONO2
   Fullname: n-propyl nitrate
   Henry_CR: 5500.0
   Henry_K0: 1.1
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 105.09
-  MolecRatio: 1.0
 O:
-  EmMW_g: 1.0
-  Fullname: O
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Formula: O(3P)
+  Fullname: Ground state atomic oxygen
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 16.0
 O1D:
-  EmMW_g: 1.0
   Formula: O(1D)
   Fullname: Excited atomic oxygen (1D)
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 16.0
 O2:
-  EmMW_g: 1.0
   Formula: O2
   Fullname: Molecular oxygen
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 32.0
 O3:
-  EmMW_g: 48.0
+  BackgroundVV: 2.0e-8
+  DD_F0: 1.0
+  DD_Hstar: 1.0e-2
   Formula: O3
   Fullname: Ozone
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
   MW_g: 48.0
-  MolecRatio: 1.0
+OClO:
+  Formula: OClO
+  Fullname: Chlorine dioxide
+  Is_Advected: true
+  Is_Gas: true
+  Is_Photolysis: true
+  MW_g: 67.5
 OCPI:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 1300.0
-  EmMW_g: 12.0
   Fullname: Hydrophilic organic carbon aerosol
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
   Is_HygroGrowth: true
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 12.01
-  MolecRatio: 1.0
+  WD_aerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_KcScaleFac_Luo: [0.5, 0.25, 0.5]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+  WD_RainoutEff_Luo: [0.5, 0.0, 0.5]
 OCPO:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Density: 1300.0
   EmMW_g: 12.0
   Fullname: Hydrophobic organic carbon aerosol
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 12.01
-  MolecRatio: 1.0
+  WD_aerScavEff: 1.0
+  WD_KcScaleFac: [0.5, 0.5, 0.5]
+  WD_KcScaleFac_Luo: [0.0, 0.0, 0.0]
+  WD_RainoutEff: [0.0, 0.0, 0.0]
 OCS:
-  EmMW_g: 60.0
+  BackgroundVV: 9.0e-15
   Formula: COS
   Fullname: Carbonyl sulfide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 60.0
-  MolecRatio: 1.0
-OClO:
-  EmMW_g: 67.0
-  Formula: OClO
-  Fullname: Chlorine dioxide
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 67.0
-  MolecRatio: 1.0
+  MW_g: 60.1
 OH:
-  EmMW_g: 1.0
   Formula: OH
   Fullname: Hydroxyl radical
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: 17.0
 OIO:
-  EmMW_g: 159.0
   Formula: OIO
   Fullname: Iodine dioxide
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 159.0
-  MolecRatio: 1.0
+  MW_g: 158.9
 OLND:
-  EmMW_g: 1.0
-  Fullname: OLND
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: Monoterpene-derived NO3-alkene adduct
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 OLNN:
-  EmMW_g: 1.0
-  Fullname: OLNN
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: Monoterpene-derived NO3 adduct
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
+OPOA1:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Fullname: Lumped aerosol product of SVOC oxidation
+  Is_Aero: true
+  Is_Drydep: true
+  Is_Wetdep: true
+  MW:g: 12.01
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+OPOA2:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Fullname: Lumped aerosol product of SVOC oxidation
+  Is_Aero: true
+  Is_Drydep: true
+  Is_Wetdep: true
+  MW:g: 12.01
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+OPOG1:
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
+  Fullname: Lumped gas product of SVOC oxidation
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Drydep: true
+  Is_Gas: true
+  Is_Wetdep: true
+  MW:g: 12.01
+  WD_RetFactor: 2.0e-2
+OPOG2:
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
+  Fullname: Lumped gas product of SVOC oxidation
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Drydep: true
+  Is_Gas: true
+  Is_Wetdep: true
+  MW:g: 12.01
+  WD_RetFactor: 2.0e-2
 OTHRO2:
-  EmMW_g: 1.0
-  Fullname: OTHRO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
+  Fullname: Other C2 RO2 not from C2H6 oxidation
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
+  MW_g: NEEDED
 PAN:
-  EmMW_g: 121.0
+  DD_F0: 1.0
+  DD_Hstar: 3.6
   Formula: CH3C(O)OONO2
   Fullname: Peroxyacetyl nitrate
   Henry_CR: 5700.0
   Henry_K0: 2.94
   Is_Advected: true
-  Is_Aero: false
   Is_DryDep: true
   Is_Gas: true
-  Is_HygroGrowth: false
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 121.0
-  MolecRatio: 1.0
+  MW_g: 121.1
+  WD_RetFaxtor: 2.0e-2
 PassiveTracer:
-  EmMW_g: 1.0
-  Fullname: Passive_tracer_for_mass_conservation_evaluation
+  Fullname: Passive tracer for mass conservation evaluation
   Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
   Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
   MW_g: 1.0
-  MolecRatio: 1.0
 Pb210:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar: 0.0_fp
-  EmMW_g: 210.0
-  Formula: Pb
+  DD_HStar: 0.0
+  Formula: Pb210
   FullName: Lead-210 isotope
   Is_Advected: true
   Is_Aero: true
   Is_Drydep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_Wetdep: true
   MW_g: 210.0
-  MolecRatio: 1.0
-  WD_AerScavEff: 1.0_fp
+  WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 Pb210Strat:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
-  DD_HStar: 0.0_fp
+  DD_HStar: 0.0
   EmMW_g: 210.0
-  Formula: Pb
+  Formula: Pb210
   FullName: Lead-210 isotope in stratosphere
   Is_Advected: true
   Is_Aero: true
   Is_Drydep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_Wetdep: true
   MW_g: 210.0
-  MolecRatio: 1.0
-  WD_AerScavEff: 1.0_fp
+  WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 PCO:
-  EmMW_g: 1.0
-  Fullname: PCO
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-PH2O2:
-  EmMW_g: 1.0
-  Fullname: PH2O2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-PIO2:
-  EmMW_g: 1.0
-  Fullname: PIO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-PIP:
-  EmMW_g: 186.0
-  Formula: C10H18O3
-  Fullname: Peroxide from MTPA
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 186.0
-  MolecRatio: 1.0
-PO2:
-  EmMW_g: 1.0
-  Fullname: PO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-POX:
-  EmMW_g: 1.0
-  Fullname: POX
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-PP:
-  EmMW_g: 92.0
-  Formula: HOCH2CH(OOH)CH3
-  Fullname: Peroxide from PO2
-  Henry_CR: 5200.0
-  Henry_K0: 294.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 92.0
-  MolecRatio: 1.0
-PPN:
-  EmMW_g: 135.0
-  Formula: CH3CH2C(O)OONO2
-  Fullname: Lumped peroxypropionyl nitrate
-  Henry_K0: 2.94
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 135.0
-  MolecRatio: 1.0
-PRN1:
-  EmMW_g: 1.0
-  Fullname: PRN1
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-PROPNN:
-  EmMW_g: 119.0
-  Formula: CH3C(=O)CH2ONO2
-  Fullname: Propanone nitrate
-  Henry_K0: 1000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 119.0
-  MolecRatio: 1.0
-PRPE:
-  EmMW_g: 12.0
-  Formula: C3H6
-  Fullname: Lumped >= C3 alkenes
-  Henry_CR: 3400.0
-  Henry_K0: 0.0074
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 42.08
-  MolecRatio: 3.0
-PRPN:
-  EmMW_g: 137.0
-  Formula: O2NOCH2CH(OOH)CH3
-  Fullname: Peroxide from PRN1
-  Henry_CR: 5200.0
-  Henry_K0: 294.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 137.0
-  MolecRatio: 1.0
-PSO4:
-  EmMW_g: 1.0
-  Fullname: PSO4
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-PYAC:
-  EmMW_g: 88.0
-  Formula: C3H4O3
-  Fullname: Pyruvic acid
-  Henry_CR: 5100.0
-  Henry_K0: 314000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 88.0
-  MolecRatio: 1.0
-R4N1:
-  EmMW_g: 1.0
-  Fullname: R4N1
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-R4N2:
-  EmMW_g: 119.0
-  Formula: RO2NO
-  Fullname: Lumped alkyl nitrate
-  Henry_CR: 5800.0
-  Henry_K0: 1.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 119.0
-  MolecRatio: 1.0
-R4O2:
-  EmMW_g: 1.0
-  Fullname: R4O2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-R4P:
-  EmMW_g: 90.0
-  Formula: CH3CH2CH2CH2OOH
-  Fullname: Peroxide from R4O2
-  Henry_CR: 5200.0
-  Henry_K0: 294.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 90.0
-  MolecRatio: 1.0
-RA3P:
-  EmMW_g: 76.0
-  Formula: CH3CH2CH2OOH
-  Fullname: Peroxide from A3O2
-  Henry_CR: 5200.0
-  Henry_K0: 294.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 76.0
-  MolecRatio: 1.0
-RB3P:
-  EmMW_g: 76.0
-  Formula: CH3CH(OOH)CH3
-  Fullname: Peroxide from B3O2
-  Henry_CR: 5200.0
-  Henry_K0: 294.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 76.0
-  MolecRatio: 1.0
-RCHO:
-  EmMW_g: 58.0
-  Formula: CH3CH2CHO
-  Fullname: Lumped aldehyde >= C3
-  Henry_K0: 10.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: false
-  MW_g: 58.0
-  MolecRatio: 1.0
-RCO3:
-  EmMW_g: 1.0
-  Fullname: RCO3
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-RCOOH:
-  EmMW_g: 1.0
-  Fullname: RCOOH
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-RIPA:
-  EmMW_g: 118.0
-  Formula: C5H10O3
-  Fullname: 1,2-ISOPOOH
-  Henry_K0: 1700000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
-RIPB:
-  EmMW_g: 118.0
-  Formula: C5H10O3
-  Fullname: 4,3-ISOPOOH
-  Henry_K0: 1700000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
-RIPC:
-  EmMW_g: 118.0
-  Formula: C5H10O3
-  Fullname: d-1,4-ISOPOOH
-  Henry_K0: 1700000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
-RIPD:
-  EmMW_g: 118.0
-  Formula: C5H10O3
-  Fullname: d-4,1-ISOPOOH
-  Henry_K0: 1700000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
-Rn222:
-  EmMW_g: 222.0
-  Formula: Rn222
-  Fullname: Radon-222 isotope
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 222.0
-  MolecRatio: 1.0
-ROH:
-  EmMW_g: 1.0
-  Fullname: ROH
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-RP:
-  EmMW_g: 90.0
-  Formula: CH3CH2C(O)OOH
-  Fullname: Peroxide from RCO3
-  Henry_CR: 5200.0
-  Henry_K0: 294.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 90.0
-  MolecRatio: 1.0
-SALA:
-  Density: 2200.0
-  EmMW_g: 31.4
-  Fullname: Fine (0.01-0.05 microns) sea salt aerosol
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: true
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 31.4
-  MolecRatio: 1.0
-  Radius: 0.0
-SALC:
-  Density: 2200.0
-  EmMW_g: 31.4
-  Fullname: Coarse (0.5-8 microns) sea salt aerosol
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: true
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 31.4
-  MolecRatio: 1.0
-  Radius: 0.0
-SF6Tracer:
-  EmMW_g: 146.0
-  Fullname: Sulfur_hexafluoride
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 146.0
-  MolecRatio: 1.0
-SHEmis90dayTracer:
-  EmMW_g: 1.0
-  Fullname: Southern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mi
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-SO2:
-  EmMW_g: 64.0
-  Formula: SO2
-  Fullname: Sulfur dioxide
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 64.0
-  MolecRatio: 1.0
-SO4:
-  Density: 1700.0
-  EmMW_g: 96.0
-  Formula: SO4
-  Fullname: Sulfate
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: true
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 96.0
-  MolecRatio: 1.0
-SO4H1:
-  EmMW_g: 1.0
-  Fullname: SO4H1
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-SO4H2:
-  EmMW_g: 1.0
-  Fullname: SO4H2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-SO4s:
-  Density: 2200.0
-  EmMW_g: 31.4
-  Fullname: Sulfate on surface of seasalt aerosol
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 31.4
-  MolecRatio: 1.0
-  Radius: 0.0
-SOAGX:
-  EmMW_g: 58.0
-  Formula: C2H2O2
-  Fullname: Aerosol-phase glyoxal
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 58.0
-  MolecRatio: 1.0
-SOAIE:
-  EmMW_g: 118.0
-  Formula: C5H10O3
-  Fullname: Aerosol-phase IEPOX
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 118.0
-  MolecRatio: 1.0
-SOAP:
-  EmMW_g: 150.0
-  Fullname: SOA Precursor - lumped species for simplified SOA parameterization
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 150.0
-  MolecRatio: 1.0
-SOAS:
-  EmMW_g: 150.0
-  Fullname: SOA Simple - simplified non-volatile SOA parameterization
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-TOLU:
-  EmMW_g: 12.0
-  Formula: C7H8
-  Fullname: Toluene
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 92.14
-  MolecRatio: 7.0
-TRO2:
-  EmMW_g: 1.0
-  Fullname: TRO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-TSOA0:
-  EmMW_g: 150.0
-  Fullname: Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-TSOA1:
-  EmMW_g: 150.0
-  Fullname: Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-TSOA2:
-  EmMW_g: 150.0
-  Fullname: Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-TSOA3:
-  EmMW_g: 150.0
-  Fullname: Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation
-  Is_Advected: true
-  Is_Aero: true
-  Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-TSOG0:
-  EmMW_g: 150.0
-  Fullname: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
-  Henry_CR: 6039.0
-  Henry_K0: 100000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-TSOG1:
-  EmMW_g: 150.0
-  Fullname: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
-  Henry_CR: 6039.0
-  Henry_K0: 100000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-TSOG2:
-  EmMW_g: 150.0
-  Fullname: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
-  Henry_CR: 6039.0
-  Henry_K0: 100000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-TSOG3:
-  EmMW_g: 150.0
-  Fullname: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
-  Henry_CR: 6039.0
-  Henry_K0: 100000.0
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: true
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: true
-  MW_g: 150.0
-  MolecRatio: 1.0
-XRO2:
-  EmMW_g: 1.0
-  Fullname: XRO2
-  Is_Advected: false
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 1.0
-  MolecRatio: 1.0
-XYLE:
-  EmMW_g: 12.0
-  Formula: C8H10
-  Fullname: Xylene
-  Is_Advected: true
-  Is_Aero: false
-  Is_DryDep: false
-  Is_Gas: true
-  Is_HygroGrowth: false
-  Is_Photolysis: false
-  Is_WetDep: false
-  MW_g: 106.16
-  MolecRatio: 8.0
+  Fullname: Dummy species to track production rate of CO
 pFe:
-  EmMW_g: 55.85
+  DD_F0: 0.0
+  DD_Hstar: 0.0
   Formula: Fe
   Fullname: Anthropogenic iron
   Is_Advected: true
   Is_Aero: true
   Is_DryDep: true
-  Is_Gas: false
-  Is_HygroGrowth: false
-  Is_Photolysis: false
   Is_WetDep: true
   MW_g: 55.85
-  MolecRatio: 1.0
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+PH2O2:
+  Fullname: Dummy species to track production rate of H2O2
+PIO2:
+  Formula:
+  Fullname: Peroxy radical from MTPA
+  Is_Gas: true
+  MW_g: 1.0
+PIP:
+  Formula: C10H18O3
+  Fullname: Peroxide from MTPA
+  Is_Advected: true
+  Is_Gas: true
+  Is_Photolysis: true
+  MW_g: 186.3
+PO2:
+  Formula: HOCH2CH(OO)CH3
+  Fullname: Peroxy radical from propene
+  Is_Gas: true
+  MW_g: 91.1
+POX:
+  Fullname: Dummy species to track production rate of Ox
+PP:
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
+  Formula: HOCH2CH(OOH)CH3
+  Fullname: Peroxide from PO2
+  Henry_CR: 5200.0
+  Henry_K0: 2.94e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 92.1
+  WD_RetFactor: 2.0e-2
+PPN:
+  DD_F0: 1.0
+  DD_Hstar: 3.6
+  Formula: CH3CH2C(O)OONO2
+  Fullname: Lumped peroxypropionyl nitrate
+  Henry_CR: 0.0
+  Henry_K0: 2.94
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 135.1
+  WD_RetFactor: 2.0e-2
+PRN1:
+  Formula: O2NOCH2CH(OO)CH3
+  Fullname: Peroxy radical from propene + NO3
+  Is_Gas: true
+  MW_g: 136.1
+PROPNN:
+  DD_F0: 1.0
+  DD_Hstar: 5.0e+5
+  Formula: CH3C(=O)CH2ONO2
+  Fullname: Propanone nitrate
+  Henry_CR: 0.0
+  Henry_K0: 1.0e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 119.1
+  WD_RetFactor: 2.0e-2
+PRPE:
+  EmMW_g: 12.0
+  Formula: C3H6
+  Fullname: Lumped >= C3 alkenes
+  Henry_CR: 3400.0
+  Henry_K0: 7.4e-3
+  Is_Advected: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 42.08
+  MolecRatio: 3.0
+  WD_RetFactor: 2.0e-2
+PRPN:
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
+  Formula: O2NOCH2CH(OOH)CH3
+  Fullname: Peroxide from PRN1
+  Henry_CR: 5200.0
+  Henry_K0: 2.94e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 137.1
+  WD_RetFactor: 2.0e-2
+PSO4:
+  Fullname: Dummy species to track production of SO4
+PYAC:
+  DD_F0: 1.0
+  DD_Hstar: 3.14e+5
+  Formula: C3H4O3
+  Fullname: Pyruvic acid
+  Henry_CR: 5100.0
+  Henry_K0: 3.14e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 88.1
+  WD_RetFactor: 2.0e-2
+R4N1:
+  Fullname: Peroxy radical from R4N2
+  Is_Gas: true
+  MW_g: NEEDED
+R4N2:
+  DD_F0: 1.0
+  DD_Hstar: 1.7e+4
+  Formula: RO2NO
+  Fullname: Lumped alkyl nitrate
+  Henry_CR: 5800.0
+  Henry_K0: 1.0
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 119.0
+  WD_RetFactor: 2.0e-2
+R4O2:
+  Fullname: Peroxy radical from ALK4
+  Is_Gas: true
+  MW_g: NEEDED
+R4P:
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
+  Formula: CH3CH2CH2CH2OOH
+  Fullname: Peroxide from R4O2
+  Henry_CR: 5200.0
+  Henry_K0: 2.94e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 90.1
+  WD_RetFactor: 2.0e-2
+RA3P:
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
+  Formula: CH3CH2CH2OOH
+  Fullname: Peroxide from A3O2
+  Henry_CR: 5200.0
+  Henry_K0: 2.94e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 76.1
+  WD_RetFactor: 2.0e-2
+RB3P:
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
+  Formula: CH3CH(OOH)CH3
+  Fullname: Peroxide from B3O2
+  Henry_CR: 5200.0
+  Henry_K0: 2.94e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 76.1
+  WD_RetFactor: 2.0e-2
+RCHO:
+  Formula: CH3CH2CHO
+  Fullname: Lumped aldehyde >= C3
+  Henry_CR: 0.0
+  Henry_K0: 1.0e+1
+  Is_Advected: true
+  Is_Gas: true
+  Is_Photolysis: true
+  MW_g: 58.1
+  WD_RetFactor: 2.0e-2
+RCO3:
+  Formula: CH3CH2C(O)OO
+  Fullname: Peroxypropionyl radical
+  Is_Gas: true
+  MW_g: 89.1
+RCOOH:
+  Formula: C2H5C(O)OH
+  Fullname: > C2 organic acids
+  Is_Gas: true
+  MW_g: 74.1
+RIPA:
+  DD_F0: 1.0
+  DD_Hstar: 1.7e+6
+  Formula: C5H10O3
+  Fullname: 1,2-ISOPOOH
+  Henry_CR: 0.0
+  Henry_K0: 1.7e+6
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 118.2
+  WD_RetFactor: 2.0e-2
+RIPB:
+  DD_F0: 1.0
+  DD_Hstar: 1.7e+6
+  Formula: C5H10O3
+  Fullname: 4,3-ISOPOOH
+  Henry_CR: 0.0
+  Henry_K0: 1.7e+6
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 118.2
+  WD_RetFactor: 2.0e-2
+RIPC:
+  DD_F0: 1.0
+  DD_Hstar: 1.7e+6
+  Formula: C5H10O3
+  Fullname: d-1,4-ISOPOOH
+  Henry_CR: 0.0
+  Henry_K0: 1.7e+6
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 118.2
+  WD_RetFactor: 2.0e-2
+RIPD:
+  DD_F0: 1.0
+  DD_Hstar: 1.7e+6
+  Formula: C5H10O3
+  Fullname: d-4,1-ISOPOOH
+  Henry_CR: 0.0
+  Henry_K0: 1.7e+6
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 118.2
+  WD_RetFactor: 2.0e-2
+Rn222:
+  Formula: Rn222
+  Fullname: Radon-222 isotope
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 222.0
+ROH:
+  Formula: C3H7OH
+  Fullname: > C2 alcohols
+  Is_Gas: true
+  MW_g: 60.1
+RP:
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
+  Formula: CH3CH2C(O)OOH
+  Fullname: Peroxide from RCO3
+  Henry_CR: 5200.0
+  Henry_K0: 2.94e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 90.1
+  WD_RetFactor: 2.0e-2
+SALA:
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2200.0
+  Fullname: Fine (0.01-0.05 microns) sea salt aerosol
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 31.4
+  Radius: 2.55e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+SALC:
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2200.0
+  Fullname: Coarse (0.5-8 microns) sea salt aerosol
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 31.4
+  Radius: 4.25e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+SF6Tracer:
+  Formula: SF6
+  Fullname: Sulfur_hexafluoride
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 146.1
+SHEmis90dayTracer:
+  Fullname: Southern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mi
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 1.0
+SO2:
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.2, 0.3]
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
+  Formula: SO2
+  Fullname: Sulfur dioxide
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 64.1
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+SO4:
+  DD_DvzAerSnow: 0.03
+  DD_DvzMinVal: [0.01, 0.01]
+  DD_F0: 0.0
+  DD_Hstar_Old: 0.0
+  Density: 1700.0
+  Formula: SO4
+  Fullname: Sulfate
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 96.1
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+SO4D1:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Fullname: Sulfate on dust, Reff = 0.7 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 7.3e-7
+  WD_AerScavEff: 1.0_fp
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+SO4D2:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Sulfate on dust, Reff = 1.4 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 1.4e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0. 0.0]
+SO4D3:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Sulfate on dust, Reff = 2.4 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 2.4e-6
+  WD_AerScavEff: 1.0_fp
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+SO4D4:
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Fullname: Sulfate on dust, Reff = 4.5 microns
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 29.0
+  Radius: 4.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+SO4H1:
+  Formula: SO4
+  Fullname: Sulfate produced by HOBr
+  Is_Gas: true
+  MW_g: 96.1
+SO4H2:
+  Formula: SO4
+  Fullname: Sulfate produced by HOBr
+  Is_Gas: true
+  MW_g: 96.1
+SO4s:
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2200.0
+  Fullname: Sulfate on surface of seasalt aerosol
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 31.4
+  Radius: 4.25e-6
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
+SOAGX:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_HStar: 0.0
+  Formula: C2H2O2
+  Fullname: Aerosol-phase glyoxal
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 58.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+SOAIE:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_HStar: 0.0
+  Formula: C5H10O3
+  Fullname: Aerosol-phase IEPOX
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 118.2
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+SOAP:
+  Fullname: SOA Precursor - lumped species for simplified SOA parameterization
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 150.0
+SOAS:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_HStar: 0.0
+  Fullname: SOA Simple - simplified non-volatile SOA parameterization
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_AerScavEff: 0.8
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+TOLU:
+  EmMW_g: 12.0
+  Formula: C7H8
+  Fullname: Toluene
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 92.14
+  MolecRatio: 7.0
+TRO2:
+  Fullname: Peroxy radical from TOLU oxidation
+  Is_Gas: true
+  MW_g: NEEDED
+TSOA0:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Fullname: Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_AerScavEff: 0.8_fp
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+TSOA1:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Fullname: Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_AerScavEff: 0.8_fp
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+TSOA2:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Fullname: Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_AerScavEff: 0.8_fp
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+TSOA3:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Fullname: Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation
+  Is_Advected: true
+  Is_Aero: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_AerScavEff: 0.8_fp
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [0.8, 0.0, 0.8]
+TSOG0:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
+  EmMW_g: 150.0
+  Fullname: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_RetFactor: 2.0e-2
+TSOG1:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
+  EmMW_g: 150.0
+  Fullname: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_RetFactor: 2.0e-2
+TSOG2:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
+  EmMW_g: 150.0
+  Fullname: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_RetFactor: 2.0e-2
+TSOG3:
+  DD_DvzAerSnow: 0.03
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+5
+  EmMW_g: 150.0
+  Fullname: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 150.0
+  WD_RetFactor: 2.0e-2
+XRO2:
+  Fullname: Peroxy radical from TOLU oxidation
+  Is_Gas: true
+  MW_g: NEEDED
+XYLE:
+  EmMW_g: 12.0
+  Formula: C8H10
+  Fullname: Xylene
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 106.16
+  MolecRatio: 8.0
