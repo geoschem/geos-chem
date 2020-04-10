@@ -481,7 +481,7 @@ CONTAINS
     INTEGER                       :: Nadv, landTypeInt
     LOGICAL                       :: FOUND 
     LOGICAL                       :: EOF
-    CHARACTER(LEN=60)             :: rstFile, landTypeStr, importName
+    CHARACTER(LEN=60)             :: rstFile, landTypeStr, importName, simType
     INTEGER                       :: restartAttr
     CHARACTER(LEN=ESMF_MAXSTR)    :: HistoryConfigFile ! HISTORY config file
     INTEGER                       :: T
@@ -675,6 +675,10 @@ CONTAINS
     DO
       READ( IU_GEOS, '(a)', IOSTAT=IOS ) LINE
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'READ_SPECIES_FROM_FILE:2' )
+      IF ( INDEX( LINE, 'Simulation name' ) > 0 ) THEN
+         CALL STRSPLIT( LINE(26:), ' ', SUBSTRS, N )
+         SimType = TRIM(SUBSTRS(1))
+      ENDIF
       IF ( INDEX( LINE, 'ADVECTED SPECIES MENU' ) > 0 ) EXIT
     ENDDO
 
@@ -852,6 +856,7 @@ CONTAINS
 
 #if !defined( MODEL_GEOS )
     ! Add other internal state variables as real8
+
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'DryDepNitrogen',  &
        LONG_NAME          = 'Dry deposited nitrogen',  &
@@ -907,6 +912,7 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+    ! delta dry pressure used to conserve mass across consecutive runs
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'DELP_DRY',  &
        LONG_NAME          = 'Delta dry pressure across box',  &
@@ -917,6 +923,31 @@ CONTAINS
        FRIENDLYTO         = trim(COMP_NAME),    &
                                                       RC=STATUS  )
     _VERIFY(STATUS)
+
+    ! State_Met variables needed for benchmarking
+    IF ( SimType == 'benchmark' .OR. SimType == 'TransportTracers' ) THEN
+       call MAPL_AddInternalSpec(GC, &
+          SHORT_NAME         = 'BXHEIGHT',  &
+          LONG_NAME          = 'Grid box height (w/r/t dry air)',  &
+          UNITS              = 'm', &
+          DIMS               = MAPL_DimsHorzVert,    &
+          VLOCATION          = MAPL_VLocationCenter,    &
+          PRECISION          = ESMF_KIND_R8, &
+          FRIENDLYTO         = trim(COMP_NAME),    &
+                                                         RC=STATUS  )
+       _VERIFY(STATUS)
+
+       call MAPL_AddInternalSpec(GC, &
+          SHORT_NAME         = 'TropLev',  &
+          LONG_NAME          = 'GEOS-Chem level where the tropopause occurs',  &
+          UNITS              = '1', &
+          DIMS               = MAPL_DimsHorzOnly,    &
+          VLOCATION          = MAPL_VLocationCenter,    &
+          PRECISION          = ESMF_KIND_R8, &
+          FRIENDLYTO         = trim(COMP_NAME),    &
+                                                         RC=STATUS  )
+       _VERIFY(STATUS)
+    ENDIF
 #endif
 
 #if defined( MODEL_GEOS )
@@ -3735,6 +3766,23 @@ CONTAINS
                                   Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
           Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'BXHEIGHT' ,     &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+               ASSOCIATED(State_Met%BXHEIGHT) ) THEN
+             State_Met%BXHEIGHT(:,:,1:State_Grid%NZ) =       &
+                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+          Ptr3d_R8 => NULL()
+
+          CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'TropLev', &
+                                notFoundOK=.TRUE., __RC__ )
+          IF ( ASSOCIATED(Ptr2d_R8) .AND. &
+               ASSOCIATED(State_Met%TropLev) ) THEN
+             State_Met%TropLev = Ptr2d_R8
+          ENDIF
+          Ptr2d_R8 => NULL()
        ENDIF
 #endif
 
@@ -4704,6 +4752,23 @@ CONTAINS
                  State_Met%DELP_DRY(:,:,1:State_Grid%NZ)
     ENDIF
     Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'BXHEIGHT' ,     &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3d_R8) .AND. &
+         ASSOCIATED(State_Met%BXHEIGHT) ) THEN
+       Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
+                 State_Met%BXHEIGHT(:,:,1:State_Grid%NZ)
+    ENDIF
+    Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'TropLev', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr2d_R8) .AND. &
+         ASSOCIATED(State_Met%TropLev) ) THEN
+       Ptr2d_R8 = State_Met%TropLev
+    ENDIF
+    Ptr2d_R8 => NULL()
 #endif
 
 #if defined( MODEL_GEOS )
