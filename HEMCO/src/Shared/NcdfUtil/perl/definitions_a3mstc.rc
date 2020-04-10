@@ -1,0 +1,74 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  #
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: definitions_a3mstc.rc
+#
+# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 A3mstC filename,
+#  variables, and attributes for use with the ncCode* scripts.  Also defines
+#  the names of the files where Fortran code will be written to.
+#\\
+#\\
+# !REMARKS:
+#  This file has been customized to generate GEOS-Chem Fortran code that
+#  will read data from a GEOS-5.7.2 A3mstC met field file.
+#
+# !REVISION HISTORY:
+#  01 Feb 2012 - R. Yantosca - Initial version
+#------------------------------------------------------------------------------
+
+### !FILENAME:
+Fortran Read File       = a3mstc_read.F
+netCDF FileHandle       = fId
+netCDF FileName         = GEOS572.YYYYMMDD.A3mstC.4x5.nc
+
+
+### !DIMENSIONS:
+lon                     = State_Grid%NX
+lat                     = State_Grid%NY
+lev                     = State_Grid%NZ
+time                    = 1
+
+
+### !VARIABLES:
+lon                     = REAL*4::lon
+lon:long_name           = longitude
+lon:units               = degrees_east
+#-
+lat                     = REAL*4::lat
+lat:long_name           = latitude
+lat:units               = degrees_north
+#-
+lev                     = REAL*4::lev
+lev:long_name           = levels
+lev:units               = unitless
+#-
+time                    = INTEGER::time
+time:units              = minutes since YYYY-MM-DD 00:00:00.0
+time:delta_t            = 0000-00-00 03:00:00
+time:begin_date         = YYYYMMDD
+time:begin_time         = 000000
+time:time_increment     = 030000
+#-
+DQRCU                   = REAL*4::lon,lat,lev,time
+DQRCU:long_name         = Precipitation production rate -- convective
+DQRCU:units             = kg kg-1 s-1
+DQRCU:gamap_category    = GMAO-3D$
+#-
+DQRLSAN                 = REAL*4::lon,lat,lev,time
+DQRLSAN:long_name       = Precipitation production rate -- large scale + anvil
+DQRLSAN:units           = kg kg-1 s-1
+DQRLSAN:gamap_category  = GMAO-3D$
+#-
+REEVAPCN                = REAL*4::lon,lat,lev,time
+REEVAPCN:long_name      = Evaporation of precipitating convective condensate
+REEVAPCN:units          = kg kg-1 s-1
+REEVAPCN:gamap_category = GMAO-3D$
+#-
+REEVAPLS                = REAL*4::lon,lat,lev,time
+REEVAPLS:long_name      = Evaporation of precipitating large-scale & anvil condensate
+REEVAPLS:units          = kg kg-1
+REEVAPLS:gamap_category = GMAO-3D$
+
+#EOP

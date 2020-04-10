@@ -1,0 +1,79 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  #
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: definitions_cn.rc
+#
+# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 CN filename,
+#  variables, and attributes for use with the ncCode* scripts.  Also defines
+#  the names of the files where Fortran code will be written to.
+#\\
+#\\
+# !REMARKS:
+#  This file has been customized to generate GEOS-Chem Fortran code that
+#  will read data from a GEOS-5.7.2 CN met field file.
+#
+# !REVISION HISTORY:
+#  01 Feb 2012 - R. Yantosca - Initial version
+#------------------------------------------------------------------------------
+
+### !FILENAME:
+Fortran Read File       = cn_read.F
+netCDF FileHandle       = fId
+netCDF FileName         = GEOS572.YYYYMMDD.CN.4x5.nc
+
+
+### !DIMENSIONS:
+lon                     = State_Grid%NX
+lat                     = State_Grid%NY
+time                    = 1
+
+
+### !VARIABLES:
+lon                     = REAL*4::lon
+lon:long_name           = longitude
+lon:units               = degrees_east
+#-
+lat                     = REAL*4::lat
+lat:long_name           = latitude
+lat:units               = degrees_north
+#-
+lev                     = REAL*4::lev
+lev:long_name           = levels
+lev:units               = unitless
+#-
+time                    = INTEGER::time
+time:long_name          = time
+time:units              = minutes since 2011-01-01 00:00:00.0
+time:delta_t            = 0000-00-00 00:00:00
+time:begin_date         = 20110101
+time:begin_time         = 000000
+time:time_increment     = 000000
+#-
+FRLAKE                  = REAL*4::lon,lat,time
+FRLAKE:long_name        = Fraction of lake type in grid box
+FRLAKE:units            = fraction
+FRLAKE:gamap_category   = GMAO-2D
+#-
+FRLAND                  = REAL*4::lon,lat,time
+FRLAND:long_name        = Fraction of land in grid box
+FRLAND:units            = fraction
+FRLAND:gamap_category   = GMAO-2D
+#-
+FRLANDIC                = REAL*4::lon,lat,time
+FRLANDIC:long_name      = Fraction of land ice in grid box
+FRLANDIC:units          = fraction
+FRLANDIC:gamap_category = GMAO-2D
+#-
+FROCEAN                 = REAL*4::lon,lat,time
+FROCEAN:long_name       = Fraction of ocean in grid box
+FROCEAN:units           = fraction
+FROCEAN:gamap_category  = GMAO-2D
+#-
+PHIS                    = REAL*4::lon,lat,time
+PHIS:long_name          = Surface geopotential
+PHIS:units              = m2 s-2
+PHIS:gamap_category     = GMAO-2D
+
+#EOP

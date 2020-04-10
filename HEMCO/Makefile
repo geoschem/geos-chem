@@ -31,7 +31,7 @@
 
 # Directories
 ROOT :=..
-SRC  :=.
+SRC  :=src
 BIN  :=$(ROOT)/bin
 DOC  :=$(ROOT)/doc
 HCO  :=$(SRC)/Core

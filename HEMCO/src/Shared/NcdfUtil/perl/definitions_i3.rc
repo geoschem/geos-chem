@@ -1,0 +1,75 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  #
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: definitions_i3.rc
+#
+# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 I3 filename,
+#  variables, and attributes for use with the ncCode* scripts.  Also defines
+#  the names of the files where Fortran code will be written to.
+#\\
+#\\
+# !REMARKS:
+#  This file has been customized to generate GEOS-Chem Fortran code that
+#  will read data from a GEOS-5.7.2 I3 met field file.
+#
+# !REVISION HISTORY:
+#  01 Feb 2012 - R. Yantosca - Initial version
+#------------------------------------------------------------------------------
+
+### !FILENAME:
+Fortran Read File   = i3_read.F
+netCDF FileHandle   = fId
+netCDF FileName     = GEOS572.YYYYMMDD.I3.4x5.nc
+
+
+### !DIMENSIONS:
+lon                 = State_Grid%NX
+lat                 = State_Grid%NY
+lev                 = State_Grid%NZ
+time                = 1
+
+
+### !VARIABLES:
+lon                 = REAL*4::lon
+lon:long_name       = longitude
+lon:units           = degrees_east
+#-
+lat                 = REAL*4::lat
+lat:long_name       = latitude
+lat:units           = degrees_north
+#-
+lev                 = REAL*4::lev
+lev:long_name       = levels
+lev:units           = unitless
+#-
+time                = INTEGER::time
+time:long_name      = time
+time:units          = minutes since YYYY-MM-DD 00:00:00.0
+time:delta_t        = 0000-00-00 03:00:00
+time:begin_date     = YYYYMMDD
+time:begin_time     = 000000
+time:time_increment = 030000
+#-
+PS                  = REAL*4::lon,lat,time
+PS:long_name        = Surface pressure
+PS:units            = hPa
+PS:gamap_category   = GMAO-2D
+#-
+PV                  = REAL*4::lon,lat,lev,time
+PV:long_name        = Ertel potential vorticity
+PV:units            = K m-2 kg-1 s-1
+PV:gamap_category   = GMAO-3D$
+
+QV                  = REAL*4::lon,lat,lev,time
+QV:long_name        = Specific humidity
+QV:units            = kg kg-1
+QV:gamap_category   = GMAO-3D$
+#-
+T                   = REAL*4::lon,lat,lev,time
+T:long_name         = Temperature
+T:units             = K
+T:gamap_category    = GMAO-3D$
+
+#EOP

@@ -1,3 +1,5 @@
+# Extensions/CMakeLists.txt
+
 add_library(HCOX STATIC EXCLUDE_FROM_ALL
 	drydep_toolbox_mod.F90
 	hcox_ch4wetland_mod.F90
@@ -27,5 +29,8 @@ add_library(HCOX STATIC EXCLUDE_FROM_ALL
 )
 target_link_libraries(HCOX
 	PUBLIC HCO
+)
+target_include_directories(HCOX
+	INTERFACE ${HEMCO_BINARY_DIR}/mod
 )
 

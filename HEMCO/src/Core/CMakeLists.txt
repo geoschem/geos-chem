@@ -36,10 +36,13 @@ add_library(HCO STATIC EXCLUDE_FROM_ALL
 	messy_ncregrid_mpi.F90
 )
 target_link_libraries(HCO
-	PUBLIC GeosUtil
+	PUBLIC GeosUtilHco NcdfUtilHco
 )
 target_compile_options(HCO
 	PRIVATE
 		""
 		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-ffree-line-length-none>
+)
+target_include_directories(HCO
+	INTERFACE ${HEMCO_BINARY_DIR}/mod
 )

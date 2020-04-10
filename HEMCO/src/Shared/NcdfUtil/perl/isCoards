@@ -1,0 +1,1410 @@
+#!/usr/bin/perl -w
+
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: isCoards
+#
+# !DESCRIPTION: Scans output of "ncdump" to determine if a netCDF file
+#  adheres to the COARDS conventions.
+#\\
+#\\
+# !USES:
+#
+ require 5.003;     # Need this version of Perl or newer
+ use English;       # Use English language
+ use Carp;          # Get detailed error messages
+ use strict;        # Explicitly declare all variables
+#
+# !PUBLIC DATA MEMBERS:
+#
+ # Scalars
+ our $zFound        = 0;
+
+ # Strings
+ our $conventions   = "";
+ our $format        = "";
+ our $history       = "";
+ our $inputFile     = "";
+ our $latitudes     = "";
+ our $levels        = "";
+ our $iLevels       = "";
+ our $longitudes    = "";
+ our $references    = "";
+ our $sep           = '->';
+ our $times         = "";
+ our $title         = "";
+
+ # Arrays
+ our @dims          = ();
+ our @vars          = ();
+ our @GOOD          = ();
+ our @BAD           = ();
+ our @OPT           = ();
+
+ # Hashes
+ our %add_offset    = ();
+ our %axis          = ();
+ our %calendar      = ();
+ our %FillValue     = ();
+ our %longName      = ();
+ our %missing_value = ();
+ our %numDims       = ();
+ our %positive      = ();
+ our %scale_factor  = ();
+ our %units         = ();
+ our %varDims       = ();
+#
+# !PUBLIC MEMBER FUNCTIONS:
+#  &main()            : Driver function
+#
+# !PRIVATE MEMBER FUNCTIONS:
+#  &isMonotonic($)    : Checks index variables for monotonicity
+#  &analyzeTime($)    : Checks the "time" variable for COARDS compliance
+#  &analyzeLev($)     : Checks the "lev" variable for COARDS compliance
+#  &analyzeLat($)     : Checks the "lat" variable for COARDS compliance
+#  &analyzeLon($)     : Checks the "lon" variable for COARDS compliance
+#  &analyzeVar($)     : Checks each netCDF" variable for COARDS compliance
+#  &analyzeGlobAtts() : Checks netCDF global attributes for COARDS compliance
+#  &analyzeResults()  : Calls the &analyze* routines and prints results
+#  &parseFile($)      : Calls ncdump and parses the output into Perl variables
+#
+# !REMARKS:
+#  (1) Assumes a version of "ncdump" is installed on your system.
+#  (2) isCoards may have some limitations.  We have written this primarily
+#       to check COARDS compliance for netCDF files that will be read
+#       by the HEMCO emissions component (part of GEOS-Chem).
+#
+# !REVISION HISTORY:
+#  23 Dec 2015 - R. Yantosca - Initial version
+#  06 Jan 2016 - R. Yantosca - Add more error checks to avoid warnings
+#                              if null values are encountered
+#  30 Apr 2018 - R. Yantosca - Update the algorithm to be consistent with
+#                              the latest GC netCDF diagnostic output files
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: isMonotonic
+#
+# !DESCRIPTION: Checks a list of values to make sure that it is monotonically
+#  increasing.  If it is monotonically increasing, it will return a value
+#  of 0 (success).  If not, it will return a value of -1 (failure).
+#\\
+#\\
+# !INTERFACE:
+#
+sub isMonotonic($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Comma-separated list of values
+  my ( $list ) = @_;
+#
+# !RETURN VALUE:
+#
+  # String to indicate return status
+  my $result = "";
+#
+# !REVISION HISTORY:
+#  05 Jan 2016 - R. Yantosca - Initial version
+#  06 Jan 2016 - R. Yantosca - Bug fix: return string value if not monotonic
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  # Scalars
+  my $diff      = 0;
+  my $direction = 0;
+
+  # Arrays
+  my @result  = split( /,/, $list );
+
+  # If there is only one value, then return with success
+  if ( scalar( @result ) == 1 ) { return( "is a single value" ); }
+
+  # Get the direction of the list, as determined by the 1st 2 elements.
+  $diff = $result[1] - $result[0];
+  if    ( $diff >  0 ) { $direction =  1; }
+  elsif ( $diff == 0 ) { $direction =  0; }
+  else                 { $direction = -1; }
+
+  # If the direction is zero then this means we have repeat values
+  if ( $direction == 0 ) { return( "has repeat values" ); }
+
+  # Loop thru the rest of the array
+  for ( my $i = 1; $i < scalar( @result ); $i++ ) {
+
+    # Take the difference of this element w/r/t the last element
+    $diff = $result[$i] - $result[$i-1];
+
+    # Make sure that the difference is going in the same direction
+    # as the rest of the index array.  If not, then exit with failure.
+    if ( !( $diff>0 == $direction>0 ) ) { return( "is not monotonic" ); }
+  }
+
+  # If we have gotten this far, then the list of values is either
+  # monotonically increasing or decreasing.  Return with success.
+  if   ( $direction ==  1 ) { return( "is monotonically increasing" ); }
+  else                      { return( "is monotonically decreasing" ); }
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeTime
+#
+# !DESCRIPTION: Checks the attributes of the time variable to see if
+#  they adhere to the COARDS standard.
+#\\
+#\\
+# !INTERFACE:
+#
+sub analyzeTime($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Variable name (from ncdump output)
+  my ( $var ) = @_;
+#
+# !REVISION HISTORY:
+#  23 Dec 2015 - R. Yantosca - Initial version
+#  06 Jan 2016 - R. Yantosca - Add checks for null values
+#  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  # Scalars
+  my $exists = 0;
+
+  # Strings
+  my $msg    = "";
+  my $value  = "";
+
+  # %%%%% Ensure variable is declared w/ the dimension of the same name
+  if ( $varDims{$var} =~ "$var" ) {
+    $msg  = qq/$sep $var($varDims{$var})\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep $var needs to be declared with dimension "time\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check if times are monotonically increasing
+  $value = &isMonotonic( $times );
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
+       $value eq "is monotonically decreasing" ){
+    $msg  = qq/$sep $var $value\n/;
+    @BAD  = ( @BAD,  $msg );
+  } else {
+    $msg  = qq/$sep $var $value\n/;
+    @GOOD = ( @GOOD,  $msg );
+  }
+
+  # %%%%% Check the axis attribute (optional)
+  $value = $axis{$var};
+  if ( defined( $value ) && $value =~ m/[Tt]/ ) {
+    $msg  = qq/$sep $var:axis =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:axis = "T"\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the calendar attribute
+  $value = $calendar{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/gregorian/ ||
+         $value =~ m/standard/  ||
+         $value =~ m/noleap/       ) {
+      $msg  = qq/$sep $var:calendar =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+       $msg  = qq/$sep $var:calendar should be either "gregorian", "noleap", or "standard"\n/;
+       @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:calendar is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the long_name attribute
+  $value = $longName{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/[Tt][Ii][Mm][Ee]/ ) {
+      $msg  = qq/$sep $var:long_name =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:long_name (or time:standard_name) should be "Time"\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:long_name (or time:standard_name) is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the units attribute
+  $value = $units{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/days since/    ||
+         $value =~ m/hours since/   ||
+         $value =~ m/minutes since/ ||
+         $value =~ m/seconds since/    ) {
+      $msg  = qq/$sep $var:units =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/"$sep $var:units" should be "{days,hours,minutes,seconds} since" a reference date\/time"\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/"$sep $var:units" is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # Return w/ error code
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeLev
+#
+# !DESCRIPTION: Checks the attributes of the lev variable to see if
+#  they adhere to the COARDS standard.
+#\\
+#\\
+# !INTERFACE:
+#
+sub analyzeILev($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Variable name (from ncdump output)
+  my ( $var ) = @_;
+#
+# !REVISION HISTORY:
+#  23 Apr 2018 - R. Yantosca - Initial version
+#  30 Apr 2018 - R. Yantosca - Add a extra check on the "axis" attribute
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  my $msg   = "";
+  my $value = "";
+
+  # %%%%% Ensure variable is declared with the dimension of the same name
+  if ( $varDims{$var} = "$var" ) {
+    $msg  = qq/$sep $var($varDims{$var})\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep $var needs to be declared with dimension "lev"\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check if levels are monotonic
+  $value = &isMonotonic( $levels );
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
+    $msg  = qq/$sep $var $value\n/;
+    @BAD  = ( @BAD,  $msg );
+  } else {
+    $msg  = qq/$sep $var $value\n/;
+    @GOOD = ( @GOOD,  $msg );
+  }
+
+  # %%%%% Check the axis attribute (optional)
+  $value = $axis{$var};
+  if ( defined( $value ) && $value =~ m/[Zz]/ ) {
+    $msg    = qq/$sep $var:axis =$value\n/;
+    $zFound = 1;
+    @GOOD   = ( @GOOD, $msg );
+  } else {
+    if ( $zFound == 0 ) {
+      $msg  = qq/$sep Consider adding $var:axis = "Z"\n/;
+      @OPT  = ( @OPT,  $msg );
+    }
+  }
+
+  # %%%%% Check the positive attribute (optional)
+  $value = $positive{$var};
+  if ( defined( $value ) && ( $value =~ m/[Uu][Pp]/         ||
+                              $value =~ m/[Dd][Oo][Ww][Nn]/    ) ) {
+    $msg  = qq/$sep $var:positive =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:positive = "up" (or "down", as the case may be)\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the long_name attribute
+  $value = $longName{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/hybrid level at interfaces/ ||
+         $value =~ m/GEOS-Chem levels/           ||
+         $value =~ m/lev/                        ||
+         $value =~ m/sigma/                      ||
+         $value =~ m/eta/                        ||
+         $value =~ m/level/                      ||
+	 $value =~ m/layer/                         ) {
+
+      $msg  = qq/$sep $var:long_name =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:long_name should be "ilev" or "hybrid level at interfaces", etc.\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:long_name (or $var:standard_name) is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the units attribute
+  $value = $units{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/sigmal/  || $value =~ m/eta/   ||
+         $value =~ m/level/   || $value =~ m/layer/ ||
+         $value =~ m/1/                                ) {
+      $msg  = qq/$sep $var:units =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:units should be dimensionless (e.g. "sigma_level", "1")\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+      $msg  = qq/$sep $var:units is missing\n/;
+      @BAD  = ( @BAD,  $msg );
+  }
+
+  # Return w/ error code
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeLev
+#
+# !DESCRIPTION: Checks the attributes of the lev variable to see if
+#  they adhere to the COARDS standard.
+#\\
+#\\
+# !INTERFACE:
+#
+sub analyzeLev($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Variable name (from ncdump output)
+  my ( $var ) = @_;
+#
+# !REVISION HISTORY:
+#  06 Jan 2015 - R. Yantosca - Initial version
+#  06 Jan 2016 - R. Yantosca - Add checks for null values
+#  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
+#  08 Jan 2016 - R. Yantosca - Add "vertical level as an accepted long_name
+#  08 Jan 2016 - R. Yantosca - Add "layer", "level" as accepted units
+#  30 Apr 2018 - R. Yantosca - Add a extra check on the "axis" attribute
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  my $msg   = "";
+  my $value = "";
+
+  # %%%%% Ensure variable is declared with the dimension of the same name
+  if ( $varDims{$var} = "$var" ) {
+    $msg  = qq/$sep $var($varDims{$var})\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep $var needs to be declared with dimension "lev"\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check if levels are monotonic
+  $value = &isMonotonic( $levels );
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
+    $msg  = qq/$sep $var $value\n/;
+    @BAD  = ( @BAD,  $msg );
+  } else {
+    $msg  = qq/$sep $var $value\n/;
+    @GOOD = ( @GOOD,  $msg );
+  }
+
+  # %%%%% Check the axis attribute (optional)
+  $value = $axis{$var};
+  if ( defined( $value ) && $value =~ m/[Zz]/ ) {
+    $msg    = qq/$sep $var:axis =$value\n/;
+    $zFound = 1;
+    @GOOD   = ( @GOOD, $msg );
+  } else {
+    if ( $zFound == 0 ) {
+      $msg    = qq/$sep Consider adding $var:axis = "Z"\n/;
+      @OPT    = ( @OPT,  $msg );
+    }
+  }
+
+  # %%%%% Check the positive attribute (optional)
+  $value = $positive{$var};
+  if ( defined( $value ) && ( $value =~ m/[Uu][Pp]/         ||
+                              $value =~ m/[Dd][Oo][Ww][Nn]/    ) ) {
+    $msg  = qq/$sep $var:positive =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:positive = "up" (or "down", as the case may be)\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the long_name attribute
+  $value = $longName{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/hybrid level at midpoints/ ||
+         $value =~ m/GEOS-Chem levels/          ||
+         $value =~ m/lev/                       ||
+         $value =~ m/sigma/                     ||
+         $value =~ m/eta/                       ||
+         $value =~ m/level/                     ||
+	 $value =~ m/layer/                        ) {
+
+      $msg  = qq/$sep $var:long_name =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:long_name should be "lev" or "hybrid level at midpoints", etc.\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:long_name (or $var:standard_name) is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the units attribute
+  $value = $units{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/sigmal/  || $value =~ m/eta/   ||
+         $value =~ m/level/   || $value =~ m/layer/ ||
+         $value =~ m/1/                                ) {
+      $msg  = qq/$sep $var:units =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:units should be dimensionless (e.g. "sigma_level", "1")\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+      $msg  = qq/$sep $var:units is missing\n/;
+      @BAD  = ( @BAD,  $msg );
+  }
+
+  # Return w/ error code
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeLat
+#
+# !DESCRIPTION: Checks the attributes of the lat variable to see if
+#  they adhere to the COARDS standard.
+#\\
+#\\
+# !INTERFACE:
+#
+sub analyzeLat($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Variable name (from ncdump output)
+  my ( $var ) = @_;
+#
+# !REVISION HISTORY:
+#  06 Jan 2015 - R. Yantosca - Initial version
+#  06 Jan 2016 - R. Yantosca - Add checks for null values
+#  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  my $msg   = "";
+  my $value = "";
+
+  # %%%%% Ensure variable is declared with the dimension of the same name
+  if ( $varDims{$var} = "$var" ) {
+    $msg  = qq/$sep $var($varDims{$var})\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep $var needs to be declared with dimension "lev"\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check if latitudes are monotonically increasing
+  $value = &isMonotonic( $latitudes );
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
+       $value eq "is monotonically decreasing" ) {
+    $msg  = qq/$sep $var $value\n/;
+    @BAD  = ( @BAD,  $msg );
+  } else {
+    $msg  = qq/$sep $var $value\n/;
+    @GOOD = ( @GOOD,  $msg );
+  }
+
+  # %%%%% Check the axis attribute (optional)
+  $value = $axis{$var};
+  if ( defined( $value) && $value =~ m/[Yy]/ ) {
+    $msg  = qq/$sep $var:axis =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:axis = "Y"\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the long_name attribute
+  $value = $longName{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/[Ll][Aa][Tt][Ii][Tt][Uu][Dd][Ee]/ ) {
+      $msg  = qq/$sep $var:long_name =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:long_name should be "Latitude"\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:long_name (or $var:standard_name) is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the :units attribute
+  $value = $units{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/degrees_north/ ) {
+      $msg  = qq/$sep $var:units =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:units should be "degrees_north"\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+   } else {
+     $msg  = qq/$sep $var:units is missing\n/;
+     @BAD  = ( @BAD,  $msg );
+  }
+
+  # Return w/ error code
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeLon
+#
+# !DESCRIPTION: Checks the attributes of the lat variable to see if
+#  they adhere to the COARDS standard.
+#\\
+#\\
+# !INTERFACE:
+#
+sub analyzeLon($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Variable name (from ncdump output)
+  my ( $var ) = @_;
+#
+# !REVISION HISTORY:
+#  06 Jan 2015 - R. Yantosca - Initial version
+#  06 Jan 2016 - R. Yantosca - Add checks for null values
+#  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  my $msg   = "";
+  my $value = "";
+
+  # %%%%% Ensure variable is declared with the dimension of the same name
+  if ( $varDims{$var} = "$var" ) {
+    $msg  = qq/$sep $var($varDims{$var})\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep $var needs to be declared with dimension "lon"\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check if longitudes are monotonically increasing
+  $value = &isMonotonic( $longitudes );
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
+       $value eq "is monotonically decreasing" ) {
+    $msg  = qq/$sep $var $value\n/;
+    @BAD  = ( @BAD,  $msg );
+  } else {
+    $msg  = qq/$sep $var $value\n/;
+    @GOOD = ( @GOOD,  $msg );
+  }
+
+  # %%%%% Check the axis attribute (optional)
+  $value = $axis{$var};
+  if ( defined( $value ) && $value =~ m/[Xx]/ ) {
+    $msg  = qq/$sep $var:axis =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:axis ="X"\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the long_name attribute
+  $value = $longName{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/[Ll][Oo][Nn][Gg][Ii][Tt][Uu][Dd][Ee]/ ) {
+      $msg  = qq/$sep $var:long_name =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:long_name (or $var:standard_name) should be "Longitude"\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:long_name (or $var:standard_name) is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the units attribute
+  $value = $units{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/degrees_east/ ) {
+      $msg  = qq/$sep $var:units =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:units should be "degrees_east"\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:units is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # Return w/ error code
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeVar
+#
+# !DESCRIPTION: Checks the attributes of a (non-index) netCDF variable
+#  to see if they adhere to the COARDS standard.
+#\\
+#\\
+# !INTERFACE:
+#
+sub analyzeVar($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Variable name (from ncdump output)
+  my ( $var ) = @_;
+#
+# !REVISION HISTORY:
+#  06 Jan 2015 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+
+  # Scalars
+  my $i         = 0;
+  my $foundDims = 0;
+
+  # Strings
+  my $msg       = "";
+  my $value     = "";
+  my $dim       = "";
+  my $dimsInVar = $varDims{$var};
+
+  # %%%%% Check to see if each dimension is valid
+  foreach $dim ( @dims ) {
+
+    # Special handling for hyai and hybi, which have "ilev" as a dimension
+    # which can easily be confused with "lev".  Use a strict equality
+    # for these variables instead of a pattern match. (bmy, 4/30/18)
+    if ( $var eq "hyai" || $var eq "hybi" ) {
+      if ( $dimsInVar eq $dim    ) { $foundDims++; }
+    } else {
+      if ( $dimsInVar =~ m/$dim/ ) { $foundDims++; }
+    }
+  }
+
+  # %%%%% Check if $var has the right # of dimensions
+  if ( $foundDims == $numDims{$var} ) {
+    $msg  = qq/$sep $var($varDims{$var})\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep $var needs to be declared with ($varDims{$var})\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the long_name attribute
+  $value = $longName{$var};
+  if ( defined( $value ) && $value ne "" ) {
+    $msg  = qq/$sep $var:long_name =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep $var:long_name (or $var:standard_name) is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the units attribute
+  $value = $units{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/[Uu][Nn][Ii][Tt][Ll][Ee][Ss][Ss]/ ||
+         $value =~ m/[Nn][Aa]/                            )  {
+      $msg  = qq/$sep $var:units =$value\n/;
+      @BAD  = ( @BAD,  $msg );
+    } else {
+      $msg = qq/$sep $var:units =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:units is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # Skip checking certain attributes for index variables that are
+  # automatically added to the netCDF file
+  if ( $var eq "hyai" || $var eq "hybi" ||
+       $var eq "hyam" || $var eq "hybm" ||
+       $var eq "AREA"                      ) { return( $? ); }
+
+  # %%%%% Check the _FillValue attribute (optional)
+  $value = $FillValue{$var};
+  if ( defined( $value ) && $value ne "" ) {
+    $msg = qq/$sep $var:long_name =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:_FillValue\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the missing_value attribute (optional)
+  $value = $missing_value{$var};
+  if ( defined( $value ) && $value ne "" ) {
+    $msg = qq/$sep $var:missing_value =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:missing_value\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the add_offset attribute (optional)
+  $value = $add_offset{$var};
+  if ( defined( $value ) && $value ne "" ) {
+    $msg = qq/$sep $var:add_offset =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:add_offset\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the scale_factor attribute (optional)
+  $value = $scale_factor{$var};
+  if ( defined( $value ) && $value ne "" ) {
+    $msg = qq/$sep $var:scale_factor =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:scale_factor\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # Return with error code
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeGlobAtts
+#
+# !DESCRIPTION: Checks if the global attributes of a netCDF file adhere
+#  to the COARDS standard.
+#\\
+#\\
+# !INTERFACE:
+#
+sub analyzeGlobAtts() {
+#
+# !REVISION HISTORY:
+#  05 Jan 2016 - R. Yantosca - Initial version
+#  06 Jan 2016 - R. Yantosca - Add more robust error check
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  # Strings
+  my $msg = "";
+
+  #-------------------------------------------------------------------------
+  # Required global attributes: Conventions, History, Title
+  #-------------------------------------------------------------------------
+
+  # %%%%% Check Conventions
+  if ( $conventions ne "" ) {
+    $msg  = qq/$sep conventions:$conventions\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep The "conventions" global attribute is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check History
+  if ( $history ne "" ) {
+    $msg  = qq/$sep history:$history\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep The "history" global attribute is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check Title
+  if ( $title ne ""  ) {
+    $msg  = qq/$sep title:$title\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep The "title" global attribute is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  #-------------------------------------------------------------------------
+  # Required global attributes: Format, Reference or References
+  #-------------------------------------------------------------------------
+
+  # %%%%% Check Format
+  if ( $format ne "" ) {
+    $msg  = qq/$sep format:$format\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding the "format" global attribute\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check References
+  if ( $references ne "" ) {
+    $msg  = qq/$sep references:$references\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding the "references" global attribute\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # Return with error code
+  return( $? );
+}
+#EOP
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeResults
+#
+# !DESCRIPTION: Calls routines to analyze if the given netCDF file
+#  is COARDS-compliant.  Prints results to stdout.
+#\\
+#\\
+# !INTERFACE:
+#
+sub analyzeResults() {
+#
+# !REVISION HISTORY:
+#  06 Jan 2015 - R. Yantosca - Initial version
+#  06 Jan 2016 - R. Yantosca - Now test for upper/lower case index var names
+#  17 Feb 2016 - R. Yantosca - Fixed typo: [ instead of ] in regexp for lat
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  # Scalars
+  my $badDimFound = 0;
+
+  # Strings
+  my $line = "";
+  my $dim  = "";
+  my $msg  = "";
+  my $var  = "";
+
+  #=========================================================================
+  # Loop over the output of ncdump, line by line
+  #=========================================================================
+
+  # Check dimensions: Only lon, lat, lev, ilev, and time are acceptable;
+  # Otherwise GCHP simulations will die when reading the file (bmy, 6/14/18)
+  foreach $dim ( @dims ) {
+    if ( ( $dim =~ m/[Tt][Ii][Mm][Ee]/ )  ||
+         ( $dim =~ m/[Ii][Ll][Ee][Vv]/ )  ||
+	 ( $dim =~ m/[Ll][Ee][Vv]/     )  ||
+	 ( $dim =~ m/[Ll][Aa][Tt]/     )  ||
+	 ( $dim =~ m/[Ll][Oo][Nn]/     ) )   {
+        $msg = qq/$sep Dimension "$dim" adheres to standard usage\n/;
+	@GOOD = ( @GOOD, $msg );
+    } else {
+     $msg  = qq/$sep Dimension "$dim" is non-standard usage,\n   which will cause GCHP to fail during file read.\n   PLEASE REMOVE THIS DIMENSION AND ALL VARIABLES THAT USE IT!!!\n/;
+     @BAD         = ( @BAD,  $msg );
+     $badDimFound = 1;
+    }
+  }
+
+  # Don't even bother analyzing the rest of the file if one of the dimensions
+  # is non-standard.  Skip to printing the results (bmy, 6/14/18)
+  if ( $badDimFound == 1 ) { goto printResults; }
+
+  # Check variables
+  foreach $var ( @vars ) {
+    if    ( $var =~ m/[Tt][Ii][Mm][Ee]/ ) { &analyzeTime( $var ); }
+    elsif ( $var =~ m/[Ii][Ll][Ee][Vv]/ ) { &analyzeILev( $var ); }
+    elsif ( $var =~ m/[Ll][Ee][Vv]/     ) { &analyzeLev ( $var ); }
+    elsif ( $var =~ m/[Ll][Aa][Tt]/     ) { &analyzeLat ( $var ); }
+    elsif ( $var =~ m/[Ll][Oo][Nn]/     ) { &analyzeLon ( $var ); }
+    else                                  { &analyzeVar ( $var ); }
+  }
+
+  # Check global attributes
+  &analyzeGlobAtts();
+
+printResults:
+  #=========================================================================
+  # Report things that are in COARDS compliance
+  #=========================================================================
+  print "="x75 . "\n";
+  print "Filename: $inputFile\n";
+  print "="x75 . "\n";
+  print "\nThe following items adhere to the COARDS standard:\n";
+  print "-"x75 . "\n";
+  foreach $line ( @GOOD ) { print "$line" }
+
+  #=========================================================================
+  # Report things that are not in COARDS compliance
+  #=========================================================================
+  print "\nThe following items DO NOT ADHERE to the COARDS standard:\n";
+  print "-"x75 . "\n";
+  foreach $line ( @BAD ) { print "$line" }
+
+
+  #=========================================================================
+  # Report things that are not in COARDS compliance
+  #=========================================================================
+  print "\nThe following optional items are RECOMMENDED:\n";
+  print "-"x75 . "\n";
+  foreach $line ( @OPT ) { print "$line" }
+
+  print "\nFor more information how to fix non COARDS-compliant items, see:\n";
+  print "http://wiki.geos-chem.org/Preparing_data_files_for_use_with_HEMCO\n";
+
+  # Return w/ error code
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: parseFile
+#
+# !DESCRIPTION: Runs "ncdump" on a netCDF file and parses the output into
+#  variables for later analysis.
+#\\
+#\\
+# !INTERFACE:
+#
+sub parseFile($) {
+#
+# !INPUT PARAMETERS:
+#
+  # netCDF file to scan (from command line)
+  my ( $fileName ) = @_;
+#
+# !REMARKS:
+#
+# !REVISION HISTORY:
+#  11 Dec 2015 - R. Yantosca - Initial version
+#  05 Jan 2016 - R. Yantosca - Add extra error checks
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  # Strings
+  my $dimList = "";
+  my $dimName = "";
+  my $key     = "";
+  my $line    = "";
+  my $value   = "";
+  my $varName = "";
+
+  # Scalars
+  my $inDims  = 0;
+  my $inVars  = 0;
+  my $inAtts  = 0;
+  my $inData  = 0;
+  my $inLon   = 0;
+  my $inLat   = 0;
+  my $inLev   = 0;
+  my $inILev  = 0;
+  my $inTime  = 0;
+
+  # Arrays
+  my @result  = ();
+  my @result2 = ();
+  my @text    = qx( ncdump -c $fileName );
+
+  #=========================================================================
+  # Loop over the output of ncdump, line by line
+  #=========================================================================
+  foreach $line ( @text ) {
+
+    # Remove newline
+    chomp( $line );
+
+    # Find out which section of the ncdump output this line is in
+    if ( $line =~ m/dimensions:/        ) { $inDims = 1; $inVars = 0;
+                                            $inAtts = 0, $inData = 0 }
+    if ( $line =~ m/variables:/         ) { $inDims = 0; $inVars = 1;
+                                            $inAtts = 0, $inData = 0 }
+    if ( $line =~ m/global attributes:/ ) { $inDims = 0; $inVars = 0;
+                                            $inAtts = 1, $inData = 0 }
+    if ( $line =~ m/data:/              ) { $inDims = 0; $inVars = 0;
+                                            $inAtts = 0, $inData = 1 }
+
+    #======================================================================
+    # Dimensions section
+    #======================================================================
+    if ( $inDims )  {
+
+      # Look for dimension names (split on the "=" sign)
+      @result  = split( /=/, $line );
+      if ( scalar( @result ) == 2 ) {
+	$dimName =  $result[0];
+	$dimName =~ s/\s+$//g;
+	$dimName =~ s/\t//g;
+	@dims    =  ( @dims, $dimName );
+      }
+    }
+
+    #======================================================================
+    # Variables section
+    #======================================================================
+    if ( $inVars )  {
+
+      #--------------------------------------------------------------------
+      # Look for the variable names
+      #
+      # In the ncdump output, lines with () are variable names.
+      # and the dimension list ins contained in parentheses.
+      #--------------------------------------------------------------------
+
+      # Variables are
+      if ( $line =~ m/\(/ &&
+	   $line =~ m/\)/ &&
+	   !( $line =~ m/long_name/ || $line =~ m/standard_name/ ) ) {
+
+	# Get the variable name (first split on the "(", then on the space)
+	# and append to the list of variables
+	@result  = split( /\(/, $line     );
+	@result2 = split( / /, $result[0] );
+	$varName = $result2[1];
+	@vars    = ( @vars, $varName      );
+
+	# Get the dimension list for each variable and save to a hash
+	$dimList = $result[1];
+	$dimList =~ s/\s+$//g;
+	$dimList =~ s/ //g;
+	$dimList =~ s/\)//g;
+	$dimList =~ s/;//g;
+	$varDims{$varName} = $dimList;
+
+	# Get the # of dimensions for each variable and save to a hash
+	@result2 = split( /,/, $dimList );
+	$numDims{$varName} = scalar( @result2 );
+
+      }
+
+      #--------------------------------------------------------------------
+      # Look for variable attributes and save into hashes
+      #--------------------------------------------------------------------
+
+      # add_offset
+      if ( $line =~ m/$varName:add_offset/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$add_offset{$varName} = $result[1];
+      }
+
+      # axis
+      if ( $line =~ m/$varName:axis/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$axis{$varName} = $result[1];
+      }
+
+      # calendar
+      if ( $line =~ m/$varName:calendar/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$calendar{$varName} = $result[1];
+      }
+
+      # _FillValue
+      if ( $line =~ m/$varName:_FillValue/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$FillValue{$varName} = $result[1];
+      }
+
+      # long_name or standard_name
+      if ( $line =~ m/$varName:long_name/ ||
+           $line =~ m/$varName:standard_name/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$longName{$varName} = $result[1];
+      }
+
+      # missing_value
+      if ( $line =~ m/$varName:missing_value/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$missing_value{$varName} = $result[1];
+      }
+
+      # positive
+      if ( $line =~ m/$varName:positive/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$positive{$varName} = $result[1];
+      }
+
+      # scale_factor
+      if ( $line =~ m/$varName:scale_factor/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$scale_factor{$varName} = $result[1];
+      }
+
+      # units
+      if ( $line =~ m/$varName:units/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$units{$varName} = $result[1];
+      }
+    }
+
+    #======================================================================
+    # Global attributes section
+    #======================================================================
+    if ( $inAtts )  {
+
+      # Conventions
+      if ( $line =~ m/:[Cc][Oo][Nn][Vv][Ee][Nn][Tt][Ii][Oo][Nn][Ss]/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$conventions = $result[1];
+      }
+
+      # Format
+      if ( $line =~ m/:[Ff][Oo][Rr][Mm][Aa][Tt]/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$format = $result[1];
+      }
+
+      # History
+      if ( $line =~ m/:[Hh][Ii][Ss][Tt][Oo][Rr][Yy]/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$history = $result[1];
+      }
+
+      # Title
+      if ( $line =~ m/:[Tt][Ii][Tt][Ll][Ee]/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$title = $result[1];
+      }
+
+      # References
+      if ( $line =~ m/:[Rr][Ee][Ff][Ee][Rr][Ee][Nn][Cc][Ee]/ ) {
+	@result = split( /=/, $line );
+	$result[1] =~ s/\;//g;
+	$references = $result[1];
+      }
+    }
+
+    #======================================================================
+    # Data section
+    #======================================================================
+    if ( $inData ) {
+
+      # Take extra care to distinguish "ilev" from "lev"
+      if ( $line =~ m/[Ll][Ee][Vv]/ ) {
+	if ( $line =~ m/[Ii][Ll][Ee][Vv]/ ) { $inILev      = 1; $inLev  = 0; }
+	else                                { $inLev       = 1; $inILev = 0; }
+      }
+
+      # Save level interface values into a string
+      if ( $inILev                        ) { $iLevels    .= "$line";        }
+      if ( $inILev && $line =~ m/;/       ) { $inILev      =  0;             }
+
+      # Save level midpoint values into a string
+      if ( $inLev                         ) { $levels     .= "$line";        }
+      if ( $inLev  && $line =~ m/;/       ) { $inLev       =  0;             }
+
+      # Save time values into a string
+      if ( $line =~ m/[Tt][Ii][Mm][Ee]/   ) { $inTime      =  1              }
+      if ( $inTime                        ) { $times      .= "$line";        }
+      if ( $inTime && $line =~ m/;/       ) { $inTime      =  0;             }
+
+      # Save latitude values into a string
+      if ( $line =~ m/[Ll][Aa][Tt]/       ) { $inLat       =  1              }
+      if ( $inLat                         ) { $latitudes  .= "$line";        }
+      if ( $inLat  && $line =~ m/;/       ) { $inLat       =  0;             }
+
+      # Save longitude values into a string
+      if ( $line =~ m/[Ll][Oo][Nn]/       ) { $inLon       =  1              }
+      if ( $inLon                         ) { $longitudes .= "$line";        }
+      if ( $inLon  && $line =~ m/;/       ) { $inLon       =  0;             }
+    }
+  }
+
+  #=========================================================================
+  # Post-processing
+  #=========================================================================
+
+  # Remove extra characters from the times string
+  if ( $times ne "" ) {
+    @result     =  split( /=/, $times );
+    $times      =  $result[1];
+    $times      =~ s/ //g;
+    $times      =~ s/;//g;
+  }
+
+  # Remove extra characters from the iLevels string
+  if ( $iLevels ne "" ) {
+    @result     =  split( /=/, $iLevels );
+    $iLevels    =  $result[1];
+    $iLevels    =~ s/ //g;
+    $iLevels    =~ s/;//g;
+  }
+
+  # Remove extra characters from the levels string
+  if ( $levels ne "" ) {
+    @result     =  split( /=/, $levels );
+    $levels     =  $result[1];
+    $levels     =~ s/ //g;
+    $levels     =~ s/;//g;
+  }
+
+  # Remove extra characters from the latitudes string
+  if ( $latitudes ne "" ) {
+    @result     =  split( /=/, $latitudes );
+    $latitudes  =  $result[1];
+    $latitudes  =~ s/ //g;
+    $latitudes  =~ s/;//g;
+  }
+
+  # Remove extra characters from the longitudes string
+  if ( $longitudes ne "" ) {
+    @result     =  split( /=/, $longitudes );
+    $longitudes =  $result[1];
+    $longitudes =~ s/ //g;
+    $longitudes =~ s/;//g;
+  }
+
+  # Pass error code back to main program
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: main
+#
+# !DESCRIPTION: Driver program for isCoards.  Calls routines &parseFile
+#  and &analyzeResults.
+#\\
+#\\
+# !INTERFACE:
+#
+sub main() {
+#
+# !REMARKS:
+#
+# !REVISION HISTORY:
+#  11 Dec 2015 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+  if ( scalar( @ARGV ) == 1 ) {
+
+    # Save filename as a global variable for later use
+    $inputFile = $ARGV[0];
+
+    # Scan the output of "ncdump" into Perl variables
+    &parseFile( $inputFile );
+
+    # Determine if the file is COARDS-compliant
+    &analyzeResults();
+
+  } else {
+
+    # Otherwise exit with error
+    print "Usage: isCoards FILENAME\n";
+    exit( -1 );
+
+  }
+
+  # Return with error code
+  return( $? )
+}
+
+#------------------------------------------------------------------------------
+
+# Call main routine
+main();
+
+# Return error code
+exit( $? );

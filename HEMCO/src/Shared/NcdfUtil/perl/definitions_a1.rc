@@ -1,0 +1,269 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  #
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: definitions_a1.rc
+#
+# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 A1 filename,
+#  variables, and attributes for use with the ncCode* scripts.  Also defines
+#  the names of the files where Fortran code will be written to.
+#\\
+#\\
+# !REMARKS:
+#  This file has been customized to generate GEOS-Chem Fortran code that
+#  will read data from a GEOS-5.7.2 A1 met field file.
+#
+# !REVISION HISTORY:
+#  27 Jan 2012 - R. Yantosca - Initial version
+#------------------------------------------------------------------------------
+
+### !FILENAME:
+Fortran Read File       = a1_read.F
+netCDF FileHandle       = fId
+netCDF FileName         = GEOS572.YYYYMMDD.A1.4x5.nc
+
+
+### !DIMENSIONS:
+lon                     = State_Grid%NX
+lat                     = State_Grid%NY
+time                    = 1
+
+
+### !VARIABLES:
+lon                     = REAL*4::lon
+lon:long_name           = longitude
+lon:units               = degrees_east
+#-
+lat                     = REAL*4::lat
+lat:long_name           = latitude
+lat:units               = degrees_north
+#-
+time                    = INTEGER::time
+time:long_name          = time
+time:units              = minutes since YYYY-MM-DD 00:00:00.0
+time:delta_t            = 0000-00-00 01:00:00
+time:begin_date         = YYYYMMDD
+time:begin_time         = 000000
+time:time_increment     = 010000
+#-
+ALBEDO                  = REAL*4::lon,lat,time
+ALBEDO:long_name        = Surface albedo
+ALBEDO:units            = fraction
+ALBEDO:gamap_category   = GMAO-2D
+#-
+CLDTOT                  = REAL*4::lon,lat,time
+CLDTOT:long_name        = Total cloud fraction
+CLDTOT:units            = fraction
+CLDTOT:gamap_category   = GMAO-2D
+#-
+EFLUX                   = REAL*4::lon,lat,time
+EFLUX:long_name         = Latent heat flux positive upward
+EFLUX:units             = W m-2
+EFLUX:gamap_category    = GMAO-2D
+#-
+EVAP                    = REAL*4::lon,lat,time
+EVAP:long_name          = Surface evaporation
+EVAP:units              = kg m-2 s-2
+EVAP:gamap_category     = GMAO-2D
+#-
+FRSEAICE                = REAL*4::lon,lat,time
+FRSEAICE:long_name      = Fraction of sea ice on surface
+FRSEAICE:units          = fraction
+FRSEAICE:gamap_category = GMAO-2D
+#-
+FRSNO                   = REAL*4::lon,lat,time
+FRSNO:long_name         = Fractional snow-covered area
+FRSNO:units             = fraction
+FRSNO:gamap_category    = GMAO-2D
+#-
+GRN                     = REAL*4::lon,lat,time
+GRN:long_name           = Vegetation greenness fraction
+GRN:units               = fraction
+GRN:gamap_category      = GMAO-2D
+#-
+GWETROOT                = REAL*4::lon,lat,time
+GWETROOT:long_name      = Root zone soil wetness
+GWETROOT:units          = fraction
+GWETROOT:gamap_category = GMAO-2D
+#-
+GWETTOP                 = REAL*4::lon,lat,time
+GWETTOP:long_name       = Top soil wetness
+GWETTOP:units           = fraction
+GWETTOP:gamap_category  = GMAO-2D
+#-
+HFLUX                   = REAL*4::lon,lat,time
+HFLUX:long_name         = Sensible heat flux positive upward
+HFLUX:units             = W m-2
+HFLUX:gamap_category    = GMAO-2D
+#-
+LAI                     = REAL*4::lon,lat,time
+LAI:long_name           = Leaf area index
+LAI:units               = m2 m-2
+LAI:gamap_category      = GMAO-2D
+#-
+LWI                     = REAL*4::lon,lat,time
+LWI:long_name           = Land/water/ice flags
+LWI:units               = unitless
+LWI:gamap_category      = GMAO-2D
+#-
+LWGNT                   = REAL*4::lon,lat,time
+LWGNT:long_name         = Net longwave flux at the ground
+LWGNT:units             = W m-2
+LWGNT:gamap_category    = GMAO-2D
+#-
+LWTUP                   = REAL*4::lon,lat,time
+LWTUP:long_name         = Upward longwave flux at top of atmosphere TOA
+LWTUP:units             = W m-2
+LWTUP:gamap_category    = GMAO-2D
+#-
+PARDF                   = REAL*4::lon,lat,time
+PARDF:long_name         = Surface downward PAR diffuse flux
+PARDF:units             = W m-2
+PARDF:gamap_category    = GMAO-2D
+#-
+PARDR                   = REAL*4::lon,lat,time
+PARDR:long_name         = Surface downward PAR beam flux
+PARDR:units             = W m-2
+PARDR:gamap_category    = GMAO-2D
+#-
+PBLH                    = REAL*4::lon,lat,time
+PBLH:long_name          = Planetary boundary layer height above surface
+PBLH:units              = m
+PBLH:gamap_category     = GMAO-2D
+#-
+PRECANV                 = REAL*4::lon,lat,time
+PRECANV:long_name       = Surface precipitation flux from anvils
+PRECANV:units           = kg m-2 s-1
+PRECANV:gamap_category  = GMAO-2D
+#-
+PRECCON                 = REAL*4::lon,lat,time
+PRECCON:long_name       = Surface precipitation flux from convection
+PRECCON:units           = kg m-2 s-1
+PRECCON:gamap_category  = GMAO-2D
+#-
+PRECLSC                 = REAL*4::lon,lat,time
+PRECLSC:long_name       = Surface precipitation flux from large-scale
+PRECLSC:units           = kg m-2 s-1
+PRECLSC:gamap_category  = GMAO-2D
+#-
+PRECSNO                 = REAL*4::lon,lat,time
+PRECSNO:long_name       = Surface precipitation flux from snow
+PRECSNO:units           = kg m-2 s-1
+PRECSNO:gamap_category  = GMAO-2D
+#-
+PRECTOT                 = REAL*4::lon,lat,time
+PRECTOT:long_name       = Total surface precipitation flux
+PRECTOT:units           = kg m-2 s-1
+PRECTOT:gamap_category  = GMAO-2D
+#-
+QV2M                    = REAL*4::lon,lat,time
+QV2M:long_name          = Specific humidity at 2m above the displacement height
+QV2M:units              = kg kg-1
+QV2M:gamap_category     = GMAO-2D
+#-
+SEAICE00                = REAL*4::lon,lat,time
+SEAICE00:long_name      = Fraction of grid box that has 0-10% sea ice coverage
+SEAICE00:units          = fraction
+SEAICE00:gamap_category = GMAO-2D
+#-
+SEAICE10                = REAL*4::lon,lat,time
+SEAICE10:long_name      = Fraction of grid box that has 10-20% sea ice coverage
+SEAICE10:units          = fraction
+SEAICE10:gamap_category = GMAO-2D
+#-
+SEAICE20                = REAL*4::lon,lat,time
+SEAICE20:long_name      = Fraction of grid box that has 20-30% sea ice coverage
+SEAICE20:units          = fraction
+SEAICE20:gamap_category = GMAO-2D
+#-
+SEAICE30                = REAL*4::lon,lat,time
+SEAICE30:long_name      = Fraction of grid box that has 30-40% sea ice coverage
+SEAICE30:units          = fraction
+SEAICE30:gamap_category = GMAO-2D
+#-
+SEAICE40                = REAL*4::lon,lat,time
+SEAICE40:long_name      = Fraction of grid box that has 40-50% sea ice coverage
+SEAICE40:units          = fraction
+SEAICE40:gamap_category = GMAO-2D
+#-
+SEAICE50                = REAL*4::lon,lat,time
+SEAICE50:long_name      = Fraction of grid box that has 50-60% sea ice coverage
+SEAICE50:units          = fraction
+SEAICE50:gamap_category = GMAO-2D
+#-
+SEAICE60                = REAL*4::lon,lat,time
+SEAICE60:long_name      = Fraction of grid box that has 60-70% sea ice coverage
+SEAICE60:units          = fraction
+SEAICE60:gamap_category = GMAO-2D
+#-
+SEAICE70                = REAL*4::lon,lat,time
+SEAICE70:long_name      = Fraction of grid box that has 70-80% sea ice coverage
+SEAICE70:units          = fraction
+SEAICE70:gamap_category = GMAO-2D
+#-
+SEAICE80                = REAL*4::lon,lat,time
+SEAICE80:long_name      = Fraction of grid box that has 80-90% sea ice coverage
+SEAICE80:units          = fraction
+SEAICE80:gamap_category = GMAO-2D
+#-
+SEAICE90                = REAL*4::lon,lat,time
+SEAICE90:long_name      = Fraction of grid box that has 90-100% sea ice coverage
+SEAICE90:units          = fraction
+SEAICE90:gamap_category = GMAO-2D
+#-
+SLP                     = REAL*4::lon,lat,time
+SLP:long_name           = Sea level pressure
+SLP:units               = hPa
+SLP:gamap_category      = GMAO-2D
+#-
+SNODP                   = REAL*4::lon,lat,time
+SNODP:long_name         = Snow depth
+SNODP:units             = m
+SNODP:gamap_category    = GMAO-2D
+#-
+SNOMAS                  = REAL*4::lon,lat,time
+SNOMAS:long_name        = Snow mass
+SNOMAS:units            = kg m-2
+#-
+SWGDN                   = REAL*4::lon,lat,time
+SWGDN:long_name         = Surface incident shortwave flux
+SWGDN:units             = W m-2
+SWGDN:gamap_category    = GMAO-2D
+#-
+TROPPT                  = REAL*4::lon,lat,time
+TROPPT:long_name        = Temperature-based tropopause pressure
+TROPPT:units            = hPa
+TROPPT:gamap_category   = GMAO-2D
+#-
+TS                      = REAL*4::lon,lat,time
+TS:long_name            = Surface skin temperature
+TS:units                = K
+TS:gamap_category       = GMAO-2D
+#-
+T2M                     = REAL*4::lon,lat,time
+T2M:long_name           = Temperature 2m above displacement height
+T2M:units               = K
+T2M:gamap_category      = GMAO-2D
+#-
+U10M                    = REAL*4::lon,lat,time
+U10M:long_name          = Eastward wind 10m above displacement height
+U10M:units              = m s-1
+U10M:gamap_category     = GMAO-2D
+#-
+USTAR                   = REAL*4::lon,lat,time
+USTAR:long_name         = Friction velocity
+USTAR:units             = m s-1
+USTAR:gamap_category    = GMAO-2D
+#-
+V10M                    = REAL*4::lon,lat,time
+V10M:long_name          = Northward wind 10m above displacement height
+V10M:units              = m s-1
+V10M:gamap_category     = GMAO-2D
+#-
+Z0M                     = REAL*4::lon,lat,time
+Z0M:long_name           = Roughness length, momentum
+Z0M:units               = m
+Z0M:gamap_category      = GMAO-2D
+
+#EOP

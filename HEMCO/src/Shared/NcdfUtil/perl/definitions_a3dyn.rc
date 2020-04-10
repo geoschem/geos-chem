@@ -1,0 +1,85 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  #
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: definitions_a3dyn.rc
+#
+# !DESCRIPTION: Resource file that defines the GEOS-5.7.2 A3dyn filename,
+#  variables, and attributes for use with the ncCode* scripts.  Also defines
+#  the names of the files where Fortran code will be written to.
+#\\
+#\\
+# !REMARKS:
+#  This file has been customized to generate GEOS-Chem Fortran code that
+#  will read data from a GEOS-5.7.2 A3dyn met field file.
+#
+# !REVISION HISTORY:
+#  01 Feb 2012 - R. Yantosca - Initial version
+#------------------------------------------------------------------------------
+
+### !FILENAME:
+Fortran Read File     = a3dyn_read.F
+netCDF FileHandle     = fId
+netCDF FileName       = GEOS572.YYYYMMDD.A3dyn.4x5.nc
+
+
+### !DIMENSIONS:
+lon                   = State_Grid%NX
+lat                   = State_Grid%NY
+lev                   = State_Grid%NZ
+ap                    = State_Grid%NZ+1
+time                  = 1
+
+
+### !VARIABLES:
+lon                   = REAL*4::lon
+lon:long_name         = longitude
+lon:units             = degrees_east
+#-
+lat                   = REAL*4::lat
+lat:long_name         = latitude
+lat:units             = degrees_north
+#-
+lev                   = REAL*4::lev
+lev:long_name         = levels
+lev:units             = unitless
+#-
+time                  = INTEGER::time
+time:units            = minutes since YYYY-MM-DD 00:00:00.0
+time:delta_t          = 0000-00-00 03:00:00
+time:begin_date       = YYYYMMDD
+time:begin_time       = 000000
+time:time_increment   = 030000
+#-
+CMFMC                 = REAL*4::lon,lat,ap,time
+CMFMC:long_name       = Upward moist convective mass flux
+CMFMC:units           = kg m-2 s-2
+CMFMC:gamap_category  = GMAO-3D$
+#-
+DTRAIN                = REAL*4::lon,lat,lev,time
+DTRAIN:long_name      = Detrainment cloud mass flux
+DTRAIN:units          = kg m-2 s-2
+DTRAIN:gamap_category = GMAO-3D$
+#-
+OMEGA                 = REAL*4::lon,lat,lev,time
+OMEGA:long_name       = Vertical pressure velocity
+OMEGA:units           = Pa s-1
+OMEGA:gamap_category  = GMAO-3D$
+#-
+RH                    = REAL*4::lon,lat,lev,time
+RH:long_name          = Relative humidity
+RH:units              = fraction
+RH:gamap_category     = GMAO-3D$
+#-
+U                     = REAL*4::lon,lat,lev,time
+U:long_name           = Eastward component of wind
+U:units               = m s-1
+U:gamap_category      = GMAO-3D$
+#-
+V                     = REAL*4::lon,lat,lev,time
+V:long_name           = Northward component of wind
+V:units               = m s-1
+V:gamap_category      = GMAO-3D$
+
+#EOP

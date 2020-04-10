@@ -654,7 +654,11 @@ ifeq ($(IS_HPC),1)
   ifneq ("$(wildcard $(CURDIR)/../../GCHP/GIGC.mk)","")
     include $(CURDIR)/../../GCHP/GIGC.mk
   else
+  ifneq ("$(wildcard $(CURDIR)/../../../GCHP/GIGC.mk)","")
+    include $(CURDIR)/../../../GCHP/GIGC.mk
+  else
     $(error $(ERR_GCHP))
+  endif
   endif
   endif
   #FFLAGS             += -double-size 32 -real-size 32 -r4
