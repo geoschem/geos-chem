@@ -149,6 +149,8 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: FRCLND      ! Olson land fraction [-]
      TYPE(ExtDat_2R),  POINTER :: FRLAND      ! land fraction [-]
      TYPE(ExtDat_2R),  POINTER :: FROCEAN     ! ocean fraction [-]
+     TYPE(ExtDat_2R),  POINTER :: FRSEAICE    ! sea ice fraction [-]
+     TYPE(ExtDat_2R),  POINTER :: QV2M        ! 2m specific humidity [-]
      TYPE(ExtDat_2R),  POINTER :: FRLAKE      ! lake fraction [-]
      TYPE(ExtDat_2R),  POINTER :: FRLANDIC    ! land ice fraction [-]
      TYPE(ExtDat_2R),  POINTER :: CLDFRC      ! cloud fraction [-]
@@ -407,6 +409,12 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%FRLAND, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%FRSEAICE, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%QV2M, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%FROCEAN, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -556,6 +564,8 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%FRCLND     )
        CALL ExtDat_Cleanup( ExtState%FRLAND     )
        CALL ExtDat_Cleanup( ExtState%FROCEAN    )
+       CALL ExtDat_Cleanup( ExtState%FRSEAICE   )
+       CALL ExtDat_Cleanup( ExtState%QV2M       )
        CALL ExtDat_Cleanup( ExtState%FRLAKE     )
        CALL ExtDat_Cleanup( ExtState%FRLANDIC   )
        CALL ExtDat_Cleanup( ExtState%CLDFRC     )

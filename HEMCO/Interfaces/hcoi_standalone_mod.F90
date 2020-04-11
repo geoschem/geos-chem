@@ -1328,7 +1328,9 @@ CONTAINS
                 ! Pass to YEDGE
                 ELSEIF ( TRIM(DUM(1:5)) == 'YEDGE' ) THEN
                    IF ( I > NY+1 ) THEN
-                      WRITE(ErrMsg,*) 'More than ', NY+1, ' latitude edges found in ', TRIM(DUM)
+                      !WRITE(ErrMsg,*) 'More than ', NY+1, ' latitude edges found in ', TRIM(DUM)
+                      WRITE(ErrMsg,*) 'More than ', NY+1, ' latitude edges found in ', DUM
+                      WRITE(ErrMsg,*) 'Found ',I
                       CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, THISLOC=ThisLoc )
                       RETURN
                    ENDIF
@@ -1384,7 +1386,6 @@ CONTAINS
           ENDIF
           IF ( TRIM(DUM(1:5)) == 'YEDGE' .AND. I /= NY+1 ) THEN
              WRITE(ErrMsg,*) 'Error reading YEDGES: exactly ', NY+1, ' values must be given: ', TRIM(DUM)
-             CALL HCO_Error( HcoState%Config%Err, ErrMsg, RC, THISLOC=ThisLoc )
              RETURN
           ENDIF
           IF ( TRIM(DUM(1:4)) == 'XMID' .AND. I /= NX ) THEN
@@ -2526,6 +2527,34 @@ CONTAINS
     IF ( ExtState%FRLANDIC%DoUse ) THEN
        Name = 'FRLANDIC'
        CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FRLANDIC,           &
+                        TRIM( Name ), RC,       FIRST=FIRST                 )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
+                   '" for the HEMCO standalone simulation!'
+          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !%%%%% Seaice fraction %%%%%
+    IF ( ExtState%FRSEAICE%DoUse ) THEN
+       Name = 'FRSEAICE'
+       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FRSEAICE,           &
+                        TRIM( Name ), RC,       FIRST=FIRST                 )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
+                   '" for the HEMCO standalone simulation!'
+          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !%%%%% 2 meter specific humidity %%%%%
+    IF ( ExtState%QV2M%DoUse ) THEN
+       Name = 'QV2M'
+       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%QV2M,               &
                         TRIM( Name ), RC,       FIRST=FIRST                 )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &

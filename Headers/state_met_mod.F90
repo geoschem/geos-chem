@@ -100,6 +100,7 @@ MODULE State_Met_Mod
                                                 !  end of timestep [hPa]
      REAL(fp), POINTER :: PSC2_DRY      (:,:  ) ! Dry interpolated surface
                                                 !  pressure [hPa]
+     REAL(fp), POINTER :: QV2M          (:,:  ) ! Specific Humidity at 2m [kg/kg]
      REAL(fp), POINTER :: SEAICE00      (:,:  ) ! Sea ice coverage 00-10%
      REAL(fp), POINTER :: SEAICE10      (:,:  ) ! Sea ice coverage 10-20%
      REAL(fp), POINTER :: SEAICE20      (:,:  ) ! Sea ice coverage 20-30%
@@ -391,6 +392,7 @@ CONTAINS
     State_Met%PS2_DRY        => NULL()
     State_Met%PSC2_WET       => NULL()
     State_Met%PSC2_DRY       => NULL()
+    State_Met%QV2M           => NULL()
     State_Met%SEAICE00       => NULL()
     State_Met%SEAICE10       => NULL()
     State_Met%SEAICE20       => NULL()
@@ -918,6 +920,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PSC2_DRY = 0.0_fp
     CALL Register_MetField( am_I_Root, 'PSC2DRY', State_Met%PSC2_DRY, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! QV2M [kg/kg]
+    !-------------------------
+    ALLOCATE( State_Met%QV2M( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%QV2M', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%QV2M = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'QV2M', State_Met%QV2M, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -2256,6 +2269,14 @@ CONTAINS
        State_Met%PSC2_DRY => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%QV2M ) ) THEN
+       DEALLOCATE( State_Met%QV2M, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%QV2M', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%QV2M => NULL()
+    ENDIF
+
+
     IF ( ASSOCIATED( State_Met%SEAICE00 ) ) THEN
        DEALLOCATE( State_Met%SEAICE00, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%SEAICE00', 2, RC )
@@ -3385,6 +3406,11 @@ CONTAINS
        CASE ( 'PSC2DRY' )
           IF ( isDesc  ) Desc  = 'Dry interpolated surface pressure'
           IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'QV2M' )
+          IF ( isDesc  ) Desc  = 'Specific humidity at 2 m'
+          IF ( isUnits ) Units = 'kg kg-1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'SEAICE00' )

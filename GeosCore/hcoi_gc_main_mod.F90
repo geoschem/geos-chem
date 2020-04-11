@@ -1825,6 +1825,32 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! FRSEAICE (for blowing snow, huang & jaegle 04/12/20)
+    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%FRSEAICE,         &
+                    'FRSEAICE_FOR_EMIS', HMRC,     FIRST,                    &
+                     State_Met%FRSEAICE                                     )
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( FRSEAICE_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+    
+    ! QV2M (for blowing snow, huang & jaegle 04/12/20)
+    CALL ExtDat_Set( am_I_Root,         HcoState, ExtState%QV2M,             &
+                    'QV2M_FOR_EMIS', HMRC,     FIRST,                        &
+                     State_Met%QV2M                                         )
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( QV2M_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
     ! FRLAKE
     CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%FRLAKE,            &
                     'FRLAKE_FOR_EMIS', HMRC,     FIRST,                      &
