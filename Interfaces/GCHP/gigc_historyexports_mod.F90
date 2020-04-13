@@ -964,6 +964,7 @@ CONTAINS
           CALL Registry_Lookup( am_I_Root = am_I_Root,               &
                                 Registry  = State_Met%Registry,      &
                                 State     = State_Met%State,         &
+                                RegDict   = State_Met%RegDict,       &
                                 Variable  = current%registryID,      &
                                 Ptr2d     = current%GCStateData2d,   &
                                 Ptr2d_4   = current%GCStateData2d_4, &
@@ -977,6 +978,7 @@ CONTAINS
        ELSEIF ( current%isChem ) THEN
           CALL Registry_Lookup( am_I_Root = am_I_Root,               &
                                 Registry  = State_Chm%Registry,      &
+                                RegDict   = State_Chm%RegDict,       &
                                 State     = State_Chm%State,         &
                                 Variable  = current%registryID,      &
                                 Ptr2d     = current%GCStateData2d,   &
@@ -991,6 +993,7 @@ CONTAINS
        ELSEIF ( current%isDiag ) THEN
           CALL Registry_Lookup( am_I_Root = am_I_Root,               &
                                 Registry  = State_Diag%Registry,     &
+                                RegDict   = State_Diag%RegDict,      &
                                 State     = State_Diag%State,        &
                                 Variable  = current%registryID,      &
                                 Ptr2d     = current%GCStateData2d,   &
