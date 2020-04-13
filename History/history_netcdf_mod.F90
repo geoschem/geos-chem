@@ -118,7 +118,7 @@ CONTAINS
        Container%IsFileDefined = .FALSE.
        Container%ReferenceYmd  = UNDEFINED_INT
        Container%ReferenceHms  = UNDEFINED_INT
-!       Container%ReferenceJd   = UNDEFINED_DBL
+      !Container%ReferenceJd   = UNDEFINED_DBL
        Container%ReferenceJsec = UNDEFINED_DBL
        Container%CurrTimeSlice = UNDEFINED_INT
 
@@ -171,6 +171,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CharPak_Mod,         ONLY : To_UpperCase
     USE ErrCode_Mod
     USE HistContainer_Mod,   ONLY : HistContainer, HistContainer_Print
     USE HistItem_Mod,        ONLY : HistItem,      HistItem_Print
@@ -194,6 +195,9 @@ CONTAINS
     INTEGER,             INTENT(OUT) :: RC         ! Success or failure
 !
 ! !REMARKS:
+!  For instantaneous file collections, if a file already exists (e.g. at 0h
+!  on the day when a run ended), then we will append into that file instead
+!  of opening a new file. This will prevent clobbering of existing data.
 !
 ! !REVISION HISTORY:
 !  03 Aug 2017 - R. Yantosca - Initial version
@@ -205,11 +209,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                     :: N,          VarCt
-    INTEGER                     :: VarXDimId,  VarYDimId
-    INTEGER                     :: VarZDimId,  VarTDimId
-    INTEGER                     :: yyyymmdd,   hhmmss
-    INTEGER                     :: nLev,       nILev
+    LOGICAL                     :: appendToFile, isRestart
+    INTEGER                     :: N,            VarCt
+    INTEGER                     :: VarXDimId,    VarYDimId
+    INTEGER                     :: VarZDimId,    VarTDimId
+    INTEGER                     :: yyyymmdd,     hhmmss
+    INTEGER                     :: nLev,         nILev
     INTEGER                     :: DataType
 
     ! Strings
@@ -217,9 +222,9 @@ CONTAINS
     CHARACTER(LEN=8)            :: D
     CHARACTER(LEN=10)           :: T
     CHARACTER(LEN=255)          :: FileName
-    CHARACTER(LEN=255)          :: ErrMsg,     ThisLoc,     VarUnits
-    CHARACTER(LEN=255)          :: VarAxis,    VarPositive, VarCalendar
-    CHARACTER(LEN=255)          :: VarStdName, VarFormula
+    CHARACTER(LEN=255)          :: ErrMsg,       ThisLoc,     VarUnits
+    CHARACTER(LEN=255)          :: VarAxis,      VarPositive, VarCalendar
+    CHARACTER(LEN=255)          :: VarStdName,   VarFormula
 
     ! Arrays
     INTEGER                     :: V(8)
@@ -235,21 +240,26 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC          =  GC_SUCCESS
-    Current     => NULL()
+    RC           =  GC_SUCCESS
+    Current      => NULL()
     IndexVarList => NULL()
-    ErrMsg      =  ''
-    ThisLoc     =  ' -> at History_Netcdf_Define (in History/history_mod.F90)'
-    FileName    =  ''
-    VarAxis     =  ''
-    VarCalendar =  ''
-    VarPositive =  ''
-    VarUnits    =  ''
-    yyyymmdd    =  Container%CurrentYmd
-    hhmmss      =  Container%CurrentHms
+    ErrMsg       =  ''
+    ThisLoc      =  ' -> at History_Netcdf_Define (in History/history_mod.F90)'
+    FileName     =  ''
+    VarAxis      =  ''
+    VarCalendar  =  ''
+    VarPositive  =  ''
+    VarUnits     =  ''
+    appendToFile = .FALSE.
+    yyyymmdd     =  Container%CurrentYmd
+    hhmmss       =  Container%CurrentHms
+
+    ! Test if this collection is a restart file (for which we will always
+    ! want to create a new file instead of appending to an open file).
+    isRestart = ( INDEX( To_UpperCase(TRIM(Container%Name)), 'RESTART' ) > 0 )
 
     !=======================================================================
-    ! Create the netCDF file with global attributes
+    ! Create the netCDF file with global attributes (or append)
     ! Do not exit netCDF define mode just yet
     !=======================================================================
     IF ( .not. Container%IsFileOpen ) THEN
@@ -289,7 +299,6 @@ CONTAINS
           ! current date/time (CurrentJd).
           IF ( Container%FirstInst ) THEN
              Container%ReferenceJsec = Container%EpochJsec
-             Container%FirstInst   = .FALSE.
           ELSE
              Container%ReferenceJsec = Container%CurrentJsec
           ENDIF
@@ -316,7 +325,7 @@ CONTAINS
        CALL Expand_Date_Time( DateStr    = FileName,                         &
                               yyyymmdd   = Container%ReferenceYmd,           &
                               hhmmss     = Container%ReferenceHms,           &
-                              MAPL_Style = .TRUE. )
+                              MAPL_Style = .TRUE.                           )
 
 !------------------------------------------------------------------------------
 ! TEMPORARY FIX (bmy, 9/20/17)
@@ -347,57 +356,113 @@ CONTAINS
        ! Get the number of levels (nLev) and level interfaces (nIlev)
        CALL Get_Number_Of_Levels( Container, nLev, nIlev )
 
-       ! Do not create netCDF file on first timestep if instantaneous collection
-       ! and frequency = duration. This will avoid creation of a netCDF file
-       ! containing all missing values.
-       IF ( TRIM( Container%UpdateMode ) == 'instantaneous'       .and. &
-            Container%UpdateIvalSec == Container%FileCloseIvalSec .and. &
-            Container%FileCloseAlarm  == 0.0  ) THEN
+       !---------------------------------------------------------------------
+       ! Do not create netCDF file on first timestep if instantaneous
+       ! collection and frequency = duration. This will avoid creating
+       ! of a netCDF file containing all missing values.
+       !---------------------------------------------------------------------
+       IF ( Container%Operation      == COPY_FROM_SOURCE            .and.    &
+            Container%UpdateIvalSec  == Container%FileCloseIvalSec  .and.    &
+            Container%FileCloseAlarm == 0.0                        ) THEN
           RETURN
        ELSE
 
-          ! Echo info about the file we are creating
-          IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 100 ) TRIM( Container%Name ),                         &
-                             Container%ReferenceYmd,                         &
-                             Container%ReferenceHms
-             WRITE( 6, 110 ) TRIM( FileName       )
-          ENDIF
-100       FORMAT( '     - Creating file for ', a, '; reference = ',i8.8,1x,i6.6)
-110       FORMAT( '        with filename = ', a                                )
+          !------------------------------------------------------------------
+          ! Special handling for instantaneous collections to avoid
+          ! clobbering existing data at e.g. 00:00 UTC of a new day
+          !------------------------------------------------------------------
+          IF ( Container%Operation == COPY_FROM_SOURCE        .and.          &
+               .not. isRestart                                .and.          &
+               Container%FirstInst                           ) THEN
 
-          !--------------------------------------------------------------------
-          ! Create the file and add global attributes
-          ! Remain in netCDF define mode upon exiting this routine
-          !
-          ! NOTE: Container%Reference is a global attribute lists the GEOS-Chem
-          ! web and wiki page.  It has nothing to do with the reference date
-          ! and time fields that are computed by History_Set_RefDateTime.
-          !--------------------------------------------------------------------
-          CALL Nc_Create( Create_Nc4     = .TRUE.,                           &
-                          NcFile         = FileName,                         &
-                          nLon           = Container%nX,                     &
-                          nLat           = Container%nY,                     &
-                          nLev           = nLev,                             &
-                          nIlev          = nILev,                            &
-                          nTime          = NF_UNLIMITED,                     &
-                          NcFormat       = Container%NcFormat,               &
-                          Conventions    = Container%Conventions,            &
-                          History        = Container%History,                &
-                          ProdDateTime   = Container%ProdDateTime,           &
-                          Reference      = Container%Reference,              &
-                          Title          = Container%Title,                  &
-                          Contact        = Container%Contact,                &
-                          StartTimeStamp = Container%StartTimeStamp,         &
-                          EndTimeStamp   = Container%EndTimeStamp,           &
-                          fId            = Container%FileId,                 &
-                          TimeId         = Container%tDimId,                 &
-                          LevId          = Container%zDimId,                 &
-                          ILevId         = Container%iDimId,                 &
-                          LatId          = Container%yDimId,                 &
-                          LonId          = Container%xDimId,                 &
-                          KeepDefMode    = .TRUE.,                           &
-                          Varct          = VarCt                               )
+             ! Test if the collection file already exists
+             INQUIRE( FILE=TRIM( fileName ), EXIST=appendToFile )
+
+             ! If we are appending to an existing file, then we obviously
+             ! don't need to re-enter netCDF define mode once again.
+             Container%IsFileDefined = appendToFile
+          ENDIF
+
+          ! Set the FirstInst flag to false (moved from above to here)
+          Container%FirstInst   = .FALSE.
+
+          ! Append or create?
+          IF ( appendToFile ) THEN
+
+             !--------------------------------------------------------------
+             ! Append to an existing file.  This is necessary e.g. to 
+             ! preserve instantaneous values at the start of a day from 
+             ! being overwritten a run that gets restarted.
+             !--------------------------------------------------------------
+
+             ! Echo info about the file we are creating
+             IF ( Input_Opt%amIRoot ) THEN
+                WRITE( 6, 105 ) TRIM( Container%Name ),                      &
+                                Container%ReferenceYmd,                      &
+                                Container%ReferenceHms
+                WRITE( 6, 110 ) TRIM( FileName       )
+             ENDIF
+
+             ! Append to the file and find out how many 
+             ! existing time slices are already present
+             CALL Nc_Append( fileName = fileName,                            &
+                             fId      = Container%fileId,                    &
+                             nTime    = Container%CurrTimeSlice             )
+
+             ! Trap potential errors
+             IF ( Container%CurrTimeSlice < 1 ) THEN
+                ErrMsg = 'Could not get number of times in existing '     // &
+                         'file: ' // TRIM( fileName )
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+          ELSE
+
+             !--------------------------------------------------------------
+             ! Create the file and add global attributes
+             ! Remain in netCDF define mode upon exiting this routine
+             !
+             ! NOTE: Container%Reference is a global attribute lists the 
+             ! GEOS-Chem web and wiki page.  It has nothing to do with the 
+             ! reference data/time computed by History_Set_RefDateTime.
+             !--------------------------------------------------------------
+
+             ! Echo info about the file we are creating
+             IF ( Input_Opt%amIRoot ) THEN
+                WRITE( 6, 100 ) TRIM( Container%Name ),                      &
+                                Container%ReferenceYmd,                      &
+                                Container%ReferenceHms
+                WRITE( 6, 110 ) TRIM( FileName       )
+             ENDIF
+
+             ! Create the file
+             CALL Nc_Create( Create_Nc4     = .TRUE.,                        &
+                             NcFile         = fileName,                      &
+                             nLon           = Container%nX,                  &
+                             nLat           = Container%nY,                  &
+                             nLev           = nLev,                          &
+                             nIlev          = nILev,                         &
+                             nTime          = NF_UNLIMITED,                  &
+                             NcFormat       = Container%NcFormat,            &
+                             Conventions    = Container%Conventions,         &
+                             History        = Container%History,             &
+                             ProdDateTime   = Container%ProdDateTime,        &
+                             Reference      = Container%Reference,           &
+                             Title          = Container%Title,               &
+                             Contact        = Container%Contact,             &
+                             StartTimeStamp = Container%StartTimeStamp,      &
+                             EndTimeStamp   = Container%EndTimeStamp,        &
+                             fId            = Container%FileId,              &
+                             TimeId         = Container%tDimId,              &
+                             LevId          = Container%zDimId,              &
+                             ILevId         = Container%iDimId,              &
+                             LatId          = Container%yDimId,              &
+                             LonId          = Container%xDimId,              &
+                             KeepDefMode    = .TRUE.,                        &
+                             Varct          = VarCt                         )
+
+          ENDIF
 
           !--------------------------------------------------------------------
           ! Denote that the file has been created and is open
@@ -408,8 +473,14 @@ CONTAINS
 
     ENDIF
 
+    ! Format strings for use above
+100 FORMAT( '     - Creating file for ',  a, '; reference = ',i8.8,1x,i6.6 )
+105 FORMAT( '     - Appending file for ', a, '; reference = ',i8.8,1x,i6.6 )
+110 FORMAT( '        with filename = ', a                                  )
+
     !=======================================================================
     ! Define all of the Create the netCDF file with global attributes
+    ! Skip if we are appending to an existing file
     !=======================================================================
     IF ( .not. Container%IsFileDefined ) THEN
 
