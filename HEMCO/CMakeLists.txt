@@ -230,7 +230,7 @@ if(NOT HEMCO_EXTERNAL_CONFIG AND NOT HEMCO_TRY_RUN_PASSED)
         ${CMAKE_CURRENT_BINARY_DIR}/try_compile                  # binary dir
         ${CMAKE_CURRENT_SOURCE_DIR}/CMakeScripts/try_compile.F90 # test src file
         COMPILE_DEFINITIONS ${TRY_RUN_DEFINITIONS} ${BT_OPTIONS} # compile flags
-        LINK_LIBRARIES ${BT_LIBRARIES}	                         # link flags
+        LINK_LIBRARIES ${OpenMP_Fortran_FLAGS} ${NETCDF_LIBRARIES} # link flags
         CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${BT_INCLUDES}"       # include dirs
     	COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT
     	RUN_OUTPUT_VARIABLE RUN_OUTPUT
