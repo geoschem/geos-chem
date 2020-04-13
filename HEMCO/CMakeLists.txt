@@ -67,7 +67,7 @@ target_compile_definitions(HEMCOBuildProperties
 set(OMP "TRUE" CACHE STRING "Enables/disables HEMCO built with OpenMP")
 if("${OMP}")
     find_package(OpenMP REQUIRED)
-    target_link_libraries(HEMCOBuildProperties INTERFACE OpenMP::OpenMP_Fortran) # Prefer OpenMP::OpenMP target rather than variables
+    target_link_libraries(HEMCOBuildProperties INTERFACE ${OpenMP_Fortran_FLGAS}) # Prefer OpenMP::OpenMP target rather than variables
 else()
     target_compile_definitions(HEMCOBuildProperties
         INTERFACE "NO_OMP"
