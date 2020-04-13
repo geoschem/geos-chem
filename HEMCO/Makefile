@@ -31,12 +31,12 @@
 
 # Directories
 ROOT :=..
-SRC  :=src
+SRC  :=.
 BIN  :=$(ROOT)/bin
 DOC  :=$(ROOT)/doc
-HCO  :=$(SRC)/Core
-HCOI :=$(SRC)/Interfaces
-HCOX :=$(SRC)/Extensions
+HCO  :=$(SRC)/src/Core
+HCOI :=$(SRC)/src/Interfaces
+HCOX :=$(SRC)/src/Extensions
 HCOR :=$(SRC)/StandAlone_Run
 HELP :=$(ROOT)/Help
 LIB  :=$(ROOT)/lib
