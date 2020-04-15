@@ -186,9 +186,6 @@ MODULE DRYDEP_MOD
   REAL(f8),          ALLOCATABLE :: A_DEN   (:    ) ! Aer density [kg/m3]
   CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
-  REAL(f4), POINTER :: HCO_Iodide(:,:)   => NULL()
-  REAL(f4), POINTER :: HCO_Salinity(:,:) => NULL()
-
   ! Allocatable arrays
   REAL(f8),          ALLOCATABLE :: DMID    (:    )
   REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
@@ -219,10 +216,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_ERROR_MOD
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-    USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -319,10 +312,6 @@ CONTAINS
     ! Copy values from the Input Options object to local variables
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
     prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
-    ! Get fields for oceanic O3 drydeposition
-    CALL HCO_GetPtr( HcoState, 'surf_iodide',   HCO_Iodide,   RC )
-    CALL HCO_GetPtr( HcoState, 'surf_salinity', HCO_Salinity, RC )
 
     ! Call METERO to obtain meterological fields (all 1-D arrays)
     ! Added sfc pressure as PRESSU and 10m windspeed as W10
@@ -549,7 +538,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE OCEANO3( TEMPK, USTAR, DEPV, I, J )
+  SUBROUTINE OCEANO3( TEMPK, USTAR, HCO_IODIDE, I, J, DEPV )
 !
 ! !USES:
 !
@@ -560,6 +549,7 @@ CONTAINS
 !
     REAL(f8), INTENT(IN)         :: TEMPK ! Temperature [K]
     REAL(f8), INTENT(IN)         :: USTAR ! Fictional Velocity [m/s]
+    REAL(fp), INTENT(IN)         :: HCO_IODIDE ! Surface iodide from HEMCO
     INTEGER,  INTENT(IN)         :: I,J
     REAL(f8), INTENT(OUT)        :: DEPV  ! the new deposition vel [cm/s]
 ! 
@@ -580,7 +570,7 @@ CONTAINS
       
     USTARWater = 0.0345_f8*USTAR !waterside friction velocity
     
-    Iodide = HCO_Iodide(I,J)*1.0E-9_f8 !retrieve iodide from HEMCO
+    Iodide = HCO_Iodide*1.0E-9_f8 !retrieve iodide from HEMCO
      
     a = Iodide*EXP((-8772.2/TEMPK)+51.5) !chemical reactivity
 
@@ -883,6 +873,8 @@ CONTAINS
     USE Drydep_Toolbox_Mod, ONLY : BioFit
     USE ErrCode_Mod
     USE ERROR_MOD
+    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1040,6 +1032,7 @@ CONTAINS
 
     LOGICAL  :: LDEP(NUMDEP)
     LOGICAL  :: LRGERA(State_Grid%NX,State_Grid%NY)
+    LOGICAL  :: FOUND
 
     REAL(f8) :: VDS
     REAL(f8) :: CZ,C1,RT,XNU,RAD0,RIX,GFACT,GFACI
@@ -1063,6 +1056,10 @@ CONTAINS
 
     ! Logical for snow and sea ice
     LOGICAL  ::LSNOW(State_Grid%NX,State_Grid%NY)
+
+    ! Iodide and salinity retrieved from HEMCO for O3 ocean dry dep
+    REAL(fp) :: HCO_Iodide(State_Grid%NX,State_Grid%NY)
+    REAL(fp) :: HCO_Salinity(State_Grid%NX,State_Grid%NY)
 
     ! Loop indices (bmy, 3/29/12)
     INTEGER  :: I, J
@@ -1144,6 +1141,23 @@ CONTAINS
 
     ! Size of drycoeff (ckeller, 05/19/14)
     NN = SIZE(DRYCOEFF)
+
+    ! Evaluate iodide and salinity from HEMCO for O3 oceanic dry deposition
+    IF ( id_O3 > 0 ) THEN
+       CALL HCO_EvalFld( HcoState, 'surf_iodide', HCO_Iodide, RC, FOUND=FOUND )
+       IF ( RC \= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find surf_iodide in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
+          RETURN
+       ENDIF
+       CALL HCO_EvalFld( HcoState, 'surf_salinity', HCO_Salinity, RC, &
+                         FOUND=FOUND )
+       IF ( RC \= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find surf_salinity in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
+          RETURN
+       ENDIF
+    ENDIF
 
 #ifdef MODEL_GEOS
     ! Logical flag for Ra (ckeller, 12/29/17)
@@ -1430,7 +1444,8 @@ CONTAINS
                    ! Now apply the Luhar et al. [2018] equations for the
                    ! special treatment of O3 dry deposition to the ocean
                    ! surface 
-                   CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,I,J)
+                   CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),&
+                                HCO_Iodide(I,J),I,J,DEPVw)
 
                    ! Now convert to the new rc value(s) can probably tidy
                    ! this up a bit

@@ -145,7 +145,6 @@ CONTAINS
     USE ErrCode_Mod
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
-    USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -196,7 +195,7 @@ CONTAINS
     REAL(fp), POINTER     :: Spc(:,:,:,:)
 
     ! Arrays
-    REAL(fp), ALLOCATABLE :: CO2_COPROD(:,:,:)
+    REAL(fp) :: CO2_COPROD(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -210,7 +209,7 @@ CONTAINS
     ! Initialize
     RC          = GC_SUCCESS
     ErrMsg      = ''
-    ThisLoc     = ' -> at EMISSCO2 (in module GeosCore/co2_mod.F)'
+    ThisLoc     = ' -> at EMISSCO2 (in module GeosCore/co2_mod.F90)'
     Spc         => NULL()
 
     ! Import emissions from HEMCO (through HEMCO state)
@@ -263,14 +262,9 @@ CONTAINS
        Spc => State_Chm%Species
 
        ! Evalulate the CO2 production from HEMCO
-       ALLOCATE( CO2_COPROD(State_Grid%NX, State_Grid%NY, State_Grid%NZ), &
-                 STAT=RC )
-       CALL GC_CheckVar( 'co2_mod.F: CO2_COPROD', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       CO2_COPROD = 0.0_fp
        CALL HCO_EvalFld( HcoState, 'CO2_COPROD', CO2_COPROD, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'CO2 production is not defined in HEMCO!'
+          ErrMsg = 'CO_COPROD not found in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -325,9 +319,6 @@ CONTAINS
 
     ! Free pointer
     Spc        => NULL()
-
-    ! Cleanup
-    IF ( ALLOCATED( CO2_COPROD ) ) DEALLOCATE ( CO2_COPROD, STAT=RC )
 
   END SUBROUTINE EMISSCO2
 !EOC
