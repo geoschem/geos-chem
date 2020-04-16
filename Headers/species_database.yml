@@ -204,7 +204,7 @@ Br:
   Fullname: Atomic bromine
   Is_Advected: true
   Is_Gas: true
-  MW_g: 79.9
+  MW_g: 79.90
 Br2:
   DD_F0: 0.0
   DD_Hstar: 7.6e-1
@@ -264,6 +264,10 @@ BrSALC:
   Fullname: Coarse sea salt bromine
   Is_HygroGrowth: false
   MW_g: 79.9
+C:
+  Formula: C
+  Fullname: Atomic carbon
+  MW_g: 12.01
 C2H6:
   EmMW_g: 12.0
   Formula: C2H6
@@ -289,7 +293,7 @@ C4HVP1:
   Is_Gas: true
   MW_g: NEEDED
 C4HVP2:
-  Fullname: C4HVP2
+  Fullname: C4 hydroxy-vinyl peroxy radicals from HPALDS
   Is_Gas: true
   MW_g: NEEDED
 CCl4:
@@ -517,7 +521,7 @@ Cl:
   Fullname: Atomic chlorine
   Is_Advected: true
   Is_Gas: true
-  MW_g: 35.5
+  MW_g: 35.45
 Cl2:
   Formula: Cl2
   Fullname: Molecular chlorine
@@ -872,9 +876,9 @@ GLYX:
   WD_RetFactor: 2.0e-2
 H:
   Formula: H
-  Fullname: H
+  Fullname: Atomic hydrogen
   Is_Gas: true
-  MW_g: 1.0
+  MW_g: 1.01
 H1211:
   Formula: CBrClF2
   Fullname: Halon 1211, Freon 12B1
@@ -1516,7 +1520,7 @@ I:
   Fullname: Atomic iodine
   Is_Advected: true
   Is_Gas: true
-  MW_g: 126.9
+  MW_g: 126.90
 I2:
   DD_F0: 0.0
   DD_Hstar: 2.7
@@ -2565,7 +2569,7 @@ N:
   Formula: N
   Fullname: Atomic nitrogen
   Is_Gas: true
-  MW_g: 14.0
+  MW_g: 14.01
 N2:
   Formula: N2
   Fullname: Molecular nitrogen
@@ -2708,13 +2712,13 @@ O:
   Formula: O(3P)
   Fullname: Ground state atomic oxygen
   Is_Gas: true
-  MW_g: 16.0
+  MW_g: 16.00
 O1D:
   BackgroundVV: 1.0e-15
   Formula: O(1D)
   Fullname: Excited atomic oxygen (1D)
   Is_Gas: true
-  MW_g: 16.0
+  MW_g: 16.00
 O2:
   BackgroundVV: 2.095e-1
   Formula: O2
@@ -3080,8 +3084,6 @@ POPBCPI_BaP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
-
-
 POPBCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3480,6 +3482,10 @@ RP:
   Is_WetDep: true
   MW_g: 90.1
   WD_RetFactor: 2.0e-2
+S:
+  Formula: S
+  Fullname: Atomic sulfur
+  MW_g: 32.06
 SALA: &SALAproperties
   DD_AeroDryDep: true
   DD_F0: 0.0
