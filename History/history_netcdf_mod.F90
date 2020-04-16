@@ -364,7 +364,14 @@ CONTAINS
        IF ( Container%Operation      == COPY_FROM_SOURCE            .and.    &
             Container%UpdateIvalSec  == Container%FileCloseIvalSec  .and.    &
             Container%FileCloseAlarm == 0.0                        ) THEN
+
+          ! Set the first-time flag for this container to FALSE so that future
+          ! instantaneous files will be written with the current timestamp.
+          Container%FirstInst = .FALSE.
+
+          ! Exit without writing a file
           RETURN
+
        ELSE
 
           !------------------------------------------------------------------
@@ -381,17 +388,15 @@ CONTAINS
              ! If we are appending to an existing file, then we obviously
              ! don't need to re-enter netCDF define mode once again.
              Container%IsFileDefined = appendToFile
-          ENDIF
 
-          ! Set the FirstInst flag to false (moved from above to here)
-          Container%FirstInst   = .FALSE.
+          ENDIF
 
           ! Append or create?
           IF ( appendToFile ) THEN
 
              !--------------------------------------------------------------
-             ! Append to an existing file.  This is necessary e.g. to 
-             ! preserve instantaneous values at the start of a day from 
+             ! Append to an existing file.  This is necessary e.g. to
+             ! preserve instantaneous values at the start of a day from
              ! being overwritten a run that gets restarted.
              !--------------------------------------------------------------
 
@@ -403,7 +408,7 @@ CONTAINS
                 WRITE( 6, 110 ) TRIM( FileName       )
              ENDIF
 
-             ! Append to the file and find out how many 
+             ! Append to the file and find out how many
              ! existing time slices are already present
              CALL Nc_Append( fileName = fileName,                            &
                              fId      = Container%fileId,                    &
@@ -423,8 +428,8 @@ CONTAINS
              ! Create the file and add global attributes
              ! Remain in netCDF define mode upon exiting this routine
              !
-             ! NOTE: Container%Reference is a global attribute lists the 
-             ! GEOS-Chem web and wiki page.  It has nothing to do with the 
+             ! NOTE: Container%Reference is a global attribute lists the
+             ! GEOS-Chem web and wiki page.  It has nothing to do with the
              ! reference data/time computed by History_Set_RefDateTime.
              !--------------------------------------------------------------
 
@@ -472,6 +477,10 @@ CONTAINS
        ENDIF
 
     ENDIF
+
+    ! Set the FirstInst flag to false, which will ensure that instantaneous
+    ! files will use the current time as the reference time going forward
+    Container%FirstInst = .FALSE.
 
     ! Format strings for use above
 100 FORMAT( '     - Creating file for ',  a, '; reference = ',i8.8,1x,i6.6 )
