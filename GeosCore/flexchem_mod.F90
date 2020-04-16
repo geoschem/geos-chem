@@ -289,6 +289,11 @@ CONTAINS
     IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRate(:,:,:,:) = 0.0
 #endif
 
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End  ( "=> Gas-phase chem",   RC )
+       CALL Timer_Start( "=> All aerosol chem", RC )
+    ENDIF
+
     !=======================================================================
     ! Get concentrations of aerosols in [kg/m3]
     ! for FAST-JX and optical depth diagnostics
@@ -310,7 +315,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Debutg utput
+          ! Debug output
           IF ( prtDebug ) THEN
              CALL DEBUG_MSG( '### Do_FlexChem: after CALC_PSC' )
           ENDIF
@@ -331,54 +336,8 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Zero out certain species:
-    !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
-    !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
-    !    - if SOA or SOA_SVPOA, aromatic oxidation counter species
-    !      (dkh, 10/06/06)
-    !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+    ! Call RDAER -- computes aerosol optical depths for FAST-JX
     !=======================================================================
-    DO N = 1, State_Chm%nSpecies
-
-       ! Get info about this species from the species database
-       SpcInfo => State_Chm%SpcData(N)%Info
-
-       ! isoprene oxidation counter species
-       IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
-            TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
-          State_Chm%Species(:,:,:,N) = 0e+0_fp
-       ENDIF
-
-       ! aromatic oxidation counter species
-       IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
-          SELECT CASE ( TRIM( SpcInfo%Name ) )
-             CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
-                    'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
-                State_Chm%Species(:,:,:,N) = 0e+0_fp
-          END SELECT
-       ENDIF
-
-       ! Temporary fix for CO2
-       ! CO2 is a dead species and needs to be set to zero to
-       ! match the old SMVGEAR code (mps, 6/14/16)
-       IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
-          State_Chm%Species(:,:,:,N) = 0e+0_fp
-       ENDIF
-
-       ! Free pointer
-       SpcInfo => NULL()
-
-    ENDDO
-
-    !=======================================================================
-    ! Call RDAER -- computes aerosol optical depths
-    !=======================================================================
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> Gas-phase chem",   RC )
-       CALL Timer_Start( "=> All aerosol chem", RC )
-    ENDIF
-
-    ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
     CALL RDAER( Input_Opt, State_Chm, State_Diag, State_Grid, State_Met, RC,  &
                 MONTH,     YEAR,       WAVELENGTH )
@@ -425,6 +384,46 @@ CONTAINS
        CALL Timer_End  ( "=> All aerosol chem", RC )
        CALL Timer_Start( "=> Gas-phase chem",   RC )
     ENDIF
+
+    !=======================================================================
+    ! Zero out certain species:
+    !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
+    !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
+    !    - if SOA or SOA_SVPOA, aromatic oxidation counter species
+    !      (dkh, 10/06/06)
+    !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+    !=======================================================================
+    DO N = 1, State_Chm%nSpecies
+
+       ! Get info about this species from the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! isoprene oxidation counter species
+       IF ( TRIM( SpcInfo%Name ) == 'LISOPOH' .or. &
+            TRIM( SpcInfo%Name ) == 'LISOPNO3' ) THEN
+          State_Chm%Species(:,:,:,N) = 0e+0_fp
+       ENDIF
+
+       ! aromatic oxidation counter species
+       IF ( Input_Opt%LSOA .or. Input_Opt%LSVPOA ) THEN
+          SELECT CASE ( TRIM( SpcInfo%Name ) )
+             CASE ( 'LBRO2H', 'LBRO2N', 'LTRO2H', 'LTRO2N', &
+                    'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
+                State_Chm%Species(:,:,:,N) = 0e+0_fp
+          END SELECT
+       ENDIF
+
+       ! Temporary fix for CO2
+       ! CO2 is a dead species and needs to be set to zero to
+       ! match the old SMVGEAR code (mps, 6/14/16)
+       IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
+          State_Chm%Species(:,:,:,N) = 0e+0_fp
+       ENDIF
+
+       ! Free pointer
+       SpcInfo => NULL()
+
+    ENDDO
 
     !=======================================================================
     ! Archive initial species mass for stratospheric tendency
