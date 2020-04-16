@@ -83,7 +83,6 @@ MODULE PRESSURE_MOD
                                                   !  external grid
 #endif
 
-#if defined( MODEL_GEOS )
   REAL(fp)              :: a132_loc(133), b132_loc(133)
 
 ! GEOS-5 132 levels (from /src/GMAO_Shared/GMAO_hermes/m_set_eta.F90
@@ -156,7 +155,6 @@ MODULE PRESSURE_MOD
                   0.883905, 0.896733, 0.908781, 0.920085, &
                   0.930681, 0.940600, 0.949868, 0.958500, &
                   0.966498, 0.973850, 0.980526, 0.986474, 1.000000 /
-#endif
 
 CONTAINS
 !EOC
@@ -777,7 +775,6 @@ CONTAINS
 
     ELSE IF ( State_Grid%NZ == 132 ) THEN
 
-#if defined( MODEL_GEOS )
        !-----------------------------------------------------------------
        ! 132 level grid
        !-----------------------------------------------------------------
@@ -790,14 +787,12 @@ CONTAINS
           BP(L) = b132_loc(State_Grid%NZ+2-L)
        ENDDO
 
-#endif
-
     ELSE
 
 #if !defined( MODEL_WRF )
        WRITE( nLev, * ) State_Grid%NZ
        ErrMSg = 'Ap and Bp not defined for ' // TRIM( nLev ) // &
-                ' levels. See subroutine INIT_PRESSURE.'
+                ' levels. Please add these defintions in pressure_mod.F90.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
 #endif

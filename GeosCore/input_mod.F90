@@ -973,20 +973,6 @@ CONTAINS
     ENDIF
     READ( SUBSTRS(1:N), * ) State_Grid%GridRes
 
-    ! Make sure grid resolution is valid
-    IF ( TRIM(State_Grid%GridRes) /= '4.0x5.0'       .and. &
-         TRIM(State_Grid%GridRes) /= '2.0x2.5'       .and. &
-         TRIM(State_Grid%GridRes) /= '0.5x0.625'     .and. &
-         TRIM(State_Grid%GridRes) /= '0.25x0.3125' ) THEN
-
-       ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes)// &
-                ' is not a valid grid resolution! Supported'        // &
-                ' resoltuions are 4.0x5.0, 2.0x2.5, 0.5x0.625, and' // &
-                ' 0.25x0.3125. Please check your "input.geos" file.'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
     ! Split into two values, separated by 'x'
     CALL StrSplit( Trim(State_Grid%GridRes) , 'x', SubStrs, nSubStrs )
 
@@ -1090,17 +1076,6 @@ CONTAINS
        RETURN
     ENDIF
     READ( SUBSTRS(1:N), * ) State_Grid%NZ
-
-    ! Make sure number of levels is valid
-    IF ( State_Grid%NZ /= 47 .and. State_Grid%NZ /= 72 ) THEN
-       WRITE( nLev, * ) State_Grid%NZ
-       ErrMsg = 'Input%Opt%NZ = ' // TRIM( nLev )                 // &
-                ' is not a valid vertical resolution! Supported' // &
-                ' number of levels are 47 and 72. Please check'  // &
-                ' your "input.geos" file.'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !-----------------------------------------------------------------
     ! Nested grid settings
