@@ -34,7 +34,6 @@ MODULE SfcVmr_Mod
 !
   USE PhysConstants       ! Physical constants
   USE Precision_Mod       ! For GEOS-Chem Precision (fp)
-  USE HCO_Error_Mod       ! HEMCO error handling variables & functions
 
   IMPLICIT NONE
   PRIVATE
@@ -141,7 +140,7 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC        = HCO_SUCCESS
+    RC        = GC_SUCCESS
     ErrMsg    = ''
     ThisLoc   = ' --> at fixSfcVMR_Init (in module GeosCore/sfcvmr_mod.F90)'
     iSfcMrObj => NULL()
@@ -164,7 +163,7 @@ CONTAINS
        ! Check if file exists
        FldName = TRIM( Prefix ) // TRIM( SpcInfo%Name )
        CALL HCO_EvalFld( HcoState, TRIM(FldName), Arr2D, RC, FOUND=FOUND )
-       IF ( RC /= HCO_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find field : ' // TRIM( FldName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
@@ -184,7 +183,7 @@ CONTAINS
            ! Create new object, add to list
            ALLOCATE( iSfcMrObj, STAT=RC )
            CALL GC_CheckVar( 'sfcvmr_mod.F90:iSfcMrObj', 0, RC )
-           IF ( RC /= HCO_SUCCESS ) RETURN
+           IF ( RC /= GC_SUCCESS ) RETURN
 
            iSfcMrObj%SpcID   =  N
            iSfcMrObj%FldName =  TRIM(Prefix)//TRIM(SpcInfo%Name)
@@ -201,14 +200,11 @@ CONTAINS
        ENDIF
 
        ! Indicate success
-       RC = HCO_SUCCESS
+       RC = GC_SUCCESS
     ENDDO
 
-    ! Exit if unsuccessful
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
     ! If successful, print message
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .AND. RC == GC_SUCCESS) THEN
        WRITE( 6, 120 )
  120   FORMAT( '--- Finished initializing surface boundary conditions ---' )
     ENDIF
@@ -241,10 +237,7 @@ CONTAINS
     USE Species_Mod,        ONLY : Species
     USE HCO_Interface_Mod,  ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : Hco_EvalFld
-    USE HCO_Error_Mod,      ONLY : HCO_SUCCESS
     USE TIME_MOD,           ONLY : Get_Month
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
 
     ! Needed for the new CHxCly boundary condition
     Use PhysConstants,      Only : AirMW
@@ -293,14 +286,14 @@ CONTAINS
     !=======================================================================
 
     ! Assume success
-    RC        = HCO_SUCCESS
+    RC        = GC_SUCCESS
     ErrMsg    = ''
     ThisLoc   = ' -> at FixSfcVmrRun (in module GeosCore/sfcvmr_mod.F90)'
 
     ! Initialize object if needed
     IF ( FIRST ) THEN
        CALL FixSfcVMR_Init( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "FixSfcVmrInit"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
@@ -319,7 +312,7 @@ CONTAINS
 
        ! Get concentration for this species
        CALL HCO_EvalFld( HcoState, Trim(iObj%FldName), Arr2D, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get surface VMR for species: '//               &
                    TRIM( iObj%FldName ) // '!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
