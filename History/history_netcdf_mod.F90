@@ -171,16 +171,16 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CharPak_Mod,         ONLY : To_UpperCase
+    USE CharPak_Mod,            ONLY : To_UpperCase
     USE ErrCode_Mod
-    USE HistContainer_Mod,   ONLY : HistContainer, HistContainer_Print
-    USE HistItem_Mod,        ONLY : HistItem,      HistItem_Print
+    USE HistContainer_Mod,      ONLY : HistContainer, HistContainer_Print
+    USE HistItem_Mod,           ONLY : HistItem,      HistItem_Print
     USE History_Util_Mod
-    USE Input_Opt_Mod,       ONLY : OptInput
-    USE JulDay_Mod,          ONLY : CalDate
-    USE MetaHistItem_Mod,    ONLY : MetaHistItem
+    USE Input_Opt_Mod,          ONLY : OptInput
+    USE JulDay_Mod,             ONLY : CalDate
+    USE MetaHistItem_Mod,       ONLY : MetaHistItem
     USE Ncdf_Mod
-    USE Registry_Params_Mod, ONLY : KINDVAL_F4
+    USE Registry_Params_Mod,    ONLY : KINDVAL_F4
 !
 ! !INPUT PARAMETERS:
 !
@@ -216,6 +216,8 @@ CONTAINS
     INTEGER                     :: yyyymmdd,     hhmmss
     INTEGER                     :: nLev,         nILev
     INTEGER                     :: DataType
+    INTEGER                     :: fileNameYmd,  fileNameHms
+    REAL(f8)                    :: offset
 
     ! Strings
     CHARACTER(LEN=5)            :: Z
@@ -276,44 +278,94 @@ CONTAINS
 
        IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
 
-          !-----------------------------
+          !------------------------------------------
           ! TIME-AVERAGED COLLECTIONS
-          !-----------------------------
+          !------------------------------------------
 
+          ! REFERENCE TIMESTAMP:
           ! Subtract the file write alarm interval that we added to
           ! the current date/time (CurrentJd) field at initialization
           Container%ReferenceJsec = Container%CurrentJsec                    &
                                   - Container%FileWriteIvalSec
+         
+          ! FILENAME TIMESTAMP: 
+          Container%FileLabelJsec = Container%ReferenceJsec
 
        ELSE
 
-          !-----------------------------
+          !----------------------------------------
           ! INSTANTANEOUS COLLECTIONS
-          !-----------------------------
+          !----------------------------------------
+          
+          ! Test if the frequency is the same as the duration
+          ! in that case, the file close time is the same as the write time
+          offset = Container%FileCloseIvalSec - Container%FileWriteIvalSec
+          IF ( offset < 1e-5_f8 ) THEN
+             offset = 0.0_f8
+          ELSE
+             offset = Container%FileCloseIvalSec
+          ENDIF
 
           ! If this is the first time we are writing a file, then set
           ! the reference date/time to the date/time at the start of
           ! the simulation (EpochJd).  This will make sure the file names
           ! and timestamps in all instantaneous files will be consistent.
           ! For all future file writes, set the reference date/time to the
-          ! current date/time (CurrentJd).
+          ! current date/time (CurrentJd).   Also compute the file close
+          ! timestamp.
           IF ( Container%FirstInst ) THEN
-             Container%ReferenceJsec = Container%EpochJsec
+
+             IF ( offset > 0.0_fp ) THEN
+             
+                !------------------------------------
+                ! First write for an instantaneous
+                ! collection w/ multiple time points
+                !------------------------------------
+                Container%ReferenceJsec = Container%EpochJsec                &
+                                        + Container%FileWriteIvalSec
+                Container%FileLabelJsec = Container%EpochJsec + offset
+
+             ELSE
+
+                !------------------------------------
+                ! First write for an instantaneous
+                ! collection a single time point
+                !------------------------------------
+                Container%ReferenceJsec = Container%CurrentJsec
+                Container%FileLabelJsec = Container%CurrentJSec + offset
+
+             ENDIF
+
           ELSE
+
+             !---------------------------------------
+             ! Subsequent writes for all
+             ! instantaneous collections
+             !---------------------------------------
              Container%ReferenceJsec = Container%CurrentJsec
+             Container%FileLabelJsec = Container%CurrentJSec + offset
+
           ENDIF
        ENDIF
 
-       ! Convert the reference time from Astronomical Julian Seconds
-       ! to Astronomical Julian Date.  This is needed for the conversion
-       ! to calendar date and time via routine CALDATE.
+       ! Convert reference time from Astronomical Julian Seconds to date/time
        Container%ReferenceJd = Container%ReferenceJsec / SECONDS_PER_DAY
-
-       ! Recompute the ReferenceYmd and ReferenceHms fields
        CALL CalDate( JulianDay = Container%ReferenceJd,                      &
                      yyyymmdd  = Container%ReferenceYmd,                     &
                      hhmmss    = Container%ReferenceHms                     )
 
+       ! Convert file name from Astronomical Julian Seconds to date/time
+       Container%FileLabelJd = Container%FileLabelJsec / SECONDS_PER_DAY
+       CALL CalDate( JulianDay = Container%FileLabelJd,                      &
+                     yyyymmdd  = Container%FileLabelYmd,                     &
+                     hhmmss    = Container%FileLabelHms                     )
+
+       ! Select the YYYYMMDD hhmmss for the filename label
+       ! Time-averaged: use reference time
+       ! Instantaneous: use file close time
+       FileNameYmd = Container%FileLabelYmd
+       FileNameHms = Container%FileLabelHms
+       
        !--------------------------------------------------------------------
        ! Replace time and date tokens in the netCDF file name
        !--------------------------------------------------------------------
@@ -323,8 +375,8 @@ CONTAINS
 
        ! Replace date and time tokens in the file name
        CALL Expand_Date_Time( DateStr    = FileName,                         &
-                              yyyymmdd   = Container%ReferenceYmd,           &
-                              hhmmss     = Container%ReferenceHms,           &
+                              yyyymmdd   = FileNameYmd,                      &
+                              hhmmss     = FileNameHms,                      &
                               MAPL_Style = .TRUE.                           )
 
 !------------------------------------------------------------------------------
@@ -830,10 +882,10 @@ CONTAINS
     Container%TimeStamp = Container%TimeStamp / SECONDS_PER_MINUTE
 
     ! Debug output
-    IF ( Input_Opt%LPRT .and. Input_opt%amIRoot ) THEN
+!    IF ( Input_Opt%LPRT .and. Input_opt%amIRoot ) THEN
        WRITE( 6, 110 ) TRIM( Container%name ), Container%TimeStamp
 110    FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
-    ENDIF
+!    ENDIF
 
     !=======================================================================
     ! Write the time stamp to the netCDF File
@@ -1721,5 +1773,56 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Get_Number_Of_Levels
-!EOC
+!!!EOC
+!!!------------------------------------------------------------------------------
+!!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!!------------------------------------------------------------------------------
+!!!BOP
+!!!
+!!! !IROUTINE: check_time_dim
+!!!
+!!! !DESCRIPTION: Check the number of time points in a file.  This can be
+!!!  an indicator to append or not.
+!!!\\
+!!!\\
+!!! !INTERFACE:
+!!!
+!!  FUNCTION Check_Time_Dim( fileName 
+!!  SUBROUTINE Check_Time_Dim( fileNa
+!!!
+!!! !USES:
+!!!
+!!  USE m_netcdf_io_get_dimlen, ONLY : NcGet_DimLen
+!!  USE Ncdf_Mod,               ONLY : Nc_Open
+!!  USE Ncdf_Mod,               ONLY : Nc_Close
+!!!
+!!! !INPUT PARAMETERS: 
+!!!
+!!
+!!!
+!!! !INPUT/OUTPUT PARAMETERS: 
+!!!
+!!
+!!!
+!!! !OUTPUT PARAMETERS: 
+!!!
+!!
+!!!
+!!! !RETURN VALUE:
+!!!
+!!!
+!!! !REMARKS:
+!!!
+!!! !REVISION HISTORY:
+!!!  06 Jan 2015 - R. Yantosca - Initial version
+!!!  See the subsequent Git history with the gitk browser!
+!!!EOP
+!!!------------------------------------------------------------------------------
+!!!BOC
+!!!
+!!! !LOCAL VARIABLES:
+!!!
+!!
+!!
+!!
 END MODULE History_Netcdf_Mod
