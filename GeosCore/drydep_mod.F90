@@ -1032,7 +1032,6 @@ CONTAINS
 
     LOGICAL  :: LDEP(NUMDEP)
     LOGICAL  :: LRGERA(State_Grid%NX,State_Grid%NY)
-    LOGICAL  :: FOUND
 
     REAL(f8) :: VDS
     REAL(f8) :: CZ,C1,RT,XNU,RAD0,RIX,GFACT,GFACI
@@ -1144,14 +1143,13 @@ CONTAINS
 
     ! Evaluate iodide and salinity from HEMCO for O3 oceanic dry deposition
     IF ( id_O3 > 0 ) THEN
-       CALL HCO_EvalFld( HcoState, 'surf_iodide', HCO_Iodide, RC, FOUND=FOUND )
+       CALL HCO_EvalFld( HcoState, 'surf_iodide', HCO_Iodide, RC )
        IF ( RC \= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_iodide in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
           RETURN
        ENDIF
-       CALL HCO_EvalFld( HcoState, 'surf_salinity', HCO_Salinity, RC, &
-                         FOUND=FOUND )
+       CALL HCO_EvalFld( HcoState, 'surf_salinity', HCO_Salinity, RC )
        IF ( RC \= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_salinity in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
