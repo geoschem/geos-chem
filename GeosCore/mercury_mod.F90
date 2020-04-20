@@ -330,7 +330,7 @@ CONTAINS
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : SAFE_DIV
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE GLOBAL_BR_MOD,      ONLY : GET_GLOBAL_BR
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -4005,10 +4005,10 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_ERROR_MOD
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-    USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE Input_Opt_Mod,        ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -4107,7 +4107,7 @@ CONTAINS
 
        ! Anthropogenic emissions
        DgnName = 'HG0_ANTHRO'
-       CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4118,7 +4118,7 @@ CONTAINS
 
        ! Artisanal emissions
        DgnName = 'HG0_ARTISANAL'
-       CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4134,7 +4134,7 @@ CONTAINS
 
        ! Anthropogenic emissions
        DgnName = 'HG2_ANTHRO'
-       CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+       CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4147,7 +4147,7 @@ CONTAINS
 
     ! Natural emissions
     DgnName = 'HG0_NATURAL'
-    CALL GetHcoDiagn( DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -5672,7 +5672,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
@@ -5779,7 +5779,7 @@ CONTAINS
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
     USE State_Met_Mod,     ONLY : MetState
-    USE HCO_INTERFACE_MOD, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE HCO_EmisList_Mod,  ONLY : HCO_GetPtr
 !
 ! !INPUT PARAMETERS:
@@ -6859,7 +6859,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_ERROR_MOD
-    USE HCO_INTERFACE_MOD, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE HCO_ExtList_Mod,   ONLY : GetExtOpt
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Grid_Mod,    ONLY : GrdState

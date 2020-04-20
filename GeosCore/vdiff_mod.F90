@@ -1842,7 +1842,9 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
 
     ! HEMCO update
-    USE HCO_INTERFACE_MOD,  ONLY : GetHcoID, GetHcoVal, GetHcoDiagn
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep
 
     implicit none
 !
@@ -2035,9 +2037,9 @@ contains
        ! PNOXLOSS_O3 and PNOXLOSS_HNO3 to the data values stored in the
        ! respective diagnostics. The pointers will remain unassociated if
        ! the diagnostics do not exist (ckeller, 4/10/2015).
-       CALL GetHcoDiagn( 'PARANOX_O3_DEPOSITION_FLUX'  , &
+       CALL GetHcoDiagn( HcoState, ExtState, 'PARANOX_O3_DEPOSITION_FLUX', &
                          .FALSE.,   HCRC, Ptr2D = PNOXLOSS_O3 )
-       CALL GetHcoDiagn( 'PARANOX_HNO3_DEPOSITION_FLUX', &
+       CALL GetHcoDiagn( HcoState, ExtState, 'PARANOX_HNO3_DEPOSITION_FLUX', &
                          .FALSE.,   HCRC, Ptr2D = PNOXLOSS_HNO3 )
 
        ! Reset first-time flag
@@ -2144,7 +2146,7 @@ contains
           ! which tracks emission fluxes.  Units are [kg/m2/s].
           tmpflx = 0.0e+0_fp
           DO L = 1, TOPMIX
-             CALL GetHcoVal ( NA, I, J, L, fnd, emis=emis )
+             CALL GetHcoValEmis ( NA, I, J, L, fnd, emis )
              IF ( .NOT. fnd ) EXIT
              tmpflx = tmpflx + emis
           ENDDO
@@ -2154,7 +2156,7 @@ contains
           ! array. These values are stored in 1/s. They are added in the
           ! same manner as the DEPSAV values from drydep_mod.F90.
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
-          CALL GetHcoVal ( NA, I, J, 1, fnd, dep=dep )
+          CALL GetHcoValDep ( NA, I, J, 1, fnd, dep )
           IF ( fnd ) THEN
              dflx(I,J,NA) = dflx(I,J,NA) + ( dep * as2_scal(I,J,NA)  &
                             / ( AIRMW                                &

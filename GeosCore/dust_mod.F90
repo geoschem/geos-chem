@@ -92,7 +92,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Diag_Mod,     ONLY : DgnState
 #ifdef APM
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
     USE APM_INIT_MOD,       ONLY : APMIDS
 #endif

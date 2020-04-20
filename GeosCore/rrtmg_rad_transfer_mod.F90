@@ -2112,7 +2112,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE HCO_Interface_Mod, ONLY : HcoState
+    USE HCO_State_GC_Mod,  ONLY : HcoState
     USE HCO_EmisList_Mod,  ONLY : HCO_GetPtr
 !
 ! !OUTPUT PARAMETERS:

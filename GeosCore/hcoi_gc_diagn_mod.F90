@@ -40,7 +40,6 @@ MODULE HCOI_GC_Diagn_Mod
 #endif
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod
-  USE HCO_Interface_Mod
 
   IMPLICIT NONE
   PRIVATE

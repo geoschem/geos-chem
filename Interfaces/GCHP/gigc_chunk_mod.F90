@@ -317,7 +317,6 @@ CONTAINS
 ! !USES:
 !
     ! GEOS-Chem state objects 
-    USE HCO_Interface_Mod,  ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod
@@ -332,6 +331,10 @@ CONTAINS
     USE Mixing_Mod,         ONLY : Do_Tend, Do_Mixing
     USE WetScav_Mod,        ONLY : Setup_WetScav, Do_WetDep
 
+    ! HEMCO components (eventually moved to a separate GridComp?)
+    USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
+    USE HCO_Interface_Common, ONLY : SetHcoTime
+
     ! Specialized subroutines
     USE Calc_Met_Mod,       ONLY : AirQnt, Set_Dry_Surface_Pressure
     USE Calc_Met_Mod,       ONLY : GIGC_Cap_Tropopause_Prs
@@ -345,7 +348,6 @@ CONTAINS
     ! Utilities
     USE ErrCode_Mod
     USE HCO_Error_Mod
-    USE HCO_Interface_Mod,  ONLY : SetHcoTime
     USE MAPL_MemUtilsMod
     USE Pressure_Mod,       ONLY : Accept_External_Pedge
     USE State_Chm_Mod,      ONLY : IND_
@@ -358,7 +360,7 @@ CONTAINS
 
 #if defined( MODEL_GEOS )
     USE Derived_Met_Mod,    ONLY : GET_COSINE_SZA
-    USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_WriteDiagn
+    USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_WriteDiagn
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -586,8 +588,11 @@ CONTAINS
                                     value_UTC      = utc,        &
                                     RC             = RC         )
 
-    ! Set HEMCO time
-    CALL SetHcoTime ( DoEmis, RC )
+    ! Pass time values obtained from the ESMF environment to HEMCO
+    CALL SetHcoTime ( Input_Opt%AmIRoot,   HcoState,   ExtState,     &
+                      year,      month,    day,        dayOfYr,      &
+                      hour,      minute,   second,                   &
+                      DoEmis,    RC )
 
     ! Calculate MODIS leaf area indexes needed for dry deposition
     CALL Compute_XLAI( Input_Opt, State_Grid, State_Met, RC )

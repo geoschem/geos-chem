@@ -32,7 +32,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   USE HCO_TYPES_MOD, ONLY : DiagnCont
   USE HCO_DIAGN_MOD
   USE HCO_ERROR_MOD
-  USE HCO_INTERFACE_MOD
+  USE HCO_State_GC_Mod, ONLY : HcoState
   USE Input_Opt_Mod,  ONLY : OptInput
   USE TIME_MOD
   USE PhysConstants,  ONLY : AVO         ! Avogadro's #

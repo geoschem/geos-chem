@@ -94,7 +94,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE Species_Mod,        ONLY : Species
-    USE HCO_Interface_Mod,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
 !
 ! !INPUT PARAMETERS:
@@ -239,11 +239,10 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Chm_Mod,      ONLY : Ind_
     USE Species_Mod,        ONLY : Species
-    USE HCO_Interface_Mod,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_Calc_Mod,       ONLY : Hco_EvalFld
     USE HCO_Error_Mod,      ONLY : HCO_SUCCESS
     USE TIME_MOD,           ONLY : Get_Month
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
 
     ! Needed for the new CHxCly boundary condition

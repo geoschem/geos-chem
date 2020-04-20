@@ -212,7 +212,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -872,17 +872,18 @@ CONTAINS
 !
 #ifdef BPCH_DIAG
     USE CMN_DIAG_MOD             ! ND13 (for now)
-    USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
-#endif
-    USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
-    USE TOMAS_MOD,          ONLY : Xk
-    USE TOMAS_MOD,          ONLY : SUBGRIDCOAG, MNFIX
-    USE TOMAS_MOD,          ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
+    USE DIAG_MOD,             ONLY : AD59_SULF,     AD59_NUMB
+#endif                        
+    USE ERROR_MOD,            ONLY : ERROR_STOP,  IT_IS_NAN
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TOMAS_MOD,            ONLY : IBINS, AVGMASS, ICOMP
+    USE TOMAS_MOD,            ONLY : Xk
+    USE TOMAS_MOD,            ONLY : SUBGRIDCOAG, MNFIX
+    USE TOMAS_MOD,            ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
 !
 ! !INPUT PARAMETERS:
 !
@@ -1029,7 +1030,7 @@ CONTAINS
     ! READ IN HEMCO EMISSIONS
     !================================================================
     DgnName = 'SO4_ANTH'
-    CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
+    CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
     IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
        CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
     ELSE
@@ -2252,20 +2253,21 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,       ONLY : NDSTBIN
-    USE DUST_MOD,           ONLY : GET_DUST_ALK      ! tdf 04/08/08
-    USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : IS_SAFE_EXP
-    USE ERROR_MOD,          ONLY : SAFE_DIV
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE PRESSURE_MOD,       ONLY : GET_PCENTER
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
-    USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-    USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
+    USE CMN_SIZE_Mod,         ONLY : NDSTBIN
+    USE DUST_MOD,             ONLY : GET_DUST_ALK      ! tdf 04/08/08
+    USE ErrCode_Mod           
+    USE ERROR_MOD,            ONLY : IS_SAFE_EXP
+    USE ERROR_MOD,            ONLY : SAFE_DIV
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE PRESSURE_MOD,         ONLY : GET_PCENTER
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+    USE TIME_MOD,             ONLY : GET_TS_CHEM, GET_MONTH
+    USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+    USE HCO_Interface_Common, ONLY : GetHcoDiagn
 #ifdef APM
     USE APM_DRIV_MOD,       ONLY : PSO4GAS
     USE APM_DRIV_MOD,       ONLY : XO3
@@ -2449,8 +2451,8 @@ CONTAINS
     IF ( FIRST ) THEN
 
        ! Sea salt density, fine mode
-       CALL GetHcoDiagn( 'SEASALT_DENS_FINE', StopIfNotFound=.FALSE., &
-                         RC=RC, Ptr2D=NDENS_SALA )
+       CALL GetHcoDiagn( HcoState, ExtState, 'SEASALT_DENS_FINE', &
+                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
 
        ! Trap potential errors
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -2460,8 +2462,8 @@ CONTAINS
        ENDIF
 
        ! Sea salt density, coarse mode
-       CALL GetHcoDiagn( 'SEASALT_DENS_COARSE',StopIfNotFound=.FALSE., &
-                         RC=RC, Ptr2D=NDENS_SALC )
+       CALL GetHcoDiagn( HcoState, ExtState, 'SEASALT_DENS_COARSE', &
+                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
 
        ! Trap potential errors
        IF ( RC /= HCO_SUCCESS ) THEN
@@ -6919,13 +6921,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,       ONLY : NDUST
+    USE CMN_SIZE_MOD,         ONLY : NDUST
     USE ErrCode_Mod
-    USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -7025,8 +7027,8 @@ CONTAINS
 
        ! Get ALK1 and ALK2 surface emissions from HEMCO. These are in
        ! kg/m2/s.
-       CALL GetHcoVal( id_SALA, I, J, 1, FOUND, Emis=ALK1 )
-       CALL GetHcoVal( id_SALC, I, J, 1, FOUND, Emis=ALK2 )
+       CALL GetHcoValEmis( id_SALA, I, J, 1, FOUND, ALK1 )
+       CALL GetHcoValEmis( id_SALC, I, J, 1, FOUND, ALK2 )
 
        ! kg/m2/s --> kg. Weight by fraction of PBL
        ALK1 = MAX(ALK1,0.0e+0_fp) * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS

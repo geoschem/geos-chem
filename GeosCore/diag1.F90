@@ -28,7 +28,7 @@ SUBROUTINE DIAG1( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   USE State_Chm_Mod,      ONLY : Ind_
   USE State_Grid_Mod,     ONLY : GrdState
   USE State_Met_Mod,      ONLY : MetState
-  USE HCO_INTERFACE_MOD,  ONLY : HcoState
+  USE HCO_State_GC_Mod,   ONLY : HcoState
 
   IMPLICIT NONE
 !

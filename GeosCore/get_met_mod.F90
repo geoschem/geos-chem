@@ -54,7 +54,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Error_Stop
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE State_Grid_Mod,     ONLY : GrdState
 !
@@ -139,7 +139,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Error_Stop
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE State_Grid_Mod,     ONLY : GrdState
 !
@@ -225,7 +225,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Error_Stop
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE State_Grid_Mod,     ONLY : GrdState
 !

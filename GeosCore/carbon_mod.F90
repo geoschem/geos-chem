@@ -317,8 +317,8 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -332,7 +332,6 @@ CONTAINS
     USE HCO_DIAGN_MOD
     USE HCO_ERROR_MOD
     USE HCO_TYPES_MOD,      ONLY : DiagnCont
-    USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
 #endif
 #ifdef BPCH_DIAG
@@ -4616,7 +4615,9 @@ CONTAINS
 ! !USES:
 !
    USE ErrCode_Mod
-   USE HCO_INTERFACE_MOD,     ONLY : HcoState, GetHcoID, GetHcoVal
+   USE HCO_State_GC_Mod,      ONLY : HcoState
+   USE HCO_STATE_MOD,         ONLY : HCO_GetHcoID
+   USE HCO_Utilities_GC_Mod,  ONLY : GetHcoValEmis
    USE HCO_ERROR_MOD
    USE Input_Opt_Mod,         ONLY : OptInput
    USE State_Grid_Mod,        ONLY : GrdState
@@ -4687,7 +4688,7 @@ CONTAINS
 
       ! Get HEMCO ID of species SESQ
       IF ( SESQID == -999 ) THEN
-         SESQID = GetHcoID( 'SESQ' )
+         SESQID = HCO_GetHcoID( 'SESQ', HcoState )
       ENDIF
       IF ( SESQID > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(SESQID)%Emis%Val) ) THEN
@@ -4696,13 +4697,13 @@ CONTAINS
       ENDIF
 
       ! Get HEMCO ID of species POG1 and POG2
-      HCOPOG1 = GetHcoID( SpcID=id_POG1 )
+      HCOPOG1 = id_POG1
       IF ( HCOPOG1 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG1)%Emis%Val) ) THEN
             HCOPOG1 = -1
          ENDIF
       ENDIF
-      HCOPOG2 = GetHcoID( SpcID=id_POG2 )
+      HCOPOG2 = id_POG2
       IF ( HCOPOG2 > 0 ) THEN
          IF ( .NOT. ASSOCIATED(HcoState%Spc(HCOPOG2)%Emis%Val) ) THEN
             HCOPOG2 = -1
@@ -4737,7 +4738,7 @@ CONTAINS
       ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
       ! We assume all SESQ emissions are placed in surface level.
       IF ( SESQID > 0 ) THEN
-         CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis=EMIS )
+         CALL GetHcoValEmis ( SESQID, I, J, 1, FOUND, EMIS )
          IF ( FOUND ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX           = Emis * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
@@ -4799,17 +4800,18 @@ CONTAINS
 !
    USE ErrCode_Mod
    USE ERROR_MOD
-   USE Input_Opt_Mod,      ONLY : OptInput
-   USE State_Chm_Mod,      ONLY : ChmState
-   USE State_Grid_Mod,     ONLY : GrdState
-   USE State_Met_Mod,      ONLY : MetState
-   USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-   USE PRESSURE_MOD,       ONLY : GET_PCENTER
-   USE TOMAS_MOD,          ONLY : IBINS,     AVGMASS, SOACOND
-   USE TOMAS_MOD,          ONLY : ICOMP,     IDIAG
-   USE TOMAS_MOD,          ONLY : CHECKMN
-   USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
-   USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
+   USE Input_Opt_Mod,        ONLY : OptInput
+   USE State_Chm_Mod,        ONLY : ChmState
+   USE State_Grid_Mod,       ONLY : GrdState
+   USE State_Met_Mod,        ONLY : MetState
+   USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+   USE PRESSURE_MOD,         ONLY : GET_PCENTER
+   USE TOMAS_MOD,            ONLY : IBINS,     AVGMASS, SOACOND
+   USE TOMAS_MOD,            ONLY : ICOMP,     IDIAG
+   USE TOMAS_MOD,            ONLY : CHECKMN
+   USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
+   USE HCO_Interface_Common, ONLY : GetHcoDiagn
+   USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
 !
 ! !INPUT PARAMETERS:
 !
@@ -4932,7 +4934,8 @@ CONTAINS
          emis2d  => OCPO_ANTH_BULK
       END SELECT
 
-      CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
+      CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., &
+                        ERR, Ptr3D=Ptr3D )
       IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
          CALL HCO_WARNING( 'Not found: '//TRIM(DgnName),ERR, THISLOC=LOC )
       ELSE
@@ -4959,7 +4962,7 @@ CONTAINS
    !end 3d emis
 
    DgnName = 'BCPI_BB'
-   CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
    ELSE
@@ -4968,7 +4971,7 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'BCPO_BB'
-   CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
    ELSE
@@ -4977,7 +4980,7 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPI_BB'
-   CALL GetHcoDiagn( DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
    ELSE

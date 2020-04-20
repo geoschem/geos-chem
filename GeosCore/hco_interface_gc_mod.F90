@@ -1,14 +1,18 @@
 !------------------------------------------------------------------------------
-!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!                    Harmonized Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcoi_gc_main_mod.F90
+! !MODULE: hco_interface_gc_mod.F90
 !
-! !DESCRIPTION: Module hcoi\_gc\_main\_mod.F90 is the HEMCO-to-GEOS-Chem
-! interface module, providing the link between GEOS-Chem and HEMCO. It
-! contains wrapper routines to initialize, execute and finalize HEMCO from
-! within GEOS-Chem. These routines are called from emissions\_mod.F90.
+! !DESCRIPTION: Module hco\_interface\_gc\_mod.F90 contains routines and
+! variables to interface GEOS-Chem and HEMCO. It contains the HEMCO
+! state object (HcoState) as well as init-run-finalize driver routines 
+! to run HEMCO within GEOS-Chem.
+!\\
+!\\
+! The HEMCO driver is now present in this file as HEMCO is restructured to provide
+! a unified point-of-entry for coupling with other models.
 !\\
 !\\
 ! Notes:
@@ -22,15 +26,19 @@
 ! \End{itemize}
 ! !INTERFACE:
 !
-MODULE HCOI_GC_Main_Mod
+MODULE HCO_Interface_GC_Mod
 !
 ! !USES:
 !
   USE Precision_Mod
+
   USE HCO_Error_Mod
-  USE HCO_Interface_Mod
+  USE HCO_Interface_Common
+
+  ! Import the HEMCO states and their types from the state container
   USE HCOX_State_Mod, ONLY : Ext_State
   USE HCO_State_Mod,  ONLY : HCO_State
+  USE HCO_State_GC_Mod, ONLY : HcoState, ExtState
 
   IMPLICIT NONE
   PRIVATE
@@ -53,17 +61,9 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies
-#if !defined(ESMF_) && !defined( MODEL_WRF )
-  !=========================================================================
-  ! These are only needed for GEOS-Chem "Classic"
-  !=========================================================================
-  PRIVATE :: Get_GC_Restart
-  PRIVATE :: Get_Met_Fields
-  PRIVATE :: Get_Boundary_Conditions
-#endif
 !
 ! !REMARKS:
-!  This module is ignored if you are using HEMCO in an ESMF environment.
+!  Formerly HCOI\_GC\_Main\_Mod.
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Initial version.
@@ -648,6 +648,11 @@ CONTAINS
     USE HCO_FluxArr_Mod, ONLY : HCO_FluxarrReset
     USE HCO_Driver_Mod,  ONLY : HCO_Run
     USE HCOX_Driver_Mod, ONLY : HCOX_Run
+
+    ! HEMCO utility routines for GEOS-Chem
+    USE HCO_Utilities_GC_Mod, ONLY : Get_GC_Restart
+    USE HCO_Utilities_GC_Mod, ONLY : Get_Met_Fields
+    USE HCO_Utilities_GC_Mod, ONLY : Get_Boundary_Conditions
 !
 ! !INPUT PARAMETERS:
 !
@@ -686,6 +691,8 @@ CONTAINS
     LOGICAL            :: IsEmisTime
     LOGICAL            :: IsEndStep
 
+    INTEGER            :: year, month, day, dayOfYr, hour, minute, second
+
     ! Strings
     CHARACTER(LEN=255) :: ThisLoc, Instr
     CHARACTER(LEN=512) :: ErrMsg
@@ -709,9 +716,20 @@ CONTAINS
 
     !=======================================================================
     ! Make sure HEMCO time is in sync with simulation time
-    ! This is now done in main.F90
+    ! Now done through a universal function in HCO_Interface_Common
     !=======================================================================
-    CALL SetHcoTime( EmisTime, HMRC )
+    year      = GET_YEAR()
+    month     = GET_MONTH()
+    day       = GET_DAY()
+    dayOfYr   = GET_DAY_OF_YEAR()
+    hour      = GET_HOUR()
+    minute    = GET_MINUTE()
+    second    = GET_SECOND()
+
+    CALL SetHcoTime( am_I_Root, HcoState, ExtState,                          &
+                     year,      month,    day,        dayOfYr,               &
+                     hour,      minute,   second,                            &
+                     EmisTime,  HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1144,6 +1162,9 @@ CONTAINS
     USE ErrCode_Mod
     USE HCOIO_Diagn_Mod, ONLY : HcoDiagn_Write
     USE Input_Opt_Mod,   ONLY : OptInput
+
+    USE Time_Mod,        ONLY : Get_Year, Get_Month, Get_Day, GET_DAY_OF_YEAR
+    USE Time_Mod,        ONLY : GET_HOUR, GET_MINUTE, GET_SECOND
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1165,6 +1186,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: HMRC
+    INTEGER             :: year, month, day, dayOfYr, hour, minute, second
 
     ! Strings
     CHARACTER(LEN=255)  :: ThisLoc, Instr
@@ -1186,7 +1208,21 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Make sure HEMCO time is in sync
     !-----------------------------------------------------------------------
-    CALL SetHcoTime ( .FALSE., HMRC )
+
+    ! Now done through a universal function in HCO_Interface_Common
+    ! (hplin, 3/12/20)
+    year      = GET_YEAR()
+    month     = GET_MONTH()
+    day       = GET_DAY()
+    dayOfYr   = GET_DAY_OF_YEAR()
+    hour      = GET_HOUR()
+    minute    = GET_MINUTE()
+    second    = GET_SECOND()
+
+    CALL SetHcoTime( am_I_Root, HcoState, ExtState,                          &
+                     year,      month,    day,        dayOfYr,               &
+                     hour,      minute,   second,                            &
+                     .FALSE.,   HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -4652,4 +4688,4 @@ CONTAINS
  END SUBROUTINE Get_Boundary_Conditions
 !EOC
 #endif
-END MODULE Hcoi_GC_Main_Mod
+END MODULE HCO_Interface_GC_Mod
