@@ -12,13 +12,14 @@ trigger:
   branches:
     include:
       - master
+    exclude:
+      - dev/13.0.0
   tags:
     include:        # Semantic versioning 2.0.0 examples:
       - '*-alpha*'  # 12.7.1-alpha.3
       - '*-beta*'   # 12.7.0-beta.1
       - '*-rc*'     # 12.7.0-rc.1
 pr: none
-
 
 # Basic agent set up
 pool:
