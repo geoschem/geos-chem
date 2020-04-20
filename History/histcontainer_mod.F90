@@ -143,8 +143,10 @@ MODULE HistContainer_Mod
 
      INTEGER                     :: FileLabelYmd        ! YMD & HMS that are
      INTEGER                     :: FileLabelHms        !  in the file name
-     REAL(f8)                    :: FileLabelJd         ! Corresponding Julday
-     REAL(f8)                    :: FileLabelJsec       ! Corresponding Julsec
+
+! Leave commented for possible future expansion (bmy, 4/20/20)
+!    REAL(f8)                    :: FileLabelJd         ! Corresponding Julday
+!    REAL(f8)                    :: FileLabelJsec       ! Corresponding Julsec
 
      !----------------------------------------------------------------------
      ! netCDF file identifiers and attributes
