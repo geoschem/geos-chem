@@ -129,7 +129,7 @@ CONTAINS
     CHARACTER(LEN=255)      :: ThisLoc
 
     ! Arrays
-    REAL(hp)                :: Arr2D(State_Grid%NX,State_Grid%NY)
+    REAL(fp)                :: Arr2D(State_Grid%NX,State_Grid%NY)
 
     ! Pointers
     TYPE(Species),  POINTER :: SpcInfo
@@ -274,7 +274,7 @@ CONTAINS
     CHARACTER(LEN=255)       :: ThisLoc
 
     ! Arrays
-    REAL(hp)                 :: Arr2D(State_Grid%NX,State_Grid%NY)
+    REAL(fp)                 :: Arr2D(State_Grid%NX,State_Grid%NY)
 
     ! Linked list
     Real(fp),       POINTER  :: Spc(:,:,:,:)   ! Ptr to species array

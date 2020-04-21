@@ -1144,13 +1144,13 @@ CONTAINS
     ! Evaluate iodide and salinity from HEMCO for O3 oceanic dry deposition
     IF ( id_O3 > 0 ) THEN
        CALL HCO_EvalFld( HcoState, 'surf_iodide', HCO_Iodide, RC )
-       IF ( RC \= GC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_iodide in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
           RETURN
        ENDIF
        CALL HCO_EvalFld( HcoState, 'surf_salinity', HCO_Salinity, RC )
-       IF ( RC \= GC_SUCCESS ) THEN
+       IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not find surf_salinity in HEMCO data list!'
           CALL GC_Error( ErrMsg, RC, 'drydep_mod.F90' )
           RETURN

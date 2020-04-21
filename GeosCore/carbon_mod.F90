@@ -4878,7 +4878,7 @@ CONTAINS
 
    ! Strings
    CHARACTER(LEN= 63)       :: DgnName
-   CHARACTER(LEN=255)       :: MSG
+   CHARACTER(LEN=255)       :: MSG, ErrMsg
    CHARACTER(LEN=255)       :: LOC='EMISSCARBONTOMAS (carbon_mod.F90)'
 
    ! Pointers

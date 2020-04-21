@@ -63,7 +63,7 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
-    USE HCO_Calc_MOD,       ONLY : HCO_GetPtr
+    USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AIRMW
     USE State_Chm_Mod,      ONLY : ChmState
@@ -113,7 +113,7 @@ CONTAINS
     REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3
     REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4
     REAL(fp)               :: HNO3_UGM3,   HNO3_MW_g
-    CHARACTER(LEN=255)     :: X
+    CHARACTER(LEN=255)     :: X, ErrMsg, ThisLoc
 
     ! Pointers
     ! We need to define local arrays to hold corresponding values
@@ -182,7 +182,7 @@ CONTAINS
        CALL HCO_EvalFld( HcoState, 'GLOBAL_HNO3', HCO_HNO3, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'GLOBAL_HNO3 not found in HEMCO data list!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL GC_Error( ErrMsg, RC, 'rpmares_mod.F90: Do_rpmares' )
           RETURN
        ENDIF
     ENDIF

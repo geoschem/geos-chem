@@ -256,7 +256,6 @@ CONTAINS
     LOGICAL                  :: LGRAVSTRAT
     LOGICAL                  :: LDSTUP
     LOGICAL                  :: LUCX
-    LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
     LOGICAL                  :: prtDebug
     INTEGER                  :: I, J, L, N, MONTH
     REAL(fp)                 :: DTCHEM
@@ -285,7 +284,6 @@ CONTAINS
     LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
     LDSTUP               = Input_Opt%LDSTUP
     LUCX                 = Input_Opt%LUCX
-    IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
     ! Initialize pointers
     Spc                  => State_Chm%Species  ! Chemistry species [kg]
@@ -297,7 +295,7 @@ CONTAINS
     MONTH                = GET_MONTH()
 
     ! If it's an offline simulation ...
-    IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
        ! Evaluate offline global OH from HEMCO
        CALL HCO_EvalFld( HcoState, 'GLOBAL_OH', GLOBAL_OH, RC )
@@ -520,7 +518,7 @@ CONTAINS
        ENDIF
 
        ! For offline runs only ...
-       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
           !--------------------------------
           ! DMS chemistry (offline only)
@@ -1858,6 +1856,9 @@ CONTAINS
     REAL(fp)            :: XX,   OH,   OH0,    XNO3,   XNO30, LOH
     REAL(fp)            :: LNO3, BOXVL
 
+    ! Strings
+    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+
     ! Pointers
     REAL(fp), POINTER   :: Spc(:,:,:,:)
 
@@ -1871,6 +1872,9 @@ CONTAINS
 
     ! Assume success
     RC          = GC_SUCCESS
+
+    ! Set location for error messages
+    ThisLoc  = ' -> at CHEM_DMS (in module GeosCore/sulfate_mod.F90)'
     
     ! Copy fields from INPUT_OPT to local variables for use below
     IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
@@ -2141,7 +2145,7 @@ CONTAINS
     REAL(fp)           :: H2O20, H2O2, ALPHA, FREQ, PHOTJ
 
     ! Strings
-    CHARACTER(LEN=255) :: FILENAME
+    CHARACTER(LEN=255) :: FILENAME, ErrMsg, ThisLoc
 
     ! Arrays
     REAL(fp)           :: PH2O2m(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -2157,6 +2161,9 @@ CONTAINS
 
     ! Assume success
     RC        = GC_SUCCESS
+
+    ! Set location for error messages
+    ThisLoc  = ' -> at CHEM_H2O2 (in module GeosCore/sulfate_mod.F90)'
 
     ! Point to chemical species array [v/v dry]
     Spc       => State_Chm%Species
@@ -2408,8 +2415,7 @@ CONTAINS
     ! For HEMCO update
     LOGICAL, SAVE         :: FIRST = .TRUE.
 
-    CHARACTER(LEN=255)    :: ErrMsg
-    CHARACTER(LEN=255)    :: ThisLoc
+    CHARACTER(LEN=255)    :: ErrMsg, ThisLoc
 
 #ifdef LUO_WETDEP
     ! For Luo et al wetdep scheme
@@ -2493,7 +2499,7 @@ CONTAINS
     ENDIF
 
     ! If offline aerosol simulation, evaluate offline oxidant fields from HEMCO
-    IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
        CALL HCO_EvalFld( HcoState, 'O3', O3m, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Cannot get data for O3 from HEMCO!'
@@ -2906,7 +2912,7 @@ CONTAINS
              GNO3 = Spc(I,J,L,id_HNO3) !For Fahey & Pandis decision algorithm
           ELSE IF ( IS_OFFLINE ) THEN
              TANIT = Spc(I,J,L,id_NIT) !aerosol nitrate [v/v]
-             GNO3  = HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
+             GNO3  = GLOBAL_HNO3(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
              ANIT  = TANIT * 0.7e+0_fp ! aerosol nitrate in the cloud drops [v/v]
              TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
           ENDIF

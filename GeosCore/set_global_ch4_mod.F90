@@ -23,7 +23,6 @@ MODULE Set_Global_CH4_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Set_CH4
-  PUBLIC :: Cleanup_Set_Global_CH4
 !
 ! !REVISION HISTORY:
 !  18 Jan 2018 - M. Sulprizio- Initial version
@@ -116,7 +115,7 @@ CONTAINS
     CHARACTER(LEN=255)  :: ThisLoc
 
     ! Arrays
-    REAL(fp)            :: SFC_CH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    REAL(fp)            :: SFC_CH4(State_Grid%NX,State_Grid%NY)
 
     ! SAVEd variables
     LOGICAL, SAVE       :: FIRST = .TRUE.

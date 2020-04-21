@@ -347,7 +347,7 @@ CONTAINS
     !-------------------------------------
 
     ! Allocate J_BrO array
-    ALLOCATE( J_BrO( State_Grid%NX, State_Grid%NY, State_Grid%MaxChemLev ), &
+    ALLOCATE( J_BrO( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), &
               STAT=RC )
     CALL GC_CheckVar( 'global_br_mod.F:J_BrO', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
