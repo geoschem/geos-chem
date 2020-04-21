@@ -1254,7 +1254,7 @@
       bb1 = -D_g * f * GNO3 !(mole m-1 s-1)
       ! Also calulate availabe H+ flux for later calculation (mol m-3 s-1)
       H_flux_NO3 = 2*pi*D_g*d*n_x*f*(GNO3-GNO3eq)
-      F_HNO3 = 2*pi*D_g*d*n_x*f * GET_TS_CHEM() * 60e+0_fp !save for flux calc
+      F_HNO3 = 2*pi*D_g*d*n_x*f * GET_TS_CHEM()! * 60e+0_fp !save for flux calc
       aa1 = D_g*f*GNO3eq !(mole m-1 s-1)
 
       ! Do similar for the 2nd term, for HCl
@@ -1264,7 +1264,7 @@
       f = (1+Kn) / (1 + 2.*Kn*(1+Kn)/ab) 
       bb2 = -D_g * f * GCL !(mole m-1 s-1)
       H_flux_Cl = 2*pi*D_g*d*n_x*f*(GCL-GCLeq)
-      F_HCl = 2*pi*D_g*d*n_x*f * GET_TS_CHEM() * 60e+0_fp !save for flux calc
+      F_HCl = 2*pi*D_g*d*n_x*f * GET_TS_CHEM()! * 60e+0_fp !save for flux calc
       aa2 = D_g*f*GCLeq !(mole m-1 s-1)
 
       ! In the third term, alpha is the limited changes in the acidity

@@ -1238,13 +1238,13 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
-       ! phCloud
+       ! QLxphCloud
        !--------------------------------------------------------------------
        chmId = 'QLxpHCloud'
        ALLOCATE( State_Chm%QLxpHCloud( IM, JM, LM ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%pHCloud = 0.0_fp
+       State_Chm%QLxpHCloud = 0.0_fp
        CALL Register_ChmField( am_I_Root, chmID, State_Chm%QLxpHCloud,          &
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 1, RC )
