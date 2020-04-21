@@ -141,17 +141,9 @@ MODULE HistContainer_Mod
      LOGICAL                     :: IsFileOpen          ! Is the netCDF file
                                                         !  currently open?
 
-     INTEGER                     :: FileLabelYmd        ! YMD & HMS that are
-     INTEGER                     :: FileLabelHms        !  in the file name
-
-! Leave commented for possible future expansion (bmy, 4/20/20)
-!    REAL(f8)                    :: FileLabelJd         ! Corresponding Julday
-!    REAL(f8)                    :: FileLabelJsec       ! Corresponding Julsec
-
      !----------------------------------------------------------------------
      ! netCDF file identifiers and attributes
      !----------------------------------------------------------------------
-     LOGICAL                     :: FirstInst           ! 1st inst file write?
      INTEGER                     :: FileId              ! netCDF file ID
      INTEGER                     :: xDimId              ! X (or lon ) dim ID
      INTEGER                     :: yDimId              ! Y (or lat ) dim ID
@@ -713,16 +705,6 @@ CONTAINS
     Container%Y1              = UNDEFINED_INT
     Container%Z0              = UNDEFINED_INT
     Container%OnLevelEdges    = .FALSE.
-
-    ! If the collection is instantaneous, then set a flag to denote that
-    ! first the netCDF file reference date/time should be the start-of-the-
-    ! simulation time.  This will ensure that all timestamps and filenames
-    ! for instantaneous collections are consistent.
-    IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
-       Container%FirstInst    = .TRUE.
-    ELSE
-       Container%FirstInst    = .FALSE.
-    ENDIF
 
     !=======================================================================
     ! Initialize the alarms (elapsed seconds since start of run)

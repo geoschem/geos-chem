@@ -294,42 +294,8 @@ CONTAINS
           ! %%% INSTANTANEOUS COLLECTIONS %%%
           !-----------------------------------------------------------------
           
-          ! Test if the frequency is the same as the duration
-          ! in that case, the file close time is the same as the write time
-          offset = Container%FileCloseIvalSec - Container%FileWriteIvalSec
-          IF ( offset < 1e-5_f8 ) offset = 0.0_f8
-
-          ! Test if the collection has multiple time points
-          IF ( offset > 0.0_fp ) THEN
-
-             !--------------------------------------------------------------
-             ! (a) Instantaneous collections with multiple time points
-             !--------------------------------------------------------------
-             IF ( Container%FirstInst ) THEN
-
-                ! The first time we create output for this collection,
-                ! make sure to set both the reference timestamp
-                ! to the starting  time of this simulation.
-                Container%ReferenceJsec = Container%EpochJsec
-
-             ELSE
-
-                ! On every subsequent file write, set the reference
-                ! timestamp to the time of file definition.
-                Container%ReferenceJsec = Container%CurrentJsec
-
-             ENDIF
-
-          ELSE
-
-             !--------------------------------------------------------------
-             ! (b) Instantaneous collections w/ a single time point:
-             !--------------------------------------------------------------
-
-             ! Always set the reference time to the current time
-             Container%ReferenceJsec = Container%CurrentJsec
-
-          ENDIF
+          ! REFERENCE TIMESTAMP: Use the date/time when the file is created.
+          Container%ReferenceJsec = Container%CurrentJsec
 
        ENDIF
 
@@ -339,16 +305,12 @@ CONTAINS
                      yyyymmdd  = Container%ReferenceYmd,                     &
                      hhmmss    = Container%ReferenceHms                     )
 
-       ! Set file label date/time to the reference date/time
-       Container%FileLabelYmd = Container%ReferenceYmd
-       Container%FileLabelHms = Container%ReferenceHms
-
        ! Replace time and date tokens in the netCDF file name
        ! (Save the collection's file name in a temporary variable)
        FileName = TRIM( Container%FileName )
        CALL Expand_Date_Time( DateStr    = FileName,                         &
-                              yyyymmdd   = Container%FileLabelYmd,           &
-                              hhmmss     = Container%FileLabelHms,           &
+                              yyyymmdd   = Container%ReferenceYmd,           &
+                              hhmmss     = Container%ReferenceHms,           &
                               MAPL_Style = .TRUE.                           )
 
 !------------------------------------------------------------------------------
@@ -388,143 +350,64 @@ CONTAINS
        IF ( Container%Operation      == COPY_FROM_SOURCE            .and.    &
             Container%UpdateIvalSec  == Container%FileCloseIvalSec  .and.    &
             Container%FileCloseAlarm == 0.0                        ) THEN
-
-          ! Set the first-time flag for this container to FALSE so that future
-          ! instantaneous files will be written with the current timestamp.
-          Container%FirstInst = .FALSE.
-
-          ! Exit without writing a file
           RETURN
 
        ELSE
 
           !------------------------------------------------------------------
-          ! Special handling for instantaneous collections to avoid
-          ! clobbering existing data at e.g. 00:00 UTC of a new day
+          ! Create the file and add global attributes
+          ! Remain in netCDF define mode upon exiting this routine
+          !
+          ! NOTE: Container%Reference is a global attribute lists the
+          ! GEOS-Chem web and wiki page.  It has nothing to do with the
+          ! reference data/time computed by History_Set_RefDateTime.
           !------------------------------------------------------------------
-          IF ( Container%Operation == COPY_FROM_SOURCE        .and.          &
-               .not. isRestart                                .and.          &
-               Container%FirstInst                           ) THEN
 
-             ! Test if the collection file already exists
-             INQUIRE( FILE=TRIM( fileName ), EXIST=appendToFile )
-
-             ! If we are appending to an existing file, then we obviously
-             ! don't need to re-enter netCDF define mode once again.
-             Container%IsFileDefined = appendToFile
-
+          ! Echo info about the file we are creating
+          IF ( Input_Opt%amIRoot ) THEN
+             WRITE( 6, 100 ) TRIM( Container%Name ),                         &
+                             Container%ReferenceYmd,                         &
+                             Container%ReferenceHms
+             WRITE( 6, 110 ) TRIM( FileName       )
           ENDIF
 
-          ! Append or create?
-          IF ( appendToFile ) THEN
-
-             !--------------------------------------------------------------
-             ! Append to an existing file.  This is necessary e.g. to
-             ! preserve instantaneous values at the start of a day from
-             ! being overwritten a run that gets restarted.
-             !--------------------------------------------------------------
-
-             ! Echo info about the file we are creating
-             IF ( Input_Opt%amIRoot ) THEN
-                WRITE( 6, 105 ) TRIM( Container%Name ),                      &
-                                Container%ReferenceYmd,                      &
-                                Container%ReferenceHms
-                WRITE( 6, 110 ) TRIM( FileName       )
-             ENDIF
-
-             ! Append to the file and find out how many
-             ! existing time slices are already present
-             CALL Nc_Append( fileName = fileName,                            &
-                             fId      = Container%fileId,                    &
-                             nTime    = Container%CurrTimeSlice             )
-
-             ! Trap potential errors
-             IF ( Container%CurrTimeSlice < 1 ) THEN
-                ErrMsg = 'Could not get number of times in existing '     // &
-                         'file: ' // TRIM( fileName )
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                CALL History_Netcdf_Close( Container, RC2 )
-                RETURN
-             ENDIF
-
-             ! We should only append to files that were created at the end
-             ! of a simulation, and thus have only one timestamp.  Throw
-             ! an error if this condition occurs.  Otherwise, the appended
-             ! file could potentially have multiple time points with the
-             ! same timestamp, which should never happen!
-             IF ( Container%CurrTimeSlice > 1 ) THEN
-                ErrMsg = 'We are trying to append to netCDF file '        // &
-                         TRIM(fileName) // ', which has more than one '   // &
-                         'timestamp!  This should never happen! '         // &
-                         'Exiting simulation...'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                CALL History_Netcdf_Close( Container, RC2 )
-                RETURN
-             ENDIF
-
-          ELSE
-
-             !--------------------------------------------------------------
-             ! Create the file and add global attributes
-             ! Remain in netCDF define mode upon exiting this routine
-             !
-             ! NOTE: Container%Reference is a global attribute lists the
-             ! GEOS-Chem web and wiki page.  It has nothing to do with the
-             ! reference data/time computed by History_Set_RefDateTime.
-             !--------------------------------------------------------------
-
-             ! Echo info about the file we are creating
-             IF ( Input_Opt%amIRoot ) THEN
-                WRITE( 6, 100 ) TRIM( Container%Name ),                      &
-                                Container%ReferenceYmd,                      &
-                                Container%ReferenceHms
-                WRITE( 6, 110 ) TRIM( FileName       )
-             ENDIF
-
-             ! Create the file
-             CALL Nc_Create( Create_Nc4     = .TRUE.,                        &
-                             NcFile         = fileName,                      &
-                             nLon           = Container%nX,                  &
-                             nLat           = Container%nY,                  &
-                             nLev           = nLev,                          &
-                             nIlev          = nILev,                         &
-                             nTime          = NF_UNLIMITED,                  &
-                             NcFormat       = Container%NcFormat,            &
-                             Conventions    = Container%Conventions,         &
-                             History        = Container%History,             &
-                             ProdDateTime   = Container%ProdDateTime,        &
-                             Reference      = Container%Reference,           &
-                             Title          = Container%Title,               &
-                             Contact        = Container%Contact,             &
-                             StartTimeStamp = Container%StartTimeStamp,      &
-                             EndTimeStamp   = Container%EndTimeStamp,        &
-                             fId            = Container%FileId,              &
-                             TimeId         = Container%tDimId,              &
-                             LevId          = Container%zDimId,              &
-                             ILevId         = Container%iDimId,              &
-                             LatId          = Container%yDimId,              &
-                             LonId          = Container%xDimId,              &
-                             KeepDefMode    = .TRUE.,                        &
-                             Varct          = VarCt                         )
-
-          ENDIF
-
-          !--------------------------------------------------------------------
-          ! Denote that the file has been created and is open
-          !--------------------------------------------------------------------
-          Container%IsFileOpen = .TRUE.
-
+          ! Create the file
+          CALL Nc_Create( Create_Nc4     = .TRUE.,                           &
+                          NcFile         = fileName,                         &
+                          nLon           = Container%nX,                     &
+                          nLat           = Container%nY,                     &
+                          nLev           = nLev,                             &
+                          nIlev          = nILev,                            &
+                          nTime          = NF_UNLIMITED,                     &
+                          NcFormat       = Container%NcFormat,               &
+                          Conventions    = Container%Conventions,            &
+                          History        = Container%History,                &
+                          ProdDateTime   = Container%ProdDateTime,           &
+                          Reference      = Container%Reference,              &
+                          Title          = Container%Title,                  &
+                          Contact        = Container%Contact,                &
+                          StartTimeStamp = Container%StartTimeStamp,         &
+                          EndTimeStamp   = Container%EndTimeStamp,           &
+                          fId            = Container%FileId,                 &
+                          TimeId         = Container%tDimId,                 &
+                          LevId          = Container%zDimId,                 &
+                          ILevId         = Container%iDimId,                 &
+                          LatId          = Container%yDimId,                 &
+                          LonId          = Container%xDimId,                 &
+                          KeepDefMode    = .TRUE.,                           &
+                          Varct          = VarCt                            )
+          
        ENDIF
 
+       !--------------------------------------------------------------------
+       ! Denote that the file has been created and is open
+       !--------------------------------------------------------------------
+       Container%IsFileOpen = .TRUE.
+          
     ENDIF
-
-    ! Set the FirstInst flag to false, which will ensure that instantaneous
-    ! files will use the current time as the reference time going forward
-    Container%FirstInst = .FALSE.
 
     ! Format strings for use above
 100 FORMAT( '     - Creating file for ',  a, '; reference = ',i8.8,1x,i6.6 )
-105 FORMAT( '     - Appending file for ', a, '; reference = ',i8.8,1x,i6.6 )
 110 FORMAT( '        with filename = ', a                                  )
 
     !=======================================================================
