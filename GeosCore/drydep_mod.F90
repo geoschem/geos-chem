@@ -220,6 +220,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE HCO_ERROR_MOD
+    USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
     USE Input_Opt_Mod,      ONLY : OptInput
