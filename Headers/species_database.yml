@@ -14,6 +14,7 @@ ACET:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  MolecRatio: 3.0
   MW_g: 58.08
 ACTA:
   DD_F0: 1.0
