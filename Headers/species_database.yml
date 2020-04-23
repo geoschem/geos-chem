@@ -2,7 +2,7 @@ A3O2:
   Formula: CH3CH2CH2OO
   Fullname: Primary peroxy radical from C3H8
   Is_Gas: true
-  MW_g: 75.1
+  MW_g: 75.10
 ACET:
   DD_F0: 1.0
   DD_Hstar: 1.0e+5
@@ -15,7 +15,7 @@ ACET:
   Is_DryDep: true
   Is_Gas: true
   MolecRatio: 3.0
-  MW_g: 58.08
+  MW_g: 58.09
 ACTA:
   DD_F0: 1.0
   DD_Hstar: 4.1e+3
@@ -27,7 +27,7 @@ ACTA:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 60.1
+  MW_g: 60.06
   WD_RetFactor: 2.0e-2
 AERI:
   DD_DvzAerSnow: 0.03
@@ -40,7 +40,7 @@ AERI:
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 126.9
+  MW_g: 126.90
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -57,7 +57,7 @@ ALD2:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 44.05
+  MW_g: 44.06
   MolecRatio: 2.0
   WD_RetFactor: 2.0e-2
 ALK4:
@@ -76,7 +76,7 @@ ASOA1: &ASOAproperties
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 150.0
+  MW_g: 150.00
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
@@ -96,7 +96,7 @@ ASOG1: &ASOGproperties
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 150.0
+  MW_g: 150.00
   WD_RetFactor: 2.0e-2
 ASOG2:
   >> : *ASOGproperties
@@ -106,7 +106,7 @@ ATO2:
   Formula: CH3C(O)CH2O2
   Fullname: Peroxy radical from acetone
   Is_Gas: true
-  MW_g: 89.1
+  MW_g: 89.08
 ATOOH:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -119,13 +119,13 @@ ATOOH:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 90.1
+  MW_g: 90.09
   WD_RetFactor: 2.0e-2
 B3O2:
   Formula: CH3CH(OO)CH3
   Fullname: B3O2
   Is_Gas: true
-  MW_g: 75.1
+  MW_g: 75.10
 BCPI:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -198,7 +198,7 @@ BENZ:
   Fullname: Benzene
   Is_Advected: true
   Is_Gas: true
-  MW_g: 78.11
+  MW_g: 78.12
   MolecRatio: 6.0
 Br:
   Formula: Br
@@ -218,7 +218,7 @@ Br2:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 159.8
+  MW_g: 159.80
   WD_RetFactor: 0.0
 BrCl:
   Formula: BrCl
@@ -226,14 +226,14 @@ BrCl:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 115.4
+  MW_g: 115.45
 BrNO2:
   Formula: BrNO2
   Fullname: Nitryl bromide
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 125.9
+  MW_g: 125.91
 BrNO3:
   Formula: BrNO3
   Fullname: Bromine nitrate
@@ -241,34 +241,40 @@ BrNO3:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 141.9
+  MW_g: 141.91
 BrO:
   Formula: BrO
   Fullname: Bromine monoxide
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 95.9
+  MW_g: 95.90
 BRO2:
+  Formula: C6H7O5
   Fullname: Peroxy radical from BENZ oxidation
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 159.13
 BrSALA:
   >> : *SALAproperties
   Formula: Br
   Fullname: Fine sea salt bromine
   IsHygroGrowth: false
-  MW_g: 79.9
+  MW_g: 79.90
 BrSALC:
   >> : *SALCproperties
   Formula: Br
   Fullname: Coarse sea salt bromine
   Is_HygroGrowth: false
-  MW_g: 79.9
+  MW_g: 79.90
 C:
   Formula: C
   Fullname: Atomic carbon
   MW_g: 12.01
+C2H4:
+  Formula: C2H4
+  Fullname: Ethylene
+  Is_Gas: true
+  MW_g: 28.05
 C2H6:
   EmMW_g: 12.0
   Formula: C2H6
@@ -277,7 +283,7 @@ C2H6:
   Henry_K0: 1.93e-3
   Is_Advected: true
   Is_Gas: true
-  MW_g: 30.1
+  MW_g: 30.08
   MolecRatio: 2.0
 C3H8:
   EmMW_g: 12.0
@@ -287,58 +293,60 @@ C3H8:
   Henry_K0: 1.52e-3
   Is_Advected: true
   Is_Gas: true
-  MW_g: 44.1
+  MW_g: 44.11
   MolecRatio: 3.0
 C4HVP1:
+  Formula: C4H7O3
   Fullname: C4 hydroxy-vinyl peroxy radicals from HPALDS
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 103.11
 C4HVP2:
+  Formula: C4H7O3
   Fullname: C4 hydroxy-vinyl peroxy radicals from HPALDS
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 103.11
 CCl4:
   Formula: CCl4
   Fullname: Carbon tetrachloride
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 153.8
+  MW_g: 153.82
 CFC11:
   Formula: CCl3F
   Fullname: CFC-11
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 137.4
+  MW_g: 137.37
 CFC113:
   Formula: C2Cl3F3
   Fullname: CFC-113
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 187.4
+  MW_g: 187.38
 CFC114:
   Formula: C2Cl2F4
   Fullname: CFC-114
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 170.9
+  MW_g: 170.92
 CFC115:
   Formula: C2ClF5
   Fullname: CFC-115
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 154.5
+  MW_g: 154.47
 CFC12:
   Formula: CCl2F2
   Fullname: CFC-12
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 120.9
+  MW_g: 120.91
 CH2Br2:
   Formula: CH2Br2
   Fullname: Dibromomethane
@@ -347,35 +355,35 @@ CH2Br2:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 173.8
+  MW_g: 173.83
 CH2Cl2:
   Formula: CH2Cl2
   Fullname: Dichloromethane
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 84.9
+  MW_g: 84.93
 CH2I2:
   Formula: CH2I2
   Fullname: Diiodomethane
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 267.8
+  MW_g: 267.84
 CH2IBr:
   Formula: CH2IBr
   Fullname: Bromoiodomethane
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 220.8
+  MW_g: 220.84
 CH2ICl:
   Formula: CH2ICl
   Fullname: Chloroiodomethane
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 176.4
+  MW_g: 176.38
 CH2O:
   Background_VV: 4.0e-15
   DD_F0: 1.0
@@ -389,13 +397,13 @@ CH2O:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 30.0
+  MW_g: 30.03
   WD_RetFactor: 2.0e-2
 CH2OO:
   Formula: CH2OO
   Fullname: Criegee intermediate
   Is_Gas: true
-  MW_g: 46.0
+  MW_g: 46.03
 CH3Br:
   Formula: CH3Br
   Fullname: Methyl bromide
@@ -404,26 +412,26 @@ CH3Br:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 94.9
+  MW_g: 94.94
 CH3CCl3:
   Formula: CH3CCl3
   Fullname: Methyl chloroform
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 133.4
+  MW_g: 133.35
 CH3CHOO:
   Formula: CH3CHOO
   Fullname: Criegee intermediate
   Is_Gas: true
-  MW_g: 60.1
+  MW_g: 60.06
 CH3Cl:
   Formula: CH3Cl
   Fullname: Chloromethane
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 50.5
+  MW_g: 50.45
 CH3I:
   Formula: CH3I
   Fullname: Methyl iodide
@@ -432,19 +440,19 @@ CH3I:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 141.9
+  MW_g: 141.94
 CH3ITracer:
   Fullname: Methyl_iodide
   Is_Advected: true
   Is_Gas: true
-  MW_g: 141.9
+  MW_g: 141.94
 CH4: &CH4properties
   BackgroundVV: 1.7e-6
   Formula: CH4
   Fullname: Methane
   Is_Advected: true
   Is_Gas: true
-  MW_g: 16.0
+  MW_g: 16.05
 CH4_BBN:
   << : *CH4properties
   BackgroundVV: 1.0e-20
@@ -509,14 +517,14 @@ CHBr3:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 252.7
+  MW_g: 252.73
 CHCl3:
   Formula: CHCl3
   Fullname: Chloroform
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 119.4
+  MW_g: 119.35
 Cl:
   Formula: Cl
   Fullname: Atomic chlorine
@@ -529,21 +537,21 @@ Cl2:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 71.0
+  MW_g: 70.90
 Cl2O2:
   Formula: Cl2O2
   Fullname: Dichlorine dioxide
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 102.9
+  MW_g: 102.91
 ClNO2:
   Formula: ClNO2
   Fullname: Nitryl chloride
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 81.5
+  MW_g: 81.45
 ClNO3:
   Formula: ClNO3
   Fullname: Chlorine nitrate
@@ -551,34 +559,34 @@ ClNO3:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 97.5
+  MW_g: 97.45
 ClO:
   Formula: ClO
   Fullname: Chlorine monoxide
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 51.5
+  MW_g: 51.45
 ClOO:
   Formula: ClOO
   Fullname: Chlorine dioxide
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 67.5
+  MW_g: 67.45
 CO: &COproperties
   BackgroundVV: 1.0e-7
   Formula: CO
   Fullname: Carbon monoxide
   Is_Advected: true
   Is_Gas: true
-  MW_g: 28.0
+  MW_g: 28.01
 CO2: &CO2properties
   BackgroundVV: 3.55e-4
   Formula: CO2
   Fullname: Carbon dioxide
   Is_Gas: true
-  MW_g: 44.0
+  MW_g: 44.01
 CO2AV:
   >> : *CO2properties
   Background_VV: 1.0e-20
@@ -706,7 +714,7 @@ DMS:
   Henry_K0: 0.48
   Is_Advected: true
   Is_Aerosol: true
-  MW_g: 62.1
+  MW_g: 62.13
 DST1: &DST1properties
   DD_DustDryDep: true
   DD_F0: 0.0
@@ -794,7 +802,7 @@ EOH:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 46.07
+  MW_g: 46.08
   MolecRatio: 2.0
   WD_RetFactor: 2.0e-2
 ETHLN:
@@ -809,7 +817,7 @@ ETHLN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 105.1
+  MW_g: 105.06
   WD_RetFactor: 2.0e-2
 ETNO3:
   DD_F0: 0.1
@@ -822,12 +830,12 @@ ETNO3:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 91.07
+  MW_g: 91.08
 ETO2:
   Formula: CH3CH2OO
   Fullname: ETO2
   Is_Gas: true
-  MW_g: 61.1
+  MW_g: 61.07
 ETP:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -840,7 +848,7 @@ ETP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 62.1
+  MW_g: 62.08
   WD_RetFactor: 2.0e-2
 GlobEmis90dayTracer:
   Fullname: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
@@ -859,7 +867,7 @@ GLYC:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 60.1
+  MW_g: 60.06
   WD_RetFactor: 2.0e-2
 GLYX:
   DD_F0: 1.0
@@ -873,7 +881,7 @@ GLYX:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 58.0
+  MW_g: 58.04
   WD_RetFactor: 2.0e-2
 H:
   Formula: H
@@ -886,34 +894,34 @@ H1211:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 165.4
+  MW_g: 165.36
 H1301:
   Formula: CBrF3
   Fullname: Halon 1301, Freon 13B1
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 148.9
+  MW_g: 148.91
 H2:
   BackgroundVV: 5.0e-7
   Formula: H2
   Fullname: Molecular hydrogen
   Is_Gas: true
-  MW_g: 2.0
+  MW_g: 2.02
 H2402:
   Formula: C2Br2F4
   Fullname: Halon 2402
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 259.8
+  MW_g: 259.82
 H2O:
   BackgroundVV: 1.839e-2
   Formula: H2O
   Fullname: Water vapor
   Is_Advected: true
   Is_Gas: true
-  MW_g: 18.0
+  MW_g: 18.02
 H2O2:
   BackgroundVV: 4.0e-15
   DD_F0: 1.0
@@ -927,7 +935,7 @@ H2O2:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 34.0
+  MW_g: 34.02
   WD_RetFactor: 5e-2
   WD_LiqAndGas: true
   WD_ConvFacI2G: 4.36564e-1
@@ -943,7 +951,7 @@ HAC:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 74.1
+  MW_g: 74.08
   WD_RetFactor: 2.0e-2
 HBr:
   DD_F0: 0.0
@@ -956,7 +964,7 @@ HBr:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 80.9
+  MW_g: 80.91
   WD_RetFactor: 2.0e-2
 HC5A:
   DD_F0: 0.0
@@ -970,7 +978,7 @@ HC5A:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 100.1
+  MW_g: 100.13
   WD_RetFactor: 2.0e-2
 HCFC123:
   Formula: C2HCl2F3
@@ -978,28 +986,28 @@ HCFC123:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 152.9
+  MW_g: 152.93
 HCFC141b:
   Formula: C(CH3)Cl2F
   Fullname: HCFC-141b, Freon 141b
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 116.9
+  MW_g: 116.94
 HCFC142b:
   Formula: C(CH3)ClF2
   Fullname: HCFC-142b, Freon 142b
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 100.5
+  MW_g: 100.50
 HCFC22:
   Formula: CHClF2
   Fullname: HCFC-22, Freon 22
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 86.5
+  MW_g: 86.47
 HCl:
   DD_F0: 0.0
   DD_Hstar: 2.05e+13
@@ -1011,7 +1019,7 @@ HCl:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 36.5
+  MW_g: 36.45
   WD_RetFactor: 2.0e-2
 HCOOH:
   DD_F0: 1.0
@@ -1024,7 +1032,7 @@ HCOOH:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 46.0
+  MW_g: 46.03
   WD_RetFactor: 2.0e-2
 Hg0: &Hg0properties
   DD_F0: 1.0e-5
@@ -1035,7 +1043,7 @@ Hg0: &Hg0properties
   Is_Drydep: true
   Is_Gas: true
   Is_Hg0: true
-  MW_g: 200.6
+  MW_g: 200.59
 Hg0_ANT:
   >> : *Hg0properties
   Fullname: Elemental mercury from Antarctic subsurface water
@@ -1132,7 +1140,7 @@ Hg2: &Hg2properties
   Is_Gas: true
   Is_Hg2: true
   Is_Wetdep: true
-  MW_g: 200.6
+  MW_g: 200.59
   WD_RetFactor: 1.0
 Hg2_ANT:
   >> : *Hg2properties
@@ -1229,7 +1237,7 @@ HgP: &HgPproperties
   Is_Gas: true
   Is_HgP: true
   Is_Wetdep: true
-  MW_g: 200.6
+  MW_g: 200.59
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
@@ -1317,7 +1325,7 @@ HgP_USA:
 HgP_WAF:
   >> : *HgPproperties
   Fullname: Particulate mercury from West Africa
-I:
+HI:
   DD_F0: 0.0
   DD_Hstar: 2.35e+16
   Formula: HI
@@ -1328,7 +1336,7 @@ I:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 127.9
+  MW_g: 127.91
   WD_RetFactor: 1.0
 HMHP:
   DD_F0: 1.0
@@ -1342,7 +1350,7 @@ HMHP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 64.1
+  MW_g: 64.05
   WD_RetFactor: 2.0e-2
 HMML:
   DD_F0: 1.0
@@ -1355,7 +1363,7 @@ HMML:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 102.1
+  MW_g: 102.10
 HNO2:
   BackgroundVV: 4.0e-15
   Formula: HNO2
@@ -1363,7 +1371,7 @@ HNO2:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 47.0
+  MW_g: 47.01
 HNO3:
   BackgroundVV: 4.0e-15
   DD_F0: 0.0
@@ -1377,7 +1385,7 @@ HNO3:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 63.0
+  MW_g: 63.01
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_KcScaleFac_Luo: [1.0, 0.5, 1.0]
@@ -1390,13 +1398,13 @@ HNO4:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 79.0
+  MW_g: 79.01
 HO2:
   BackgroundVV: 4.0e-15
   Formula: HO2
   Fullname: Hydroperoxyl radical
   Is_Gas: true
-  MW_g: 33.0
+  MW_g: 33.01
 HOBr:
   DD_F0: 0.0
   DD_Hstar: 6.1e+3
@@ -1409,7 +1417,7 @@ HOBr:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 96.9
+  MW_g: 96.91
   WD_RetFactor: 0.0
 HOCl:
   DD_F0: 0.0
@@ -1423,7 +1431,7 @@ HOCl:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 52.5
+  MW_g: 52.45
   WD_RetFactor: 0.0
 HOI:
   DD_F0: 0.0
@@ -1437,7 +1445,7 @@ HOI:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 143.9
+  MW_g: 143.89
   WD_RetFactor: 2.0e-2
 HONIT:
   DD_F0: 1.0
@@ -1461,12 +1469,12 @@ HPALD1:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 116.1
+  MW_g: 116.13
 HPALD1OO:
-  Formula: C5H8O5
+  Formula: C5H7O5
   Fullname: HPALD1OO
   Is_Gas: true
-  MW_g: 148.1
+  MW_g: 147.12
 HPALD2:
   DD_F0: 0.0
   DD_Hstar: 4.0e+4
@@ -1476,12 +1484,12 @@ HPALD2:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 116.1
+  MW_g: 116.13
 HPALD2OO:
-  Formula: C5H8O5
+  Formula: C5H7O5
   Fullname: HPALD2OO
   Is_Gas: true
-  MW_g: 148.1
+  MW_g: 147.12
 HPALD3:
   DD_F0: 0.0
   DD_Hstar: 4.0e+4
@@ -1491,7 +1499,7 @@ HPALD3:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 116.1
+  MW_g: 116.13
 HPALD4:
   DD_F0: 0.0
   DD_Hstar: 4.0e+4
@@ -1501,7 +1509,7 @@ HPALD4:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 116.1
+  MW_g: 116.13
 HPETHNL:
   DD_F0: 1.0
   DD_Hstar: 4.1e+4
@@ -1514,7 +1522,7 @@ HPETHNL:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 76.1
+  MW_g: 76.06
   WD_RetFactor: 2.0e-2
 I:
   Formula: I
@@ -1534,7 +1542,7 @@ I2:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 253.8
+  MW_g: 253.80
 I2O2:
   DD_F0: 0.0
   DD_Hstar: 1.0e+20
@@ -1547,7 +1555,7 @@ I2O2:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 285.8
+  MW_g: 285.80
   WD_RetFactor: 1.0
 I2O3:
   DD_F0: 0.0
@@ -1561,7 +1569,7 @@ I2O3:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 301.8
+  MW_g: 301.80
   WD_RetFactor: 1.0
 I2O4:
   DD_F0: 0.0
@@ -1575,7 +1583,7 @@ I2O4:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 317.8
+  MW_g: 317.80
   WD_RetFactor: 1.0
 IBr:
   DD_F0: 0.0
@@ -1589,7 +1597,7 @@ IBr:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 206.9
+  MW_g: 206.90
   WD_RetFactor: 0.0
 ICHE:
   DD_F0: 1.0
@@ -1602,13 +1610,13 @@ ICHE:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 116.1
+  MW_g: 116.13
   WD_RetFactor: 2.0e-2
 ICHOO:
-  Formula: C5H10O5
+  Formula: C5H9O5
   Fullname: Peroxy radical from IEPOXD
   Is_Gas: true
-  MW_g: 150.2
+  MW_g: 149.14
 ICl:
   DD_F0: 0.0
   DD_Hstar: 1.11e+2
@@ -1621,7 +1629,7 @@ ICl:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 162.4
+  MW_g: 162.45
   WD_RetFactor: 0.0
 ICN:
   DD_F0: 1.0
@@ -1635,13 +1643,13 @@ ICN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 145.1
+  MW_g: 145.13
   WD_RetFactor: 2.0e-2
 ICNOO:
-  Formula: C5H7NO6
+  Formula: C5H8NO7
   Fullname: Peroxy radicals from ICN
   Is_Gas: true
-  MW_g: 177.1
+  MW_g: 194.14
 ICPDH:
   DD_F0: 1.0
   DD_Hstar: 1.0e+8
@@ -1654,7 +1662,7 @@ ICPDH:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 150.2
+  MW_g: 150.15
   WD_RetFactor: 2.0e-2
 IDC:
   DD_F0: 0.0
@@ -1664,7 +1672,7 @@ IDC:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  MW_g: 98.1
+  MW_g: 98.11
 IDCHP:
   DD_F0: 1.0
   DD_Hstar: 1.0e+8
@@ -1677,7 +1685,7 @@ IDCHP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 148.1
+  MW_g: 148.13
   WD_RetFactor: 2.0e-2
 IDHDP:
   DD_F0: 1.0
@@ -1691,23 +1699,23 @@ IDHDP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 168.2
+  MW_g: 168.17
   WD_RetFactor: 2.0e-2
 IDHNBOO:
-  Formula: C5H9NO7
+  Formula: C5H10NO7
   Fullname: Peroxy radicals from INPB
   Is_Gas: true
-  MW_g: 195.1
+  MW_g: 196.16
 IDHNDOO1:
-  Formula: C5H9NO7
+  Formula: C5H10NO7
   Fullname: Peroxy radicals from INPD
   Is_Gas: true
-  MW_g: 195.1
+  MW_g: 196.16
 IDHNDOO2:
-  Formula: C5H9NO7
+  Formula: C5H10NO7
   Fullname: Peroxy radicals from INPD
   Is_Gas: true
-  MW_g: 195.1
+  MW_g: 196.16
 IDHPE:
   Formula: C5H10O5
   Fullname: Isoprene dihydroxy hydroperoxy epoxide
@@ -1718,7 +1726,7 @@ IDHPE:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 150.2
+  MW_g: 150.15
 IDN:
   DD_F0: 1.0
   DD_Hstar: 1.0e+8
@@ -1731,17 +1739,17 @@ IDN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 192.1
+  MW_g: 192.15
   WD_RetFactor: 2.0e-2
 IDNOO:
-  Formula: C5H8N2O8
+  Formula: C5H9N2O6
   Fullname: IDNOO
   Is_Gas: true
-  MW_g: 224.1
+  MW_g: 241.14
 IEPOXA:
   DD_F0: 1.0
   DD_Hstar: 8.0e+7
-  Formula: C5H10O3
+  Formula: C4H10O3
   Fullname: trans-Beta isoprene epoxydiol
   Henry_CR: 0.0
   Henry_K0: 8.0e+7
@@ -1749,17 +1757,17 @@ IEPOXA:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 118.2
+  MW_g: 106.14
   WD_RetFactor: 2.0e-2
 IEPOXAOO:
-  Formula: C5H10O5
+  Formula: C5H8O5
   Fullname: Peroxy radical from trans-Beta isoprene epoxydiol
   Is_Gas: true
-  MW_g: 150.2
+  MW_g: 149.14
 IEPOXB:
   DD_F0: 1.0
   DD_Hstar: 8.0e+7
-  Formula: C5H10O3
+  Formula: C4H10O3
   Fullname: cis-Beta isoprene epoxydiol
   Henry_CR: 0.0
   Henry_K0: 8.0e+7
@@ -1767,17 +1775,17 @@ IEPOXB:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 118.2
+  MW_g: 106.14
   WD_RetFactor: 2.0e-2
 IEPOXBOO:
-  Formula: C5H10O5
+  Formula: C5H9O5
   Fullname: peroxy radical from cis-Beta isoprene epoxydiol
   Is_Gas: true
-  MW_g: 150.2
+  MW_g: 149.14
 IEPOXD:
   DD_F0: 1.0
   DD_Hstar: 8.0e+7
-  Formula: C5H10O3
+  Formula: C4H10O3
   Fullname: Delta isoprene epoxydiol
   Henry_CR: 0.0
   Henry_K0: 8.0e+7
@@ -1785,7 +1793,7 @@ IEPOXD:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 118.2
+  MW_g: 106.14
   WD_RetFactor: 2.0e-2
 IHN1:
   DD_F0: 1.0
@@ -1799,7 +1807,7 @@ IHN1:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.1
+  MW_g: 147.15
   WD_RetFactor: 2.0e-2
 IHN2:
   DD_F0: 1.0
@@ -1813,7 +1821,7 @@ IHN2:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.1
+  MW_g: 147.15
   WD_RetFactor: 2.0e-2
 IHN3:
   DD_F0: 1.0
@@ -1827,7 +1835,7 @@ IHN3:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.1
+  MW_g: 147.15
   WD_RetFactor: 2.0e-2
 IHN4:
   DD_F0: 1.0
@@ -1841,47 +1849,48 @@ IHN4:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.1
+  MW_g: 147.15
   WD_RetFactor: 2.0e-2
 IHOO1:
-  Formula: C5H9O
+  Formula: C5H9O3
   Fullname: Peroxy radical from OH addition to isoprene at C1
   Is_Gas: true
-  MW_g: 85.1
+  MW_g: 117.14
 IHOO4:
-  Formula: C5H9O
+  Formula: C5H9O3
   Fullname: Peroxy radical from OH addition to isoprene at C4
   Is_Gas: true
-  MW_g: 85.1
+  MW_g: 117.14
 IHPNBOO:
-  Formula: C5H9NO7
+  Formula: C5H10NO8
   Fullname: Peroxy radicals from INPB
   Is_Gas: true
-  MW_g: 195.1
+  MW_g: 212.16
 IHPNDOO:
-  Formula: C5H9NO7
+  Formula: C5H10NO8
   Fullname: Peroxy radicals from INPD
   Is_Gas: true
-  MW_g: 195.1
+  MW_g: 212.16
 IHPOO1:
-  Formula: C5H9O4
+  Formula: C5H11O6
   Fullname: Peroxy radical from ISOPOOH
   Is_Gas: true
-  MW_g: 133.1
+  MW_g: 167.16
 IHPOO2:
-  Formula: C5H9O4
+  Formula: C5H11O6
   Fullname: Peroxy radical from ISOPOOH
   Is_Gas: true
-  MW_g: 133.1
+  MW_g: 167.16
 IHPOO3:
-  Formula: C5H9O4
+  Formula: C5H11O6
   Fullname: Peroxy radical from ISOPOOH
   Is_Gas: true
-  MW_g: 133.1
+  MW_g: 167.16
 INA:
+  Formula: C5H8NO4
   Fullname: Alkoxy radical from INO2D
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 146.14
 INDIOL:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -1901,15 +1910,17 @@ INO:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 156.9
+  MW_g: 156.91
 INO2B:
+  Formula: C5H8NO5
   Fullname: beta-peroxy radicals from isoprene + NO3
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 162.14
 INO2D:
+  Formula: C5H8NO5
   Fullname: delta-peroxy radicals from isoprene + NO3
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 162.14
 INPB:
   DD_F0: 1.0
   DD_Hstar: 2.0e+6
@@ -1922,7 +1933,7 @@ INPB:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 163.1
+  MW_g: 163.15
   WD_RetFactor: 2.0e-2
 INPD:
   DD_F0: 1.0
@@ -1936,7 +1947,7 @@ INPD:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 163.1
+  MW_g: 163.15
   WD_RetFactor: 2.0e-2
 IO:
   Formula: IO
@@ -1944,18 +1955,17 @@ IO:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 142.9
+  MW_g: 142.90
 IONITA:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Formula: NO3
   Fullname: Aer-phase organic nitrate from isoprene precursors
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 14.0
+  MW_g: 14.01
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
@@ -1971,7 +1981,7 @@ IONO:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 172.9
+  MW_g: 172.91
   WD_RetFactor: 2.0e-2
 IONO2:
   DD_F0: 0.0
@@ -1985,7 +1995,7 @@ IONO2:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 188.9
+  MW_g: 188.91
   WD_RetFactor: 1.0
 IPRNO3:
   DD_F0: 0.1
@@ -1998,19 +2008,19 @@ IPRNO3:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 105.09
+  MW_g: 105.11
 ISALA:
   >> : *SALAproperties
   Formula: I
   Fullname: Fine sea salt iodine
   Is_HygroGrowth: false
-  MW_g: 126.9
+  MW_g: 126.90
 ISALC:
   >> : *SALCproperties
   Formula: I
   Fullname: Coarse sea salt iodine
   Is_HygroGrowth: false
-  MW_g: 126.9
+  MW_g: 126.90
 ISOP:
   EmMW_g: 12.0
   Formula: CH2=C(CH3)CH=CH2
@@ -2019,18 +2029,18 @@ ISOP:
   Henry_K0: 3.45e-2
   Is_Advected: true
   Is_Gas: true
-  MW_g: 68.12
+  MW_g: 68.13
   MolecRatio: 5.0
 ISOPNOO1:
-  Formula: C5H9NO6
+  Formula: C5H10NO7
   Fullname: Peroxy radicals from IHN2
   Is_Gas: true
-  MW_g: 179.1
+  MW_g: 196.16
 ISOPNOO2:
-  Formula: C5H9NO6
+  Formula: C5H10NO7
   Fullname: Peroxy radicals from IHN3
   Is_Gas: true
-  MW_g: 179.1
+  MW_g: 196.16
 ITCN:
   DD_F0: 1.0
   DD_Hstar: 1.00e+8
@@ -2043,7 +2053,7 @@ ITCN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 195.1
+  MW_g: 195.15
   WD_RetFactor: 2.0e-2
 ITHN:
   DD_F0: 1.0
@@ -2057,12 +2067,13 @@ ITHN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 197.2
+  MW_g: 197.17
   WD_RetFactor: 2.0e-2
 KO2:
+  Formula: C4H5O3
   Fullname: Peroxy radical from >3 ketones
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 101.09
 LBRO2H:
   Fullname: Dummy species to track oxidation of BRO2 by HO2
 LBRO2N:
@@ -2082,13 +2093,13 @@ LIMO:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 136.23
+  MW_g: 136.26
   WD_RetFactor: 2.0e-2
 LIMO2:
-  Formula: C10H16O2
+  Formula: C10H17O3
   Fullname: Peroxy radical from LIMO
   Is_Gas: true
-  MW_g: 152.2
+  MW_g: 185.27
 LISOPNO3:
   Fullname: Dummy species to track oxidation of ISOP by NO3
 LISOPOH:
@@ -2110,7 +2121,7 @@ LVOC:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 154.2
+  MW_g: 154.19
   WD_RetFactor: 2.0e-2
 LVOCOA:
   DD_DvzAerSnow: 0.03
@@ -2122,7 +2133,7 @@ LVOCOA:
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 154.2
+  MW_g: 154.19
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
@@ -2141,12 +2152,12 @@ MACR:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 70.1
+  MW_g: 70.10
 MACR1OO:
   Formula: CH2=C(CH3)C(O)OO
   Fullname: Peroxyacyl radical from MACR + OH
   Is_Gas: true
-  MW_g: 101.1
+  MW_g: 101.09
 MACR1OOH:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -2159,13 +2170,13 @@ MACR1OOH:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 102.1
+  MW_g: 102.10
   WD_RetFactor: 2.0e-2
 MACRNO2:
-  Formula: C4H8NO6
+  Formula: C4H6NO7
   Fullname: Product of MCRHN + OH
   Is_Gas: true
-  MW_g: 152.1
+  MW_g: 180.10
 MAP:
   DD_F0: 1.0
   DD_Hstar: 8.4e+2
@@ -2178,13 +2189,13 @@ MAP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 76.1
+  MW_g: 76.06
   WD_RetFactor: 2.0e-2
 MCO3:
   Formula: CH3C(O)OO
   Fullname: Peroxyacetyl radical
   Is_Gas: true
-  MW_g: 75.1
+  MW_g: 75.05
 MCRDH:
   DD_F0: 1.0
   DD_Hstar: 1.4e+6
@@ -2196,7 +2207,7 @@ MCRDH:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 104.1
+  MW_g: 104.12
   WD_RetFactor: 2.0e-2
 MCRENOL:
   DD_F0: 1.0
@@ -2210,7 +2221,7 @@ MCRENOL:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 86.1
+  MW_g: 86.10
   WD_RetFactor: 2.0e-2
 MCRHN:
   DD_F0: 1.0
@@ -2224,7 +2235,7 @@ MCRHN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 149.1
+  MW_g: 149.11
   WD_RetFactor: 2.0e-2
 MCRHNB:
   DD_F0: 1.0
@@ -2238,7 +2249,7 @@ MCRHNB:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 149.1
+  MW_g: 149.11
   WD_RetFactor: 2.0e-2
 MCRHP:
   DD_F0: 1.0
@@ -2252,12 +2263,13 @@ MCRHP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 120.1
+  MW_g: 120.12
   WD_RetFactor: 2.0e-2
 MCROHOO:
+  Formula: C4H7O4
   Fullname: Peroxy radical from MACR + OH
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 119.11
 MEK:
   EmMW_g: 12.0
   Formula: RC(O)R
@@ -2282,7 +2294,7 @@ MENO3:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 77.04
+  MW_g: 77.05
 MGLY:
   DD_F0: 1.0
   DD_Hstar: 3.7e+3
@@ -2295,14 +2307,14 @@ MGLY:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 72.1
+  MW_g: 72.07
   WD_RetFactor: 2.0e-2
 MO2:
   BackgroundVV: 4.0e-2
   Formula: CH3O2
   Fullname: Methylperoxy radical
   Is_Gas: true
-  MW_g: 47.0
+  MW_g: 47.04
 MOH:
   DD_F0: 1.0
   DD_Hstar: 2.03e+2
@@ -2314,7 +2326,7 @@ MOH:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 32.04
+  MW_g: 32.05
   WD_RetFactor: 2.0e-2
 MONITA:
   DD_DvzAerSnow: 0.03
@@ -2325,13 +2337,14 @@ MONITA:
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 14.0
+  MW_g: 14.01
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
 MONITS:
   DD_F0: 1.0
   DD_Hstar: 2.0e+6
+  Formula: C10H17NO4
   Fullname: Saturated 1st gen monoterpene organic nitrate
   Henry_CR: 9200.0
   Henry_K0: 1.7e+4
@@ -2340,11 +2353,12 @@ MONITS:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 215.0
+  MW_g: 215.28
   WD_RetFactor: 2.0e-2
 MONITU:
   DD_F0: 1.0
   DD_Hstar: 2.0e+6
+  Formula: C10H17NO4
   Fullname: Unsaturated 1st gen monoterpene organic nitrate
   Henry_CR: 9200.0
   Henry_K0: 1.7e+4
@@ -2353,7 +2367,7 @@ MONITU:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 215.0
+  MW_g: 215.28
   WD_RetFactor: 2.0e-2
 MOPI:
   DD_DvzAerSnow: 0.03
@@ -2396,7 +2410,7 @@ MP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 48.1
+  MW_g: 48.05
   WD_RetFactor: 2.0e-2
 MPAN:
   DD_F0: 1.0
@@ -2410,7 +2424,7 @@ MPAN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 147.1
+  MW_g: 147.10
   WD_RetFactor: 2.0e-2
 MPN:
   Formula: CH3O2NO2
@@ -2421,7 +2435,7 @@ MPN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 93.0
+  MW_g: 93.05
   WD_RetFactor: 2.0e-2
 MSA:
   DD_DvzAerSnow: 0.03
@@ -2434,7 +2448,7 @@ MSA:
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 96.1
+  MW_g: 96.10
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0. 1.0]
@@ -2448,7 +2462,7 @@ MTPA:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 136.23
+  MW_g: 136.26
   WD_RetFactor: 2.0e-2
 MTPO:
   DD_F0: 0.0
@@ -2461,7 +2475,7 @@ MTPO:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 136.23
+  MW_g: 136.26
   WD_RetFactor: 2.0e-2
 MVK:
   DD_F0: 1.0
@@ -2475,7 +2489,7 @@ MVK:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 70.1
+  MW_g: 70.09
   WD_RetFactor: 2.0e-2
 MVKDH:
   DD_F0: 1.0
@@ -2488,7 +2502,7 @@ MVKDH:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 105.1
+  MW_g: 105.13
   WD_RetFactor: 2.0e-2
 MVKHC:
   DD_F0: 1.0
@@ -2502,7 +2516,7 @@ MVKHC:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 102.1
+  MW_g: 102.10
   WD_RetFactor: 2.0e-2
 MVKHCB:
   DD_F0: 1.0
@@ -2516,7 +2530,7 @@ MVKHCB:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 102.1
+  MW_g: 102.10
   WD_RetFactor: 2.0e-2
 MVKHP:
   DD_F0: 1.0
@@ -2530,7 +2544,7 @@ MVKHP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 120.1
+  MW_g: 120.12
   WD_RetFactor: 2.0e-2
 MVKN:
   DD_F0: 1.0
@@ -2544,13 +2558,13 @@ MVKN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 149.1
+  MW_g: 149.12
   WD_RetFactor: 2.0e-2
 MVKOHOO:
-  Formula: C4H7O2
+  Formula: C4H7O4
   Fullname: Peroxy radical from MVK + OH
   Is_Gas: true
-  MW_g: 87.1
+  MW_g: 119.11
 MVKPC:
   DD_F0: 1.0
   DD_Hstar: 1.4e+6
@@ -2563,7 +2577,7 @@ MVKPC:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 118.1
+  MW_g: 118.10
   WD_RetFactor: 2.0e-2
 N:
   BackgroundVV: 4.0e-20
@@ -2575,7 +2589,7 @@ N2:
   Formula: N2
   Fullname: Molecular nitrogen
   Is_Gas: true
-  MW_g: 28.0
+  MW_g: 28.02
 N2O:
   BackgroundVV: 3.0e-7
   Formula: N2O
@@ -2583,7 +2597,7 @@ N2O:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 44.0
+  MW_g: 44.02
 N2O5:
   BackgroundVV: 4.0e-15
   DD_F0: 0.0
@@ -2593,14 +2607,14 @@ N2O5:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
-  MW_g: 108.0
+  Is_Photolysis: tr2ue
+  MW_g: 108.02
 NAP:
   Formula: C10H8
   FullName: Naphtalene/IVOC surrogate
   Is_Advected: true
   Is_Gas: true
-  MW_g: 128.17
+  MW_g: 128.18
 NH3:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.2, 0.3]
@@ -2614,7 +2628,7 @@ NH3:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 17.0
+  MW_g: 17.04
   WD_RetFactor: 5.0e-2
   WD_LiqAndGas: true
   WD_ConvFacI2G: 6.17395e-1
@@ -2629,7 +2643,7 @@ NH4:
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 18.0
+  MW_g: 18.05
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -2649,7 +2663,7 @@ NIT:
   Is_DryDep: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 62.0
+  MW_g: 62.01
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -2677,7 +2691,7 @@ NITs:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 30.0
+  MW_g: 30.01
 NO2:
   BackgroundVV: 4.0e-13
   DD_F0: 0.1
@@ -2688,7 +2702,7 @@ NO2:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 46.0
+  MW_g: 46.01
 NO3:
   BackgroundVV: 4.0e-15
   Formula: NO3
@@ -2696,7 +2710,7 @@ NO3:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 62.0
+  MW_g: 62.01
 NPRNO3:
   DD_F0: 0.1
   DD_Hstar: 1.1
@@ -2708,7 +2722,7 @@ NPRNO3:
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 105.09
+  MW_g: 105.11
 O:
   Formula: O(3P)
   Fullname: Ground state atomic oxygen
@@ -2737,7 +2751,7 @@ O3: &O3properties
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 48.0
+  MW_g: 48.00
 O3AFBL:
   >> : *O3properties
   BackgroundVV: 1.0e-20
@@ -2833,28 +2847,30 @@ OCS:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 60.1
+  MW_g: 60.07
 OH:
   BackgroundVV: 4.0e-15
   Formula: OH
   Fullname: Hydroxyl radical
   Is_Gas: true
-  MW_g: 17.0
+  MW_g: 17.01
 OIO:
   Formula: OIO
   Fullname: Iodine dioxide
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 158.9
+  MW_g: 158.90
 OLND:
+  Formula: C10H16NO5
   Fullname: Monoterpene-derived NO3-alkene adduct
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 230.27
 OLNN:
+  Formula: C10H16NO5
   Fullname: Monoterpene-derived NO3 adduct
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 230.27
 OPOA1:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -2902,9 +2918,10 @@ OPOG2:
   MW:g: 12.01
   WD_RetFactor: 2.0e-2
 OTHRO2:
+  Formula: CH3CH2OO
   Fullname: Other C2 RO2 not from C2H6 oxidation
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 61.07
 PAN:
   DD_F0: 1.0
   DD_Hstar: 3.6
@@ -2917,7 +2934,7 @@ PAN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 121.1
+  MW_g: 121.06
   WD_RetFaxtor: 2.0e-2
 PassiveTracer:
   Fullname: Passive tracer for mass conservation evaluation
@@ -2959,22 +2976,22 @@ pFe:
 PH2O2:
   Fullname: Dummy species to track production rate of H2O2
 PIO2:
-  Formula:
+  Formula: C10H17O3
   Fullname: Peroxy radical from MTPA
   Is_Gas: true
-  MW_g: 1.0
+  MW_g: 185.27
 PIP:
   Formula: C10H18O3
   Fullname: Peroxide from MTPA
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 186.3
+  MW_g: 186.28
 PO2:
   Formula: HOCH2CH(OO)CH3
   Fullname: Peroxy radical from propene
   Is_Gas: true
-  MW_g: 91.1
+  MW_g: 91.10
 POA1:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3042,7 +3059,7 @@ POPG_BaP:
   Is_Drydep: true
   Is_Gas: true
   Is_Wetdep: true
-  MW_g: 252.31
+  MW_g: 252.32
   WD_RetFactor: 0.0
 POPG_PHE:
   DD_F0: 0.0
@@ -3056,7 +3073,7 @@ POPG_PHE:
   Is_Drydep: true
   Is_Gas: true
   Is_Wetdep: true
-  MW_g: 178.23
+  MW_g: 178.24
   WD_RetFactor: 0.0
 POPG_PYR:
   DD_F0: 0.0
@@ -3070,7 +3087,7 @@ POPG_PYR:
   Is_Drydep: true
   Is_Gas: true
   Is_Wetdep: true
-  MW_g: 202.25
+  MW_g: 202.26
   WD_RetFactor: 0.0
 POPBCPI_BaP:
   DD_DvzAerSnow: 0.03
@@ -3081,7 +3098,7 @@ POPBCPI_BaP:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 252.31
+  MW_g: 252.32
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
@@ -3094,7 +3111,7 @@ POPBCPI_PHE:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 178.23
+  MW_g: 178.24
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
@@ -3107,7 +3124,7 @@ POPBCPI_PYR:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 202.25
+  MW_g: 202.26
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
@@ -3120,7 +3137,7 @@ POPBCPO_BaP:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 252.31
+  MW_g: 252.32
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 1.0, 0.5]
   WD_RainoutEff: [ 1.0, 1.0, 0.0]
@@ -3133,7 +3150,7 @@ POPBCPO_PHE:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 178.23
+  MW_g: 178.24
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 1.0, 0.5]
   WD_RainoutEff: [ 1.0, 1.0, 0.0]
@@ -3146,7 +3163,7 @@ POPBCPO_PYR:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 202.25
+  MW_g: 202.26
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 1.0, 0.5]
   WD_RainoutEff: [ 1.0, 1.0, 0.0]
@@ -3159,7 +3176,7 @@ POPOCPI_BaP:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 252.31
+  MW_g: 252.32
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
@@ -3172,7 +3189,7 @@ POPOCPI_PHE:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 178.23
+  MW_g: 178.24
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
@@ -3185,7 +3202,7 @@ POPOCPI_PYR:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 202.25
+  MW_g: 202.26
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [ 1.0, 0.5, 1.0]
   WD_RainoutEff: [ 1.0, 0.0, 1.0]
@@ -3198,7 +3215,7 @@ POPOCPO_BaP:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 252.31
+  MW_g: 252.32
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [0.5, 0.5, 0.5]
   WD_RainoutEff: [0.0, 0.0, 0.0]
@@ -3211,7 +3228,7 @@ POPOCPO_PHE:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 178.23
+  MW_g: 178.24
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [0.5, 0.5, 0.5]
   WD_RainoutEff: [0.0, 0.0, 0.0]
@@ -3224,7 +3241,7 @@ POPOCPO_PYR:
   Is_Aerosol: true
   Is_Drydep: true
   Is_Wetdep: true
-  MW_g: 202.25
+  MW_g: 202.26
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [0.5, 0.5, 0.5]
   WD_RainoutEff: [0.0, 0.0, 0.0]
@@ -3242,7 +3259,7 @@ PP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 92.1
+  MW_g: 92.11
   WD_RetFactor: 2.0e-2
 PPN:
   DD_F0: 1.0
@@ -3255,13 +3272,13 @@ PPN:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 135.1
+  MW_g: 135.08
   WD_RetFactor: 2.0e-2
 PRN1:
   Formula: O2NOCH2CH(OO)CH3
   Fullname: Peroxy radical from propene + NO3
   Is_Gas: true
-  MW_g: 136.1
+  MW_g: 136.09
 PROPNN:
   DD_F0: 1.0
   DD_Hstar: 5.0e+5
@@ -3274,7 +3291,7 @@ PROPNN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 119.1
+  MW_g: 119.08
   WD_RetFactor: 2.0e-2
 PRPE:
   EmMW_g: 12.0
@@ -3285,7 +3302,7 @@ PRPE:
   Is_Advected: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 42.08
+  MW_g: 42.09
   MolecRatio: 3.0
   WD_RetFactor: 2.0e-2
 PRPN:
@@ -3300,7 +3317,7 @@ PRPN:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 137.1
+  MW_g: 137.11
   WD_RetFactor: 2.0e-2
 PSO4:
   Fullname: Dummy species to track production of SO4
@@ -3316,12 +3333,13 @@ PYAC:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 88.1
+  MW_g: 88.07
   WD_RetFactor: 2.0e-2
 R4N1:
+  Formula: C4H8NO5
   Fullname: Peroxy radical from R4N2
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 150.13
 R4N2:
   DD_F0: 1.0
   DD_Hstar: 1.7e+4
@@ -3334,12 +3352,13 @@ R4N2:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 119.0
+  MW_g: 119.10
   WD_RetFactor: 2.0e-2
 R4O2:
+  Formula: C4H9O2
   Fullname: Peroxy radical from ALK4
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 89.13
 R4P:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -3352,7 +3371,7 @@ R4P:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 90.1
+  MW_g: 90.14
   WD_RetFactor: 2.0e-2
 RA3P:
   DD_F0: 1.0
@@ -3366,7 +3385,7 @@ RA3P:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 76.1
+  MW_g: 76.11
   WD_RetFactor: 2.0e-2
 RB3P:
   DD_F0: 1.0
@@ -3380,7 +3399,7 @@ RB3P:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 76.1
+  MW_g: 76.11
   WD_RetFactor: 2.0e-2
 RCHO:
   Formula: CH3CH2CHO
@@ -3390,18 +3409,18 @@ RCHO:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 58.1
+  MW_g: 58.09
   WD_RetFactor: 2.0e-2
 RCO3:
   Formula: CH3CH2C(O)OO
   Fullname: Peroxypropionyl radical
   Is_Gas: true
-  MW_g: 89.1
+  MW_g: 89.08
 RCOOH:
   Formula: C2H5C(O)OH
   Fullname: > C2 organic acids
   Is_Gas: true
-  MW_g: 74.1
+  MW_g: 74.09
 RIPA:
   DD_F0: 1.0
   DD_Hstar: 1.7e+6
@@ -3414,7 +3433,7 @@ RIPA:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 118.2
+  MW_g: 118.15
   WD_RetFactor: 2.0e-2
 RIPB:
   DD_F0: 1.0
@@ -3428,7 +3447,7 @@ RIPB:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 118.2
+  MW_g: 118.15
   WD_RetFactor: 2.0e-2
 RIPC:
   DD_F0: 1.0
@@ -3442,7 +3461,7 @@ RIPC:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 118.2
+  MW_g: 118.15
   WD_RetFactor: 2.0e-2
 RIPD:
   DD_F0: 1.0
@@ -3456,7 +3475,7 @@ RIPD:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 118.2
+  MW_g: 118.15
   WD_RetFactor: 2.0e-2
 Rn222:
   Formula: Rn222
@@ -3468,7 +3487,7 @@ ROH:
   Formula: C3H7OH
   Fullname: > C2 alcohols
   Is_Gas: true
-  MW_g: 60.1
+  MW_g: 60.11
 RP:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -3481,7 +3500,7 @@ RP:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 90.1
+  MW_g: 90.09
   WD_RetFactor: 2.0e-2
 S:
   Formula: S
@@ -3525,7 +3544,7 @@ SF6Tracer:
   Fullname: Sulfur_hexafluoride
   Is_Advected: true
   Is_Gas: true
-  MW_g: 146.1
+  MW_g: 146.06
 SHEmis90dayTracer:
   Fullname: Southern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mi
   Is_Advected: true
@@ -3542,7 +3561,7 @@ SO2:
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
-  MW_g: 64.1
+  MW_g: 64.04
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -3560,7 +3579,7 @@ SO4:
   Is_HygroGrowth: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 96.1
+  MW_g: 96.06
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -3580,12 +3599,12 @@ SO4H1:
   Formula: SO4
   Fullname: Sulfate produced by HOBr
   Is_Gas: true
-  MW_g: 96.1
+  MW_g: 96.06
 SO4H2:
   Formula: SO4
   Fullname: Sulfate produced by HOBr
   Is_Gas: true
-  MW_g: 96.1
+  MW_g: 96.06
 SO4s:
   >> : *SALCproperties
   Fullname: Sulfate on surface of seasalt aerosol
@@ -3601,7 +3620,7 @@ SOAGX:
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 58.0
+  MW_g: 58.04
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
@@ -3615,7 +3634,7 @@ SOAIE:
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 118.2
+  MW_g: 118.15
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
@@ -3643,12 +3662,13 @@ TOLU:
   Fullname: Toluene
   Is_Advected: true
   Is_Gas: true
-  MW_g: 92.14
+  MW_g: 92.15
   MolecRatio: 7.0
 TRO2:
+  Formula: C7H9O5
   Fullname: Peroxy radical from TOLU oxidation
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 173.16
 TSOA0: &TSOAproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3689,14 +3709,15 @@ TSOG2:
 TSOG3:
   >> : *TSOGproperties
 XRO2:
+  Formula: C8H11O5
   Fullname: Peroxy radical from TOLU oxidation
   Is_Gas: true
-  MW_g: NEEDED
+  MW_g: 187.19
 XYLE:
   EmMW_g: 12.0
   Formula: C8H10
   Fullname: Xylene
   Is_Advected: true
   Is_Gas: true
-  MW_g: 106.16
+  MW_g: 106.18
   MolecRatio: 8.0
