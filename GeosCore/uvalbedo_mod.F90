@@ -52,7 +52,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_UValbedo( Input_Opt, State_Met, State_Grid, RC )
+  SUBROUTINE Get_UValbedo( Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
@@ -61,13 +61,11 @@ CONTAINS
     USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
-    USE State_Grid_Mod,     ONLY : GrdState
 !
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -86,18 +84,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    LOGICAL :: FND
-
-    ! Pointers
-    REAL(f4), POINTER :: Ptr2D(:,:)
-
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
-
-    ! Arrays
-    REAL(fp), ALLOCATABLE :: uvalbedo(:,:)
 
     !=======================================================================
     ! READ_UVALBEDO begins here!
@@ -115,22 +104,12 @@ CONTAINS
     ENDIF
 
     ! Evalulate the UV albedo from HEMCO
-    ALLOCATE( uvalbedo( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'uvalbedo_mod.F: uvalbedo', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    uvalbedo = 0.0_fp
-    CALL HCO_EvalFld( HcoState, 'UV_ALBEDO', uvalbedo, RC )
+    CALL HCO_EvalFld( HcoState, 'UV_ALBEDO', State_Met%UVALBEDO, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not find UV_ALBEDO in HEMCO data list!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    ! Add to State_Met
-    State_Met%UVALBEDO = uvalbedo
-
-    ! Cleanup
-    IF ( ALLOCATED( uvalbedo ) ) DEALLOCATE ( uvalbedo, STAT=RC )
 
   END SUBROUTINE Get_UValbedo
 !EOC

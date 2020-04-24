@@ -100,7 +100,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: I, J, L, PBL_TOP
+    INTEGER             :: I, J, L, PBL_TOP, id_CH4
     CHARACTER(LEN=63)   :: OrigUnit
     REAL(fp)            :: CH4
     LOGICAL             :: FOUND
@@ -117,10 +117,6 @@ CONTAINS
     ! Arrays
     REAL(fp)            :: SFC_CH4(State_Grid%NX,State_Grid%NY)
 
-    ! SAVEd variables
-    LOGICAL, SAVE       :: FIRST = .TRUE.
-    INTEGER, SAVE       :: id_CH4
-
     !=================================================================
     ! SET_CH4 begins here!
     !=================================================================
@@ -135,32 +131,25 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( FIRST ) THEN
+    ! Get species ID
+    id_CH4 = Ind_( 'CH4' )
 
-       ! Get species ID
-       id_CH4 = Ind_( 'CH4' )
-
-       ! Use the NOAA spatially resolved data where available
-       CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC, FOUND=FOUND )
-       IF (.NOT. FOUND ) THEN
-          FOUND = .TRUE.
-          ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
-          ! https://doi.org/10.5194/gmd-10-2057-2017a
-          CALL HCO_EvalFld( HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC, &
-                            FOUND=FOUND )
-       ENDIF
-       IF (.NOT. FOUND ) THEN
-          ErrMsg = 'Cannot evalaute NOAA_GMD_CH4 or CMIP6_Sfc_CH4 ' // &
-                   'in HEMCO from SET_CH4! Make sure the data source ' // &
-                   'corresponds to your emissions year in HEMCO_Config.rc ' // &
-                   '(NOAA GMD for 1978 and later; else CMIP6).'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Reset first-time flag
-       FIRST = .FALSE.
-
+    ! Use the NOAA spatially resolved data where available
+    CALL HCO_EvalFld( HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC, FOUND=FOUND )
+    IF (.NOT. FOUND ) THEN
+       FOUND = .TRUE.
+       ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
+       ! https://doi.org/10.5194/gmd-10-2057-2017a
+       CALL HCO_EvalFld( HcoState, 'CMIP6_Sfc_CH4', SFC_CH4, RC, &
+                         FOUND=FOUND )
+    ENDIF
+    IF (.NOT. FOUND ) THEN
+       ErrMsg = 'Cannot evalaute NOAA_GMD_CH4 or CMIP6_Sfc_CH4 ' // &
+                'in HEMCO from SET_CH4! Make sure the data source ' // &
+                'corresponds to your emissions year in HEMCO_Config.rc ' // &
+                '(NOAA GMD for 1978 and later; else CMIP6).'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
     ! Convert species to [v/v dry] for this routine
