@@ -4227,7 +4227,7 @@ CONTAINS
           NTRAIND(NUMDEP)   = SpcInfo%ModelID
           NDVZIND(NUMDEP)   = SpcInfo%DryDepID
           DEPNAME(NUMDEP)   = TRIM( SpcInfo%Name )
-          HSTAR(NUMDEP)     = DBLE( SpcInfo%DD_Hstar_old   )
+          HSTAR(NUMDEP)     = DBLE( SpcInfo%DD_Hstar       )
           F0(NUMDEP)        = DBLE( SpcInfo%DD_F0          )
           KOA(NUMDEP)       = DBLE( SpcInfo%DD_KOA         )
           XMW(NUMDEP)       = DBLE( SpcInfo%MW_g * 1e-3_fp )

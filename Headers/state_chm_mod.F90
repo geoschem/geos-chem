@@ -304,26 +304,27 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: N, C, IM, JM, LM
-    INTEGER                :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
-    INTEGER                :: nKHLSA, nAerosol, nMatches
+    INTEGER                 :: N, C, IM, JM, LM
+    INTEGER                 :: N_Hg0_CATS, N_Hg2_CATS, N_HgP_CATS
+    INTEGER                 :: nKHLSA, nAerosol, nMatches
 
     ! Strings
-    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, ChmID
+    CHARACTER(LEN=255)      :: ErrMsg, ThisLoc, ChmID
 
-    ! Pointers
-    TYPE(Species), POINTER :: ThisSpc
-    INTEGER,       POINTER :: CheckIds(:)
-    REAL(fp),      POINTER :: Ptr2data(:,:,:)
+    ! Objects
+    TYPE(SpcIndCt)          :: SpcCount
+    TYPE(Species),  POINTER :: ThisSpc
+    INTEGER,        POINTER :: CheckIds(:)
+    REAL(fp),       POINTER :: Ptr2data(:,:,:)
+
+    !=======================================================================
+    ! Initialization
+    !=======================================================================
 
     ! Error handling
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at Init_State_Chm (in Headers/state_chm_mod.F90)'
-
-    !=======================================================================
-    ! Initialization
-    !=======================================================================
 
     ! Count the # of chemistry states we have initialized, so SpcData(Local)
     ! is not deallocated until the last ChmState is cleaned up.
@@ -467,6 +468,7 @@ CONTAINS
     ELSE
         CALL Init_Species_Database( Input_Opt = Input_Opt,                   &
                                     SpcData   = State_Chm%SpcData,           &
+                                    SpcCount  = SpcCount,                    &
                                     RC        = RC                           )
 
         ! Point to a private module copy of the species database
@@ -498,20 +500,20 @@ CONTAINS
     ! Get the number of advected, dry-deposited, KPP chemical species,
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and
     ! HgP species (these are zero unless the Hg simulation is used).
-    CALL Spc_GetNumSpecies( nAdvect  = State_Chm%nAdvect,                  &
-                            nAeroSpc = State_Chm%nAeroSpc,                 &
-                            nDryAlt  = State_Chm%nDryAlt,                  &
-                            nDryDep  = State_Chm%nDryDep,                  &
-                            nGasSpc  = State_Chm%nGasSpc,                  &
-                            nHygGrth = State_Chm%nHygGrth,                 &
-                            nKppVar  = State_Chm%nKppVar,                  &
-                            nKppFix  = State_Chm%nKppFix,                  &
-                            nKppSpc  = State_Chm%nKppSpc,                  &
-                            nPhotol  = State_Chm%nPhotol,                  &
-                            nWetDep  = State_Chm%nWetDep,                  &
-                            nHg0Cats = N_Hg0_CATS,                         &
-                            nHg2Cats = N_Hg2_CATS,                         &
-                            nHgPCats = N_HgP_CATS                         )
+    State_Chm%nAdvect  = SpcCount%nAdvect 
+    State_Chm%nAeroSpc = SpcCount%nAeroSpc
+    State_Chm%nDryAlt  = SpcCount%nDryAlt
+    State_Chm%nDryDep  = SpcCount%nDryDep
+    State_Chm%nGasSpc  = SpcCount%nGasSpc
+    State_Chm%nHygGrth = SpcCount%nHygGrth
+    State_Chm%nKppVar  = SpcCount%nKppVar
+    State_Chm%nKppFix  = SpcCount%nKppFix
+    State_Chm%nKppSpc  = SpcCount%nKppSpc
+    State_Chm%nPhotol  = SpcCount%nPhotol
+    State_Chm%nWetDep  = SpcCount%nWetDep
+    N_Hg0_CATS         = SpcCount%nHg0
+    N_Hg2_CATS         = SpcCount%nHg2
+    N_HgP_CATS         = SpcCount%nHgP
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,

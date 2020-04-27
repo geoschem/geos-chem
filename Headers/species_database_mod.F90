@@ -26,7 +26,6 @@ MODULE Species_Database_Mod
 !
   PUBLIC  :: Init_Species_Database
   PUBLIC  :: Cleanup_Species_Database
-  PUBLIC  :: Spc_Info
 
 #if defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
   !-----------------------------------------------------------------
@@ -39,19 +38,10 @@ MODULE Species_Database_Mod
   !-----------------------------------------------------------------
   PUBLIC  :: Cleanup_Work_Arrays
 #endif
-
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: TranUc
-  PRIVATE :: SpcData_To_JSON
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Uncomment this if you want to use the new henry's law constants
-!%%% compiled by Katie Travis and posted on this wiki page:
-!%%% http://wiki.geos-chem.org/Physical_properties_of_GEOS-Chem_species
-!#define NEW_HENRY_CONSTANTS 1
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY:
 !  28 Aug 2015 - R. Yantosca - Initial version
@@ -91,7 +81,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Species_Database( Input_Opt, State_Chm, RC )
+  SUBROUTINE Init_Species_Database( Input_Opt, SpcData, SpcCount, RC )
 !
 ! !USES:
 !
@@ -99,19 +89,19 @@ CONTAINS
     USE Input_Opt_Mod, ONLY : OptInput
     USE QFYAML_Mod
     USE Species_Mod 
-    USE State_Chm_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt      ! Input Options object
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm      ! Chemistry State object
+    TYPE(SpcPtr),   POINTER       :: SpcData(:)   ! Species database object
+    TYPE(SpcIndCt), INTENT(INOUT) :: SpcCount     ! Species index counters
 !
 ! !OUTPUT PARAMETERS: 
 !
-    INTEGER,        INTENT(OUT)   :: RC             ! Success/failure
+    INTEGER,        INTENT(OUT)   :: RC           ! Success/failure
 !
 ! !REMARKS:
 !  Uses the QFYAML parser, see: https://github.com/yantosca/qfyaml
@@ -126,13 +116,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
   ! Scalars
+  LOGICAL                     :: prtDebug
   LOGICAL                     :: v_bool
   INTEGER                     :: v_int
+  INTEGER                     :: nSpecies
   INTEGER                     :: N
   INTEGER                     :: S
-  INTEGER                     :: RC
-  REAL(yp)                    :: v_real
-  REAL(yp)                    :: mw_g
+  REAL(f4)                    :: v_real
+  REAL(f4)                    :: mw_g
 
   ! Strings
   CHARACTER(LEN=14)           :: tag
@@ -141,65 +132,65 @@ CONTAINS
   CHARACTER(LEN=255)          :: key
   CHARACTER(LEN=255)          :: fileDir
   CHARACTER(LEN=255)          :: fileName
-  CHARACTER(LEN=255)          :: errMsg
+  CHARACTER(LEN=255)          :: thisLoc
   CHARACTER(LEN=512)          :: errMsg
 
   ! Arrays
-  REAL(yp)                    :: a_real_2(2)
-  REAL(yp)                    :: a_real_3(3)
+  REAL(f4)                    :: a_real_2(2)
+  REAL(f4)                    :: a_real_3(3)
 
   ! String arrays
-  CHARACTER(LEN=17)           :: tags(44)
+  CHARACTER(LEN=17)           :: tags(45)
 
   ! Objects
   TYPE(QFYAML_t)              :: yml
   TYPE(QFYAML_t)              :: yml_anchored
   TYPE(Species),    POINTER   :: ThisSpc
-!
-! !DEFINED PARAMETERS:
-!
-  INTEGER,          PARAMETER :: MISSING_INT  = -999
-  REAL(yp),         PARAMETER :: MISSING_REAL = -999e+0_yp
-  LOGICAL,          PARAMETER :: MISSING_BOOL = .FALSE.
-  REAL(yp),         PARAMETER :: MISSING_VV   = 1.0e-20_yp
-  CHARACTER(LEN=7), PARAMETER :: MISSING_STR  = 'UNKNOWN'
-  REAL(yp),         PARAMETER :: ONE          = 1.0_yp
-!
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+
   !=========================================================================
-  ! Test_QFYAML begins here!
+  ! Init_Species_Database begins here!
   !=========================================================================
 
   ! Initialize
-  RC         = QFYAML_SUCCESS
-  mw_g       = MISSING_REAL
+  RC         = GC_SUCCESS
+  mw_g       = MISSING_R4
   prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
   errMsg     = ""
   thisLoc    = &
    " -> at Init_Species_Database (in module Headers/species_database_mod.F90"
 
-  ! Species database tags to match
-  tags = (/ "DD_AeroDryDep    ", "DD_DustDryDep    ", "DD_DvzAerSnow    ",   &
-            "DD_DvzMinVal     ", "DD_F0            ", "DD_Hstar         ",   &
-            "DD_KOA           ", "Density          ", "Formula          ",   &
-            "Fullname         ", "Is_ActiveChem    ", "Is_Advected      ",   &
-            "Is_Aero          ", "Is_DryAlt        ", "Is_DryDep        ",   &
-            "Is_FixedChem     ", "Is_HygroGrowth   ", "Is_Kpp           ",   &
-            "Is_Gas           ", "Is_Hg0           ", "Is_Hg2           ",   &
-            "Is_HgP           ", "Is_Photolysis    ", "Is_WetDep        ",   &
-            "Henry_CR         ", "Henry_K0         ", "Henry_pKa        ",   &
-            "MP_SizeResAer    ", "MP_SizeResNum    ", "MolecRatio       ",   &
-            "MW_g             ", "EmMw_g           ", "Radius           ",   &
-            "WD_AerScavEff    ", "WD_CoarseAer     ", "WD_ConvFacI2G    ",   &
-            "WD_KcScaleFac    ", "WD_KcScaleFac_Luo", "WD_Is_H2SO4      ",   &
-            "WD_Is_HNO3       ", "WD_Is_SO2        ", "WD_LiqAndGas     ",   &
-            "WD_RainoutEff    ", "WD_RainoutEff_Luo"
+  ! Zero counters
+  SpcCount%nAdvect  = 0
+  SpcCount%nAeroSpc = 0
+  SpcCount%nDryAlt  = 0
+  SpcCount%nDryDep  = 0
+  SpcCount%nGasSpc  = 0
+  SpcCount%nHygGrth = 0
+  SpcCount%nKppVar  = 0
+  SpcCount%nKppFix  = 0
+  SpcCount%nKppSpc  = 0
+  SpcCount%nPhotol  = 0
+  SpcCount%nWetDep  = 0
+  SpcCount%nHg0     = 0
+  SpcCount%nHg2     = 0
+  SpcCount%nHgP     = 0  
 
+  ! Species database tags to match
+  tags = (/ "BackgroundVV     ", "DD_AeroDryDep    ", "DD_DustDryDep    ",   &
+            "DD_DvzAerSnow    ", "DD_DvzMinVal     ", "DD_F0            ",   &
+            "DD_Hstar         ", "DD_KOA           ", "Density          ",   &
+            "Formula          ", "Fullname         ", "Is_ActiveChem    ",   &
+            "Is_Advected      ", "Is_Aero          ", "Is_DryAlt        ",   &
+            "Is_DryDep        ", "Is_FixedChem     ", "Is_HygroGrowth   ",   &
+            "Is_Kpp           ", "Is_Gas           ", "Is_Hg0           ",   &
+            "Is_Hg2           ", "Is_HgP           ", "Is_Photolysis    ",   &
+            "Is_WetDep        ", "Henry_CR         ", "Henry_K0         ",   &
+            "Henry_pKa        ", "MP_SizeResAer    ", "MP_SizeResNum    ",   &
+            "MolecRatio       ", "MW_g             ", "EmMw_g           ",   &
+            "Radius           ", "WD_AerScavEff    ", "WD_CoarseAer     ",   &
+            "WD_ConvFacI2G    ", "WD_KcScaleFac    ", "WD_KcScaleFac_Luo",   &
+            "WD_Is_H2SO4      ", "WD_Is_HNO3       ", "WD_Is_SO2        ",   &
+            "WD_LiqAndGas     ", "WD_RainoutEff    ", "WD_RainoutEff_Luo"  /)
 
   !=========================================================================
   ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -212,12 +203,14 @@ CONTAINS
   CALL Unique_Species_Names( Input_Opt, nSpecies, RC )
 
   ! Initialize the species vector
-  CALL SpcData_Init( Input_Opt, nSpecies, State_Chm%SpcData, RC )
+  CALL SpcData_Init( Input_Opt, nSpecies, SpcData, RC )
   IF ( RC /= GC_SUCCESS ) THEN
-     errMsg = "Could not initialize the species vector!"
+     errMsg = "Could not initialize the species database object!"
      CALL GC_Error( errMsg, RC, thisLoc )
      RETURN
   ENDIF
+
+  print*, '### size spcdata:', nSpecies
 
   !=========================================================================
   ! Read the species database from a YAML file
@@ -250,239 +243,314 @@ CONTAINS
      CALL GC_Error( errMsg, RC, thisLoc )
      RETURN
   ENDIF
-
+  
   !=========================================================================
   ! Extract species metadata into the species database object
   !=========================================================================
 
   ! Loop over the number of species
-  DO S = 1, State_Chm%nSpecies
+  DO S = 1, nSpecies
 
      ! Species name
      spc = species_names(S)
 
      ! Point to the corresponding species database entry
-     ThisSpc => State%Chm%SpcData(S)%Info
+     ThisSpc => SpcData(S)%Info
+
+     ! Model Id = overall species index
+     ThisSpc%ModelId = S
+
+     ! Short species name
+     ThisSpc%Name = TRIM( spc )
 
      ! Loop over the number of tags in the species database
      DO N = 1, SIZE( tags )
 
         ! Set intial values to default "missing" values
-        ! This will force creation of variables with these values
-        a_real_2 = MISSING_REAL
-        a_real_3 = MISSING_REAL
+        ! If the tag isn't found for a given species, then
+        ! it will be given the appropriate missing value.
+        a_real_2 = MISSING_R4
+        a_real_3 = MISSING_R4
         v_bool   = MISSING_BOOL
         v_int    = MISSING_INT
-        v_real   = MISSING_REAL
+        v_real   = MISSING_R4
         v_str    = MISSING_STR
 
         ! Create search key for each variable
         key = TRIM( spc ) // '%' // TRIM( tags(N) )
 
         ! Save into the proper field of the species database
-        IF ( INDEX( key, "%DD_AeroDryDep" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+        IF ( INDEX( key, "%BackgroundVV" ) > 0 ) THEN
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
+           IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_real
+           ThisSpc%BackgroundVV = v_real
+
+        ELSE IF ( INDEX( key, "%DD_AeroDryDep" ) > 0 ) THEN
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%DD_AeroDryDep = v_bool
 
         ELSE IF ( INDEX( key, "%DD_DustDryDep" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%DD_DustDryDep = v_bool
 
         ELSE IF ( INDEX( key, "%DD_DvzAerSnow" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%DD_DvzAerSnow = v_real
 
         ELSE IF ( INDEX( key, "%DD_DvzMinVal" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, a_real_2, "" )
+           CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 31 ) TRIM( key ), a_real_2
            ThisSpc%DD_DvzMinVal = a_real_2
 
         ELSE IF ( INDEX( key, "%DD_F0" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%DD_F0 = v_real
 
         ELSE IF ( INDEX( key, "%DD_Hstar" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%DD_Hstar = v_real
 
         ELSE IF ( INDEX( key, "%Density" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%Density = v_real
 
         ELSE IF ( INDEX( key, "%Formula" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_str, "" )
+           CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
            ThisSpc%Formula = TRIM( v_str )
 
         ELSE IF ( INDEX( key, "%Fullname" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_str, "" )
+           CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
            ThisSpc%Fullname = TRIM( v_str )
 
         ELSE IF ( INDEX( key, "%Is_Advected" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%Is_Advected = v_bool
+           SpcCount%nAdvect    = SpcCount%nAdvect + 1
 
         ELSE IF ( INDEX( key, "%Is_Aero" ) > 0  ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
-           ThisSpc%Is_Aero = v_bool
+           SpcCount%nAeroSpc = SpcCount%nAeroSpc + 1
+           ThisSpc%AeroId    = SpcCount%nAeroSpc
+           ThisSpc%Is_Aero   = v_bool
 
         ELSE IF ( INDEX( key, "%Is_DryAlt" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
+           SpcCount%nDryAlt  = SpcCount%nDryAlt + 1
+           ThisSpc%DryAltId  = SpcCount%nDryAlt
            ThisSpc%Is_DryAlt = v_bool
 
         ELSE IF ( INDEX( key, "%Is_DryDep" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
+           SpcCount%nDryDep  = SpcCount%nDryDep + 1
+           ThisSpc%DryDepId  = SpcCount%nDryDep
            ThisSpc%Is_DryDep = v_bool
 
         ELSE IF ( INDEX( key, "%Is_HygroGrowth" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
+           SpcCount%nHygGrth      = SpcCount%nHygGrth + 1
+           ThisSpc%HygGrthId      = SpcCount%nHygGrth
            ThisSpc%Is_HygroGrowth = v_bool
 
         ELSE IF ( INDEX( key, "%Is_Gas" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
-           ThisSpc%Is_Gas = v_bool
+           SpcCount%nGasSpc = SpcCount%nGasSpc + 1
+           ThisSpc%GasSpcId = SpcCount%nGasSpc
+           ThisSpc%Is_Gas   = v_bool
 
         ELSE IF ( INDEX( key, "%Is_Hg0" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%Is_Hg0 = v_bool
+           SpcCount%nHg0  = SpcCount%nHg0 + 1
 
         ELSE IF ( INDEX( key, "%Is_Hg2" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%Is_Hg2 = v_bool
+           SpcCount%nHg2  = SpcCount%nHg2 + 1
 
         ELSE IF ( INDEX( key, "%Is_HgP" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%Is_HgP = v_bool
+           SpcCount%nHgP  = SpcCount%nHgP + 1
 
         ELSE IF ( INDEX( key, "%Is_Photolysis" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
+           SpcCount%nPhotol      = SpcCount%nPhotol + 1
+           ThisSpc%PhotolId      = SpcCount%nPhotol
            ThisSpc%Is_Photolysis = v_bool
 
         ELSE IF ( INDEX( key, "%Is_WetDep" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
+           SpcCount%nWetDep  = SpcCount%nWetDep + 1
+           ThisSpc%WetDepID  = SpcCount%nWetDep
            ThisSpc%Is_WetDep = v_bool
 
         ELSE IF ( INDEX( key, "%Henry_CR" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%Henry_CR = v_real
 
         ELSE IF ( INDEX( key, "%Henry_K0" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%Henry_K0 = v_real
 
         ELSE IF ( INDEX( key, "%Henry_pKa" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%Henry_pKa = v_real
 
         ELSE IF ( INDEX( key, "%MP_SizeResAer" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%MP_SizeResAer = v_bool
 
         ELSE IF ( INDEX( key, "%MP_SizeResNum" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%MP_SizeResNum = v_bool
 
         ELSE IF ( INDEX( key, "%MolecRatio" ) > 0 ) THEN
-           v_real = ONE                                  ! Set default to 1
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           v_real = ONE_R4                               ! Set default to 1
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
-           ThisSpc%MP_MolecRatio = v_real
+           ThisSpc%MolecRatio = v_real
 
         ELSE IF ( INDEX( key, "%MW_g" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%MW_g = v_real
-           mw_g = v_real                                 ! Default for EmMw_g
+           mw_g         = v_real                         ! For missing EmMw_g
 
         ELSE IF ( INDEX( key, "%EmMW_g" ) > 0 ) THEN
-           v_real = mw_g
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           v_real = mw_g                            
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%EmMw_G = v_real
-           mw_g = MISSING_REAL                           ! Reset for next spc
+           mw_g           = MISSING_R4                   ! Reset for next spc
 
         ELSE IF ( INDEX( key, "%Radius" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%Radius = v_real
 
         ELSE IF ( INDEX( key, "%WD_AerScavEff" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%WD_AerScavEff = v_real
 
         ELSE IF ( INDEX( key, "%WD_CoarseAer" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%WD_CoarseAer = v_bool
 
         ELSE IF ( INDEX( key, "%WD_ConvFacI2G" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_real, "" )
+           CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 30 ) TRIM( key ), v_real
            ThisSpc%WD_ConvFacI2G = v_real
 
-        ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, a_real_3, "" )
+#ifdef LUO_WETDEP
+        ELSE IF ( INDEX( key, "%WD_KcScaleFac_Luo" ) > 0 ) THEN
+           CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 32 ) TRIM( key ), a_real_3
            ThisSpc%WD_KcScaleFac = a_real_3
-
-        ELSE IF ( INDEX( key, "%WD_KcScaleFac_Luo" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, a_real_3, "" )
+#else
+        ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0 ) THEN
+           CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 32 ) TRIM( key ), a_real_3
-           ThisSpc%WD_KcScaleFac_Luo = a_real_3
+           ThisSpc%WD_KcScaleFac = a_real_3
+#endif
 
         ELSE IF ( INDEX( key, "%WD_Is_H2SO4" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%WD_Is_H2SO4 = v_bool
 
         ELSE IF ( INDEX( key, "%WD_Is_HNO3" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%WD_Is_HNO3 = v_bool
 
         ELSE IF ( INDEX( key, "%WD_Is_SO2" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%WD_Is_SO2 = v_bool
 
         ELSE IF ( INDEX( key, "%WD_LiqAndGas" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, v_bool, "" )
+           CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
            ThisSpc%WD_LiqAndGas = v_bool
 
-        ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, a_real_3, "" )
+#ifdef LUO WETDEP
+        ELSE IF ( INDEX( key, "%WD_RainoutEff_Luo" ) > 0 ) THEN
+           CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 32 ) TRIM( key ), a_real_3
            ThisSpc%WD_RainoutEff = a_real_3
-
-        ELSE IF ( INDEX( key, "%WD_RainoutEff_Luo" ) > 0 ) THEN
-           CALL QFYAML_Add_Get( yml, key, a_real_3, "" )
+#else
+        ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 ) THEN
+           CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+           IF ( RC /= GC_SUCCESS ) RETURN
            IF ( prtDebug ) WRITE( 6, 32 ) TRIM( key ), a_real_3
-           ThisSpc%WD_RainoutEff_Luo = a_real_3
+           ThisSpc%WD_RainoutEff = a_real_3
+#endif
 
         ELSE
            ! Pass
@@ -508,9 +576,21 @@ CONTAINS
            IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
            ThisSpc%Fullname = TRIM( v_str )
 
+           key   = "Be7%Formula"
+           v_str = "Be"
+           CALL QFYAML_Update( yml, key, v_str )
+           IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
+           ThisSpc%Fullname = TRIM( v_str )
+
         CASE( 'Be7Strat' ) 
            key   = "Be7%Fullname"
            v_str = "Beryllium-7 isotope in stratosphere"
+           CALL QFYAML_Update( yml, key, v_str )
+           IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
+           ThisSpc%Fullname = TRIM( v_str )
+
+           key   = "Be7%Formula"
+           v_str = "Be"
            CALL QFYAML_Update( yml, key, v_str )
            IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
            ThisSpc%Fullname = TRIM( v_str )
@@ -522,9 +602,21 @@ CONTAINS
            IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
            ThisSpc%Fullname = TRIM( v_str )
 
+           key   = "Be10%Formula"
+           v_str = "Be10"
+           CALL QFYAML_Update( yml, key, v_str )
+           IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
+           ThisSpc%Fullname = TRIM( v_str )
+
         CASE( 'Be10Strat' ) 
            key   = "Be7%Fullname"
            v_str = "Beryllium-7 isotope in stratosphere"
+           CALL QFYAML_Update( yml, key, v_str )
+           IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
+           ThisSpc%Fullname = TRIM( v_str )
+
+           key   = "Be10%Formula"
+           v_str = "Be10"
            CALL QFYAML_Update( yml, key, v_str )
            IF ( prtDebug ) WRITE( 6, 10 ) TRIM( key ), TRIM( v_str )
            ThisSpc%Fullname = TRIM( v_str )
@@ -548,6 +640,7 @@ CONTAINS
   !=========================================================================
   CALL QFYAML_CleanUp( yml          )
   CALL QFYAML_CleanUp( yml_anchored )
+  stop
 
   END SUBROUTINE Init_Species_Database
 !EOC
@@ -667,9 +760,10 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE GcKpp_Monitor,      ONLY : Spc_Names
-    USE GcKpp_Parameters,   ONLY : NFIX, NSPEC, NVAR
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE GcKpp_Monitor,    ONLY : Spc_Names
+    USE GcKpp_Parameters, ONLY : NFIX, NSPEC, NVAR
+    USE Species_Mod,      ONLY : MISSING_INT
 !
 ! !INPUT PARAMETERS:
 !
@@ -700,11 +794,6 @@ CONTAINS
     ! Arrays
     CHARACTER(LEN=15), ALLOCATABLE :: Tmp(:)
     CHARACTER(LEN=15)              :: SpcName
-!
-! !DEFINED PARAMETERS:
-!
-    ! Missing value
-    INTEGER,           PARAMETER   :: MISSING_INT = -999
 
     !=======================================================================
     ! UNIQUE_SPECIES_NAMES begins here!

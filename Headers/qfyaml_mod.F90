@@ -28,6 +28,7 @@ MODULE QFYAML_Mod
 !
   ! Constants
   PUBLIC :: QFYAML_Success
+  PUBLIC :: QFYAML_Failure
   PUBLIC :: QFYAML_NamLen
   PUBLIC :: QFYAML_StrLen
   PUBLIC :: QFYAML_MaxArr
@@ -76,28 +77,29 @@ MODULE QFYAML_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  ! The precision kind-parameter
-  INTEGER, PARAMETER :: yp                    = kind(0.0e0)
+  ! The precision kind-parameter (4-byte)
+  INTEGER, PARAMETER :: yp                    = KIND( 0.0e0 )
 
-  ! Success return code
-  INTEGER, PARAMETER :: QFYAML_Success        = 0
+  ! Success/failure return codes
+  INTEGER, PARAMETER :: QFYAML_Success        =  0
+  INTEGER, PARAMETER :: QFYAML_Failure        = -1
 
   ! Numeric type constants
-  INTEGER, PARAMETER :: QFYAML_num_types      = 4
-  INTEGER, PARAMETER :: QFYAML_integer_type   = 1
-  INTEGER, PARAMETER :: QFYAML_real_type      = 2
-  INTEGER, PARAMETER :: QFYAML_string_type    = 3
-  INTEGER, PARAMETER :: QFYAML_bool_type      = 4
-  INTEGER, PARAMETER :: QFYAML_unknown_type   = 0
+  INTEGER, PARAMETER :: QFYAML_num_types      =  4
+  INTEGER, PARAMETER :: QFYAML_integer_type   =  1
+  INTEGER, PARAMETER :: QFYAML_real_type      =  2
+  INTEGER, PARAMETER :: QFYAML_string_type    =  3
+  INTEGER, PARAMETER :: QFYAML_bool_type      =  4
+  INTEGER, PARAMETER :: QFYAML_unknown_type   =  0
 
   ! How was the YAML file set?
-  INTEGER, PARAMETER :: QFYAML_set_by_default = 1
-  INTEGER, PARAMETER :: QFYAML_set_by_file    = 3
+  INTEGER, PARAMETER :: QFYAML_set_by_default =  1
+  INTEGER, PARAMETER :: QFYAML_set_by_file    =  3
 
   ! Maxima
-  INTEGER, PARAMETER :: QFYAML_NamLen         = 80    ! Max len for names
-  INTEGER, PARAMETER :: QFYAML_StrLen         = 255   ! Max len for strings
-  INTEGER, PARAMETER :: QFYAML_MaxArr         = 1000  ! Max entries per array
+  INTEGER, PARAMETER :: QFYAML_NamLen         =  80    ! Max len for names
+  INTEGER, PARAMETER :: QFYAML_StrLen         =  255   ! Max len for strings
+  INTEGER, PARAMETER :: QFYAML_MaxArr         =  1000  ! Max entries per array
 
   CHARACTER(LEN=7), PARAMETER :: QFYAML_type_names(0:QFYAML_num_types) = &
       (/ 'storage', 'integer', 'real   ', 'string ', 'bool   ' /)
@@ -168,10 +170,10 @@ MODULE QFYAML_Mod
 
   ! Interface to get variables from the configuration
   INTERFACE QFYAML_Update
-     MODULE PROCEDURE  Update_Real,   Update_Real_Array
-     MODULE PROCEDURE  Update_Int,    Update_Int_Array
-     MODULE PROCEDURE  Update_Bool,   Update_Bool_Array
-     MODULE PROCEDURE  Update_String, Update_String_Array
+     MODULE PROCEDURE  Update_Real,    Update_Real_Array
+     MODULE PROCEDURE  Update_Int,     Update_Int_Array
+     MODULE PROCEDURE  Update_Bool,    Update_Bool_Array
+     MODULE PROCEDURE  Update_String,  Update_String_Array
   END INTERFACE QFYAML_Update
 
 CONTAINS
@@ -182,7 +184,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: handle_error
+! !IROUTINE: Handle_Error
 !
 ! !DESCRIPTION: This routine will be called if an error occurs in one of
 !  the subroutines of this module.
@@ -190,11 +192,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Handle_Error( err_string )
+  SUBROUTINE Handle_Error( errMsg, RC, thisLoc )
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN) :: err_string
+    CHARACTER(LEN=*), INTENT(IN)  :: errMsg    ! Error message
+    CHARACTER(LEN=*), OPTIONAL    :: thisLoc
+!
+! INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT) :: RC        ! Return code
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -202,17 +209,19 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    print *, "The following error occured in m_config:"
-    print *, trim(err_string)
+    !=======================================================================
+    ! Handle_Error begins here!
+    !=======================================================================
+    WRITE( 6, "(a)" ) REPEAT( "=", 79 )
+    WRITE( 6, "(a)" ) "QFYAML error: " // TRIM( errMsg )
+    IF ( PRESENT( thisLoc ) ) WRITE( 6, '(a)' ) TRIM( thisLoc )
+    WRITE( 6, "(a)" ) REPEAT( "=", 79 )
+    WRITE( 6, "(a)" )
 
-    ! It is usually best to quit after an error, to make sure the error message
-    ! is not overlooked in the program's output
-    error stop
+    ! Return failure
+    RC = QFYAML_FAILURE
+
   END SUBROUTINE Handle_Error
-
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
@@ -220,7 +229,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_var_index
+! !IROUTINE: Get_Var_Index
 !
 ! !DESCRIPTION:  Return the index of the variable with name 'var_name',
 !  or -1 if not found.
@@ -250,6 +259,10 @@ CONTAINS
 !
     INTEGER :: i
 
+    !=======================================================================
+    ! Get_Var_Index begins here!
+    !=======================================================================
+
     ! Initialize
     ix = -1
 
@@ -262,7 +275,7 @@ CONTAINS
 
        ! Otherwise use a linear search
        DO i = 1, yml%num_vars
-          IF ( TRIM(yml%vars(i)%var_name) == TRIM(var_name) ) THEN
+          IF ( TRIM( yml%vars(i)%var_name ) == TRIM( var_name ) ) THEN
              ix = i
              EXIT
           ENDIF
@@ -278,7 +291,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_anchor_info
+! !IROUTINE: Get_Anchor_Info
 !
 ! !DESCRIPTION: Returns information about a variable containing an anchor
 !  target field: the index, the category name, and the variable name (minus
@@ -310,6 +323,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: i
+
+    !=======================================================================
+    ! Get_Anchor_Info begins here!
+    !=======================================================================
 
     ! Initialize
     begin_ix   = 0
@@ -368,8 +385,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Strings
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg, thisLoc
+
+    !=======================================================================
+    ! QFYAML_Init begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Int (in module qfyaml_mod.F90)'
+
     ! Read the YML file
-    CALL QFYAML_Read_File( yml, fileName, yml_anchored )
+    CALL QFYAML_Read_File( yml, fileName, yml_anchored, RC )
+
+    ! Trap potential errors
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "QFYAML_Read_File"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     ! Sort the variable names in the yml object for faster search
     CALL QFYAML_Sort( yml )
@@ -389,7 +425,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE QFYAML_Read_File( yml, fileName, yml_anchored )
+  SUBROUTINE QFYAML_Read_File( yml, fileName, yml_anchored, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -399,6 +435,10 @@ CONTAINS
 !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml           ! Configuration object
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml_anchored  ! "" for anchored vars
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT  ) :: RC
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -429,17 +469,21 @@ CONTAINS
     CHARACTER(LEN=QFYAML_namlen) :: var_pt_to_anchor
     CHARACTER(LEN=QFYAML_namlen) :: var_w_anchor
     CHARACTER(LEN=QFYAML_namlen) :: var_name
-    CHARACTER(LEN=QFYAML_strlen) :: err_string
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
     CHARACTER(LEN=QFYAML_strlen) :: line
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
 
     !=======================================================================
     ! QFYAML_READ_FILE begins here!
     !=======================================================================
 
     ! Initialize
+    RC           = QFYAML_Success
     anchor_ptr   = ""
     anchor_tgt   = ""
     category     = ""
+    errMsg       = ""
+    thisLoc      = " -> at QFYAML_Read_File (in module qfyaml_mod.F90)"
     line_number  = 0
     my_unit      = 777
 
@@ -449,13 +493,13 @@ CONTAINS
 
     ! Open the file
     OPEN( my_unit, FILE=TRIM(filename), STATUS="old", ACTION="read")
-    WRITE( line_fmt, "(A,I0,A)") "(A", QFYAML_strlen, ")"
+    WRITE( line_fmt, "(a,i0,a)") "(a", QFYAML_strlen, ")"
 
     ! Start looping
     DO
 
        ! Read each line and increment the count
-       READ( my_unit, FMT=trim(line_fmt), ERR=998, end=999) line
+       READ( my_unit, FMT=TRIM(line_fmt), ERR=998, end=999) line
        line_number = line_number + 1
 
        ! Parse each line for information.  This will also add
@@ -468,21 +512,24 @@ CONTAINS
                         valid_syntax = valid_syntax,                         &
                         category     = category,                             &
                         anchor_tgt   = anchor_tgt,                           &
-                        anchor_ptr   = anchor_ptr                           )
+                        anchor_ptr   = anchor_ptr,                           &
+                        RC           = RC                                   )
 
-       ! Throw an error if the line is not in proper YAML format
+       ! Trap potential errors
        IF ( .not. valid_syntax ) THEN
-          WRITE(err_string, *) "Cannot read line ", line_number, &
+          WRITE( errMsg, *) "Cannot read line ", line_number, &
                " from ", TRIM(filename)
-          CALL Handle_Error(err_string)
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
     ENDDO
 
     ! Error handling
-998 WRITE(err_string, "(A,I0,A,I0)") " IOSTAT = ", io_state, &
+998 WRITE( errMsg, "(a,i0,a,i0)" ) " IOSTAT = ", io_state, &
          " while reading from " // trim(filename) // " at line ", &
          line_number
-    CALL Handle_Error("QFYAML_read_file:" // err_string)
+    CALL Handle_Error( errMsg, RC, thisLoc )
+    RETURN
 
     ! Routine ends here if the end of "filename" is reached
 999 CLOSE( my_unit, iostat=io_state )
@@ -523,10 +570,16 @@ CONTAINS
           CALL Copy_Anchor_Variable( yml              = yml,                 &
                                      anchor_ix        = anchor_ix,           &
                                      var_w_anchor     = var_w_anchor,        &
-                                     var_pt_to_anchor = var_pt_to_anchor    )
+                                     var_pt_to_anchor = var_pt_to_anchor,    &
+                                     RC               = RC                  )
 
+          ! Trap potential errors
+          IF ( RC /= QFYAML_Success ) THEN
+             errMsg = 'Error encountered in "Copy_Anchor_Variable"!'
+             CALL Handle_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
        ENDDO
-
     ENDDO
 
   END SUBROUTINE QFYAML_Read_File
@@ -537,7 +590,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: parse line
+! !IROUTINE: Parse_Line
 !
 ! !DESCRIPTION: Parses a single line of a YAML file and adds the relevant
 !  variables to the yml configuration object.
@@ -545,8 +598,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Parse_Line( yml,          yml_anchored, set_by,     line_arg,   &
-                         valid_syntax, category,     anchor_ptr, anchor_tgt )
+  SUBROUTINE Parse_Line( yml,        yml_anchored, set_by,                   &
+                         line_arg,   valid_syntax, category,                 &
+                         anchor_ptr, anchor_tgt,   RC                       )
 !
 ! !INPUT PARAMETERS:
 !
@@ -564,6 +618,7 @@ CONTAINS
     CHARACTER(LEN=QFYAML_namlen), INTENT(OUT)   :: category
     CHARACTER(LEN=QFYAML_namlen), INTENT(OUT)   :: anchor_ptr
     CHARACTER(LEN=QFYAML_namlen), INTENT(OUT)   :: anchor_tgt
+    INTEGER,                      INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -585,18 +640,23 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=QFYAML_namlen) :: var_name
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
     CHARACTER(LEN=QFYAML_strlen) :: line
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
 
     !=======================================================================
     ! PARSE_LINE begins here!
     !=======================================================================
 
     ! Initialize
-    valid_syntax = .true.
+    RC           = QFYAML_Success
     colon_ix     = 0
     ampsnd_ix    = 0
     star_ix      = 0
     line         = line_arg
+    valid_syntax = .true.
+    errMsg       = ''
+    thisLoc      = '-> at Parse_Line (in module qfyaml_mod.F90)'
 
     ! Strip all comments from the line
     CALL Trim_Comment(line, '#;')
@@ -681,7 +741,15 @@ CONTAINS
                           anchor_ptr_arg = anchor_ptr,                       &
                           anchor_tgt_arg = anchor_tgt,                       &
                           category_arg   = category,                         &
-                          var_name_arg   = var_name                         )
+                          var_name_arg   = var_name,                         &
+                          RC             = RC                               )
+
+       ! Trap potential errors
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Add_Variable" (points to anchor)!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
     ELSE
 
@@ -705,7 +773,15 @@ CONTAINS
                           anchor_ptr_arg = anchor_ptr,                       &
                           anchor_tgt_arg = anchor_tgt,                       &
                           category_arg   = category,                         &
-                          var_name_arg   = var_name                         )
+                          var_name_arg   = var_name,                         &
+                          RC             = RC                               )
+
+       ! Trap potential errors
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Add_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
     ENDIF
 
@@ -716,7 +792,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: add_variable
+! !IROUTINE: Add_Variable
 !
 ! !DESCRIPTION: Adds a new variable to the config object.  Either it creates
 !  the variable as "stored" (aka deferred) or actual.  This was split off
@@ -725,9 +801,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Add_Variable( yml,            line_arg,     anchor_ptr_arg,      &
-                           anchor_tgt_arg, category_arg, var_name_arg,        &
-                           set_by,         append                            )
+  SUBROUTINE Add_Variable( yml,            line_arg,     anchor_ptr_arg,     &
+                           anchor_tgt_arg, category_arg, var_name_arg,       &
+                           set_by,         append,       RC                 )
 !
 ! !INPUT PARAMETERS:
 !
@@ -743,6 +819,10 @@ CONTAINS
 !
     TYPE(QFYAML_t),               INTENT(INOUT) :: yml
 !
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,                      INTENT(OUT)   :: RC
+!
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
 !  See the subsequent Git history with the gitk browser!
@@ -752,7 +832,20 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: ix
+    ! Scalars
+    INTEGER            :: ix
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !=======================================================================
+    ! Add_Variable_Var begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Variable (in module qfyaml_mod.F90)'
 
     ! Find variable corresponding to name in file
     CALL Get_Var_Index( yml, var_name_arg, ix )
@@ -770,7 +863,14 @@ CONTAINS
                                var_size     = 1,                             &
                                description  = "Not yet created",             &
                                ix           = ix,                            &
-                               dynamic_size = .FALSE.                       )
+                               dynamic_size = .FALSE.,                       &
+                               RC           = RC                            )
+
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Prepare_Store_Var"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
 
        ! Store the value of the mapping in the "stored_data" field
        yml%vars(ix)%stored_data = TRIM( line_arg )
@@ -795,7 +895,12 @@ CONTAINS
 
        ! If type is known, read in values
        IF ( yml%vars(ix)%var_type /= QFYAML_unknown_type ) THEN
-          CALL Read_Variable( yml%vars(ix) )
+          CALL Read_Variable( yml%vars(ix), RC )
+          IF ( RC /= QFYAML_Success ) THEN
+             errMsg = 'Error encountered in "Read_Variable"!'
+             CALL Handle_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
     ENDIF
@@ -813,7 +918,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: copy_anchor_variable
+! !IROUTINE: Copy_Anchor_Variable
 !
 ! !DESCRIPTION: Adds a new variable that is a copy of a variable with a
 !  YAML anchor.  The new variable will contain all of the field values of
@@ -823,7 +928,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Copy_Anchor_Variable( yml,          anchor_ix,                  &
-                                   var_w_anchor, var_pt_to_anchor           )
+                                   var_w_anchor, var_pt_to_anchor,           &
+                                   RC                                       )
 !
 ! !INPUT PARAMETERS:
 !
@@ -835,6 +941,10 @@ CONTAINS
 !
     TYPE(QFYAML_t),               INTENT(INOUT) :: yml
 !
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,                      INTENT(OUT)   :: RC
+!
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
 !  See the subsequent Git history with the gitk browser!
@@ -844,7 +954,21 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER :: ix
+
+    ! Strings
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+
+    !=======================================================================
+    ! Copy_Anchor_Variable begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC           = QFYAML_Success
+    errMsg       = ''
+    thisLoc      = ' -> at Copy_Anchor_Variable (in module qfyaml_mod.F90)'
 
     ! Prepare to store the data as a string
     CALL Prepare_Store_Var( yml          = yml,                              &
@@ -853,7 +977,15 @@ CONTAINS
                             var_size     = 1,                                &
                             description  = "Not yet created",                &
                             ix           = ix,                               &
-                            dynamic_size = .FALSE.                          )
+                            dynamic_size = .FALSE.,                          &
+                            RC           = RC                               )
+
+    ! Trap potential errors
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered at "Prepare_Store_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     ! Copy each field of the "anchor" variable to the new variable
     yml%vars(ix)%category    = yml%vars(anchor_ix)%category
@@ -871,7 +1003,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_variable
+! !IROUTINE: Read_Variable
 !
 ! !DESCRIPTION: Get the start and end positions of the line content,
 !  and the number of entries.
@@ -879,11 +1011,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE read_variable(var)
+  SUBROUTINE Read_Variable( var, RC )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(QFYAML_var_t), INTENT(INOUT) :: var
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,            INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -894,61 +1030,103 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: n, n_entries
-    INTEGER :: ix_start(QFYAML_MaxArr)
-    INTEGER :: ix_end(QFYAML_MaxArr), stat
+    ! Scalars
+    INTEGER                      :: n
+    INTEGER                      :: n_entries
+    INTEGER                      :: stat
+
+    ! Arrays
+    INTEGER                      :: ix_start(QFYAML_MaxArr)
+    INTEGER                      :: ix_end(QFYAML_MaxArr)
+
+    ! Strings
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+    CHARACTER(LEN=QFYAML_strlen) :: s1
+    CHARACTER(LEN=QFYAML_strlen) :: s2
+    CHARACTER(LEN=QFYAML_strlen) :: s3
+    CHARACTER(LEN=QFYAML_strlen) :: s4
+
+    !=======================================================================
+    ! Read_Variable begins here!
+    !=======================================================================
 
     ! Initialize
+    RC        = QFYAML_Success
     ix_start  = 0
     ix_end    = 0
     n         = 0
     n_entries = 0
+    errMsg    = ''
+    thisLoc   = ' -> at Read_Variable (in module qfyaml_mod.F90)'
 
-    CALL get_fields_string(var%stored_data, QFYAML_separators,  &
-                           QFYAML_brackets, QFYAML_MaxArr,      &
-                           n_entries,       ix_start,           &
-                           ix_end                              )
+    ! Read the stored data field
+    CALL Get_Fields_String( var%stored_data, QFYAML_separators,              &
+                            QFYAML_brackets, QFYAML_MaxArr,                  &
+                            n_entries,       ix_start,                       &
+                            ix_end                                          )
 
-    if (var%var_size /= n_entries) then
+    IF ( var%var_size /= n_entries ) THEN
 
-       if (.not. var%dynamic_size) then
+       IF ( .not. var%dynamic_size ) THEN
+
           ! Allow strings of length 1 to be automatically concatenated
-          if (var%var_type == QFYAML_string_type .and. var%var_size == 1) then
-             var%char_data(1) = trim(var%stored_data(ix_start(1):ix_end(n_entries)))
-             return ! Leave routine
-          else
-             CALL handle_error("read_variable: variable " // &
-                  & trim(var%var_name) // " has the wrong size")
-          end if
-       else
+          IF ( var%var_type == QFYAML_string_type .and.                      &
+               var%var_size == 1                        ) THEN
+             var%char_data(1) =                                              &
+                  TRIM(var%stored_data(ix_start(1):ix_end(n_entries)))
+             RETURN
+
+          ELSE
+
+             ! Return with error
+             errMsg = "Variable " // TRIM( var%var_name )                 // &
+                      " has the wrong size"
+             CALL Handle_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ELSE
           var%var_size = n_entries
-          CALL resize_storage(var)
-       end if
-    end if
+          CALL Resize_Storage(var)
+       ENDIF
+    ENDIF
 
-    do n = 1, n_entries
+    DO n = 1, n_entries
        stat = 0
-       select case (var%var_type)
-       case (QFYAML_INTEGER_type)
-          read(var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat) var%int_data(n)
-       case (QFYAML_real_type)
-          read(var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat) var%real_data(n)
-       case (QFYAML_string_type)
-          var%char_data(n) = trim(var%stored_data(ix_start(n):ix_end(n)))
-       case (QFYAML_bool_type)
-          read(var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat) var%bool_data(n)
-       end select
+       SELECT CASE ( var%var_type )
 
-       if(stat /= 0) then
-          write (*, *) "** m_config error **"
-          write (*, *) "reading variable: ", trim(var%var_name)
-          write (*, *) "variable type:    ", trim(QFYAML_type_names(var%var_type))
-          write (*, *) "parsing value:    ", var%stored_data(ix_start(n):ix_end(n))
-          write (*, "(A,I0)") " iostat value:     ", stat
-          stop
-       endif
-    end do
-  END SUBROUTINE read_variable
+          CASE( QFYAML_INTEGER_type )
+             READ( var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat )  &
+                  var%int_data(n)
+
+          CASE( QFYAML_real_type )
+             READ( var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat )  &
+                  var%real_data(n)
+
+          CASE( QFYAML_string_type )
+             var%char_data(n) = TRIM( var%stored_data(ix_start(n):ix_end(n)) )
+
+          CASE( QFYAML_bool_type )
+             READ( var%stored_data(ix_start(n):ix_end(n)), *, iostat=stat )  &
+                  var%bool_data(n)
+       END SELECT
+
+       ! Exit with error if the variable can't be read properly
+       IF ( stat /= 0 ) THEN
+          s1 = "Error parsing YAML file!"
+          s2 = "Reading variable : " // var%var_name 
+          s3 = "Variable type    : " // QFYAML_type_names(var%var_type)
+          s4 = "Parsing value    : " // var%stored_data(ix_start(n):ix_end(n))
+          errMsg = TRIM( s1 ) // NEW_LINE( 'a' ) //                          &
+                   TRIM( s2 ) // NEW_LINE( 'a' ) //                          &
+                   TRIM( s3 ) // NEW_LINE( 'a' ) //                          &
+                   TRIM( s4 )
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE Read_Variable
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
@@ -956,7 +1134,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: trim_comment
+! !IROUTINE: Trim_Comment
 !
 ! !DESCRIPTION:  Strip comments, but only outside quoted strings
 !  (so that var = '#yolo' is valid when # is a comment char)
@@ -964,7 +1142,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE trim_comment(line, comment_chars)
+  SUBROUTINE Trim_Comment(line, comment_chars)
 !
 ! !INPUT PARAMETERS:
 !
@@ -991,6 +1169,9 @@ CONTAINS
     CHARACTER(LEN=1) :: current_char
     CHARACTER(LEN=1) :: need_char
 
+    !=======================================================================
+    ! Trim_Comment begins here!
+    !=======================================================================
     need_char = ""
 
     DO n = 1, LEN(line)
@@ -1011,7 +1192,7 @@ CONTAINS
 
     ENDDO
 
-  END SUBROUTINE trim_comment
+  END SUBROUTINE Trim_Comment
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
@@ -1019,18 +1200,22 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:
+! !IROUTINE: QFYAML_Check
 !
-! !DESCRIPTION:
+! !DESCRIPTION: Checks a QFYAML configuration variable.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE QFYAML_check(yml)
+  SUBROUTINE QFYAML_Check( yml, RC )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(QFYAML_t), INTENT(IN)       :: yml
+    TYPE(QFYAML_t), INTENT(IN)  :: yml
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -1042,15 +1227,31 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                      :: n
-    CHARACTER(LEN=QFYAML_strlen) :: err_string
 
-    do n = 1, yml%num_vars
-       if (yml%vars(n)%var_type == QFYAML_unknown_type) then
-          write(err_string, *) "QFYAML_check: unknown variable ", &
-               trim(yml%vars(n)%var_name), " specified"
-          CALL handle_error(err_string)
-       end if
-    end do
+    ! Strings
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+
+    !=======================================================================
+    ! QFYAML_Check begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at QFYAML_Check (in module qfyaml_mod.F90)'
+
+    DO n = 1, yml%num_vars
+
+       IF ( yml%vars(n)%var_type == QFYAML_unknown_type) THEN
+          errMsg = "Unknown variable " // TRIM( yml%vars(n)%var_name )    // &
+                   " specified"
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ENDDO
+
   END SUBROUTINE QFYAML_check
 !EOC
 !------------------------------------------------------------------------------
@@ -1059,14 +1260,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: split_category
+! !IROUTINE: Split_Category
 !
 ! !DESCRIPTION: splits the category and the var name
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE split_category(variable, category, var_name)
+  SUBROUTINE Split_Category( variable, category, var_name )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1092,15 +1293,18 @@ CONTAINS
 !
     INTEGER :: ix
 
-    ix = index(variable%var_name, QFYAML_category_separator)
+    !=======================================================================
+    ! Split_Category begins here!
+    !=======================================================================
+    ix = INDEX( variable%var_name, QFYAML_category_separator )
 
-    if (ix == 0) then
+    IF ( ix == 0 ) THEN
        category = ""
        var_name = variable%var_name
-    else
+    ELSE
        category = variable%var_name(1:ix-1)
        var_name = variable%var_name(ix+1:)
-    end if
+    ENDIF
 
   END SUBROUTINE split_category
 !EOC
@@ -1110,7 +1314,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: resize_storage
+! !IROUTINE: Resize_Storage
 !
 ! !DESCRIPTION: Resize the storage size of variable, which can be of type
 !  INTEGER, LOGICAL, REAL, or CHARACTER
@@ -1118,7 +1322,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE resize_storage(variable)
+  SUBROUTINE Resize_Storage( variable )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1130,22 +1334,27 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    SELECT CASE (variable%var_type)
-       CASE (QFYAML_INTEGER_type)
+    !=======================================================================
+    ! Resize_Storage begins here!
+    !=======================================================================
+    SELECT CASE ( variable%var_type )
+
+       CASE( QFYAML_INTEGER_type )
           DEALLOCATE( variable%int_data )
           ALLOCATE( variable%int_data(variable%var_size) )
-       CASE (QFYAML_bool_type)
+
+       CASE( QFYAML_bool_type )
           DEALLOCATE( variable%bool_data )
           ALLOCATE( variable%bool_data(variable%var_size) )
-       CASE (QFYAML_real_type)
+
+       CASE( QFYAML_real_type )
           DEALLOCATE( variable%real_data )
           ALLOCATE( variable%real_data(variable%var_size) )
-       CASE (QFYAML_string_type)
+
+       CASE( QFYAML_string_type )
           DEALLOCATE( variable%char_data )
           ALLOCATE( variable%char_data(variable%var_size) )
+
     END SELECT
 
   END SUBROUTINE resize_storage
@@ -1156,7 +1365,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: prepare_store_var
+! !IROUTINE: Prepare_Store_Var
 !
 ! !DESCRIPTION: Helper routine to store variables. This is useful because
 !  a lot of the same code is executed for the different types of variables.
@@ -1164,9 +1373,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE prepare_store_var(yml, var_name, var_type, var_size, &
-                               description, ix, dynamic_size)
-
+  SUBROUTINE Prepare_Store_Var( yml,      var_name,    var_type,             &
+                                var_size, description, ix,                   &
+                                RC,       dynamic_size                      )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1175,7 +1384,6 @@ CONTAINS
     INTEGER,          INTENT(IN)   :: var_size
     CHARACTER(LEN=*), INTENT(IN)   :: description
     LOGICAL,          OPTIONAL     :: dynamic_size
-
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1185,6 +1393,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,         INTENT(OUT)   :: ix          ! Index of variable
+    INTEGER,         INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -1192,48 +1401,66 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    ! Strings
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+
+    !=======================================================================
+    ! Prepare_Store_Var begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = QFYAML_Success
+    errMsg  = ''
+    thisLoc = ' -> at Prepare_Store_Var (in module qfyaml_mod.F90)'
 
     ! Check if variable already exists
     CALL get_var_index(yml, var_name, ix)
 
-    if (ix == -1) then ! Create a new variable
+    IF (ix == -1) THEN ! Create a new variable
        CALL ensure_free_storage(yml)
        yml%sorted               = .false.
        ix                       = yml%num_vars + 1
        yml%num_vars             = yml%num_vars + 1
        yml%vars(ix)%used        = .false.
        yml%vars(ix)%stored_data = unstored_data_string
-    else
+    ELSE
        ! Only allowed when the variable is not yet created
-       if (yml%vars(ix)%var_type /= QFYAML_unknown_type) then
-          CALL handle_error("prepare_store_var: variable " // &
-               & trim(var_name) // " already exists")
-       end if
-    end if
+       IF (yml%vars(ix)%var_type /= QFYAML_unknown_type) then
+          errMsg = "Variable " // trim(var_name) // " already exists"
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     yml%vars(ix)%var_name    = var_name
     yml%vars(ix)%description = description
     yml%vars(ix)%var_type    = var_type
     yml%vars(ix)%var_size    = var_size
 
-    if (present(dynamic_size)) then
+    IF ( PRESENT( dynamic_size ) ) THEN
        yml%vars(ix)%dynamic_size = dynamic_size
-    else
+    ELSE
        yml%vars(ix)%dynamic_size = .false.
-    end if
+    ENDIF
 
-    select case (var_type)
-    case (QFYAML_INTEGER_type)
-       allocate( yml%vars(ix)%int_data(var_size) )
-    case (QFYAML_real_type)
-       allocate( yml%vars(ix)%real_data(var_size) )
-    case (QFYAML_string_type)
-       allocate( yml%vars(ix)%char_data(var_size) )
-    case (QFYAML_bool_type)
-       allocate( yml%vars(ix)%bool_data(var_size) )
-    end select
+    SELECT CASE ( var_type )
 
-  END SUBROUTINE prepare_store_var
+       CASE( QFYAML_INTEGER_type )
+          ALLOCATE( yml%vars(ix)%int_data(var_size) )
+
+       CASE( QFYAML_real_type )
+          ALLOCATE( yml%vars(ix)%real_data(var_size) )
+
+       CASE( QFYAML_string_type )
+          ALLOCATE( yml%vars(ix)%char_data(var_size) )
+
+       CASE( QFYAML_bool_type )
+          ALLOCATE( yml%vars(ix)%bool_data(var_size) )
+
+    END SELECT
+
+  END SUBROUTINE Prepare_Store_Var
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
@@ -1241,7 +1468,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: prepare_get_var
+! !IROUTINE: Prepare_Get_Var
 !
 ! !DESCRIPTION: Helper routine to get variables. This is useful because a
 !  lot of the same code is executed for the different types of variables.
@@ -1249,12 +1476,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Prepare_Get_Var(yml, var_name, var_type, var_size, ix)
+  SUBROUTINE Prepare_Get_Var( yml, var_name, var_type, var_size, ix, RC )
 !
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)    :: var_name
-    INTEGER,          INTENT(IN)    :: var_type, var_size
+    INTEGER,          INTENT(IN)    :: var_type
+    INTEGER,          INTENT(IN)    :: var_size
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1263,6 +1491,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT)   :: ix
+    INTEGER,          INTENT(OUT)   :: RC
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -1273,27 +1502,49 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=QFYAML_strlen) :: err_string
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
 
-    CALL get_var_index(yml, var_name, ix)
+    !=======================================================================
+    ! Prepare_Get_Var begins here!
+    !=======================================================================
 
-    IF (ix == -1) THEN
-       CALL handle_error("QFYAML_get: variable "//var_name//" not found")
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ""
+    thisLoc = " -> at Prepare_Get_Var (in module qfyaml_mod.F90)"
 
-    ELSE IF (yml%vars(ix)%var_type /= var_type) THEN
-       WRITE(err_string, fmt="(A)") "QFYAML_get: variable " &
-            // var_name // " has different type (" // &
-            TRIM(QFYAML_type_names(yml%vars(ix)%var_type)) // &
-            ") than requested (" // TRIM(QFYAML_type_names(var_type)) // ")"
-       CALL handle_error(err_string)
+    CALL Get_Var_Index( yml, var_name, ix )
 
-    ELSE IF (yml%vars(ix)%var_size /= var_size) THEN
-       WRITE(err_string, fmt="(A,I0,A,I0,A)") "QFYAML_get: variable " &
-            // var_name // " has different size (", yml%vars(ix)%var_size, &
-            ") than requested (", var_size, ")"
-       CALL handle_error(err_string)
+    IF ( ix == QFYAML_Failure ) THEN
 
-    ELSE                        ! All good, variable will be used
+       ! Couldn't find variable, exit with error
+       errMsg = "QFYAML_get: variable " // TRIM( var_name) // " not found!"
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+
+    ELSE IF ( yml%vars(ix)%var_type /= var_type ) THEN
+
+       ! Variable is different type than expected: exit wit error
+       WRITE( errMsg, "(a)" )                                                &
+            "Variable " // TRIM( var_name ) // " has different type ("    // &
+            TRIM( QFYAML_type_names( yml%vars(ix)%var_type ) )            // &
+            ") than requested ("                                          // &
+            TRIM( QFYAML_type_names(var_type ) ) // ")"
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+
+    ELSE IF ( yml%vars(ix)%var_size /= var_size ) THEN
+
+       ! Variable has different size than requested: exit w/ error
+       WRITE( errMsg, "(a,i0,a,i0,a)" )                                      &
+            "Variable " // TRIM( var_name ) // " has different size (",      &
+            yml%vars(ix)%var_size, ") than requested (", var_size, ")"
+       CALL Handle_Error( errMsg, RC, thisLoc )
+
+    ELSE
+
+       ! All good, variable will be used
        yml%vars(ix)%used = .true.
 
     ENDIF
@@ -1316,7 +1567,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ensure_free_storage(yml)
+  SUBROUTINE Ensure_Free_Storage( yml )
 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1332,24 +1583,30 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(QFYAML_var_t), allocatable :: yml_copy(:)
-    INTEGER, parameter           :: min_dyn_size = 100
-    INTEGER                      :: cur_size, new_size
+    TYPE(QFYAML_var_t), ALLOCATABLE :: yml_copy(:)
+    INTEGER                         :: cur_size, new_size
+!
+! !DEFINED PARAMETERS:
+!
+    INTEGER,            PARAMETER   :: min_dyn_size = 100
 
-    if (allocated(yml%vars)) then
-       cur_size = size(yml%vars)
+    !=======================================================================
+    ! Ensure_Free_storage begins here!
+    !=======================================================================
+    IF ( ALLOCATED( yml%vars ) ) THEN
+       cur_size = SIZE( yml%vars )
 
-       if (cur_size < yml%num_vars + 1) then
+       IF ( cur_size < yml%num_vars + 1 ) THEN
           new_size = 2 * cur_size
-          allocate(yml_copy(cur_size))
+          ALLOCATE( yml_copy( cur_size ) )
           yml_copy = yml%vars
-          deallocate(yml%vars)
-          allocate(yml%vars(new_size))
+          DEALLOCATE( yml%vars )
+          ALLOCATE( yml%vars( new_size ) )
           yml%vars(1:cur_size) = yml_copy
-       end if
-    else
-       allocate(yml%vars(min_dyn_size))
-    end if
+       ENDIF
+    ELSE
+       ALLOCATE( yml%vars( min_dyn_size ) )
+    ENDIF
 
   END SUBROUTINE ensure_free_storage
 !EOC
@@ -1359,15 +1616,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:
+! !IROUTINE: Get_Fields_String
 !
-! !DESCRIPTION: Routine to find the indices of entries in a string
+! !DESCRIPTION: Routine to find the indices of entries in a string.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE get_fields_string(line_arg, delims,  brackets,          &
-                               n_max,    n_found, ixs_start, ixs_end)
+  SUBROUTINE Get_Fields_String( line_arg, delims,  brackets,                 &
+                                n_max,    n_found, ixs_start, ixs_end       )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1398,11 +1655,19 @@ CONTAINS
     CHARACTER(LEN=1            ) :: bkt
     CHARACTER(LEN=QFYAML_strlen) :: line
 
+    !=======================================================================
+    ! Get_Fields_String begins here!
+    !=======================================================================
+
     ! Initialize
     ix      = 0
     ix_prev = 0
     n_found = 0
-    line   = line_arg
+    line    = line_arg
+
+    !=======================================================================
+    ! Get_Fields_String begins here!
+    !=======================================================================
 
     ! Strip out brackets from the line
     DO B = 1, LEN( QFYAML_brackets )
@@ -1442,14 +1707,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: binary_search_variable
+! !IROUTINE: Binary_Search_Variable
 !
-! !DESCRIPTION: Performs a binary search for the variable 'var_name'
+! !DESCRIPTION: Performs a binary search for a given variable.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE binary_search_variable(yml, var_name, ix)
+  SUBROUTINE Binary_Search_Variable( yml, var_name, ix )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1475,23 +1740,27 @@ CONTAINS
     i_max = yml%num_vars
     ix    = - 1
 
-    do while (i_min < i_max)
+    !=======================================================================
+    ! Binary_Search_Variable begins here!
+    !=======================================================================
+
+    DO WHILE (i_min < i_max)
        i_mid = i_min + (i_max - i_min) / 2
-       if ( llt(yml%vars(i_mid)%var_name, var_name) ) then
+       IF ( LLT( yml%vars(i_mid)%var_name, var_name ) ) THEN
           i_min = i_mid + 1
-       else
+       ELSE
           i_max = i_mid
-       end if
-    end do
+       ENDIF
+    ENDDO
 
     ! If not found, binary_search_variable is not set here, and stays -1
-    if (i_max == i_min .and. yml%vars(i_min)%var_name == var_name) then
+    IF ( i_max == i_min .and. yml%vars(i_min)%var_name == var_name ) THEN
        ix = i_min
-    else
+    ELSE
        ix = -1
-    end if
+    ENDIF
 
-  END SUBROUTINE binary_search_variable
+  END SUBROUTINE Binary_Search_Variable
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
@@ -1499,14 +1768,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: QFYAML_sort
+! !IROUTINE: QFYAML_Sort
 !
 ! !DESCRIPTION: Sorts the variables list for faster lookup
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE QFYAML_sort( yml )
+  SUBROUTINE QFYAML_Sort( yml )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1518,12 +1787,12 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
+    !=======================================================================
+    ! QFYAML_Sort begins here!
+    !=======================================================================
 
     ! Sort the list
-    CALL qsort( yml%vars(1:yml%num_vars) )
+    CALL Qsort( yml%vars(1:yml%num_vars) )
 
     ! Indicate that we have sorted
     yml%sorted = .TRUE.
@@ -1537,7 +1806,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: qsort
+! !IROUTINE: Qsort
 !
 ! !DESCRIPTION: Simple implementation of quicksort algorithm to sort
 !  the variable list alphabetically.
@@ -1545,7 +1814,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  RECURSIVE SUBROUTINE qsort( list )
+  RECURSIVE SUBROUTINE Qsort( list )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1562,10 +1831,13 @@ CONTAINS
 !
     INTEGER :: split_pos
 
+    !=======================================================================
+    ! Qsort begins here!
+    !=======================================================================
     IF ( SIZE(list) > 1 ) then
-       CALL partition_var_list(list, split_pos)
-       CALL qsort( list(:split_pos-1) )
-       CALL qsort( list(split_pos:) )
+       CALL Partition_Var_List( list, split_pos )
+       CALL Qsort( list(:split_pos-1) )
+       CALL Qsort( list(split_pos:) )
     ENDIF
 
   END SUBROUTINE qsort
@@ -1576,14 +1848,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: partition_var_list
+! !IROUTINE: Partition_Var_List
 !
 ! !DESCRIPTION: Helper routine for quicksort, to perform partitioning
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE partition_var_list(list, marker)
+  SUBROUTINE Partition_Var_List(list, marker)
 !
 ! !INPUT PARAMETERS:
 !
@@ -1602,42 +1874,53 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    INTEGER                      :: left
+    INTEGER                      :: right
+    INTEGER                      :: pivot_ix
 
-    INTEGER                        :: left, right, pivot_ix
-    TYPE(QFYAML_var_t)                :: temp
-    CHARACTER(LEN=QFYAML_namlen)    :: pivot_value
+    ! Strings
+    CHARACTER(LEN=QFYAML_namlen) :: pivot_value
+
+    ! Objects
+    TYPE(QFYAML_var_t)           :: temp
+
+    !=======================================================================
+    ! Partition_Var_List begins here!
+    !=======================================================================
 
     left        = 0
-    right       = size(list) + 1
+    right       = SIZE( list ) + 1
 
     ! Take the middle element as pivot
-    pivot_ix    = size(list) / 2
+    pivot_ix    = SIZE( list ) / 2
     pivot_value = list(pivot_ix)%var_name
 
-    do while (left < right)
+    DO WHILE ( left < right )
 
        right = right - 1
-       do while (lgt(list(right)%var_name, pivot_value))
+       DO WHILE ( LGT( list(right)%var_name, pivot_value ) )
           right = right - 1
-       end do
+       ENDDO
 
        left = left + 1
-       do while (lgt(pivot_value, list(left)%var_name))
+       DO WHILE (LGT( pivot_value, list(left)%var_name ) )
           left = left + 1
-       end do
+       ENDDO
 
-       if (left < right) then
+       IF ( left < right ) THEN
           temp = list(left)
           list(left) = list(right)
           list(right) = temp
-       end if
-    end do
+       ENDIF
+    ENDDO
 
-    if (left == right) then
+    IF ( left == right ) THEN
        marker = left + 1
-    else
+    ELSE
        marker = left
-    end if
+    ENDIF
+
   END SUBROUTINE partition_var_list
 !EOC
 !------------------------------------------------------------------------------
@@ -1655,7 +1938,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE QFYAML_CleanUp(yml)
+  SUBROUTINE QFYAML_CleanUp( yml )
 !
 ! !USES:
 !
@@ -1671,9 +1954,15 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+    !=======================================================================
+    ! QFYAML_CleanUp begins here!
+    !=======================================================================
+
+    ! Reset scalars
     yml%sorted   = .false.
     yml%num_vars = 0
 
+    ! Deallocate variables array
     IF ( ALLOCATED( yml%vars ) ) DEALLOCATE( yml%vars )
 
   END SUBROUTINE QFYAML_CleanUp
@@ -1684,15 +1973,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:
+! !IROUTINE: QFYAML_Get_Size
 !
-! !DESCRIPTION: Get the size of a variable
-
+! !DESCRIPTION: Get the size of a variable.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE QFYAML_Get_Size(yml, var_name, res)
+  SUBROUTINE QFYAML_Get_Size( yml, var_name, res, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1702,21 +1990,44 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT) :: res
+    INTEGER,          INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
 !  See the subsequent Git history with the gitk browser!
 !EOP
 !------------------------------------------------------------------------------
+!BOC
 !
-    INTEGER :: ix
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                      :: ix
 
-    CALL get_var_index(yml, var_name, ix)
-    IF (ix /= -1) THEN
+    ! Strings
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+
+    !=======================================================================
+    ! Prepare_Store_Var begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at QFYAML_Get_Size (in module qfyaml_mod.F90)'
+
+    ! Get variable index
+    CALL Get_Var_Index( yml, var_name, ix )
+
+    ! Return var_size or exit w/ error
+    IF ( ix /= QFYAML_Failure ) THEN
        res = yml%vars(ix)%var_size
     ELSE
-       res = -1
-       CALL handle_error("QFYAML_get_size: variable ["//var_name//"] not found")
+       res = QFYAML_Failure
+       errMsg = "Variable [" // TRIM( var_name ) // "] not found"
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
   END SUBROUTINE QFYAML_Get_Size
@@ -1730,12 +2041,11 @@ CONTAINS
 ! !IROUTINE: QFYAML_get_type
 !
 ! !DESCRIPTION: Get the type of a given variable of a configuration type
-
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE QFYAML_Get_Type(yml, var_name, res)
+  SUBROUTINE QFYAML_Get_Type( yml, var_name, res, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1745,6 +2055,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT) :: res
+    INTEGER,          INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  15 Apr 2020 - R. Yantosca - Initial version
@@ -1752,15 +2063,33 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !
-    INTEGER :: ix
+    ! Scalars
+    INTEGER                      :: ix
 
-    CALL get_var_index(yml, var_name, ix)
+    ! Strings
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
 
-    IF (ix /= -1) THEN
+    !=======================================================================
+    ! Prepare_Store_Var begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> QFYAML_Get_Type (in module qfyaml_mod.F90)'
+
+    ! Find the variable index
+    CALL Get_Var_Index( yml, var_name, ix )
+
+    ! Retrurn var_type or exit w/ error
+    IF ( ix /= QFYAML_Failure ) THEN
        res = yml%vars(ix)%var_type
     ELSE
-       res = -1
-       CALL handle_error("QFYAML_get_type: variable ["//var_name//"] not found")
+       res = QFYAML_Failure
+       errMsg = "Variable [" // TRIM( var_name ) // "] not found"
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
   END SUBROUTINE QFYAML_get_type
@@ -1770,449 +2099,985 @@ CONTAINS
 !### WE WILL OMIT ADDING SUBROUTINE HEADERS
 !############################################################################
 
-  ! Add a configuration variable with a real value
-  SUBROUTINE Add_Real(yml, var_name, real_data, comment)
+  SUBROUTINE Add_Real( yml, var_name, real_data, comment, RC )
+    !
+    ! Add a YAML variable with a REAL value
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     REAL(yp),         INTENT(IN   ) :: real_data
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
+
     INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
-    CALL prepare_store_var(yml, var_name, QFYAML_real_type, 1, comment, ix)
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = '-> at Add_Real (in module qfyaml_mod.F90)'
 
-    if (yml%vars(ix)%stored_data /= unstored_data_string) then
-       CALL read_variable(yml%vars(ix))
-    else
+    CALL Prepare_Store_Var( yml, var_name, QFYAML_real_type,                 &
+                            1,   comment,  ix,               RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Store_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    IF ( yml%vars(ix)%stored_data /= unstored_data_string ) THEN
+       CALL Read_Variable( yml%vars(ix), RC )
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Read_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ELSE
        yml%vars(ix)%real_data(1) = real_data
-    end if
+    ENDIF
+
   END SUBROUTINE Add_Real
 
-  ! Add a configuration variable with an array of type REAL
-  SUBROUTINE Add_Real_Array(yml, var_name, real_data, comment, dynamic_size)
+  SUBROUTINE Add_Real_Array( yml,     var_name,  real_data,                  &
+                             comment, RC,        dynamic_size               )
+    !
+    ! Add a YAML variable with an array of type REAL
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     REAL(yp),         INTENT(IN   ) :: real_data(:)
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
     LOGICAL,          OPTIONAL      :: dynamic_size
+
     INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
-    CALL prepare_store_var(yml, var_name, QFYAML_real_type, &
-         size(real_data), comment, ix, dynamic_size)
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Real_Array (in module qfyaml_mod.F90)'
 
-    if (yml%vars(ix)%stored_data /= unstored_data_string) then
-       CALL read_variable(yml%vars(ix))
-    else
+    CALL Prepare_Store_Var( yml,             var_name,    QFYAML_real_type,  &
+                            SIZE(real_data), comment,     ix,                &
+                            RC,              dynamic_size                   )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Store_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    IF ( yml%vars(ix)%stored_data /= unstored_data_string ) THEN
+       CALL Read_Variable( yml%vars(ix), RC )
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Read_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ELSE
        yml%vars(ix)%real_data = real_data
-    end if
+    ENDIF
+
   END SUBROUTINE Add_Real_Array
 
-  ! Add a configuration variable with an INTEGER value
-  SUBROUTINE Add_Int(yml, var_name, int_data, comment)
+  SUBROUTINE Add_Int( yml, var_name, int_data, comment, RC )
+    !
+    ! Add a YAML variable with an INTEGER value
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     INTEGER,          INTENT(IN   ) :: int_data
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
+
     INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
-    CALL prepare_store_var(yml, var_name, QFYAML_INTEGER_type, 1, comment, ix)
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Int (in module qfyaml_mod.F90)'
 
-    if (yml%vars(ix)%stored_data /= unstored_data_string) then
-       CALL read_variable(yml%vars(ix))
-    else
+    CALL Prepare_Store_Var( yml, var_name, QFYAML_INTEGER_type,              &
+                            1,   comment,  ix,                  RC          )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Store_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    IF ( yml%vars(ix)%stored_data /= unstored_data_string ) THEN
+       CALL Read_Variable( yml%vars(ix), RC )
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Read_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ELSE
        yml%vars(ix)%int_data(1) = int_data
-    end if
+    ENDIF
+
   END SUBROUTINE Add_Int
 
-  ! Add a configuration variable with an array of type INTEGER
-  SUBROUTINE Add_Int_Array(yml, var_name, int_data, comment, dynamic_size)
+  SUBROUTINE Add_Int_Array( yml,     var_name, int_data,                     &
+                            comment, RC,       dynamic_size                 )
+    !
+    ! Add a YAML variable with an array of type INTEGER
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     INTEGER,          INTENT(IN   ) :: int_data(:)
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     LOGICAL,          OPTIONAL      :: dynamic_size
+    INTEGER,          INTENT(OUT  ) :: RC
+
     INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
-    CALL prepare_store_var(yml, var_name, QFYAML_INTEGER_type, &
-         size(int_data), comment, ix, dynamic_size)
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Int_Array (in module qfyaml_mod.F90)'
 
-    if (yml%vars(ix)%stored_data /= unstored_data_string) then
-       CALL read_variable(yml%vars(ix))
-    else
+    CALL Prepare_Store_Var( yml,            var_name, QFYAML_INTEGER_type,   &
+                            SIZE(int_data), comment,  ix,                    &
+                            RC,             dynamic_size                    )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Store_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    IF ( yml%vars(ix)%stored_data /= unstored_data_string ) THEN
+       CALL Read_Variable( yml%vars(ix), RC )
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Read_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ELSE
        yml%vars(ix)%int_data = int_data
-    end if
+    ENDIF
   END SUBROUTINE Add_Int_Array
 
-  ! Add a configuration variable with an character value
-  SUBROUTINE Add_String(yml, var_name, char_data, comment)
+  SUBROUTINE Add_String( yml, var_name, char_data, comment, RC )
+    !
+    ! Add a YAML variable with an CHARACTER value
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     CHARACTER(LEN=*), INTENT(IN   ) :: char_data
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_store_var(yml, var_name, QFYAML_string_type, 1, comment, ix)
-    if (yml%vars(ix)%stored_data /= unstored_data_string) then
-       CALL read_variable(yml%vars(ix))
-    else
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_String (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Store_Var( yml, var_name, QFYAML_string_type,               &
+                            1,   comment,  ix,                  RC          )
+
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Store_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    IF ( yml%vars(ix)%stored_data /= unstored_data_string ) THEN
+       CALL Read_Variable( yml%vars(ix), RC )
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Read_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ELSE
        yml%vars(ix)%char_data(1) = char_data
-    end if
+    ENDIF
+
   END SUBROUTINE Add_String
 
-  ! Add a configuration variable with an array of type character
-  SUBROUTINE Add_String_Array(yml, var_name, char_data, &
-                              comment, dynamic_size)
+  SUBROUTINE Add_String_Array( yml,     var_name,  char_data,                &
+                               comment, RC,        dynamic_size             )
+    !
+    ! Add a YAML variable with an array of type character
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     CHARACTER(LEN=*), INTENT(IN   ) :: char_data(:)
+    INTEGER,          INTENT(OUT  ) :: RC
     LOGICAL,          OPTIONAL      :: dynamic_size
+
     INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
-    CALL prepare_store_var(yml, var_name, QFYAML_string_type, &
-         size(char_data), comment, ix, dynamic_size)
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_String_Array (in module qfyaml_mod.F90)'
 
-    if (yml%vars(ix)%stored_data /= unstored_data_string) then
-       CALL read_variable(yml%vars(ix))
-    else
+    CALL Prepare_Store_Var( yml,             var_name,   QFYAML_string_type, &
+                            SIZE(char_data), comment,    ix,                 &
+                            RC,              dynamic_size                   )
+
+    IF ( yml%vars(ix)%stored_data /= unstored_data_string ) THEN
+       CALL Read_Variable( yml%vars(ix), RC )
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Read_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ELSE
        yml%vars(ix)%char_data = char_data
-    end if
+    ENDIF
+
   END SUBROUTINE Add_String_Array
 
-  ! Add a configuration variable with an logical value
-  SUBROUTINE Add_Bool(yml, var_name, bool_data, comment)
+  SUBROUTINE Add_Bool( yml, var_name, bool_data, comment, RC )
+    !
+    ! Add a YAML variable with an logical value
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     LOGICAL,          INTENT(IN   ) :: bool_data
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
+
     INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
-    CALL prepare_store_var(yml, var_name, QFYAML_bool_type, 1, comment, ix)
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Bool (in module qfyaml_mod.F90)'
 
-    if (yml%vars(ix)%stored_data /= unstored_data_string) then
-       CALL read_variable(yml%vars(ix))
-    else
+    CALL Prepare_Store_Var( yml, var_name, QFYAML_bool_type,                 &
+                            1,   comment,  ix,                RC            )
+
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Store_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    IF ( yml%vars(ix)%stored_data /= unstored_data_string ) THEN
+       CALL Read_Variable( yml%vars(ix), RC )
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Read_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ELSE
        yml%vars(ix)%bool_data(1) = bool_data
-    end if
+    ENDIF
+
   END SUBROUTINE Add_Bool
 
-  ! Add a configuration variable with an array of type LOGICAL
-  SUBROUTINE Add_Bool_Array(yml, var_name, bool_data, &
-                            comment, dynamic_size)
+  SUBROUTINE Add_Bool_Array(yml,     var_name, bool_data,                    &
+                            comment, RC,       dynamic_size                 )
+    !
+    ! Add a YAML variable with an array of type LOGICAL
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     LOGICAL,          INTENT(IN   ) :: bool_data(:)
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
     LOGICAL,          OPTIONAL      :: dynamic_size
+
     INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
 
-    CALL prepare_store_var(yml, var_name, QFYAML_bool_type, &
-         size(bool_data), comment, ix, dynamic_size)
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Bool_Array (in module qfyaml_mod.F90)'
 
-    if (yml%vars(ix)%stored_data /= unstored_data_string) then
-       CALL read_variable(yml%vars(ix))
-    else
+    CALL Prepare_Store_Var( yml,             var_name,    QFYAML_bool_type,  &
+                            SIZE(bool_data), comment,     ix,                &
+                            RC,              dynamic_size                   )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Store_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    IF ( yml%vars(ix)%stored_data /= unstored_data_string ) then
+       CALL Read_Variable( yml%vars(ix), RC )
+       IF ( RC /= QFYAML_Success ) THEN
+          errMsg = 'Error encountered in "Read_Variable"!'
+          CALL Handle_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ELSE
        yml%vars(ix)%bool_data = bool_data
-    end if
+    ENDIF
+
   END SUBROUTINE Add_Bool_Array
 
-  ! Get a real array of a given name
-  SUBROUTINE Get_Real_Array(yml, var_name, real_data)
+  SUBROUTINE Get_Real_Array( yml, var_name, real_data, RC )
+    !
+    ! Get a real array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     REAL(yp),         INTENT(INOUT) :: real_data(:)
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_get_var(yml, var_name, QFYAML_real_type, &
-         size(real_data), ix)
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Get_Real_Array (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Get_Var( yml,             var_name, QFYAML_real_type,       &
+                          SIZE(real_data), ix,       RC                     )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Get_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     real_data = yml%vars(ix)%real_data
+
   END SUBROUTINE Get_Real_Array
 
-  ! Get a INTEGER array of a given name
-  SUBROUTINE Get_Int_Array(yml, var_name, int_data)
+  SUBROUTINE Get_Int_Array( yml, var_name, int_data, RC )
+    !
+    ! Get a INTEGER array of a given name
+    !
+
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     INTEGER,          INTENT(INOUT) :: int_data(:)
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_get_var(yml, var_name, QFYAML_integer_type, &
-         size(int_data), ix)
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Get_Int_Array (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Get_Var( yml,            var_name, QFYAML_integer_type,     &
+                          SIZE(int_data), ix,       RC                      )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Get_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     int_data    = yml%vars(ix)%int_data
+
   END SUBROUTINE Get_Int_Array
 
-  ! Get a character array of a given name
-  SUBROUTINE Get_String_Array(yml, var_name, char_data)
+  SUBROUTINE Get_String_Array( yml, var_name, char_data, RC )
+    !
+    ! Get a character array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   )    :: var_name
     CHARACTER(LEN=*), INTENT(INOUT) :: char_data(:)
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_get_var(yml, var_name, QFYAML_string_type, &
-         size(char_data), ix)
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Get_String_Array (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Get_Var( yml,             var_name, QFYAML_string_type,     &
+                          SIZE(char_data), ix,       RC                     )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Get_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     char_data = yml%vars(ix)%char_data
+
   END SUBROUTINE Get_String_Array
 
-  ! Get a LOGICAL array of a given name
-  SUBROUTINE Get_Bool_Array(yml, var_name, bool_data)
+  SUBROUTINE Get_Bool_Array( yml, var_name, bool_data, RC )
+    !
+    ! Get a LOGICAL array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     LOGICAL,          INTENT(INOUT) :: bool_data(:)
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_get_var(yml, var_name, QFYAML_bool_type, &
-         size(bool_data), ix)
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Get_Bool_Array (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Get_Var( yml,             var_name, QFYAML_bool_type,       &
+                          SIZE(bool_data), ix,       RC                     )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Get_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     bool_data = yml%vars(ix)%bool_data
+
   END SUBROUTINE Get_Bool_Array
 
-  ! Get a real value of a given name
-  SUBROUTINE Get_Real(yml, var_name, res)
+  SUBROUTINE Get_Real( yml, var_name, res, RC )
+    !
+    ! Get a real value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     REAL(yp),         INTENT(OUT  ) :: res
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_get_var(yml, var_name, QFYAML_real_type, 1, ix)
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Get_Real (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Get_Var( yml, var_name, QFYAML_real_type, 1, ix, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Get_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     res = yml%vars(ix)%real_data(1)
+
   END SUBROUTINE Get_Real
 
-  ! Get a INTEGER value of a given name
-  SUBROUTINE Get_Int(yml, var_name, res)
+  SUBROUTINE Get_Int( yml, var_name, res, RC )
+    !
+    ! Get a INTEGER value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     INTEGER,          INTENT(INOUT) :: res
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_get_var(yml, var_name, QFYAML_integer_type, 1, ix)
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Get_Int (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Get_Var( yml, var_name, QFYAML_integer_type, 1, ix, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Get_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     res = yml%vars(ix)%int_data(1)
+
   END SUBROUTINE Get_Int
 
-  ! Get a LOGICAL value of a given name
-  SUBROUTINE Get_Bool(yml, var_name, res)
+  SUBROUTINE Get_Bool( yml, var_name, res, RC )
+    !
+    ! Get a LOGICAL value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     LOGICAL,          INTENT(OUT  ) :: res
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_get_var(yml, var_name, QFYAML_bool_type, 1, ix)
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Get_Bool (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Get_Var( yml, var_name, QFYAML_bool_type, 1, ix, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Get_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     res = yml%vars(ix)%bool_data(1)
+
   END SUBROUTINE Get_Bool
 
-  ! Get a character value of a given name
-  SUBROUTINE Get_String(yml, var_name, res)
+  SUBROUTINE Get_String( yml, var_name, res, RC )
+    !
+    ! Get a character value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(OUT  ) :: res
-    INTEGER                         :: ix
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL prepare_get_var(yml, var_name, QFYAML_string_type, 1, ix)
+    INTEGER                         :: ix
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Get_String (in module qfyaml_mod.F90)'
+
+    CALL Prepare_Get_Var( yml, var_name, QFYAML_string_type, 1, ix, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Prepare_Get_Var"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     res = yml%vars(ix)%char_data(1)
+
   END SUBROUTINE Get_String
 
-  ! Get or add a real array of a given name
-  SUBROUTINE Add_Get_Real_Array(yml, var_name, real_data, &
-                                comment, dynamic_size)
+  SUBROUTINE Add_Get_Real_Array( yml,     var_name,  real_data,              &
+                                 comment, RC,        dynamic_size           )
+    !
+    ! Get or add a real array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     REAL(yp),         INTENT(INOUT) :: real_data(:)
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
     LOGICAL,          OPTIONAL      :: dynamic_size
 
-    CALL Add_Real_Array(yml, var_name, real_data, comment, dynamic_size)
-    CALL Get_Real_Array(yml, var_name, real_data)
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Get_Real_Array (in module qfyaml_mod.F90)'
+
+    CALL Add_Real_Array( yml, var_name, real_data, comment, RC, dynamic_size )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_Real_Array"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    CALL Get_Real_Array( yml, var_name, real_data, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_Real_Array"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Add_Get_Real_Array
 
-  ! Get or add a INTEGER array of a given name
-  SUBROUTINE Add_Get_Int_Array(yml, var_name, int_data, &
-                               comment, dynamic_size)
+  SUBROUTINE Add_Get_Int_Array( yml,     var_name,  int_data,                &
+                                comment, RC,        dynamic_size            )
+    !
+    ! Get or add a INTEGER array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     INTEGER,          INTENT(INOUT) :: int_data(:)
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     LOGICAL,          OPTIONAL      :: dynamic_size
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL Add_Int_Array(yml, var_name, int_data, comment, dynamic_size)
-    CALL Get_Int_Array(yml, var_name, int_data)
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Get_Int_Array (in module qfyaml_mod.F90)'
+
+    CALL Add_Int_Array( yml, var_name, int_data, comment, RC, dynamic_size )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_Int_Array"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    CALL Get_Int_Array( yml, var_name, int_data, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Get_Int_Array"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Add_Get_Int_Array
 
-  ! Get or add a character array of a given name
-  SUBROUTINE Add_Get_String_Array(yml, var_name, char_data, &
-                                  comment, dynamic_size)
+  SUBROUTINE Add_Get_String_Array( yml,     var_name,     char_data,         &
+                                   comment, dynamic_size, RC                )
+    !
+    ! Get or add a character array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(INOUT) :: char_data(:)
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     LOGICAL,          optional      :: dynamic_size
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL add_string_Array(yml, var_name, char_data, comment, dynamic_size)
-    CALL Get_String_Array(yml, var_name, char_data)
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Get_String_Array (in module qfyaml_mod.F90)'
+
+    CALL Add_String_Array(yml, var_name, char_data, comment, RC, dynamic_size )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_String_Array"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    CALL Get_String_Array( yml, var_name, char_data, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Get_String_Array"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Add_Get_String_Array
 
-  ! Get or add a LOGICAL array of a given name
-  SUBROUTINE Add_Get_Bool_Array(yml, var_name, bool_data, &
-                                comment, dynamic_size)
+  SUBROUTINE Add_Get_Bool_Array(yml,     var_name,     bool_data,            &
+                                comment, dynamic_size, RC                   )
+    !
+    ! Get or add a LOGICAL array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     LOGICAL,          INTENT(INOUT) :: bool_data(:)
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
     LOGICAL,          OPTIONAL      :: dynamic_size
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL Add_Bool_Array(yml, var_name, bool_data, comment, dynamic_size)
-    CALL Get_Bool_Array(yml, var_name, bool_data)
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Get_Bool_Array (in module qfyaml_mod.F90)'
+
+    CALL Add_Bool_Array( yml, var_name, bool_data, comment, RC, dynamic_size )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_Bool_Array"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    CALL Get_Bool_Array( yml, var_name, bool_data, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Get_Bool_Array"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Add_Get_Bool_Array
 
-  ! Get or add a real value of a given name
-  SUBROUTINE Add_Get_Real(yml, var_name, real_data, comment)
+  SUBROUTINE Add_Get_Real( yml, var_name, real_data, comment, RC )
+    !
+    ! Get or add a real value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     REAL(yp),         INTENT(INOUT) :: real_data
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL Add_Real(yml, var_name, real_data, comment)
-    CALL Get_Real(yml, var_name, real_data)
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Get_Real (in module qfyaml_mod.F90)'
+
+    CALL Add_Real( yml, var_name, real_data, comment, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_Real"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    CALL Get_Real( yml, var_name, real_data, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Get_Real"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Add_Get_Real
 
-  ! Get or add a INTEGER value of a given name
-  SUBROUTINE Add_Get_Int(yml, var_name, int_data, comment)
+  SUBROUTINE Add_Get_Int( yml, var_name, int_data, comment, RC )
+    !
+    ! Get or add a INTEGER value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     INTEGER,          INTENT(INOUT) :: int_data
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL Add_Int(yml, var_name, int_data, comment)
-    CALL Get_Int(yml, var_name, int_data)
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Get_Int (in module qfyaml_mod.F90)'
+
+    CALL Add_Int( yml, var_name, int_data, comment, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_Int"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    CALL Get_Int( yml, var_name, int_data, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Get_Int"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Add_Get_Int
 
-  ! Get or add a LOGICAL value of a given name
-  SUBROUTINE Add_Get_Bool(yml, var_name, bool_data, comment)
+  SUBROUTINE Add_Get_Bool( yml, var_name, bool_data, comment, RC)
+    !
+    ! Get or add a LOGICAL value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     LOGICAL,          INTENT(INOUT) :: bool_data
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL Add_Bool(yml, var_name, bool_data, comment)
-    CALL Get_Bool(yml, var_name, bool_data)
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Get_Bool (in module qfyaml_mod.F90)'
+
+    CALL Add_Bool( yml, var_name, bool_data, comment, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    CALL Get_Bool( yml, var_name, bool_data, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Add_Get_Bool
 
-  ! Get a character value of a given name
-  SUBROUTINE Add_Get_String(yml, var_name, string_data, comment)
+  SUBROUTINE Add_Get_String( yml, var_name, string_data, comment, RC )
+
+    ! Get a character value of a given name
+
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(INOUT) :: string_data
     CHARACTER(LEN=*), INTENT(IN   ) :: comment
+    INTEGER,          INTENT(OUT  ) :: RC
 
-    CALL add_string(yml, var_name, string_data, comment)
-    CALL Get_String(yml, var_name, string_data)
+    CHARACTER(LEN=QFYAML_strlen)    :: errMsg
+    CHARACTER(LEN=QFYAML_strlen)    :: thisLoc
+
+    ! Initialize
+    RC      = QFYAML_success
+    errMsg  = ''
+    thisLoc = ' -> at Add_Int (in module qfyaml_mod.F90)'
+
+    CALL Add_string( yml, var_name, string_data, comment, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Add_String"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    CALL Get_String( yml, var_name, string_data, RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Error encountered in "Get_String"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Add_Get_String
 
-  ! Get or add a real array of a given name
-  SUBROUTINE Update_Real_Array(yml, var_name, real_data)
+  SUBROUTINE Update_Real_Array( yml, var_name, real_data )
+    !
+    ! Get or add a real array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     REAL(yp),         INTENT(INOUT) :: real_data(:)
     INTEGER                         :: ix
 
-    CALL Get_Var_Index(yml, var_name, ix)
-    IF ( ix > 0 ) THEN 
+    CALL Get_Var_Index( yml, var_name, ix )
+    IF ( ix > 0 ) THEN
        yml%vars(ix)%real_data = real_data
        real_data = yml%vars(ix)%real_data
     ENDIF
+
   END SUBROUTINE Update_Real_Array
 
-  ! Get or add a INTEGER array of a given name
   SUBROUTINE Update_Int_Array(yml, var_name, int_data)
+    !
+    ! Get or add a INTEGER array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     INTEGER,          INTENT(INOUT) :: int_data(:)
     INTEGER                         :: ix
 
     CALL Get_Var_Index(yml, var_name, ix)
-    IF ( ix > 0 ) THEN 
+    IF ( ix > 0 ) THEN
        yml%vars(ix)%int_data = int_data
        int_data = yml%vars(ix)%int_data
     ENDIF
+
   END SUBROUTINE Update_Int_Array
 
-  ! Get or add a character array of a given name
-  SUBROUTINE Update_String_Array(yml, var_name, char_data)
+  SUBROUTINE Update_String_Array( yml, var_name, char_data )
+    !
+    ! Get or add a character array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(INOUT) :: char_data(:)
     INTEGER                         :: ix
 
-    CALL Get_Var_Index(yml, var_name, ix)
-    IF ( ix > 0 ) THEN 
+    CALL Get_Var_Index( yml, var_name, ix )
+    IF ( ix > 0 ) THEN
        yml%vars(ix)%char_data = char_data
        char_data = yml%vars(ix)%char_data
     ENDIF
+
   END SUBROUTINE Update_String_Array
 
-  ! Get or add a LOGICAL array of a given name
-  SUBROUTINE Update_Bool_Array(yml, var_name, bool_data)
+  SUBROUTINE Update_Bool_Array( yml, var_name, bool_data )
+    !
+    ! Get or add a LOGICAL array of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     LOGICAL,          INTENT(INOUT) :: bool_data(:)
     INTEGER                         :: ix
 
-    CALL Get_Var_Index(yml, var_name, ix)
-    IF ( ix > 0 ) THEN 
+    CALL Get_Var_Index( yml, var_name, ix )
+    IF ( ix > 0 ) THEN
        yml%vars(ix)%bool_data = bool_data
        bool_data = yml%vars(ix)%bool_data
     ENDIF
+
   END SUBROUTINE Update_Bool_Array
 
-  ! Get or add a real value of a given name
-  SUBROUTINE Update_Real(yml, var_name, real_data)
+  SUBROUTINE Update_Real( yml, var_name, real_data )
+    !
+    ! Get or add a real value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     REAL(yp),         INTENT(INOUT) :: real_data
     INTEGER                         :: ix
 
     CALL Get_Var_Index(yml, var_name, ix)
-    IF ( ix > 0 ) THEN 
+    IF ( ix > 0 ) THEN
        yml%vars(ix)%real_data(1) = real_data
        real_data = yml%vars(ix)%real_data(1)
     ENDIF
+
   END SUBROUTINE Update_Real
 
-  ! Get or add a INTEGER value of a given name
   SUBROUTINE Update_Int(yml, var_name, int_data)
+    !
+    ! Get or add a INTEGER value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     INTEGER,          INTENT(INOUT) :: int_data
     INTEGER                         :: ix
 
-    CALL Get_Var_Index(yml, var_name, ix)
-    IF ( ix > 0 ) THEN 
+    CALL Get_Var_Index( yml, var_name, ix )
+    IF ( ix > 0 ) THEN
        yml%vars(ix)%int_data(1) = int_data
        int_data = yml%vars(ix)%int_data(1)
     ENDIF
+
   END SUBROUTINE Update_Int
 
-  ! Get or add a LOGICAL value of a given name
-  SUBROUTINE Update_Bool(yml, var_name, bool_data)
+  SUBROUTINE Update_Bool( yml, var_name, bool_data )
+    !
+    ! Get or add a LOGICAL value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     LOGICAL,          INTENT(INOUT) :: bool_data
     INTEGER                         :: ix
 
-    CALL Get_Var_Index(yml, var_name, ix)
-    IF ( ix > 0 ) THEN 
+    CALL Get_Var_Index( yml, var_name, ix )
+    IF ( ix > 0 ) THEN
        yml%vars(ix)%bool_data(1) = bool_data
        bool_data = yml%vars(ix)%bool_data(1)
     ENDIF
+
   END SUBROUTINE Update_Bool
 
-  ! Get a character value of a given name
   SUBROUTINE Update_String(yml, var_name, string_data)
+    !
+    ! Get a character value of a given name
+    !
     TYPE(QFYAML_t),   INTENT(INOUT) :: yml
     CHARACTER(LEN=*), INTENT(IN   ) :: var_name
     CHARACTER(LEN=*), INTENT(INOUT) :: string_data
     INTEGER                         :: ix
-    
-    CALL Get_Var_Index(yml, var_name, ix)
-    IF ( ix > 0 ) THEN 
+
+    CALL Get_Var_Index( yml, var_name, ix )
+    IF ( ix > 0 ) THEN
        yml%vars(ix)%char_data(1) = string_data
        string_data = yml%vars(ix)%char_data(1)
     ENDIF
+
   END SUBROUTINE Update_String
 
 END MODULE QFYAML_Mod

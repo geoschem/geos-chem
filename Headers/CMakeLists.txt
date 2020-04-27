@@ -12,6 +12,7 @@ add_library(Headers STATIC EXCLUDE_FROM_ALL
 	inquireMod.F90
 	physconstants.F90
 	precision_mod.F90
+	qfyaml_mod.F90
 	registry_mod.F90
 	registry_params_mod.F90
 	species_database_mod.F90
