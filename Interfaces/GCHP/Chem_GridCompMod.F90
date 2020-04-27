@@ -927,6 +927,15 @@ CONTAINS
     ! State_Met variables needed for benchmarking
     IF ( SimType == 'benchmark' .OR. SimType == 'TransportTracers' ) THEN
        call MAPL_AddInternalSpec(GC, &
+          SHORT_NAME         = 'AREA',  &
+          LONG_NAME          = 'Grid horizontal area',  &
+          UNITS              = 'm2', &
+          DIMS               = MAPL_DimsHorzOnly,    &
+          PRECISION          = ESMF_KIND_R8, &
+          FRIENDLYTO         = trim(COMP_NAME),    &
+                                                         RC=STATUS  )
+       _VERIFY(STATUS)
+       call MAPL_AddInternalSpec(GC, &
           SHORT_NAME         = 'BXHEIGHT',  &
           LONG_NAME          = 'Grid box height (w/r/t dry air)',  &
           UNITS              = 'm', &
@@ -4752,6 +4761,14 @@ CONTAINS
                  State_Met%DELP_DRY(:,:,1:State_Grid%NZ)
     ENDIF
     Ptr3d_R8 => NULL()
+
+    CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'AREA', &
+                          notFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr2d_R8) .AND. &
+         ASSOCIATED(State_Met%AREA_M2) ) THEN
+       Ptr2d_R8 = State_Met%AREA_M2
+    ENDIF
+    Ptr2d_R8 => NULL()
 
     CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'BXHEIGHT' ,     &
                           notFoundOK=.TRUE., __RC__ )
