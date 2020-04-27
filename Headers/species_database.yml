@@ -745,7 +745,7 @@ DST2: &DST2properties
   WD_AerScavEff: 1.0
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
-  WD_RainoutEff: [1.0, 1.0. 0.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 DST3: &DST3properties
   DD_DustDryDep: true
   DD_F0: 0.0
@@ -1733,7 +1733,7 @@ IDN:
   Formula: C5H8N2O6
   Fullname: Lumped isoprene dinitrates
   Henry_CR: 7200.0
-  Henry_K0: 1.0e_8
+  Henry_K0: 1.0e-8
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -2451,7 +2451,7 @@ MSA:
   MW_g: 96.10
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
-  WD_RainoutEff: [1.0, 0.0. 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 MTPA:
   DD_F0: 0.0
   DD_Hstar: 4.9e-2
