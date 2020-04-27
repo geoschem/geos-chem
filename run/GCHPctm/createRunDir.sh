@@ -319,8 +319,8 @@ sed -i -e "s|{DATE2}|${enddate}|"       ${rundir}/CAP.rc
 # Special handling for benchmark simulation
 if [ "${sim_name}" == "benchmark" ]; then
     total_cores=48
-    num_nodes=3
-    num_cores_per_node=16
+    num_nodes=2
+    num_cores_per_node=24
     grid_res=48
     diag_freq="7440000"
     start_time="000000"
@@ -328,9 +328,9 @@ if [ "${sim_name}" == "benchmark" ]; then
     dYYYYMMDD="00000100"
     dHHmmSS="000000"
 else
-    total_cores=6
+    total_cores=30
     num_nodes=1
-    num_cores_per_node=6
+    num_cores_per_node=30
     grid_res=24
     diag_freq="010000"
     start_time="000000"
