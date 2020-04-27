@@ -565,9 +565,9 @@
                   ! 2013)
                   SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
      &                                   Spc(I,J,L,id_NH4)    +
-     &                                   Spc(I,J,L,id_NIT)    +
-     &                                   Spc(I,J,L,id_SO4s)   +
-     &                                   Spc(I,J,L,id_NITs) ) /
+     &                                   Spc(I,J,L,id_NIT))    /
+!     &                                   Spc(I,J,L,id_SO4s)   +
+!     &                                   Spc(I,J,L,id_NITs) ) /
      &                                   AIRVOL(I,J,L)
                   SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
                   NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
@@ -1442,6 +1442,7 @@
       ACLRADIUS             => State_Chm%AClRadi    ! Fine Cl- Radius [cm]
       ACLAREA               => State_Chm%AClArea    ! Fine Cl- Area [cm2/cm3]
 
+
 #if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       IF ( Input_Opt%ND21 > 0 ) THEN
          ! Define certain bpch ND21 diagnostic indexes
@@ -1471,10 +1472,18 @@
                   Map_NRHAER(I) = 2
                CASE ( 'OCPI', 'POA1' )
                   Map_NRHAER(I) = 3
-               CASE ( 'SALA' )
+               CASE ( 'SALA' ) ! 'SALAAL' )
                   Map_NRHAER(I) = 4
-               CASE ( 'SALC' )
+               CASE ( 'SALC' ) !'SALCAL' )
                   Map_NRHAER(I) = 5
+               !CASE ( 'NITS' )
+               !   Map_NRHAER(I) = 6
+               !CASE ( 'SALACL' )
+               !   Map_NRHAER(I) = 7
+               !CASE ( 'SALCCL' )
+               !   Map_NRHAER(I) = 8
+               !CASE ( 'SO4S' )
+               !   Map_NRHAER(I) = 9
                CASE DEFAULT
                   ErrMsg = 'WARNING: aerosol diagnostics not defined' //
      &                     ' for NRHAER greater than 5!'
@@ -1641,6 +1650,11 @@
       ENDIF
       MSDENS(4) = State_Chm%SpcData(id_SALA)%Info%Density
       MSDENS(5) = State_Chm%SpcData(id_SALC)%Info%Density
+      !MSDENS(6) = State_Chm%SpcData(id_NITS)%Info%Density
+      !MSDENS(7) = State_Chm%SpcData(id_SALACL)%Info%Density
+      !MSDENS(8) = State_Chm%SpcData(id_SALCCL)%Info%Density
+      !MSDENS(9) = State_Chm%SpcData(id_SO4S)%Info%Density
+      !wbd 4/22/20
 
       IF ( LUCX ) THEN
          ! These default values unused (actively retrieved from ucx_mod)

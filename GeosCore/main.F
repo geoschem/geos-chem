@@ -621,7 +621,6 @@
       State_Met%Area_M2 = State_Grid%Area_M2
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       
-      write(*,*) 'here'
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
       ! SULFATE_MOD).  This removes the init calls from the run stage,
@@ -980,8 +979,8 @@
       NSECb  = ( HOUR * 3600 ) + ( MINUTE * 60 ) + SECOND
 
       ! Get dynamic timestep in seconds
-      N_DYN  = GET_TS_DYN()
-
+      N_DYN  = GET_TS_DYN()      
+      
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
       !     *****    a k a   H E A R T B E A T   L O O P    *****
@@ -1043,7 +1042,6 @@
          CALL GEOS_Timer_End( "All diagnostics",           RC )
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
-
          !==============================================================
          !       ***** R U N   H E M C O   P H A S E   1 *****
          ! 
@@ -1060,21 +1058,11 @@
          
          ! Is it time for emissions?
          TimeForEmis = ITS_TIME_FOR_EMIS()
-!wbd
-!            write(*,*) "Pre Phase 1"
-!            CALL Print_Global_Species_Kg (am_I_Root, 30, 12, 12,
-!     &           'SALCCL', Input_Opt, State_Chm, State_Grid,
-!     &           State_Met, ThisLoc, RC)
 
          ! Run HEMCO Phase 1
          CALL Emissions_Run( am_I_Root,   Input_Opt,  State_Chm, 
      &                       State_Diag,  State_Grid, State_Met,
      &                       TimeForEmis, 1,          RC )
-!wbd
-!            write(*,*) "Post Phase 1"
-!            CALL Print_Global_Species_Kg (am_I_Root, 30, 12, 12,
-!     &           'SALCCL', Input_Opt, State_Chm, State_Grid,
-!     &           State_Met, ThisLoc, RC)
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -1472,12 +1460,6 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
          ENDIF
-!wbd
-!            write(*,*) "Pre Transport"
-!            CALL Print_Global_Species_Kg (am_I_Root, 30, 12, 12,
-!     &           'SALCCL', Input_Opt, State_Chm, State_Grid,
-!     &           State_Met, ThisLoc, RC)
-
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -1651,12 +1633,6 @@
                   CALL Debug_Msg( '### MAIN: a DO_DRYDEP' )
                ENDIF
             ENDIF
-!wbd
-!            write(*,*) "Pre Emissions"
-!            CALL Print_Global_Species_Kg (am_I_Root, 30, 12, 12,
-!     &           'SALCCL', Input_Opt, State_Chm, State_Grid,
-!     &           State_Met, ThisLoc, RC)
-
 
             !===========================================================
             !             ***** E M I S S I O N S *****
@@ -1743,12 +1719,6 @@
 
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a TURBDAY:2' )
 
-!wbd
-!            write(*,*) "Pre Convection"
-!            CALL Print_Global_Species_Kg (am_I_Root, 30, 12, 12,
-!     &           'SALCCL', Input_Opt, State_Chm, State_Grid,
-!     &           State_Met, ThisLoc, RC)
-
             !===========================================================
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
@@ -1782,11 +1752,6 @@
             ENDIF 
 
          ENDIF 
-!wbd
-!                     write(*,*) "Pre Pre Chemistry"
-!            CALL Print_Global_Species_Kg (am_I_Root, 30, 12, 12,
-!     &           'SALCCL', Input_Opt, State_Chm, State_Grid,
-!     &           State_Met, ThisLoc, RC)
 
          !==============================================================
          !               ***** C H E M I S T R Y *****
@@ -1824,11 +1789,6 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [kg] for all of chemistry. We will replace use of [kg] 
             ! once FlexChem is implemented (ewl, 9/18/15)
-!wbd
-!            write(*,*) "Pre Chemistry"
-!            CALL Print_Global_Species_Kg (am_I_Root, 30, 12, 12,
-!     &           'SALCCL', Input_Opt, State_Chm, State_Grid,
-!     &           State_Met, ThisLoc, RC)
            
             CALL Do_Chemistry( am_I_Root,  Input_Opt,  State_Chm, 
      &                         State_Diag, State_Grid, State_Met, RC ) 

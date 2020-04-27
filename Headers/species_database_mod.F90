@@ -834,11 +834,16 @@ CONTAINS
 
              FullName      = 'Bromine chloride'
              Formula       = 'BrCl'
-             MW_g          = 115.0_fp
+             MW_g          = 115.45_fp
              Is_Gas        = T
-             Is_Drydep     = F
-             Is_Wetdep     = F
+             Is_Drydep     = T
+             Is_Wetdep     = T          
              Is_Photolysis = T
+             DD_f0         = 0.0_fp
+             DD_Hstar_old  = 9.70e-1_fp
+             Henry_K0      = 9.70e-1_f8
+             Henry_CR      = 5600.0_f8
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'BRNO2' )
              FullName      = 'Nitryl bromide'
@@ -860,6 +865,9 @@ CONTAINS
              Is_Photolysis = T
              DD_F0         = 0.0_fp
              DD_Hstar_Old  = 1.00e+20_fp
+             !Henry_K0      = 1.00e+20_fp
+             !HENRY_CR      = 0.0_fp
+             !WD_RetFactor  = 1.0_fp
 
           CASE( 'BRO' )
              FullName      = 'Bromine monoxide'
@@ -903,7 +911,7 @@ CONTAINS
 
              FullName      = 'Carbon tetrachloride'
              Formula       = 'CCl4'
-             MW_g          = 152.0_fp
+             MW_g          = 153.6_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -996,7 +1004,7 @@ CONTAINS
 
              FullName      = 'Chloroform'
              Formula       = 'CHCl3'
-             MW_g          = 119.0_fp
+             MW_g          = 119.35_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1005,7 +1013,7 @@ CONTAINS
           CASE( 'CH2CL2' )
              FullName      = 'Dichloromethane'
              Formula       = 'CH2Cl2'
-             MW_g          = 85.0_fp
+             MW_g          = 84.9_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1014,7 +1022,7 @@ CONTAINS
           CASE( 'CH3CL' )
              FullName      = 'Chloromethane'
              Formula       = 'CH3Cl'
-             MW_g          = 50.0_fp
+             MW_g          = 50.45_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1023,7 +1031,7 @@ CONTAINS
           CASE( 'CH3CCL3' )
              FullName      = 'Methyl chloroform'
              Formula       = 'CH3CCl3'
-             MW_g          = 133.0_fp
+             MW_g          = 133.35_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1094,7 +1102,7 @@ CONTAINS
 
              FullName      = 'Atomic chlorine'
              Formula       = 'Cl'
-             MW_g          = 35.0_fp
+             MW_g          = 35.45_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1102,16 +1110,20 @@ CONTAINS
           CASE( 'CL2' )
              FullName      = 'Molecular chlorine'
              Formula       = 'Cl2'
-             MW_g          = 71.0_fp
+             MW_g          = 70.9_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 9.2e-2_fp
+             Henry_K0      = 9.2e-2_f8
+             Henry_CR      = 2000.0_f8
 
           CASE( 'CL2O2' )
              FullName      = 'Dichlorine dioxide'
              Formula       = 'Cl2O2'
-             MW_g          = 103.0_fp
+             MW_g          = 102.9_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1120,40 +1132,51 @@ CONTAINS
           CASE( 'CLNO2' )
              FullName      = 'Nitryl chloride'
              Formula       = 'ClNO2'
-             MW_g          = 81.0_fp
+             MW_g          = 81.45_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 4.5e-2_fp
 
           CASE( 'CLNO3' )
              FullName      = 'Chlorine nitrate'
              Formula       = 'ClNO3'
-             MW_g          = 97.0_fp
+             MW_g          = 97.45_fp
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 0.0_fp
              DD_Hstar_old  = 1.00e+20_fp
+             Henry_K0      = 1.00e+20_fp
+             Henry_CR      = 0.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'CLO' )
              FullName      = 'Chlorine monoxide'
              Formula       = 'ClO'
-             MW_g          = 51.0_fp
+             MW_g          = 51.45_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 7.0e-1_fp
 
           CASE( 'CLOO' )
              FullName      = 'Chlorine dioxide'
              Formula       = 'ClOO'
-             MW_g          = 67.0_fp
+             MW_g          = 67.45_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 1.0e0_fp
+             Henry_K0      = 1.0e0_f8
+             Henry_CR      = 3500.0_f8
 
           CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',  &
                 'COBBAM', 'COBBAF',  'COBBAS', 'COBBOC', 'COBBEU', &
@@ -1625,7 +1648,7 @@ CONTAINS
 
              FullName      = 'Hydrochloric acid'
              Formula       = 'HCl'
-             MW_g          = 36.0_fp
+             MW_g          = 36.45_fp
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T
@@ -1634,10 +1657,10 @@ CONTAINS
              DD_Hstar_old  = 2.05e+6_fp
              Henry_K0      = 7.10e+15_f8
 #else
-             DD_Hstar_old  = 2.05e+13_fp
-             Henry_K0      = 7.00e+10_f8
+             DD_Hstar_old  = 2.0e+13_fp
+             Henry_K0      = 6.30e+10_f8
 #endif
-             Henry_CR      = 11000.0_f8
+             Henry_CR      = 9000.0_f8
              WD_RetFactor  = 1.0_fp
 
           CASE( 'HCOOH' )
@@ -1689,14 +1712,15 @@ CONTAINS
 #if defined( NEW_HENRY_CONSTANTS )
              Henry_K0      = 2.10e+3_f8 * To_M_atm
              Henry_CR      = 8700.0_f8
+             Henry_pKa     = -1.3e+0_fp
 #else
              DD_Hstar_old  = 1.0e+14_fp
-             Henry_K0      = 8.3e+4_f8
-             Henry_CR      = 7400.0_f8
+             Henry_K0      = 1.3e+11_f8
+             Henry_CR      = 8700.0_f8
 #endif
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'HNO4' )
              FullName      = 'Peroxynitric acid'
@@ -1736,7 +1760,7 @@ CONTAINS
 
              FullName      = 'Hypochlorous acid'
              Formula       = 'HOCl'
-             MW_g          = 52.0_fp
+             MW_g          = 52.45_fp
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T
@@ -2432,7 +2456,8 @@ CONTAINS
              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
              Henry_K0      = 2.10e-2_f8 * To_M_atm
-             Henry_CR      = 3400.0_f8
+             Henry_CR      = 8700.0_f8
+             Henry_pKa     = -1.3e+0_f8
 #else
              DD_Hstar_old  = 1.0e+14_fp
 #endif
@@ -2615,12 +2640,14 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
+             Is_HygroGrowth= F !wbd temporary
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T
              DD_F0         = 0.0_fp
              DD_Hstar_Old  = 0.0_fp
              WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
@@ -2748,7 +2775,7 @@ CONTAINS
           CASE( 'OCLO' )
              FullName      = 'Chlorine dioxide'
              Formula       = 'OClO'
-             MW_g          = 67.0_fp
+             MW_g          = 67.45_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -3138,7 +3165,7 @@ CONTAINS
              Is_Advected   = Is_Advected
              Is_Gas        = F                            
              Is_Drydep     = T                           
-             Is_HygroGrowth= T
+             Is_HygroGrowth= T !wbd temporary
              Is_Wetdep     = T
              Density       = 2200.0_fp
              Radius        = Radius
@@ -3231,7 +3258,7 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
-             Is_HygroGrowth= T
+             Is_HygroGrowth= T !wbd temporary
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T
@@ -3381,6 +3408,7 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
+             Is_HygroGrowth= F !wbd Temporary
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T
@@ -3606,7 +3634,7 @@ CONTAINS
 
              FullName      = 'Chloroiodomethane'
              Formula       = 'CH2ICl'
-             MW_g          = 167.0_fp
+             MW_g          = 167.45_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -3682,7 +3710,7 @@ CONTAINS
 
              FullName      = 'Iodine monochloride'
              Formula       = 'ICl'
-             MW_g          = 162.0_fp
+             MW_g          = 162.45_fp
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T

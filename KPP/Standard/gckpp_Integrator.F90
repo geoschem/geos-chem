@@ -397,42 +397,6 @@ SUBROUTINE Rosenbrock(N,Y,Tstart,Tend, &
       END IF
     END DO
 
-!    WRITE(*,*) 'Y'
-!    WRITE(*,*) Y
-!    WRITE(*,*) 'Tstart'
-!    WRITE(*,*) Tstart
-!    write(*,*) 'tend'
-!    write(*,*) tend
-!    write(*,*) 'texit'
-!    write(*,*) texit
-!    write(*,*) 'abstol'
-!    write(*,*) abstol
-!    write(*,*) 'reltol'
-!    write(*,*) reltol
-!    write(*,*) 'autonomous'
-!    write(*,*) autonomous
-!    write(*,*) 'vectortol'
-!    write(*,*) vectortol
-!    write(*,*) 'max_no_steps'
-!    write(*,*) max_no_steps
-!    write(*,*) 'roundoff'
-!    write(*,*) roundoff
-!    write(*,*) 'hmin'
-!    write(*,*) hmin
-!    write(*,*) 'hmax'
-!    write(*,*) hmax
-!    write(*,*) 'hstart'
-!    write(*,*) hstart
-!    write(*,*) 'facmin'
-!    write(*,*) facmin
-!    write(*,*) 'facmax'
-!    write(*,*) facmax
-!    write(*,*) 'facrej'
-!    write(*,*) facrej
-!    write(*,*) 'facsafe'
-!    write(*,*) facsafe
-!    write(*,*) 'ierr'
-!    write(*,*) ierr
 !~~~>  CALL Rosenbrock method
    CALL ros_Integrator(Y, Tstart, Tend, Texit,   &
         AbsTol, RelTol,                          &

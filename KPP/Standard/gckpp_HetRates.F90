@@ -720,14 +720,6 @@ MODULE GCKPP_HETRATES
       ! Get the concentration of Cl-
       CALL Get_Halide_SSAConc(spcVec(Ind_('SALACL')), AClAREA,AClRADI, clConc_SALA)
       CALL Get_Halide_SSAConc(spcVec(Ind_('SALCCL')), xArea(12),xRadi(12), clConc_SALC)
-!      write(*,*) spcVec(Ind_('SALCCL'))
-      IF (spcVec(IND_('SALCCL')) .EQ. 0) THEN
-         write(*,*) I
-         write(*,*) J
-         write(*,*) L
-         write(*,*) IND_('SALCCL')
-      ENDIF
-!      write(*,*) clConc_SALC
       ! Get the concentration of NO3-
       CALL Get_Halide_SSAConc(spcVec(Ind_('NIT')), AClAREA,AClRADI,nitConc_SALA)
       CALL Get_Halide_SSAConc(spcVec(Ind_('NITs')), xArea(12),xRadi(12),nitConc_SALC)      
@@ -777,7 +769,6 @@ MODULE GCKPP_HETRATES
       ! Calculate genuine first-order uptake reactions first
       HET(ind_HO2,    1) = HetHO2(        MW_HO2,    2E-1_fp)
       HET(ind_NO2,    1) = HetNO2(        MW_NO2,    1E-4_fp)
-      !write(*,*) aliq
       HET(ind_NO3,    1) = HetNO3(        MW_NO3,    1E-1_fp) + &
                            CloudHet( 'NO3', CldFr, Aliq, Aice, rLiq, rIce, TempK, XDenA )
       HET(ind_GLYX,   1) = HetGLYX(       MW_GLYX,   1E-1_fp)
@@ -4457,9 +4448,7 @@ MODULE GCKPP_HETRATES
       H_X = H_K0_O3*dexp(H_CR_O3*(1.0e0_fp/T - 1.0e0_fp/H_O3_T))
       M_X = MW_O3 * 1e-3_fp
       
-!      write(*,*) AWATER(X)
       WaterC = AWATER(X) / 18e12_fp !mol/cm3 air
-!      write(*,*) WaterC
       IF (X == 1) THEN
          Vol = AClAREA * AClRADI * 1.0e-3_fp / 3.0e0_fp !L/cm3 air 
       ELSE
@@ -4485,10 +4474,7 @@ MODULE GCKPP_HETRATES
 
       H_X = 0.6e+0_fp !M atm-1
       H_X = H_X * con_atm_bar !M/bar
-!      write(*,*) k_tot
       l_r = dsqrt(D_l / k_tot)
-!      l_r = dsqrt(safe_div(d_l, k_tot, 1.0e-3_fp))
-
 !
 !      IF (K_Tot .EQ. 0.0) THEN
 !         K_tot = 1.0e-2_fp

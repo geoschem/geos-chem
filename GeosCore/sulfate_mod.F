@@ -9002,12 +9002,6 @@
 !      N2 = N_DENS(I,J,L,2) * 1.d-6
 
       !Read Alkalinity from Alkalinity tracers [v/v] to [kg], xnw 12/8/17
-!      write(*,*) "id_SALAAL"
-!      write(*,*) id_SALAAL
-!      write(*,*) "AIRMW"
-!      write(*,*) AIRMW
-!      write(*,*) "State_Chm%SpcData(id_SALAAL)%Info%emMw_g"
-!      write(*,*) State_Chm%SpcData(id_SALAAL)%Info%emMW_g
       ALK1 = State_Chm%Species(I,J,L,id_SALAAL) * State_Met%AD(I,J,L)/
      & ( AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g )
       ALK2 = State_Chm%Species(I,J,L,id_SALCAL) * State_Met%AD(I,J,L)/
