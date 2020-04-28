@@ -233,6 +233,7 @@ species_database_mod.o : species_database_mod.F90 \
                          errcode_mod.o            \
                          input_opt_mod.o          \
                          precision_mod.o          \
+                         qfyaml_mod.o             \
                          species_mod.o
 
 #EOC

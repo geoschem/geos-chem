@@ -40,6 +40,7 @@ MODULE QFYAML_Mod
   PUBLIC :: QFYAML_Get
   PUBLIC :: QFYAML_Check
   PUBLIC :: QFYAML_Init
+  PUBLIC :: QFYAML_Merge
   PUBLIC :: QFYAML_Update
 !
 ! !REMARKS:
@@ -213,7 +214,7 @@ CONTAINS
     ! Handle_Error begins here!
     !=======================================================================
     WRITE( 6, "(a)" ) REPEAT( "=", 79 )
-    WRITE( 6, "(a)" ) "QFYAML error: " // TRIM( errMsg )
+    WRITE( 6, "(a)" ) "QFYAML ERROR: " // TRIM( errMsg )
     IF ( PRESENT( thisLoc ) ) WRITE( 6, '(a)' ) TRIM( thisLoc )
     WRITE( 6, "(a)" ) REPEAT( "=", 79 )
     WRITE( 6, "(a)" )
@@ -395,7 +396,7 @@ CONTAINS
     ! Initialize
     RC      = QFYAML_success
     errMsg  = ''
-    thisLoc = ' -> at Add_Int (in module qfyaml_mod.F90)'
+    thisLoc = ' -> at QFYAML_Init (in module qfyaml_mod.F90)'
 
     ! Read the YML file
     CALL QFYAML_Read_File( yml, fileName, yml_anchored, RC )
@@ -411,6 +412,91 @@ CONTAINS
     CALL QFYAML_Sort( yml )
 
   END SUBROUTINE QFYAML_Init
+!EOC
+!------------------------------------------------------------------------------
+! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
+! Based on existing package https://github.com/jannisteunissen/config_fortran
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: QFYAML_Merge
+!
+! !DESCRIPTION: Concatetenates two QFYAML_t objects together.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE QFYAML_Merge( yml1, yml2, yml, RC )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(QFYAML_t),   INTENT(IN)  :: yml1
+    TYPE(QFYAML_t),   INTENT(IN)  :: yml2
+!
+! !OUTPUT PARAMETERS:
+!
+    TYPE(QFYAML_t),   INTENT(OUT) :: yml
+    INTEGER,          INTENT(OUT) :: RC
+!
+! !REVISION HISTORY:
+!  15 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                      :: N
+    
+    ! Strings
+    CHARACTER(LEN=QFYAML_strlen) :: errMsg
+    CHARACTER(LEN=QFYAML_strlen) :: thisLoc
+
+    !=======================================================================
+    ! QFYAML_Init begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = QFYAML_success
+    N       = 0
+    errMsg  = ''
+    thisLoc = ' -> at QFYAML_Merge (in module qfyaml_mod.F90)'
+
+    ! Total number of variables
+    yml%num_vars = yml1%num_vars + yml2%num_vars
+
+    ! Allocate the resultant yml object
+    !ALLOCATE( yml, STAT=RC )
+    !IF ( RC /= QFYAML_Success ) THEN
+    !   errMsg = 'Could not allocate the yml object!"!'
+    !   CALL Handle_Error( errMsg, RC, thisLoc )
+    !   RETURN
+    !ENDIF
+
+    ! Allocate yml%vars
+    ALLOCATE( yml%vars( yml%num_vars ), STAT=RC )
+    IF ( RC /= QFYAML_Success ) THEN
+       errMsg = 'Could not allocate the yml%vars object!"!'
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Add the variables from the first object
+    DO N = 1, yml1%num_vars
+       yml%vars(N) = yml1%vars(N)
+    ENDDO
+
+    ! Add the variables from the second object
+    DO N = 1, yml2%num_vars
+       yml%vars(N + yml1%num_vars) = yml2%vars(N)
+    ENDDO
+
+    ! Sort the variable names in the yml object for faster search
+    CALL QFYAML_Sort( yml )
+
+  END SUBROUTINE QFYAML_Merge
 !EOC
 !------------------------------------------------------------------------------
 ! QFYAML: Bob Yantosca | yantosca@seas.harvard.edu | Apr 2020
@@ -645,7 +731,7 @@ CONTAINS
     CHARACTER(LEN=QFYAML_strlen) :: thisLoc
 
     !=======================================================================
-    ! PARSE_LINE begins here!
+    ! Parse_Line begins here!
     !=======================================================================
 
     ! Initialize
@@ -684,6 +770,7 @@ CONTAINS
           ! and there is no anchor present
           anchor_tgt = ""
           category   = line(1:colon_ix-1)
+          IF ( category == "'NO'" ) category = "NO"   ! Avoid clash w/ FALSE
           RETURN
 
        ! If there is an ampersand following the colon
@@ -693,6 +780,7 @@ CONTAINS
           ! Return anchor target and category name
           anchor_tgt = line(ampsnd_ix+1:trim_len)
           category   = line(1:colon_ix-1)
+          IF ( category == "'NO'" ) category = "NO"   ! Avoid clash w/ FALSE
           RETURN
        ENDIF
     ENDIF

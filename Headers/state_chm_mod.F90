@@ -340,7 +340,6 @@ CONTAINS
     nAerosol                    =  NDUST + NAER
 
     ! Number of each type of species
-    State_Chm%nSpecies          =  0
     State_Chm%nAdvect           =  0
     State_Chm%nAeroSpc          =  0
     State_Chm%nAeroType         =  0
@@ -354,6 +353,7 @@ CONTAINS
     State_Chm%nLoss             =  0
     State_Chm%nPhotol           =  0
     State_Chm%nProd             =  0
+    State_Chm%nSpecies          =  0
     State_Chm%nWetDep           =  0
 
 
@@ -500,7 +500,7 @@ CONTAINS
     ! Get the number of advected, dry-deposited, KPP chemical species,
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and
     ! HgP species (these are zero unless the Hg simulation is used).
-    State_Chm%nAdvect  = SpcCount%nAdvect 
+    State_Chm%nAdvect  = SpcCount%nAdvect
     State_Chm%nAeroSpc = SpcCount%nAeroSpc
     State_Chm%nDryAlt  = SpcCount%nDryAlt
     State_Chm%nDryDep  = SpcCount%nDryDep
@@ -751,8 +751,8 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Set up the mapping for AEROSOL SPECIES
        !--------------------------------------------------------------------
-       IF ( ThisSpc%Is_Aero ) THEN
-          C                     = ThisSpc%AeroId
+       IF ( ThisSpc%Is_Aerosol ) THEN
+          C                     = ThisSpc%AerosolId
           State_Chm%Map_Aero(C) = ThisSpc%ModelId
        ENDIF
 

@@ -62,18 +62,18 @@ MODULE Species_Mod
   TYPE, PUBLIC :: Species
 
      ! Indices
-     INTEGER            :: ModelID          ! Model species ID
-     INTEGER            :: AdvectID         ! Advection index
-     INTEGER            :: AeroID           ! Aerosol species index
-     INTEGER            :: DryAltId         ! Dry dep species at altitude ID
-     INTEGER            :: DryDepID         ! Dry deposition index
-     INTEGER            :: GasSpcID         ! Gas-phase species index
-     INTEGER            :: HygGrthID        ! Hygroscopic growth species index
+     INTEGER            :: ModelId          ! Model species Id
+     INTEGER            :: AdvectId         ! Advection index
+     INTEGER            :: AerosolId        ! Aerosol species index
+     INTEGER            :: DryAltId         ! Dry dep species at altitude Id
+     INTEGER            :: DryDepId         ! Dry deposition index
+     INTEGER            :: GasSpcId         ! Gas-phase species index
+     INTEGER            :: HygGrthId        ! Hygroscopic growth species index
      INTEGER            :: KppVarId         ! KPP variable species index
      INTEGER            :: KppFixId         ! KPP fixed spcecies index
-     INTEGER            :: KppSpcID         ! KPP species index
-     INTEGER            :: PhotolID         ! Photolysis index
-     INTEGER            :: WetDepID         ! Wet deposition index
+     INTEGER            :: KppSpcId         ! KPP species index
+     INTEGER            :: PhotolId         ! Photolysis index
+     INTEGER            :: WetDepId         ! Wet deposition index
 
      ! Names
      CHARACTER(LEN=31)  :: Name             ! Short name
@@ -82,7 +82,7 @@ MODULE Species_Mod
 
      ! Logical switches
      LOGICAL            :: Is_Advected      ! Is it advected?
-     LOGICAL            :: Is_Aero          ! Is it an aerosol species?
+     LOGICAL            :: Is_Aerosol       ! Is it an aerosol species?
      LOGICAL            :: Is_DryAlt        ! Is it a dry-dep species that we
                                             !  want to save at a given altitude?
      LOGICAL            :: Is_DryDep        ! Is it dry-deposited?
@@ -206,7 +206,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SpcData_Init( Input_Opt, nSpecies, SpecDB, RC )
+  SUBROUTINE SpcData_Init( Input_Opt, nSpecies, SpcData, RC )
 !
 ! !USES:
 !
@@ -220,7 +220,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(SpcPtr),         POINTER       :: SpecDB(:)    ! Species database
+    TYPE(SpcPtr),         POINTER       :: SpcData(:)   ! Species database
     INTEGER,              INTENT(INOUT) :: RC           ! Return code
 !
 ! !REVISION HISTORY:
@@ -243,23 +243,28 @@ CONTAINS
     !=====================================================================
 
     ! Check if already allocated
-    IF ( ASSOCIATED( SpecDB ) ) THEN
-       CALL SpcData_Cleanup( SpecDB )
+    IF ( ASSOCIATED( SpcData ) ) THEN
+       CALL SpcData_Cleanup( SpcData )
     ENDIF
 
     ! Allocate the species database object
     varId = "State_Chm%SpcData"
-    ALLOCATE( SpecDB( nSpecies ), STAT=RC )
+    ALLOCATE( SpcData( nSpecies ), STAT=RC )
     CALL GC_CheckVar( varId, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    ! Allocate each entry in the species database object
+    ! Initialize each entry in the species database object
     DO N = 1, nSpecies
+
+       ! Allocate
        WRITE( varId, 100 ) N
  100   FORMAT( 'State_Chm%SpcData(', i6, ')%Info' )
-       ALLOCATE( SpecDB(N)%Info, STAT=RC )
+       ALLOCATE( SpcData(N)%Info, STAT=RC )
        CALL GC_CheckVar( varId, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Set all fields to missing values
+       CALL Spc_Zero( SpcData(N)%Info )
     ENDDO
 
   END SUBROUTINE SpcData_Init
@@ -277,11 +282,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SpcData_Cleanup( SpecDB )
+  SUBROUTINE SpcData_Cleanup( SpcData )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(SpcPtr), POINTER :: SpecDB(:)  ! Species database object
+    TYPE(SpcPtr), POINTER :: SpcData(:)  ! Species database object
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - C. Keller   - Adapted from gigc_state_chm_mod.F90
@@ -299,763 +304,127 @@ CONTAINS
     !=====================================================================
 
     ! Check if already allocated
-    IF ( ASSOCIATED( SpecDB ) ) THEN
+    IF ( ASSOCIATED( SpcData ) ) THEN
 
        ! First get the size of the SpecDb object
-       nSpecies = SIZE( SpecDb )
+       nSpecies = SIZE( SpcData )
 
        ! If there are more than 0 elements ...
        IF ( nSpecies > 0 ) THEN
 
           ! Nullify each entry in the species database
           DO N = 1, nSpecies
-             IF( ASSOCIATED( SpecDB(N)%Info ) ) THEN
-                DEALLOCATE( SpecDB(N)%Info )
+             IF( ASSOCIATED( SpcData(N)%Info ) ) THEN
+                DEALLOCATE( SpcData(N)%Info )
              ENDIF
           ENDDO
 
           ! And free the object's memory
-          DEALLOCATE( SpecDB )
+          DEALLOCATE( SpcData )
        ENDIF
     ENDIF
 
   END SUBROUTINE SpcData_Cleanup
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Spc_Create
-!!
-!! !DESCRIPTION: Routine Spc\_Create creates a new object that holds
-!!  information about a given species, and assigns values to it.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE Spc_Create( Input_Opt,      ThisSpc,       ModelID,             &
-!                         DryDepID,       Name,          FullName,            &
-!                         Formula,                                            &
-!                         MW_g,           EmMW_g,        MolecRatio,          &
-!                         BackgroundVV,   Henry_K0,      Henry_CR,            &
-!                         Henry_PKA,      Density,       Radius,              &
-!                         DD_AeroDryDep,  DD_DustDryDep, DD_DvzAerSnow,       &
-!                         DD_DvzMinVal,   DD_F0,         DD_KOA,              &
-!                         DD_HStar_Old,   MP_SizeResAer, MP_SizeResNum,       &
-!                         WD_RetFactor,   WD_LiqAndGas,  WD_ConvFacI2G,       &
-!                         WD_AerScavEff,  WD_KcScaleFac, WD_RainoutEff,       &
-!                         WD_CoarseAer,   Is_Advected,   Is_DryAlt,           &
-!                         Is_Drydep,      Is_Gas,        Is_HygroGrowth,      &
-!                         Is_Photolysis,  Is_Wetdep,     Is_InRestart,        &
-!                         Is_Hg0,         Is_Hg2,        Is_HgP,              &
-!                         KppSpcId,       KppVarId,      KppFixId,            &
-!                         RC                                                 )
-!!
-!! !USES:
-!!
-!    USE CharPak_Mod,        ONLY : To_UpperCase
-!    USE Input_Opt_Mod,      ONLY : OptInput
-!    USE PhysConstants,      ONLY : AIRMW,      AVO
-!!
-!! !INPUT PARAMETERS:
-!!
-!    TYPE(OptInput),   INTENT(IN)  :: Input_Opt        ! Input Options object
-!    INTEGER,          OPTIONAL    :: ModelID          ! Model ID number
-!    INTEGER,          OPTIONAL    :: DryDepID         ! Drydep ID number
-!    CHARACTER(LEN=*), OPTIONAL    :: Name             ! Short name of species
-!    CHARACTER(LEN=*), OPTIONAL    :: FullName         ! Long name of species
-!    CHARACTER(LEN=*), OPTIONAL    :: Formula          ! Chemical formula
-!    REAL(fp),         OPTIONAL    :: MW_g             ! Molecular weight [g]
-!    REAL(fp),         OPTIONAL    :: EmMW_g           ! Emissions mol. wt [g]
-!    REAL(fp),         OPTIONAL    :: MolecRatio       ! Molec ratio
-!    REAL(fp),         OPTIONAL    :: BackgroundVV     ! Background conc [v/v]
-!    REAL(f8),         OPTIONAL    :: Henry_K0         ! Henry's law K0 [M/atm]
-!    REAL(f8),         OPTIONAL    :: Henry_CR         ! Henry's law CR [K]
-!    REAL(f8),         OPTIONAL    :: Henry_PKA        ! Henry's law pKa [1]
-!    REAL(fp),         OPTIONAL    :: Density          ! Density [kg/m3]
-!    REAL(fp),         OPTIONAL    :: Radius           ! Radius [m]
-!    LOGICAL,          OPTIONAL    :: DD_AeroDryDep    ! Use AERO_SFCRSII?
-!    LOGICAL,          OPTIONAL    :: DD_DustDryDep    ! Use DUST_SFCRSII?
-!    REAL(fp),         OPTIONAL    :: DD_DvzAerSnow    ! Vd for aerosols
-!                                                      !  on snow/ice [cm/s]
-!    REAL(fp),         OPTIONAL    :: DD_DvzMinVal(2)  ! Min Vd for aerosols
-!                                                      !  (cf GOCART) [cm/s]
-!    REAL(fp),         OPTIONAL    :: DD_F0            ! Drydep reactivity [1]
-!    REAL(fp),         OPTIONAL    :: DD_KOA           ! Drydep KOA parameter
-!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!    !%%% NOTE: We will eventually replace this with the common Henry's law
-!    !%%% parameters.  But in order to replicate the prior behavior,
-!    !%%% we will need to supply the dry deposition code with the same
-!    !%%% HSTAR values that are currently set in INIT_DRYDEP.  Therefore,
-!    !%%% add this field as a temporary placeholder for the Hstar quantity
-!    !%%% from drydep_mod.F90.  We will remove this later on. (bmy, 8/24/15)
-!    !%%%
-!    REAL(fp),         OPTIONAL    :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
-!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!    LOGICAL,          OPTIONAL    :: MP_SizeResAer    ! Size resolved aerosol?
-!    LOGICAL,          OPTIONAL    :: MP_SizeResNum    ! Size resolved aer #?
-!    REAL(fp),         OPTIONAL    :: WD_RetFactor     ! Wetdep retention factor
-!    LOGICAL,          OPTIONAL    :: WD_LiqAndGas     ! Liquid and gas phases?
-!    REAL(fp),         OPTIONAL    :: WD_ConvFacI2G    ! Factor for ice/gas ratio
-!    REAL(fp),         OPTIONAL    :: WD_AerScavEff    ! Aerosol scavenging eff.
-!    REAL(fp),         OPTIONAL    :: WD_KcScaleFac(3) ! Factor to multiply Kc
-!                                                      !  rate in F_AEROSOL
-!    REAL(fp),         OPTIONAL    :: WD_RainoutEff(3) ! Rainout efficiency
-!    LOGICAL,          OPTIONAL    :: WD_CoarseAer     ! Coarse aerosol?
-!    LOGICAL,          OPTIONAL    :: Is_Advected      ! Is it advected?
-!    LOGICAL,          OPTIONAL    :: Is_DryAlt        ! Is it a drydep species
-!                                                      !  to save at a given alt?
-!    LOGICAL,          OPTIONAL    :: Is_Drydep        ! Is it dry deposited?
-!    LOGICAL,          OPTIONAL    :: Is_Gas           ! Gas (T) or aerosol (F)?
-!    LOGICAL,          OPTIONAL    :: Is_HygroGrowth   ! Is hygroscopic growth?
-!    LOGICAL,          OPTIONAL    :: Is_Photolysis    ! Is it photolysis spc?
-!    LOGICAL,          OPTIONAL    :: Is_Wetdep        ! Is it wet deposited?
-!    LOGICAL,          OPTIONAL    :: Is_InRestart     ! Is it in restart file?
-!    LOGICAL,          OPTIONAL    :: Is_Hg0           ! Denotes Hg0 species
-!    LOGICAL,          OPTIONAL    :: Is_Hg2           ! Denotes Hg2 species
-!    LOGICAL,          OPTIONAL    :: Is_HgP           ! Denotes HgP species
-!    INTEGER,          OPTIONAL    :: KppSpcId         ! KPP species ID
-!    INTEGER,          OPTIONAL    :: KppVarId         ! KPP variable species ID
-!    INTEGER,          OPTIONAL    :: KppFixId         ! KPP fixed species ID
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(Species),    POINTER     :: ThisSpc       ! Object w/ species info
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,          INTENT(OUT) :: RC            ! Return code
-!!
-!! !REMARKS:
-!!  (1 ) If Fullname is not specified, it will use the value assigned to Name.
-!!  (2 ) If EmMw_g is not specified, it will use the value assigned to MW_g.
-!!  (3 ) If MolecRatio is not specified, it will be set to 1.
-!!  (4 ) WD_Is_HNO3 is automatically set according to Name.
-!!  (5 ) WD_Is_SO2 is automatically set according to Name.
-!!  (6 ) All other fields, if not specified, will be set to MISSING
-!!  (7 ) If Is_Gas = T, aerosol-specific fields will be set to MISSING.
-!!        (except for HNO3 and SO2, which wet scavenge as aerosols).
-!!  (8 ) If Is_Gas = F, gas-phase specific-fields will be set to MISSING.
-!!  (9 ) If Is_Advected = T, this will automatically update AdvectId.
-!!  (10) If Is_Drydep = T, this will automatically update DryDepId.
-!!  (11) If Is_Wetdep = T, this will automatically update WetDepId.
-!!
-!! !REVISION HISTORY:
-!!  20 Aug 2013 - C. Keller - Adapted from gigc_state_chm_mod.F90
-!!  See https://github.com/geoschem/geos-chem for complete history
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    CHARACTER(LEN=14) :: Name14
-!
-!    !=====================================================================
-!    ! Spc_Create begins here!
-!    !=====================================================================
-!
-!    ! Check if already allocated
-!    IF ( ASSOCIATED( ThisSpc ) ) DEALLOCATE( ThisSpc )
-!
-!    ! Allocate pointer
-!    ALLOCATE( ThisSpc )
-!
-!    !---------------------------------------------------------------------
-!    ! Model ID #
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( ModelID ) ) THEN
-!       ThisSpc%ModelID = ModelID
-!    ELSE
-!       ThisSpc%ModelID = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Short name.  Also construct a hash value from the short name.
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Name ) ) THEN
-!       ThisSpc%Name     = Name
-!    ELSE
-!       ThisSpc%Name     = ''
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Long name (default to short name if not passed)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( FullName ) ) THEN
-!       ThisSpc%FullName = FullName
-!    ELSE
-!       IF ( PRESENT( Name ) ) THEN
-!          ThisSpc%FullName = Name
-!       ELSE
-!          ThisSpc%FullName = ''
-!       ENDIF
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Chemical formula
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Formula ) ) THEN
-!       ThisSpc%Formula = Formula
-!    ELSE
-!       ThisSpc%Formula = ''
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Molecular weight [g]
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( MW_g ) ) THEN
-!       ThisSpc%MW_g = MW_g
-!    ELSE
-!       ThisSpc%MW_g = ONE
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Emission molecular weight [g]
-!    ! (Defaults to molecular weight MW_g if not specified)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( EmMW_g ) ) THEN
-!       ThisSpc%EmMW_g = EmMW_g
-!    ELSE
-!       IF ( PRESENT( MW_g ) ) THEN
-!          ThisSpc%EmMW_g = MW_g
-!       ELSE
-!          ThisSpc%EmMW_g = MISSING_MW
-!       ENDIF
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Molecule ratio (i.e. moles carbon per moles species)
-!    ! (Defaults to 1.0 if not specified)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( MolecRatio ) ) THEN
-!       ThisSpc%MolecRatio = MolecRatio
-!    ELSE
-!       ThisSpc%MolecRatio = 1e+0_fp
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Radius [m]
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Radius ) ) THEN
-!       ThisSpc%Radius = Radius
-!    ELSE
-!       ThisSpc%Radius = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Density [kg/m3]
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Density ) ) THEN
-!       ThisSpc%Density = Density
-!    ELSE
-!       ThisSpc%Density = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! DD_AeroDryDep: call routine AERO_SFCRSII to do drydep
-!    ! (i.e. special drydep handling for sea salt species)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( DD_AeroDryDep ) ) THEN
-!       ThisSpc%DD_AeroDryDep = DD_AeroDryDep
-!    ELSE
-!       ThisSpc%DD_AeroDryDep = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! DD_DustDryDep: call routine DUST_SFCRSII to do drydep
-!    ! (i.e. special drydep handling for dust species)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( DD_DustDryDep ) ) THEN
-!       ThisSpc%DD_DustDryDep = DD_DustDryDep
-!    ELSE
-!       ThisSpc%DD_DustDryDep = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! F0 (stickiness) parameter for drydep
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( DD_F0 ) ) THEN
-!       ThisSpc%DD_F0 = DD_F0
-!    ELSE
-!       ThisSpc%DD_F0 = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Dry deposition velocity for aerosols on snow [cm/s]
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( DD_DvzAerSnow ) ) THEN
-!       ThisSpc%DD_DvzAerSnow = DD_DvzAerSnow
-!    ELSE
-!       ThisSpc%DD_DvzAerSnow = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Mimimum value for drydep velocity (cf GOCART model) [cm/s]
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( DD_DvzMinVal ) ) THEN
-!       ThisSpc%DD_DvzMinVal(:) = DD_DvzMinVal(:)
-!    ELSE
-!       ThisSpc%DD_DvzMinVal(:) = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! KOA parameter for drydep (POPs species only)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( DD_KOA ) ) THEN
-!       ThisSpc%DD_KOA = DD_KOA
-!    ELSE
-!       ThisSpc%DD_KOA = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Old HSTAR parameter from drydep_mod
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( DD_Hstar_Old ) ) THEN
-!       ThisSpc%DD_Hstar_Old = DD_Hstar_old
-!    ELSE
-!       ThisSpc%DD_Hstar_Old = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Henry's law K0 parameter (aka Hcp)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Henry_K0 ) ) THEN
-!       ThisSpc%Henry_K0 = Henry_K0
-!    ELSE
-!       ThisSpc%Henry_K0 = MISSING_R8
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Henry's law CR parameter
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Henry_CR ) ) THEN
-!       ThisSpc%Henry_CR = Henry_CR
-!    ELSE
-!       ThisSpc%Henry_CR = MISSING_R8
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Henry's law pKA parameter [1]
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Henry_PKA ) ) THEN
-!       ThisSpc%Henry_PKA = Henry_PKA
-!    ELSE
-!       ThisSpc%Henry_PKA = MISSING_R8
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Retention factor for wetdep (gas-phase species only)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( WD_RetFactor ) ) THEN
-!       ThisSpc%WD_RetFactor = WD_RetFactor
-!    ELSE
-!       ThisSpc%WD_RetFactor = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Use liquid and gas phases for gas-phase species wetdep?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( WD_LiqAndGas ) ) THEN
-!       ThisSpc%WD_LiqAndGas = WD_LiqAndGas
-!    ELSE
-!       ThisSpc%WD_LiqAndGas = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Conversion factor for computing the ice/gas ratio for wetdep
-!    ! (gas-phase species only)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( WD_ConvFacI2G ) ) THEN
-!       ThisSpc%WD_ConvFacI2G = WD_ConvFacI2G
-!    ELSE
-!       ThisSpc%WD_ConvFacI2G = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Scavenging efficiency for wetdep (aerosol species only)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( WD_AerScavEff ) ) THEN
-!       ThisSpc%WD_AerScavEff = WD_AerScavEff
-!    ELSE
-!       ThisSpc%WD_AerScavEff = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Scale factor used to multiply the Kc rate (condensate -> precip)
-!    ! in routine F_AEROSOL in wetscav_mod.F90.  This implments the
-!    ! impaction scavenging for aerosol species.
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( WD_KcScaleFac ) ) THEN
-!       ThisSpc%WD_KcScaleFac(:) = WD_KcScaleFac(:)
-!    ELSE
-!       ThisSpc%WD_KcScaleFac(:) = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Rainout efficiency for wetdep (aerosol species only)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( WD_RainOutEff ) ) THEN
-!       ThisSpc%WD_RainOutEff(:) = WD_RainOutEff(:)
-!    ELSE
-!       ThisSpc%WD_RainOutEff(:) = MISSING
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it advected?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_Advected ) ) THEN
-!
-!       ! Increment the count of advected species
-!       ThisSpc%Is_Advected = Is_Advected
-!
-!       ! Update count & index of advected species
-!       IF ( Is_Advected ) THEN
-!          AdvectCount         = AdvectCount + 1
-!          ThisSpc%AdvectID    = AdvectCount
-!       ELSE
-!          ThisSpc%Is_Advected = .FALSE.
-!          ThisSpc%AdvectID    = MISSING_INT
-!       ENDIF
-!
-!    ELSE
-!       ThisSpc%Is_Advected    = .FALSE.
-!       ThisSpc%AdvectID       = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it dry-deposited?  If TRUE, then update drydep species index.
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_Drydep ) ) THEN
-!       ThisSpc%Is_Drydep       = Is_Drydep
-!
-!       IF ( Is_Drydep ) THEN
-!
-!          ! Increment count of drydep'd species
-!          DryDepCount          = DryDepCount + 1
-!
-!          ! If the dry deposition ID # is passed, then use it;
-!          ! Otherwise increment the index of drydep'd species
-!          IF ( PRESENT( DryDepID ) ) THEN
-!             ThisSpc%DryDepID  = DryDepID
-!          ELSE
-!             ThisSpc%DryDepID  = DryDepCount
-!          ENDIF
-!
-!       ELSE
-!          ThisSpc%Is_DryDep    = .FALSE.
-!          ThisSpc%DryDepID     = MISSING_INT
-!       ENDIF
-!
-!    ELSE
-!       ThisSpc%Is_Drydep       = .FALSE.
-!       ThisSpc%DryDepID        = MISSING_INT
-!    ENDIF
-!
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a drydep species that we want to save at a given altitude
-!    ! above the surface?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_DryAlt ) ) THEN
-!       ThisSpc%Is_DryAlt = Is_DryAlt
-!
-!       ! Update count & index
-!       IF ( Is_DryAlt ) THEN
-!          DryAltCount      = DryAltCount + 1
-!          ThisSpc%DryAltID = DryAltCount
-!       ELSE
-!          ThisSpc%Is_DryAlt = .FALSE.
-!          ThisSpc%DryAltID  = MISSING_INT
-!       ENDIF
-!    ELSE
-!       ThisSpc%Is_DryAlt = .FALSE.
-!       ThisSpc%DryAltID  = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a gas?  (If FALSE, then it's an aerosol)
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_Gas ) ) THEN
-!       ThisSpc%Is_Gas     = Is_Gas
-!
-!       ! Update count & index of gas species
-!       IF ( Is_Gas ) THEN
-!          GasSpcCount      = GasSpcCount + 1
-!          ThisSpc%GasSpcID = GasSpcCount
-!       ELSE
-!          ThisSpc%Is_Gas   = .FALSE.
-!          ThisSpc%GasSpcID = MISSING_INT
-!       ENDIF
-!    ELSE
-!       ThisSpc%Is_Gas = .FALSE.
-!       ThisSpc%GasSpcID = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it an aerosol? (TRUE if not a gas)
-!    !---------------------------------------------------------------------
-!    ThisSpc%Is_Aero = .NOT. ThisSpc%Is_Gas
-!    IF ( ThisSpc%Is_Aero ) THEN
-!       ! Update count & index of aerosol species
-!       AeroCount      = AeroCount + 1
-!       ThisSpc%AeroID = AeroCount
-!    ELSE
-!       ThisSpc%AeroID = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it an aerosol with hygroscopic growth?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_HygroGrowth ) ) THEN
-!       ThisSpc%Is_HygroGrowth = Is_HygroGrowth
-!
-!       ! Increment count & index of hygroscopic growth species
-!       IF ( Is_HygroGrowth ) THEN
-!          HygGrthCount = HygGrthCount + 1
-!          ThisSpc%HygGrthID   = HygGrthCount
-!       ELSE
-!          ThisSpc%Is_HygroGrowth = .FALSE.
-!          ThisSpc%HygGrthID   = MISSING_INT
-!       ENDIF
-!    ELSE
-!       ThisSpc%Is_HygroGrowth = .FALSE.
-!       ThisSpc%HygGrthID   = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a photolysis species in the KPP chemical mechanism?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_Photolysis ) ) THEN
-!       ThisSpc%Is_Photolysis = Is_Photolysis
-!
-!       ! Increment count & index of wet deposited species
-!       IF ( Is_Photolysis ) THEN
-!          PhotolCount        = PhotolCount + 1
-!          ThisSpc%PhotolID   = PhotolCount
-!       ELSE
-!          ThisSpc%Is_Photolysis = .FALSE.
-!          ThisSpc%PhotolID      = MISSING_INT
-!       ENDIF
-!
-!    ELSE
-!       ThisSpc%Is_Photolysis = .FALSE.
-!       ThisSpc%PhotolID      = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it wet deposited?  If TRUE, then update wetdep species index.
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_Wetdep ) ) THEN
-!       ThisSpc%Is_Wetdep    = Is_Wetdep
-!
-!       ! Increment count & index of wet deposited species
-!       IF ( Is_WetDep ) THEN
-!          WetDepCount       = WetDepCount + 1
-!          ThisSpc%WetDepID  = WetDepCount
-!       ELSE
-!          ThisSpc%Is_Wetdep = .FALSE.
-!          ThisSpc%WetDepID  = MISSING_INT
-!       ENDIF
-!
-!    ELSE
-!       ThisSpc%Is_Wetdep    = .FALSE.
-!       ThisSpc%WetDepID     = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is there a default background concentration for this species
-!    ! [mol spc/mol dry air]? If not, use a default value.
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( BackgroundVV ) ) THEN
-!       ThisSpc%BackgroundVV = BackgroundVV
-!    ELSE
-!       ThisSpc%BackgroundVV = MISSING_VV
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a species in the KPP chemical mechanism?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( KppSpcId ) ) THEN
-!       KppSpcCount      = KppSpcCount + 1
-!       ThisSpc%KppSpcId = KppSpcId
-!    ELSE
-!       ThisSpc%KppSpcId = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a variable species in the KPP chemical mechanism?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( KppVarId ) ) THEN
-!       KppVarCount      = KppVarCount + 1
-!       ThisSpc%KppVarId = KppVarId
-!    ELSE
-!       ThisSpc%KppVarId = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a fixed species in the KPP chemical mechanism?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( KppFixId ) ) THEN
-!       KppFixCount      = KppFixCount + 1
-!       ThisSpc%KppFixId = KppFixId
-!    ELSE
-!       ThisSpc%KppFixId = MISSING_INT
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it stored in the restart file?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_InRestart ) ) THEN
-!
-!       ! Assume presence in the restart file until proven otherwise
-!       ! within READ_GC_RESTART
-!       ! NOTE: Eventually this logical flag can be removed since all
-!       ! species will be stored in the restart file (7/25/16)
-!       ThisSpc%Is_InRestart = .TRUE.
-!    ELSE
-!       ThisSpc%Is_InRestart = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a coarse aerosol?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( WD_CoarseAer ) ) THEN
-!       ThisSpc%WD_CoarseAer = WD_CoarseAer
-!    ELSE
-!       ThisSpc%WD_CoarseAer = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a size-resolved aerosol species for microphysics?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( MP_SizeResAer ) ) THEN
-!       ThisSpc%MP_SizeResAer = MP_SizeResAer
-!    ELSE
-!       ThisSpc%MP_SizeResAer = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a size-resolved bin number?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( MP_SizeResNum ) ) THEN
-!       ThisSpc%MP_SizeResNum = MP_SizeResNum
-!    ELSE
-!       ThisSpc%MP_SizeResNum = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a Hg0 species (total or tagged)?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_Hg0 ) ) THEN
-!       ThisSpc%Is_Hg0 = Is_Hg0
-!
-!       ! Increment count and index of Hg0 categories
-!       IF ( Is_Hg0 ) THEN
-!          Hg0Count       = Hg0Count + 1
-!          ThisSpc%Hg_Cat = Hg0Count
-!       ELSE
-!          ThisSpc%Is_Hg0 = .FALSE.
-!       ENDIF
-!
-!    ELSE
-!       ThisSpc%Is_Hg0    = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a Hg2 species (total or tagged)?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_Hg2 ) ) THEN
-!       ThisSpc%Is_Hg2 = Is_Hg2
-!
-!       ! Increment count of Hg2 species
-!       IF ( Is_Hg2 ) THEN
-!          Hg2Count       = Hg2Count + 1
-!          ThisSpc%Hg_Cat = Hg2Count
-!       ELSE
-!          ThisSpc%Is_Hg2 = .FALSE.
-!       ENDIF
-!
-!    ELSE
-!       ThisSpc%Is_Hg2    = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Is it a HgP species (total or tagged)?
-!    !---------------------------------------------------------------------
-!    IF ( PRESENT( Is_HgP ) ) THEN
-!       ThisSpc%Is_HgP = Is_HgP
-!
-!       ! Increment count of HgP species
-!       IF ( Is_HgP ) THEN
-!          HgPCount       = HgPCount + 1
-!          ThisSpc%Hg_Cat = HgPCount
-!       ELSE
-!          ThisSpc%Is_HgP = .FALSE.
-!       ENDIF
-!
-!    ELSE
-!       ThisSpc%Is_HgP    = .FALSE.
-!    ENDIF
-!
-!    !---------------------------------------------------------------------
-!    ! Sanity checks
-!    !---------------------------------------------------------------------
-!
-!    ! Is the species part of the KPP chemical mechanism?
-!    ThisSpc%Is_Kpp = ( ThisSpc%KppVarId > 0 .or. ThisSpc%KppFixId > 0 )
-!
-!    ! Is the species an active or fixed species in the chemical mechanism?
-!    ThisSpc%Is_ActiveChem = ( ThisSpc%KppVarId >  0 .and. &
-!                              ThisSpc%KppFixId <= 0 )
-!    ThisSpc%Is_FixedChem  = ( ThisSpc%KppFixId >  0 )
-!
-!    ! Assume the species is not H2SO4, HNO3, or SO2 at first
-!    ThisSpc%WD_Is_H2SO4 = .FALSE.
-!    ThisSpc%WD_Is_HNO3  = .FALSE.
-!    ThisSpc%WD_Is_SO2   = .FALSE.
-!
-!    IF ( ThisSpc%Is_Gas ) THEN
-!
-!       ! If this is a gas, then zero out all aerosol fields ...
-!       ! ... except for those species that wetdep like aerosols
-!       SELECT CASE( TRIM( ThisSpc%Name ) )
-!          CASE( 'H2SO4' )
-!             ThisSpc%WD_Is_H2SO4      = .TRUE.   ! Set flag for H2SO4
-!          CASE( 'HNO3' )
-!             ThisSpc%DD_DvzAerSnow    = MISSING
-!             ThisSpc%MP_SizeResAer    = .FALSE.
-!             ThisSpc%MP_SizeResNum    = .FALSE.
-!             ThisSpc%WD_CoarseAer     = .FALSE.
-!             ThisSpc%WD_Is_HNO3       = .TRUE.   ! Set flag for HNO3
-!          CASE( 'SO2' )
-!             ThisSpc%DD_DvzAerSnow    = MISSING
-!             ThisSpc%MP_SizeResAer    = .FALSE.
-!             ThisSpc%MP_SizeResNum    = .FALSE.
-!             ThisSpc%WD_CoarseAer     = .FALSE.
-!             ThisSpc%WD_Is_SO2        = .TRUE.   ! Set flag for SO2
-!          CASE DEFAULT
-!             ThisSpc%DD_DvzAerSnow    = MISSING
-!             ThisSpc%MP_SizeResAer    = .FALSE.
-!             ThisSpc%MP_SizeResNum    = .FALSE.
-!             ThisSpc%WD_CoarseAer     = .FALSE.
-!             ThisSpc%WD_AerScavEff    = MISSING
-!             ThisSpc%WD_KcScaleFac(:) = MISSING
-!             ThisSpc%WD_RainoutEff(:) = MISSING
-!       END SELECT
-!
-!    ELSE
-!
-!       ! If this species is an aerosol, zero out gas-phase fields
-!       ThisSpc%WD_RetFactor  = MISSING
-!       ThisSpc%WD_LiqAndGas  = .FALSE.
-!       ThisSpc%WD_ConvFacI2G = MISSING
-!
-!    ENDIF
-!
-!  END SUBROUTINE Spc_Create
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Spc_Zero
+!
+! !DESCRIPTION: Sets all fields of an object of type Species
+!  to missing values.  Called at initialization.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Spc_Zero( Spc )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(Species), INTENT(INOUT) :: Spc
+!
+! !REVISION HISTORY:
+!  28 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Boolean/Logical
+    Spc%DD_AeroDryDep  = MISSING_BOOL
+    Spc%DD_DustDryDep  = MISSING_BOOL
+    Spc%Is_ActiveChem  = MISSING_BOOL
+    Spc%Is_Advected    = MISSING_BOOL
+    Spc%Is_Aerosol     = MISSING_BOOL
+    Spc%Is_DryAlt      = MISSING_BOOL
+    Spc%Is_DryDep      = MISSING_BOOL
+    Spc%Is_FixedChem   = MISSING_BOOL
+    Spc%Is_Gas         = MISSING_BOOL
+    Spc%Is_Hg0         = MISSING_BOOL
+    Spc%Is_Hg2         = MISSING_BOOL
+    Spc%Is_HgP         = MISSING_BOOL
+    Spc%Is_HygroGrowth = MISSING_BOOL
+    Spc%Is_InRestart   = MISSING_BOOL
+    Spc%Is_Kpp         = MISSING_BOOL
+    Spc%Is_Photolysis  = MISSING_BOOL
+    Spc%Is_WetDep      = MISSING_BOOL
+    Spc%MP_SizeResAer  = MISSING_BOOL
+    Spc%MP_SizeResNum  = MISSING_BOOL
+    Spc%WD_CoarseAer   = MISSING_BOOL
+    Spc%WD_Is_H2SO4    = MISSING_BOOL
+    Spc%WD_Is_HNO3     = MISSING_BOOL
+    Spc%WD_Is_SO2      = MISSING_BOOL
+    Spc%WD_LiqAndGas   = MISSING_BOOL
+
+    ! Integers
+    Spc%AdvectId       = MISSING_INT
+    Spc%AerosolId      = MISSING_INT
+    Spc%DryAltId       = MISSING_INT
+    Spc%DryDepId       = MISSING_INT
+    Spc%GasSpcId       = MISSING_INT
+    Spc%Hg_Cat         = MISSING_INT
+    Spc%HygGrthId      = MISSING_INT
+    Spc%KppFixId       = MISSING_INT
+    Spc%KppSpcId       = MISSING_INT
+    Spc%KppVarId       = MISSING_INT
+    Spc%ModelId        = MISSING_INT
+    Spc%PhotolId       = MISSING_INT
+    Spc%WetDepId       = MISSING_INT
+
+    ! Reals (floating precision)
+    Spc%BackgroundVV   = MISSING
+    Spc%DD_DvzAerSnow  = MISSING
+    Spc%DD_DvzMinVal   = MISSING
+    Spc%DD_F0          = MISSING
+    Spc%DD_KOA         = MISSING
+    Spc%DD_Hstar       = MISSING
+    Spc%Density        = MISSING
+    Spc%EmMW_g         = MISSING
+    Spc%MW_g           = MISSING
+    Spc%MolecRatio     = MISSING
+    Spc%Radius         = MISSING
+    Spc%WD_AerScavEff  = MISSING
+    Spc%WD_ConvFacI2G  = MISSING
+    Spc%WD_KcScaleFac  = MISSING
+    Spc%WD_RainoutEff  = MISSING
+    Spc%WD_RetFactor   = MISSING
+
+    ! Reals (8-byte precision)
+    Spc%Henry_CR       = MISSING_R8
+    Spc%Henry_K0       = MISSING_R8
+    Spc%Henry_PKA      = MISSING_R8
+
+    ! Strings
+    Spc%Formula        = MISSING_STR
+    Spc%FullName       = MISSING_STR
+    Spc%Name           = MISSING_STR
+
+   END SUBROUTINE Spc_Zero
+!BOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1103,15 +472,25 @@ CONTAINS
        ! Print general info
        !-------------------------
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, 100 ) 'Species ID            ',  ThisSpc%ModelID
+       WRITE( 6, 100 ) 'Species Id            ',  ThisSpc%ModelId
        WRITE( 6, 110 ) 'Name                  ',  TRIM( ThisSpc%Name     )
        WRITE( 6, 110 ) 'FullName              ',  TRIM( ThisSpc%FullName )
        WRITE( 6, 110 ) 'Formula               ',  TRIM( ThisSpc%Formula  )
        WRITE( 6, 120 ) 'Molecular weight [g]  ',  ThisSpc%MW_g
        WRITE( 6, 120 ) 'Emitted mol. wt [g]   ',  ThisSpc%EmMW_g
        WRITE( 6, 120 ) 'Molecular ratio       ',  ThisSpc%MolecRatio
-       WRITE( 6, 130 ) 'Is it a gas?          ',  ThisSpc%Is_Gas
-       WRITE( 6, 120 ) 'Default bckgrnd [v/v] ',  ThisSpc%BackgroundVV
+       IF ( ThisSpc%Is_Gas ) THEN
+          WRITE( 6, '(a)' ) 'Gas or aerosol         : GAS'
+       ELSE IF ( ThisSpc%Is_Aerosol ) THEN
+          WRITE( 6, '(a)' ) 'Gas or aerosol         : AEROSOL'
+       ENDIF
+
+       !-------------------------
+       ! Print background
+       !-------------------------
+       IF ( ThisSpc%BackgroundVV > ZERO ) THEN
+          WRITE( 6, 120 ) 'Default bckgrnd [v/v] ',      ThisSpc%BackgroundVV
+       ENDIF
 
        !-------------------------
        ! Print density & radius
@@ -1128,105 +507,106 @@ CONTAINS
        ! Print Henry's Law info
        !-------------------------
        IF ( ThisSpc%Henry_K0 > ZERO_R8 ) THEN
-          WRITE( 6, 120 ) 'Henry''s law K0       ',      ThisSpc%Henry_K0
+          WRITE( 6, 120 ) 'Henry''s law K0        ',     ThisSpc%Henry_K0
        ENDIF
 
        IF ( ThisSpc%Henry_CR > ZERO_R8 ) THEN
-          WRITE( 6, 120 ) 'Henry''s law CR       ',      ThisSpc%Henry_CR
-       ENDIF
-
-       IF ( ThisSpc%Henry_pKa > ZERO_R8 ) THEN
-          WRITE( 6, 120 ) 'Henry''s law pKa      ',      ThisSpc%Henry_pKa
+          WRITE( 6, 120 ) 'Henry''s law CR        ',     ThisSpc%Henry_CR
        ENDIF
 
        !-------------------------
-       ! Print advected ID
+       ! Print advected Id
        !-------------------------
-       WRITE( 6, 130 ) 'Is it advected?      ',          ThisSpc%Is_Advected
-
+       WRITE( 6, 130 ) 'Is it advected?       ',         ThisSpc%Is_Advected
        IF ( ThisSpc%Is_Advected ) THEN
-          WRITE( 6, 100 )    ' -> Advected index   ',    ThisSpc%AdvectId
+          WRITE( 6, 100 )    ' -> Advected Id       ',   ThisSpc%AdvectId
        ENDIF
 
        !-------------------------
        ! Print KPP Id's
        !-------------------------
-       WRITE( 6, 130 ) 'Is it a KPP species? ',          ThisSpc%Is_Kpp
+       WRITE( 6, 130 ) 'Is it a KPP species?  ',         ThisSpc%Is_Kpp
 
        IF ( ThisSpc%Is_Kpp ) THEN
           IF ( ThisSpc%KppSpcId > 0 ) THEN
-             WRITE( 6, 100 )    ' -> ID in C   array  ', ThisSpc%KppSpcId
+             WRITE( 6, 100 )    ' -> Id in C   array   ',ThisSpc%KppSpcId
           ENDIF
 
-          WRITE( 6, 130 ) 'Is it an active spc? ',       ThisSpc%Is_ActiveChem
+          WRITE( 6, 130 ) 'Is it an active spc?  ',      ThisSpc%Is_ActiveChem
           IF ( ThisSpc%KppVarId > 0 ) THEN
-             WRITE( 6, 100 )    ' -> ID in VAR array  ', ThisSpc%KppVarId
+             WRITE( 6, 100 )    ' -> Id in VAR array   ',ThisSpc%KppVarId
           ENDIF
 
-          WRITE( 6, 130 ) 'Is it a fixed spc?   ',       ThisSpc%Is_FixedChem
+          WRITE( 6, 130 ) 'Is it a fixed spc?    ',      ThisSpc%Is_FixedChem
           IF ( ThisSpc%KppFixId > 0 ) THEN
-             WRITE( 6, 100 )    ' -> ID in FIX array  ', ThisSpc%KppFixId
+             WRITE( 6, 100 )    ' -> Id in FIX array   ',ThisSpc%KppFixId
           ENDIF
        ENDIF
 
        !-------------------------
        ! Print photolysis info
        !-------------------------
-       WRITE( 6, 130 ) 'Is it a photol. spc? ',          ThisSpc%Is_Photolysis
+       WRITE( 6, 130 ) 'Is it a photol. spc?  ',         ThisSpc%Is_Photolysis
+       IF ( ThisSpc%PhotolId > 0 ) THEN
+          WRITE( 6, 100    ) ' -> Photolysis Id     ',   ThisSpc%PhotolId
+       ENDIF
 
        !------------------------------
        ! Print hygroscopic growth info
        !------------------------------
-       WRITE( 6, 130 ) 'Is it a hygro. spc? ',          ThisSpc%Is_HygroGrowth
+       WRITE( 6, 130 ) 'Is it a hygro. spc?   ',         ThisSpc%Is_HygroGrowth
+       IF ( ThisSpc%HygGrthId > 0 ) THEN
+          WRITE( 6, 100    ) ' -> HygroGrowth Id    ',   ThisSpc%PhotolId
+       ENDIF
 
        !-------------------------
        ! Print drydep info
        !-------------------------
-       WRITE( 6, 130 ) 'Is it dry deposited? ',          ThisSpc%Is_DryDep
+       WRITE( 6, 130 ) 'Is it dry deposited?  ',         ThisSpc%Is_DryDep
 
        IF ( ThisSpc%Is_DryDep ) THEN
-          WRITE( 6, 100 ) ' -> Drydep index     ',       ThisSpc%DryDepID
+          WRITE( 6, 100 ) ' -> Drydep index      ',      ThisSpc%DryDepId
 
           IF ( ThisSpc%DD_F0 > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> F0 parameter     ',    ThisSpc%DD_F0
+             WRITE( 6, 120 ) ' -> F0 parameter      ',   ThisSpc%DD_F0
           ENDIF
 
           IF ( ThisSpc%DD_KOA > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> KOA parameter    ',    ThisSpc%DD_KOA
+             WRITE( 6, 120 ) ' -> KOA parameter     ',   ThisSpc%DD_KOA
           ENDIF
 
           IF ( ThisSpc%DD_Hstar > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> DD_Hstar value  ',     ThisSpc%DD_Hstar
+             WRITE( 6, 120 ) ' -> DD_Hstar value    ',   ThisSpc%DD_Hstar
           ENDIF
        ENDIF
 
        !-------------------------
        ! Print wetdep info
        !-------------------------
-       WRITE( 6, 130 ) 'Is it wet deposited? ',          ThisSpc%Is_WetDep
+       WRITE( 6, 130 ) 'Is it wet deposited?  ',         ThisSpc%Is_WetDep
 
        IF ( ThisSpc%Is_WetDep ) THEN
-          WRITE( 6, 100 ) ' -> Wetdep index:    ',       ThisSpc%WetDepID
+          WRITE( 6, 100 ) ' -> Wetdep index:     ',      ThisSpc%WetDepId
 
           IF ( ThisSpc%WD_LiqAndGas ) THEN
-             WRITE( 6, 130 ) ' -> Liq & gas phases ',    ThisSpc%WD_LiqAndGas
-             WRITE( 6, 120 ) ' -> Conv factor I2G  ',    ThisSpc%WD_ConvFacI2G
+             WRITE( 6, 130 ) ' -> Liq & gas phases  ',   ThisSpc%WD_LiqAndGas
+             WRITE( 6, 120 ) ' -> Conv factor I2G   ',   ThisSpc%WD_ConvFacI2G
           ENDIF
 
           IF ( ThisSpc%WD_RetFactor > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> Ret. Factor      ',    ThisSpc%WD_RetFactor
+             WRITE( 6, 120 ) ' -> Ret. Factor       ',   ThisSpc%WD_RetFactor
           ENDIF
 
           IF ( ThisSpc%WD_CoarseAer ) THEN
-             WRITE( 6, 130 ) ' -> Coarse aerosol?',      ThisSpc%WD_CoarseAer
+             WRITE( 6, 130 ) ' -> Coarse aerosol?   ',   ThisSpc%WD_CoarseAer
           ENDIF
 
           IF ( ThisSpc%WD_AerScavEff > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> Scav. Effeciency ',    ThisSpc%WD_AerScavEff
+             WRITE( 6, 120 ) ' -> Scav. Effeciency  ',   ThisSpc%WD_AerScavEff
           ENDIF
 
           IF ( SUM( ThisSpc%WD_KcScaleFac ) > ZERO ) THEN
-             WRITE( 6, 140 ) ' -> KcScale factor   ',    ThisSpc%WD_KcScaleFac
+             WRITE( 6, 140 ) ' -> KcScale factor    ',   ThisSpc%WD_KcScaleFac
           ENDIF
 
           IF ( SUM( ThisSpc%WD_RainoutEff ) > ZERO ) THEN
@@ -1250,4 +630,3 @@ CONTAINS
   END SUBROUTINE Spc_Print
 !EOC
 END MODULE Species_Mod
-
