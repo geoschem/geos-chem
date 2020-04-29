@@ -1,5 +1,6 @@
-# GEOS-Chem Species Database (28 Apr 2020)
+# GEOS-Chem Species Database (29 Apr 2020)
 # TOMAS microphysics species only
+# NOTE: Anchors must be defined before any variables that reference them
 AW_PROP: &AWproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -11,125 +12,125 @@ AW_PROP: &AWproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-AW1: &AWproperties
-  >> : *AWproperties
+AW1:
+  << : *AWproperties
   FullName: Aerosol water, size bin = 1
 AW2:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 2
 AW3:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 3
 AW4:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 4
 AW5:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 5
 AW6:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 6
 AW7:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 7
 AW8:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 8
 AW9:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 9
 AW10:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 10
 AW11:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 11
 AW12:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 12
 AW13:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 13
 AW14:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 14
 AW15:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 15
 AW16:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 16
 AW17:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 17
 AW18:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 18
 AW19:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 19
 AW20:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 20
 AW21:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 21
 AW22:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 22
 AW23:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 23
 AW24:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 24
 AW25:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 25
 AW26:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 26
 AW27:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 27
 AW28:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 28
 AW29:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 29
 AW30:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 30
 AW31:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 31
 AW32:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 32
 AW33:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 33
 AW34:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 34
 AW35:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 35
 AW36:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 36
 AW37:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 37
 AW38:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 38
 AW39:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 39
 AW40:
-  >> : *AWproperties
+  << : *AWproperties
   FullName: Aerosol water, size bin = 40
 DUST_PROP: &DUSTproperties
   DD_DvzAerSnow: 0.03
@@ -144,124 +145,124 @@ DUST_PROP: &DUSTproperties
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 DUST1:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 1
 DUST2:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 2
 DUST3:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 3
 DUST4:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 4
 DUST5:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 5
 DUST6:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 6
 DUST7:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 7
 DUST8:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 8
 DUST9:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 9
 DUST10:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 10
 DUST11:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 11
 DUST12:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 12
 DUST13:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 13
 DUST14:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 14
 DUST15:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 15
 DUST16:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 16
 DUST17:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 17
 DUST18:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 18
 DUST19:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 19
 DUST20:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 20
 DUST21:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 21
 DUST22:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 22
 DUST23:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 23
 DUST24:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 24
 DUST25:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 25
 DUST26:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 26
 DUST27:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 27
 DUST28:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 28
 DUST29:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 29
 DUST30:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 30
 DUST31:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 31
 DUST32:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 32
 DUST33:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 33
 DUST34:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 34
 DUST35:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 35
 DUST36:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 36
 DUST37:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 37
 DUST38:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 38
 DUST39:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 39
 DUST40:
-  >> : *DUSTproperties
+  << : *DUSTproperties
   FullName: Mineral dust, size bin = 40
 ECIL_PROP: &ECILproperties
   DD_DvzAerSnow: 0.03
@@ -276,124 +277,124 @@ ECIL_PROP: &ECILproperties
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 ECIL1:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 1
 ECIL2:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 2
 ECIL3:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 3
 ECIL4:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 4
 ECIL5:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 5
 ECIL6:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 6
 ECIL7:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 7
 ECIL8:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 8
 ECIL9:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 9
 ECIL10:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 10
 ECIL11:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 11
 ECIL12:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 12
 ECIL13:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 13
 ECIL14:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 14
 ECIL15:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 15
 ECIL16:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 16
 ECIL17:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 17
 ECIL18:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 18
 ECIL19:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 19
 ECIL20:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 20
 ECIL21:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 21
 ECIL22:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 22
 ECIL23:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 23
 ECIL24:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 24
 ECIL25:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 25
 ECIL26:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 26
 ECIL27:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 27
 ECIL28:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 28
 ECIL29:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 29
 ECIL30:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 30
 ECIL31:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 31
 ECIL32:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 32
 ECIL33:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 33
 ECIL34:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 34
 ECIL35:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 35
 ECIL36:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 36
 ECIL37:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 37
 ECIL38:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 38
 ECIL39:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 39
 ECIL40:
-  >> : *ECILproperties
+  << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 40
 ECOB_PROP: &ECOBproperties
   DD_DvzAerSnow: 0.03
@@ -407,124 +408,124 @@ ECOB_PROP: &ECOBproperties
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 ECOB1:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 1
 ECOB2:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 2
 ECOB3:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 3
 ECOB4:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 4
 ECOB5:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 5
 ECOB6:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 6
 ECOB7:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 7
 ECOB8:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 8
 ECOB9:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 9
 ECOB10:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 10
 ECOB11:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 11
 ECOB12:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 12
 ECOB13:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 13
 ECOB14:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 14
 ECOB15:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 15
 ECOB16:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 16
 ECOB17:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 17
 ECOB18:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 18
 ECOB19:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 19
 ECOB20:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 20
 ECOB21:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 21
 ECOB22:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 22
 ECOB23:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 23
 ECOB24:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 24
 ECOB25:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 25
 ECOB26:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 26
 ECOB27:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 27
 ECOB28:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 28
 ECOB29:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 29
 ECOB30:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 30
 ECOB31:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 31
 ECOB32:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 32
 ECOB33:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 33
 ECOB34:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 34
 ECOB35:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 35
 ECOB36:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 36
 ECOB37:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 37
 ECOB38:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 38
 ECOB39:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 39
 ECOB40:
-  >> : *ECOBproperties
+  << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 40
 H2SO4:
   DD_F0: 0.0
@@ -555,124 +556,124 @@ NK_PROP: &NKproperties
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 NK1:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 1
 NK2:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 2
 NK3:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 3
 NK4:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 4
 NK5:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 5
 NK6:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 6
 NK7:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 7
 NK8:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 8
 NK9:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 9
 NK10:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 10
 NK11:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 11
 NK12:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 12
 NK13:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 13
 NK14:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 14
 NK15:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 15
 NK16:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 16
 NK17:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 17
 NK18:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 18
 NK19:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 19
 NK20:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 20
 NK21:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 21
 NK22:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 22
 NK23:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 23
 NK24:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 24
 NK25:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 25
 NK26:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 26
 NK27:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 27
 NK28:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 28
 NK29:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 29
 NK30:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 30
 NK31:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 31
 NK32:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 32
 NK33:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 33
 NK34:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 34
 NK35:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 35
 NK36:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 36
 NK37:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 37
 NK38:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 38
 NK39:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 39
 NK40:
-  >> : *NKproperties
+  << : *NKproperties
   FullName: Aerosol number, size bin = 40
 OCIL_PROP: &OCILproperties
   DD_DvzAerSnow: 0.03
@@ -687,124 +688,124 @@ OCIL_PROP: &OCILproperties
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 OCIL1:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 1
 OCIL2:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 2
 OCIL3:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 3
 OCIL4:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 4
 OCIL5:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 5
 OCIL6:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 6
 OCIL7:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 7
 OCIL8:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 8
 OCIL9:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 9
 OCIL10:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 10
 OCIL11:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 11
 OCIL12:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 12
 OCIL13:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 13
 OCIL14:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 14
 OCIL15:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 15
 OCIL16:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 16
 OCIL17:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 17
 OCIL18:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 18
 OCIL19:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 19
 OCIL20:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 20
 OCIL21:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 21
 OCIL22:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 22
 OCIL23:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 23
 OCIL24:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 24
 OCIL25:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 25
 OCIL26:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 26
 OCIL27:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 27
 OCIL28:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 28
 OCIL29:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 29
 OCIL30:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 30
 OCIL31:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 31
 OCIL32:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 32
 OCIL33:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 33
 OCIL34:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 34
 OCIL35:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 35
 OCIL36:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 36
 OCIL37:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 37
 OCIL38:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 38
 OCIL39:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 39
 OCIL40:
-  >> : *OCILproperties
+  << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 40
 OCOB_PROP: &OCOBproperties
   DD_DvzAerSnow: 0.03
@@ -819,124 +820,124 @@ OCOB_PROP: &OCOBproperties
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 OCOB1:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 1
 OCOB2:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 2
 OCOB3:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 3
 OCOB4:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 4
 OCOB5:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 5
 OCOB6:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 6
 OCOB7:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 7
 OCOB8:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 8
 OCOB9:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 9
 OCOB10:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 10
 OCOB11:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 11
 OCOB12:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 12
 OCOB13:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 13
 OCOB14:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 14
 OCOB15:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 15
 OCOB16:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 16
 OCOB17:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 17
 OCOB18:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 18
 OCOB19:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 19
 OCOB20:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 20
 OCOB21:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 21
 OCOB22:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 22
 OCOB23:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 23
 OCOB24:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 24
 OCOB25:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 25
 OCOB26:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 26
 OCOB27:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 27
 OCOB28:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 28
 OCOB29:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 29
 OCOB30:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 30
 OCOB31:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 31
 OCOB32:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 32
 OCOB33:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 33
 OCOB34:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 34
 OCOB35:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 35
 OCOB36:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 36
 OCOB37:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 37
 OCOB38:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 38
 OCOB39:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 39
 OCOB40:
-  >> : *OCOBproperties
+  << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 40
 SF_PROP: &SFproperties
   DD_DvzAerSnow: 0.03
@@ -951,124 +952,124 @@ SF_PROP: &SFproperties
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 SF1:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 1
 SF2:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 2
 SF3:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 3
 SF4:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 4
 SF5:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 5
 SF6:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 6
 SF7:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 7
 SF8:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 8
 SF9:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 9
 SF10:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 10
 SF11:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 11
 SF12:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 12
 SF13:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 13
 SF14:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 14
 SF15:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 15
 SF16:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 16
 SF17:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 17
 SF18:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 18
 SF19:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 19
 SF20:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 20
 SF21:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 21
 SF22:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 22
 SF23:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 23
 SF24:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 24
 SF25:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 25
 SF26:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 26
 SF27:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 27
 SF28:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 28
 SF29:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 29
 SF30:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 30
 SF31:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 31
 SF32:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 32
 SF33:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 33
 SF34:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 34
 SF35:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 35
 SF36:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 36
 SF37:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 37
 SF38:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 38
 SF39:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 39
 SF40:
-  >> : *SFproperties
+  << : *SFproperties
   FullName: Sulfate aerosol, size bin = 40
 SS_PROP: &SSproperties
   DD_DvzAerSnow: 0.03
@@ -1083,122 +1084,122 @@ SS_PROP: &SSproperties
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 SS1:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 1
 SS2:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 2
 SS3:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 3
 SS4:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 4
 SS5:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 5
 SS6:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 6
 SS7:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 7
 SS8:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 8
 SS9:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 9
 SS10:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 10
 SS11:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 11
 SS12:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 12
 SS13:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 13
 SS14:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 14
 SS15:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 15
 SS16:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 16
 SS17:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 17
 SS18:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 18
 SS19:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 19
 SS20:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 20
 SS21:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 21
 SS22:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 22
 SS23:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 23
 SS24:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 24
 SS25:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 25
 SS26:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 26
 SS27:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 27
 SS28:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 28
 SS29:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 29
 SS30:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 30
 SS31:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 31
 SS32:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 32
 SS33:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 33
 SS34:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 34
 SS35:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 35
 SS36:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 36
 SS37:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 37
 SS38:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 38
 SS39:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 39
 SS40:
-  >> : *SSproperties
+  << : *SSproperties
   FullName: Sea salt aerosol, size bin = 40

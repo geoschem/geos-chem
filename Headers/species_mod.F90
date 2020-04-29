@@ -610,7 +610,7 @@ CONTAINS
           ENDIF
 
           IF ( SUM( ThisSpc%WD_RainoutEff ) > ZERO ) THEN
-             WRITE( 6, 140 ) ' -> Rainout effic''ncy',   ThisSpc%WD_RainoutEff
+             WRITE( 6, 140 ) ' -> Rainout effic''ncy ',  ThisSpc%WD_RainoutEff
           ENDIF
 
        ENDIF

@@ -467,14 +467,6 @@ CONTAINS
     ! Total number of variables
     yml%num_vars = yml1%num_vars + yml2%num_vars
 
-    ! Allocate the resultant yml object
-    !ALLOCATE( yml, STAT=RC )
-    !IF ( RC /= QFYAML_Success ) THEN
-    !   errMsg = 'Could not allocate the yml object!"!'
-    !   CALL Handle_Error( errMsg, RC, thisLoc )
-    !   RETURN
-    !ENDIF
-
     ! Allocate yml%vars
     ALLOCATE( yml%vars( yml%num_vars ), STAT=RC )
     IF ( RC /= QFYAML_Success ) THEN
@@ -804,7 +796,7 @@ CONTAINS
     var_name = ADJUSTL(var_name)
 
     ! Test if the variable is a YAML anchor
-    IF ( var_name == ">>" ) THEN
+    IF ( var_name == "<<" ) THEN
 
        !--------------------------------------------------------------------
        ! Variable points to a YAML anchor

@@ -1,5 +1,6 @@
-# GEOS-Chem Species Database (28 Apr 2020)
+# GEOS-Chem Species Database (29 Apr 2020)
 # Core species only (neglecting microphysics)
+# NOTE: Anchors must be defined before any variables that reference them
 A3O2:
   Formula: CH3CH2CH2OO
   FullName: Primary peroxy radical from C3H8
@@ -69,7 +70,7 @@ ALK4:
   Is_Gas: true
   MW_g: 58.12
   MolecRatio: 4.3
-ASOA1: &ASOAproperties
+ASOA_PROP: &ASOAproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -82,13 +83,15 @@ ASOA1: &ASOAproperties
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+ASOA1:
+  << : *ASOAproperties
 ASOA2:
-  >> : *ASOAproperties
+  << : *ASOAproperties
 ASOA3:
-  >> : *ASOAproperties
+  << : *ASOAproperties
 ASOAN:
-  >> : *ASOAproperties
-ASOG1: &ASOGproperties
+  << : *ASOAproperties
+ASOG_PROP: &ASOGproperties
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
   FullName: Lumped non-volatile gas products of light aromatics + IVOCs
@@ -100,10 +103,12 @@ ASOG1: &ASOGproperties
   Is_WetDep: true
   MW_g: 150.00
   WD_RetFactor: 2.0e-2
+ASOG1:
+  << : *ASOGproperties
 ASOG2:
-  >> : *ASOGproperties
+  << : *ASOGproperties
 ASOG3:
-  >> : *ASOGproperties
+  << : *ASOGproperties
 ATO2:
   Formula: CH3C(O)CH2O2
   FullName: Peroxy radical from acetone
@@ -161,34 +166,34 @@ BCPO:
   WD_KcScaleFac: [1.0, 1.0, 0.5]
   WD_KcScaleFac_Luo: [1.0, 1.0, 0.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-Be: &Beproperties
+Be_PROP: &Beproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_HStar: 0.0
   Is_Advected: true
   Is_DryDep: true
-  Is_Gas: true
+  Is_Aerosol: true
   Is_WetDep: true
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 Be10:
-  >> : *Beproperties
+  << : *Beproperties
   Formula: Be10
   FullName: Beryllium-10 isotope
   MW_g: 10.0
 Be10Strat:
-  >> : *Beproperties
+  << : *Beproperties
   Formula: Be10
   FullName: Beryllium-10 isotope in stratosphere
   MW_g: 10.0
-Be7: 
-  >> : *Beproperties
+Be7:
+  << : *Beproperties
   Formula: Be7
   FullName: Beryllium-7 isotope
   MW_g: 7.0
 Be7Strat:
-  >> : *Beproperties
+  << : *Beproperties
   Formula: Be7
   FullName: Beryllium-7 isotope in stratosphere
   MW_g: 7.0
@@ -254,14 +259,45 @@ BRO2:
   FullName: Peroxy radical from BENZ oxidation
   Is_Gas: true
   MW_g: 159.13
+SALA_PROP: &SALAproperties
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2200.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 31.4
+  Radius: 2.55e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 BrSALA:
-  >> : *SALAproperties
+  << : *SALAproperties
   Formula: Br
   FullName: Fine sea salt bromine
   IsHygroGrowth: false
   MW_g: 79.90
+SALC_PROP: &SALCproperties
+  DD_AeroDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2200.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_HygroGrowth: true
+  Is_WetDep: true
+  MW_g: 31.4
+  Radius: 4.25e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 BrSALC:
-  >> : *SALCproperties
+  << : *SALCproperties
   Formula: Br
   FullName: Coarse sea salt bromine
   Is_HygroGrowth: false
@@ -446,13 +482,15 @@ CH3ITracer:
   Is_Advected: true
   Is_Gas: true
   MW_g: 141.94
-CH4: &CH4properties
+CH4_PROP: &CH4properties
   BackgroundVV: 1.7e-6
   Formula: CH4
-  FullName: Methane
   Is_Advected: true
   Is_Gas: true
   MW_g: 16.05
+CH4:
+  << : *CH4properties
+  FullName: Methane
 CH4_BBN:
   << : *CH4properties
   BackgroundVV: 1.0e-20
@@ -574,137 +612,139 @@ ClOO:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 67.45
-CO: &COproperties
-  BackgroundVV: 1.0e-7
-  Formula: CO
-  FullName: Carbon monoxide
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 28.01
-CO2: &CO2properties
+CO2_PROP: &CO2properties
   BackgroundVV: 3.55e-4
   Formula: CO2
   FullName: Carbon dioxide
   Is_Gas: true
   MW_g: 44.01
 CO2AV:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from aviation emissions
 CO2BAL:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from balanced biosphere
 CO2BB:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from biomass burning emissions
 CO2BF:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from biofuel emissions
 CO2CH:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from chemical sources
 CO2CORR:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide chemical source surface correction
 CO2FF:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from fossil fuel emissions
 CO2NTE:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from net terrestrial exchange
 CO2OC:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ocean emissions
 CO2SE:
-  >> : *CO2properties
+  << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ship emissions
+CO_PROP: &COproperties
+  Formula: CO
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 28.01
+CO:
+  << : *COproperties
+  FullName: Carbon monoxide
+  BackgroundVV: 1.0e-7
 COACET:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: CO produced from acetone oxidation
 COAnthroEmis25dayTracer:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Anthropogenic_CO_with_25day_lifetime
 COAnthroEmis50dayTracer:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Anthropogenic_CO_with_50day_lifetime
 COASIA:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over Asia
 COBBAF:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Biomass burning CO emitted over Africa
 COBBAM:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Biomass burning CO emitted over South America
 COBBAS:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Biomass burning CO emitted over Asia
 COBBEU:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Biomass burning CO emitted over Europe
 COBBOC:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Biomass burning CO emitted over Oceania
 COBBOTH:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Biomass burning CO emitted everywhere else
 COBIOF:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: CO produced from biofuels (whole world)
 COCH4:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: CO produced from methane oxidation
 COEUR:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over Europe
 COISOP:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: CO produced from isoprene oxidation
 COMEOH:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: CO produced from methanol oxidation
 COMONO:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: CO produced from monoterpene oxidation
 CONMVOC:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: CO produced from NMVOC oxidation
 COOTH:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted everywhere else
 COUniformEmis25dayTracer:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: CO_with_uniform_emission_and_25day_lifetime
 COUS:
-  >> : *COproperties
+  << : *COproperties
   BackgroundVV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
 DMS:
@@ -715,12 +755,11 @@ DMS:
   Is_Advected: true
   Is_Aerosol: true
   MW_g: 62.13
-DST1: &DST1properties
+DST1_PROP: &DST1properties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
   Density: 2500.0
-  FullName: Dust aerosol, Reff = 0.7 microns
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
@@ -730,12 +769,11 @@ DST1: &DST1properties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-DST2: &DST2properties
+DST2_PROP: &DST2properties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
   Density: 2650.0
-  FullName: Dust aerosol, Reff = 1.4 microns
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
@@ -746,12 +784,11 @@ DST2: &DST2properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-DST3: &DST3properties
+DST3_PROP: &DST3properties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
   Density: 2650.0
-  FullName: Dust aerosol, Reff = 2.4 microns
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
@@ -762,12 +799,11 @@ DST3: &DST3properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
-DST4: &DST4properties
+DST4_PROP: &DST4properties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
   Density: 2650.0
-  FullName: Dust aerosol, Reff = 4.5 microns
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
@@ -778,17 +814,29 @@ DST4: &DST4properties
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
+DST1:
+  << : *DST1properties
+  FullName: Dust aerosol, Reff = 0.7 microns
+DST2:
+  << : *DST2properties
+  FullName: Dust aerosol, Reff = 1.4 microns
+DST3:
+  << : *DST3properties
+  FullName: Dust aerosol, Reff = 2.4 microns
+DST4:
+  << : *DST4properties
+  FullName: Dust aerosol, Reff = 4.5 microns
 DSTAL1:
-  >> : *DST1properties
-  FullName: Dust alkalynity, Reff = 0.7 microns
+  << : *DST1properties
+  FullName: Dust alkalinity, Reff = 0.7 microns
 DSTAL2:
-  >> : *DST2properties
+  << : *DST2properties
   FullName: Dust alkalinity, Reff = 1.4 microns
 DSTAL3:
-  >> : *DST3properties
+  << : *DST3properties
   FullName: Dust alkalinity, Reff = 2.4 microns
 DSTAL4:
-  >> : *DST4properties
+  << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
 EOH:
   DD_F0: 0.0
@@ -1034,104 +1082,105 @@ HCOOH:
   Is_WetDep: true
   MW_g: 46.03
   WD_RetFactor: 2.0e-2
-Hg0: &Hg0properties
+Hg0_PROP: &Hg0properties
   DD_F0: 1.0e-5
   DD_Hstar: 0.11
-  FullName: Elemental mercury
   Formula: 'Hg'
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
   Is_Hg0: true
   MW_g: 200.59
+Hg0:
+  << : *Hg0properties
+  FullName: Elemental mercury
 Hg0_ANT:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Antarctic subsurface water
 Hg0_ARC:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Arctic subsurface water
 Hg0_ATL:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Mid-Atlantic subsurface water
 Hg0_BB:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from biomass burning
 Hg0_CAM:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Central America
 Hg0_CAN:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Canada
 Hg0_EAF:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from East Africa
 Hg0_EAS:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from East Asia
 Hg0_EEU:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Eastern Europe
 Hg0_EUR:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from OECD Europe
 Hg0_GEO:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from geogenic sources
 Hg0_JPN:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Japan
 Hg0_MDE:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Middle East
 Hg0_NAF:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from North Africa
 Hg0_NAT:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from North Atlantic subsurface water
 Hg0_NPA:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from North Pacific subsurface water
 Hg0_OCE:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Oceania
 Hg0_OCN:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Indo-Pacific subsurface water
 Hg0_SAF:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from South Africa
 Hg0_SAM:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from South America
 Hg0_SAS:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from South Asia
 Hg0_SAT:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from South Atlantic subsurface water
 Hg0_SEA:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from Southeast Asia
 Hg0_SO:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from organic soil
 Hg0_SOV:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from former USSR
 Hg0_STR:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from stratosphere
 Hg0_USA:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from USA
 Hg0_WAF:
-  >> : *Hg0properties
+  << : *Hg0properties
   FullName: Elemental mercury from West Africa
-Hg2: &Hg2properties
+Hg2_PROP: &Hg2properties
   DD_F0: 0.0
   DD_Hstar: 1.0e+14
-  FullName: Divalent mercury
   Formula: 'Hg'
   Henry_CR: 8400.0
   Henry_K0: 1.4e+6
@@ -1142,95 +1191,97 @@ Hg2: &Hg2properties
   Is_WetDep: true
   MW_g: 200.59
   WD_RetFactor: 1.0
+Hg2:
+  << : *Hg2properties
+  FullName: Divalent mercury
 Hg2_ANT:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Antarctic subsurface water
 Hg2_ARC:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Arctic subsurface water
 Hg2_ATL:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Mid-Atlantic subsurface water
 Hg2_BB:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from biomass burning
 Hg2_CAM:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Central America
 Hg2_CAN:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Canada
 Hg2_EAF:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from East Africa
 Hg2_EAS:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from East Asia
 Hg2_EEU:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Eastern Europe
 Hg2_EUR:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from OECD Europe
 Hg2_GEO:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from geogenic sources
 Hg2_JPN:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Japan
 Hg2_MDE:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Middle East
 Hg2_NAF:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from North Africa
 Hg2_NAT:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from North Atlantic subsurface water
 Hg2_NPA:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from North Pacific subsurface water
 Hg2_OCE:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Oceania
 Hg2_OCN:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Indo-Pacific subsurface water
 Hg2_SAF:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from South Africa
 Hg2_SAM:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from South America
 Hg2_SAS:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from South Asia
 Hg2_SAT:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from South Atlantic subsurface water
 Hg2_SEA:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from Southeast Asia
 Hg2_SO:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from organic soil
 Hg2_SOV:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from former USSR
 Hg2_STR:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from stratosphere
 Hg2_USA:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from USA
 Hg2_WAF:
-  >> : *Hg2properties
+  << : *Hg2properties
   FullName: Divalent mercury from West Africa
-HgP: &HgPproperties
+HgP_PROP: &HgPproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  FullName: Particulate mercury
   Formula: 'Hg'
   Is_Advected: true
   Is_DryDep: true
@@ -1241,89 +1292,92 @@ HgP: &HgPproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
+HgP:
+  << : *HgPproperties
+  FullName: Particulate mercury
 HgP_ANT:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Antarctic subsurface water
 HgP_ARC:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Arctic subsurface water
 HgP_ATL:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Mid-Atlantic subsurface water
 HgP_BB:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from biomass burning
 HgP_CAM:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Central America
 HgP_CAN:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Canada
 HgP_EAF:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from East Africa
 HgP_EAS:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from East Asia
 HgP_EEU:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Eastern Europe
 HgP_EUR:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from OECD Europe
 HgP_GEO:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from geogenic sources
 HgP_JPN:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Japan
 HgP_MDE:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Middle East
 HgP_NAF:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from North Africa
 HgP_NAR:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from North Atlantic subsurface water
 HgP_NPA:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from North Pacific subsurface water
 HgP_OCE:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Oceania
 HgP_OCN:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Indo-Pacific subsurface water
 HgP_SAF:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from South Africa
 HgP_SAM:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from South America
 HgP_SAS:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from South Asia
 HgP_SAT:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from South Atlantic subsurface water
 HgP_SEA:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from Southeast Asia
 HgP_SO:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from organic soil
 HgP_SOV:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from former USSR
 HgP_STR:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from stratosphere
 HgP_USA:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from USA
 HgP_WAF:
-  >> : *HgPproperties
+  << : *HgPproperties
   FullName: Particulate mercury from West Africa
 HI:
   DD_F0: 0.0
@@ -2010,13 +2064,13 @@ IPRNO3:
   Is_Photolysis: true
   MW_g: 105.11
 ISALA:
-  >> : *SALAproperties
+  << : *SALAproperties
   Formula: I
   FullName: Fine sea salt iodine
   Is_HygroGrowth: false
   MW_g: 126.90
 ISALC:
-  >> : *SALCproperties
+  << : *SALCproperties
   Formula: I
   FullName: Coarse sea salt iodine
   Is_HygroGrowth: false
@@ -2679,19 +2733,19 @@ NIT:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 NITD1:
-  >> : *DST1properties
+  << : *DST1properties
   FullName: Nitrate on dust, Reff = 0.7 microns
 NITD2:
-  >> : *DST2properties
+  << : *DST2properties
   FullName: Nitrate on dust, Reff = 1.4 microns
 NITD3:
-  >> : *DST3properties
+  << : *DST3properties
   FullName: Nitrate on dust, Reff = 2.4 microns
 NITD4:
-  >> : *DST4properties
+  << : *DST4properties
   FullName: Nitrate on dust, Reff = 4.5 microns
 NITs:
-  >> : *SALCproperties
+  << : *SALCproperties
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_HygroGrowth: false
   WD_CoarseAer: false
@@ -2752,8 +2806,7 @@ O2:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 32.0
-O3: &O3properties
-  BackgroundVV: 2.0e-8
+O3_PROP: &O3properties
   DD_F0: 1.0
   DD_Hstar: 1.0e-2
   Formula: O3
@@ -2763,52 +2816,56 @@ O3: &O3properties
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 48.00
+O3:
+  << : *O3properties
+  BackgroundVV: 2.0e-8
+  FullName: Ozone
 O3AFBL:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the African boundary layer
 O3ASBL:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the Asian boundary layer
 O3ATBL:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the Atlantic Ocean boundary layer
 O3EUBL:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the European boundary layer
 O3INIT:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone from the initial condition
 O3MT:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the middle troposphere
 O3NABL:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the North America boundary layer
 O3PCBL:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the Pacific Ocean boundary layer
 O3ROW:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the rest of the world
 O3STRAT:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the stratosphere
 O3USA:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced over the United States in PBL
 O3UT:
-  >> : *O3properties
+  << : *O3properties
   BackgroundVV: 1.0e-20
   FullName: Ozone produced in the upper troposphere
 OClO:
@@ -2952,12 +3009,11 @@ PassiveTracer:
   Is_Advected: true
   Is_Gas: true
   MW_g: 1.0
-Pb210: &Pbproperties
+Pb210_PROP: &Pbproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_HStar: 0.0
   Formula: Pb210
-  FullName: Lead-210 isotope
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
@@ -2966,12 +3022,15 @@ Pb210: &Pbproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
+Pb210:
+  << : *Pbproperties
+  FullName: Lead-210 isotope
 Pb210Strat:
-  >> : *Pbproperties
+  << : *Pbproperties
   FullName: Lead-210 isotope in stratosphere
 PCO:
   FullName: Dummy species to track production rate of CO
-  Is_Gas: true 
+  Is_Gas: true
 pFe:
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -3152,8 +3211,8 @@ POPBCPO_BaP:
   Is_WetDep: true
   MW_g: 252.32
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 1.0, 0.5]
-  WD_RainoutEff: [ 1.0, 1.0, 0.0]
+  WD_KcScaleFac: [1.0, 1.0, 0.5]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 POPBCPO_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3165,8 +3224,8 @@ POPBCPO_PHE:
   Is_WetDep: true
   MW_g: 178.24
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 1.0, 0.5]
-  WD_RainoutEff: [ 1.0, 1.0, 0.0]
+  WD_KcScaleFac: [1.0, 1.0, 0.5]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 POPBCPO_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3178,8 +3237,8 @@ POPBCPO_PYR:
   Is_WetDep: true
   MW_g: 202.26
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 1.0, 0.5]
-  WD_RainoutEff: [ 1.0, 1.0, 0.0]
+  WD_KcScaleFac: [1.0, 1.0, 0.5]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
 POPOCPI_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3191,8 +3250,8 @@ POPOCPI_BaP:
   Is_WetDep: true
   MW_g: 252.32
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 POPOCPI_PHE:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3204,8 +3263,8 @@ POPOCPI_PHE:
   Is_WetDep: true
   MW_g: 178.24
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 POPOCPI_PYR:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3217,8 +3276,8 @@ POPOCPI_PYR:
   Is_WetDep: true
   MW_g: 202.26
   WD_AerScavEff: 1.0
-  WD_KcScaleFac: [ 1.0, 0.5, 1.0]
-  WD_RainoutEff: [ 1.0, 0.0, 1.0]
+  WD_KcScaleFac: [1.0, 0.5, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 POPOCPO_BaP:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3433,7 +3492,7 @@ RCO3:
   MW_g: 89.08
 RCOOH:
   Formula: C2H5C(O)OH
-  FullName: > C2 organic acids
+  FullName: '> C2 organic acids'
   Is_Gas: true
   MW_g: 74.09
 RIPA:
@@ -3496,11 +3555,11 @@ Rn222:
   Formula: Rn222
   FullName: Radon-222 isotope
   Is_Advected: true
-  Is_Gas: true
+  Is_Aerosol: true
   MW_g: 222.0
 ROH:
   Formula: C3H7OH
-  FullName: > C2 alcohols
+  FullName: '> C2 alcohols'
   Is_Gas: true
   MW_g: 60.11
 RP:
@@ -3521,39 +3580,12 @@ S:
   Formula: S
   FullName: Atomic sulfur
   MW_g: 32.06
-SALA: &SALAproperties
-  DD_AeroDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2200.0
+SALA:
+  << : *SALAproperties
   FullName: Fine (0.01-0.05 microns) sea salt aerosol
-  Is_Advected: true
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_HygroGrowth: true
-  Is_WetDep: true
-  MW_g: 31.4
-  Radius: 2.55e-7
-  WD_AerScavEff: 1.0
-  WD_KcScaleFac: [1.0, 0.5, 1.0]
-  WD_RainoutEff: [1.0, 0.0, 1.0]
-SALC: &SALCproperties
-  DD_AeroDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2200.0
+SALC:
+  << : *SALCproperties
   FullName: Coarse (0.5-8 microns) sea salt aerosol
-  Is_Advected: true
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_HygroGrowth: true
-  Is_WetDep: true
-  MW_g: 31.4
-  Radius: 4.25e-6
-  WD_AerScavEff: 1.0
-  WD_CoarseAer: true
-  WD_KcScaleFac: [1.0, 0.5, 1.0]
-  WD_RainoutEff: [1.0, 0.0, 1.0]
 SF6Tracer:
   Formula: SF6
   FullName: Sulfur_hexafluoride
@@ -3599,16 +3631,16 @@ SO4:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 SO4D1:
-  >> : *DST1properties
+  << : *DST1properties
   FullName: Sulfate on dust, Reff = 0.7 microns
 SO4D2:
-  >> : *DST2properties
+  << : *DST2properties
   FullName: Sulfate on dust, Reff = 1.4 microns
 SO4D3:
-  >> : *DST3properties
+  << : *DST3properties
   FullName: Sulfate on dust, Reff = 2.4 microns
 SO4D4:
-  >> : *DST4properties
+  << : *DST4properties
   FullName: Sulfate on dust, Reff = 4.5 microns
 SO4H1:
   Formula: SO4
@@ -3621,7 +3653,7 @@ SO4H2:
   Is_Gas: true
   MW_g: 96.06
 SO4s:
-  >> : *SALCproperties
+  << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
   Is_HygroGrowth: false
   WD_CoarseAer: false
@@ -3684,7 +3716,7 @@ TRO2:
   FullName: Peroxy radical from TOLU oxidation
   Is_Gas: true
   MW_g: 173.16
-TSOA0: &TSOAproperties
+TSOA_PROP: &TSOAproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -3697,13 +3729,15 @@ TSOA0: &TSOAproperties
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
+TSOA0:
+  << : *TSOAproperties
 TSOA1:
-  >> : *TSOAproperties
+  << : *TSOAproperties
 TSOA2:
-  >> : *TSOAproperties
+  << : *TSOAproperties
 TSOA3:
-  >> : *TSOAproperties
-TSOG0: &TSOGproperties
+  << : *TSOAproperties
+TSOG_PROP: &TSOGproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
@@ -3718,11 +3752,11 @@ TSOG0: &TSOGproperties
   MW_g: 150.0
   WD_RetFactor: 2.0e-2
 TSOG1:
-  >> : *TSOGproperties
+  << : *TSOGproperties
 TSOG2:
-  >> : *TSOGproperties
+  << : *TSOGproperties
 TSOG3:
-  >> : *TSOGproperties
+  << : *TSOGproperties
 XRO2:
   Formula: C8H11O5
   FullName: Peroxy radical from TOLU oxidation

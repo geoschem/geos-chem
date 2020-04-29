@@ -88,6 +88,7 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
     USE QFYAML_Mod
+    USE RoundOff_Mod
     USE Species_Mod
 !
 ! !INPUT PARAMETERS:
@@ -183,9 +184,9 @@ CONTAINS
              "Henry_K0         ", "Henry_pKa        ", "MP_SizeResAer    ",  &
              "MP_SizeResNum    ", "MolecRatio       ", "MW_g             ",  &
              "Radius           ", "WD_AerScavEff    ", "WD_CoarseAer     ",  &
-             "WD_ConvFacI2G    ", "WD_KcScaleFac    ", "WD_KcScaleFac_Luo",  &
+             "WD_ConvFacI2G    ", "WD_KcScaleFac_Luo", "WD_KcScaleFac    ",  &
              "WD_Is_H2SO4      ", "WD_Is_HNO3       ", "WD_Is_SO2        ",  &
-             "WD_LiqAndGas     ", "WD_RainoutEff    ", "WD_RainoutEff_Luo"/)
+             "WD_LiqAndGas     ", "WD_RainoutEff_Luo", "WD_RainoutEff    "/)
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -286,7 +287,11 @@ CONTAINS
           IF ( INDEX( key, "%BackgroundVV" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%BackgroundVV = v_real
+             IF ( v_real > 0.0_f4 ) THEN
+                ThisSpc%BackgroundVV = RoundOff( DBLE( v_real ), 2 )
+             ELSE
+                ThisSpc%BackgroundVV = MISSING_VV
+             ENDIF
 
           ELSE IF ( INDEX( key, "%DD_AeroDryDep" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -301,32 +306,33 @@ CONTAINS
           ELSE IF ( INDEX( key, "%DD_DvzAerSnow" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_DvzAerSnow = v_real
+             ThisSpc%DD_DvzAerSnow = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%DD_DvzMinVal" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_DvzMinVal = a_real_2
+             ThisSpc%DD_DvzMinVal(1) = RoundOff( DBLE( a_real_2(1) ), 2 )
+             ThisSpc%DD_DvzMinVal(2) = RoundOff( DBLE( a_real_2(2) ), 2 )
 
           ELSE IF ( INDEX( key, "%DD_F0" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_F0 = v_real
+             ThisSpc%DD_F0 = RoundOff( DBLE( a_real_2(1) ), 2 )
 
           ELSE IF ( INDEX( key, "%DD_Hstar" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_Hstar = v_real
+             ThisSpc%DD_Hstar = RoundOff( DBLE( a_real_2(1) ), 2 )
 
           ELSE IF ( INDEX( key, "%Density" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Density = v_real
+             ThisSpc%Density = RoundOff( DBLE( a_real_2(1) ), 2 )
 
           ELSE IF ( INDEX( key, "%EmMW_g" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%EmMw_g = v_real
+             ThisSpc%EmMw_g = RoundOff( DBLE( a_real_2(1) ), 2 )
 
           ELSE IF ( INDEX( key, "%Formula" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
@@ -437,17 +443,17 @@ CONTAINS
           ELSE IF ( INDEX( key, "%Henry_CR" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Henry_CR = v_real
+             ThisSpc%Henry_CR = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%Henry_K0" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Henry_K0 = v_real
+             ThisSpc%Henry_K0 = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%Henry_pKa" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Henry_pKa = v_real
+             ThisSpc%Henry_pKa = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%MP_SizeResAer" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -463,22 +469,22 @@ CONTAINS
              v_real = ONE_R4                                 ! default = 1
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%MolecRatio = v_real
+             ThisSpc%MolecRatio = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%MW_g" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%MW_g = v_real
+             ThisSpc%MW_g = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%Radius" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Radius = v_real
+             ThisSpc%Radius = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%WD_AerScavEff" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_AerScavEff = v_real
+             ThisSpc%WD_AerScavEff = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%WD_CoarseAer" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -488,24 +494,28 @@ CONTAINS
           ELSE IF ( INDEX( key, "%WD_ConvFacI2G" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_ConvFacI2G = v_real
+             ThisSpc%WD_ConvFacI2G = RoundOff( DBLE( v_real ), 2 )
 
-#ifdef LUO_WETDEP
           ELSE IF ( INDEX( key, "%WD_KcScaleFac_Luo" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_KcScaleFac = a_real_3
-#else
+#ifdef LUO_WETDEP
+             ThisSpc%WD_KcScaleFac(1) = RoundOff( DBLE( a_real_3(1) ), 2 )
+             ThisSpc%WD_KcScaleFac(2) = RoundOff( DBLE( a_real_3(2) ), 2 )
+             ThisSpc%WD_KcScaleFac(3) = RoundOff( DBLE( a_real_3(3) ), 2 )
+#endif
           ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_KcScaleFac = a_real_3
+#ifndef LUO_WETDEP
+             ThisSpc%WD_KcScaleFac(1) = RoundOff( DBLE( a_real_3(1) ), 2 )
+             ThisSpc%WD_KcScaleFac(2) = RoundOff( DBLE( a_real_3(2) ), 2 )
+             ThisSpc%WD_KcScaleFac(3) = RoundOff( DBLE( a_real_3(3) ), 2 )
 #endif
 
           ELSE IF ( INDEX( key, "%WD_Is_H2SO4" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             IF ( prtDebug ) WRITE( 6, 20 ) TRIM( key ), v_bool
 
           ELSE IF ( INDEX( key, "%WD_Is_HNO3" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -522,16 +532,22 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_LiqAndGas = v_bool
 
-#ifdef LUO WETDEP
           ELSE IF ( INDEX( key, "%WD_RainoutEff_Luo" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_RainoutEff = a_real_3
-#else
+#ifdef LUO WETDEP
+             ThisSpc%WD_RainoutEff(1) = RoundOff( DBLE( a_real_3(1) ), 2 )
+             ThisSpc%WD_RainoutEff(2) = RoundOff( DBLE( a_real_3(2) ), 2 )
+             ThisSpc%WD_RainoutEff(3) = RoundOff( DBLE( a_real_3(3) ), 2 )
+#endif
+
           ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_RainoutEff = a_real_3
+#ifndef LUO_WETDEP
+             ThisSpc%WD_RainoutEff(1) = RoundOff( DBLE( a_real_3(1) ), 2 )
+             ThisSpc%WD_RainoutEff(2) = RoundOff( DBLE( a_real_3(2) ), 2 )
+             ThisSpc%WD_RainoutEff(3) = RoundOff( DBLE( a_real_3(3) ), 2 )
 #endif
 
           ELSE
@@ -571,14 +587,11 @@ CONTAINS
           ThisSpc%EmMW_g = ThisSpc%MW_g
        ENDIF
 
-       !### UNCOMMENT FOR DEBUG PRINTOUT
-       !CALL Spc_Print( Input_Opt, ThisSpc, RC )
+       ! Debug printout
+       IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
 
        ! Free pointer
        ThisSpc => NULL()
-
-       ! Debug output
-       IF ( prtDebug ) WRITE( 6, '(a)' )
     ENDDO
 
     ! FORMAT statements
