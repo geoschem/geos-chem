@@ -126,7 +126,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=14)           :: tag
-    CHARACTER(LEN=14)           :: spc
+    CHARACTER(LEN=31)           :: spc
     CHARACTER(LEN=255)          :: v_str
     CHARACTER(LEN=255)          :: key
     CHARACTER(LEN=255)          :: thisLoc
@@ -916,8 +916,8 @@ CONTAINS
     CHARACTER(LEN=255)             :: thisLoc
 
     ! Arrays
-    CHARACTER(LEN=15), ALLOCATABLE :: Tmp(:)
-    CHARACTER(LEN=15)              :: SpcName
+    CHARACTER(LEN=31), ALLOCATABLE :: Tmp(:)
+    CHARACTER(LEN=31)              :: SpcName
 
     !=======================================================================
     ! UNIQUE_SPECIES_NAMES begins here!
