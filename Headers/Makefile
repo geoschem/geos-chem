@@ -164,6 +164,8 @@ input_opt_mod.o        : input_opt_mod.F90        \
 
 inquiremod.o           : inquireMod.F90
 
+roundoff_mod.o         : roundoff_mod.F90
+
 state_chm_mod.o        : state_chm_mod.F90        \
                          CMN_SIZE_mod.o           \
                          CMN_FJX_MOD.o            \
@@ -233,6 +235,7 @@ species_database_mod.o : species_database_mod.F90 \
                          errcode_mod.o            \
                          input_opt_mod.o          \
                          precision_mod.o          \
+                         roundoff_mod.o           \
                          qfyaml_mod.o             \
                          species_mod.o
 
