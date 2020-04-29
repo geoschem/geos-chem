@@ -2514,7 +2514,7 @@
 
       ! Scalars
 #if defined( MODEL_CESM )
-      type(file_desc_t)  :: ncid
+      TYPE(FILE_DESC_T)  :: ncid
 #endif
       INTEGER            :: fId                 ! netCDF file ID
       INTEGER            :: vId                 ! netCDF variable ID
@@ -2573,20 +2573,22 @@
       ct1d   = (/ NPOLY /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, DRYCOEFF_R8  )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, DRYCOEFF_R8 )
+      ! Assume units
+      a_val = "1"
 #else
       CALL NcRd( DRYCOEFF_R8, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the DRYCOEFF:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
  130     FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
       ENDIF
-#endif
 
       ! Cast from REAL*8 to flexible precision
       DRYCOEFF = DRYCOEFF_R8
@@ -2603,19 +2605,21 @@
       ct1d   = (/ NSURFTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IOLSON       )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IOLSON )
+      ! Assume units
+      a_val = "1"
 #else
       CALL NcRd( IOLSON, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IOLSON:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IDEP
@@ -2629,19 +2633,21 @@
       ct1d   = (/ NSURFTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IDEP         )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IDEP )
+      ! Assume units
+      a_val = "1"
 #else
       CALL NcRd( IDEP, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IDEP:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IWATER
@@ -2669,19 +2675,21 @@
       ct1d   = (/ NWATER /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid     )
-      iret = PIO_GET_VAR(   ncid, vid, IWATER(1:NWATER) )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IWATER )
+      ! Assume units
+      a_val = "1"
 #else
       CALL NcRd( IWATER(1:NWATER), fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IWATER:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IZO
@@ -2695,19 +2703,21 @@
       ct1d   = (/ NSURFTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IZO          )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IZO )
+      ! Assume units
+      a_val = "1e-4 m"
 #else
       CALL NcRd( IZO, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IZO:long_name attribute
       a_name = "long_name"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IDRYDEP
@@ -2721,19 +2731,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IDRYDEP      )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IDRYDEP )
+      ! Assume units
+      a_val = "1"
 #else
       CALL NcRd( IDRYDEP, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IDRYDEP:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IRI
@@ -2747,19 +2759,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IRI          )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IRI )
+      ! Assume units
+      a_val = "s m-1"
 #else
       CALL NcRd( IRI, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IRI:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       ! For Olson 2001 land map, change IRI for coniferous forests
       ! to match IRI for deciduous forests (skim, mps, 2/3/14)
@@ -2777,19 +2791,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IRLU         )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IRLU )
+      ! Assume units
+      a_val = "s m-1"
 #else
       CALL NcRd( IRLU, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IRLU:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IRAC
@@ -2803,19 +2819,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IRAC          )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IRAC )
+      ! Assume units
+      a_val = "s m-1"
 #else
       CALL NcRd( IRAC, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IRAC:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IRGSS
@@ -2829,19 +2847,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IRGSS        )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IRGSS )
+      ! Assume units
+      a_val = "s m-1"
 #else
       CALL NcRd( IRGSS, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IRGSS:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IRGSO
@@ -2855,19 +2875,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IRGSO        )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IRGSO )
+      ! Assume units
+      a_val = "s m-1"
 #else
       CALL NcRd( IRGSO, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IRGSO:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IRCLS
@@ -2881,19 +2903,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IRCLS        )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IRCLS )
+      ! Assume units
+      a_val = "s m-1"
 #else
       CALL NcRd( IRCLS, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IRCLS:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IRCLO
@@ -2907,19 +2931,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IRCLO        )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IRCLO )
+      ! Assume units
+      a_val = "s m-1"
 #else
       CALL NcRd( IRCLO, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IRCLO:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !----------------------------------------
       ! VARIABLE: IVSMAX
@@ -2933,19 +2959,21 @@
       ct1d   = (/ NDRYDTYPE /)
 #if defined( MODEL_CESM )
       iret = PIO_INQ_VARID( ncid, TRIM(v_name), vid )
-      iret = PIO_GET_VAR(   ncid, vid, IVSMAX       )
+      iret = PIO_GET_VAR( ncid, vid, st1d, ct1d, IVSMAX )
+      ! Assume units
+      a_val = "1e-2 cm s-1"
 #else
       CALL NcRd( IVSMAX, fId, TRIM(v_name), st1d, ct1d )
 
       ! Read the IVSMAX:units attribute
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+#endif
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
          WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
       ENDIF
-#endif
 
       !=================================================================
       ! Cleanup and quit
@@ -4441,7 +4469,7 @@
       ! Read drydep inputs from the netCDF file
       ! Save Olson indices in INDOLSON array, in order to avoid
       ! confusion w/ previously-assigned variable name IOLSON
-      !
+
       CALL READ_DRYDEP_INPUTS( am_I_Root, Input_Opt, 
      &                         DRYCOEFF,  INDOLSON, IDEP,
      &                         IWATER,    NWATER,   IZO,      
