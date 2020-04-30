@@ -172,7 +172,7 @@ CONTAINS
     SpcCount%nHgP     = 0
 
     ! Species database tags to match
-    tags = (/"BackgroundVV     ", "DD_AeroDryDep    ", "DD_DustDryDep    ",  &
+    tags = (/"Background_VV    ", "DD_AeroDryDep    ", "DD_DustDryDep    ",  &
              "DD_DvzAerSnow    ", "DD_DvzMinVal     ", "DD_F0            ",  &
              "DD_Hstar         ", "DD_KOA           ", "Density          ",  &
              "EmMW_g           ", "Formula          ", "FullName         ",  &
@@ -284,7 +284,7 @@ CONTAINS
           key = TRIM( spc ) // '%' // TRIM( tags(N) )
 
           ! Save into the proper field of the species database
-          IF ( INDEX( key, "%BackgroundVV" ) > 0 ) THEN
+          IF ( INDEX( key, "%Background_VV" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_real > 0.0_f4 ) THEN
@@ -317,22 +317,22 @@ CONTAINS
           ELSE IF ( INDEX( key, "%DD_F0" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_F0 = RoundOff( DBLE( a_real_2(1) ), 2 )
+             ThisSpc%DD_F0 = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%DD_Hstar" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_Hstar = RoundOff( DBLE( a_real_2(1) ), 2 )
+             ThisSpc%DD_Hstar = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%Density" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Density = RoundOff( DBLE( a_real_2(1) ), 2 )
+             ThisSpc%Density = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%EmMW_g" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%EmMw_g = RoundOff( DBLE( a_real_2(1) ), 2 )
+             ThisSpc%EmMw_g = RoundOff( DBLE( v_real ), 2 )
 
           ELSE IF ( INDEX( key, "%Formula" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
@@ -608,6 +608,7 @@ CONTAINS
 
     ! Free objects & return
     CALL QFYAML_CleanUp( yml )
+    stop
     RETURN
 
     !=======================================================================
