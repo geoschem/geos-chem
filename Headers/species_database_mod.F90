@@ -88,7 +88,6 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
     USE QFYAML_Mod
-    USE RoundOff_Mod
     USE Species_Mod
 !
 ! !INPUT PARAMETERS:
@@ -138,7 +137,7 @@ CONTAINS
     REAL(f4)                    :: a_real_3(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(45)
+    CHARACTER(LEN=17)           :: tags(46)
 
     ! Objects
     TYPE(QFYAML_t)              :: yml
@@ -186,7 +185,8 @@ CONTAINS
              "Radius           ", "WD_AerScavEff    ", "WD_CoarseAer     ",  &
              "WD_ConvFacI2G    ", "WD_KcScaleFac_Luo", "WD_KcScaleFac    ",  &
              "WD_Is_H2SO4      ", "WD_Is_HNO3       ", "WD_Is_SO2        ",  &
-             "WD_LiqAndGas     ", "WD_RainoutEff_Luo", "WD_RainoutEff    "/)
+             "WD_LiqAndGas     ", "WD_RainoutEff_Luo", "WD_RainoutEff    ",  &
+             "WD_RetFactor     "                                           /)
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -284,14 +284,14 @@ CONTAINS
           key = TRIM( spc ) // '%' // TRIM( tags(N) )
 
           ! Save into the proper field of the species database
+          ! NOTE: Attempt to round off values to 2 decimal places,
+          ! unless the values can be either too large or too small
+          ! for the roundoff algorithm.
           IF ( INDEX( key, "%Background_VV" ) > 0 ) THEN
+             v_real = MISSING_VV
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             IF ( v_real > 0.0_f4 ) THEN
-                ThisSpc%BackgroundVV = RoundOff( DBLE( v_real ), 2 )
-             ELSE
-                ThisSpc%BackgroundVV = MISSING_VV
-             ENDIF
+             ThisSpc%BackgroundVV = DBLE( v_real )   ! Don't round off
 
           ELSE IF ( INDEX( key, "%DD_AeroDryDep" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -306,33 +306,33 @@ CONTAINS
           ELSE IF ( INDEX( key, "%DD_DvzAerSnow" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_DvzAerSnow = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%DD_DvzAerSnow = Cast_and_RoundOff( v_real )
 
           ELSE IF ( INDEX( key, "%DD_DvzMinVal" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_DvzMinVal(1) = RoundOff( DBLE( a_real_2(1) ), 2 )
-             ThisSpc%DD_DvzMinVal(2) = RoundOff( DBLE( a_real_2(2) ), 2 )
+             ThisSpc%DD_DvzMinVal(1) = Cast_and_RoundOff( a_real_2(1) )
+             ThisSpc%DD_DvzMinVal(2) = Cast_and_RoundOff( a_real_2(2) )
 
           ELSE IF ( INDEX( key, "%DD_F0" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_F0 = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%DD_F0 = DBLE( v_real )          ! Don't round off
 
           ELSE IF ( INDEX( key, "%DD_Hstar" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%DD_Hstar = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%DD_Hstar = DBLE( v_real )       ! Don't round off
 
           ELSE IF ( INDEX( key, "%Density" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Density = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%Density = Cast_and_RoundOff( v_real )
 
           ELSE IF ( INDEX( key, "%EmMW_g" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%EmMw_g = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%EmMw_g = Cast_and_RoundOff( v_real )
 
           ELSE IF ( INDEX( key, "%Formula" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
@@ -343,6 +343,16 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%FullName = TRIM( v_str )
+
+          ELSE IF ( INDEX( key, "%Henry_CR" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Henry_CR = DBLE( v_real )       ! Don't round off
+
+          ELSE IF ( INDEX( key, "%Henry_K0" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Henry_K0 = DBLE( v_real )       ! Don't round off
 
           ELSE IF ( INDEX( key, "%Is_Advected" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -440,21 +450,6 @@ CONTAINS
                 ThisSpc%Is_WetDep = v_bool
              ENDIF
 
-          ELSE IF ( INDEX( key, "%Henry_CR" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Henry_CR = RoundOff( DBLE( v_real ), 2 )
-
-          ELSE IF ( INDEX( key, "%Henry_K0" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Henry_K0 = RoundOff( DBLE( v_real ), 2 )
-
-          ELSE IF ( INDEX( key, "%Henry_pKa" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Henry_pKa = RoundOff( DBLE( v_real ), 2 )
-
           ELSE IF ( INDEX( key, "%MP_SizeResAer" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
@@ -466,25 +461,25 @@ CONTAINS
              ThisSpc%MP_SizeResNum = v_bool
 
           ELSE IF ( INDEX( key, "%MolecRatio" ) > 0 ) THEN
-             v_real = ONE_R4                                 ! default = 1
+             v_real = ONE_R4                          ! default = 1
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%MolecRatio = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%MolecRatio = Cast_and_RoundOff( v_real )
 
           ELSE IF ( INDEX( key, "%MW_g" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%MW_g = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%MW_g = Cast_and_RoundOff( v_real )
 
           ELSE IF ( INDEX( key, "%Radius" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Radius = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%Radius = DBLE( v_real )         ! Don't round off
 
           ELSE IF ( INDEX( key, "%WD_AerScavEff" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_AerScavEff = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%WD_AerScavEff = Cast_and_RoundOff( v_real )
 
           ELSE IF ( INDEX( key, "%WD_CoarseAer" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -494,23 +489,23 @@ CONTAINS
           ELSE IF ( INDEX( key, "%WD_ConvFacI2G" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_ConvFacI2G = RoundOff( DBLE( v_real ), 2 )
+             ThisSpc%WD_ConvFacI2G = Cast_and_RoundOff( v_real )
 
           ELSE IF ( INDEX( key, "%WD_KcScaleFac_Luo" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
 #ifdef LUO_WETDEP
-             ThisSpc%WD_KcScaleFac(1) = RoundOff( DBLE( a_real_3(1) ), 2 )
-             ThisSpc%WD_KcScaleFac(2) = RoundOff( DBLE( a_real_3(2) ), 2 )
-             ThisSpc%WD_KcScaleFac(3) = RoundOff( DBLE( a_real_3(3) ), 2 )
+             ThisSpc%WD_KcScaleFac(1) = Cast_and_RoundOff( a_real_3(1) )
+             ThisSpc%WD_KcScaleFac(2) = Cast_and_RoundOff( a_real_3(2) )
+             ThisSpc%WD_KcScaleFac(3) = Cast_and_RoundOff( a_real_3(3) )
 #endif
           ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
 #ifndef LUO_WETDEP
-             ThisSpc%WD_KcScaleFac(1) = RoundOff( DBLE( a_real_3(1) ), 2 )
-             ThisSpc%WD_KcScaleFac(2) = RoundOff( DBLE( a_real_3(2) ), 2 )
-             ThisSpc%WD_KcScaleFac(3) = RoundOff( DBLE( a_real_3(3) ), 2 )
+             ThisSpc%WD_KcScaleFac(1) = Cast_and_RoundOff( a_real_3(1) )
+             ThisSpc%WD_KcScaleFac(2) = Cast_and_RoundOff( a_real_3(2) )
+             ThisSpc%WD_KcScaleFac(3) = Cast_and_RoundOff( a_real_3(3) )
 #endif
 
           ELSE IF ( INDEX( key, "%WD_Is_H2SO4" ) > 0 ) THEN
@@ -536,19 +531,24 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
 #ifdef LUO WETDEP
-             ThisSpc%WD_RainoutEff(1) = RoundOff( DBLE( a_real_3(1) ), 2 )
-             ThisSpc%WD_RainoutEff(2) = RoundOff( DBLE( a_real_3(2) ), 2 )
-             ThisSpc%WD_RainoutEff(3) = RoundOff( DBLE( a_real_3(3) ), 2 )
+             ThisSpc%WD_RainoutEff(1) = Cast_and_RoundOff( a_real_3(1) )
+             ThisSpc%WD_RainoutEff(2) = Cast_and_RoundOff( a_real_3(2) )
+             ThisSpc%WD_RainoutEff(3) = Cast_and_RoundOff( a_real_3(3) )
 #endif
 
           ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
 #ifndef LUO_WETDEP
-             ThisSpc%WD_RainoutEff(1) = RoundOff( DBLE( a_real_3(1) ), 2 )
-             ThisSpc%WD_RainoutEff(2) = RoundOff( DBLE( a_real_3(2) ), 2 )
-             ThisSpc%WD_RainoutEff(3) = RoundOff( DBLE( a_real_3(3) ), 2 )
+             ThisSpc%WD_RainoutEff(1) = Cast_and_RoundOff( a_real_3(1) )
+             ThisSpc%WD_RainoutEff(2) = Cast_and_RoundOff( a_real_3(2) )
+             ThisSpc%WD_RainoutEff(3) = Cast_and_RoundOff( a_real_3(3) )
 #endif
+
+          ELSE IF ( INDEX( key, "%WD_RetFactor" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_RetFactor = Cast_and_RoundOff( v_real )
 
           ELSE
              ! Pass
@@ -583,7 +583,7 @@ CONTAINS
        ! SANITY CHECK #3
        ! If the EmMW_g tag is still undefined, then set it to MW_g
        !--------------------------------------------------------------------
-       IF ( ThisSpc%EmMW_g < 0.0_fp ) THEN
+       IF ( ThisSpc%EmMW_g < ZERO ) THEN
           ThisSpc%EmMW_g = ThisSpc%MW_g
        ENDIF
 
@@ -626,6 +626,53 @@ CONTAINS
     RETURN
 
   END SUBROUTINE Init_Species_Database
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Cast_and_RoundOff
+!
+! !DESCRIPTION: Casts a 4-byte variable to 8-byte, and then rounds off
+!  to 2 decimal places.  Used for species database fields.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Cast_and_RoundOff( v_real ) RESULT( v_dble )
+!
+! !USES:
+!
+    USE RoundOff_Mod
+    USE Species_Mod, ONLY : ZERO_R4
+    USE Species_Mod, ONLY : MISSING
+!
+! !INPUT PARAMETERS:
+!
+    REAL(f4), INTENT(IN) :: v_real   ! Input, 4-byte real
+!
+! !RETURN VALUE:
+!
+    REAL(f8)             :: v_dble   ! Output, 8-byte real
+!
+! !REVISION HISTORY:
+!  30 Apr 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! If v_real is a missing value, return with 8-byte missing value
+    IF ( v_real < ZERO_R4 ) THEN
+       v_dble = MISSING
+       RETURN
+    ENDIF
+
+    ! Cast to real*8 and roundoff (if the number isn't too large)
+    v_dble = RoundOff( DBLE( v_real ), 2 )
+
+  END FUNCTION Cast_And_RoundOff
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

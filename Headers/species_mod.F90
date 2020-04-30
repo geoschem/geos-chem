@@ -463,168 +463,213 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    !=====================================================================
+    !========================================================================
     ! Spc_Create begins here!
-    !=====================================================================
+    !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
 
-       !-------------------------
-       ! Print general info
-       !-------------------------
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, 100 ) 'Species Id            ',  ThisSpc%ModelId
-       WRITE( 6, 110 ) 'Name                  ',  TRIM( ThisSpc%Name     )
-       WRITE( 6, 110 ) 'FullName              ',  TRIM( ThisSpc%FullName )
-       WRITE( 6, 110 ) 'Formula               ',  TRIM( ThisSpc%Formula  )
-       WRITE( 6, 120 ) 'Molecular weight [g]  ',  ThisSpc%MW_g
-       WRITE( 6, 120 ) 'Emitted mol. wt [g]   ',  ThisSpc%EmMW_g
-       WRITE( 6, 120 ) 'Molecular ratio       ',  ThisSpc%MolecRatio
+       !---------------------------------------------------------------------
+       ! Print general species info
+       !---------------------------------------------------------------------
+       WRITE( 6, "(a)" )     REPEAT( "=", 79 )
+       WRITE( 6, 100 )       "ModelId        ",  ThisSpc%ModelId
+       WRITE( 6, 110 )       "Name           ",  TRIM( ThisSpc%Name     )
+       WRITE( 6, 110 )       "FullName       ",  TRIM( ThisSpc%FullName )
+       WRITE( 6, 110 )       "Formula        ",  TRIM( ThisSpc%Formula  )
+       WRITE( 6, 121 )       "MW_g           ",  ThisSpc%MW_g
+       WRITE( 6, 121 )       "EmMW_g         ",  ThisSpc%EmMW_g
+       WRITE( 6, 121 )       "MolecRatio     ",  ThisSpc%MolecRatio
        IF ( ThisSpc%Is_Gas ) THEN
-          WRITE( 6, '(a)' ) 'Gas or aerosol         : GAS'
+          WRITE( 6, "(a)" )  "Gas or aerosol  : GAS"
        ELSE IF ( ThisSpc%Is_Aerosol ) THEN
-          WRITE( 6, '(a)' ) 'Gas or aerosol         : AEROSOL'
+          WRITE( 6, "(a)" )  "Gas or aerosol  : AEROSOL"
        ENDIF
 
-       !-------------------------
-       ! Print background
-       !-------------------------
-       IF ( ThisSpc%BackgroundVV > ZERO ) THEN
-          WRITE( 6, 120 ) 'Default bckgrnd [v/v] ',      ThisSpc%BackgroundVV
+       !--------------------------------------------------------------------
+       ! Print Henry"s Law info (only applicable to gas-phase species)
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Gas ) THEN
+          IF ( ThisSpc%Henry_K0 > ZERO_R8 ) THEN
+             WRITE( 6, 120 ) "Henry_K0       ", ThisSpc%Henry_K0
+          ENDIF
+
+          IF ( ThisSpc%Henry_CR > ZERO_R8 ) THEN
+             WRITE( 6, 120 ) "Henry_CR       ", ThisSpc%Henry_CR
+          ENDIF
        ENDIF
 
-       !-------------------------
-       ! Print density & radius
-       !-------------------------
-       IF ( ThisSpc%Density > ZERO ) THEN
-          WRITE( 6, 120 ) 'Density [kg/m3]      ',       ThisSpc%Density
+       !--------------------------------------------------------------------
+       ! Print aerosol-specific properties
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Aerosol ) THEN 
+          IF ( ThisSpc%Density > ZERO ) THEN
+             WRITE( 6, 121 ) "Density        ", ThisSpc%Density
+          ENDIF
+
+          IF ( ThisSpc%Radius > ZERO ) THEN
+             WRITE( 6, 120 ) "Radius         ", ThisSpc%Radius
+          ENDIF
+
+          WRITE( 6, 130 )    "Is_HygroGrowth ", ThisSpc%Is_HygroGrowth
+          IF ( ThisSpc%HygGrthId > 0 ) THEN
+             WRITE( 6, 100 ) "HygGrthId      ", ThisSpc%HygGrthId
+          ENDIF
+ 
+          ! Microphysics properties
+          WRITE( 6, 130 )    "MP_SizeResAer  ", ThisSpc%MP_SizeResAer
+          WRITE( 6, 130 )    "MP_SizeResNum  ", ThisSpc%MP_SizeResNum
        ENDIF
 
-       IF ( ThisSpc%Radius > ZERO ) THEN
-          WRITE( 6, 120 ) 'Radius [m]           ',       ThisSpc%Radius
-       ENDIF
-
-       !-------------------------
-       ! Print Henry's Law info
-       !-------------------------
-       IF ( ThisSpc%Henry_K0 > ZERO_R8 ) THEN
-          WRITE( 6, 120 ) 'Henry''s law K0        ',     ThisSpc%Henry_K0
-       ENDIF
-
-       IF ( ThisSpc%Henry_CR > ZERO_R8 ) THEN
-          WRITE( 6, 120 ) 'Henry''s law CR        ',     ThisSpc%Henry_CR
-       ENDIF
-
-       !-------------------------
-       ! Print advected Id
-       !-------------------------
-       WRITE( 6, 130 ) 'Is it advected?       ',         ThisSpc%Is_Advected
+       !--------------------------------------------------------------------
+       ! Is the species advected?
+       !--------------------------------------------------------------------
+       WRITE( 6, 130 )       "Is_Advected    ", ThisSpc%Is_Advected
        IF ( ThisSpc%Is_Advected ) THEN
-          WRITE( 6, 100 )    ' -> Advected Id       ',   ThisSpc%AdvectId
+          WRITE( 6, 100 )    "AdvectId       ", ThisSpc%AdvectId
        ENDIF
 
-       !-------------------------
-       ! Print KPP Id's
-       !-------------------------
-       WRITE( 6, 130 ) 'Is it a KPP species?  ',         ThisSpc%Is_Kpp
+       !--------------------------------------------------------------------
+       ! Is the species in the KPP mechanism and is it photolyzed?
+       !--------------------------------------------------------------------
+       WRITE( 6, 130 )       "Is_Kpp         ", ThisSpc%Is_Kpp
 
        IF ( ThisSpc%Is_Kpp ) THEN
           IF ( ThisSpc%KppSpcId > 0 ) THEN
-             WRITE( 6, 100 )    ' -> Id in C   array   ',ThisSpc%KppSpcId
+             WRITE( 6, 100 ) "KppSpcId       ", ThisSpc%KppSpcId
           ENDIF
 
-          WRITE( 6, 130 ) 'Is it an active spc?  ',      ThisSpc%Is_ActiveChem
+          WRITE( 6, 130 )    "Is_ActiveChem  ", ThisSpc%Is_ActiveChem
           IF ( ThisSpc%KppVarId > 0 ) THEN
-             WRITE( 6, 100 )    ' -> Id in VAR array   ',ThisSpc%KppVarId
+             WRITE( 6, 100 ) "KppVarId       ", ThisSpc%KppVarId
           ENDIF
 
-          WRITE( 6, 130 ) 'Is it a fixed spc?    ',      ThisSpc%Is_FixedChem
+          WRITE( 6, 130 )    "Is_FixedChem   ", ThisSpc%Is_FixedChem
           IF ( ThisSpc%KppFixId > 0 ) THEN
-             WRITE( 6, 100 )    ' -> Id in FIX array   ',ThisSpc%KppFixId
+             WRITE( 6, 100 ) "KppFixId       ", ThisSpc%KppFixId
+          ENDIF
+          
+          WRITE( 6, 130 )    "Is_Photolysis  ", ThisSpc%Is_Photolysis
+          IF ( ThisSpc%PhotolId > 0 ) THEN
+             WRITE( 6, 100 ) "PhotolId       ", ThisSpc%PhotolId
           ENDIF
        ENDIF
 
-       !-------------------------
-       ! Print photolysis info
-       !-------------------------
-       WRITE( 6, 130 ) 'Is it a photol. spc?  ',         ThisSpc%Is_Photolysis
-       IF ( ThisSpc%PhotolId > 0 ) THEN
-          WRITE( 6, 100    ) ' -> Photolysis Id     ',   ThisSpc%PhotolId
-       ENDIF
-
-       !------------------------------
-       ! Print hygroscopic growth info
-       !------------------------------
-       WRITE( 6, 130 ) 'Is it a hygro. spc?   ',         ThisSpc%Is_HygroGrowth
-       IF ( ThisSpc%HygGrthId > 0 ) THEN
-          WRITE( 6, 100    ) ' -> HygroGrowth Id    ',   ThisSpc%PhotolId
-       ENDIF
-
-       !-------------------------
-       ! Print drydep info
-       !-------------------------
-       WRITE( 6, 130 ) 'Is it dry deposited?  ',         ThisSpc%Is_DryDep
+       !--------------------------------------------------------------------
+       ! Is the species dry-deposited?
+       !--------------------------------------------------------------------
+       WRITE( 6, 130 )       "Is_DryDep      ", ThisSpc%Is_DryDep
 
        IF ( ThisSpc%Is_DryDep ) THEN
-          WRITE( 6, 100 ) ' -> Drydep index      ',      ThisSpc%DryDepId
+          WRITE( 6, 100 )    "DryDepID       ", ThisSpc%DryDepId
+
+          IF ( ThisSpc%DD_AeroDryDep ) THEN
+             WRITE( 6, 130 ) "DD_AeroDryDep  ", ThisSpc%DD_AeroDryDep
+          ENDIF
+
+          IF ( ThisSpc%DD_DustDryDep ) THEN
+             WRITE( 6, 130 ) "DD_DustDryDep  ", ThisSpc%DD_DustDryDep
+          ENDIF
+
+          IF ( ThisSpc%DD_DvzAerSnow > ZERO ) THEN
+             WRITE( 6, 120 ) "DD_DvzAerSnow  ", ThisSpc%DD_DvzAerSnow
+          ENDIF
+
+          IF ( SUM( ThisSpc%DD_DvzMinVal ) > ZERO ) THEN
+             WRITE( 6, 140 ) "DD_DvzMinVal   ", ThisSpc%DD_DvzMinVal
+          ENDIF
 
           IF ( ThisSpc%DD_F0 > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> F0 parameter      ',   ThisSpc%DD_F0
+             WRITE( 6, 120 ) "DD_F0          ", ThisSpc%DD_F0
           ENDIF
 
           IF ( ThisSpc%DD_KOA > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> KOA parameter     ',   ThisSpc%DD_KOA
+             WRITE( 6, 120 ) "DD_KOA         ", ThisSpc%DD_KOA
           ENDIF
 
           IF ( ThisSpc%DD_Hstar > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> DD_Hstar value    ',   ThisSpc%DD_Hstar
+             WRITE( 6, 120 ) "DD_Hstar       ", ThisSpc%DD_Hstar
           ENDIF
+
+          WRITE( 6, 130 )    "Is_DryAlt      ", ThisSpc%Is_DryAlt
        ENDIF
 
-       !-------------------------
-       ! Print wetdep info
-       !-------------------------
-       WRITE( 6, 130 ) 'Is it wet deposited?  ',         ThisSpc%Is_WetDep
+       !--------------------------------------------------------------------
+       ! Is the species wet-deposited?
+       !--------------------------------------------------------------------
+       WRITE( 6, 130 )       "Is_WetDep      ", ThisSpc%Is_WetDep
 
        IF ( ThisSpc%Is_WetDep ) THEN
-          WRITE( 6, 100 ) ' -> Wetdep index:     ',      ThisSpc%WetDepId
+          WRITE( 6, 100 )    "WetDepID       ", ThisSpc%WetDepId
 
           IF ( ThisSpc%WD_LiqAndGas ) THEN
-             WRITE( 6, 130 ) ' -> Liq & gas phases  ',   ThisSpc%WD_LiqAndGas
-             WRITE( 6, 120 ) ' -> Conv factor I2G   ',   ThisSpc%WD_ConvFacI2G
-          ENDIF
-
-          IF ( ThisSpc%WD_RetFactor > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> Ret. Factor       ',   ThisSpc%WD_RetFactor
+             WRITE( 6, 130 ) "WD_LiqAndGas   ", ThisSpc%WD_LiqAndGas
+             WRITE( 6, 120 ) "WD_ConvFacI2G  ", ThisSpc%WD_ConvFacI2G
           ENDIF
 
           IF ( ThisSpc%WD_CoarseAer ) THEN
-             WRITE( 6, 130 ) ' -> Coarse aerosol?   ',   ThisSpc%WD_CoarseAer
+             WRITE( 6, 130 ) "WD_CoarseAer   ", ThisSpc%WD_CoarseAer
           ENDIF
 
           IF ( ThisSpc%WD_AerScavEff > ZERO ) THEN
-             WRITE( 6, 120 ) ' -> Scav. Effeciency  ',   ThisSpc%WD_AerScavEff
+             WRITE( 6, 120 ) "WD_AerScafEff  ", ThisSpc%WD_AerScavEff
           ENDIF
 
           IF ( SUM( ThisSpc%WD_KcScaleFac ) > ZERO ) THEN
-             WRITE( 6, 140 ) ' -> KcScale factor    ',   ThisSpc%WD_KcScaleFac
+             WRITE( 6, 140 ) "WD_KcScaleFac  ", ThisSpc%WD_KcScaleFac
           ENDIF
 
           IF ( SUM( ThisSpc%WD_RainoutEff ) > ZERO ) THEN
-             WRITE( 6, 140 ) ' -> Rainout effic''ncy ',  ThisSpc%WD_RainoutEff
+             WRITE( 6, 140 ) "WD_RainoutEff  ", ThisSpc%WD_RainoutEff
           ENDIF
 
+          IF ( ThisSpc%WD_RetFactor > ZERO ) THEN
+             WRITE( 6, 121 ) "WD_RetFactor   ", ThisSpc%WD_RetFactor
+          ENDIF
+
+          IF ( ThisSpc%WD_Is_H2SO4 ) THEN
+             WRITE( 6, 130 ) "WD_Is_H2SO4    ", ThisSpc%WD_Is_H2SO4
+          ENDIF
+
+          IF ( ThisSpc%WD_Is_HNO3  ) THEN
+             WRITE( 6, 130 ) "WD_Is_HNO3     ",  ThisSpc%WD_Is_HNO3
+          ENDIF
+
+          IF ( ThisSpc%WD_Is_H2SO4 ) THEN
+             WRITE( 6, 130 ) "WD_Is_SO2      ",  ThisSpc%WD_Is_SO2
+          ENDIF
        ENDIF
 
-       !-------------------------
-       ! Print microphys info
-       !-------------------------
+       !--------------------------------------------------------------------
+       ! Is the species a mercury species?
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Hg0 ) THEN
+          WRITE( 6, 130 )    "Is_Hg0         ",  ThisSpc%Is_Hg0
+       ENDIF
 
+       IF ( ThisSpc%Is_Hg2 ) THEN
+          WRITE( 6, 130 )    "Is_Hg2         ",  ThisSpc%Is_Hg2
+       ENDIF
+
+       IF ( ThisSpc%Is_HgP ) THEN
+          WRITE( 6, 130 )    "Is_HgP         ",  ThisSpc%Is_HgP
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Print default background concentration
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%BackgroundVV > ZERO ) THEN
+          WRITE( 6, 120 )    "BackgroundVV   ", ThisSpc%BackgroundVV
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! Format statements
- 100   FORMAT( a, ' : ', i5          )
- 110   FORMAT( a, ' : ', a           )
- 120   FORMAT( a, ' : ', es13.6      )
- 130   FORMAT( a, ' : ', L1          )
- 140   FORMAT( a, ' : ', 3(f5.1, 1x) )
+       !--------------------------------------------------------------------
+ 100   FORMAT( a, " : ", i8          )
+ 110   FORMAT( a, " : ", a           )
+ 120   FORMAT( a, " : ", es13.6      )
+ 121   FORMAT( a, " : ", f8.2        )
+ 130   FORMAT( a, " : ", L1          )
+ 140   FORMAT( a, " : ", 3(f8.2, 1x) )
     ENDIF
 
   END SUBROUTINE Spc_Print

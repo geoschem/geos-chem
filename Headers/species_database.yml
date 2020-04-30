@@ -1,4 +1,4 @@
-# GEOS-Chem Species Database (29 Apr 2020)
+# GEOS-Chem Species Database (30 Apr 2020)
 # Core species only (neglecting microphysics)
 # NOTE: Anchors must be defined before any variables that reference them
 A3O2:
@@ -55,7 +55,7 @@ ALD2:
   Formula: CH3CHO
   FullName: Acetaldehyde
   Henry_CR: 5900.0
-  Henry_K0: 13.2e+1
+  Henry_K0: 1.32e+1
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
