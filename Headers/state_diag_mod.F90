@@ -20,7 +20,7 @@
 MODULE State_Diag_Mod
 !
 ! USES:
-
+!
   USE CMN_Size_Mod,     ONLY : NDUST
   USE DiagList_Mod
   USE Dictionary_M,     ONLY : dictionary_t
@@ -439,21 +439,6 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ProdCOfromNMVOC
 
      ! Persistent Organic Pollutants (POPS) specialty simulation
-     REAL(f4), POINTER :: EmisPOPG                (:,:  )
-     REAL(f4), POINTER :: EmisPOPPOCPO            (:,:  )
-     REAL(f4), POINTER :: EmisPOPPBCPO            (:,:  )
-     REAL(f4), POINTER :: EmisPOPGfromSoil        (:,:  )
-     REAL(f4), POINTER :: EmisPOPGfromLake        (:,:  )
-     REAL(f4), POINTER :: EmisPOPGfromLeaf        (:,:  )
-     REAL(f4), POINTER :: FluxPOPGfromSoilToAir   (:,:  )
-     REAL(f4), POINTER :: FluxPOPGfromAirToSoil   (:,:  )
-     REAL(f4), POINTER :: FluxPOPGfromLakeToAir   (:,:  )
-     REAL(f4), POINTER :: FluxPOPGfromAirToLake   (:,:  )
-     REAL(f4), POINTER :: FluxPOPGfromLeafToAir   (:,:  )
-     REAL(f4), POINTER :: FluxPOPGfromAirToLeaf   (:,:  )
-     REAL(f4), POINTER :: FugacitySoilToAir       (:,:  )
-     REAL(f4), POINTER :: FugacityLakeToAir       (:,:  )
-     REAL(f4), POINTER :: FugacityLeafToAir       (:,:  )
      REAL(f4), POINTER :: LossPOPPOCPObyGasPhase  (:,:,:)
      REAL(f4), POINTER :: ProdPOPPOCPOfromGasPhase(:,:,:)
      REAL(f4), POINTER :: LossPOPPBCPObyGasPhase  (:,:,:)
@@ -467,21 +452,6 @@ MODULE State_Diag_Mod
      REAL(f4), POINTER :: ProdPOPPOCPIfromNO3     (:,:,:)
      REAL(f4), POINTER :: ProdPOPPBCPIfromNO3     (:,:,:)
      REAL(f4), POINTER :: ProdPOPPBCPOfromNO3     (:,:,:)
-     LOGICAL :: Archive_EmisPOPG
-     LOGICAL :: Archive_EmisPOPPOCPO
-     LOGICAL :: Archive_EmisPOPPBCPO
-     LOGICAL :: Archive_EmisPOPGfromSoil
-     LOGICAL :: Archive_EmisPOPGfromLake
-     LOGICAL :: Archive_EmisPOPGfromLeaf
-     LOGICAL :: Archive_FluxPOPGfromSoilToAir
-     LOGICAL :: Archive_FluxPOPGfromAirToSoil
-     LOGICAL :: Archive_FluxPOPGfromLakeToAir
-     LOGICAL :: Archive_FluxPOPGfromAirToLake
-     LOGICAL :: Archive_FluxPOPGfromLeafToAir
-     LOGICAL :: Archive_FluxPOPGfromAirToLeaf
-     LOGICAL :: Archive_FugacitySoilToAir
-     LOGICAL :: Archive_FugacityLakeToAir
-     LOGICAL :: Archive_FugacityLeafToAir
      LOGICAL :: Archive_LossPOPPOCPObyGasPhase
      LOGICAL :: Archive_ProdPOPPOCPOfromGasPhase
      LOGICAL :: Archive_LossPOPPBCPObyGasPhase
@@ -1152,21 +1122,6 @@ CONTAINS
     State_Diag%Archive_RadClrSkySWTOA              = .FALSE.
 
     ! POPs simulation diagnostics
-    State_Diag%EmisPOPG                            => NULL()
-    State_Diag%EmisPOPPOCPO                        => NULL()
-    State_Diag%EmisPOPPBCPO                        => NULL()
-    State_Diag%EmisPOPGfromSoil                    => NULL()
-    State_Diag%EmisPOPGfromLake                    => NULL()
-    State_Diag%EmisPOPGfromLeaf                    => NULL()
-    State_Diag%FluxPOPGfromSoilToAir               => NULL()
-    State_Diag%FluxPOPGfromAirToSoil               => NULL()
-    State_Diag%FluxPOPGfromLakeToAir               => NULL()
-    State_Diag%FluxPOPGfromAirToLake               => NULL()
-    State_Diag%FluxPOPGfromLeafToAir               => NULL()
-    State_Diag%FluxPOPGfromAirToLeaf               => NULL()
-    State_Diag%FugacitySoilToAir                   => NULL()
-    State_Diag%FugacityLakeToAir                   => NULL()
-    State_Diag%FugacityLeafToAir                   => NULL()
     State_Diag%LossPOPPOCPObyGasPhase              => NULL()
     State_Diag%ProdPOPPOCPOfromGasPhase            => NULL()
     State_Diag%LossPOPPBCPObyGasPhase              => NULL()
@@ -1180,21 +1135,6 @@ CONTAINS
     State_Diag%ProdPOPPOCPIfromNO3                 => NULL()
     State_Diag%ProdPOPPBCPIfromNO3                 => NULL()
     State_Diag%ProdPOPPBCPOfromNO3                 => NULL()
-    State_Diag%Archive_EmisPOPG                    = .FALSE.
-    State_Diag%Archive_EmisPOPPOCPO                = .FALSE.
-    State_Diag%Archive_EmisPOPPBCPO                = .FALSE.
-    State_Diag%Archive_EmisPOPGfromSoil            = .FALSE.
-    State_Diag%Archive_EmisPOPGfromLake            = .FALSE.
-    State_Diag%Archive_EmisPOPGfromLeaf            = .FALSE.
-    State_Diag%Archive_FluxPOPGfromSoilToAir       = .FALSE.
-    State_Diag%Archive_FluxPOPGfromAirToSoil       = .FALSE.
-    State_Diag%Archive_FluxPOPGfromLakeToAir       = .FALSE.
-    State_Diag%Archive_FluxPOPGfromAirToLake       = .FALSE.
-    State_Diag%Archive_FluxPOPGfromLeafToAir       = .FALSE.
-    State_Diag%Archive_FluxPOPGfromAirToLeaf       = .FALSE.
-    State_Diag%Archive_FugacitySoilToAir           = .FALSE.
-    State_Diag%Archive_FugacityLakeToAir           = .FALSE.
-    State_Diag%Archive_FugacityLeafToAir           = .FALSE.
     State_Diag%Archive_LossPOPPOCPObyGasPhase      = .FALSE.
     State_Diag%Archive_ProdPOPPOCPOfromGasPhase    = .FALSE.
     State_Diag%Archive_LossPOPPBCPObyGasPhase      = .FALSE.
@@ -4779,291 +4719,6 @@ CONTAINS
     IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
 
        !--------------------------------------------------------------------
-       ! Emission of POPPOCPO
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisPOPPOCPO'
-       diagID  = 'EmisPOPPOCPO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisPOPPOCPO(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisPOPPOCPO = 0.0_f4
-          State_Diag%Archive_EmisPOPPOCPO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisPOPPOCPO,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Emission of POPPBCPO
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisPOPPBCPO'
-       diagID  = 'EmisPOPPBCPO'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisPOPPBCPO(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisPOPPBCPO = 0.0_f4
-          State_Diag%Archive_EmisPOPPBCPO = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisPOPPBCPO,                  &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Emission of POPG
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisPOPG'
-       diagID  = 'EmisPOPG'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisPOPG(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisPOPG = 0.0_f4
-          State_Diag%Archive_EmisPOPG = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisPOPG,                      &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Emission of POPG from soils
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisPOPGfromSoil'
-       diagID  = 'EmisPOPGfromSoil'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisPOPGfromSoil(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisPOPGfromSoil = 0.0_f4
-          State_Diag%Archive_EmisPOPGfromSoil = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisPOPGfromSoil,              &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Emission of POPG from lakes
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisPOPGfromLake'
-       diagID  = 'EmisPOPGfromLake'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisPOPGfromLake(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisPOPGfromLake = 0.0_f4
-          State_Diag%Archive_EmisPOPGfromLake = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisPOPGfromLake,              &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Emission of POPG from leaves
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%EmisPOPGfromLeaf'
-       diagID  = 'EmisPOPGfromLeaf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%EmisPOPGfromLeaf(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%EmisPOPGfromLeaf = 0.0_f4
-          State_Diag%Archive_EmisPOPGfromLeaf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%EmisPOPGfromLeaf,              &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Secondary (positive) flux of POPG from soil to air
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxPOPGfromSoilToAir'
-       diagID  = 'FluxPOPGfromSoilToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxPOPGfromSoilToAir(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxPOPGfromSoilToAir = 0.0_f4
-          State_Diag%Archive_FluxPOPGfromSoilToAir = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxPOPGfromSoilToAir,         &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Secondary (negative) flux of POPG from air to soil
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxPOPGfromAirToSoil'
-       diagID  = 'FluxPOPGfromAirToSoil'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxPOPGfromAirToSoil(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxPOPGfromAirToSoil = 0.0_f4
-          State_Diag%Archive_FluxPOPGfromAirToSoil = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxPOPGfromAirToSoil,         &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Secondary (positive) flux of POPG from lake to air
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxPOPGfromLakeToAir'
-       diagID  = 'FluxPOPGfromLakeToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxPOPGfromLakeToAir(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxPOPGfromLakeToAir = 0.0_f4
-          State_Diag%Archive_FluxPOPGfromLakeToAir = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxPOPGfromLakeToAir,         &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Secondary (negative) flux of POPG from air to lake
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxPOPGfromAirToLake'
-       diagID  = 'FluxPOPGfromAirToLake'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxPOPGfromAirToLake(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxPOPGfromAirToLake = 0.0_f4
-          State_Diag%Archive_FluxPOPGfromAirToLake = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxPOPGfromAirToLake,         &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Secondary (positive) flux of POPG from leaf to air
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxPOPGfromLeafToAir'
-       diagID  = 'FluxPOPGfromLeafToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxPOPGfromLeafToAir(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxPOPGfromLeafToAir = 0.0_f4
-          State_Diag%Archive_FluxPOPGfromLeafToAir = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxPOPGfromLeafToAir,         &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Secondary (negative) flux of POPG from air to leaf
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FluxPOPGfromAirToLeaf'
-       diagID  = 'FluxPOPGfromAirToLeaf'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FluxPOPGfromAirToLeaf(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FluxPOPGfromAirToLeaf = 0.0_f4
-          State_Diag%Archive_FluxPOPGfromAirToLeaf = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FluxPOPGfromAirToLeaf,         &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Fugacity ratio: soil/air
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FugacitySoilToAir'
-       diagID  = 'FugacitySoilToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FugacitySoilToAir(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FugacitySoilToAir = 0.0_f4
-          State_Diag%Archive_FugacitySoilToAir = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FugacitySoilToAir,             &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Fugacity ratio: lake/air
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FugacityLakeToAir'
-       diagID  = 'FugacityLakeToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FugacityLakeToAir(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FugacityLakeToAir = 0.0_f4
-          State_Diag%Archive_FugacityLakeToAir = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FugacityLakeToAir,             &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Fugacity ratio: soil/air
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%FugacityLeafToAir'
-       diagID  = 'FugacityLeafToAir'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%FugacityLeafToAir(IM,JM), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%FugacityLeafToAir = 0.0_f4
-          State_Diag%Archive_FugacityLeafToAir = .TRUE.
-          CALL Register_DiagField( Input_Opt, diagID,                        &
-                                   State_Diag%FugacityLeafToAir,             &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
        ! Loss of POPPOC by gas phase
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%LossPOPPOCPObyGasPhase'
@@ -5321,62 +4976,32 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 27
+       DO N = 1, 12
 
           SELECT CASE( N )
-             CASE( 1  )
-                diagId = 'EmisPOPPOCPO'
-             CASE( 2  )
-                diagId = 'EmisPOPPBCPO'
-             CASE( 3  )
-                diagId = 'EmisPOPG'
-             CASE( 4  )
-                diagId = 'EmisPOPGfromSoil'
-             CASE( 5  )
-                diagId = 'EmisPOPGfromLake'
-             CASE( 6  )
-                diagId = 'EmisPOPGfromLeaf'
-             CASE( 7  )
-                diagId = 'FluxPOPGfromSoilToAir'
-             CASE( 8  )
-                diagId = 'FluxPOPGfromAirToSoil'
-             CASE( 9  )
-                diagId = 'FluxPOPGfromLakeToAir'
-             CASE( 10 )
-                diagId = 'FluxPOPGfromAirtoLake'
-             CASE( 11 )
-                diagId = 'FluxPOPGfromLeafToAir'
-             CASE( 12 )
-                diagId = 'FluxPOPGfromAirToLeaf'
-             CASE( 13 )
-                diagId = 'FugacitySoilToAir'
-             CASE( 14 )
-                diagId = 'FugacityLakeToAir'
-             CASE( 15 )
-                diagId = 'FugacityLeafToAir'
-             CASE( 16 )
+             CASE( 1 )
                 diagId = 'LossPOPPOCPObyGasPhase'
-             CASE( 17 )
+             CASE( 2 )
                 diagId = 'ProdPOPPOCPOfromGasPhase'
-             CASE( 18 )
+             CASE( 3 )
                 diagId = 'LossPOPPBPOCbyGasPhase'
-             CASE( 19 )
+             CASE( 4 )
                 diagId = 'ProdPOPPBCPOfromGasPhase'
-             CASE( 20 )
+             CASE( 5 )
                 diagId = 'ProdPOPGfromOH'
-             CASE( 21 )
+             CASE( 6 )
                 diagId = 'ProdPOPPOCPOfromO3'
-             CASE( 22 )
+             CASE( 7 )
                 diagId = 'ProdPOPPOCPIfromO3'
-             CASE( 23 )
+             CASE( 8 )
                 diagId = 'ProdPOPPBCPIfromO3'
-             CASE( 24 )
+             CASE( 9 )
                 diagId = 'ProdPOPPBCPOfromO3'
-             CASE( 25 )
+             CASE( 10 )
                 diagId = 'ProdPOPPOCPOfromNO3'
-             CASE( 26 )
+             CASE( 11 )
                 diagId = 'ProdPOPPOCPIfromNO3'
-             CASE( 27 )
+             CASE( 12 )
                 diagId = 'ProdPOPPBCPIfromNO3'
            END SELECT
 
@@ -7736,111 +7361,6 @@ CONTAINS
        State_Diag%TotalOC => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%EmisPOPG ) ) THEN
-       DEALLOCATE( State_Diag%EmisPOPG, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisPOPG', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisPOPG => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisPOPPOCPO ) ) THEN
-       DEALLOCATE( State_Diag%EmisPOPPOCPO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisPOPPOCPO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisPOPPOCPO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisPOPPBCPO ) ) THEN
-       DEALLOCATE( State_Diag%EmisPOPPBCPO, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisPOPPBCPO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisPOPPBCPO => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisPOPGfromSoil ) ) THEN
-       DEALLOCATE( State_Diag%EmisPOPGfromSoil, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisPOPGfromSoil', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisPOPGfromSoil => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisPOPGfromLake ) ) THEN
-       DEALLOCATE( State_Diag%EmisPOPGfromLake, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisPOPGfromLake', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisPOPGfromLake => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisPOPGfromLeaf ) ) THEN
-       DEALLOCATE( State_Diag%EmisPOPGfromLeaf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%EmisPOPGfromLeaf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%EmisPOPGfromLeaf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxPOPGfromSoilToAir ) ) THEN
-       DEALLOCATE( State_Diag%FluxPOPGfromSoilToAir, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromSoilToAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxPOPGfromSoilToAir => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxPOPGfromAirToSoil ) ) THEN
-       DEALLOCATE( State_Diag%FluxPOPGfromAirToSoil, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromAirToSoil', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxPOPGfromAirToSoil => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxPOPGfromLakeToAir ) ) THEN
-       DEALLOCATE( State_Diag%FluxPOPGfromLakeToAir, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromLakeToAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxPOPGfromLakeToAir => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxPOPGfromAirToLake ) ) THEN
-       DEALLOCATE( State_Diag%FluxPOPGfromAirToLake, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromAirToLake', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxPOPGfromAirToLake => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxPOPGfromLeafToAir ) ) THEN
-       DEALLOCATE( State_Diag%FluxPOPGfromLeafToAir, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromLeafToAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxPOPGfromLeafToAir => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FluxPOPGfromAirToLeaf ) ) THEN
-       DEALLOCATE( State_Diag%FluxPOPGfromAirToLeaf, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromAirToLeaf', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FluxPOPGfromAirToLeaf => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FugacitySoilToAir ) ) THEN
-       DEALLOCATE( State_Diag%FugacitySoilToAir, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FugacitySoilToAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FugacitySoilToAir => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FugacityLakeToAir ) ) THEN
-       DEALLOCATE( State_Diag%FugacityLakeToAir, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FugacityLakeToAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FugacityLakeToAir => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%FugacityLeafToAir ) ) THEN
-       DEALLOCATE( State_Diag%FugacityLeafToAir, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%FugacityLeafToAir', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%FugacityLeafToAir => NULL()
-    ENDIF
-
     IF ( ASSOCIATED( State_Diag%LossPOPPOCPObyGasPhase ) ) THEN
        DEALLOCATE( State_Diag%LossPOPPOCPObyGasPhase, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%LossPOPPOCPObyGasPhase', 2, RC )
@@ -9419,81 +8939,6 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Number of KPP singular matrix decompositions'
        IF ( isUnits   ) Units = 'count'
        IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISPOPPOCPO' ) THEN
-       IF ( isDesc    ) Desc  = 'Primary emission of POPPOCPO species'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISPOPPBCPO' ) THEN
-       IF ( isDesc    ) Desc  = 'Primary emission of POPPBCPO species'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISPOPG' ) THEN
-       IF ( isDesc    ) Desc  = 'Primary emission of POPG species'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISPOPGFROMSOIL' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary emission of POPG species from soils'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISPOPGFROMLAKE' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary emission of POPG species from lakes'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISPOPGFROMLEAF' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary emission of POPG species from leaves'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXPOPGFROMSOILTOAIR' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary (positive) flux of POPG from soils to air'
-       IF ( isUnits   ) Units = 'ng m-2 d-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXPOPGFROMAIRTOSOIL' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary (negative) flux of POPG from air to soils'
-       IF ( isUnits   ) Units = 'ng m-2 d-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXPOPGFROMLAKETOAIR' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary (positive) flux of POPG from lakes to air'
-       IF ( isUnits   ) Units = 'ng m-2 d-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXPOPGFROMAIRTOLAKE' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary (negative) flux of POPG from air to lakes'
-       IF ( isUnits   ) Units = 'ng m-2 d-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXPOPGFROMLEAFTOAIR' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary (positive) flux of POPG from leaves to air'
-       IF ( isUnits   ) Units = 'ng m-2 d-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXPOPGFROMAIRTOLEAF' ) THEN
-       IF ( isDesc    ) Desc  = 'Secondary (negative) flux of POPG from air to leaves'
-       IF ( isUnits   ) Units = 'ng m-2 d-1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FUGACITYSOILTOAIR' ) THEN
-       IF ( isDesc    ) Desc  = 'Fugacity ratio: soil/air'
-       IF ( isUnits   ) Units = '1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FUGACITYLAKETOAIR' ) THEN
-       IF ( isDesc    ) Desc  = 'Fugacity ratio: lake/air'
-       IF ( isUnits   ) Units = '1'
-       IF ( isRank    ) Rank  =  2
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'FUGACITYLEAFTOAIR' ) THEN
-       IF ( isDesc    ) Desc  = 'Fugacity ratio: leaf/air'
-       IF ( isUnits   ) Units = '1'
-       IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSPOPPOCPOBYGASPHASE' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of POPPOCPO species by gas-phase reactions'
