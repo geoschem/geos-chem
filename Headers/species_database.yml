@@ -241,6 +241,8 @@ BrNO2:
   Is_Photolysis: true
   MW_g: 125.91
 BrNO3:
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+20
   Formula: BrNO3
   FullName: Bromine nitrate
   Is_Advected: true
@@ -268,9 +270,7 @@ SALA_PROP: &SALAproperties
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_HygroGrowth: true
   Is_WetDep: true
-  MW_g: 31.4
   Radius: 2.55e-7
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
@@ -289,9 +289,7 @@ SALC_PROP: &SALCproperties
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_HygroGrowth: true
   Is_WetDep: true
-  MW_g: 31.4
   Radius: 4.25e-6
   WD_AerScavEff: 1.0
   WD_CoarseAer: true
@@ -592,6 +590,8 @@ ClNO2:
   Is_Photolysis: true
   MW_g: 81.45
 ClNO3:
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+20
   Formula: ClNO3
   FullName: Chlorine nitrate
   Is_Advected: true
@@ -3586,9 +3586,13 @@ S:
 SALA:
   << : *SALAproperties
   FullName: Fine (0.01-0.05 microns) sea salt aerosol
+  Is_HygroGrowth: true
+  MW_g: 31.4
 SALC:
   << : *SALCproperties
   FullName: Coarse (0.5-8 microns) sea salt aerosol
+  Is_HygroGrowth: true
+  MW_g: 31.4
 SF6Tracer:
   Formula: SF6
   FullName: Sulfur_hexafluoride
