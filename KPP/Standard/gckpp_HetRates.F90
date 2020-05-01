@@ -5531,7 +5531,7 @@ MODULE GCKPP_HETRATES
     FUNCTION HETHOBr_TCld( denAir, rLiq, rIce, ALiq, AIce, VAir, TK, CldFr, &
                            hConc_Sul, hConc_LCl, hConc_ICl, clConc_A, clConc_C, clConc_g, &
                            brConc_A, brConc_C, brConc_g, hso3Conc, so3Conc, &
-                           hno3_th, hcl_th, hbr_th, X ) &
+                           hno3_th, hcl_th, hbr_th, X) &
                            RESULT( kISum )
 
 !
@@ -7638,9 +7638,6 @@ END SUBROUTINE GAMMA_N2O5_Cl
       FRLAND  => State_Met%FRLAND
       FROCEAN => State_Met%FROCEAN
 
-      ! Fixed for now
-      rIce = xCldrIce
-
       CLDFr = CLDF(I,J,L)
       CLDFr = Max(CLDFr, 0.0e+0_fp)
       CLDFr = Min(CLDFr, 1.0e+0_fp)
@@ -7654,11 +7651,6 @@ END SUBROUTINE GAMMA_N2O5_Cl
          VIce = 0.0e+0_fp
          Return
       ENDIF
-
-      ! Volume of cloud condensate, water or ice [cm3]
-      ! QL is [g/g]
-      VLiq = QL * AD(I,J,L) / dens_h2o
-      VIce = QI * AD(I,J,L) / dens_ice
 
       ! ----------------------------------------------
       ! In GC 12.0 and earlier, the liquid water volume was 
@@ -7693,11 +7685,6 @@ END SUBROUTINE GAMMA_N2O5_Cl
       VLiq = QL * AD(I,J,L) / dens_h2o
       VIce = QI * AD(I,J,L) / dens_h2o
   
-      ! Only want warm (continental or marine) liquid clouds
-      IF ( .not. Is_Warm ) THEN
-         VLiq = 0.e+0_fp
-      ENDIF
-
       ALiq = 3.e+0_fp * (VLiq/Vair) / rLiq
 
       !-----------------------------------------------
