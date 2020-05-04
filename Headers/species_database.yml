@@ -292,7 +292,6 @@ SALC_PROP: &SALCproperties
   Is_WetDep: true
   Radius: 4.25e-6
   WD_AerScavEff: 1.0
-  WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 BrSALC:
@@ -301,6 +300,7 @@ BrSALC:
   FullName: Coarse sea salt bromine
   Is_HygroGrowth: false
   MW_g: 79.90
+  WD_CoarseAer: true
 C:
   Formula: C
   FullName: Atomic carbon
@@ -1421,6 +1421,7 @@ HMML:
   Is_Gas: true
   Is_WetDep: true
   MW_g: 102.10
+  WD_RetFactor: 2.0e-2
 HNO2:
   Background_VV: 4.0e-15
   Formula: HNO2
@@ -1438,12 +1439,14 @@ HNO3:
   Henry_CR: 7400.0
   Henry_K0: 8.3e+4
   Is_Advected: true
+  Is_DryAlt: true
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 63.01
   WD_AerScavEff: 1.0
+  WD_Is_HNO3: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_KcScaleFac_Luo: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
@@ -1736,7 +1739,7 @@ IDCHP:
   Formula: C5H8O5
   FullName: Isoprene dicarbonyl hydroxy dihydroperoxide
   Henry_CR: 7200.0
-  Henry_K0: 1.8e+8
+  Henry_K0: 1.0e+8
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -1774,23 +1777,26 @@ IDHNDOO2:
   Is_Gas: true
   MW_g: 196.16
 IDHPE:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+8
   Formula: C5H10O5
   FullName: Isoprene dihydroxy hydroperoxy epoxide
   Henry_CR: 7200.0
-  Henry_K0: 100000000.0
+  Henry_K0: 1.0e+8
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 150.15
+  WD_RetFactor: 2.0e-2
 IDN:
   DD_F0: 1.0
   DD_Hstar: 1.0e+8
   Formula: C5H8N2O6
   FullName: Lumped isoprene dinitrates
   Henry_CR: 7200.0
-  Henry_K0: 1.0e-8
+  Henry_K0: 1.0e+8
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
@@ -2078,6 +2084,7 @@ ISALC:
   FullName: Coarse sea salt iodine
   Is_HygroGrowth: false
   MW_g: 126.90
+  WD_CoarseAer: true
 ISOP:
   EmMW_g: 12.0
   Formula: CH2=C(CH3)CH=CH2
@@ -2751,6 +2758,7 @@ NITs:
   << : *SALCproperties
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_HygroGrowth: false
+  Is_Photolysis: true
   WD_CoarseAer: false
 'NO':
   Background_VV: 4.0e-13
@@ -2823,6 +2831,7 @@ O3:
   << : *O3properties
   Background_VV: 2.0e-8
   FullName: Ozone
+  Is_DryAlt: true
 O3AFBL:
   << : *O3properties
   Background_VV: 1.0e-20
@@ -2890,7 +2899,7 @@ OCPI:
   Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 12.01
-  WD_aerScavEff: 1.0
+  WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_KcScaleFac_Luo: [0.5, 0.25, 0.5]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -3593,6 +3602,7 @@ SALC:
   FullName: Coarse (0.5-8 microns) sea salt aerosol
   Is_HygroGrowth: true
   MW_g: 31.4
+  WD_CoarseAer: true
 SF6Tracer:
   Formula: SF6
   FullName: Sulfur_hexafluoride
@@ -3617,6 +3627,7 @@ SO2:
   Is_WetDep: true
   MW_g: 64.04
   WD_AerScavEff: 1.0
+  WD_Is_SO2: true
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 SO4:
@@ -3745,7 +3756,6 @@ TSOA2:
 TSOA3:
   << : *TSOAproperties
 TSOG_PROP: &TSOGproperties
-  DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
   EmMW_g: 150.0

@@ -167,7 +167,7 @@ MODULE Species_Mod
   REAL(f4),         PARAMETER, PUBLIC :: ONE_R4       =  1.0_f4
   REAL(f8),         PARAMETER, PUBLIC :: ONE_R8       =  1.0_f8
   LOGICAL,          PARAMETER, PUBLIC :: MISSING_BOOL = .FALSE.
-  CHARACTER(LEN=7), PARAMETER, PUBLIC :: MISSING_STR  = "UNKNOWN"
+  CHARACTER(LEN=1), PARAMETER, PUBLIC :: MISSING_STR  = ""
 
   !=========================================================================
   ! Missing species concentration value if not in restart file and special
@@ -501,7 +501,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Print aerosol-specific properties
        !--------------------------------------------------------------------
-       IF ( ThisSpc%Is_Aerosol ) THEN 
+       IF ( ThisSpc%Is_Aerosol ) THEN
           IF ( ThisSpc%Density > ZERO ) THEN
              WRITE( 6, 121 ) "Density        ", ThisSpc%Density
           ENDIF
@@ -510,57 +510,60 @@ CONTAINS
              WRITE( 6, 120 ) "Radius         ", ThisSpc%Radius
           ENDIF
 
-          WRITE( 6, 130 )    "Is_HygroGrowth ", ThisSpc%Is_HygroGrowth
-          IF ( ThisSpc%HygGrthId > 0 ) THEN
+          IF ( ThisSpc%Is_HygroGrowth ) THEN
+             WRITE( 6, 130 ) "Is_HygroGrowth ", ThisSpc%Is_HygroGrowth
              WRITE( 6, 100 ) "HygGrthId      ", ThisSpc%HygGrthId
           ENDIF
- 
+
           ! Microphysics properties
-          WRITE( 6, 130 )    "MP_SizeResAer  ", ThisSpc%MP_SizeResAer
-          WRITE( 6, 130 )    "MP_SizeResNum  ", ThisSpc%MP_SizeResNum
+          IF ( ThisSpc%MP_SizeResAer ) THEN
+             WRITE( 6, 130 ) "MP_SizeResAer  ", ThisSpc%MP_SizeResAer
+          ENDIF
+          IF ( ThisSpc%MP_SizeResNum ) THEN
+             WRITE( 6, 130 ) "MP_SizeResNum  ", ThisSpc%MP_SizeResNum
+          ENDIF
        ENDIF
 
        !--------------------------------------------------------------------
        ! Is the species advected?
        !--------------------------------------------------------------------
-       WRITE( 6, 130 )       "Is_Advected    ", ThisSpc%Is_Advected
        IF ( ThisSpc%Is_Advected ) THEN
+          WRITE( 6, 130 )    "Is_Advected    ", ThisSpc%Is_Advected
           WRITE( 6, 100 )    "AdvectId       ", ThisSpc%AdvectId
        ENDIF
 
        !--------------------------------------------------------------------
        ! Is the species in the KPP mechanism and is it photolyzed?
        !--------------------------------------------------------------------
-       WRITE( 6, 130 )       "Is_Kpp         ", ThisSpc%Is_Kpp
-
        IF ( ThisSpc%Is_Kpp ) THEN
-          IF ( ThisSpc%KppSpcId > 0 ) THEN
-             WRITE( 6, 100 ) "KppSpcId       ", ThisSpc%KppSpcId
-          ENDIF
+          WRITE( 6, 130 )    "Is_Kpp         ", ThisSpc%Is_Kpp
+          WRITE( 6, 100 )    "KppSpcId       ", ThisSpc%KppSpcId
 
-          WRITE( 6, 130 )    "Is_ActiveChem  ", ThisSpc%Is_ActiveChem
-          IF ( ThisSpc%KppVarId > 0 ) THEN
+          IF ( ThisSpc%Is_ActiveChem ) THEN
+             WRITE( 6, 130 ) "Is_ActiveChem  ", ThisSpc%Is_ActiveChem
              WRITE( 6, 100 ) "KppVarId       ", ThisSpc%KppVarId
           ENDIF
 
-          WRITE( 6, 130 )    "Is_FixedChem   ", ThisSpc%Is_FixedChem
-          IF ( ThisSpc%KppFixId > 0 ) THEN
+          IF ( ThisSpc%Is_FixedChem ) THEN
+             WRITE( 6, 130 ) "Is_FixedChem   ", ThisSpc%Is_FixedChem
              WRITE( 6, 100 ) "KppFixId       ", ThisSpc%KppFixId
           ENDIF
-          
-          WRITE( 6, 130 )    "Is_Photolysis  ", ThisSpc%Is_Photolysis
-          IF ( ThisSpc%PhotolId > 0 ) THEN
-             WRITE( 6, 100 ) "PhotolId       ", ThisSpc%PhotolId
-          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Is the species photolyzed
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Photolysis ) THEN
+          WRITE( 6, 130 ) "Is_Photolysis  ", ThisSpc%Is_Photolysis
+          WRITE( 6, 100 ) "PhotolId       ", ThisSpc%PhotolId
        ENDIF
 
        !--------------------------------------------------------------------
        ! Is the species dry-deposited?
        !--------------------------------------------------------------------
-       WRITE( 6, 130 )       "Is_DryDep      ", ThisSpc%Is_DryDep
-
        IF ( ThisSpc%Is_DryDep ) THEN
-          WRITE( 6, 100 )    "DryDepID       ", ThisSpc%DryDepId
+          WRITE( 6, 130 ) "Is_DryDep      ", ThisSpc%Is_DryDep
+          WRITE( 6, 100 ) "DryDepID       ", ThisSpc%DryDepId
 
           IF ( ThisSpc%DD_AeroDryDep ) THEN
              WRITE( 6, 130 ) "DD_AeroDryDep  ", ThisSpc%DD_AeroDryDep
@@ -571,7 +574,7 @@ CONTAINS
           ENDIF
 
           IF ( ThisSpc%DD_DvzAerSnow > ZERO ) THEN
-             WRITE( 6, 120 ) "DD_DvzAerSnow  ", ThisSpc%DD_DvzAerSnow
+             WRITE( 6, 121 ) "DD_DvzAerSnow  ", ThisSpc%DD_DvzAerSnow
           ENDIF
 
           IF ( SUM( ThisSpc%DD_DvzMinVal ) > ZERO ) THEN
@@ -590,15 +593,16 @@ CONTAINS
              WRITE( 6, 120 ) "DD_Hstar       ", ThisSpc%DD_Hstar
           ENDIF
 
-          WRITE( 6, 130 )    "Is_DryAlt      ", ThisSpc%Is_DryAlt
+          IF ( ThisSpc%Is_DryAlt ) THEN
+             WRITE( 6, 130 ) "Is_DryAlt      ", ThisSpc%Is_DryAlt
+          ENDIF
        ENDIF
 
        !--------------------------------------------------------------------
        ! Is the species wet-deposited?
        !--------------------------------------------------------------------
-       WRITE( 6, 130 )       "Is_WetDep      ", ThisSpc%Is_WetDep
-
        IF ( ThisSpc%Is_WetDep ) THEN
+          WRITE( 6, 130 )    "Is_WetDep      ", ThisSpc%Is_WetDep
           WRITE( 6, 100 )    "WetDepID       ", ThisSpc%WetDepId
 
           IF ( ThisSpc%WD_LiqAndGas ) THEN
@@ -611,7 +615,7 @@ CONTAINS
           ENDIF
 
           IF ( ThisSpc%WD_AerScavEff > ZERO ) THEN
-             WRITE( 6, 120 ) "WD_AerScafEff  ", ThisSpc%WD_AerScavEff
+             WRITE( 6, 120 ) "WD_AerScavEff  ", ThisSpc%WD_AerScavEff
           ENDIF
 
           IF ( SUM( ThisSpc%WD_KcScaleFac ) > ZERO ) THEN
@@ -630,11 +634,11 @@ CONTAINS
              WRITE( 6, 130 ) "WD_Is_H2SO4    ", ThisSpc%WD_Is_H2SO4
           ENDIF
 
-          IF ( ThisSpc%WD_Is_HNO3  ) THEN
+          IF ( ThisSpc%WD_Is_HNO3 ) THEN
              WRITE( 6, 130 ) "WD_Is_HNO3     ",  ThisSpc%WD_Is_HNO3
           ENDIF
 
-          IF ( ThisSpc%WD_Is_H2SO4 ) THEN
+          IF ( ThisSpc%WD_Is_SO2 ) THEN
              WRITE( 6, 130 ) "WD_Is_SO2      ",  ThisSpc%WD_Is_SO2
           ENDIF
        ENDIF

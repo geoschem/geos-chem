@@ -489,7 +489,7 @@ CONTAINS
           ELSE IF ( INDEX( key, "%WD_ConvFacI2G" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%WD_ConvFacI2G = Cast_and_RoundOff( v_real )
+             ThisSpc%WD_ConvFacI2G = DBLE( v_real )  ! Don't round off
 
           ELSE IF ( INDEX( key, "%WD_KcScaleFac_Luo" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
