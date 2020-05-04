@@ -587,6 +587,40 @@ CONTAINS
           ThisSpc%EmMW_g = ThisSpc%MW_g
        ENDIF
 
+       !--------------------------------------------------------------------
+       ! SANITY CHECK #4
+       ! If the species is a gas, set all aerosol fields to missing values
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Gas ) THEN
+
+          ! Zero these fields for all gas-phase species
+          ThisSpc%DD_DvzAerSnow = MISSING
+          ThisSpc%MP_SizeResAer = MISSING_BOOL
+          ThisSpc%MP_SizeResNum = MISSING_BOOL
+          ThisSpc%WD_CoarseAer  = MISSING_BOOL
+
+          SELECT CASE( TRIM( spc ) )
+             CASE( 'HNO3', 'SO2' )
+                ! HNO3 and SO2 wetdep like aerosols, so they
+                ! do not need any other parameters zeroed out
+             CASE DEFAULT
+                ! Zero these fields for other gas-phase species
+                ThisSpc%WD_AerScavEff = MISSING
+                ThisSpc%WD_KcScaleFac = MISSING
+                ThisSpc%WD_RainoutEff = MISSING
+          END SELECT
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! SANITY CHECK #5
+       ! If the species is an aerosol, set all gas fields to missing values
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Aerosol ) THEN
+          ThisSpc%WD_ConvFacI2G = MISSING
+          ThisSpc%WD_RetFactor  = MISSING
+          ThisSpc%WD_LiqAndGas  = MISSING_BOOL
+       ENDIF
+
        ! Debug printout
        IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
 
@@ -608,7 +642,6 @@ CONTAINS
 
     ! Free objects & return
     CALL QFYAML_CleanUp( yml )
-    stop
     RETURN
 
     !=======================================================================

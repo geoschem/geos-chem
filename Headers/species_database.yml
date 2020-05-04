@@ -1,4 +1,4 @@
-# GEOS-Chem Species Database (30 Apr 2020)
+# GEOS-Chem Species Database (04 May 2020)
 # Core species only (neglecting microphysics)
 # NOTE: Anchors must be defined before any variables that reference them
 A3O2:
@@ -2916,7 +2916,7 @@ OCPO:
   Is_DryDep: true
   Is_WetDep: true
   MW_g: 12.01
-  WD_aerScavEff: 1.0
+  WD_AerScavEff: 1.0
   WD_KcScaleFac: [0.5, 0.5, 0.5]
   WD_KcScaleFac_Luo: [0.0, 0.0, 0.0]
   WD_RainoutEff: [0.0, 0.0, 0.0]
@@ -3015,7 +3015,7 @@ PAN:
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 121.06
-  WD_RetFaxtor: 2.0e-2
+  WD_RetFactor: 2.0e-2
 PassiveTracer:
   FullName: Passive tracer for mass conservation evaluation
   Is_Advected: true
