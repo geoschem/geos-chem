@@ -1016,7 +1016,7 @@ HBr:
   Is_Gas: true
   Is_WetDep: true
   MW_g: 80.91
-  WD_RetFactor: 2.0e-2
+  WD_RetFactor: 1.0e+0
 HC5A:
   DD_F0: 0.0
   DD_Hstar: 7.8e+3
@@ -1071,7 +1071,7 @@ HCl:
   Is_Gas: true
   Is_WetDep: true
   MW_g: 36.45
-  WD_RetFactor: 2.0e-2
+  WD_RetFactor: 1.0e+0
 HCOOH:
   DD_F0: 1.0
   DD_Hstar: 8.90e+3
@@ -2385,7 +2385,7 @@ MGLY:
   MW_g: 72.07
   WD_RetFactor: 2.0e-2
 MO2:
-  Background_VV: 4.0e-2
+  Background_VV: 4.0e-15
   Formula: CH3O2
   FullName: Methylperoxy radical
   Is_Gas: true
@@ -2661,6 +2661,7 @@ N:
   Is_Gas: true
   MW_g: 14.01
 N2:
+  Background_VV: 7.808e-1
   Formula: N2
   FullName: Molecular nitrogen
   Is_Gas: true
@@ -2757,9 +2758,8 @@ NITD4:
 NITs:
   << : *SALCproperties
   FullName: Inorganic nitrates on surface of seasalt aerosol
-  Is_HygroGrowth: false
   Is_Photolysis: true
-  WD_CoarseAer: false
+  MW_g: 31.4
 'NO':
   Background_VV: 4.0e-13
   Formula: 'NO'
@@ -3406,7 +3406,7 @@ PRPN:
   WD_RetFactor: 2.0e-2
 PSO4:
   FullName: Dummy species to track production of SO4
-  Is_Aerosol: true
+  Is_Gas: true
 PYAC:
   DD_F0: 1.0
   DD_Hstar: 3.14e+5
@@ -3673,8 +3673,7 @@ SO4H2:
 SO4s:
   << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
-  Is_HygroGrowth: false
-  WD_CoarseAer: false
+  MW_g: 31.4
 SOAGX:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
