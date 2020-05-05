@@ -449,7 +449,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                      :: N
-    
+
     ! Strings
     CHARACTER(LEN=QFYAML_strlen) :: errMsg
     CHARACTER(LEN=QFYAML_strlen) :: thisLoc
@@ -570,7 +570,14 @@ CONTAINS
     !=======================================================================
 
     ! Open the file
-    OPEN( my_unit, FILE=TRIM(filename), STATUS="old", ACTION="read")
+    OPEN( my_unit, FILE=TRIM(filename), STATUS="old", ACTION="read", IOSTAT=RC)
+    IF ( RC /= QFYAML_SUCCESS ) THEN
+       errMsg = 'Could not open file: ' // TRIM( fileName )
+       CALL Handle_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    ! Create format line
     WRITE( line_fmt, "(a,i0,a)") "(a", QFYAML_strlen, ")"
 
     ! Start looping
@@ -1194,7 +1201,7 @@ CONTAINS
        ! Exit with error if the variable can't be read properly
        IF ( stat /= 0 ) THEN
           s1 = "Error parsing YAML file!"
-          s2 = "Reading variable : " // var%var_name 
+          s2 = "Reading variable : " // var%var_name
           s3 = "Variable type    : " // QFYAML_type_names(var%var_type)
           s4 = "Parsing value    : " // var%stored_data(ix_start(n):ix_end(n))
           errMsg = TRIM( s1 ) // NEW_LINE( 'a' ) //                          &

@@ -473,6 +473,11 @@ CONTAINS
                                     SpcData   = State_Chm%SpcData,           &
                                     SpcCount  = SpcCount,                    &
                                     RC        = RC                           )
+        IF ( RC /= GC_SUCCESS ) THEN
+           errMsg = 'Error encountered in routine "Init_Species_Database"!'
+           CALL GC_Error( errMsg, RC, thisLoc )
+           RETURN
+        ENDIF
 
         ! Point to a private module copy of the species database
         ! which will be used by the Ind_ indexing function
