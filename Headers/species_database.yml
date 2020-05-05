@@ -1603,6 +1603,7 @@ I2:
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 253.80
+  WD_RetFactor: 0.0
 I2O2:
   DD_F0: 0.0
   DD_Hstar: 1.0e+20

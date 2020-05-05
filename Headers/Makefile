@@ -214,6 +214,8 @@ taggeddiaglist_mod.o   : taggeddiaglist_mod.F90   \
 physconstants.o        : physconstants.F90        \
                          precision_mod.o
 
+precision_mod.o        : precision_mod.F90 
+
 registry_mod.o         : registry_mod.F90         \
                          charpak_mod.o            \
                          dictionary_m.o           \

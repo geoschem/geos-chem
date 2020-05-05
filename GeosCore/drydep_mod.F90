@@ -4227,20 +4227,32 @@ CONTAINS
           NTRAIND(NUMDEP)   = SpcInfo%ModelID
           NDVZIND(NUMDEP)   = SpcInfo%DryDepID
           DEPNAME(NUMDEP)   = TRIM( SpcInfo%Name )
-          HSTAR(NUMDEP)     = DBLE( SpcInfo%DD_Hstar       )
-          F0(NUMDEP)        = DBLE( SpcInfo%DD_F0          )
-          KOA(NUMDEP)       = DBLE( SpcInfo%DD_KOA         )
           XMW(NUMDEP)       = DBLE( SpcInfo%MW_g * 1e-3_fp )
-          AIROSOL(NUMDEP)   = ( .not. SpcInfo%Is_Gas       )
+          AIROSOL(NUMDEP)   = ( SpcInfo%Is_Aerosol )
+
+          ! Only copy F0 if it's not a missing value
+          IF ( SpcInfo%DD_F0 > 0.0_fp ) THEN
+             F0(NUMDEP)     = DBLE( SpcInfo%DD_F0 )
+          ENDIF
+
+          ! Only copy HSTAR if it's not a missing value
+          IF ( SpcInfo%DD_Hstar > 0.0_fp ) THEN
+             HSTAR(NUMDEP)  = DBLE( SpcInfo%DD_HStar )
+          ENDIF
+
+          ! Only copy KOA if it's not a missing value
+          IF ( SpcInfo%DD_KOA > 0.0_fp ) THEN
+             KOA(NUMDEP)    = DBLE( SpcInfo%DD_KOA )
+          ENDIF
 
           ! Only copy DENSITY if it's not a missing value
           IF ( SpcInfo%Density > 0.0_fp ) THEN
-             A_DEN(NUMDEP)  = DBLE( SpcInfo%Density        )
+             A_DEN(NUMDEP)  = DBLE( SpcInfo%Density )
           ENDIF
 
           ! Only copy RADIUS if it's not a missing value
           IF ( SpcInfo%Radius > 0.0_fp ) THEN
-             A_RADI(NUMDEP) = DBLE( SpcInfo%Radius         )
+             A_RADI(NUMDEP) = DBLE( SpcInfo%Radius )
           ENDIF
 
           !-----------------------------------------------------
@@ -4248,71 +4260,71 @@ CONTAINS
           !-----------------------------------------------------
           SELECT CASE ( TRIM( SpcInfo%Name ) )
 
-          CASE( 'ACET' )
-             ! Flag the species ID of ACET for use above.
-             id_ACET = SpcInfo%ModelId
+             CASE( 'ACET' )
+                ! Flag the species ID of ACET for use above.
+                id_ACET = SpcInfo%ModelId
 
-          CASE( 'O3' )
-             ! Flag the species ID of O3 for use above
-             ID_O3 = SpcInfo%ModelId
+             CASE( 'O3' )
+                ! Flag the species ID of O3 for use above
+                ID_O3 = SpcInfo%ModelId
 
-          CASE( 'ALD2' )
-             ! Flag the species ID of ALD2 for use above.
-             id_ALD2 = SpcInfo%ModelId
+             CASE( 'ALD2' )
+                ! Flag the species ID of ALD2 for use above.
+                id_ALD2 = SpcInfo%ModelId
 
-          CASE( 'MENO3' )
-             ! Flag the species ID of MENO3 for use above.
-             id_MENO3 = SpcInfo%ModelId
+             CASE( 'MENO3' )
+                ! Flag the species ID of MENO3 for use above.
+                id_MENO3 = SpcInfo%ModelId
 
-          CASE( 'ETNO3' )
-             ! Flag the species ID of ETNO3 for use above.
-             id_ETNO3 = SpcInfo%ModelId
+             CASE( 'ETNO3' )
+                ! Flag the species ID of ETNO3 for use above.
+                id_ETNO3 = SpcInfo%ModelId
 
-          CASE( 'NITs', 'NITS' )
-             ! DEPNAME for NITs has to be in all caps, for
-             ! backwards compatibility with older code.
-             DEPNAME(NUMDEP) = 'NITS'
+             CASE( 'NITs', 'NITS' )
+                ! DEPNAME for NITs has to be in all caps, for
+                ! backwards compatibility with older code.
+                DEPNAME(NUMDEP) = 'NITS'
 
-          CASE( 'N2O5', 'HC187' )
-             ! These species scale to the Vd of HNO3. We will
-             ! explicitly compute the Vd of these species instead
-             ! of assigning the Vd of HNO3 from the DVEL array.
-             ! The scaling is applied in DO_DRYDEP using FLAG=1.
-             !
-             ! Make sure to set XMW to the MW of HNO3
-             ! for the computation of Vd to work properly.
-             XMW(NUMDEP)  = State_Chm%SpcData(id_HNO3)%Info%MW_g * 1e-3_fp
-             FLAG(NUMDEP) = 1
+             CASE( 'N2O5', 'HC187' )
+                ! These species scale to the Vd of HNO3. We will
+                ! explicitly compute the Vd of these species instead
+                ! of assigning the Vd of HNO3 from the DVEL array.
+                ! The scaling is applied in DO_DRYDEP using FLAG=1.
+                !
+                ! Make sure to set XMW to the MW of HNO3
+                ! for the computation of Vd to work properly.
+                XMW(NUMDEP)  = State_Chm%SpcData(id_HNO3)%Info%MW_g * 1e-3_fp
+                FLAG(NUMDEP) = 1
 
-          CASE(  'MPAN', 'PPN', 'R4N2' )
-             ! These specied scale to the Vd of PAN.  We will
-             ! explicitly compute the Vd of these species instead
-             ! of assigning the Vd of PAN from the DVEL array.
-             ! The scaling is applied in DO_DRYDEP using FLAG=2.
-             !
-             ! Make sure to set XMW to the MW of PAN
-             ! for the computation of Vd to work properly.
-             XMW(NUMDEP)  = State_Chm%SpcData(id_PAN)%Info%MW_g * 1e-3_fp
-             FLAG(NUMDEP) = 2
+             CASE(  'MPAN', 'PPN', 'R4N2' )
+                ! These specied scale to the Vd of PAN.  We will
+                ! explicitly compute the Vd of these species instead
+                ! of assigning the Vd of PAN from the DVEL array.
+                ! The scaling is applied in DO_DRYDEP using FLAG=2.
+                !
+                ! Make sure to set XMW to the MW of PAN
+                ! for the computation of Vd to work properly.
+                XMW(NUMDEP)  = State_Chm%SpcData(id_PAN)%Info%MW_g * 1e-3_fp
+                FLAG(NUMDEP) = 2
 
-          CASE( 'MONITS', 'MONITU', 'HONIT' )
-             ! These species scale to the Vd of ISOPN. We will
-             ! explicitly compute the Vd of these species instead
-             ! of assigning the Vd of ISOPN from the DVEL array.
-             ! The scaling is applied in DO_DRYDEP using FLAG=3.
-             !
-             ! Make sure to set XMW to the MW of ISOPN
-             ! for the computation of Vd to work properly.
-             XMW(NUMDEP)  = State_Chm%SpcData(id_IHN1)%Info%MW_g * 1e-3_fp
-             FLAG(NUMDEP) = 3
-
-          CASE( 'SO4s', 'SO4S' )
-             ! DEPNAME for SO4s has to be in all caps, for
-             ! backwards compatibility with older code
-             DEPNAME(NUMDEP) = 'SO4S'
-
-          CASE DEFAULT
-             ! Do nothing
+             CASE( 'MONITS', 'MONITU', 'HONIT' )
+                ! These species scale to the Vd of ISOPN. We will
+                ! explicitly compute the Vd of these species instead
+                ! of assigning the Vd of ISOPN from the DVEL array.
+                ! The scaling is applied in DO_DRYDEP using FLAG=3.
+                !
+                ! Make sure to set XMW to the MW of ISOPN
+                ! for the computation of Vd to work properly.
+                XMW(NUMDEP)  = State_Chm%SpcData(id_IHN1)%Info%MW_g * 1e-3_fp
+                FLAG(NUMDEP) = 3
+                
+             CASE( 'SO4s', 'SO4S' )
+                ! DEPNAME for SO4s has to be in all caps, for
+                ! backwards compatibility with older code
+                DEPNAME(NUMDEP) = 'SO4S'
+                
+             CASE DEFAULT
+                ! Do nothing
 
           END SELECT
 

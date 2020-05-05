@@ -134,8 +134,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_WETDEP( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                        State_Met, RC )
+  SUBROUTINE DO_WETDEP( Input_Opt,  State_Chm, State_Diag,                   &
+                        State_Grid, State_Met, RC                           )
 !
 ! !USES:
 !
@@ -2624,8 +2624,10 @@ CONTAINS
 !
     ! SAVEd Scalars
     LOGICAL, SAVE          :: FIRST = .TRUE.
+    LOGICAL                :: printErr
 
     ! Scalars
+    LOGICAL                :: errPrint
     LOGICAL                :: IS_Hg
     LOGICAL                :: KIN
     LOGICAL                :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
@@ -2660,6 +2662,7 @@ CONTAINS
 
     ! Initialize
     RC        = GC_SUCCESS
+    errPrint  = .TRUE.
     ErrorMsg  = ''
     ThisLoc   = ' -> at WetDep (in module GeosCore/wetscav_mod.F90)'
 
@@ -2717,15 +2720,15 @@ CONTAINS
     !=================================================================
     ! (2)  L o o p   O v e r   (I, J)   S u r f a c e   B o x e s
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
+    !$OMP PARALLEL DO                                                 &
+    !$OMP DEFAULT( SHARED                                           ) &
     !$OMP PRIVATE( I,           J,          FTOP,        L          ) &
     !$OMP PRIVATE( NW,          ERRMSG,     F,           F_PRIME    ) &
     !$OMP PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          ) &
     !$OMP PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) &
     !$OMP PRIVATE( DEP_HG,      SpcInfo,    Hg_Cat,      EC         ) &
-    !$OMP PRIVATE( COND_WATER_CONTENT ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PRIVATE( COND_WATER_CONTENT                               ) &
+    !$OMP SCHEDULE( DYNAMIC                                         )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -2812,34 +2815,38 @@ CONTAINS
 
           ! Adjust convective large-scale precip (ckeller, 3/4/16)
           IF ( CNVSCL >= 0.0_fp ) THEN
-             F = ( ( 1.0_fp - State_Met%CNV_FRC(I,J) ) * F ) &
+             F = ( ( 1.0_fp - State_Met%CNV_FRC(I,J) ) * F )                 &
                + ( ( CNVSCL * State_Met%CNV_FRC(I,J) ) * F )
           ENDIF
 
           ! Only compute rainout if F > 0.
           ! This helps to eliminate unnecessary CPU cycles.
           IF ( F > 0.0_fp ) THEN
-             CALL DO_RAINOUT_ONLY( LS         = LS,         &
-                                   I          = I,          &
-                                   J          = J,          &
-                                   L          = L,          &
-                                   IDX        = IDX,        &
-                                   ERRMSG     = ERRMSG,     &
-                                   F_RAINOUT  = F,          &
-                                   K_RAIN     = K_RAIN,     &
-                                   DT         = DT,         &
-                                   DSpc       = DSpc,       &
-                                   Input_Opt  = Input_Opt,  &
-                                   State_Chm  = State_Chm,  &
-                                   State_Diag = State_Diag, &
-                                   State_Grid = State_Grid, &
-                                   State_Met  = State_Met,  &
-                                   RC         = EC )
+             CALL DO_RAINOUT_ONLY( LS         = LS,                          &
+                                   I          = I,                           &
+                                   J          = J,                           &
+                                   L          = L,                           &
+                                   IDX        = IDX,                         &
+                                   ERRMSG     = ERRMSG,                      &
+                                   F_RAINOUT  = F,                           &
+                                   K_RAIN     = K_RAIN,                      &
+                                   DT         = DT,                          &
+                                   DSpc       = DSpc,                        &
+                                   Input_Opt  = Input_Opt,                   &
+                                   State_Chm  = State_Chm,                   &
+                                   State_Diag = State_Diag,                  &
+                                   State_Grid = State_Grid,                  &
+                                   State_Met  = State_Met,                   &
+                                   errPrint   = errPrint,                    &
+                                   RC         = EC                          )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
+                IF( errPrint ) THEN 
+                   ErrorMsg = 'Error encountered in "Do_Rainout_Only (3)"!'
+                ENDIF
                 RC       = EC
-                ErrorMsg = 'Error encountered in "Do_Rainout_Only (3)"!'
+                errPrint = .FALSE.
              ENDIF
           ENDIF
 
@@ -2985,27 +2992,31 @@ CONTAINS
              ERRMSG = 'RAINOUT'
 
              ! Do rainout if we meet the above criteria
-             CALL DO_RAINOUT_ONLY( LS         = LS,         &
-                                   I          = I,          &
-                                   J          = J,          &
-                                   L          = L,          &
-                                   IDX        = IDX,        &
-                                   ERRMSG     = ERRMSG,     &
-                                   F_RAINOUT  = F_RAINOUT,  &
-                                   K_RAIN     = K_RAIN,     &
-                                   DT         = DT,         &
-                                   DSpc       = DSpc,       &
-                                   Input_Opt  = Input_Opt,  &
-                                   State_Chm  = State_Chm,  &
-                                   State_Diag = State_Diag, &
-                                   State_Grid = State_Grid, &
-                                   State_Met  = State_Met,  &
-                                   RC         = EC )
+             CALL DO_RAINOUT_ONLY( LS         = LS,                          &
+                                   I          = I,                           &
+                                   J          = J,                           &
+                                   L          = L,                           &
+                                   IDX        = IDX,                         &
+                                   ERRMSG     = ERRMSG,                      &
+                                   F_RAINOUT  = F_RAINOUT,                   &
+                                   K_RAIN     = K_RAIN,                      &
+                                   DT         = DT,                          &
+                                   DSpc       = DSpc,                        &
+                                   Input_Opt  = Input_Opt,                   &
+                                   State_Chm  = State_Chm,                   &
+                                   State_Diag = State_Diag,                  &
+                                   State_Grid = State_Grid,                  &
+                                   State_Met  = State_Met,                   &
+                                   errPrint   = errPrint,                    &
+                                   RC         = EC                          )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
-                RC     = EC
-                ErrorMsg = 'Error encountered in "Do_Rainout_Only (4)!'
+                IF ( errPrint ) THEN
+                   ErrorMsg = 'Error encountered in "Do_Rainout_Only (4)!'
+                ENDIF
+                RC       = EC
+                errPrint = .FALSE.
              ENDIF
 
           ENDIF
@@ -3026,30 +3037,34 @@ CONTAINS
              ERRMSG = 'WASHOUT'
 
              ! Do the washout
-             CALL DO_WASHOUT_ONLY( LS         = LS,         &
-                                   I          = I,          &
-                                   J          = J,          &
-                                   L          = L,          &
-                                   IDX        = IDX,        &
-                                   ERRMSG     = ERRMSG,     &
-                                   QDOWN      = QDOWN,      &
-                                   Q          = Q,          &
-                                   F_WASHOUT  = F_WASHOUT,  &
-                                   F_RAINOUT  = F_RAINOUT,  &
-                                   DT         = DT,         &
-                                   PDOWN      = PDOWN,      &
-                                   DSpc       = DSpc,       &
-                                   Input_Opt  = Input_Opt,  &
-                                   State_Chm  = State_Chm,  &
-                                   State_Diag = State_Diag, &
-                                   State_Grid = State_Grid, &
-                                   State_Met  = State_Met,  &
-                                   RC         = EC )
+             CALL DO_WASHOUT_ONLY( LS         = LS,                          &
+                                   I          = I,                           &
+                                   J          = J,                           &
+                                   L          = L,                           &
+                                   IDX        = IDX,                         &
+                                   ERRMSG     = ERRMSG,                      &
+                                   QDOWN      = QDOWN,                       &
+                                   Q          = Q,                           &
+                                   F_WASHOUT  = F_WASHOUT,                   &
+                                   F_RAINOUT  = F_RAINOUT,                   &
+                                   DT         = DT,                          &
+                                   PDOWN      = PDOWN,                       &
+                                   DSpc       = DSpc,                        &
+                                   Input_Opt  = Input_Opt,                   &
+                                   State_Chm  = State_Chm,                   &
+                                   State_Diag = State_Diag,                  &
+                                   State_Grid = State_Grid,                  &
+                                   State_Met  = State_Met,                   &
+                                   errPrint   = errPrint,                    &
+                                   RC         = EC                          )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
+                IF ( errPrint ) THEN 
+                   ErrorMsg = 'Error encountered in "Do_Washout_Only (4)!'
+                ENDIF
                 RC       = EC
-                ErrorMsg = 'Error encountered in "Do_Washout_Only (4)!'
+                errPrint = .FALSE.
              ENDIF
           ENDIF
 
@@ -3077,25 +3092,29 @@ CONTAINS
              ERRMSG = 'RESUSPENSION in middle levels'
 
              ! Re-evaporate all of the rain
-             CALL DO_COMPLETE_REEVAP( LS         = LS,         &
-                                      I          = I,          &
-                                      J          = J,          &
-                                      L          = L,          &
-                                      IDX        = IDX,        &
-                                      ERRMSG     = ERRMSG,     &
-                                      DT         = DT,         &
-                                      DSpc       = DSpc,       &
-                                      Input_Opt  = Input_Opt,  &
-                                      State_Chm  = State_Chm,  &
-                                      State_Diag = State_Diag, &
-                                      State_Grid = State_Grid, &
-                                      State_Met  = State_Met,  &
-                                      RC         = EC )
+             CALL DO_COMPLETE_REEVAP( LS         = LS,                       &
+                                      I          = I,                        &
+                                      J          = J,                        &
+                                      L          = L,                        &
+                                      IDX        = IDX,                      &
+                                      ERRMSG     = ERRMSG,                   &
+                                      DT         = DT,                       &
+                                      DSpc       = DSpc,                     &
+                                      Input_Opt  = Input_Opt,                &
+                                      State_Chm  = State_Chm,                &
+                                      State_Diag = State_Diag,               &
+                                      State_Grid = State_Grid,               &
+                                      State_Met  = State_Met,                &
+                                      errPrint   = errPrint,                 &
+                                      RC         = EC                       )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
+                IF ( errPrint ) THEN
+                   ErrorMsg = 'Error encountered in "Do_Complete_Reevap" (6)!'
+                ENDIF
                 RC       = EC
-                ErrorMsg = 'Error encountered in "Do_Complete_Reevap" (6)!'
+                errPrint = .FALSE.
              ENDIF
           ENDIF
 
@@ -3136,27 +3155,31 @@ CONTAINS
 
           ! Only compute washout if F > 0.
           IF ( F > 0e+0_fp ) THEN
-             CALL DO_WASHOUT_AT_SFC( LS         = LS,         &
-                                     I          = I,          &
-                                     J          = J,          &
-                                     L          = L,          &
-                                     IDX        = IDX,        &
-                                     ERRMSG     = ERRMSG,     &
-                                     QDOWN      = QDOWN,      &
-                                     F          = F,          &
-                                     DT         = DT,         &
-                                     DSpc       = DSpc,       &
-                                     Input_Opt  = Input_Opt,  &
-                                     State_Chm  = State_Chm,  &
-                                     State_Diag = State_Diag, &
-                                     State_Grid = State_Grid, &
-                                     State_Met  = State_Met,  &
-                                     RC         = EC )
+             CALL DO_WASHOUT_AT_SFC( LS         = LS,                        &
+                                     I          = I,                         &
+                                     J          = J,                         &
+                                     L          = L,                         &
+                                     IDX        = IDX,                       &
+                                     ERRMSG     = ERRMSG,                    &
+                                     QDOWN      = QDOWN,                     &
+                                     F          = F,                         &
+                                     DT         = DT,                        &
+                                     DSpc       = DSpc,                      &
+                                     Input_Opt  = Input_Opt,                 &
+                                     State_Chm  = State_Chm,                 &
+                                     State_Diag = State_Diag,                &
+                                     State_Grid = State_Grid,                &
+                                     State_Met  = State_Met,                 &
+                                     errPrint   = errPrint,                  &
+                                     RC         = EC                        )
 
              ! Trap potential errors
              IF ( EC /= GC_SUCCESS ) THEN
+                IF ( errPrint ) THEN
+                   ErrorMsg = 'Error encountered in "Do_Washout_at_Sfc (7)!'
+                ENDIF
                 RC       = EC
-                ErrorMsg = 'Error encountered in "Do_Washout_at_Sfc (7)!'
+                errPrint = .FALSE.
              ENDIF
           ENDIF
        ENDIF
@@ -3404,11 +3427,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_RAINOUT_ONLY(  LS,  I,  J, L,          IDX,        &
-                               ERRMSG,     F_RAINOUT,  K_RAIN,     &
-                               DT,         DSpc,       Input_Opt,  &
-                               State_Chm,  State_Diag, State_Grid, &
-                               State_Met,  RC )
+  SUBROUTINE DO_RAINOUT_ONLY(  LS,  I,  J, L,          IDX,                  &
+                               ERRMSG,     F_RAINOUT,  K_RAIN,               &
+                               DT,         DSpc,       Input_Opt,            &
+                               State_Chm,  State_Diag, State_Grid,           &
+                               State_Met,  errPrint,   RC                   )
 !
 ! !USES:
 !
@@ -3440,6 +3463,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
     TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
+    LOGICAL,          INTENT(IN)    :: errPrint      ! Print error messages?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3486,9 +3510,9 @@ CONTAINS
     REAL(fp)           :: SOLFRAC, XFRAC
 #endif
 
-    !=================================================================
+    !=======================================================================
     ! DO_RAINOUT_ONLY begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Initialize
     RC        = GC_SUCCESS
@@ -3498,7 +3522,7 @@ CONTAINS
     ! Point to the chemical species array [kg/m2]
     Spc => State_Chm%Species
 
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! HISTORY (aka netCDF diagnostics)
     !
     ! Archive the fraction of the box that is undergoing large-scale
@@ -3509,12 +3533,12 @@ CONTAINS
     ! NOTE: We always assume large-scale precipitation, because
     ! the LS flag is always set to TRUE in the calling routine
     ! for both GEOS-FP and MERRA-2 meteorology.
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
 
     ! NOTE: This diagnostic may need some work
     ! Units: [1]
     IF ( State_Diag%Archive_PrecipFracLS ) THEN
-       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) + &
+       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +     &
                                         F_Rainout
     ENDIF
 
@@ -3528,14 +3552,16 @@ CONTAINS
 
        ! Call subroutine RAINOUT to comptue the fraction
        ! of species lost to rainout in grid box (I,J,L)
-       CALL RAINOUT( I, J, L, N, K_RAIN, DT, F_RAINOUT, RAINFRAC, &
+       CALL RAINOUT( I, J, L, N, K_RAIN, DT, F_RAINOUT, RAINFRAC,            &
                      Input_Opt, State_Met, State_Chm, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          Spc    => NULL()
-          ErrorMsg = 'Error encountered in "Rainout"!'
-          CALL GC_Error( ErrorMsg, RC, ThisLoc )
+          IF ( errPrint ) THEN
+             ErrorMsg = 'Error encountered in "Rainout"!'
+             CALL GC_Error( ErrorMsg, RC, ThisLoc )
+          ENDIF
+          Spc => NULL()
           RETURN
        ENDIF
 
@@ -3595,7 +3621,7 @@ CONTAINS
 
        ENDIF
 
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
        !
        ! (1) Archive the fraction of soluble species lost to rainout
@@ -3605,7 +3631,7 @@ CONTAINS
        !     scale precipitation (WetLossLS).  This includes
        !     contributions from rainout, washout, and reevaporation.
        !     Here we add the component from rainout.
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
 
        ! Units: [1]
        IF ( State_Diag%Archive_RainFracLs .and. &
@@ -3615,8 +3641,8 @@ CONTAINS
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
        IF ( State_Diag%Archive_WetLossLs ) THEN
-          State_Diag%WetLossLs(I,J,L,NW) = State_Diag%WetLossLs(I,J,L,NW) + &
-                                           ( WetLoss / DT ) * &
+          State_Diag%WetLossLs(I,J,L,NW) = State_Diag%WetLossLs(I,J,L,NW) +  &
+                                           ( WetLoss / DT ) *                &
                                            State_Grid%Area_M2(I,J)
        ENDIF
 
@@ -3625,40 +3651,43 @@ CONTAINS
           CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
        ENDIF
 
-       !--------------------------------------------------------------
-       ! Error checks
-       !--------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(I,J,L,N) )  .or. &
-            Spc(I,J,L,N)   < 0e+0_fp   .or. &
-            DSpc(NW,L,I,J) < 0e+0_fp        ) THEN
+       !---------------------------------------------------------------------
+       ! Error checks (only prints if this is the first error)
+       !---------------------------------------------------------------------
+       IF ( IT_IS_NAN( Spc(I,J,L,N) )  .or.                                  &
+            Spc(I,J,L,N) < 0e+0_fp     .or.                                  & 
+            DSpc(NW,L,I,J) < 0e+0_fp ) THEN
 
           ! Print error message
-          CALL SAFETY( I, J, L, N, ERRMSG,           &
-                       LS          = LS,             &
-                       PDOWN       = PDOWN(L,I,J),   &
-                       QQ          = QQ(L,I,J),      &
-                       ALPHA       = 0e+0_fp,        &
-                       ALPHA2      = 0e+0_fp,        &
-                       RAINFRAC    = RAINFRAC,       &
-                       WASHFRAC    = 0e+0_fp,        &
-                       MASS_WASH   = 0e+0_fp,        &
-                       MASS_NOWASH = 0e+0_fp,        &
-                       WETLOSS     = WETLOSS,        &
-                       GAINED      = 0e+0_fp,        &
-                       LOST        = 0e+0_fp,        &
-                       State_Grid  = State_Grid,     &
-                       DSpc        = DSpc(NW,:,I,J), &
-                       Spc         = Spc(I,J,:,N),   &
-                       RC          = RC )
+          IF ( errPrint ) THEN
+             CALL SAFETY( I, J, L, N, ERRMSG,                                &
+                          LS          = LS,                                  &
+                          PDOWN       = PDOWN(L,I,J),                        &
+                          QQ          = QQ(L,I,J),                           &
+                          ALPHA       = 0e+0_fp,                             &
+                          ALPHA2      = 0e+0_fp,                             &
+                          RAINFRAC    = RAINFRAC,                            &
+                          WASHFRAC    = 0e+0_fp,                             &
+                          MASS_WASH   = 0e+0_fp,                             &
+                          MASS_NOWASH = 0e+0_fp,                             &
+                          WETLOSS     = WETLOSS,                             &
+                          GAINED      = 0e+0_fp,                             &
+                          LOST        = 0e+0_fp,                             &
+                          State_Grid  = State_Grid,                          &
+                          DSpc        = DSpc(NW,:,I,J),                      &
+                          Spc         = Spc(I,J,:,N),                        &
+                          RC          = RC                                  )
+          ENDIF
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             Spc      => NULL()
-             ErrorMsg = 'Error encountered in "Safety"!'
-             CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             IF ( errPrint ) THEN
+                ErrorMsg = 'Error encountered in "Safety"!'
+                CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             ENDIF
+             Spc => NULL()
              RETURN
           ENDIF
-
        ENDIF
     ENDDO
 
@@ -3679,12 +3708,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_WASHOUT_ONLY( LS, I, J, L, IDX, ERRMSG,          &
-                              QDOWN, Q, F_WASHOUT, F_RAINOUT,    &
-                              DT,         PDOWN,     DSpc,       &
-                              Input_Opt,  State_Chm, State_Diag, &
-                              State_Grid, State_Met, RC,         &
-                              REEVAP )
+  SUBROUTINE DO_WASHOUT_ONLY( LS,         I,         J,         L,           &
+                              IDX,        ERRMSG,    QDOWN,     Q,           &
+                              F_WASHOUT,  F_RAINOUT, DT,        PDOWN,       &
+                              DSpc,       Input_Opt, State_Chm, State_Diag,  &
+                              State_Grid, State_Met, errPrint,  RC,          &
+                              REEVAP                                        )
 !
 ! !USES:
 !
@@ -3723,6 +3752,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
     TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
+    LOGICAL,          INTENT(IN)    :: errPrint      ! Print error messages
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3820,9 +3850,9 @@ CONTAINS
     INTEGER            :: KMIN       !(win, 7/16/09)
 #endif
 
-    !=================================================================
+    !=======================================================================
     ! DO_WASHOUT_ONLY begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Initialize
     RC        = GC_SUCCESS
@@ -3832,7 +3862,7 @@ CONTAINS
     ! Point to the chemical species array [kg/m2]
     Spc => State_Chm%Species
 
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! HISTORY (aka netCDF diagnostics)
     !
     ! Archive the fraction of the box that is undergoing large-scale
@@ -3843,12 +3873,12 @@ CONTAINS
     ! NOTE: We always assume large-scale precipitation, because
     ! the LS flag is always set to TRUE in the calling routine
     ! for both GEOS-FP and MERRA-2 meteorology.
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
 
     ! NOTE: This diagnostic may need some work
     ! Units: [1]
     IF ( State_Diag%Archive_PrecipFracLS ) THEN
-       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) + &
+       State_Diag%PrecipFracLS(I,J,L) = State_Diag%PrecipFracLS(I,J,L) +     &
                                         F_Washout
     ENDIF
 
@@ -3858,9 +3888,9 @@ CONTAINS
     ! TOTAL precipitation fraction
     TF  = F_WASHOUT + F_RAINOUT
 
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Loop over all wet deposition species
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     DO NW = 1, State_Chm%nWetDep
 
        ! Get the species ID from the wetdep ID
@@ -3878,26 +3908,28 @@ CONTAINS
 
        ! Call WASHOUT to compute the fraction of
        ! species lost to washout in grid box (I,J,L)
-       CALL WASHOUT( I, J, L, N,                     &
-                     State_Met%BXHEIGHT(I,J,L),      &
-                     TK,                             &
-                     QDOWN,                          &
-                     DT,                             &
-                     TF,                             &
-                     State_Chm%H2O2AfterChem(I,J,L), &
-                     State_Chm%SO2AfterChem(I,J,L),  &
-                     WASHFRAC,                       &
-                     KIN,                            &
-                     Input_Opt,                      &
-                     State_Chm,                      &
-                     State_Grid,                     &
-                     State_Met,                      &
-                     RC )
+       CALL WASHOUT( I, J, L, N,                                             &
+                     State_Met%BXHEIGHT(I,J,L),                              &
+                     TK,                                                     &
+                     QDOWN,                                                  &
+                     DT,                                                     &
+                     TF,                                                     &
+                     State_Chm%H2O2AfterChem(I,J,L),                         &
+                     State_Chm%SO2AfterChem(I,J,L),                          &
+                     WASHFRAC,                                               &
+                     KIN,                                                    &
+                     Input_Opt,                                              &
+                     State_Chm,                                              &
+                     State_Grid,                                             &
+                     State_Met,                                              &
+                     RC                                                     )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrorMsg = 'Error encountered in "Washout"!'
-          CALL GC_Error( ErrorMsg, RC, ThisLoc )
+          IF ( errPrint ) THEN
+             ErrorMsg = 'Error encountered in "Washout"!'
+             CALL GC_Error( ErrorMsg, RC, ThisLoc )
+          ENDIF
           RETURN
        ENDIF
 
@@ -3930,15 +3962,15 @@ CONTAINS
           WASHFRAC = WASHFRAC / TF * F_WASHOUT
        ENDIF
 
-       !==============================================================      
+       !====================================================================
        ! Washout of aerosol species --
        ! this is modeled as a kinetic process
-       !==============================================================
+       !====================================================================
        IF ( KIN ) THEN
 
           ! Define ALPHA, the fraction of the raindrops that
           ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-          ALPHA = ( ABS( Q ) * State_Met%BXHEIGHT(I,J,L) * 100e+0_fp ) &
+          ALPHA = ( ABS( Q ) * State_Met%BXHEIGHT(I,J,L) * 100e+0_fp )       &
                   / ( PDOWN(L+1,I,J) )
 
           ! Restrict ALPHA to be less than 1 (>1 is unphysical)
@@ -4017,9 +4049,11 @@ CONTAINS
                    REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp &
                                * State_Grid%Area_M2(I,J)
                 ELSE
-                   ErrorMsg= 'Unexpected species units: ' // &
-                             TRIM( State_Chm%Spc_Units )
-                   CALL GC_Error( ErrorMsg, RC, ThisLoc )
+                   IF ( errPrint ) THEN
+                      ErrorMsg= 'Unexpected species units: ' // &
+                                 TRIM( State_Chm%Spc_Units )
+                      CALL GC_Error( ErrorMsg, RC, ThisLoc )
+                   ENDIF
                    RETURN
                 ENDIF
                 CALL AQOXID( REEVAPSO2, KMIN, I, J, L, &
@@ -4047,24 +4081,24 @@ CONTAINS
              DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
           ENDIF
 
-          !-----------------------------------------------------------
+          !-----------------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
           !
           ! Archive the fraction of soluble species lost to washout
           ! in large-scale precipitation (WashFracLS)
           !
           ! Here we only handle the soluble aerosol species
-          !-----------------------------------------------------------
+          !-----------------------------------------------------------------
 
           ! Units: [1]
           IF ( State_Diag%Archive_WashFracLS .and. F_Washout > 0.0_fp ) THEN
              State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
           ENDIF
 
-       !==============================================================
+       !====================================================================
        ! Washout of non-aerosol species
        ! This is modeled as an equilibrium process
-       !==============================================================
+       !====================================================================
        ELSE
 
           ! MASS_NOWASH is the amount of non-aerosol species in
@@ -4096,7 +4130,7 @@ CONTAINS
              DSpc(NW,L,I,J) = DSpc(NW,L+1,I,J) + WETLOSS
           ENDIF
 
-          !-----------------------------------------------------------
+          !-----------------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
           !
           ! Archive the fraction of soluble species lost to washout
@@ -4105,7 +4139,7 @@ CONTAINS
           ! Here we handle the non-aerosol soluble species.  We don't
           ! have to divide by F_Washout, since this has already been
           ! accounted for in the equations above.
-          !-----------------------------------------------------------
+          !-----------------------------------------------------------------
 
           ! Units: [1]
           IF ( State_Diag%Archive_WashFracLS ) THEN
@@ -4114,19 +4148,19 @@ CONTAINS
 
        ENDIF
 
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Archive the amount of soluble species lost to large-scale
        ! precipitation (WetLossLS).  This includes contributions
        ! from rainout, washout, and reevaporation.  Here we add the
        ! component from washout.
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
        IF ( State_Diag%Archive_WetLossLs ) THEN
-          State_Diag%WetLossLS(I,J,L,NW) = State_Diag%WetLossLS(I,J,L,NW) + &
-                                           ( WetLoss / DT ) * &
+          State_Diag%WetLossLS(I,J,L,NW) = State_Diag%WetLossLS(I,J,L,NW) +  &
+                                           ( WetLoss / DT ) *                &
                                            State_Grid%Area_M2(I,J)
        ENDIF
 
@@ -4135,37 +4169,41 @@ CONTAINS
           CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
        ENDIF
 
-       !--------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Error checks
-       !--------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(I,J,L,N) )       .or. &
-            Spc(I,J,L,N)   < 0e+0_fp        .or. &
+       !---------------------------------------------------------------------
+       IF ( IT_IS_NAN( Spc(I,J,L,N) )       .or.                             &
+            Spc(I,J,L,N)   < 0e+0_fp        .or.                             &
             DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
 
           ! Print error message and stop simulaton
-          CALL SAFETY( I, J, L, N, ERRMSG,           &
-                       LS          = LS,             &
-                       PDOWN       = PDOWN(L+1,I,J), &
-                       QQ          = QQ(L,I,J),      &
-                       ALPHA       = ALPHA,          &
-                       ALPHA2      = ALPHA2,         &
-                       RAINFRAC    = 0e+0_fp,        &
-                       WASHFRAC    = WASHFRAC,       &
-                       MASS_WASH   = MASS_WASH,      &
-                       MASS_NOWASH = MASS_NOWASH,    &
-                       WETLOSS     = WETLOSS,        &
-                       GAINED      = GAINED,         &
-                       LOST        = LOST,           &
-                       State_Grid  = State_Grid,     &
-                       DSpc        = DSpc(NW,:,I,J), &
-                       Spc         = Spc(I,J,:,N),   &
-                       RC          = RC )
+          IF ( errPrint ) THEN
+             CALL SAFETY( I, J, L, N, ERRMSG,                                &
+                          LS          = LS,                                  &
+                          PDOWN       = PDOWN(L+1,I,J),                      &
+                          QQ          = QQ(L,I,J),                           &
+                          ALPHA       = ALPHA,                               &
+                          ALPHA2      = ALPHA2,                              &
+                          RAINFRAC    = 0e+0_fp,                             &
+                          WASHFRAC    = WASHFRAC,                            &
+                          MASS_WASH   = MASS_WASH,                           &
+                          MASS_NOWASH = MASS_NOWASH,                         &
+                          WETLOSS     = WETLOSS,                             &
+                          GAINED      = GAINED,                              &
+                          LOST        = LOST,                                &
+                          State_Grid  = State_Grid,                          &
+                          DSpc        = DSpc(NW,:,I,J),                      &
+                          Spc         = Spc(I,J,:,N),                        &
+                          RC          = RC )
+          ENDIF
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             Spc    => NULL()
-             ErrorMsg = 'Error encountered in "Safety"!'
-             CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             IF ( errPrint ) THEN
+                ErrorMsg = 'Error encountered in "Safety"!'
+                CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             ENDIF
+             Spc => NULL()
              RETURN
           ENDIF
        ENDIF
@@ -4189,9 +4227,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_COMPLETE_REEVAP( LS, I, J, L, IDX, ERRMSG, DT, DSpc, &
-                                 Input_Opt,  State_Chm, State_Diag,  &
-                                 State_Grid, State_Met, RC )
+  SUBROUTINE DO_COMPLETE_REEVAP( LS,         I,         J,                   &
+                                 L,          IDX,       ERRMSG,              &
+                                 DT,         DSpc,      errPrint,            &
+                                 Input_Opt,  State_Chm, State_Diag,          &
+                                 State_Grid, State_Met, RC                  )
 !
 ! !USES:
 !
@@ -4216,6 +4256,7 @@ CONTAINS
     INTEGER,          INTENT(IN)    :: IDX           ! ND38 index
     CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
     REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
+    LOGICAL,          INTENT(IN)    :: errPrint      ! Print error messages
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
     TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
@@ -4254,9 +4295,9 @@ CONTAINS
     INTEGER            :: KMIN       !(win, 7/16/09)
 #endif
 
-    !=================================================================
+    !========================================================================
     ! DO_COMPLETE_REEVAP begins here!
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC        = GC_SUCCESS
@@ -4335,16 +4376,18 @@ CONTAINS
              ! WETLOSS is now [kg/m2] and so is multiplied
              ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
              IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
-                REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp ) &
+                REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )              &
                             * State_Grid%Area_M2(I,J)
              ELSE
-                Spc    => NULL()
-                ErrorMsg = 'Unexpected species units: ' &
-                           // TRIM(State_Chm%Spc_Units)
-                CALL GC_Error( ErrorMsg, RC, ThisLoc )
+                IF ( errPrint ) THEN
+                   ErrorMsg = 'Unexpected species units: '                   &
+                               // TRIM(State_Chm%Spc_Units)
+                   CALL GC_Error( ErrorMsg, RC, ThisLoc )
+                ENDIF
+                Spc => NULL()
                 RETURN
              ENDIF
-             CALL AQOXID( REEVAPSO2, KMIN, I, J, L, &
+             CALL AQOXID( REEVAPSO2, KMIN, I, J, L,                          &
                           Input_Opt, State_Chm, State_Grid, State_Met, RC )
           ENDIF
           !end- added for TOMAS (win, 7/16/09)
@@ -4359,14 +4402,14 @@ CONTAINS
        ! (I,J,L), so set DSpc at grid box (I,J,L) to zero.
        DSpc(NW,L,I,J) = 0e+0_fp
 
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
        !
        ! Archive the amount of soluble species lost to large-scale
        ! precipitation (WetLossLs).  This includes contributions
        ! from rainout, washout, and reevaporation.  Here we add the
        ! component from reevaporation (which is negative).
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
 
        ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
        IF ( State_Diag%Archive_WetLossLs ) THEN
@@ -4380,37 +4423,41 @@ CONTAINS
           CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
        ENDIF
 
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Error checks
-       !--------------------------------------------------------------
-       IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or. &
-           Spc(I,J,L,N)   < 0e+0_fp        .or. &
-            DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
+       !--------------------------------------------------------------------
+       IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or.                                 &
+            Spc(I,J,L,N)   < 0e+0_fp    .or.                                 &
+            DSpc(NW,L,I,J) < 0e+0_fp  ) THEN
 
           ! Print error message and stop simulaton
-          CALL SAFETY( I, J, L, N, ERRMSG,           &
-                       LS          = LS,             &
-                       PDOWN       = 0e+0_fp,        &
-                       QQ          = 0e+0_fp,        &
-                       ALPHA       = 0e+0_fp,        &
-                       ALPHA2      = 0e+0_fp,        &
-                       RAINFRAC    = 0e+0_fp,        &
-                       WASHFRAC    = 0e+0_fp,        &
-                       MASS_WASH   = 0e+0_fp,        &
-                       MASS_NOWASH = 0e+0_fp,        &
-                       WETLOSS     = WETLOSS,        &
-                       GAINED      = 0e+0_fp,        &
-                       LOST        = 0e+0_fp,        &
-                       State_Grid  = State_Grid,     &
-                       DSpc        = DSpc(NW,:,I,J), & 
-                       Spc         = Spc(I,J,:,N),   &
-                       RC          = RC )
+          IF ( errPrint ) THEN
+             CALL SAFETY( I, J, L, N, ERRMSG,                                &
+                          LS          = LS,                                  &
+                          PDOWN       = 0e+0_fp,                             &
+                          QQ          = 0e+0_fp,                             &
+                          ALPHA       = 0e+0_fp,                             &
+                          ALPHA2      = 0e+0_fp,                             &
+                          RAINFRAC    = 0e+0_fp,                             &
+                          WASHFRAC    = 0e+0_fp,                             &
+                          MASS_WASH   = 0e+0_fp,                             &
+                          MASS_NOWASH = 0e+0_fp,                             &
+                          WETLOSS     = WETLOSS,                             &
+                          GAINED      = 0e+0_fp,                             &
+                          LOST        = 0e+0_fp,                             &
+                          State_Grid  = State_Grid,                          &
+                          DSpc        = DSpc(NW,:,I,J),                      & 
+                          Spc         = Spc(I,J,:,N),                        &
+                          RC          = RC )
+          ENDIF
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             Spc      => NULL()
-             ErrorMsg = 'Error encountered in "Safety"!'
-             CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             IF ( errPrint ) THEN 
+                ErrorMsg = 'Error encountered in "Safety"!'
+                CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             ENDIF
+             Spc => NULL()
              RETURN
           ENDIF
        ENDIF
@@ -4434,10 +4481,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_WASHOUT_AT_SFC( LS, I, J, L, IDX, ERRMSG,          &
-                                QDOWN,  F, DT, DSpc,               &
-                                Input_Opt,  State_Chm, State_Diag, &
-                                State_Grid, State_Met, RC )
+  SUBROUTINE DO_WASHOUT_AT_SFC( LS,        I,          J,                    &
+                                L,         IDX,        ERRMSG,               &
+                                QDOWN,     F,          DT,                   &
+                                DSpc,      errPrint,   Input_Opt,            &
+                                State_Chm, State_Diag, State_Grid,           &
+                                State_Met, RC                               )
 !
 ! !USES:
 !
@@ -4463,6 +4512,7 @@ CONTAINS
     REAL(fp),         INTENT(IN)    :: F             ! Fraction of grid box
                                                      !  undergoing precip
     REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
+    LOGICAL,          INTENT(IN)    :: errPrint      ! Print error message?
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
     TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
@@ -4502,9 +4552,9 @@ CONTAINS
     ! Pointers
     REAL(fp), POINTER  :: Spc(:,:,:,:)
 
-    !=================================================================
+    !=======================================================================
     ! DO_WASHOUT_AT_SFC begins here!
-    !=================================================================
+    !=======================================================================
 
     ! Initialize
     RC        = GC_SUCCESS
@@ -4514,7 +4564,7 @@ CONTAINS
     ! Point to the chemical species array [kg/m2]
     Spc => State_Chm%Species
 
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! HISTORY (aka netCDF diagnostics)
     !
     ! Archive the fraction of the box that is undergoing large-scale
@@ -4525,7 +4575,7 @@ CONTAINS
     ! NOTE: We always assume large-scale precipitation, because
     ! the LS flag is always set to TRUE in the calling routine
     ! for both GEOS-FP and MERRA-2 meteorology.
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
 
     ! NOTE: This diagnostic may need some work
     ! Units: [1]
@@ -4536,9 +4586,9 @@ CONTAINS
     ! air temperature [K]
     TK = State_Met%T(I,J,L)
 
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     ! Loop over all wet deposition species
-    !-----------------------------------------------------------------
+    !-----------------------------------------------------------------------
     DO NW = 1, State_Chm%nWetDep
 
        ! Get species ID from wetdep ID
@@ -4546,27 +4596,29 @@ CONTAINS
 
        ! Call WASHOUT to compute the fraction of species
        ! in grid box (I,J,L) that is lost to washout.
-       CALL WASHOUT( I, J, L, N,                     &
-                     State_Met%BXHEIGHT(I,J,L),      &
-                     TK,                             &
-                     QDOWN,                          &
-                     DT,                             &
-                     F,                              &
-                     State_Chm%H2O2AfterChem(I,J,L), &
-                     State_Chm%SO2AfterChem(I,J,L),  &
-                     WASHFRAC,                       &
-                     KIN,                            &     
-                     Input_Opt,                      &
-                     State_Chm,                      &
-                     State_Grid,                     &
-                     State_Met,                      &
-                     RC )
+       CALL WASHOUT( I, J, L, N,                                            &
+                     State_Met%BXHEIGHT(I,J,L),                             &
+                     TK,                                                    &
+                     QDOWN,                                                 &
+                     DT,                                                    &
+                     F,                                                     &
+                     State_Chm%H2O2AfterChem(I,J,L),                        &
+                     State_Chm%SO2AfterChem(I,J,L),                         &
+                     WASHFRAC,                                              &
+                     KIN,                                                   &
+                     Input_Opt,                                             &
+                     State_Chm,                                             &
+                     State_Grid,                                            &
+                     State_Met,                                             &
+                     RC                                                    )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          Spc    => NULL()
-          ErrorMsg = 'Error encountered in "Washout"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          IF ( errPrint ) THEN
+             ErrorMsg = 'Error encountered in "Washout"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+          ENDIF
+          Spc => NULL()
           RETURN
        ENDIF
 
@@ -4627,7 +4679,7 @@ CONTAINS
        CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
        !ENDIF
 
-       !-----------------------------------------------------
+       !--------------------------------------------------------------------
        ! Dirty kludge to prevent wet deposition from removing
        ! stuff from stratospheric boxes -- this can cause
        ! negative species (rvm, bmy, 6/21/00)
@@ -4639,11 +4691,11 @@ CONTAINS
           PRINT*, 'Spc:', Spc(I,J,:,N)
           Spc(I,J,L,N) = 0e+0_fp
        ENDIF
-       !-----------------------------------------------------
+       !--------------------------------------------------------------------
 
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Error checks
-       !--------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( IT_IS_NAN( Spc(I,J,L,N) )   .or. &
             Spc(I,J,L,N)   < 0e+0_fp        .or. &
             DSpc(NW,L,I,J) < 0e+0_fp      ) THEN
@@ -4652,29 +4704,33 @@ CONTAINS
           !PRINT*, 'F        = ', F
 
           ! Print error message and stop simulaton
-          CALL SAFETY( I, J, L, N, ERRMSG,           &
-                       LS          = LS,             &
-                       PDOWN       = 0e+0_fp,        &
-                       QQ          = 0e+0_fp,        &
-                       ALPHA       = 0e+0_fp,        &
-                       ALPHA2      = 0e+0_fp,        &
-                       RAINFRAC    = 0e+0_fp,        &
-                       WASHFRAC    = 0e+0_fp,        &
-                       MASS_WASH   = 0e+0_fp,        &
-                       MASS_NOWASH = 0e+0_fp,        &
-                       WETLOSS     = WETLOSS,        &
-                       GAINED      = 0e+0_fp,        &
-                       LOST        = 0e+0_fp,        &
-                       State_Grid  = State_Grid,     &
-                       DSpc        = DSpc(NW,:,I,J), &
-                       Spc         = Spc(I,J,:,N),   &
-                       RC          = RC )
+          IF ( errPrint ) THEN
+             CALL SAFETY( I, J, L, N, ERRMSG,                                &
+                          LS          = LS,                                  &
+                          PDOWN       = 0e+0_fp,                             &
+                          QQ          = 0e+0_fp,                             &
+                          ALPHA       = 0e+0_fp,                             &
+                          ALPHA2      = 0e+0_fp,                             &
+                          RAINFRAC    = 0e+0_fp,                             &
+                          WASHFRAC    = 0e+0_fp,                             &
+                          MASS_WASH   = 0e+0_fp,                             &
+                          MASS_NOWASH = 0e+0_fp,                             &
+                          WETLOSS     = WETLOSS,                             &
+                          GAINED      = 0e+0_fp,                             &
+                          LOST        = 0e+0_fp,                             &
+                          State_Grid  = State_Grid,                          &
+                          DSpc        = DSpc(NW,:,I,J),                      &
+                          Spc         = Spc(I,J,:,N),                        &
+                          RC          = RC                                  )
+          ENDIF
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             Spc      => NULL()
-             ErrorMsg = 'Error encountered in "Safety"!'
-             CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             IF ( errPrint ) THEN
+                ErrorMsg = 'Error encountered in "Safety"!'
+                CALL GC_Error( ErrorMsg, RC, ThisLoc )
+             ENDIF
+             Spc => NULL()
              RETURN
           ENDIF
        ENDIF
@@ -4698,12 +4754,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SAFETY( I,         J,           L,        N,        &
-                     A,         LS,          PDOWN,    QQ,       &
-                     ALPHA,     ALPHA2,      RAINFRAC, WASHFRAC, &
-                     MASS_WASH, MASS_NOWASH, WETLOSS,  GAINED,   &
-                     LOST,      State_Grid,  DSpc,     Spc,      &
-                     RC )
+  SUBROUTINE SAFETY( I,         J,           L,        N,                    &
+                     A,         LS,          PDOWN,    QQ,                   &
+                     ALPHA,     ALPHA2,      RAINFRAC, WASHFRAC,             &
+                     MASS_WASH, MASS_NOWASH, WETLOSS,  GAINED,               &
+                     LOST,      State_Grid,  DSpc,     Spc,                  &
+                     RC                                                     )
 !
 ! !USES:
 !
@@ -4749,9 +4805,9 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-    !=================================================================
+    !======================================================================
     ! SAFETY begins here!
-    !=================================================================
+    !======================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
