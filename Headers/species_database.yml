@@ -2869,7 +2869,7 @@ O3ROW:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the rest of the world
-O3STRAT:
+O3Strat:
   << : *O3properties
   Background_VV: 1.0e-20
   FullName: Ozone produced in the stratosphere
