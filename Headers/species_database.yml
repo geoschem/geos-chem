@@ -1097,88 +1097,88 @@ Hg0_PROP: &Hg0properties
 Hg0:
   << : *Hg0properties
   FullName: Elemental mercury
-Hg0_ANT:
+Hg0_ant:
   << : *Hg0properties
   FullName: Elemental mercury from Antarctic subsurface water
-Hg0_ARC:
+Hg0_arc:
   << : *Hg0properties
   FullName: Elemental mercury from Arctic subsurface water
-Hg0_ATL:
+Hg0_atl:
   << : *Hg0properties
   FullName: Elemental mercury from Mid-Atlantic subsurface water
-Hg0_BB:
+Hg0_bb:
   << : *Hg0properties
   FullName: Elemental mercury from biomass burning
-Hg0_CAM:
+Hg0_cam:
   << : *Hg0properties
   FullName: Elemental mercury from Central America
-Hg0_CAN:
+Hg0_can:
   << : *Hg0properties
   FullName: Elemental mercury from Canada
-Hg0_EAF:
+Hg0_eaf:
   << : *Hg0properties
   FullName: Elemental mercury from East Africa
-Hg0_EAS:
+Hg0_eas:
   << : *Hg0properties
   FullName: Elemental mercury from East Asia
-Hg0_EEU:
+Hg0_eeu:
   << : *Hg0properties
   FullName: Elemental mercury from Eastern Europe
-Hg0_EUR:
+Hg0_eur:
   << : *Hg0properties
   FullName: Elemental mercury from OECD Europe
-Hg0_GEO:
+Hg0_geo:
   << : *Hg0properties
   FullName: Elemental mercury from geogenic sources
-Hg0_JPN:
+Hg0_jpn:
   << : *Hg0properties
   FullName: Elemental mercury from Japan
-Hg0_MDE:
+Hg0_mde:
   << : *Hg0properties
   FullName: Elemental mercury from Middle East
-Hg0_NAF:
+Hg0_naf:
   << : *Hg0properties
   FullName: Elemental mercury from North Africa
-Hg0_NAT:
+Hg0_nat:
   << : *Hg0properties
   FullName: Elemental mercury from North Atlantic subsurface water
-Hg0_NPA:
+Hg0_npa:
   << : *Hg0properties
   FullName: Elemental mercury from North Pacific subsurface water
-Hg0_OCE:
+Hg0_oce:
   << : *Hg0properties
   FullName: Elemental mercury from Oceania
-Hg0_OCN:
+Hg0_ocn:
   << : *Hg0properties
   FullName: Elemental mercury from Indo-Pacific subsurface water
-Hg0_SAF:
+Hg0_saf:
   << : *Hg0properties
   FullName: Elemental mercury from South Africa
-Hg0_SAM:
+Hg0_sam:
   << : *Hg0properties
   FullName: Elemental mercury from South America
-Hg0_SAS:
+Hg0_sas:
   << : *Hg0properties
   FullName: Elemental mercury from South Asia
-Hg0_SAT:
+Hg0_sat:
   << : *Hg0properties
   FullName: Elemental mercury from South Atlantic subsurface water
-Hg0_SEA:
+Hg0_sea:
   << : *Hg0properties
   FullName: Elemental mercury from Southeast Asia
-Hg0_SO:
+Hg0_so:
   << : *Hg0properties
   FullName: Elemental mercury from organic soil
-Hg0_SOV:
+Hg0_sov:
   << : *Hg0properties
   FullName: Elemental mercury from former USSR
-Hg0_STR:
+Hg0_str:
   << : *Hg0properties
   FullName: Elemental mercury from stratosphere
-Hg0_USA:
+Hg0_usa:
   << : *Hg0properties
   FullName: Elemental mercury from USA
-Hg0_WAF:
+Hg0_waf:
   << : *Hg0properties
   FullName: Elemental mercury from West Africa
 Hg2_PROP: &Hg2properties
@@ -1197,88 +1197,88 @@ Hg2_PROP: &Hg2properties
 Hg2:
   << : *Hg2properties
   FullName: Divalent mercury
-Hg2_ANT:
+Hg2_ant:
   << : *Hg2properties
   FullName: Divalent mercury from Antarctic subsurface water
-Hg2_ARC:
+Hg2_arc:
   << : *Hg2properties
   FullName: Divalent mercury from Arctic subsurface water
-Hg2_ATL:
+Hg2_atl:
   << : *Hg2properties
   FullName: Divalent mercury from Mid-Atlantic subsurface water
-Hg2_BB:
+Hg2_bb:
   << : *Hg2properties
   FullName: Divalent mercury from biomass burning
-Hg2_CAM:
+Hg2_cam:
   << : *Hg2properties
   FullName: Divalent mercury from Central America
-Hg2_CAN:
+Hg2_can:
   << : *Hg2properties
   FullName: Divalent mercury from Canada
-Hg2_EAF:
+Hg2_eaf:
   << : *Hg2properties
   FullName: Divalent mercury from East Africa
-Hg2_EAS:
+Hg2_eas:
   << : *Hg2properties
   FullName: Divalent mercury from East Asia
-Hg2_EEU:
+Hg2_eeu:
   << : *Hg2properties
   FullName: Divalent mercury from Eastern Europe
-Hg2_EUR:
+Hg2_eur:
   << : *Hg2properties
   FullName: Divalent mercury from OECD Europe
-Hg2_GEO:
+Hg2_geo:
   << : *Hg2properties
   FullName: Divalent mercury from geogenic sources
-Hg2_JPN:
+Hg2_jpn:
   << : *Hg2properties
   FullName: Divalent mercury from Japan
-Hg2_MDE:
+Hg2_mde:
   << : *Hg2properties
   FullName: Divalent mercury from Middle East
-Hg2_NAF:
+Hg2_naf:
   << : *Hg2properties
   FullName: Divalent mercury from North Africa
-Hg2_NAT:
+Hg2_nat:
   << : *Hg2properties
   FullName: Divalent mercury from North Atlantic subsurface water
-Hg2_NPA:
+Hg2_npa:
   << : *Hg2properties
   FullName: Divalent mercury from North Pacific subsurface water
-Hg2_OCE:
+Hg2_oce:
   << : *Hg2properties
   FullName: Divalent mercury from Oceania
-Hg2_OCN:
+Hg2_ocn:
   << : *Hg2properties
   FullName: Divalent mercury from Indo-Pacific subsurface water
-Hg2_SAF:
+Hg2_saf:
   << : *Hg2properties
   FullName: Divalent mercury from South Africa
-Hg2_SAM:
+Hg2_sam:
   << : *Hg2properties
   FullName: Divalent mercury from South America
-Hg2_SAS:
+Hg2_sas:
   << : *Hg2properties
   FullName: Divalent mercury from South Asia
-Hg2_SAT:
+Hg2_sat:
   << : *Hg2properties
   FullName: Divalent mercury from South Atlantic subsurface water
-Hg2_SEA:
+Hg2_sea:
   << : *Hg2properties
   FullName: Divalent mercury from Southeast Asia
-Hg2_SO:
+Hg2_so:
   << : *Hg2properties
   FullName: Divalent mercury from organic soil
-Hg2_SOV:
+Hg2_sov:
   << : *Hg2properties
   FullName: Divalent mercury from former USSR
-Hg2_STR:
+Hg2_str:
   << : *Hg2properties
   FullName: Divalent mercury from stratosphere
-Hg2_USA:
+Hg2_usa:
   << : *Hg2properties
   FullName: Divalent mercury from USA
-Hg2_WAF:
+Hg2_waf:
   << : *Hg2properties
   FullName: Divalent mercury from West Africa
 HgP_PROP: &HgPproperties
@@ -1288,7 +1288,7 @@ HgP_PROP: &HgPproperties
   Formula: 'Hg'
   Is_Advected: true
   Is_DryDep: true
-  Is_Gas: true
+  Is_Aerosol: true
   Is_HgP: true
   Is_WetDep: true
   MW_g: 200.59
@@ -1298,88 +1298,88 @@ HgP_PROP: &HgPproperties
 HgP:
   << : *HgPproperties
   FullName: Particulate mercury
-HgP_ANT:
+HgP_ant:
   << : *HgPproperties
   FullName: Particulate mercury from Antarctic subsurface water
-HgP_ARC:
+HgP_arc:
   << : *HgPproperties
   FullName: Particulate mercury from Arctic subsurface water
-HgP_ATL:
+HgP_atl:
   << : *HgPproperties
   FullName: Particulate mercury from Mid-Atlantic subsurface water
-HgP_BB:
+HgP_bb:
   << : *HgPproperties
   FullName: Particulate mercury from biomass burning
-HgP_CAM:
+HgP_cam:
   << : *HgPproperties
   FullName: Particulate mercury from Central America
-HgP_CAN:
+HgP_can:
   << : *HgPproperties
   FullName: Particulate mercury from Canada
-HgP_EAF:
+HgP_eaf:
   << : *HgPproperties
   FullName: Particulate mercury from East Africa
-HgP_EAS:
+HgP_eas:
   << : *HgPproperties
   FullName: Particulate mercury from East Asia
-HgP_EEU:
+HgP_eeu:
   << : *HgPproperties
   FullName: Particulate mercury from Eastern Europe
-HgP_EUR:
+HgP_eur:
   << : *HgPproperties
   FullName: Particulate mercury from OECD Europe
-HgP_GEO:
+HgP_geo:
   << : *HgPproperties
   FullName: Particulate mercury from geogenic sources
-HgP_JPN:
+HgP_jpn:
   << : *HgPproperties
   FullName: Particulate mercury from Japan
-HgP_MDE:
+HgP_mde:
   << : *HgPproperties
   FullName: Particulate mercury from Middle East
-HgP_NAF:
+HgP_naf:
   << : *HgPproperties
   FullName: Particulate mercury from North Africa
-HgP_NAR:
+HgP_nat:
   << : *HgPproperties
   FullName: Particulate mercury from North Atlantic subsurface water
-HgP_NPA:
+HgP_npa:
   << : *HgPproperties
   FullName: Particulate mercury from North Pacific subsurface water
-HgP_OCE:
+HgP_oce:
   << : *HgPproperties
   FullName: Particulate mercury from Oceania
-HgP_OCN:
+HgP_ocn:
   << : *HgPproperties
   FullName: Particulate mercury from Indo-Pacific subsurface water
-HgP_SAF:
+HgP_saf:
   << : *HgPproperties
   FullName: Particulate mercury from South Africa
-HgP_SAM:
+HgP_sam:
   << : *HgPproperties
   FullName: Particulate mercury from South America
-HgP_SAS:
+HgP_sas:
   << : *HgPproperties
   FullName: Particulate mercury from South Asia
-HgP_SAT:
+HgP_sat:
   << : *HgPproperties
   FullName: Particulate mercury from South Atlantic subsurface water
-HgP_SEA:
+HgP_sea:
   << : *HgPproperties
   FullName: Particulate mercury from Southeast Asia
-HgP_SO:
+HgP_so:
   << : *HgPproperties
   FullName: Particulate mercury from organic soil
-HgP_SOV:
+HgP_sov:
   << : *HgPproperties
   FullName: Particulate mercury from former USSR
-HgP_STR:
+HgP_str:
   << : *HgPproperties
   FullName: Particulate mercury from stratosphere
-HgP_USA:
+HgP_usa:
   << : *HgPproperties
   FullName: Particulate mercury from USA
-HgP_WAF:
+HgP_waf:
   << : *HgPproperties
   FullName: Particulate mercury from West Africa
 HI:
