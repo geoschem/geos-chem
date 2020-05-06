@@ -412,24 +412,27 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
-                ThisSpc%Is_Hg0 = v_bool
                 SpcCount%nHg0  = SpcCount%nHg0 + 1
+                ThisSpc%Hg_Cat = SpcCount%nHg0
+                ThisSpc%Is_Hg0 = v_bool
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Hg2" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
-                ThisSpc%Is_Hg2 = v_bool
                 SpcCount%nHg2  = SpcCount%nHg2 + 1
+                ThisSpc%Hg_Cat = SpcCount%nHg2
+                ThisSpc%Is_Hg2 = v_bool
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_HgP" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
-                ThisSpc%Is_HgP = v_bool
                 SpcCount%nHgP  = SpcCount%nHgP + 1
+                ThisSpc%Hg_Cat = SpcCount%nHgP
+                ThisSpc%Is_HgP = v_bool
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Photolysis" ) > 0 ) THEN

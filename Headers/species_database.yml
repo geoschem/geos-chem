@@ -482,13 +482,13 @@ CH3ITracer:
   Is_Gas: true
   MW_g: 141.94
 CH4_PROP: &CH4properties
-  Background_VV: 1.7e-6
   Formula: CH4
   Is_Advected: true
   Is_Gas: true
   MW_g: 16.05
 CH4:
   << : *CH4properties
+  Background_VV: 1.7e-6
   FullName: Methane
 CH4_BBN:
   << : *CH4properties
@@ -670,7 +670,7 @@ CO:
   << : *COproperties
   FullName: Carbon monoxide
   Background_VV: 1.0e-7
-COACET:
+COacet:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from acetone oxidation
@@ -682,63 +682,63 @@ COAnthroEmis50dayTracer:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic_CO_with_50day_lifetime
-COASIA:
+COasia:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over Asia
-COBBAF:
+CObbaf:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Biomass burning CO emitted over Africa
-COBBAM:
+CObbam:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Biomass burning CO emitted over South America
-COBBAS:
+CObbas:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Biomass burning CO emitted over Asia
-COBBEU:
+CObbeu:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Biomass burning CO emitted over Europe
-COBBOC:
+CObboc:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Biomass burning CO emitted over Oceania
-COBBOTH:
+CObboth:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Biomass burning CO emitted everywhere else
-COBIOF:
+CObiof:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from biofuels (whole world)
-COCH4:
+COch4:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from methane oxidation
-COEUR:
+COeur:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over Europe
-COISOP:
+COisop:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from isoprene oxidation
-COMEOH:
+COmeoh:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from methanol oxidation
-COMONO:
+COmono:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from monoterpene oxidation
-CONMVOC:
+COnmvoc:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from NMVOC oxidation
-COOTH:
+COoth:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted everywhere else
@@ -746,7 +746,7 @@ COUniformEmis25dayTracer:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO_with_uniform_emission_and_25day_lifetime
-COUS:
+COus:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
