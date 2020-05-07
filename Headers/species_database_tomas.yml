@@ -539,6 +539,7 @@ H2SO4:
   MP_SizeResAer: true
   MW_g: 98.0
   WD_AerScavEff: 1.0
+  WD_Is_H2SO4: true
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 NK_PROP: &NKproperties

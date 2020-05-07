@@ -595,18 +595,24 @@ CONTAINS
        !--------------------------------------------------------------------
        IF ( ThisSpc%Is_Gas ) THEN
 
-          ! Zero these fields for all gas-phase species
-          ThisSpc%DD_DvzAerSnow = MISSING
-          ThisSpc%MP_SizeResAer = MISSING_BOOL
-          ThisSpc%MP_SizeResNum = MISSING_BOOL
-          ThisSpc%WD_CoarseAer  = MISSING_BOOL
-
           SELECT CASE( TRIM( spc ) )
+             CASE( 'H2SO4' )
+                ! H2SO4 are gases that wetdep like aerosols,
+                ! so keep both all gas and aerosol properties.
              CASE( 'HNO3', 'SO2' )
-                ! HNO3 and SO2 wetdep like aerosols, so they
-                ! do not need any other parameters zeroed out
+                ! HNO3 and SO2 drydep like gases but wetdep like fine 
+                ! aerosols, so set certain fields to missing values.
+                ThisSpc%DD_DvzAerSnow = MISSING
+                ThisSpc%MP_SizeResAer = MISSING_BOOL
+                ThisSpc%MP_SizeResNum = MISSING_BOOL
+                ThisSpc%WD_CoarseAer  = MISSING_BOOL
              CASE DEFAULT
-                ! Zero these fields for other gas-phase species
+                ! For all other gas-phase species, set all
+                ! aerosol fields to missing values
+                ThisSpc%DD_DvzAerSnow = MISSING
+                ThisSpc%MP_SizeResAer = MISSING_BOOL
+                ThisSpc%MP_SizeResNum = MISSING_BOOL
+                ThisSpc%WD_CoarseAer  = MISSING_BOOL
                 ThisSpc%WD_AerScavEff = MISSING
                 ThisSpc%WD_KcScaleFac = MISSING
                 ThisSpc%WD_RainoutEff = MISSING
