@@ -1,4 +1,4 @@
-# GEOS-Chem Species Database (29 Apr 2020)
+# GEOS-Chem Species Database (07 May 2020)
 # APM microphysics species only
 # NOTE: Anchors must be defined before any variables that reference them
 APMAMINE1:
@@ -55,7 +55,6 @@ APMBCBIN_PROP: &APMBC1properties
   DD_Hstar: 0.0
   Density: 1800.0
   Formula: C
-  FullName: APM black carbon, size bin = 01
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
