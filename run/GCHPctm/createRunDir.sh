@@ -231,12 +231,13 @@ cp -r ./environmentFileSamples ${rundir}
 cp -r ./OutputDir              ${rundir}
 cp -r ./runScriptSamples       ${rundir}
 cp ./archiveRun.sh             ${rundir}
+cp ./cleanRundir.sh            ${rundir}
 cp ./build.sh                  ${rundir}
 cp ./fvcore_layout.rc          ${rundir}
 cp ./input.nml                 ${rundir}
 cp ./README                    ${rundir}
-cp ./setCodeDir                ${rundir}
-cp ./setEnvironment            ${rundir}
+cp ./setCodeDir.sh             ${rundir}
+cp ./setEnvironment.sh         ${rundir}
 cp ./gitignore                 ${rundir}/.gitignore
 cp ./GCHP.rc.template          ${rundir}/GCHP.rc
 cp ./CAP.rc.template           ${rundir}/CAP.rc
@@ -257,7 +258,7 @@ fi
 # Create symbolic links to data directories, restart files, and code
 #--------------------------------------------------------------------
 ln -s ${gcdir}                                  ${rundir}/CodeDir
-# NOTE: CodeDir is set to point to GCHP/..; reset using setCodeDir in rundir.
+# NOTE: CodeDir is set to point to GCHP/..; reset using setCodeDir.sh in rundir.
 ln -s ${GC_DATA_ROOT}/CHEM_INPUTS               ${rundir}/ChemDataDir
 ln -s ${GC_DATA_ROOT}/HEMCO                     ${rundir}/MainDataDir
 ln -s ${GFTL}                                   ${rundir}/gFTL
@@ -356,8 +357,9 @@ sed -i -e "s|{dHHmmss}|${dHHmmSS}|"      ${rundir}/CAP.rc
 #-----------------------------------------------------------------
 # Set permissions
 #-----------------------------------------------------------------
-chmod 744 ${rundir}/setCodeDir
-chmod 744 ${rundir}/setEnvironment
+chmod 744 ${rundir}/setCodeDir.sh
+chmod 744 ${rundir}/setEnvironment.sh
+chmod 744 ${rundir}/cleanRundir.sh
 chmod 744 ${rundir}/build.sh
 chmod 744 ${rundir}/runConfig.sh
 chmod 744 ${rundir}/archiveRun.sh
@@ -400,7 +402,8 @@ do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	git init
 	git add *.rc *.sh environmentFileSamples/* runScriptSamples/* README .gitignore
-	git add setCodeDir input.geos input.nml
+	git add setCodeDir.sh setEnvironment.sh input.geos input.nml cleanRundir.sh
+        git add build.sh
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${curdir}
