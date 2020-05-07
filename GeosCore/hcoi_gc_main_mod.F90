@@ -53,7 +53,7 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies
-#if !defined(ESMF_) && !defined( MODEL_WRF )
+#if !defined(ESMF_) && !defined( MODEL_WRF ) && !defined( MODEL_CESM )
   PRIVATE :: Get_GC_Restart
   PRIVATE :: Get_Met_Fields
   PRIVATE :: Get_Boundary_Conditions
@@ -811,7 +811,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if !defined(ESMF_) && !defined( MODEL_WRF )
+#if !defined(ESMF_) && !defined( MODEL_WRF ) && !defined( MODEL_CESM )
     !=======================================================================
     ! Get met fields from HEMCO
     !=======================================================================
@@ -3568,7 +3568,7 @@ CONTAINS
    ! Return to calling program
  END SUBROUTINE Calc_SumCosZa
 !EOC
-#if !defined(ESMF_) && !defined( MODEL_WRF )
+#if !defined(ESMF_) && !defined( MODEL_WRF ) && !defined( MODEL_CESM )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
