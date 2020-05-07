@@ -165,7 +165,7 @@ input_opt_mod.o        : input_opt_mod.F90        \
 inquiremod.o           : inquireMod.F90
 
 roundoff_mod.o         : roundoff_mod.F90         \
-	                 precision_mod.F90
+	                 precision_mod.o
 
 state_chm_mod.o        : state_chm_mod.F90        \
                          CMN_SIZE_mod.o           \

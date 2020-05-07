@@ -137,7 +137,7 @@ CONTAINS
     REAL(f4)                    :: a_real_3(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(46)
+    CHARACTER(LEN=17)           :: tags(42)
 
     ! Objects
     TYPE(QFYAML_t)              :: yml
@@ -175,18 +175,16 @@ CONTAINS
              "DD_DvzAerSnow    ", "DD_DvzMinVal     ", "DD_F0            ",  &
              "DD_Hstar         ", "DD_KOA           ", "Density          ",  &
              "EmMW_g           ", "Formula          ", "FullName         ",  &
-             "Is_ActiveChem    ", "Is_Advected      ", "Is_Aerosol       ",  &
-             "Is_DryAlt        ", "Is_DryDep        ", "Is_FixedChem     ",  &
-             "Is_HygroGrowth   ", "Is_Kpp           ", "Is_Gas           ",  &
-             "Is_Hg0           ", "Is_Hg2           ", "Is_HgP           ",  &
-             "Is_Photolysis    ", "Is_WetDep        ", "Henry_CR         ",  &
-             "Henry_K0         ", "Henry_pKa        ", "MP_SizeResAer    ",  &
-             "MP_SizeResNum    ", "MolecRatio       ", "MW_g             ",  &
-             "Radius           ", "WD_AerScavEff    ", "WD_CoarseAer     ",  &
-             "WD_ConvFacI2G    ", "WD_KcScaleFac_Luo", "WD_KcScaleFac    ",  &
-             "WD_Is_H2SO4      ", "WD_Is_HNO3       ", "WD_Is_SO2        ",  &
-             "WD_LiqAndGas     ", "WD_RainoutEff_Luo", "WD_RainoutEff    ",  &
-             "WD_RetFactor     "                                           /)
+             "Is_Aerosol       ", "Is_DryAlt        ", "Is_DryDep        ",  &
+             "Is_HygroGrowth   ", "Is_Gas           ", "Is_Hg0           ",  &
+             "Is_Hg2           ", "Is_HgP           ", "Is_Photolysis    ",  &
+             "Is_WetDep        ", "Henry_CR         ", "Henry_K0         ",  &
+             "Henry_pKa        ", "MP_SizeResAer    ", "MP_SizeResNum    ",  &
+             "MolecRatio       ", "MW_g             ", "Radius           ",  &
+             "WD_AerScavEff    ", "WD_CoarseAer     ", "WD_ConvFacI2G    ",  &
+             "WD_KcScaleFac_Luo", "WD_KcScaleFac    ", "WD_Is_H2SO4      ",  &
+             "WD_Is_HNO3       ", "WD_Is_SO2        ", "WD_LiqAndGas     ",  &
+             "WD_RainoutEff_Luo", "WD_RainoutEff    ", "WD_RetFactor     " /)
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -233,6 +231,16 @@ CONTAINS
        spc             = species_names(S)
        ThisSpc%Name    = TRIM( spc )
        ThisSpc%ModelId = S
+
+       !--------------------------------------------------------------------
+       ! Set the Is_Advected tag (check against Input_Opt%AdvecSpc list)
+       !-------------------------------------------------------------------
+       v_bool = ANY( Input_Opt%AdvectSpc_Name == spc )
+       IF ( v_bool ) THEN
+          SpcCount%nAdvect    = SpcCount%nAdvect + 1
+          ThisSpc%AdvectId    = SpcCount%nAdvect
+          ThisSpc%Is_Advected = v_bool
+       ENDIF
 
        !--------------------------------------------------------------------
        ! Set tags for species in the KPP mechanism
@@ -353,15 +361,6 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Henry_K0 = DBLE( v_real )       ! Don't round off
-
-          ELSE IF ( INDEX( key, "%Is_Advected" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             IF ( v_bool ) THEN
-                SpcCount%nAdvect    = SpcCount%nAdvect + 1
-                ThisSpc%AdvectId    = SpcCount%nAdvect
-                ThisSpc%Is_Advected = v_bool
-             ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Aerosol" ) > 0  ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
