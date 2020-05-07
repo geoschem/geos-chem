@@ -2807,9 +2807,10 @@ NPRNO3:
   Is_Photolysis: true
   MW_g: 105.11
 NRO2:
+  Formula: C10H7O2
   FullName: Peroxy radical from NAP oxidation
   Is_Gas: true
-  MW_g: 1  # Needed
+  MW_g: 159.17
 O:
   Formula: O(3P)
   FullName: Ground state atomic oxygen
