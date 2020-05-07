@@ -529,7 +529,7 @@ ECOB40:
   FullName: Hydrophobic elemental carbon, size bin = 40
 H2SO4:
   DD_F0: 0.0
-  DD_Hstar: 1.0
+  DD_Hstar: 1.0e5
   Formula: H2SO4
   FullName: Sulfuric acid
   Is_Advected: true
