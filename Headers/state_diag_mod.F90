@@ -3199,7 +3199,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%DryDepRaALT1'
        diagID  = 'DryDepRa' // TRIM( TmpHT )
-       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepRaALT1', Found, RC )
+       CALL Check_DiagList( am_I_Root, Diag_List, DiagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%DryDepRaALT1( IM, JM ), STAT=RC )
@@ -3219,8 +3219,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%DryDepVelForALT1'
        diagID  = 'DryDepVelFor' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List, 'DryDepVelForALT1',        &
-                            Found,     RC                                   )
+       CALL Check_DiagList( am_I_Root, Diag_List, DiagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%DryDepVelForALT1( IM, JM, nDryAlt ), STAT=RC )
@@ -3239,8 +3238,7 @@ CONTAINS
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%SpeciesConcALT1'
        diagID  = 'SpeciesConc' // TRIM( TmpHt )
-       CALL Check_DiagList( am_I_Root, Diag_List, 'SpeciesConcALT1',         &
-                            Found,     RC                                   )
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF (am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%SpeciesConcALT1(IM,JM,nDryAlt), STAT=RC )
