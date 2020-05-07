@@ -589,10 +589,8 @@ CONTAINS
                                     RC             = RC         )
 
     ! Pass time values obtained from the ESMF environment to HEMCO
-    CALL SetHcoTime ( Input_Opt%AmIRoot,   HcoState,   ExtState,     &
-                      year,      month,    day,        dayOfYr,      &
-                      hour,      minute,   second,                   &
-                      DoEmis,    RC )
+    CALL SetHcoTime ( HcoState,   ExtState,   year,    month,   day,   &
+                      dayOfYr,    hour,       minute,  second,  DoEmis,  RC )
 
     ! Calculate MODIS leaf area indexes needed for dry deposition
     CALL Compute_XLAI( Input_Opt, State_Grid, State_Met, RC )

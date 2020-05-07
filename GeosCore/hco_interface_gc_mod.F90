@@ -649,10 +649,12 @@ CONTAINS
     USE HCO_Driver_Mod,  ONLY : HCO_Run
     USE HCOX_Driver_Mod, ONLY : HCOX_Run
 
+#if defined( MODEL_CLASSIC )
     ! HEMCO utility routines for GEOS-Chem
     USE HCO_Utilities_GC_Mod, ONLY : Get_GC_Restart
     USE HCO_Utilities_GC_Mod, ONLY : Get_Met_Fields
     USE HCO_Utilities_GC_Mod, ONLY : Get_Boundary_Conditions
+#endif
 !
 ! !INPUT PARAMETERS:
 !
