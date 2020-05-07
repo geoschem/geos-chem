@@ -279,7 +279,7 @@ BrSALA:
   << : *SALAproperties
   Formula: Br
   FullName: Fine sea salt bromine
-  IsHygroGrowth: false
+  Is_HygroGrowth: false
   MW_g: 79.90
 SALC_PROP: &SALCproperties
   DD_AeroDryDep: true
@@ -3097,7 +3097,7 @@ POA1:
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  IsHygroGrowth: true
+  Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 12.01
   WD_AerScavEff: 1.0
