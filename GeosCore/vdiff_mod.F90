@@ -21,8 +21,8 @@ MODULE VDIFF_MOD
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
   USE PhysConstants                                ! Physical constants
   USE PRECISION_MOD                                ! For GEOS-Chem Precision(fp)
-  USE VDIFF_PRE_MOD, ONLY : PCNST_                 ! N_TRACERS
-  ! For CESM - had to rename PCNST to PCNST_ for CAM namespace conflict
+  USE VDIFF_PRE_MOD, ONLY : pcnst_                 ! N_TRACERS
+  ! For CESM - had to rename pcnst to pcnst_ for CAM namespace conflict
   USE VDIFF_PRE_MOD, ONLY : LPRT                   ! Debug print?
   USE VDIFF_PRE_MOD, ONLY : LTURB                  ! Do PBL mixing?
 
@@ -142,7 +142,7 @@ MODULE VDIFF_MOD
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  24 Jun 2014 - R. Yantosca - Now get PCNST from vdiff_pre_mod.F90
+!  24 Jun 2014 - R. Yantosca - Now get pcnst_ from vdiff_pre_mod.F90
 !  24 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  07 Jan 2016 - E. Lundgren - Replace hard-coded physical params w/ global and
 !                              remove unused parameters
@@ -349,7 +349,7 @@ contains
          cch(plonl,plev), &        ! -lower diag for heat and constits
          ccm(plonl,plev), &        ! -lower diagonal for momentum
          cgh(plonl,plevp), &       ! countergradient term for heat
-         cgq(plonl,plevp,pcnst), & ! countergrad term for constituent
+         cgq(plonl,plevp,pcnst_), & ! countergrad term for constituent
          cgsh(plonl,plevp), &      ! countergrad term for sh
          kvf(plonl,plevp)          ! free atmosphere kv at interfaces
     real(fp) :: &
@@ -358,11 +358,11 @@ contains
          dubot(plonl), &           ! lowest layer u change from stress
          dvbot(plonl), &           ! lowest layer v change from stress
          dtbot(plonl), &           ! lowest layer t change from heat flx
-         dqbot(plonl,pcnst), &     ! lowest layer q change from const flx
+         dqbot(plonl,pcnst_), &     ! lowest layer q change from const flx
          dshbot(plonl), &          ! lowest layer sh change from wvflx
          thx(plonl,plev), &        ! temperature input + counter gradient
          thv(plonl,plev), &        ! virtual potential temperature
-         qmx(plonl,plev,pcnst), &  ! constituents input + counter grad
+         qmx(plonl,plev,pcnst_), &  ! constituents input + counter grad
          shmx(plonl,plev), &       ! sh input + counter grad
          zeh(plonl,plev), &        ! term in tri-diag. matrix system (t & q)
          zem(plonl,plev), &        ! term in tri-diag. matrix system (momentum)
@@ -380,10 +380,10 @@ contains
          rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
          zm(plonl,plev), &         ! midpoint geoptl height above sfc
          shflx(plonl), &           ! surface sensible heat flux (w/m2)
-         cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
+         cflx(plonl,pcnst_), &      ! surface constituent flux (kg/m2/s)
          wvflx(plonl)              ! water vapor flux (kg/m2/s)
     real(fp) :: &
-         qp1(plonl,plev,pcnst), &  ! moist, tracers after vert. diff
+         qp1(plonl,plev,pcnst_), &  ! moist, tracers after vert. diff
          shp1(plonl,plev), &       ! specific humidity (kg/kg)
          thp(plonl,plev)           ! pot temp after vert. diffusion
     real(fp) :: &
@@ -400,7 +400,7 @@ contains
 
     real(fp) :: pblh(plonl)          ! boundary-layer height [m]
 
-    real(fp) :: qp0(plonl,plev,pcnst) ! To store initial concentration values
+    real(fp) :: qp0(plonl,plev,pcnst_) ! To store initial concentration values
                                     ! (as2)
 
     real(fp) :: sum_qp0, sum_qp1    ! Jintai Lin 20180809
@@ -463,7 +463,7 @@ contains
        dtbot(i)     = shflx(i)*tmp1(i)*rcpair
        kvf(i,plevp) = 0.e+0_fp
     end do
-    do m = 1,pcnst
+    do m = 1,pcnst_
        dqbot(:plonl,m) = cflx(:plonl,m)*tmp1(:plonl)
     end do
 
@@ -584,7 +584,7 @@ contains
           thx(i,k)  = thp(i,k)
           shmx(i,k) = shp1(i,k)
        end do
-       do m = 1,pcnst
+       do m = 1,pcnst_
           do i = 1,plonl
              qmx(i,k,m) = qp1(i,k,m)
           end do
@@ -613,7 +613,7 @@ contains
                       *(potbar(i,k+1)*kvh(i,k+1)*cgsh(i,k+1) &
                       - potbar(i,k)*kvh(i,k)*cgsh(i,k))
        end do
-       do m = 1,pcnst
+       do m = 1,pcnst_
           do i = 1,plonl
              qmx(i,k,m) = qp1(i,k,m) + tmp1(i) &
                           *(potbar(i,k+1)*kvh(i,k+1)*cgq(i,k+1,m) &
@@ -628,7 +628,7 @@ contains
 !           quasi-equilibrium conditions assumed for the countergradient term are
 !           strongly violated.
 !-----------------------------------------------------------------------
-    do m = 1,pcnst
+    do m = 1,pcnst_
        adjust(:plonl) = .false.
        do k = plev-npbl+1,plev
           do i = 1,plonl
@@ -737,7 +737,7 @@ contains
 ! 	... diffuse constituents
 !-----------------------------------------------------------------------
 
-    call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+    call qvdiff( pcnst_, qmx, dqbot, cch, zeh, &
 	         termh, qp1, plonl )
 
 !-----------------------------------------------------------------------
@@ -755,7 +755,7 @@ contains
 !   which is OK for full chemistry simulations but a big problem
 !   for long lived species such as CH4 and CO2
 !-----------------------------------------------------------------------
-    DO M = 1, pcnst
+    DO M = 1, pcnst_
     do I = 1, plonl
 
        ! total mass in the PBL (ignoring the v/v -> m/m conversion)
@@ -825,7 +825,7 @@ contains
     IF ( ND15 > 0 ) THEN
 
        dqbot = 0e+0_fp
-       call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+       call qvdiff( pcnst_, qmx, dqbot, cch, zeh, &
             termh, qp1, plonl )
 
 !-----------------------------------------------------------------------
@@ -834,7 +834,7 @@ contains
 !   which is OK for full chemistry simulations but a big problem
 !   for long lived species such as CH4 and CO2
 !-----------------------------------------------------------------------
-       DO M = 1, pcnst
+       DO M = 1, pcnst_
        do I = 1, plonl
 
           ! total mass in the PBL (ignoring the v/v -> m/m conversion)
@@ -851,7 +851,7 @@ contains
        enddo
        ENDDO
 
-       DO M = 1, pcnst
+       DO M = 1, pcnst_
        DO L = 1, plev
        do I = 1, plonl
           ! Arrays in vdiff are upside-down
@@ -921,7 +921,7 @@ contains
          t(plonl,plev), &           ! temperature (used for density)
          pmid(plonl,plev), &        ! midpoint pressures
          kvf(plonl,plevp), &        ! free atmospheric eddy diffsvty [m2/s]
-         cflx(plonl,pcnst), &       ! surface constituent flux (kg/m2/s)
+         cflx(plonl,pcnst_), &       ! surface constituent flux (kg/m2/s)
          wvflx(plonl), &            ! water vapor flux (kg/m2/s)
          shflx(plonl)               ! surface heat flux (w/m2)
 !
@@ -940,7 +940,7 @@ contains
          kvm(plonl,plevp), &        ! eddy diffusivity for momentum [m2/s]
          kvh(plonl,plevp), &        ! eddy diffusivity for heat [m2/s]
          cgh(plonl,plevp), &        ! counter-gradient term for heat [k/m]
-         cgq(plonl,plevp,pcnst), &  ! counter-gradient term for constituents
+         cgq(plonl,plevp,pcnst_), &  ! counter-gradient term for constituents
          cgsh(plonl,plevp), &       ! counter-gradient term for sh
          cgs(plonl,plevp), &        ! counter-gradient star (cg/flux)
          tpert(plonl), &            ! convective temperature excess
@@ -981,7 +981,7 @@ contains
          zm(plonl), &            ! current level height
          zp(plonl), &            ! current level height + one level up
          khfs(plonl), &          ! surface kinematic heat flux [mk/s]
-         kqfs(plonl,pcnst), &    ! sfc kinematic constituent flux [m/s]
+         kqfs(plonl,pcnst_), &    ! sfc kinematic constituent flux [m/s]
          kshfs(plonl), &         ! sfc kinematic moisture flux [m/s]
          zmzp                    ! level height halfway between zm and zp
     real(fp) :: &
@@ -1020,7 +1020,7 @@ contains
        khfs(i)  = shflx(i)*rrho(i)/cpair
        kshfs(i) = wvflx(i)*rrho(i)
     end do
-    do m = 1,pcnst
+    do m = 1,pcnst_
        kqfs(:plonl,m) = cflx(:plonl,m)*rrho(:plonl)
     end do
 
@@ -1034,7 +1034,7 @@ contains
        cgsh(:,k) = 0.e+0_fp
        cgs(:,k)  = 0.e+0_fp
     end do
-    do m = 1,pcnst
+    do m = 1,pcnst_
        do k = 1,plevp
           cgq(:,k,m) = 0.e+0_fp
        end do
@@ -1315,7 +1315,7 @@ contains
              cgsh(i,k) = kshfs(i)*cgs(i,k)
           end if
        end do
-       do m = 1,pcnst
+       do m = 1,pcnst_
           do i = 1,plonl
              if( unsout(i) ) then
                 cgq(i,k,m) = kqfs(i,m)*cgs(i,k)
@@ -1393,7 +1393,7 @@ contains
 ! !LOCAL VARIABLES:
 !
     real(fp) :: &
-         zfq(plonl,plev,pcnst), & ! terms appear in soln of tri-diag sys
+         zfq(plonl,plev,pcnst_), & ! terms appear in soln of tri-diag sys
          tmp1d(plonl)             ! temporary workspace (1d array)
     integer :: &
          i, k, &               ! longitude,vertical indices
@@ -1502,14 +1502,14 @@ contains
     real(fp) :: &
          cah(plonl,plev), &       ! -upper diag for heat and constituts
          cch(plonl,plev), &       ! -lower diag for heat and constits
-         cgq(plonl,plevp,pcnst), &! countergrad term for constituent
+         cgq(plonl,plevp,pcnst_), &! countergrad term for constituent
          potbar(plonl,plevp), &   ! pintm1(k)/(.5*(tm1(k)+tm1(k-1))
          tmp1(plonl), &           ! temporary storage
          tmp2, &                  ! temporary storage
          ztodtgor, &              ! ztodt*gravit/rair
          gorsq, &                 ! (gravit/rair)**2
-         dqbot(plonl,pcnst), &    ! lowest layer q change from const flx
-         qmx(plonl,plev,pcnst), & ! constituents input + counter grad
+         dqbot(plonl,pcnst_), &    ! lowest layer q change from const flx
+         qmx(plonl,plev,pcnst_), & ! constituents input + counter grad
          zeh(plonl,plev), &       ! term in tri-diag. matrix system (t & q)
          termh(plonl,plev)        ! 1./(1. + cah(k) + cch(k) - cch(k)*zeh(k-1))
     integer :: &
@@ -1528,11 +1528,11 @@ contains
          pintm1(plonl,plevp), &    ! interface pressures
          rpdel(plonl,plev), &      ! 1./pdel  (thickness bet interfaces)
          rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
-         cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
+         cflx(plonl,pcnst_), &      ! surface constituent flux (kg/m2/s)
          kvh(plonl,plevp), &       ! coefficient for heat and tracers
          cgs(plonl,plevp)          ! counter-grad star (cg/flux)
     real(fp) :: &
-         qp1(plonl,plev,pcnst)     ! moist, tracers after vert. diff
+         qp1(plonl,plev,pcnst_)     ! moist, tracers after vert. diff
     !=================================================================
     ! vdiffar begins here!
     !=================================================================
@@ -1555,7 +1555,7 @@ contains
     do i = 1,plonl
        tmp1(i) = ztodt*gravit*rpdel(i,plev)
     end do
-    do m = 1,pcnst
+    do m = 1,pcnst_
        do i = 1,plonl
           dqbot(i,m) = cflx(i,m)*tmp1(i)
        end do
@@ -1575,7 +1575,7 @@ contains
 ! 	... first set values above boundary layer
 !-----------------------------------------------------------------------
     do k = 1,plev-npbl
-       do m = 1,pcnst
+       do m = 1,pcnst_
           qmx(:,k,m) = qp1(:,k,m)
        end do
     end do
@@ -1592,7 +1592,7 @@ contains
        do i = 1,plonl
           tmp1(i) = ztodtgor*rpdel(i,k)
        end do
-       do m = 1,pcnst
+       do m = 1,pcnst_
           do i = 1,plonl
              qmx(i,k,m) = qp1(i,k,m) + tmp1(i)*(potbar(i,k+1)*kvh(i,k+1)* &
                           cgq(i,k+1,m) - potbar(i,k)*kvh(i,k)*cgq(i,k,m))
@@ -1607,7 +1607,7 @@ contains
 !           strongly violated.
 !           original code rewritten by rosinski 7/8/91 to vectorize in longitude.
 !-----------------------------------------------------------------------
-    do m = 1,pcnst
+    do m = 1,pcnst_
        ilogic(:plonl) = 0
        do k = plev-npbl+1,plev
           do i = 1,plonl
@@ -1672,7 +1672,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... diffuse constituents
 !-----------------------------------------------------------------------
-    call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+    call qvdiff( pcnst_, qmx, dqbot, cch, zeh, &
 	         termh, qp1, plonl )
 !-----------------------------------------------------------------------
 ! 	... identify and correct constituents exceeding user defined bounds
@@ -1714,13 +1714,13 @@ contains
     real(fp), intent(in) :: &
          t(plonl,plev), &        ! temperature (used for density)
          pmid(plonl,plev), &     ! midpoint pressures
-         cflx(plonl,pcnst), &     ! surface constituent flux (kg/m2/s)
+         cflx(plonl,pcnst_), &     ! surface constituent flux (kg/m2/s)
          cgs(plonl,plevp)        ! counter-gradient star (cg/flux)
 !
 ! !OUTPUT PARAMETERS:
 !
     real(fp), intent(out) :: &
-         cgq(plonl,plevp,pcnst)  ! counter-gradient term for constituents
+         cgq(plonl,plevp,pcnst_)  ! counter-gradient term for constituents
 !
 ! !REVISION HISTORY:
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
@@ -1737,7 +1737,7 @@ contains
          m                    ! constituent index
     real(fp) :: &
          rrho(plonl), &          ! 1./bottom level density
-         kqfs(plonl,pcnst)       ! sfc kinematic constituent flux [m/s]
+         kqfs(plonl,pcnst_)       ! sfc kinematic constituent flux [m/s]
 
     !=================================================================
     ! pbldifar begins here!
@@ -1747,13 +1747,13 @@ contains
 ! 	... compute kinematic surface fluxes
 !------------------------------------------------------------------------
     rrho(:) = rair*t(:,plev)/pmid(:,plev)
-    do m = 1,pcnst
+    do m = 1,pcnst_
        kqfs(:,m) = cflx(:,m)*rrho(:)
     end do
 !------------------------------------------------------------------------
 ! 	... initialize output arrays with free atmosphere values
 !------------------------------------------------------------------------
-    do m = 1,pcnst
+    do m = 1,pcnst_
        do k = 1,plevp
           cgq(:,k,m) = 0.e+0_fp
        end do
@@ -1762,7 +1762,7 @@ contains
 ! 	... compute the counter-gradient terms:
 !------------------------------------------------------------------------
     do k = plev,plev-npbl+2,-1
-       do m = 1,pcnst
+       do m = 1,pcnst_
           cgq(:,k,m) = kqfs(:,m)*cgs(:,k)
        end do
     end do
@@ -1880,11 +1880,11 @@ contains
 !           normally this should be the same as qmin.
 !-----------------------------------------------------------------------
 
-    ALLOCATE( qmincg(pcnst), STAT=RC )
+    ALLOCATE( qmincg(pcnst_), STAT=RC )
     CALL GC_CheckVar( 'vdiff_mod:QMINCG', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    do m = 1,pcnst
+    do m = 1,pcnst_
        qmincg(m) = 0.e+0_fp
     end do
 
