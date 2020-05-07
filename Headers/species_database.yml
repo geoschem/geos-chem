@@ -2175,6 +2175,12 @@ LISOPNO3:
 LISOPOH:
   FullName: Dummy species to track oxidation of ISOP by OH
   Is_Gas: true
+LNRO2H:
+  FullName: Dummy species to track oxidation of NRO2 by HO2
+  Is_Gas: true
+LNRO2N:
+  FullName: Dummy species to track oxidation of NRO2 by NO
+  Is_Gas: true
 LOx:
   FullName: Dummy species to track loss rate of Ox
   Is_Gas: true
@@ -2800,6 +2806,10 @@ NPRNO3:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 105.11
+NRO2:
+  FullName: Peroxy radical from NAP oxidation
+  Is_Gas: true
+  MW_g: 1  # Needed
 O:
   Formula: O(3P)
   FullName: Ground state atomic oxygen

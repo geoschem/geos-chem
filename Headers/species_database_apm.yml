@@ -49,7 +49,7 @@ APMAMINE3:
   WD_RetFactor: 5.0e-2
   WD_LiqAndGas: true
   WD_ConvFacI2G: 6.17395e-1
-APMBCBIN_PROP: &APMBC1properties
+APMBCBIN01_PROP: &APMBC1properties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -87,7 +87,7 @@ APMBCBIN06_PROP: &APMBC6properties
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_Hygrogrowth: true
+  Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 12.01
   WD_AerScavEff: 1.0
@@ -132,7 +132,7 @@ APMCTBC1:
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_Hygrogrowth: true
+  Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 96.0
   WD_AerScavEff: 1.0
@@ -147,7 +147,7 @@ APMCTBC2:
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_Hygrogrowth: true
+  Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 181.0
   WD_AerScavEff: 1.0
@@ -198,7 +198,7 @@ APMCTOC1:
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_Hygrogrowth: true
+  Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 96.0
   WD_AerScavEff: 1.0
@@ -213,7 +213,7 @@ APMCTOC2:
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_Hygrogrowth: true
+  Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 181.0
   WD_AerScavEff: 1.0
@@ -419,7 +419,7 @@ APMOCBIN06_PROP: &APMOC6properties
   Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
-  Is_Hygrogrowth: true
+  Is_HygroGrowth: true
   Is_WetDep: true
   MW_g: 12.01
   WD_AerScavEff: 1.0
