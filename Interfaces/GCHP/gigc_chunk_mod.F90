@@ -86,9 +86,9 @@ CONTAINS
     USE State_Grid_Mod,          ONLY : GrdState, Init_State_Grid
     USE State_Met_Mod,           ONLY : MetState
     USE Strat_Chem_Mod,          ONLY : Init_Strat_Chem
-#if defined( MODEL_GEOS )
-    USE Tendencies_Mod,          ONLY : TEND_INIT
-#endif
+!#if defined( MODEL_GEOS )
+!    USE Tendencies_Mod,          ONLY : TEND_INIT
+!#endif
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
     USE UnitConv_Mod,            ONLY : Convert_Spc_Units
@@ -268,15 +268,15 @@ CONTAINS
     ! Diagnostics and tendencies 
     !-------------------------------------------------------------------------
 
-#if defined( MODEL_GEOS )
-    ! The GEOS-Chem diagnostics list, stored in HistoryConfig, is initialized 
-    ! during GIGC_INIT_SIMULATION, and corresponding arrays in State_Diag are 
-    ! allocated accordingly when initializing State_Diag. Here, we thus 
-    ! only need to initialize the tendencies, which have not been initialized
-    ! yet (ckeller, 11/29/17). 
-    CALL Tend_Init ( Input_Opt, State_Chm, State_Grid, State_Met, RC ) 
-    _ASSERT(RC==GC_SUCCESS, 'Error calling Tend_Init')
-#endif
+!#if defined( MODEL_GEOS )
+!    ! The GEOS-Chem diagnostics list, stored in HistoryConfig, is initialized 
+!    ! during GIGC_INIT_SIMULATION, and corresponding arrays in State_Diag are 
+!    ! allocated accordingly when initializing State_Diag. Here, we thus 
+!    ! only need to initialize the tendencies, which have not been initialized
+!    ! yet (ckeller, 11/29/17). 
+!    CALL Tend_Init ( Input_Opt, State_Chm, State_Grid, State_Met, RC ) 
+!    _ASSERT(RC==GC_SUCCESS, 'Error calling Tend_Init')
+!#endif
 
 #if !defined( MODEL_GEOS )
     ! GCHP only: Convert species units to internal state units (v/v dry)
@@ -359,7 +359,7 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
 #if defined( MODEL_GEOS )
-    USE Derived_Met_Mod,    ONLY : GET_COSINE_SZA
+    USE Calc_Met_Mod,           ONLY : GET_COSINE_SZA
     USE HCO_Interface_GC_Mod,   ONLY : HCOI_GC_WriteDiagn
 #endif
 !

@@ -46,7 +46,7 @@ MODULE FlexChem_Mod
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
   INTEGER               :: id_ETO2, id_LIMO2, id_MO2, id_PIO2, id_PO2
   INTEGER               :: id_PRN1, id_R4N1, id_R4O2, id_TRO2, id_XRO2
-  INTEGER               :: id_IHOO1, id_IHOO4, id_ICHOO, id_IHPOO1
+  INTEGER               :: id_IHOO1, id_IHOO4, id_IHCOO, id_ICHOO, id_IHPOO1
   INTEGER               :: id_IHPOO2, id_IHPOO3, id_IEPOXAOO, id_IEPOXBOO
   INTEGER               :: id_C4HVP1, id_C4HVP2, id_HPALD1OO, id_HPALD2OO
   INTEGER               :: id_ISOPNOO1, id_ISOPNOO2, id_INO2B, id_INO2D

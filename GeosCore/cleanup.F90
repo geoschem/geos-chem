@@ -64,9 +64,9 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
 #endif
   USE TOMS_MOD,                ONLY : CLEANUP_TOMS
+#if defined( MODEL_CLASSIC )
   USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
   USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
-#if !defined( ESMF_ ) && !defined( MODEL_ )
   USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
 #ifdef RRTMG
@@ -197,11 +197,13 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
+#if defined( MODEL_CLASSIC )
   IF ( State_Grid%NestedGrid ) THEN
      CALL EXIT_TPCORE_WINDOW()
   ELSE
      CALL EXIT_TPCORE()
   ENDIF
+#endif
 
   ! Cleanup Tagged CO code
   CALL CLEANUP_TAGGED_CO( RC )
@@ -246,10 +248,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   ENDIF
 
 #ifdef BPCH_DIAG
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled with BPCH_DIAG=y
-  !=====================================================================
   CALL CLEANUP_DIAG()
   CALL CLEANUP_DIAG03()
   CALL CLEANUP_DIAG51()
@@ -264,10 +262,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 #endif
 
 #ifdef RRTMG
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled with RRTMG=y
-  !=====================================================================
   CALL Cleanup_RRTMG_Rad_Transfer( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_RRTMG_Rad_Transfer"!'
@@ -277,18 +271,10 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 #endif
 
 #ifdef TOMAS
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled with TOMAS{12|15|30|40}=y
-  !=====================================================================
   CALL CLEANUP_TOMAS()
 #endif
 
-#if !defined( ESMF_ ) && !defined( MODEL_ )
-  !=====================================================================
-  ! These routines are only needed when GEOS-Chem
-  ! is compiled for GCHP, or for external ESMs.
-  !=====================================================================
+#if defined( MODEL_CLASSIC )
   CALL CLEANUP_TRANSPORT()
 #endif
 

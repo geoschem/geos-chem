@@ -714,8 +714,7 @@ CONTAINS
 
           ! Get long name
           iName = TRIM(SUBSTRS(1))
-          CALL Spc_Info ( am_I_Root = MAPL_am_I_Root(), &
-                          iName=iName,                  &
+          CALL Spc_Info ( iName=iName,                  &
                           KppSpcID=-1,                  &
                           oDiagName = FullName,         &
                           oFormula = Formula,           &
@@ -789,7 +788,7 @@ CONTAINS
 
              ! Get long name
              iName = TRIM(SpcName)
-             CALL Spc_Info ( am_I_Root = MAPL_am_I_Root(), iName=iName, &
+             CALL Spc_Info ( iName=iName, &
                              KppSpcID=-1, oDiagName = FullName, &
                              oFormula = Formula, &
                              Found=Found, Underscores = .TRUE., RC = RC )
@@ -1013,7 +1012,7 @@ CONTAINS
     !-- Exports
     DO I=1,Nadv
        iName = TRIM(AdvSpc(I))
-       CALL Spc_Info ( am_I_Root = MAPL_am_I_Root(), iName=iName, &
+       CALL Spc_Info ( iName=iName, &
                        KppSpcID=-1, oDiagName = FullName, Found=Found, &
                        Underscores = .FALSE., RC = RC )
        IF ( .NOT. FOUND ) FullName = TRIM(SpcName)
@@ -1120,7 +1119,7 @@ CONTAINS
     DO I=1,SIZE(COLLIST,1)
        SpcName = COLLIST(I)
        iName = TRIM(SpcName)
-       CALL Spc_Info ( am_I_Root = MAPL_am_I_Root(), iName=iName, &
+       CALL Spc_Info ( iName=iName, &
                        KppSpcID=-1, oDiagName = FullName,         &
                        Found = Found, Underscores = .TRUE., RC = RC )
        IF ( .NOT. Found ) FullName = TRIM(SpcName)
@@ -1748,10 +1747,10 @@ CONTAINS
 !
     USE TIME_MOD,  ONLY : GET_TS_CHEM, GET_TS_EMIS
     USE TIME_MOD,  ONLY : GET_TS_DYN,  GET_TS_CONV
-#if defined( MODEL_GEOS )
-    USE TENDENCIES_MOD, ONLY : Tend_CreateClass
-    USE TENDENCIES_MOD, ONLY : Tend_Add
-#endif
+!#if defined( MODEL_GEOS )
+!    USE TENDENCIES_MOD, ONLY : Tend_CreateClass
+!    USE TENDENCIES_MOD, ONLY : Tend_Add
+!#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2521,31 +2520,31 @@ CONTAINS
 
     ENDDO
 
-#if defined( MODEL_GEOS )
-    !=======================================================================
-    ! Make sure that GEOS-Chem calculates chemistry tendencies of O3 and H2O
-    ! if it is the analysis OX and RATS provider, respectively. 
-    !=======================================================================
-    IF ( DoAnox ) THEN
-       GCID = ind_('O3')
-       IF ( GCID > 0 ) THEN
-          CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm,             &
-                                 'CHEM',    __RC__ )
-          CALL Tend_Add        ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                                 'CHEM',    GCID,      __RC__ )
-       ENDIF
-    ENDIF
-
-    IF ( DoRATS ) THEN
-       GCID = ind_('H2O')
-       IF ( GCID > 0 ) THEN
-          CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm,             &
-                                 'CHEM',    __RC__ )
-          CALL Tend_Add        ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
-                                 'CHEM',    GCID,      __RC__ )
-       ENDIF
-    ENDIF
-#endif
+!#if defined( MODEL_GEOS )
+!    !=======================================================================
+!    ! Make sure that GEOS-Chem calculates chemistry tendencies of O3 and H2O
+!    ! if it is the analysis OX and RATS provider, respectively. 
+!    !=======================================================================
+!    IF ( DoAnox ) THEN
+!       GCID = ind_('O3')
+!       IF ( GCID > 0 ) THEN
+!          CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm,             &
+!                                 'CHEM',    __RC__ )
+!          CALL Tend_Add        ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+!                                 'CHEM',    GCID,      __RC__ )
+!       ENDIF
+!    ENDIF
+!
+!    IF ( DoRATS ) THEN
+!       GCID = ind_('H2O')
+!       IF ( GCID > 0 ) THEN
+!          CALL Tend_CreateClass( am_I_Root, Input_Opt, State_Chm,             &
+!                                 'CHEM',    __RC__ )
+!          CALL Tend_Add        ( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+!                                 'CHEM',    GCID,      __RC__ )
+!       ENDIF
+!    ENDIF
+!#endif
 
     !=======================================================================
     ! Error trap: make sure that chemistry / emission time step are same and
@@ -5727,216 +5726,216 @@ CONTAINS
 
   END SUBROUTINE CalcColumns_
 !EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: CalcTendencies_ 
+!!
+!! !DESCRIPTION: CalcTendencies_ computes tendencies. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE CalcTendencies_( am_I_Root, Input_Opt, State_Met, State_Chm, &
+!                              IsChemTime, Phase, EXPORT, OX_TEND, H2O_TEND, &
+!                              LM, RC )
+!!
+!! !USES:
+!!
+!!    USE TENDENCIES_MOD,          ONLY : Tend_Get
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    LOGICAL,             INTENT(IN)            :: am_I_Root
+!    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt 
+!    TYPE(MetState),      INTENT(INOUT)         :: State_Met 
+!    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm 
+!    LOGICAL,             INTENT(IN)            :: IsChemTime
+!    INTEGER,             INTENT(IN)            :: Phase    
+!    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
+!    REAL,                POINTER               :: OX_TEND(:,:,:)
+!    REAL,                POINTER               :: H2O_TEND(:,:,:)
+!    INTEGER,             INTENT(IN)            :: LM
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER,             INTENT(OUT)           :: RC       ! Success or failure?
+!!
+!! !REMARKS:
+!!
+!! !REVISION HISTORY:
+!!  05 Dec 2017 - C. Keller   - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! LOCAL VARIABLES:
+!!
+!    ! Objects
+! 
+!    ! Scalars
+!    INTEGER                    :: STATUS
+!    INTEGER                    :: I, N, IND
+!    INTEGER                    :: Stage
+!    CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
+!    CHARACTER(LEN=ESMF_MAXSTR) :: FldName
+!    REAL, POINTER              :: Ptr3D(:,:,:), Ptr2D(:,:)
+!    REAL(f4), POINTER          :: Tend(:,:,:)
 !
-! !IROUTINE: CalcTendencies_ 
+!    
+!    !=======================================================================
+!    ! Initialization
+!    !=======================================================================
 !
-! !DESCRIPTION: CalcTendencies_ computes tendencies. 
-!\\
-!\\
-! !INTERFACE:
+!    ! Identify this routine to MAPL
+!    Iam = 'GCC::CalcTendencies_'
 !
-  SUBROUTINE CalcTendencies_( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                              IsChemTime, Phase, EXPORT, OX_TEND, H2O_TEND, &
-                              LM, RC )
+!    ! O3 tendencies due to chemistry.
+!    IF ( IsChemTime .AND. Phase==2 ) THEN
+!       CALL MAPL_GetPointer( EXPORT, Ptr3D, 'MTEND_CHEM_O3', &
+!                             NotFoundOk=.TRUE., __RC__ )
+!       IF ( ASSOCIATED(OX_TEND) .OR. ASSOCIATED(Ptr3D) ) THEN
 !
-! !USES:
+!          ! Get O3 tracer ID
+!          IND = Ind_('O3')
+!          _ASSERT(IND>0,'O3 tracer ID is negative')
 !
-    USE TENDENCIES_MOD,          ONLY : Tend_Get
+!          ! Get tracer tendency in kg/kg dry air/s 
+!          CALL Tend_Get( am_I_Root, Input_Opt, 'CHEM', IND, Stage, &
+!                         Tend, __RC__ )
+!          ! Fill OX_TEND (in kg/kg/s)
+!          IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
+!             OX_TEND = Tend(:,:,LM:1:-1)
+!          ELSE
+!             OX_TEND = 0.0
+!          ENDIF
 !
-! !INPUT/OUTPUT PARAMETERS:
+!          ! export as kg/m2/s:
+!          IF ( ASSOCIATED(Ptr3D) .AND. ASSOCIATED(Tend) .AND. Stage==2 ) THEN
+!             Ptr3D(:,:,LM:1:-1) = Tend(:,:,1:LM) * ( g0_100 &
+!                                  * State_Met%DELP_DRY(:,:,LM:1:-1) )
+!          ENDIF
 !
-    LOGICAL,             INTENT(IN)            :: am_I_Root
-    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt 
-    TYPE(MetState),      INTENT(INOUT)         :: State_Met 
-    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm 
-    LOGICAL,             INTENT(IN)            :: IsChemTime
-    INTEGER,             INTENT(IN)            :: Phase    
-    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
-    REAL,                POINTER               :: OX_TEND(:,:,:)
-    REAL,                POINTER               :: H2O_TEND(:,:,:)
-    INTEGER,             INTENT(IN)            :: LM
+!          ! Cleanup
+!          Ptr3D => NULL()
+!          Tend  => NULL()
+!       ENDIF
+!    ENDIF
 !
-! !OUTPUT PARAMETERS:
+!    ! H2O tendencies due to chemistry.
+!    IF ( ASSOCIATED(H2O_TEND) .AND. IsChemTime .AND. Phase==2 ) THEN
+!       ! Initialize
+!       H2O_TEND = 0.0
+!       ! Get tracer ID
+!       IND = Ind_('H2O')
+!       IF ( IND > 0 ) THEN
+!          ! Get tendency due to chemistry in kg/kg/s
+!          CALL Tend_Get( am_I_Root, Input_Opt, 'CHEM', IND, Stage, &
+!                         Tend, __RC__ )
+!          ! Fill H2O_TEND. Convert to kg/kg/s
+!          IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
+!             H2O_TEND = Tend(:,:,LM:1:-1)
+!          ENDIF
 !
-    INTEGER,             INTENT(OUT)           :: RC       ! Success or failure?
+!!          ! It looks like H2O_TEND is not preserved in the MAPL restart files, 
+!!          ! which causes the time regression to fail. Force GCC H2O tendencies
+!!          ! to zero until this problem is resolved! (ckeller, 11/02/2015) 
+!!          H2O_TEND = 0.0
+!!          if(am_I_Root) write(*,*) 'GCC: H2O_TEND set to zero!'
+!       ENDIF
+!       ! Cleanup
+!       Tend => NULL()
+!    ENDIF
 !
-! !REMARKS:
+!    ! Drydep mass tendencies
+!    ! MTEND_FLUX is a 2D diagnostics and reflects the mass flux due to dry 
+!    ! deposition
+!    IF ( PHASE == 1 ) THEN 
+!       DO I = 1, State_Chm%nDryDep
+!          N = State_Chm%Map_DryDep(I)
+!          FldName = 'MTEND_FLUX_'//TRIM(State_Chm%SpcData(N)%Info%Name)
+!          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName), &
+!                                NotFoundOk=.TRUE., __RC__ )
+!          IF ( ASSOCIATED(Ptr2D) ) THEN
+!             ! Tracer index 
+!             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
+!             _ASSERT(IND>0,'Tracer ID is negative')
+!             ! Get tracer tendency in kg/kg dry air/s 
+!             CALL Tend_Get( am_I_Root, Input_Opt, 'FLUX', IND, Stage, &
+!                            Tend, __RC__ )
+!             ! Export as kg/m2/s:
+!             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
+!                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100  &
+!                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
+!                Ptr2D(:,:) = SUM(Tend,DIM=3) 
+!             ENDIF
+!             Ptr2D => NULL()
+!          END IF
+!       ENDDO
+!    ENDIF
 !
-! !REVISION HISTORY:
-!  05 Dec 2017 - C. Keller   - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!    ! Wetdep mass tendencies
+!    ! MTEND_WETD is a 2D diagnostics and reflects the mass flux due to 
+!    ! large-scale wet deposition
+!    IF ( PHASE == 2 ) THEN 
+!       DO I = 1, State_Chm%nWetDep
+!          N = State_Chm%Map_WetDep(I)
+!          FldName = 'MTEND_WETD_'//TRIM(State_Chm%SpcData(N)%Info%Name)
+!          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName), &
+!                                NotFoundOk=.TRUE., __RC__ )
+!          IF ( ASSOCIATED(Ptr2D) ) THEN
+!             ! Tracer index 
+!             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
+!             _ASSERT(IND>0,'Tracer ID is negative')
+!             ! Get tracer tendency in kg/kg dry air/s 
+!             CALL Tend_Get( am_I_Root, Input_Opt, 'WETD', IND, Stage, &
+!                            Tend, __RC__ )
+!             ! Export as kg/m2/s:
+!             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
+!                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100 &
+!                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
+!                Ptr2D(:,:) = SUM(Tend,DIM=3) 
+!             ENDIF
+!             Ptr2D => NULL()
+!          END IF
+!       ENDDO
+!    ENDIF
 !
-! LOCAL VARIABLES:
+!    ! Convection mass tendencies
+!    ! MTEND_CONV is a 2D diagnostics and reflects the mass flux due to 
+!    ! convective wet deposition
+!    IF ( PHASE == 1 ) THEN 
+!       DO I = 1, State_Chm%nWetDep
+!          N = State_Chm%Map_WetDep(I)
+!          FldName = 'MTEND_CONV_'//TRIM(State_Chm%SpcData(N)%Info%Name)
+!          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName),  &
+!                                NotFoundOk=.TRUE., __RC__ )
+!          IF ( ASSOCIATED(Ptr2D) ) THEN
+!             ! Tracer index 
+!             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
+!             _ASSERT(IND>0,'Tracer ID is negative')
+!             ! Get tracer tendency in kg/kg dry air/s 
+!             CALL Tend_Get( am_I_Root, Input_Opt, 'CONV', IND, Stage, &
+!                            Tend, __RC__ )
+!             ! Export as kg/m2/s:
+!             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
+!                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100  &
+!                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
+!                Ptr2D(:,:) = SUM(Tend,DIM=3) 
+!             ENDIF
+!             Ptr2D => NULL()
+!          END IF
+!       ENDDO
+!    ENDIF
 !
-    ! Objects
- 
-    ! Scalars
-    INTEGER                    :: STATUS
-    INTEGER                    :: I, N, IND
-    INTEGER                    :: Stage
-    CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
-    CHARACTER(LEN=ESMF_MAXSTR) :: FldName
-    REAL, POINTER              :: Ptr3D(:,:,:), Ptr2D(:,:)
-    REAL(f4), POINTER          :: Tend(:,:,:)
-
-    
-    !=======================================================================
-    ! Initialization
-    !=======================================================================
-
-    ! Identify this routine to MAPL
-    Iam = 'GCC::CalcTendencies_'
-
-    ! O3 tendencies due to chemistry.
-    IF ( IsChemTime .AND. Phase==2 ) THEN
-       CALL MAPL_GetPointer( EXPORT, Ptr3D, 'MTEND_CHEM_O3', &
-                             NotFoundOk=.TRUE., __RC__ )
-       IF ( ASSOCIATED(OX_TEND) .OR. ASSOCIATED(Ptr3D) ) THEN
-
-          ! Get O3 tracer ID
-          IND = Ind_('O3')
-          _ASSERT(IND>0,'O3 tracer ID is negative')
-
-          ! Get tracer tendency in kg/kg dry air/s 
-          CALL Tend_Get( am_I_Root, Input_Opt, 'CHEM', IND, Stage, &
-                         Tend, __RC__ )
-          ! Fill OX_TEND (in kg/kg/s)
-          IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-             OX_TEND = Tend(:,:,LM:1:-1)
-          ELSE
-             OX_TEND = 0.0
-          ENDIF
-
-          ! export as kg/m2/s:
-          IF ( ASSOCIATED(Ptr3D) .AND. ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-             Ptr3D(:,:,LM:1:-1) = Tend(:,:,1:LM) * ( g0_100 &
-                                  * State_Met%DELP_DRY(:,:,LM:1:-1) )
-          ENDIF
-
-          ! Cleanup
-          Ptr3D => NULL()
-          Tend  => NULL()
-       ENDIF
-    ENDIF
-
-    ! H2O tendencies due to chemistry.
-    IF ( ASSOCIATED(H2O_TEND) .AND. IsChemTime .AND. Phase==2 ) THEN
-       ! Initialize
-       H2O_TEND = 0.0
-       ! Get tracer ID
-       IND = Ind_('H2O')
-       IF ( IND > 0 ) THEN
-          ! Get tendency due to chemistry in kg/kg/s
-          CALL Tend_Get( am_I_Root, Input_Opt, 'CHEM', IND, Stage, &
-                         Tend, __RC__ )
-          ! Fill H2O_TEND. Convert to kg/kg/s
-          IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-             H2O_TEND = Tend(:,:,LM:1:-1)
-          ENDIF
-
-!          ! It looks like H2O_TEND is not preserved in the MAPL restart files, 
-!          ! which causes the time regression to fail. Force GCC H2O tendencies
-!          ! to zero until this problem is resolved! (ckeller, 11/02/2015) 
-!          H2O_TEND = 0.0
-!          if(am_I_Root) write(*,*) 'GCC: H2O_TEND set to zero!'
-       ENDIF
-       ! Cleanup
-       Tend => NULL()
-    ENDIF
-
-    ! Drydep mass tendencies
-    ! MTEND_FLUX is a 2D diagnostics and reflects the mass flux due to dry 
-    ! deposition
-    IF ( PHASE == 1 ) THEN 
-       DO I = 1, State_Chm%nDryDep
-          N = State_Chm%Map_DryDep(I)
-          FldName = 'MTEND_FLUX_'//TRIM(State_Chm%SpcData(N)%Info%Name)
-          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName), &
-                                NotFoundOk=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr2D) ) THEN
-             ! Tracer index 
-             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-             _ASSERT(IND>0,'Tracer ID is negative')
-             ! Get tracer tendency in kg/kg dry air/s 
-             CALL Tend_Get( am_I_Root, Input_Opt, 'FLUX', IND, Stage, &
-                            Tend, __RC__ )
-             ! Export as kg/m2/s:
-             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100  &
-                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
-                Ptr2D(:,:) = SUM(Tend,DIM=3) 
-             ENDIF
-             Ptr2D => NULL()
-          END IF
-       ENDDO
-    ENDIF
-
-    ! Wetdep mass tendencies
-    ! MTEND_WETD is a 2D diagnostics and reflects the mass flux due to 
-    ! large-scale wet deposition
-    IF ( PHASE == 2 ) THEN 
-       DO I = 1, State_Chm%nWetDep
-          N = State_Chm%Map_WetDep(I)
-          FldName = 'MTEND_WETD_'//TRIM(State_Chm%SpcData(N)%Info%Name)
-          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName), &
-                                NotFoundOk=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr2D) ) THEN
-             ! Tracer index 
-             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-             _ASSERT(IND>0,'Tracer ID is negative')
-             ! Get tracer tendency in kg/kg dry air/s 
-             CALL Tend_Get( am_I_Root, Input_Opt, 'WETD', IND, Stage, &
-                            Tend, __RC__ )
-             ! Export as kg/m2/s:
-             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100 &
-                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
-                Ptr2D(:,:) = SUM(Tend,DIM=3) 
-             ENDIF
-             Ptr2D => NULL()
-          END IF
-       ENDDO
-    ENDIF
-
-    ! Convection mass tendencies
-    ! MTEND_CONV is a 2D diagnostics and reflects the mass flux due to 
-    ! convective wet deposition
-    IF ( PHASE == 1 ) THEN 
-       DO I = 1, State_Chm%nWetDep
-          N = State_Chm%Map_WetDep(I)
-          FldName = 'MTEND_CONV_'//TRIM(State_Chm%SpcData(N)%Info%Name)
-          CALL MAPL_GetPointer( Export, Ptr2D, TRIM(FldName),  &
-                                NotFoundOk=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr2D) ) THEN
-             ! Tracer index 
-             IND = Ind_(TRIM(State_Chm%SpcData(N)%Info%Name))
-             _ASSERT(IND>0,'Tracer ID is negative')
-             ! Get tracer tendency in kg/kg dry air/s 
-             CALL Tend_Get( am_I_Root, Input_Opt, 'CONV', IND, Stage, &
-                            Tend, __RC__ )
-             ! Export as kg/m2/s:
-             IF ( ASSOCIATED(Tend) .AND. Stage==2 ) THEN
-                Tend(:,:,1:LM) = Tend(:,:,1:LM) * ( g0_100  &
-                                 * State_Met%DELP_DRY(:,:,LM:1:-1) )
-                Ptr2D(:,:) = SUM(Tend,DIM=3) 
-             ENDIF
-             Ptr2D => NULL()
-          END IF
-       ENDDO
-    ENDIF
-
-    ! Successful return
-    _RETURN(ESMF_SUCCESS)
-
-  END SUBROUTINE CalcTendencies_ 
-!EOC
+!    ! Successful return
+!    _RETURN(ESMF_SUCCESS)
+!
+!  END SUBROUTINE CalcTendencies_ 
+!!EOC
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -6095,563 +6094,563 @@ CONTAINS
 
   END SUBROUTINE NOxDiagnostics_
 !EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: CalcSpeciesDiagnostics_
+!!
+!! !DESCRIPTION: CalcSpeciesDiagnostics_ computes species' diagnostics 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE CalcSpeciesDiagnostics_( am_I_Root, Input_Opt, State_Met, &
+!                                      State_Chm, State_Diag, IMPORT, EXPORT, &
+!                                      INTSTATE, Q, RC )
+!!
+!! !USES:
+!!
+!    USE TENDENCIES_MOD,          ONLY : Tend_Get
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    LOGICAL,             INTENT(IN)            :: am_I_Root
+!    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt 
+!    TYPE(MetState),      INTENT(INOUT)         :: State_Met 
+!    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm 
+!    TYPE(DgnState),      INTENT(INOUT)         :: State_Diag
+!    TYPE(ESMF_State),    INTENT(INOUT)         :: Import   ! Import State
+!    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
+!    TYPE(ESMF_STATE),    INTENT(INOUT)         :: INTSTATE
+!    REAL,                POINTER               :: Q(:,:,:)
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER,             INTENT(INOUT)         :: RC       ! Success or failure?
+!!
+!! !REMARKS:
+!!
+!! !REVISION HISTORY:
+!!  05 Dec 2017 - C. Keller   - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! LOCAL VARIABLES:
+!!
+!    ! Objects
+! 
+!    ! Scalars
+!    INTEGER                    :: STATUS
+!    INTEGER                    :: I, J, N, IM, JM, LM, DryID
+!    LOGICAL                    :: IsBry, IsNOy,  IsCly, IsOrgCl, DoPM25
+!    LOGICAL                    :: RunMe, IsPM25, IsSOA, IsNi, IsSu, IsOC, IsBC, IsDu, IsSS
+!    CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
+!    CHARACTER(LEN=ESMF_MAXSTR) :: FieldName, SpcName
+!    REAL                       :: MW
+!    REAL                       :: Ra_z0, Ra_2m, Ra_10m
+!    REAL                       :: t_, rho_, fhs_, ustar_, dz_, z0h_
+!    REAL                       :: BrCoeff, ClCoeff, OrgClCoeff
+!!    REAL, ALLOCATABLE          :: Ra2m(:,:), Ra10m(:,:)
+!!    REAL, ALLOCATABLE          :: Lz0(:,:),  L2m(:,:), L10m(:,:)
+!    REAL, POINTER              :: Ptr3D(:,:,:), PtrTmp(:,:,:), Ptr2D(:,:)
+!    REAL, POINTER              :: Bry(:,:,:), NOy(:,:,:), Ptr2m(:,:), Ptr10m(:,:)
+!    REAL, POINTER              :: Cly(:,:,:), OrgCl(:,:,:) 
+!    REAL, ALLOCATABLE          :: CONV(:,:), MyPM25(:,:,:)
+!    TYPE(Species), POINTER     :: SpcInfo
 !
-! !IROUTINE: CalcSpeciesDiagnostics_
+!    ! For PM25 diagnostics
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25
+!    REAL, POINTER, DIMENSION(:,:)    :: PtrPM25_2m
+!    REAL, POINTER, DIMENSION(:,:)    :: PtrPM25_10m
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_SOA
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_nitrates
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_sulfates
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_OC
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_BC
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_dust
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_seasalt
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrNH4
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrNIT
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrSO4
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrBCPI
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrBCPO
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrOCPI
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrOCPO
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrDST1
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrDST2
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrSALA
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrTSOA0
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrTSOA1
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrTSOA2
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrTSOA3
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrISOA1
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrISOA2
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrISOA3
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrASOAN
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrASOA1
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrASOA2
+!    REAL, POINTER, DIMENSION(:,:,:)  :: PtrASOA3
 !
-! !DESCRIPTION: CalcSpeciesDiagnostics_ computes species' diagnostics 
-!\\
-!\\
-! !INTERFACE:
 !
-  SUBROUTINE CalcSpeciesDiagnostics_( am_I_Root, Input_Opt, State_Met, &
-                                      State_Chm, State_Diag, IMPORT, EXPORT, &
-                                      INTSTATE, Q, RC )
+!    REAL, PARAMETER                  :: Lv = 2257000.0 !J kg-1
+!    REAL, PARAMETER                  :: Cv = 1004.0 !J K-1 kg-1 
 !
-! !USES:
+!    REAL, PARAMETER                  :: kg2ug    = 1.0e9
 !
-    USE TENDENCIES_MOD,          ONLY : Tend_Get
+!    LOGICAL, SAVE                    :: FIRST = .TRUE.
+! 
+!    !=======================================================================
+!    ! Routine starts here 
+!    !=======================================================================
 !
-! !INPUT/OUTPUT PARAMETERS:
+!    ! Identify this routine to MAPL
+!    Iam = 'GCC::CalcSpeciesDiagnostics_'
 !
-    LOGICAL,             INTENT(IN)            :: am_I_Root
-    TYPE(OptInput),      INTENT(INOUT)         :: Input_Opt 
-    TYPE(MetState),      INTENT(INOUT)         :: State_Met 
-    TYPE(ChmState),      INTENT(INOUT)         :: State_Chm 
-    TYPE(DgnState),      INTENT(INOUT)         :: State_Diag
-    TYPE(ESMF_State),    INTENT(INOUT)         :: Import   ! Import State
-    TYPE(ESMF_State),    INTENT(INOUT)         :: Export   ! Export State
-    TYPE(ESMF_STATE),    INTENT(INOUT)         :: INTSTATE
-    REAL,                POINTER               :: Q(:,:,:)
+!    ! Grid size
+!    IM = SIZE(Q,1)
+!    JM = SIZE(Q,2)
+!    LM = SIZE(Q,3)
 !
-! !OUTPUT PARAMETERS:
+!    !=======================================================================
+!    ! Aerodynamic resistance
+!    !=======================================================================
+!!    ALLOCATE(Ra2m(IM,JM),Ra10m(IM,JM))
+!!    ALLOCATE(Lz0(IM,JM))
+!!    ! Compute aerodynamic resistance between 2m/10m and surface mid layer.
+!!    DO J=1,JM
+!!    DO I=1,IM
+!!       ! Ra from surface to surface mid-layer
+!!       ! Use t2m for all calculations. Only used for Monin-Obukhov.
+!!       t_         = T2M(I,J)
+!!       rho_       = AIRDENS(I,J,LM)
+!!       fhs_       = SH(I,J) 
+!!       ustar_     = USTAR(I,J)
+!!       dz_        = DELP(I,J,LM) / ( MAPL_GRAV * rho_ )
+!!       z0h_       = Z0H(I,J)
+!!       Ra_z0      = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
+!!       Lz0(I,J)   = monin_obukhov_length(t_, rho_, fhs_, ustar_ ) 
+!!       ! Ra from surface to 2m 
+!!       !t_         = T2M(I,J)
+!!       dz_        = 2. * 2.
+!!       Ra_2m      = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
+!!       Ra2m(I,J)  = 0.01 * ( Ra_z0 - Ra_2m )  ! convert to s cm-1
+!!       ! Ra from surface to 10m 
+!!       !t_         = T10M(I,J)
+!!       dz_        = 2. * 10.
+!!       Ra_10m     = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
+!!       Ra10m(I,J) = 0.01 * ( Ra_z0 - Ra_10m ) ! convert to s cm-1
+!!    ENDDO
+!!    ENDDO
 !
-    INTEGER,             INTENT(INOUT)         :: RC       ! Success or failure?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  05 Dec 2017 - C. Keller   - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! LOCAL VARIABLES:
-!
-    ! Objects
- 
-    ! Scalars
-    INTEGER                    :: STATUS
-    INTEGER                    :: I, J, N, IM, JM, LM, DryID
-    LOGICAL                    :: IsBry, IsNOy,  IsCly, IsOrgCl, DoPM25
-    LOGICAL                    :: RunMe, IsPM25, IsSOA, IsNi, IsSu, IsOC, IsBC, IsDu, IsSS
-    CHARACTER(LEN=ESMF_MAXSTR) :: Iam           ! Gridded component name
-    CHARACTER(LEN=ESMF_MAXSTR) :: FieldName, SpcName
-    REAL                       :: MW
-    REAL                       :: Ra_z0, Ra_2m, Ra_10m
-    REAL                       :: t_, rho_, fhs_, ustar_, dz_, z0h_
-    REAL                       :: BrCoeff, ClCoeff, OrgClCoeff
-!    REAL, ALLOCATABLE          :: Ra2m(:,:), Ra10m(:,:)
-!    REAL, ALLOCATABLE          :: Lz0(:,:),  L2m(:,:), L10m(:,:)
-    REAL, POINTER              :: Ptr3D(:,:,:), PtrTmp(:,:,:), Ptr2D(:,:)
-    REAL, POINTER              :: Bry(:,:,:), NOy(:,:,:), Ptr2m(:,:), Ptr10m(:,:)
-    REAL, POINTER              :: Cly(:,:,:), OrgCl(:,:,:) 
-    REAL, ALLOCATABLE          :: CONV(:,:), MyPM25(:,:,:)
-    TYPE(Species), POINTER     :: SpcInfo
-
-    ! For PM25 diagnostics
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25
-    REAL, POINTER, DIMENSION(:,:)    :: PtrPM25_2m
-    REAL, POINTER, DIMENSION(:,:)    :: PtrPM25_10m
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_SOA
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_nitrates
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_sulfates
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_OC
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_BC
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_dust
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrPM25_seasalt
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrNH4
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrNIT
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrSO4
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrBCPI
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrBCPO
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrOCPI
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrOCPO
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrDST1
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrDST2
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrSALA
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrTSOA0
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrTSOA1
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrTSOA2
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrTSOA3
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrISOA1
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrISOA2
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrISOA3
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrASOAN
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrASOA1
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrASOA2
-    REAL, POINTER, DIMENSION(:,:,:)  :: PtrASOA3
-
-
-    REAL, PARAMETER                  :: Lv = 2257000.0 !J kg-1
-    REAL, PARAMETER                  :: Cv = 1004.0 !J K-1 kg-1 
-
-    REAL, PARAMETER                  :: kg2ug    = 1.0e9
-
-    LOGICAL, SAVE                    :: FIRST = .TRUE.
- 
-    !=======================================================================
-    ! Routine starts here 
-    !=======================================================================
-
-    ! Identify this routine to MAPL
-    Iam = 'GCC::CalcSpeciesDiagnostics_'
-
-    ! Grid size
-    IM = SIZE(Q,1)
-    JM = SIZE(Q,2)
-    LM = SIZE(Q,3)
-
-    !=======================================================================
-    ! Aerodynamic resistance
-    !=======================================================================
-!    ALLOCATE(Ra2m(IM,JM),Ra10m(IM,JM))
-!    ALLOCATE(Lz0(IM,JM))
-!    ! Compute aerodynamic resistance between 2m/10m and surface mid layer.
-!    DO J=1,JM
-!    DO I=1,IM
-!       ! Ra from surface to surface mid-layer
-!       ! Use t2m for all calculations. Only used for Monin-Obukhov.
-!       t_         = T2M(I,J)
-!       rho_       = AIRDENS(I,J,LM)
-!       fhs_       = SH(I,J) 
-!       ustar_     = USTAR(I,J)
-!       dz_        = DELP(I,J,LM) / ( MAPL_GRAV * rho_ )
-!       z0h_       = Z0H(I,J)
-!       Ra_z0      = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
-!       Lz0(I,J)   = monin_obukhov_length(t_, rho_, fhs_, ustar_ ) 
-!       ! Ra from surface to 2m 
-!       !t_         = T2M(I,J)
-!       dz_        = 2. * 2.
-!       Ra_2m      = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
-!       Ra2m(I,J)  = 0.01 * ( Ra_z0 - Ra_2m )  ! convert to s cm-1
-!       ! Ra from surface to 10m 
-!       !t_         = T10M(I,J)
-!       dz_        = 2. * 10.
-!       Ra_10m     = aerodynamic_resistance(t_, rho_, fhs_, ustar_, dz_, z0h_ )
-!       Ra10m(I,J) = 0.01 * ( Ra_z0 - Ra_10m ) ! convert to s cm-1
-!    ENDDO
-!    ENDDO
-
-    CALL MAPL_GetPointer( EXPORT, Ptr2d,  'DryDepRa2m', &
-                          NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = State_Chm%DryDepRa2m
-    CALL MAPL_GetPointer( EXPORT, Ptr2d, 'DryDepRa10m', &
-                          NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = State_Chm%DryDepRa10m
-!    CALL MAPL_GetPointer( EXPORT, Ptr2d, 'MoninObukhov', &
+!    CALL MAPL_GetPointer( EXPORT, Ptr2d,  'DryDepRa2m', &
 !                          NotFoundOk=.TRUE., __RC__ )
-!    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = Lz0
-!    DEALLOCATE(Lz0)
-
-    !=======================================================================
-    ! Exports in dry vol mixing ratio (v/v dry). Includes NOy. Convert from
-    ! kg/kg total. 
-    !=======================================================================
-    CALL MAPL_GetPointer( EXPORT, NOy, 'NOy', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(NOy) ) NOy = 0.0
-    CALL MAPL_GetPointer( EXPORT, Bry, 'Bry', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Bry) ) Bry = 0.0
-    CALL MAPL_GetPointer( EXPORT, Cly, 'Cly', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(Cly) ) Cly = 0.0
-    CALL MAPL_GetPointer( EXPORT, OrgCl, 'OrganicCl', NotFoundOk=.TRUE., __RC__ )
-    IF ( ASSOCIATED(OrgCl) ) OrgCl = 0.0
-
-    ! Check for PM25 diagnostics
-    CALL MAPL_GetPointer( EXPORT, PtrPM25         , 'myPM25'         , &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_2m      , 'myPM25_2m'      , &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_10m     , 'myPM25_10m'     , & 
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_SOA     , 'myPM25_SOA'     , &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_nitrates, 'myPM25_nitrates', &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_sulfates, 'myPM25_sulfates', &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_OC      , 'myPM25_OC'      , &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_BC      , 'myPM25_BC'      , &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_dust    , 'myPM25_dust'    , &
-                          NotFoundOk=.TRUE., __RC__ )
-    CALL MAPL_GetPointer( EXPORT, PtrPM25_seasalt , 'myPM25_seasalt' , &
-                          NotFoundOk=.TRUE., __RC__ )
-    DoPM25 = ( ASSOCIATED(PtrPM25)          .OR. ASSOCIATED(PtrPM25_2m)   .OR. &
-               ASSOCIATED(PtrPM25_10m)      .OR. ASSOCIATED(PtrPM25_SOA)  .OR. &
-               ASSOCIATED(PtrPM25_nitrates) .OR. ASSOCIATED(PtrPM25_sulfates) .OR. &
-               ASSOCIATED(PtrPM25_OC)       .OR. ASSOCIATED(PtrPM25_BC)   .OR. &
-               ASSOCIATED(PtrPM25_dust)     .OR. ASSOCIATED(PtrPM25_seasalt)        ) 
-    IF ( ASSOCIATED(PtrPM25         ) ) PtrPM25          = 0.0
-    IF ( ASSOCIATED(PtrPM25_2m      ) ) PtrPM25_2m       = 0.0
-    IF ( ASSOCIATED(PtrPM25_10m     ) ) PtrPM25_10m      = 0.0
-    IF ( ASSOCIATED(PtrPM25_nitrates) ) PtrPM25_nitrates = 0.0
-    IF ( ASSOCIATED(PtrPM25_sulfates) ) PtrPM25_sulfates = 0.0
-    IF ( ASSOCIATED(PtrPM25_SOA     ) ) PtrPM25_SOA      = 0.0
-    IF ( ASSOCIATED(PtrPM25_OC      ) ) PtrPM25_OC       = 0.0
-    IF ( ASSOCIATED(PtrPM25_BC      ) ) PtrPM25_BC       = 0.0
-    IF ( ASSOCIATED(PtrPM25_dust    ) ) PtrPM25_dust     = 0.0
-    IF ( ASSOCIATED(PtrPM25_seasalt ) ) PtrPM25_seasalt  = 0.0
-
-    DO N=1,State_Chm%nSpecies
-       SpcInfo   => State_Chm%SpcData(N)%Info ! Species database
-       SpcName   =  TRIM(SpcInfo%Name)
-!       ! Ignore family species
-!       IF ( LEN(SpcName) > 1 ) THEN
-!          IF ( SpcName(1:2) == 'T0' .OR.  &
-!               SpcName(1:2) == 'T1' .OR.  &
-!               SpcName(1:2) == 'T2'        ) CYCLE
+!    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = State_Chm%DryDepRa2m
+!    CALL MAPL_GetPointer( EXPORT, Ptr2d, 'DryDepRa10m', &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = State_Chm%DryDepRa10m
+!!    CALL MAPL_GetPointer( EXPORT, Ptr2d, 'MoninObukhov', &
+!!                          NotFoundOk=.TRUE., __RC__ )
+!!    IF ( ASSOCIATED(Ptr2d) ) Ptr2d = Lz0
+!!    DEALLOCATE(Lz0)
+!
+!    !=======================================================================
+!    ! Exports in dry vol mixing ratio (v/v dry). Includes NOy. Convert from
+!    ! kg/kg total. 
+!    !=======================================================================
+!    CALL MAPL_GetPointer( EXPORT, NOy, 'NOy', NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(NOy) ) NOy = 0.0
+!    CALL MAPL_GetPointer( EXPORT, Bry, 'Bry', NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(Bry) ) Bry = 0.0
+!    CALL MAPL_GetPointer( EXPORT, Cly, 'Cly', NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(Cly) ) Cly = 0.0
+!    CALL MAPL_GetPointer( EXPORT, OrgCl, 'OrganicCl', NotFoundOk=.TRUE., __RC__ )
+!    IF ( ASSOCIATED(OrgCl) ) OrgCl = 0.0
+!
+!    ! Check for PM25 diagnostics
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25         , 'myPM25'         , &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_2m      , 'myPM25_2m'      , &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_10m     , 'myPM25_10m'     , & 
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_SOA     , 'myPM25_SOA'     , &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_nitrates, 'myPM25_nitrates', &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_sulfates, 'myPM25_sulfates', &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_OC      , 'myPM25_OC'      , &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_BC      , 'myPM25_BC'      , &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_dust    , 'myPM25_dust'    , &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    CALL MAPL_GetPointer( EXPORT, PtrPM25_seasalt , 'myPM25_seasalt' , &
+!                          NotFoundOk=.TRUE., __RC__ )
+!    DoPM25 = ( ASSOCIATED(PtrPM25)          .OR. ASSOCIATED(PtrPM25_2m)   .OR. &
+!               ASSOCIATED(PtrPM25_10m)      .OR. ASSOCIATED(PtrPM25_SOA)  .OR. &
+!               ASSOCIATED(PtrPM25_nitrates) .OR. ASSOCIATED(PtrPM25_sulfates) .OR. &
+!               ASSOCIATED(PtrPM25_OC)       .OR. ASSOCIATED(PtrPM25_BC)   .OR. &
+!               ASSOCIATED(PtrPM25_dust)     .OR. ASSOCIATED(PtrPM25_seasalt)        ) 
+!    IF ( ASSOCIATED(PtrPM25         ) ) PtrPM25          = 0.0
+!    IF ( ASSOCIATED(PtrPM25_2m      ) ) PtrPM25_2m       = 0.0
+!    IF ( ASSOCIATED(PtrPM25_10m     ) ) PtrPM25_10m      = 0.0
+!    IF ( ASSOCIATED(PtrPM25_nitrates) ) PtrPM25_nitrates = 0.0
+!    IF ( ASSOCIATED(PtrPM25_sulfates) ) PtrPM25_sulfates = 0.0
+!    IF ( ASSOCIATED(PtrPM25_SOA     ) ) PtrPM25_SOA      = 0.0
+!    IF ( ASSOCIATED(PtrPM25_OC      ) ) PtrPM25_OC       = 0.0
+!    IF ( ASSOCIATED(PtrPM25_BC      ) ) PtrPM25_BC       = 0.0
+!    IF ( ASSOCIATED(PtrPM25_dust    ) ) PtrPM25_dust     = 0.0
+!    IF ( ASSOCIATED(PtrPM25_seasalt ) ) PtrPM25_seasalt  = 0.0
+!
+!    DO N=1,State_Chm%nSpecies
+!       SpcInfo   => State_Chm%SpcData(N)%Info ! Species database
+!       SpcName   =  TRIM(SpcInfo%Name)
+!!       ! Ignore family species
+!!       IF ( LEN(SpcName) > 1 ) THEN
+!!          IF ( SpcName(1:2) == 'T0' .OR.  &
+!!               SpcName(1:2) == 'T1' .OR.  &
+!!               SpcName(1:2) == 'T2'        ) CYCLE
+!!       ENDIF
+!!       IF ( LEN(SpcName) > 2 ) THEN
+!!          IF ( SpcName(1:3) == 'PT0' .OR.  &
+!!               SpcName(1:3) == 'PT1' .OR.  &
+!!               SpcName(1:3) == 'PT2'        ) CYCLE
+!!       ENDIF
+!       FieldName = TRIM(GPFX)//TRIM(SpcName)//'dry' ! FieldName
+!
+!       ! See if field exists in export
+!       CALL MAPL_GetPointer( EXPORT, Ptr3D, FieldName, &
+!                             NotFoundOk=.TRUE., __RC__ )
+!
+!       ! Need to fill at least one export?
+!       RunMe = .FALSE.
+!       IsNi  = .FALSE. 
+!       IsSu  = .FALSE.
+!       IsBC  = .FALSE.
+!       IsOC  = .FALSE.
+!       IsDu  = .FALSE.
+!       IsSS  = .FALSE.
+!       IsSOA = .FALSE.
+!
+!       ! Is this a NOy species?
+!       IF ( ASSOCIATED(NOy) ) THEN
+!          SELECT CASE ( TRIM(SpcName) )
+!             CASE ( 'BrNO3', 'ClNO3', 'DHDN', 'ETHLN', 'HNO2', &
+!                    'HNO3',  'HNO4',  'HONIT'  )
+!                IsNOy = .TRUE.
+!             CASE ( 'IONITA', 'IPMN', 'ISN1', 'ISNIOA', 'ISNIOG' )
+!                IsNOy = .TRUE.
+!             CASE ( 'ISOPNB', 'ISOPND', 'MACRN', 'MPN', 'MVKN', &
+!                    'N2O5',   'NIT',    'NO',    'NO2', 'NO3' )
+!                IsNOy = .TRUE.
+!             CASE ( 'NPMN', 'ONIT', 'PAN', 'PROPNN', 'R4N2' )
+!                IsNOy = .TRUE.
+!             CASE DEFAULT
+!                IsNOy = .FALSE.
+!          END SELECT
+!       ELSE
+!          IsNOy = .FALSE.
 !       ENDIF
-!       IF ( LEN(SpcName) > 2 ) THEN
-!          IF ( SpcName(1:3) == 'PT0' .OR.  &
-!               SpcName(1:3) == 'PT1' .OR.  &
-!               SpcName(1:3) == 'PT2'        ) CYCLE
+!       IF ( IsNOy ) RunMe = .TRUE.
+!
+!       ! Is this a Bry species?
+!       BrCoeff = 0.0
+!       IF ( ASSOCIATED(Bry) ) THEN
+!          SELECT CASE ( TRIM(SpcName) )
+!             CASE ( 'Br', 'BrO', 'HOBr', 'HBr', 'BrNO2', 'BrNO3', 'BrCl', 'IBr' )
+!                BrCoeff = 1.0
+!                IsBry   = .TRUE.
+!             CASE ( 'Br2' )
+!                BrCoeff = 2.0
+!                IsBry   = .TRUE.
+!             CASE DEFAULT
+!                IsBry = .FALSE.
+!          END SELECT
+!       ELSE
+!          IsBry = .FALSE.
 !       ENDIF
-       FieldName = TRIM(GPFX)//TRIM(SpcName)//'dry' ! FieldName
-
-       ! See if field exists in export
-       CALL MAPL_GetPointer( EXPORT, Ptr3D, FieldName, &
-                             NotFoundOk=.TRUE., __RC__ )
-
-       ! Need to fill at least one export?
-       RunMe = .FALSE.
-       IsNi  = .FALSE. 
-       IsSu  = .FALSE.
-       IsBC  = .FALSE.
-       IsOC  = .FALSE.
-       IsDu  = .FALSE.
-       IsSS  = .FALSE.
-       IsSOA = .FALSE.
-
-       ! Is this a NOy species?
-       IF ( ASSOCIATED(NOy) ) THEN
-          SELECT CASE ( TRIM(SpcName) )
-             CASE ( 'BrNO3', 'ClNO3', 'DHDN', 'ETHLN', 'HNO2', &
-                    'HNO3',  'HNO4',  'HONIT'  )
-                IsNOy = .TRUE.
-             CASE ( 'IONITA', 'IPMN', 'ISN1', 'ISNIOA', 'ISNIOG' )
-                IsNOy = .TRUE.
-             CASE ( 'ISOPNB', 'ISOPND', 'MACRN', 'MPN', 'MVKN', &
-                    'N2O5',   'NIT',    'NO',    'NO2', 'NO3' )
-                IsNOy = .TRUE.
-             CASE ( 'NPMN', 'ONIT', 'PAN', 'PROPNN', 'R4N2' )
-                IsNOy = .TRUE.
-             CASE DEFAULT
-                IsNOy = .FALSE.
-          END SELECT
-       ELSE
-          IsNOy = .FALSE.
-       ENDIF
-       IF ( IsNOy ) RunMe = .TRUE.
-
-       ! Is this a Bry species?
-       BrCoeff = 0.0
-       IF ( ASSOCIATED(Bry) ) THEN
-          SELECT CASE ( TRIM(SpcName) )
-             CASE ( 'Br', 'BrO', 'HOBr', 'HBr', 'BrNO2', 'BrNO3', 'BrCl', 'IBr' )
-                BrCoeff = 1.0
-                IsBry   = .TRUE.
-             CASE ( 'Br2' )
-                BrCoeff = 2.0
-                IsBry   = .TRUE.
-             CASE DEFAULT
-                IsBry = .FALSE.
-          END SELECT
-       ELSE
-          IsBry = .FALSE.
-       ENDIF
-       IF ( IsBry ) RunMe = .TRUE.
-
-       ! Is this a Cly species?
-       ClCoeff = 0.0
-       IF ( ASSOCIATED(Cly) ) THEN
-          SELECT CASE ( TRIM(SpcName) )
-             CASE ( 'Cl', 'ClO', 'OClO', 'ClOO', 'HOCl', 'HCl', 'ClNO2', 'ClNO3', 'BrCl', 'ICl' )
-                ClCoeff = 1.0
-                IsCly   = .TRUE.
-             CASE ( 'Cl2', 'Cl2O2' )
-                ClCoeff = 2.0
-                IsCly   = .TRUE.
-             CASE DEFAULT
-                IsCly = .FALSE.
-          END SELECT
-       ELSE
-          IsCly = .FALSE.
-       ENDIF
-       IF ( IsCly ) RunMe = .TRUE.
-
-       ! Is this an OrgCl species?
-       OrgClCoeff = 0.0
-       IF ( ASSOCIATED(Cly) ) THEN
-          SELECT CASE ( TRIM(SpcName) )
-             CASE ( 'H1211', 'CFC115', 'CH3Cl', 'HCFC142b', 'HCFC22', 'CH2ICl' )
-                OrgClCoeff = 1.0
-                IsOrgCl    = .TRUE.
-             CASE ( 'CFC114', 'CFC12', 'HCFC141b', 'HCFC123', 'CH2Cl2' )
-                OrgClCoeff = 2.0
-                IsOrgCl    = .TRUE.
-             CASE ( 'CFC11', 'CFC113', 'CH3CCl3', 'CHCl3' ) 
-                OrgClCoeff = 3.0
-                IsOrgCl    = .TRUE.
-             CASE ( 'CCl4' ) 
-                OrgClCoeff = 4.0
-                IsOrgCl    = .TRUE.
-             CASE DEFAULT
-                IsOrgCl = .FALSE.
-          END SELECT
-       ELSE
-          IsOrgCl = .FALSE.
-       ENDIF
-       IF ( IsOrgCl ) RunMe = .TRUE.
-
-       ! Is this a PM25 component?
-       IF ( DoPM25 ) THEN
-          SELECT CASE ( TRIM(SpcName) )
-             CASE ( 'NH4', 'NIT' )
-                IsNi  = .TRUE.
-                RunMe = .TRUE.
-             CASE ( 'SO4' )
-                IsSu  = .TRUE.
-                RunMe = .TRUE.
-             CASE ( 'BCPI', 'BCPO' ) 
-                IsBC  = .TRUE.
-                RunMe = .TRUE.
-             CASE ( 'OCPI', 'OCPO' ) 
-                IsOC  = .TRUE.
-                RunMe = .TRUE.
-             CASE ( 'DST1', 'DST2' ) 
-                IsDu  = .TRUE.
-                RunMe = .TRUE.
-             CASE ( 'SALA' )
-                IsSS  = .TRUE.
-                RunMe = .TRUE.
-             CASE ( 'TSOA0', 'TSOA1', 'TSOA2', 'TSOA3', 'ISOA1', &
-                    'ISOA2', 'ISOA3', 'ASOAN', 'ASOA1', 'ASOA2', 'ASOA3' )
-                IsSOA = .TRUE.
-                RunMe = .TRUE.
-          END SELECT
-       ENDIF
-       IsPM25 = ( IsSOA .OR. IsNi .OR. IsSu .OR. IsOC .OR. IsBC .OR. &
-                  IsDu .OR. IsSS )
-
-       ! Check if we want concentration at 2M/10m
-       CALL MAPL_GetPointer( EXPORT, Ptr2m , TRIM(SpcName)//'vv_2m' , &
-                             NotFoundOk=.TRUE., __RC__ )
-       CALL MAPL_GetPointer( EXPORT, Ptr10m, TRIM(SpcName)//'vv_10m', &
-                             NotFoundOk=.TRUE., __RC__ )
-
-       ! Fill exports
-       IF ( ASSOCIATED(Ptr3D)  .OR. IsNOy .OR. ASSOCIATED(Ptr2m) .OR. &
-            ASSOCIATED(Ptr10m) ) RunMe = .TRUE.
-       IF ( RunMe ) THEN
-
-          MW = SpcInfo%EmMW_g
-          IF ( MW > 0.0 ) THEN
-             FieldName = 'TRC_'//TRIM(SpcName)
-          ELSE
-             ! Get species and set MW to 1.0. This is ok because the internal
-             ! state uses a MW of 1.0 for all species
-             FieldName = 'SPC_'//TRIM(SpcName)
-             MW = 1.0
-             ! Cannot add to NOy if MW is unknown because it would screw up 
-             ! unit conversion
-             IF ( IsNOy ) THEN
-                IsNOy = .FALSE.
-                IF ( am_I_Root .AND. FIRST ) THEN
-                   write(*,*) 'WARNING: Ignore species for NOy computation' //&
-                              '  because MW is unknown: ', TRIM(SpcName)
-                ENDIF
-             ENDIF
-             !IF ( ASSOCIATED(Ptr3D) .AND. am_I_Root .AND. FIRST ) THEN
-             !   write(*,*)    &
-             !      'WARNING: Attempt conversion of kg/kg total'// &
-             !      ' to v/v dry but MW is unknown: ', TRIM(SpcName)
-             !ENDIF
-          ENDIF
-          CALL MAPL_GetPointer( INTSTATE, PtrTmp, FieldName, NotFoundOK=.TRUE., RC=STATUS )
-          ! On first fail try field with other prefix
-          !IF ( STATUS /= ESMF_SUCCESS ) THEN
-          IF ( .NOT. ASSOCIATED(PtrTmp) ) THEN
-             IF ( FieldName(1:4)=='TRC_' ) THEN
-                FieldName = 'SPC_'//TRIM(SpcName)
-             ELSE
-                FieldName = 'TRC_'//TRIM(SpcName)
-             ENDIF
-             CALL MAPL_GetPointer( INTSTATE, PtrTmp, FieldName, RC=STATUS )
-             IF ( STATUS /= ESMF_SUCCESS ) THEN
-                WRITE(*,*) 'Error reading ',TRIM(SpcName)
-                VERIFY_(STATUS)
-             ENDIF
-          ENDIF
-
-          !====================================================================
-          ! Export in v/v
-          !====================================================================
-          IF ( ASSOCIATED(Ptr3D) ) Ptr3D = PtrTmp * ( MAPL_AIRMW / MW ) / &
-                                           ( 1.0 - Q )
-
-          !====================================================================
-          ! NOy concentration
-          !====================================================================
-          IF ( IsNOy ) NOy = NOy + PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
-
-          !====================================================================
-          ! Bry concentration
-          IF ( IsBry ) Bry = Bry + BrCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
-          !====================================================================
-
-          !====================================================================
-          ! Cly concentration
-          !====================================================================
-          IF ( IsCly ) Cly = Cly + ClCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
-
-          !====================================================================
-          ! OrgCl concentration
-          !====================================================================
-          IF ( IsOrgCl ) OrgCl = OrgCl + OrgClCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
-
-          !==================================================================
-          ! PM2.5 diagnostics. Calculate PM25 according to 
-          ! http://wiki.seas.harvard.edu/geos-chem/index.php/Particulate_matter_in_GEOS-Chem
-          !===================================================================
-          IF ( IsPM25 ) THEN 
-             ALLOCATE(MyPM25(IM,JM,LM))
-             IF ( IsNi  ) THEN
-                MyPM25 = 1.33 * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
-                IF ( ASSOCIATED(PtrPM25_nitrates) ) &
-                   PtrPM25_nitrates = PtrPM25_nitrates + MyPM25
-             ENDIF
-             IF ( IsSu  ) THEN
-                MyPM25 = 1.33 * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
-                IF ( ASSOCIATED(PtrPM25_sulfates) ) &
-                   PtrPM25_sulfates = PtrPM25_sulfates + MyPM25
-             ENDIF
-             IF ( IsBC  ) THEN
-                MyPM25 = PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
-                IF ( ASSOCIATED(PtrPM25_BC) ) &
-                   PtrPM25_BC = PtrPM25_BC + MyPM25
-             ENDIF
-             IF ( IsSOA ) THEN
-                MyPM25 = 1.16 * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
-                IF ( ASSOCIATED(PtrPM25_SOA) ) &
-                   PtrPM25_SOA = PtrPM25_SOA + MyPM25
-             ENDIF
-             IF ( IsSS  ) THEN
-                MyPM25 = 1.86 * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
-                IF ( ASSOCIATED(PtrPM25_seasalt) ) &
-                   PtrPM25_seasalt = PtrPM25_seasalt + MyPM25
-             ENDIF                                 
-             IF ( IsOC  ) THEN
-                MyPM25 = 2.1  * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
-                IF ( TRIM(SpcName) == 'OCPI' ) MyPM25 = 1.16 * MyPM25 
-                IF ( ASSOCIATED(PtrPM25_OC) ) &
-                   PtrPM25_OC = PtrPM25_OC + MyPM25
-             ENDIF
-             IF ( IsDu ) THEN 
-                MyPM25 = PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
-                IF ( TRIM(SpcName) == 'DST2' ) MyPM25 = 0.38 * MyPM25 
-                IF ( ASSOCIATED(PtrPM25_dust) ) &
-                   PtrPM25_dust = PtrPM25_dust + MyPM25
-             ENDIF
- 
-             ! Total PM25
-             IF ( ASSOCIATED(PtrPM25) ) PtrPM25 = PtrPM25 + MyPM25
-          ENDIF
-
-          !====================================================================
-          ! 2m and 10m concentration, corrected by aerodynamic resistance 
-          ! (Zhang et al. 2012)
-          !====================================================================
-          IF ( ASSOCIATED(Ptr2m) .OR. &
-             (IsPM25.AND.ASSOCIATED(PtrPM25_2m)) ) THEN
-             ALLOCATE(CONV(SIZE(Ptr2m,1),SIZE(Ptr2m,2)))
-             DryID = SpcInfo%DryDepID
-             IF ( DryID > 0 ) THEN
-                IF ( .NOT. ASSOCIATED(State_Diag%DryDepVel ) ) THEN 
-                   WRITE(*,*)     &
-                       'Cannot compute 2M concentration - need diagnostics '// &
-                       'of drydep velocity - please activate - ' //TRIM(SpcName)
-                   ASSERT_(.FALSE.)
-                ENDIF      
-                CONV(:,:) = 1.0 - ( State_Chm%DryDepRa2m(:,:) *  &
-                            State_Diag%DryDepVel(:,:,DryID) )
-             ELSE
-                CONV(:,:) = 1.0
-             ENDIF
-             ! Don't allow negative adjustment factor. 
-             ! Arbitrarily restrict correction to 0.25 
-             WHERE ( CONV < 0.0 )
-                CONV = 0.25
-             ENDWHERE
-             IF ( ASSOCIATED(Ptr2m) ) Ptr2m = CONV * PtrTmp(:,:,LM) * &
-                     ( MAPL_AIRMW / MW ) / ( 1.0 - Q(:,:,LM) )
-             IF ( IsPM25 .AND. ASSOCIATED(PtrPM25_2m) )  &
-                     PtrPM25_2m = PtrPM25_2m + CONV * MyPM25(:,:,LM)
-             DEALLOCATE(CONV) 
-          ENDIF
-          ! 10m concentration, corrected by aerodynamic resistance 
-          ! (Zhang et al. 2012)
-          IF ( ASSOCIATED(Ptr10m) .OR.  &
-           (IsPM25.AND.ASSOCIATED(PtrPM25_10m)) )  THEN
-             LM = SIZE(PtrTmp,3)
-             ALLOCATE(CONV(SIZE(Ptr10m,1),SIZE(Ptr10m,2)))
-             DryID = SpcInfo%DryDepID
-             IF ( DryID > 0 ) THEN
-                IF ( .NOT. ASSOCIATED(State_Diag%DryDepVel ) ) THEN
-                   WRITE(*,*)      &
-                     'Cannot compute 10M concentration - need diagnostics '// &
-                     'of drydep velocity - please activate - ' //TRIM(SpcName)
-                   ASSERT_(.FALSE.)
-                ENDIF      
-                CONV(:,:) = 1.0 - ( State_Chm%DryDepRa10m(:,:) * &
-                            State_Diag%DryDepVel(:,:,DryID) )
-             ELSE
-                CONV(:,:) = 1.0
-             ENDIF  
-             ! Don't allow negative adjustment factor. Arbitrarily restrict 
-             ! correction to 0.25 
-             WHERE ( CONV < 0.0 )
-                CONV = 0.25
-             ENDWHERE
-             IF ( ASSOCIATED(Ptr10m) ) Ptr10m = CONV * PtrTmp(:,:,LM) * &
-                                 ( MAPL_AIRMW / MW ) / ( 1.0 - Q(:,:,LM) )
-             IF ( IsPM25 .AND. ASSOCIATED(PtrPM25_10m) ) PtrPM25_10m =  &
-                                 PtrPM25_10m + CONV * MyPM25(:,:,LM)
-             DEALLOCATE(CONV) 
-          ENDIF
-          ! Cleanup
-          IF (ALLOCATED(MyPM25)) DEALLOCATE(MyPM25)
-       ENDIF
-    ENDDO
-
-    !=======================================================================
-    ! All done 
-    !=======================================================================
-
-    ! Cleanup
-    !IF ( ALLOCATED(Ra2m ) ) DEALLOCATE(Ra2m )
-    !IF ( ALLOCATED(Ra10m) ) DEALLOCATE(Ra10m)
-
-    ! Successful return
-    FIRST = .FALSE.
-    RETURN_(ESMF_SUCCESS)
-
-  END SUBROUTINE CalcSpeciesDiagnostics_
+!       IF ( IsBry ) RunMe = .TRUE.
+!
+!       ! Is this a Cly species?
+!       ClCoeff = 0.0
+!       IF ( ASSOCIATED(Cly) ) THEN
+!          SELECT CASE ( TRIM(SpcName) )
+!             CASE ( 'Cl', 'ClO', 'OClO', 'ClOO', 'HOCl', 'HCl', 'ClNO2', 'ClNO3', 'BrCl', 'ICl' )
+!                ClCoeff = 1.0
+!                IsCly   = .TRUE.
+!             CASE ( 'Cl2', 'Cl2O2' )
+!                ClCoeff = 2.0
+!                IsCly   = .TRUE.
+!             CASE DEFAULT
+!                IsCly = .FALSE.
+!          END SELECT
+!       ELSE
+!          IsCly = .FALSE.
+!       ENDIF
+!       IF ( IsCly ) RunMe = .TRUE.
+!
+!       ! Is this an OrgCl species?
+!       OrgClCoeff = 0.0
+!       IF ( ASSOCIATED(Cly) ) THEN
+!          SELECT CASE ( TRIM(SpcName) )
+!             CASE ( 'H1211', 'CFC115', 'CH3Cl', 'HCFC142b', 'HCFC22', 'CH2ICl' )
+!                OrgClCoeff = 1.0
+!                IsOrgCl    = .TRUE.
+!             CASE ( 'CFC114', 'CFC12', 'HCFC141b', 'HCFC123', 'CH2Cl2' )
+!                OrgClCoeff = 2.0
+!                IsOrgCl    = .TRUE.
+!             CASE ( 'CFC11', 'CFC113', 'CH3CCl3', 'CHCl3' ) 
+!                OrgClCoeff = 3.0
+!                IsOrgCl    = .TRUE.
+!             CASE ( 'CCl4' ) 
+!                OrgClCoeff = 4.0
+!                IsOrgCl    = .TRUE.
+!             CASE DEFAULT
+!                IsOrgCl = .FALSE.
+!          END SELECT
+!       ELSE
+!          IsOrgCl = .FALSE.
+!       ENDIF
+!       IF ( IsOrgCl ) RunMe = .TRUE.
+!
+!       ! Is this a PM25 component?
+!       IF ( DoPM25 ) THEN
+!          SELECT CASE ( TRIM(SpcName) )
+!             CASE ( 'NH4', 'NIT' )
+!                IsNi  = .TRUE.
+!                RunMe = .TRUE.
+!             CASE ( 'SO4' )
+!                IsSu  = .TRUE.
+!                RunMe = .TRUE.
+!             CASE ( 'BCPI', 'BCPO' ) 
+!                IsBC  = .TRUE.
+!                RunMe = .TRUE.
+!             CASE ( 'OCPI', 'OCPO' ) 
+!                IsOC  = .TRUE.
+!                RunMe = .TRUE.
+!             CASE ( 'DST1', 'DST2' ) 
+!                IsDu  = .TRUE.
+!                RunMe = .TRUE.
+!             CASE ( 'SALA' )
+!                IsSS  = .TRUE.
+!                RunMe = .TRUE.
+!             CASE ( 'TSOA0', 'TSOA1', 'TSOA2', 'TSOA3', 'ISOA1', &
+!                    'ISOA2', 'ISOA3', 'ASOAN', 'ASOA1', 'ASOA2', 'ASOA3' )
+!                IsSOA = .TRUE.
+!                RunMe = .TRUE.
+!          END SELECT
+!       ENDIF
+!       IsPM25 = ( IsSOA .OR. IsNi .OR. IsSu .OR. IsOC .OR. IsBC .OR. &
+!                  IsDu .OR. IsSS )
+!
+!       ! Check if we want concentration at 2M/10m
+!       CALL MAPL_GetPointer( EXPORT, Ptr2m , TRIM(SpcName)//'vv_2m' , &
+!                             NotFoundOk=.TRUE., __RC__ )
+!       CALL MAPL_GetPointer( EXPORT, Ptr10m, TRIM(SpcName)//'vv_10m', &
+!                             NotFoundOk=.TRUE., __RC__ )
+!
+!       ! Fill exports
+!       IF ( ASSOCIATED(Ptr3D)  .OR. IsNOy .OR. ASSOCIATED(Ptr2m) .OR. &
+!            ASSOCIATED(Ptr10m) ) RunMe = .TRUE.
+!       IF ( RunMe ) THEN
+!
+!          MW = SpcInfo%EmMW_g
+!          IF ( MW > 0.0 ) THEN
+!             FieldName = 'TRC_'//TRIM(SpcName)
+!          ELSE
+!             ! Get species and set MW to 1.0. This is ok because the internal
+!             ! state uses a MW of 1.0 for all species
+!             FieldName = 'SPC_'//TRIM(SpcName)
+!             MW = 1.0
+!             ! Cannot add to NOy if MW is unknown because it would screw up 
+!             ! unit conversion
+!             IF ( IsNOy ) THEN
+!                IsNOy = .FALSE.
+!                IF ( am_I_Root .AND. FIRST ) THEN
+!                   write(*,*) 'WARNING: Ignore species for NOy computation' //&
+!                              '  because MW is unknown: ', TRIM(SpcName)
+!                ENDIF
+!             ENDIF
+!             !IF ( ASSOCIATED(Ptr3D) .AND. am_I_Root .AND. FIRST ) THEN
+!             !   write(*,*)    &
+!             !      'WARNING: Attempt conversion of kg/kg total'// &
+!             !      ' to v/v dry but MW is unknown: ', TRIM(SpcName)
+!             !ENDIF
+!          ENDIF
+!          CALL MAPL_GetPointer( INTSTATE, PtrTmp, FieldName, NotFoundOK=.TRUE., RC=STATUS )
+!          ! On first fail try field with other prefix
+!          !IF ( STATUS /= ESMF_SUCCESS ) THEN
+!          IF ( .NOT. ASSOCIATED(PtrTmp) ) THEN
+!             IF ( FieldName(1:4)=='TRC_' ) THEN
+!                FieldName = 'SPC_'//TRIM(SpcName)
+!             ELSE
+!                FieldName = 'TRC_'//TRIM(SpcName)
+!             ENDIF
+!             CALL MAPL_GetPointer( INTSTATE, PtrTmp, FieldName, RC=STATUS )
+!             IF ( STATUS /= ESMF_SUCCESS ) THEN
+!                WRITE(*,*) 'Error reading ',TRIM(SpcName)
+!                VERIFY_(STATUS)
+!             ENDIF
+!          ENDIF
+!
+!          !====================================================================
+!          ! Export in v/v
+!          !====================================================================
+!          IF ( ASSOCIATED(Ptr3D) ) Ptr3D = PtrTmp * ( MAPL_AIRMW / MW ) / &
+!                                           ( 1.0 - Q )
+!
+!          !====================================================================
+!          ! NOy concentration
+!          !====================================================================
+!          IF ( IsNOy ) NOy = NOy + PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
+!
+!          !====================================================================
+!          ! Bry concentration
+!          IF ( IsBry ) Bry = Bry + BrCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
+!          !====================================================================
+!
+!          !====================================================================
+!          ! Cly concentration
+!          !====================================================================
+!          IF ( IsCly ) Cly = Cly + ClCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
+!
+!          !====================================================================
+!          ! OrgCl concentration
+!          !====================================================================
+!          IF ( IsOrgCl ) OrgCl = OrgCl + OrgClCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
+!
+!          !==================================================================
+!          ! PM2.5 diagnostics. Calculate PM25 according to 
+!          ! http://wiki.seas.harvard.edu/geos-chem/index.php/Particulate_matter_in_GEOS-Chem
+!          !===================================================================
+!          IF ( IsPM25 ) THEN 
+!             ALLOCATE(MyPM25(IM,JM,LM))
+!             IF ( IsNi  ) THEN
+!                MyPM25 = 1.33 * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
+!                IF ( ASSOCIATED(PtrPM25_nitrates) ) &
+!                   PtrPM25_nitrates = PtrPM25_nitrates + MyPM25
+!             ENDIF
+!             IF ( IsSu  ) THEN
+!                MyPM25 = 1.33 * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
+!                IF ( ASSOCIATED(PtrPM25_sulfates) ) &
+!                   PtrPM25_sulfates = PtrPM25_sulfates + MyPM25
+!             ENDIF
+!             IF ( IsBC  ) THEN
+!                MyPM25 = PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
+!                IF ( ASSOCIATED(PtrPM25_BC) ) &
+!                   PtrPM25_BC = PtrPM25_BC + MyPM25
+!             ENDIF
+!             IF ( IsSOA ) THEN
+!                MyPM25 = 1.16 * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
+!                IF ( ASSOCIATED(PtrPM25_SOA) ) &
+!                   PtrPM25_SOA = PtrPM25_SOA + MyPM25
+!             ENDIF
+!             IF ( IsSS  ) THEN
+!                MyPM25 = 1.86 * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
+!                IF ( ASSOCIATED(PtrPM25_seasalt) ) &
+!                   PtrPM25_seasalt = PtrPM25_seasalt + MyPM25
+!             ENDIF                                 
+!             IF ( IsOC  ) THEN
+!                MyPM25 = 2.1  * PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
+!                IF ( TRIM(SpcName) == 'OCPI' ) MyPM25 = 1.16 * MyPM25 
+!                IF ( ASSOCIATED(PtrPM25_OC) ) &
+!                   PtrPM25_OC = PtrPM25_OC + MyPM25
+!             ENDIF
+!             IF ( IsDu ) THEN 
+!                MyPM25 = PtrTmp * AIRDENS / ( 1.0-Q ) * kg2ug
+!                IF ( TRIM(SpcName) == 'DST2' ) MyPM25 = 0.38 * MyPM25 
+!                IF ( ASSOCIATED(PtrPM25_dust) ) &
+!                   PtrPM25_dust = PtrPM25_dust + MyPM25
+!             ENDIF
+! 
+!             ! Total PM25
+!             IF ( ASSOCIATED(PtrPM25) ) PtrPM25 = PtrPM25 + MyPM25
+!          ENDIF
+!
+!          !====================================================================
+!          ! 2m and 10m concentration, corrected by aerodynamic resistance 
+!          ! (Zhang et al. 2012)
+!          !====================================================================
+!          IF ( ASSOCIATED(Ptr2m) .OR. &
+!             (IsPM25.AND.ASSOCIATED(PtrPM25_2m)) ) THEN
+!             ALLOCATE(CONV(SIZE(Ptr2m,1),SIZE(Ptr2m,2)))
+!             DryID = SpcInfo%DryDepID
+!             IF ( DryID > 0 ) THEN
+!                IF ( .NOT. ASSOCIATED(State_Diag%DryDepVel ) ) THEN 
+!                   WRITE(*,*)     &
+!                       'Cannot compute 2M concentration - need diagnostics '// &
+!                       'of drydep velocity - please activate - ' //TRIM(SpcName)
+!                   ASSERT_(.FALSE.)
+!                ENDIF      
+!                CONV(:,:) = 1.0 - ( State_Chm%DryDepRa2m(:,:) *  &
+!                            State_Diag%DryDepVel(:,:,DryID) )
+!             ELSE
+!                CONV(:,:) = 1.0
+!             ENDIF
+!             ! Don't allow negative adjustment factor. 
+!             ! Arbitrarily restrict correction to 0.25 
+!             WHERE ( CONV < 0.0 )
+!                CONV = 0.25
+!             ENDWHERE
+!             IF ( ASSOCIATED(Ptr2m) ) Ptr2m = CONV * PtrTmp(:,:,LM) * &
+!                     ( MAPL_AIRMW / MW ) / ( 1.0 - Q(:,:,LM) )
+!             IF ( IsPM25 .AND. ASSOCIATED(PtrPM25_2m) )  &
+!                     PtrPM25_2m = PtrPM25_2m + CONV * MyPM25(:,:,LM)
+!             DEALLOCATE(CONV) 
+!          ENDIF
+!          ! 10m concentration, corrected by aerodynamic resistance 
+!          ! (Zhang et al. 2012)
+!          IF ( ASSOCIATED(Ptr10m) .OR.  &
+!           (IsPM25.AND.ASSOCIATED(PtrPM25_10m)) )  THEN
+!             LM = SIZE(PtrTmp,3)
+!             ALLOCATE(CONV(SIZE(Ptr10m,1),SIZE(Ptr10m,2)))
+!             DryID = SpcInfo%DryDepID
+!             IF ( DryID > 0 ) THEN
+!                IF ( .NOT. ASSOCIATED(State_Diag%DryDepVel ) ) THEN
+!                   WRITE(*,*)      &
+!                     'Cannot compute 10M concentration - need diagnostics '// &
+!                     'of drydep velocity - please activate - ' //TRIM(SpcName)
+!                   ASSERT_(.FALSE.)
+!                ENDIF      
+!                CONV(:,:) = 1.0 - ( State_Chm%DryDepRa10m(:,:) * &
+!                            State_Diag%DryDepVel(:,:,DryID) )
+!             ELSE
+!                CONV(:,:) = 1.0
+!             ENDIF  
+!             ! Don't allow negative adjustment factor. Arbitrarily restrict 
+!             ! correction to 0.25 
+!             WHERE ( CONV < 0.0 )
+!                CONV = 0.25
+!             ENDWHERE
+!             IF ( ASSOCIATED(Ptr10m) ) Ptr10m = CONV * PtrTmp(:,:,LM) * &
+!                                 ( MAPL_AIRMW / MW ) / ( 1.0 - Q(:,:,LM) )
+!             IF ( IsPM25 .AND. ASSOCIATED(PtrPM25_10m) ) PtrPM25_10m =  &
+!                                 PtrPM25_10m + CONV * MyPM25(:,:,LM)
+!             DEALLOCATE(CONV) 
+!          ENDIF
+!          ! Cleanup
+!          IF (ALLOCATED(MyPM25)) DEALLOCATE(MyPM25)
+!       ENDIF
+!    ENDDO
+!
+!    !=======================================================================
+!    ! All done 
+!    !=======================================================================
+!
+!    ! Cleanup
+!    !IF ( ALLOCATED(Ra2m ) ) DEALLOCATE(Ra2m )
+!    !IF ( ALLOCATED(Ra10m) ) DEALLOCATE(Ra10m)
+!
+!    ! Successful return
+!    FIRST = .FALSE.
+!    RETURN_(ESMF_SUCCESS)
+!
+!  END SUBROUTINE CalcSpeciesDiagnostics_
 !EOC
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
@@ -7518,7 +7517,7 @@ CONTAINS
             
              ! Get diagnostics 
              DgnID = 44500 + TrcID
-             CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DgnCont,  &
+             CALL Diagn_Get( HcoState, .FALSE., DgnCont,  &
                              FLAG, ERR, cID=DgnID, AutoFill=-1,      &
                              COL=Input_Opt%DIAG_COLLECTION ) 
 
@@ -7553,7 +7552,7 @@ CONTAINS
                 END SELECT
 
                 ! Get diagnostics 
-                CALL Diagn_Get( am_I_Root, HcoState, .FALSE., DgnCont,  &
+                CALL Diagn_Get( HcoState, .FALSE., DgnCont,  &
                                 FLAG, ERR, cID=DgnID, AutoFill=-1,      &
                                 COL=Input_Opt%DIAG_COLLECTION ) 
 
