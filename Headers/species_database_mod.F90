@@ -513,6 +513,7 @@ CONTAINS
           ELSE IF ( INDEX( key, "%WD_Is_H2SO4" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_Is_H2SO4 = v_bool
 
           ELSE IF ( INDEX( key, "%WD_Is_HNO3" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -600,7 +601,7 @@ CONTAINS
                 ! H2SO4 are gases that wetdep like aerosols,
                 ! so keep both all gas and aerosol properties.
              CASE( 'HNO3', 'SO2' )
-                ! HNO3 and SO2 drydep like gases but wetdep like fine 
+                ! HNO3 and SO2 drydep like gases but wetdep like fine
                 ! aerosols, so set certain fields to missing values.
                 ThisSpc%DD_DvzAerSnow = MISSING
                 ThisSpc%MP_SizeResAer = MISSING_BOOL
@@ -648,8 +649,14 @@ CONTAINS
     ! Normal exit
     !=======================================================================
 
-    ! Free objects & return
+    ! Free objects and arrays, then return
+    ThisSpc => NULL()
     CALL QFYAML_CleanUp( yml )
+    CALL Cleanup_Work_Arrays()
+
+    !### Uncomment this to stop here when debugging species info
+    !STOP
+
     RETURN
 
     !=======================================================================
@@ -657,14 +664,14 @@ CONTAINS
     !=======================================================================
 999 CONTINUE
 
-    ! Free objects
+    ! Free objects and arrays
     ThisSpc => NULL()
     CALL QFYAML_CleanUp( yml )
+    CALL Cleanup_Work_Arrays()
 
     ! Exit with error
     errMsg = 'Could not read species database variable: ' // TRIM( key )
     CALL GC_Error( errMsg, RC, thisLoc )
-    RETURN
 
   END SUBROUTINE Init_Species_Database
 !EOC
