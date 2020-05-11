@@ -1055,7 +1055,7 @@ CONTAINS
     LOGICAL             :: FIRST = .TRUE.
     LOGICAL             :: LINTERP
     CHARACTER(LEN=16)   :: STAMP
-    INTEGER             :: I, J, L, N, R, IRH, W, IRHN
+    INTEGER             :: I, J, L, N, R, IRH, W, IRHN, NA, SpcID
     INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT
     REAL*4              :: TEMP( State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(fp)            :: TEMP2(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -1188,28 +1188,27 @@ CONTAINS
     ! Initialize the mapping between hygroscopic species in the
     ! species database and the species order in NRHAER
     IF ( FIRST ) THEN
-       DO I = 1, NRHAER
+       DO N = 1, NRHAER
 
           ! Get the species database index from the species database
           ! mapping array for hygroscopic growth species
-          N  = State_Chm%Map_HygGrth(I)
+          SpcID = State_Chm%Map_HygGrth(N)
 
           ! Point to the Species Database entry for species N
-          SpcInfo => State_Chm%SpcData(N)%Info
+          SpcInfo => State_Chm%SpcData(SpcID)%Info
 
-          ! Set the mapping to the local ordering of aerosol densities
-          ! in RDAER
+          ! Set the mapping to the ordering of aerosol densities in RD_AOD
           SELECT CASE ( TRIM(SpcInfo%Name) )
           CASE ( 'SO4' )
-             Map_NRHAER(I) = 1
+             Map_NRHAER(N) = 1
           CASE ( 'BCPI' )
-             Map_NRHAER(I) = 2
+             Map_NRHAER(N) = 2
           CASE ( 'OCPI', 'POA1' )
-             Map_NRHAER(I) = 3
+             Map_NRHAER(N) = 3
           CASE ( 'SALA' )
-             Map_NRHAER(I) = 4
+             Map_NRHAER(N) = 4
           CASE ( 'SALC' )
-             Map_NRHAER(I) = 5
+             Map_NRHAER(N) = 5
           CASE DEFAULT
              ErrMsg = 'WARNING: aerosol diagnostics not defined' // &
                       ' for NRHAER greater than 5!'
@@ -1451,7 +1450,14 @@ CONTAINS
 
        ! Loop over types of aerosol with hygroscopic growth
        ! (this will include strat aerosol when using UCX)
-       DO N = 1, NAER
+       DO NA = 1, NAER
+
+          ! Get ID following ordering of aerosol densities in RD_AOD
+          IF ( NA <= NRHAER) THEN
+             N = Map_NRHAER(NA)
+          ELSE
+             N = NA
+          ENDIF
 
           !index for strat aerosol (only >0 for strat aero)
           ISTRAT=N-NRHAER
@@ -1726,7 +1732,7 @@ CONTAINS
                 IF ( State_Diag%Archive_AerHygGrowth .AND. &
                      L <= State_Grid%MaxChemLev      .AND. &
                      ODSWITCH.EQ.1 ) THEN
-                   State_Diag%AerHygGrowth(I,J,L,Map_NRHAER(N)) = SCALEOD
+                   State_Diag%AerHygGrowth(I,J,L,NA) = SCALEOD
                 ENDIF
 
                 !=======================================================
@@ -1986,7 +1992,10 @@ CONTAINS
        !$OMP PRIVATE( I, J, L, N, W, LINTERP, IsWL1, IsWL2, IsWL3 ) &
        !$OMP SCHEDULE( DYNAMIC )
        ! Loop over hydroscopic aerosols
-       DO N = 1, NRHAER
+       DO NA = 1, NRHAER
+
+          ! Get ID following ordering of aerosol densities in RD_AOD
+          N = Map_NRHAER(NA)
 
           ! Loop over wavelengths set in input.geos radiation menu
           DO W = 1, Input_Opt%NWVSELECT
@@ -2025,13 +2034,13 @@ CONTAINS
                 !  Sea Salt (coarse) Opt Depth(lambda1,2,3 nm)  [.]
                 IF ( .not. LINTERP ) THEN
                    IF ( State_Diag%Archive_AODHygWL1 .AND. IsWL1 ) THEN
-                      State_Diag%AODHygWL1(I,J,L,Map_NRHAER(N)) = &
+                      State_Diag%AODHygWL1(I,J,L,NA) = &
                            ODAER(I,J,L,IWVSELECT(1,W),N)
                    ELSEIF ( State_Diag%Archive_AODHygWL2 .AND. IsWL2 ) THEN
-                      State_Diag%AODHygWL2(I,J,L,Map_NRHAER(N)) = &
+                      State_Diag%AODHygWL2(I,J,L,NA) = &
                            ODAER(I,J,L,IWVSELECT(1,W),N)
                    ELSEIF ( State_Diag%Archive_AODHygWL3 .AND. IsWL3 ) THEN
-                      State_Diag%AODHygWL3(I,J,L,Map_NRHAER(N)) = &
+                      State_Diag%AODHygWL3(I,J,L,NA) = &
                            ODAER(I,J,L,IWVSELECT(1,W),N)
                    ENDIF
                 ELSE
@@ -2042,17 +2051,17 @@ CONTAINS
                    IF ((ODAER(I,J,L,IWVSELECT(2,W),N).GT.0).AND. &
                        (ODAER(I,J,L,IWVSELECT(1,W),N).GT.0)) THEN
                       IF ( State_Diag%Archive_AODHygWL1 .AND. IsWL1 ) THEN
-                         State_Diag%AODHygWL1(I,J,L,Map_NRHAER(N)) =          &
+                         State_Diag%AODHygWL1(I,J,L,NA) =          &
                               ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**     &
                               (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/ &
                               ODAER(I,J,L,IWVSELECT(2,W),N)))
                       ELSEIF ( State_Diag%Archive_AODHygWL2 .AND. IsWL2 ) THEN
-                         State_Diag%AODHygWL2(I,J,L,Map_NRHAER(N)) =          &
+                         State_Diag%AODHygWL2(I,J,L,NA) =          &
                               ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**     &
                               (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/ &
                               ODAER(I,J,L,IWVSELECT(2,W),N)))
                       ELSEIF ( State_Diag%Archive_AODHygWL3 .AND. IsWL3 ) THEN
-                         State_Diag%AODHygWL3(I,J,L,Map_NRHAER(N)) =          &
+                         State_Diag%AODHygWL3(I,J,L,NA) =          &
                               ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**     &
                               (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/ &
                               ODAER(I,J,L,IWVSELECT(2,W),N)))
@@ -2101,7 +2110,10 @@ CONTAINS
        !$OMP PRIVATE( I, J, L, N ) &
        !$OMP SCHEDULE( DYNAMIC )
        ! Loop over hydroscopic aerosols
-       DO N = 1, NRHAER
+       DO NA = 1, NRHAER
+
+          ! Get ID following ordering of aerosol densities in RD_AOD
+          N = Map_NRHAER(NA)
 
           !----------------------------------------------------
           ! Netcdf diagnostics computed here:
@@ -2113,7 +2125,7 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             State_Diag%AerSurfAreaHyg(I,J,L,Map_NRHAER(N)) = &
+             State_Diag%AerSurfAreaHyg(I,J,L,NA) = &
                   TAREA(I,J,L,N+NDUST)
           ENDDO
           ENDDO
