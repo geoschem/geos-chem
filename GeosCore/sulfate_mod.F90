@@ -2944,7 +2944,7 @@ CONTAINS
           !
           ! Get dust concentrations [v/v -> ng/m3]
           
-          DUST = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +       &
+          DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) +       &
                        Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
                        1.e+12_fp * State_Met%AD(I,J,L)             &
                        / ( AIRMW                                   &
@@ -2995,7 +2995,7 @@ CONTAINS
              ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
              DUST = 0e+0_fp
 #else
-             DUST = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) + &
+             DUST = ( Spc(I,J,L,id_DST1)*0.7 + Spc(I,J,L,id_DST2) + &
                       Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) * &
                       1.e+12_fp * State_Met%AD(I,J,L) &
                       / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%emMW_g ) &
