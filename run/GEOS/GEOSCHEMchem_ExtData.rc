@@ -681,7 +681,7 @@ NOAA_GMD_CH4       'v/v'        N   N %y4-%m2-01T00:00:00    none     none    SF
 #SfcVMR_CH2Cl2      'ppbv'       N   N -                      none     none    CH2Cl2          /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
 #SfcVMR_CHCl3       'ppbv'       N   N -                      none     none    CHCl3           /discover/nobackup/cakelle2/data/SfcVMR/sfcvmr.nc
 
-# New in 12.7.0:
+# New in 12.7.0, updated for 12.8.0 (to do)
 SfcVMR_CH3Cl    ppbv N Y F%y4-%m2-01T00:00:00 none none CH3Cl    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
 SfcVMR_CH2Cl2   ppbv N Y F%y4-%m2-01T00:00:00 none none CH2Cl2   /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
 SfcVMR_CHCl3    ppbv N Y F%y4-%m2-01T00:00:00 none none CHCl3    /discover/nobackup/ewlundgr/data/ExtData/CMIP6/v2019-12/CMIP6_GHG_surface_VMR_%y4.nc
@@ -701,6 +701,12 @@ SfcVMR_HCFC22   v/v  N Y F%y4-%m2-01T00:00:00 none none HCFC22   /discover/nobac
 SfcVMR_N2O      v/v  N Y F%y4-%m2-01T00:00:00 none none N2O      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/GMI/surface_VMRs_GMI_%y4.nc
 SfcVMR_OCS      ppbv N Y -                    none none OCS      /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_OCS.nc
 SfcVMR_H2       ppbv N Y -                    none none H2       /discover/nobackup/ewlundgr/data/ExtData/SfcFix/v2019-12/surface_VMR_H2.nc
+
+#==============================================================================
+# --- Oceanic ozone deposition ---
+#==============================================================================
+surf_salinity  1 N Y - none none s_mn                  /discover/nobackup/ewlundgr/data/ExtData/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc
+surf_iodide    1 N Y - none none Ensemble_Monthly_mean /discover/nobackup/ewlundgr/data/ExtData/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
 
 ###############################################################################
 ###
@@ -741,6 +747,10 @@ HTAP_MONTHLY_SO2_TRANSPORT   '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /
 HTAP_MONTHLY_SO2_INDUSTRY    '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_INDUSTRY_2010.generic.01x01.monthly_scal.nc
 HTAP_MONTHLY_SO2_ENERGY      '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_ENERGY_2010.generic.01x01.monthly_scal.nc
 HTAP_MONTHLY_SO2_RESIDENTIAL '1' Y N 2010-%m2-01T00:00:00 none none emi_so2    /discover/nobackup/cakelle2/data/HTAP/monthly_scal/EDGAR_HTAP_SO2_RESIDENTIAL_2010.generic.01x01.monthly_scal.nc
+
+# Lightning inputs - example files for reading them from an offline source 
+LFR_OFFLINE            'km-2s-1' Y N 2017-%m2-01T00:00:00 none none LDENS /discover/nobackup/projects/gmao/geos_cf_dev/gcc_inputs/OFFLINE_LIGHTNING/FLASH_CTH_MERRA2_0.5x0.625_2017_%m2_mean.nc4
+CCTH_OFFLINE                 'm' Y N 2017-%m2-01T00:00:00 none none CTH   /discover/nobackup/projects/gmao/geos_cf_dev/gcc_inputs/OFFLINE_LIGHTNING/FLASH_CTH_MERRA2_0.5x0.625_2017_%m2_mean.nc4
 
 #==============================================================================
 # --- Diurnal scale factors ---
