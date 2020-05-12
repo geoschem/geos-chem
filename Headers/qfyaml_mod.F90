@@ -139,7 +139,7 @@ MODULE QFYAML_Mod
   END TYPE QFYAML_var_t
 
   ! Type for the list of variables
-  TYPE, PUBLIC :: QFYAML_t
+  TYPE :: QFYAML_t
      LOGICAL                                   :: sorted = .false.
      INTEGER                                   :: num_vars = 0
      TYPE(QFYAML_var_t),           ALLOCATABLE :: vars(:)
