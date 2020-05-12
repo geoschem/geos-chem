@@ -2549,7 +2549,6 @@ MTPA:
 MTPO:
   DD_F0: 0.0
   DD_Hstar: 4.9e-2
-  EmMW_g: 136.23
   FullName: Terpinene, terpinolene, myrcene, ocimene, other monoterpenes
   Henry_CR: 0.0
   Henry_K0: 4.9e-2
@@ -3769,7 +3768,6 @@ TSOA3:
 TSOG_PROP: &TSOGproperties
   DD_F0: 0.0
   DD_Hstar: 1.0e+5
-  EmMW_g: 150.0
   FullName: Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation
   Henry_CR: 6039.0
   Henry_K0: 1.0e+5
