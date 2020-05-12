@@ -102,13 +102,9 @@
   U                  |  ms-1       | xyz | C |    |   |   |     |      |    | eastward_wind 
   V                  |  ms-1       | xyz | C |    |   |   |     |      |    | northward_wind
   CNV_FRC            |      1      | xy  |   |    |   |   |     |      | x  | convective_fraction 
-  BYNCY              |      1      | xyz | C |    |   |   |     |      |    | buoyancy
   Q10M               |   kg/kg     | xy  |   |    |   |   |	|      |    | 10m_specific_humidity
   Q2M                |   kg/kg     | xy  |   |    |   |   |	|      |    | 2m_specific_humidity
-  LFR                |   s-1km-2   | xy  |   |    |   |   |     |      |    | lightning_flash_rate_density
-  LFR_OFFLINE        |   s-1km-2   | xy  |   |    |   |   |     |      |    | lightning_flash_rate_density_from_offline_source
-  CCTH               |      m      | xy  |   |    |   |   |     |      |    | convective_cloud_top_height
-  XLAIMULTI          | cm2_cm-2    | xyz | E |    |   |   |	|      | LAI_by_
+  XLAIMULTI          | cm2_cm-2    | xyz | E |    |   |   |	|      | x  ! LAI_by_
 #===========
 # GCHP only:
 #===========

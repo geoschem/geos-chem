@@ -68,7 +68,6 @@ MODULE Chem_GridCompMod
   USE Species_Mod,   ONLY : Species
 
 #if defined( MODEL_GEOS )
-  USE MAPL_ConstantsMod                   ! Doesn't seem to be used. Needed?
   USE Chem_Mod                            ! Chemistry Base Class (chem_mie?)
   USE Chem_GroupMod                       ! For family transport
   USE PHYSCONSTANTS
@@ -639,6 +638,11 @@ CONTAINS
     _VERIFY(STATUS)
 #endif
 
+#if defined( MODEL_GEOS )
+    ! Define imports to fill met fields needed for lightning
+    CALL MetVars_For_Lightning_Init( GC, MyState%myCF, __RC__ )
+#endif
+
 !
 ! !INTERNAL STATE:
 !
@@ -724,7 +728,7 @@ CONTAINS
           IF ( .NOT. FOUND ) FullName = TRIM(SUBSTRS(1))
 
           call MAPL_AddInternalSpec(GC, &
-               SHORT_NAME         = TRIM(TPFX)//TRIM(SUBSTRS(1)), &
+               SHORT_NAME         = TRIM(SPFX)//TRIM(SUBSTRS(1)), &
                LONG_NAME          = TRIM(FullName)//                &
                                     ' mass mixing ratio total air', &
                UNITS              = 'kg kg-1',                &
@@ -738,7 +742,7 @@ CONTAINS
           
           ! verbose
           if(MAPL_am_I_Root()) write(*,*) &
-                   'GCC added to internal: TRC_'//TRIM(SUBSTRS(1)), &
+                   'GCC added to internal: '//TRIM(SPFX)//TRIM(SUBSTRS(1)), &
                    '; Friends: ', TRIM(MYFRIENDLIES)
 #else
           call MAPL_AddInternalSpec(GC, &
@@ -797,8 +801,8 @@ CONTAINS
              ! Error trap for POx and LOx. Their species names in the internal
              ! state must be all caps
              ! (ckeller, 3/11/19)
-             IF ( TRIM(SpcName) == 'POx' ) SpcName = 'POX'
-             IF ( TRIM(SpcName) == 'LOx' ) SpcName = 'LOX'
+             !IF ( TRIM(SpcName) == 'POx' ) SpcName = 'POX'
+             !IF ( TRIM(SpcName) == 'LOx' ) SpcName = 'LOX'
 
              ! Set some long names manually ...
              SELECT CASE ( TRIM(SpcName) )
@@ -922,7 +926,7 @@ CONTAINS
 !-- Add two extra advected species for use in family transport  (Manyin)
 
           CALL MAPL_AddInternalSpec(GC,                                    &
-             SHORT_NAME         = 'TRC_Bry',                               &
+             SHORT_NAME         = 'SPC_Bry',                               &
              LONG_NAME          = 'Bromine group for use in transport',    &
              UNITS              = 'kg kg-1',                               &
 !!!          PRECISION          = ESMF_KIND_R8,                            &
@@ -934,7 +938,7 @@ CONTAINS
           if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: TRC_Bry; Friendly to: DYNAMICS'
 
           CALL MAPL_AddInternalSpec(GC,                                    &
-             SHORT_NAME         = 'TRC_Cly',                               &
+             SHORT_NAME         = 'SPC_Cly',                               &
              LONG_NAME          = 'Chlorine group for use in transport',   &
              UNITS              = 'kg kg-1',                               &
 !!!          PRECISION          = ESMF_KIND_R8,                            &
@@ -1677,6 +1681,7 @@ CONTAINS
           LONG_NAME          = 'OLSON_land_by_type',                &
           UNITS              = 'unitless',                          &
           DIMS               = MAPL_DimsHorzOnly,                   &
+          RESTART            = MAPL_RestartSkip,                    &
                                                             __RC__ )
     ENDDO
 
@@ -2397,6 +2402,8 @@ CONTAINS
        ! Pass tracer name
 #if defined( MODEL_GEOS )
        Int2Spc(I)%Name = TRIM(SpcInfo%Name)
+       IF ( TRIM(Int2Spc(I)%Name) == 'POX' ) Int2Spc(I)%Name = 'POx'
+       IF ( TRIM(Int2Spc(I)%Name) == 'LOX' ) Int2Spc(I)%Name = 'LOx'
 #else
        Int2Spc(I)%TrcName = TRIM(ThisSpc%Name)
 #endif
@@ -2725,7 +2732,15 @@ CONTAINS
     ENDIF
 
     ! Turn on Family Transport
-    CALL Init_GCC_Chem_Groups()
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, & 
+          Label="Bry_Cly_Family_Transport:", Default=1, __RC__ )
+    SELECT CASE ( DoIt )
+       CASE ( 1 )
+          CALL Init_GCC_Chem_Groups()
+          IF ( am_I_Root ) WRITE(*,*) 'GCC: Bry and Cly family transport enabled'
+       CASE DEFAULT 
+          IF ( am_I_Root ) WRITE(*,*) 'GCC: Bry and Cly family transport disabled'
+    END SELECT
 
     !=======================================================================
     ! CH4 error checks 
@@ -3168,6 +3183,9 @@ CONTAINS
     REAL, POINTER     :: PTR_GCCTO3 (:,:) => NULL()
     REAL, POINTER     :: PTR_GCCTTO3(:,:) => NULL()
 
+    ! Lightning
+    REAL, POINTER     :: LFR(:,:) => NULL()
+
 #else
     ! GCHP only local variables
     INTEGER                      :: trcID, RST
@@ -3343,7 +3361,7 @@ CONTAINS
 ! GCHP ends the (if FIRST) block and then links HEMCO state to GC objects:
 !    ENDIF
 
-    CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'TRC_O3', NotFoundOk=.TRUE., __RC__ )
+    CALL MAPL_GetPointer( INTSTATE, PTR_O3, 'SPC_O3', NotFoundOk=.TRUE., __RC__ )
 
     ! Get pointers to analysis OX exports
     IF ( DoANOX ) THEN
@@ -3361,12 +3379,12 @@ CONTAINS
        CALL MAPL_GetPointer ( EXPORT,    CFC11, 'CFC11'    , __RC__ )
        CALL MAPL_GetPointer ( EXPORT,    CFC12, 'CFC12'    , __RC__ )
        CALL MAPL_GetPointer ( EXPORT,   HCFC22, 'HCFC22'   , __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,    PTR_CH4, 'TRC_CH4',    __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,    PTR_N2O, 'TRC_N2O',    __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC11, 'TRC_CFC11',  __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC12, 'TRC_CFC12',  __RC__ )
-       CALL MAPL_GetPointer( INTSTATE, PTR_HCFC22, 'TRC_HCFC22', __RC__ )
-       CALL MAPL_GetPointer( INTSTATE,    PTR_H2O, 'TRC_H2O',    __RC__ )
+       CALL MAPL_GetPointer( INTSTATE,    PTR_CH4, 'SPC_CH4',    __RC__ )
+       CALL MAPL_GetPointer( INTSTATE,    PTR_N2O, 'SPC_N2O',    __RC__ )
+       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC11, 'SPC_CFC11',  __RC__ )
+       CALL MAPL_GetPointer( INTSTATE,  PTR_CFC12, 'SPC_CFC12',  __RC__ )
+       CALL MAPL_GetPointer( INTSTATE, PTR_HCFC22, 'SPC_HCFC22', __RC__ )
+       CALL MAPL_GetPointer( INTSTATE,    PTR_H2O, 'SPC_H2O',    __RC__ )
    ENDIF
 
    ! Link HEMCO state to gridcomp objects
@@ -3738,6 +3756,9 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GEOS )
+       CALL MetVars_For_Lightning_Run( GC, Import=IMPORT, Export=EXPORT, &
+             State_Met=State_Met, State_Grid=State_Grid, __RC__ )
+
        ! Eventually initialize species concentrations from external field. 
        IF ( InitFromFile ) THEN 
           IsFirst = ( FIRST .OR. FIRSTREWIND )
@@ -3769,28 +3790,6 @@ CONTAINS
              write(*,*) ' '
           ENDIF
        ENDIF
-
-#if defined( MODEL_GEOS )
-       !=======================================================================
-       ! Also make sure that radiation fields are available. State_Met%OPTD is
-       ! a good proxy since it is composed of three imports from RADIATION.
-       ! (ckeller, 11/25/2015)
-       ! GlobalSum does not seem to work properly anymore, skip this error
-       ! trap (ckeller, 8/27/2019).
-       !=======================================================================
-       !DFPAR_MAX = GlobalSum( GC, DataPtr2D=DFPAR, maximum=.TRUE., __RC__ )
-       !IF ( DFPAR_MAX == 0.0 ) THEN
-       !   Input_Opt%haveImpRst = .FALSE. 
-       !
-       !   ! Warning message
-       !   IF ( am_I_Root ) THEN
-       !      write(*,*) ' '
-       !      write(*,*)    &
-       !            'All GEOS-Chem radiation imports are zero - skip time step'
-       !      write(*,*) ' '
-       !   ENDIF
-       !ENDIF
-#endif
 
        !=======================================================================
        ! Handling of species/tracer initialization. Default practice is to take
@@ -4060,9 +4059,9 @@ CONTAINS
        ! Perturb O3 by random amount if specified so
        !=======================================================================
        IF ( PHASE /= 1 .AND. ( PerturbO3 .OR. PerturbCO ) ) THEN 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3DA, 'TRC_O3', NotFoundOk=.TRUE.,&
+          CALL MAPL_GetPointer( INTSTATE, Ptr3DA, 'SPC_O3', NotFoundOk=.TRUE.,&
                                  __RC__ )
-          CALL MAPL_GetPointer( INTSTATE, Ptr3DB, 'TRC_CO', NotFoundOk=.TRUE.,&
+          CALL MAPL_GetPointer( INTSTATE, Ptr3DB, 'SPC_CO', NotFoundOk=.TRUE.,&
                                  __RC__ )
           IF ( ASSOCIATED(Ptr3DA) .OR. ASSOCIATED(Ptr3DB) ) THEN
              DO L=1,State_Grid%NZ
@@ -4222,7 +4221,7 @@ CONTAINS
     ! NO2 columns
     !=======================================================================
     IF ( PHASE /= 1 ) THEN
-       CALL MAPL_GetPointer( INTSTATE, PTR_NO2, 'TRC_NO2',      &
+       CALL MAPL_GetPointer( INTSTATE, PTR_NO2, 'SPC_NO2',      &
                              NotFoundOk=.TRUE., __RC__ )
        CALL MAPL_GetPointer( EXPORT, TNO2, 'NO2_TROPCOLUMN',    &
                              NotFoundOk=.TRUE., __RC__ )
@@ -4362,8 +4361,8 @@ CONTAINS
                              NotFoundOk=.TRUE., __RC__ )
        IF ( ASSOCIATED(Ptr2D) ) THEN
           _ASSERT(ASSOCIATED(LWI),'LWI is not associated') ! Land-Water-Ice flag
-          _ASSERT(ASSOCIATED(LFR),'LFR is not associated') ! GEOS lightning flash rate
           _ASSERT(ASSOCIATED(CNV_FRC),'CNV_FRC is not associated') ! Convective fraction
+          CALL MAPL_GetPointer( IMPORT, LFR, 'LFR', __RC__ )
           CALL MAPL_GetPointer( EXPORT, PtrEmis, 'EMIS_NO_LGHT',  &
                                 NotFoundOk=.TRUE., __RC__ )
           Ptr2D = 0.0
@@ -6458,14 +6457,11 @@ CONTAINS
 !       IF ( ASSOCIATED(Ptr3D)  .OR. IsNOy .OR. ASSOCIATED(Ptr2m) .OR. &
 !            ASSOCIATED(Ptr10m) ) RunMe = .TRUE.
 !       IF ( RunMe ) THEN
-!
+!          FieldName = 'SPC_'//TRIM(SpcName)
 !          MW = SpcInfo%EmMW_g
-!          IF ( MW > 0.0 ) THEN
-!             FieldName = 'TRC_'//TRIM(SpcName)
-!          ELSE
+!          IF ( MW < 0.0 ) THEN
 !             ! Get species and set MW to 1.0. This is ok because the internal
 !             ! state uses a MW of 1.0 for all species
-!             FieldName = 'SPC_'//TRIM(SpcName)
 !             MW = 1.0
 !             ! Cannot add to NOy if MW is unknown because it would screw up 
 !             ! unit conversion
@@ -6482,20 +6478,10 @@ CONTAINS
 !             !      ' to v/v dry but MW is unknown: ', TRIM(SpcName)
 !             !ENDIF
 !          ENDIF
-!          CALL MAPL_GetPointer( INTSTATE, PtrTmp, FieldName, NotFoundOK=.TRUE., RC=STATUS )
-!          ! On first fail try field with other prefix
-!          !IF ( STATUS /= ESMF_SUCCESS ) THEN
-!          IF ( .NOT. ASSOCIATED(PtrTmp) ) THEN
-!             IF ( FieldName(1:4)=='TRC_' ) THEN
-!                FieldName = 'SPC_'//TRIM(SpcName)
-!             ELSE
-!                FieldName = 'TRC_'//TRIM(SpcName)
-!             ENDIF
-!             CALL MAPL_GetPointer( INTSTATE, PtrTmp, FieldName, RC=STATUS )
-!             IF ( STATUS /= ESMF_SUCCESS ) THEN
-!                WRITE(*,*) 'Error reading ',TRIM(SpcName)
-!                VERIFY_(STATUS)
-!             ENDIF
+!          CALL MAPL_GetPointer( INTSTATE, PtrTmp, FieldName, RC=STATUS )
+!          IF ( STATUS /= ESMF_SUCCESS ) THEN
+!             WRITE(*,*) 'Error reading ',TRIM(SpcName)
+!             VERIFY_(STATUS)
 !          ENDIF
 !
 !          !====================================================================
@@ -7339,7 +7325,303 @@ CONTAINS
 
   END SUBROUTINE SetAnaO3_ 
 !EOC
+#if defined( MODEL_GEOS )
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: MetVars_For_Lightning_Init
+!
+! !DESCRIPTION: Initialize the imports to fill the met variables needed for
+!               lightning NOx computation 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE MetVars_For_Lightning_Init( GC, CF, RC )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC        ! Ref. to this GridComp
+    TYPE(ESMF_Config),   INTENT(INOUT)         :: CF        ! GEOSCHEM*.rc
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)           :: RC        ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  20 Jan 2020 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    CHARACTER(LEN=31)  :: LfrSrc, CnvSrc
 
+    __Iam__('MetVars_For_Lightning_Init')
+
+    ! Get source for lightning fields
+    CALL MetVars_For_Lightning_Run( GC, DryRun=.TRUE., CF=CF, &
+                                    LfrSrc=LfrSrc, CnvSrc=CnvSrc, __RC__ )
+
+    ! LFR import - always pass LFR and LFR_GCC. Depending on specification, 
+    ! also provide import from external file
+    call MAPL_AddImportSpec(GC,                     &
+               SHORT_NAME='LFR',                    &
+               LONG_NAME ='lightning_flash_rate',   &
+               UNITS     ='km-2 s-1',               &
+               DIMS      = MAPL_DimsHorzOnly,       &
+               VLOCATION = MAPL_VLocationNone,      &
+                                              __RC__ )
+
+    call MAPL_AddImportSpec(GC,                     &
+               SHORT_NAME='LFR_GCC',                &
+               LONG_NAME ='lightning_flash_rate',   &
+               UNITS     ='km-2 s-1',               &
+               DIMS      = MAPL_DimsHorzOnly,       &
+               VLOCATION = MAPL_VLocationNone,      &
+                                              __RC__ )
+
+    IF ( (TRIM(LfrSrc)/='LFR') .AND. &
+         (TRIM(LfrSrc)/='LFR_GCC')    ) THEN
+       call MAPL_AddImportSpec(GC,                     &
+                  SHORT_NAME=TRIM(LfrSrc),             &
+                  LONG_NAME ='lightning_flash_rate',   &
+                  UNITS     ='km-2 s-1',               &
+                  DIMS      = MAPL_DimsHorzOnly,       &
+                  VLOCATION = MAPL_VLocationNone,      &
+                                                 __RC__ )
+    ENDIF
+
+    ! Import fields needed to compute convective height, depending on specification
+    SELECT CASE ( TRIM(CnvSrc) )
+       CASE ( 'CNV_MFC' )
+          ! CNV_MFC is always imported, nothing to do here
+          !CONTINUE
+
+       CASE ( 'BYNCY' )
+          call MAPL_AddImportSpec(GC,                   &
+             SHORT_NAME = 'BYNCY',                      &
+             LONG_NAME  ='buoyancy_of surface_parcel',  &
+             UNITS      ='m s-2',                       &
+             DIMS       = MAPL_DimsHorzVert,            &
+             VLOCATION  = MAPL_VLocationCenter,         &
+                                                  __RC__ )
+
+       CASE DEFAULT
+          call MAPL_AddImportSpec(GC,                       &
+               SHORT_NAME=TRIM(CnvSrc),                     &
+               LONG_NAME ='convective_cloud_top_from_file', &
+               UNITS     ='m',                              &
+               DIMS      = MAPL_DimsHorzOnly,               &
+               VLOCATION = MAPL_VLocationNone,              &
+                                                      __RC__ )
+
+    END SELECT
+
+    ! Also add export for CONV_DEPTH_GCC & LFR diagnostics
+    call MAPL_AddExportSpec(GC,                                    &
+               SHORT_NAME='GCD_CONV_DEPTH',                        &
+               LONG_NAME ='Convective_depth_seen_by_GEOSCHEMchem', &
+               UNITS     ='m',                                     &
+               DIMS      = MAPL_DimsHorzOnly,                      &
+               VLOCATION = MAPL_VLocationNone,                     &
+                                                             __RC__ )
+
+    call MAPL_AddExportSpec(GC,                                     &
+               SHORT_NAME='GCD_LFR',                                &
+               LONG_NAME ='Lightning_flash_rate_seen_GEOSCHEMchem', &
+               UNITS     ='km-2 s-1',                               &
+               DIMS      = MAPL_DimsHorzOnly,                       &
+               VLOCATION = MAPL_VLocationNone,                      &
+                                                              __RC__ )
+
+
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE MetVars_For_Lightning_Init
+!EOC
+!------------------------------------------------------------------------------
+!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: MetVars_For_Lightning_Run
+!
+! !DESCRIPTION: Fill the State_Met variables needed for lightning NOx calculation 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE MetVars_For_Lightning_Run( GC, Import, Export, State_Met, State_Grid, &
+                                        DryRun, CF, LfrSrc, CnvSrc, RC )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_GridComp), INTENT(INOUT)           :: GC         ! Ref. to this GridComp
+    TYPE(ESMF_State),    INTENT(INOUT), OPTIONAL :: Import     ! Import State
+    TYPE(ESMF_State),    INTENT(INOUT), OPTIONAL :: Export     ! Export State
+    TYPE(MetState),      INTENT(INOUT), OPTIONAL :: State_Met  ! Met. state object
+    TYPE(GrdState),      INTENT(IN),    OPTIONAL :: State_Grid ! Grid state 
+    LOGICAL,             INTENT(IN),    OPTIONAL :: DryRun     ! Don't fill fields 
+    TYPE(ESMF_Config),   INTENT(INOUT), OPTIONAL :: CF         ! GEOSCHEM*.rc
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*),    INTENT(OUT), OPTIONAL   :: LfrSrc     ! Lightning flash rate source ID
+    CHARACTER(LEN=*),    INTENT(OUT), OPTIONAL   :: CnvSrc     ! Convective height source ID
+    INTEGER,             INTENT(OUT)             :: RC         ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  20 Jan 2020 - C. Keller   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+  INTEGER                       :: I,J,L
+  INTEGER                       :: LTOP
+  LOGICAL                       :: am_I_Root
+  LOGICAL                       :: Skip
+  CHARACTER(LEN=31), SAVE       :: LFR_SOURCE = ""
+  CHARACTER(LEN=31), SAVE       :: CNV_SOURCE = ""
+  INTEGER, SAVE                 :: CNV_ID = -1
+  REAL, POINTER                 :: Ptr2d(:,:)
+  REAL, POINTER                 :: BYNCY(:,:,:)
+
+  __Iam__('MetVars_For_Lightning_Run')
+  am_I_Root = MAPL_Am_I_Root()
+
+!-LFR source 
+  IF ( TRIM(LFR_SOURCE)=="" .OR. CNV_ID<0 ) THEN
+     ASSERT_(PRESENT(CF))
+     CALL ESMF_ConfigGetAttribute( CF, LFR_SOURCE,                     &
+                                 Label="LIGHTNING_FLASH_RATE_SOURCE:", &
+                                 Default="LFR_GCC",                    &
+                                 __RC__                                 )
+     ! Verbose
+     IF (am_I_Root) THEN
+        WRITE(*,*) 'GEOSCHEMchem lightning flash rate source: ',TRIM(LFR_SOURCE)
+     ENDIF
+
+!----Convective height source 
+     CALL ESMF_ConfigGetAttribute( CF, CNV_SOURCE,                         &
+                                 Label="LIGHTNING_CONVECTIVE_TOP_SOURCE:", &
+                                 Default="CNV_MFC",                        &
+                                 __RC__                                     )
+     SELECT CASE ( TRIM(CNV_SOURCE) )
+        CASE ( "CNV_MFC" )
+           CNV_ID = 0
+        CASE ( "BYNCY" )
+           CNV_ID = 1
+        CASE DEFAULT
+           CNV_ID = 2
+     END SELECT
+
+     ! Verbose
+     IF (am_I_Root) THEN
+        WRITE(*,*) 'GEOSCHEMchem lightning convective height source: ',TRIM(CNV_SOURCE)
+     ENDIF
+
+  ENDIF
+
+!-Fill state met
+  IF ( PRESENT(DryRun) ) THEN
+     Skip = DryRun
+  ELSE
+     Skip = .FALSE.
+  ENDIF
+  IF ( .NOT. Skip ) THEN
+
+!----Lightning flash rate density [km-2 s-1]
+     call MAPL_GetPointer ( IMPORT, Ptr2D, TRIM(LFR_SOURCE), __RC__ )
+     State_Met%FLASH_DENS = Ptr2D
+
+     ! Eventually add to Export
+     Ptr2D => NULL()
+     call MAPL_GetPointer ( EXPORT, Ptr2D, 'GCD_LFR', NotFoundOk=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr2D) ) Ptr2D = State_Met%FLASH_DENS
+
+!----Convective depth [m]
+     SELECT CASE ( CNV_ID )
+        ! Convective mass flux
+        ! Get highest level with positive convective mass flux. CNV_MFC is on
+        ! GEOS coordinates (--> 1=top of atmosphere) and on level edges.
+        CASE ( 0 )
+           DO J=1,State_Grid%NY
+           DO I=1,State_Grid%NX
+              LTOP = 0
+              DO L = 2,State_Grid%NZ+1
+                 IF ( CNV_MFC(I,J,L) > 0.0 ) THEN
+                    LTOP = (State_Grid%NZ+1) - L + 1
+                    EXIT
+                 ENDIF
+              ENDDO
+              IF ( LTOP > 0 ) THEN
+                 State_Met%CONV_DEPTH(I,J) = SUM(State_Met%BXHEIGHT(I,J,1:LTOP))
+              ELSE
+                 State_Met%CONV_DEPTH(I,J) = 0.0
+              ENDIF
+           ENDDO
+           ENDDO
+
+        ! Buoyancy and convective fraction
+        ! Get highest level with positive buoyancy and where convective fraction
+        ! is non-zero. BYNCY is on GEOS coordinates (--> 1=top of atmosphere) and 
+        ! on level mid-points. LM captures the dimension of CNV_MFC, which is on 
+        ! level edges.
+        CASE ( 1 )
+           call MAPL_GetPointer ( IMPORT, BYNCY, 'BYNCY', __RC__ )
+           ASSERT_(ASSOCIATED(CNV_FRC))
+           DO J=1,State_Grid%NY
+           DO I=1,State_Grid%NX
+              LTOP = 0
+              IF ( CNV_FRC(I,J) > 0.0 ) THEN
+                 DO L = 1,State_Grid%NZ
+                    IF ( BYNCY(I,J,L) > 0.0 ) THEN
+                       LTOP = State_Grid%NZ - L + 1
+                       EXIT
+                    ENDIF
+                 ENDDO
+              ENDIF
+              IF ( LTOP > 0 ) THEN
+                 State_Met%CONV_DEPTH(I,J) = SUM(State_Met%BXHEIGHT(I,J,1:LTOP))
+              ELSE
+                 State_Met%CONV_DEPTH(I,J) = 0.0
+              ENDIF
+           ENDDO
+           ENDDO
+
+        ! Offline file 
+        CASE ( 2 )
+           call MAPL_GetPointer ( IMPORT, Ptr2D, TRIM(CNV_SOURCE), __RC__ )
+           State_Met%CONV_DEPTH = Ptr2D
+     END SELECT
+
+     ! Eventually add to Export
+     Ptr2D => NULL()
+     call MAPL_GetPointer ( EXPORT, Ptr2D, 'GCD_CONV_DEPTH', NotFoundOk=.TRUE., __RC__ )
+     IF ( ASSOCIATED(Ptr2D) ) Ptr2D = State_Met%CONV_DEPTH
+
+  ENDIF ! Skip
+
+!-Cleanup 
+  IF ( PRESENT(LfrSrc) ) LfrSrc = LFR_SOURCE
+  IF ( PRESENT(CnvSrc) ) CnvSrc = CNV_SOURCE
+  RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE MetVars_For_Lightning_Run
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
 !          Harvard University Atmospheric Chemistry Modeling Group            !

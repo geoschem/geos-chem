@@ -41,6 +41,9 @@ MODULE gigc_providerservices_mod
 !
   USE ESMF     
   USE MAPL_Mod 
+#if defined( MODEL_GEOS )
+  USE Chem_Mod                  ! Chemistry Base Class
+#endif
 
   IMPLICIT NONE
   PRIVATE
