@@ -473,6 +473,10 @@ CONTAINS
 !  routines here so that they may be called from the Initialization method.
 !  This is necessary when connecting GEOS-Chem to the GEOS-5 GCM via ESMF.
 !                                                                             .
+!  Also note: In the case of a GEOS-Chem dry-run simulation, we will call
+!  these initialization routines, but exit them before any arrays get
+!  allocated.  This will help to reduce the amount of memory used.
+!                                                                             .
 ! !REVISION HISTORY:
 !  04 Mar 2013 - R. Yantosca - Initial revision
 !  See https://github.com/geoschem/geos-chem for complete history

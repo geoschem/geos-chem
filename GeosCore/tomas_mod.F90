@@ -6237,6 +6237,9 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
+    ! Exit if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! Define species indices here, these are now saved as
     ! module variables (bmy, 6/20/16)
     id_NK1   = Ind_('NK1'  )

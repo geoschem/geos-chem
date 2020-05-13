@@ -2235,6 +2235,9 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   = ' -> at Init_Aerosol (in module GeosCore/aerosol_mod.F90)'
 
+    ! Exit immediately if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
+
     ! Add tracer ID flags as module variables (bmy, 6/16/16)
     id_BCPI   = Ind_( 'BCPI'   )
     id_BCPO   = Ind_( 'BCPO'   )
