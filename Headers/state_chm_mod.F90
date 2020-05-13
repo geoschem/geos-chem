@@ -453,6 +453,8 @@ CONTAINS
     ! For LINOZ
     State_Chm%TLSTT             => NULL()
 
+    State_Chm%DryDepSav         => NULL()
+
     ! Local variables
     Ptr2data                    => NULL()
 
