@@ -19,7 +19,7 @@ trigger:
       - '*-alpha*'
       - '*-beta*'
       - '*-rc*'
-      -'GEOS_*'
+      - 'GEOS_*'
 pr: none
 
 
