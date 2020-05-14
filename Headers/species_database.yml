@@ -2920,7 +2920,6 @@ OCPO:
   DD_F0: 0.0
   DD_Hstar: 0.0
   Density: 1300.0
-  EmMW_g: 12.0
   FullName: Hydrophobic organic carbon aerosol
   Is_Advected: true
   Is_Aerosol: true
