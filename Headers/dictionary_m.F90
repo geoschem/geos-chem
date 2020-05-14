@@ -10,7 +10,7 @@
 !!  - set rewrites existing entries without complaining
 !!
 !!%%%BMY
-!!%%%BMY  Modified to return nteger values (see !!%%%BMY comments for
+!!%%%BMY  Modified to return integer values (see !!%%%BMY comments for
 !!%%%BMY  places where the code was changed) -- Bob Yantosca (06 Dec 2019)
 !!%%%BMY
 
@@ -50,6 +50,7 @@ module dictionary_m
      procedure :: get
      procedure :: init
      procedure :: show
+     procedure :: destroy
   end type dictionary_t
 
   integer, parameter :: BUCKET_EMPTY = -2
@@ -251,5 +252,18 @@ contains
     end if
 
   end function get
+
+!%%%BMY !> Free a dictionary object
+!%%%BMY !!
+!%%%BMY !! \param this the dictionary_t object
+!%%%BMY !! \param dict_size the size of the hash table
+  subroutine destroy(this)
+    class(dictionary_t), intent(inout) :: this
+
+    if ( allocated( this%buckets ) ) then
+       deallocate( this%buckets )
+    endif
+
+  end subroutine destroy
 
 end module dictionary_m

@@ -45,6 +45,47 @@ function(configureGCClassic)
         endif()
     endif()
 
+    # Get branch name in code repository, store in CMakeCache for debugging
+    macro(get_git_branch VAR)
+      execute_process(
+        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse --abbrev-ref HEAD
+        OUTPUT_VARIABLE ${VAR}
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+    endmacro()
+    get_git_branch(CODE_BRANCH)
+    set(GIT_BRANCH ${CODE_BRANCH} CACHE STRING "Current branch in code repo")
+
+    # Get last commit name from code repository, store in CMakeCache for debug
+    macro(get_git_commit VAR)
+      execute_process(
+        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%s"
+        OUTPUT_VARIABLE ${VAR}
+	)
+    endmacro()
+    get_git_commit(LAST_COMMIT)
+    set(GIT_COMMIT ${LAST_COMMIT} CACHE STRING "Last commit in Git repo")
+
+    # Get last commit hash from code repository, store in CMakeCache for debug
+    macro(get_git_commit_hash VAR)
+      execute_process(
+        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%h"
+        OUTPUT_VARIABLE ${VAR}
+	)
+    endmacro()
+    get_git_commit_hash(COMMIT_HASH)
+    set(GIT_COMMIT_HASH ${COMMIT_HASH} CACHE STRING "Last commit hash in Git repo")
+
+    # Get last commit date from code repository, store in CMakeCache for debug
+    macro(get_git_commit_date VAR)
+      execute_process(
+        COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} log -n 1 --pretty=format:"%cd"
+        OUTPUT_VARIABLE ${VAR}
+	)
+    endmacro()
+    get_git_commit_date(COMMIT_DATE)
+    set(GIT_COMMIT_DATE ${COMMIT_DATE} CACHE STRING "Date of last Git commit")
+    
     # Configure the build based on the run directory. Propagate the configuration variables.
     # Define a macro for inspecting the run directory. Inspecting the run
     # directory is how we determine which compiler definitions need to be set.

@@ -229,6 +229,7 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
      TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
+     TYPE(dictionary_t)         :: RegDict              ! Registry lookup table
 
   END TYPE ChmState
 !
@@ -567,7 +568,7 @@ CONTAINS
 
     ! Error check: make sure we have no hash collisions that would
     ! assign more than one species to the same ModelId value
-    ALLOCATE( CheckIds( State_Chm%nSpecies ), STAT=RC ) 
+    ALLOCATE( CheckIds( State_Chm%nSpecies ), STAT=RC )
     DO N = 1, State_Chm%nSpecies
        CheckIds(N) = SpcDataLocal(N)%Info%ModelId
     ENDDO
@@ -1787,29 +1788,46 @@ CONTAINS
         IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    !=======================================================================
+    !========================================================================
+    ! Once we are done registering all fields, we need to define the
+    ! registry lookup table.  This algorithm will avoid hash collisions.
+    !========================================================================
+    CALL Registry_Set_LookupTable( Registry  = State_Chm%Registry,           &
+                                   RegDict   = State_Chm%RegDict,            &
+                                   RC        = RC                           )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Registry_Set_LookupTable"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
     ! Print out the list of registered fields
-    !=======================================================================
+    !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 10 )
 10     FORMAT( /, 'Registered variables contained within the State_Chm object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
+
+    ! Print registered fields
     CALL Registry_Print( Input_Opt   = Input_Opt,             &
                          Registry    = State_Chm%Registry,    &
                          ShortFormat = .TRUE.,                &
                          RC          = RC                    )
 
-    !=======================================================================
-    ! Cleanup and quit
-    !=======================================================================
-
-    ! Trap error
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered!'
+       ErrMsg = 'Error encountered in routine "Registry Print"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    !=======================================================================
+    ! Cleanup and quit
+    !=======================================================================
 
     ! Free pointer for safety's sake
     ThisSpc => NULL()
@@ -2335,7 +2353,7 @@ CONTAINS
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
-    CALL Registry_Destroy( State_Chm%Registry, RC )
+    CALL Registry_Destroy( State_Chm%Registry, State_Chm%RegDict, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object State_Chm%Registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3695,7 +3713,7 @@ CONTAINS
 !   'F' : Returns KPP fixed species index
 !   'G' : Returns gas-phase species index
 !   'H' : Returns hygroscopic-growth species index
-!   'K' : Returns KPP master species index 
+!   'K' : Returns KPP master species index
 !   'P' : Returns photolysis species index
 !   'S' : Returns master species index (aka "ModelId")
 !   'V' : Returns KPP variable species index
@@ -3778,7 +3796,7 @@ CONTAINS
        CASE( 'W', 'w' )
           Indx = SpcDataLocal(N)%Info%WetDepId
           RETURN
-          
+
        CASE DEFAULT
           ! Pass
 

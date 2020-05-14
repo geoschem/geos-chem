@@ -21,15 +21,16 @@ MODULE State_Diag_Mod
 !
 ! USES:
 
+  USE CMN_FJX_MOD,      ONLY : W_
   USE CMN_Size_Mod,     ONLY : NDUST
   USE DiagList_Mod
-  USE TaggedDiagList_Mod
+  USE Dictionary_M,     ONLY : dictionary_t
   USE ErrCode_Mod
   USE Precision_Mod
   USE Registry_Mod
   USE Species_Mod,      ONLY : Species
   USE State_Chm_Mod,    ONLY : ChmState
-  USE CMN_FJX_MOD,      ONLY : W_
+  USE TaggedDiagList_Mod
   USE gckpp_Parameters, ONLY : NREACT
 
   IMPLICIT NONE
@@ -698,6 +699,7 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'DIAG'   ! Name of this state
      TYPE(MetaRegItem), POINTER :: Registry  => NULL()  ! Registry object
+     TYPE(dictionary_t)         :: RegDict              ! Lookup table
 
   END TYPE DgnState
 !
@@ -6645,10 +6647,25 @@ CONTAINS
     !   RETURN
     !ENDIF
 
+    !========================================================================
+    ! Once we are done registering all fields, we need to define the
+    ! registry lookup table.  This algorithm will avoid hash collisions.
+    !========================================================================
+    CALL Registry_Set_LookupTable( Registry  = State_Diag%Registry,          &
+                                   RegDict   = State_Diag%RegDict,           &
+                                   RC        = RC                           )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Registry_Set_LookupTable"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
-    IF ( am_I_Root ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 30 )
  30    FORMAT( /, &
             'Registered variables contained within the State_Diag object:' )
@@ -8433,7 +8450,7 @@ CONTAINS
     !=======================================================================
     ! Destroy the registry of fields for this module
     !=======================================================================
-    CALL Registry_Destroy( State_Diag%Registry, RC )
+    CALL Registry_Destroy( State_Diag%Registry, State_Diag%RegDict, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object State_Diag%Registry!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
