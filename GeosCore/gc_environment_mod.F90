@@ -789,7 +789,9 @@ CONTAINS
     CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
 
     ! Initialize the Hg diagnostics (bpch)
-    CALL Init_Diag03( State_Chm, State_Grid )
+    IF ( .not. Input_Opt%DryRun ) THEN
+       CALL Init_Diag03( State_Chm, State_Grid )
+    ENDIF
 
     ! Satellite timeseries (bpch)
     IF ( Input_Opt%DO_ND51 ) THEN
@@ -800,7 +802,9 @@ CONTAINS
     ENDIF
 
     ! POPs (bpch)
-    CALL Init_Diag53( State_Grid )
+    IF ( .not. Input_Opt%DryRun ) THEN
+       CALL Init_Diag53( State_Grid )
+    ENDIF
 
 #if !defined( ESMF_ ) && !defined( MODEL_WRF )
     !--------------------------------------------------------------------
@@ -883,6 +887,9 @@ CONTAINS
 
     ! Assume success
     RC  = GC_SUCCESS
+
+    ! Exit if this is a dry-run
+    IF ( Input_Opt%DryRun ) RETURN
 
     ! Directory where netCDF ifles are found
     DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'
@@ -986,6 +993,8 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = 'Error reading the "input.geos" file!'
     ThisLoc = ' -> at Init_Tomas_Microphysics (in GeosCore/gc_environment_mod.F90)'
+    ! Exit if this is a dry-run
+    IF ( Input_Opt%DryRun) RETURN
 
     ! Halt with error if we are trying to run TOMAS in a simulation
     ! that does not have any defined aerosols
