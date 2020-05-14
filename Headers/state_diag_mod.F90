@@ -21,17 +21,17 @@ MODULE State_Diag_Mod
 !
 ! USES:
 
-  USE CMN_FJX_MOD,      ONLY : W_
-  USE CMN_Size_Mod,     ONLY : NDUST
+  USE CMN_FJX_MOD,        ONLY : W_
+  USE CMN_Size_Mod,       ONLY : NDUST
   USE DiagList_Mod
-  USE Dictionary_M,     ONLY : dictionary_t
+  USE Dictionary_M,       ONLY : dictionary_t
   USE ErrCode_Mod
+  USE gckpp_Parameters,   ONLY : NREACT
   USE Precision_Mod
   USE Registry_Mod
-  USE Species_Mod,      ONLY : Species
-  USE State_Chm_Mod,    ONLY : ChmState
+  USE Species_Mod,        ONLY : Species
+  USE State_Chm_Mod,      ONLY : ChmState
   USE TaggedDiagList_Mod
-  USE gckpp_Parameters, ONLY : NREACT
 
   IMPLICIT NONE
   PRIVATE
@@ -80,6 +80,8 @@ MODULE State_Diag_Mod
   TYPE, PUBLIC :: DgnMap
      INTEGER          :: count
      INTEGER, POINTER :: modelId(:)
+     INTEGER, POINTER :: dryDepId(:)
+     INTEGER, POINTER :: wetDepId(:)
   END TYPE DgnMap
 !
 ! !PUBLIC DATA MEMBERS:
@@ -805,7 +807,7 @@ CONTAINS
     CHARACTER(LEN=255) :: arrayID,   diagID
 
     ! Scalars
-    INTEGER            :: N,         IM,      JM,        LM
+    INTEGER            :: N,         IM,      JM,        LM,      C
     INTEGER            :: nSpecies,  nAdvect, nDryDep,   nKppSpc
     INTEGER            :: nWetDep,   nPhotol, nProd,     nLoss
     INTEGER            :: nHygGrth,  nRad,    nDryAlt
@@ -898,12 +900,16 @@ CONTAINS
 
     ! Drydep diagnostics
     State_Diag%DryDep                              => NULL()
-    State_Diag%DryDepChm                           => NULL()
-    State_Diag%DryDepMix                           => NULL()
-    State_Diag%DryDepVel                           => NULL()
+    State_Diag%Map_DryDep                          => NULL()
     State_Diag%Archive_DryDep                      = .FALSE.
+    State_Diag%DryDepChm                           => NULL()
+    State_Diag%Map_DryDepChm                       => NULL()
     State_Diag%Archive_DryDepChm                   = .FALSE.
+    State_Diag%DryDepMix                           => NULL()
+    State_Diag%Map_DryDepMix                       => NULL()
     State_Diag%Archive_DryDepMix                   = .FALSE.
+    State_Diag%DryDepVel                           => NULL()
+    State_Diag%Map_DryDepVel                       => NULL()
     State_Diag%Archive_DryDepVel                   = .FALSE.
 #ifdef MODEL_GEOS
     State_Diag%DryDepRa2m                          => NULL()
@@ -1966,6 +1972,11 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+
+    do C = 1, state_diag%map_drydepvel%count
+       N = state_diag%map_drydepvel%modelId(C)
+       print*, '@@@ ', C, N, state_chm%spcdata(N)%Info%Name
+    enddo
 
 #ifdef MODEL_GEOS
     !-----------------------------------------------------------------------
@@ -11974,6 +11985,20 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        mapData%modelId = -1
 
+       ! Allocate the mapData%dryDepId field
+       IF ( ASSOCIATED( mapData%dryDepId ) ) DEALLOCATE( mapData%dryDepId )
+       ALLOCATE( mapData%dryDepId( mapData%count ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%dryDepId = -1
+
+       ! Allocate the mapData%wetDepId field
+       IF ( ASSOCIATED( mapData%wetDepId ) ) DEALLOCATE( mapData%wetDepId )
+       ALLOCATE( mapData%wetDepId( mapData%count ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%wetDepId = -1
+
        ! Get the modelId for each species indicated by wildcard
        DO index = 1, mapData%count
           CALL Get_TagInfo( Input_Opt = Input_Opt,                           &
@@ -11991,8 +12016,10 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Save the modelID of each species in Map_Fields
-          mapData%modelId(index) =  Ind_(spcName)
+          ! Save the modelId (and other ID's) in the mapping object
+          mapData%modelId (index) =  Ind_(spcName     )
+          mapData%dryDepId(index) =  Ind_(spcName, 'D')
+          mapData%wetDepId(index) =  Ind_(spcName, 'W')
        ENDDO
 
     ELSE
@@ -12011,13 +12038,29 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        mapData%modelId = -1
 
+       ! Allocate the mapData%dryDepId field
+       IF ( ASSOCIATED( mapData%dryDepId ) ) DEALLOCATE( mapData%dryDepId )
+       ALLOCATE( mapData%dryDepId( mapData%count ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%dryDepId = -1
+
+       ! Allocate the mapData%wetDepId field
+       IF ( ASSOCIATED( mapData%wetDepId ) ) DEALLOCATE( mapData%wetDepId )
+       ALLOCATE( mapData%wetDepId( mapData%count ), STAT=RC )
+       CALL GC_CheckVar( mapName2, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       mapData%wetDepId = -1
+
        ! Loop thru the list of tags and find the relevant ID
        TagItem => TagList%head
        DO WHILE ( ASSOCIATED( TagItem ) )
-          spcName                =  TagItem%name
-          index                  =  TagItem%index
-          mapData%modelId(index) =  Ind_(spcName)
-          TagItem                => TagItem%next
+          spcName                 =  TagItem%name
+          index                   =  TagItem%index
+          mapData%modelId (index) =  Ind_(spcName)
+          mapData%dryDepId(index) =  Ind_(spcName, 'D')
+          mapData%wetDepId(index) =  Ind_(spcName, 'W')
+          TagItem                 => TagItem%next
        ENDDO
        TagItem => NULL()
 
@@ -13241,6 +13284,24 @@ CONTAINS
     IF ( ASSOCIATED( mapData ) ) THEN
 
        ! Deallocate and nullify the modellId field first
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%wetDepId'
+       IF ( ASSOCIATED( mapData%wetDepId ) ) THEN
+          DEALLOCATE( mapData%wetDepId, STAT=RC )
+          CALL GC_CheckVar( mapId, 2, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       mapdata%wetDepId => NULL()
+
+       ! Deallocate and nullify the modellId field first
+       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%dryDepId'
+       IF ( ASSOCIATED( mapData%dryDepId ) ) THEN
+          DEALLOCATE( mapData%dryDepId, STAT=RC )
+          CALL GC_CheckVar( mapId, 2, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       mapdata%dryDepId => NULL()
+
+       ! Deallocate and nullify the modellId field first
        mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%modelId'
        IF ( ASSOCIATED( mapData%modelId ) ) THEN
           DEALLOCATE( mapData%modelId, STAT=RC )
@@ -13250,7 +13311,7 @@ CONTAINS
        mapdata%modelId => NULL()
 
        ! Then finalize the mapData
-       mapId = 'State_Diag%Map_' // TRIM( diagId ) // '%modelId'
+       mapId = 'State_Diag%Map_' // TRIM( diagId )
        DEALLOCATE( mapData, STAT=RC )
        CALL GC_CheckVar( mapId, 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN

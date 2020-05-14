@@ -186,12 +186,14 @@ MODULE DRYDEP_MOD
   REAL(f8),          ALLOCATABLE :: A_DEN   (:    ) ! Aer density [kg/m3]
   CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
-  REAL(f4), POINTER :: HCO_Iodide(:,:)   => NULL()
-  REAL(f4), POINTER :: HCO_Salinity(:,:) => NULL()
+  REAL(f4),          POINTER     :: HCO_Iodide(:,:)   => NULL()
+  REAL(f4),          POINTER     :: HCO_Salinity(:,:) => NULL()
 
   ! Allocatable arrays
   REAL(f8),          ALLOCATABLE :: DMID    (:    )
   REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
+
+  INTEGER,           ALLOCATABLE :: DepVelIdx(:)
 
   !=================================================================
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -269,7 +271,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I,   J,   L,   D,   N,  NDVZ,  A
+    INTEGER            :: I,   J,   L,   C,   D,   N,  NDVZ,  A
     REAL(f8)           :: DVZ, THIK
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
@@ -293,7 +295,6 @@ CONTAINS
 
     ! Pointers
     REAL(fp), POINTER :: DEPSAV (:,:,:   )      ! Dry deposition frequencies [s-1]
-
     ! For ESMF, need to assign these from Input_Opt
     LOGICAL       :: PBL_DRYDEP
     LOGICAL       :: prtDebug
@@ -349,9 +350,9 @@ CONTAINS
     !=================================================================
     ! Compute dry deposition frequencies; archive diagnostics
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, A )
+    !$OMP PARALLEL DO                                           &
+    !$OMP DEFAULT( SHARED                                     ) &
+    !$OMP PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo, C, A )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -501,12 +502,15 @@ CONTAINS
 
           ! Dry deposition frequency [1/s]
           DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
-
+          
           ! Archive dry dep velocity [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
-             State_Diag%DryDepVel(I,J,D) = DVZ
+             C = DepVelIdx(D)
+             IF ( C > 0 ) THEN 
+                State_Diag%DryDepVel(I,J,C) = DVZ
+             ENDIF
           ENDIF
-
+          
           ! Archive dry dep velocity [cm/s] only for those species
           ! that are requested at a given altitude (e.g. 10m)
           IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
@@ -4033,6 +4037,8 @@ CONTAINS
 !
     LOGICAL                :: LDRYD
     LOGICAL                :: IS_Hg
+    INTEGER                :: C
+    INTEGER                :: D
     INTEGER                :: N
 
     ! Strings
@@ -4339,6 +4345,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     DMID = 0e+0_f8
 
+    ! Define the mapping index for the dry dep velocity diagnostic
+    IF ( State_Diag%Archive_DryDepVel ) THEN
+       ALLOCATE( DepVelIdx( State_Chm%nDryDep ), STAT=RC )
+       CALL GC_CheckVar( 'drydep_mod:DepVelIdx', 0, RC )
+       DepVelIdx = -1
+       DO C = 1, State_Diag%Map_DryDepVel%count
+          D = State_Diag%Map_DryDepVel%dryDepId(C)
+          IF ( D > 0 ) DepVelIdx(D) = C
+       ENDDO
+    ENDIF
+
     !=================================================================
     ! Echo information to stdout
     !=================================================================
@@ -4402,19 +4419,20 @@ CONTAINS
     !=================================================================
     ! CLEANUP_DRYDEP begins here!
     !=================================================================
-    IF ( ALLOCATED( A_DEN    ) ) DEALLOCATE( A_DEN    )
-    IF ( ALLOCATED( A_RADI   ) ) DEALLOCATE( A_RADI   )
-    IF ( ALLOCATED( AIROSOL  ) ) DEALLOCATE( AIROSOL  )
-    IF ( ALLOCATED( DEPNAME  ) ) DEALLOCATE( DEPNAME  )
-    IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
-    IF ( ALLOCATED( F0       ) ) DEALLOCATE( F0       )
-    IF ( ALLOCATED( FLAG     ) ) DEALLOCATE( FLAG     )
-    IF ( ALLOCATED( HSTAR    ) ) DEALLOCATE( HSTAR    )
-    IF ( ALLOCATED( KOA      ) ) DEALLOCATE( KOA      )
-    IF ( ALLOCATED( NDVZIND  ) ) DEALLOCATE( NDVZIND  )
-    IF ( ALLOCATED( NTRAIND  ) ) DEALLOCATE( NTRAIND  )
-    IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
-    IF ( ALLOCATED( XMW      ) ) DEALLOCATE( XMW      )
+    IF ( ALLOCATED( A_DEN     ) ) DEALLOCATE( A_DEN     )
+    IF ( ALLOCATED( A_RADI    ) ) DEALLOCATE( A_RADI    )
+    IF ( ALLOCATED( AIROSOL   ) ) DEALLOCATE( AIROSOL   )
+    IF ( ALLOCATED( DEPNAME   ) ) DEALLOCATE( DEPNAME   )
+    IF ( ALLOCATED( DepVelIdx ) ) DEALLOCATE( DepVelIdx )
+    IF ( ALLOCATED( DMID      ) ) DEALLOCATE( DMID      )
+    IF ( ALLOCATED( F0        ) ) DEALLOCATE( F0        )
+    IF ( ALLOCATED( FLAG      ) ) DEALLOCATE( FLAG      )
+    IF ( ALLOCATED( HSTAR     ) ) DEALLOCATE( HSTAR     )
+    IF ( ALLOCATED( KOA       ) ) DEALLOCATE( KOA       )
+    IF ( ALLOCATED( NDVZIND   ) ) DEALLOCATE( NDVZIND   )
+    IF ( ALLOCATED( NTRAIND   ) ) DEALLOCATE( NTRAIND   )
+    IF ( ALLOCATED( SALT_V    ) ) DEALLOCATE( SALT_V    )
+    IF ( ALLOCATED( XMW       ) ) DEALLOCATE( XMW       )
 
   END SUBROUTINE CLEANUP_DRYDEP
 !EOC
