@@ -221,6 +221,7 @@ libhemcosa:                                        # Build HEMCO standalone
 libhistory:                                        # Build code in History/
 	@$(MAKE) -C $(HIST) lib
 
+
 libiso:                                            # Build code in ISORROPIA/
 	@$(MAKE) -C $(ISO)
 
@@ -408,6 +409,7 @@ cleanup.o                   : cleanup.F90                                    \
                               isorropiaII_mod.o       land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
                               strat_chem_mod.o        mercury_mod.o          \
+                              sfcvmr_mod.o                                   \
                               modis_lai_mod.o         ocean_mercury_mod.o    \
                               pbl_mix_mod.o           pjc_pfix_mod.o         \
                               planeflight_mod.o       sulfate_mod.o          \
@@ -659,6 +661,7 @@ seasalt_mod.o               : seasalt_mod.F90                                \
                               hco_interface_mod.o
 
 
+
 set_global_ch4_mod.o        : set_global_ch4_mod.F90                         \
                               pbl_mix_mod.o
 
@@ -707,6 +710,7 @@ transport_mod.o             : transport_mod.F90                              \
 ucx_mod.o                   : ucx_mod.F90                                    \
                               calc_met_mod.o          fast_jx_mod.o          \
                               global_ch4_mod.o        hco_interface_mod.o
+
 
 uvalbedo_mod.o              : uvalbedo_mod.F90                               \
                               hco_interface_mod.o

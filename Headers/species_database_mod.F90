@@ -516,6 +516,7 @@ CONTAINS
     INTEGER             :: C !ramnarine 12/2018
 
     CHARACTER(LEN=8)    :: sMW
+    CHARACTER(LEN=31)   :: NameAllCaps
 
     ! Arrays
     REAL(fp)            :: DvzMinVal(2)
@@ -818,13 +819,19 @@ CONTAINS
              WD_RetFactor  = 0.0_fp
 
           CASE( 'BRCL' )
+
              FullName      = 'Bromine chloride'
              Formula       = 'BrCl'
-             MW_g          = 115.0_fp
+             MW_g          = 115.45_fp
              Is_Gas        = T
-             Is_Drydep     = F
-             Is_Wetdep     = F
+             Is_Drydep     = T
+             Is_Wetdep     = T          
              Is_Photolysis = T
+             DD_f0         = 0.0_fp
+             DD_Hstar_old  = 9.70e-1_fp
+             Henry_K0      = 9.70e-1_f8
+             Henry_CR      = 5600.0_f8
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'BRNO2' )
              FullName      = 'Nitryl bromide'
@@ -836,6 +843,7 @@ CONTAINS
              Is_Photolysis = T
 
           CASE( 'BRNO3' )
+
              FullName      = 'Bromine nitrate'
              Formula       = 'BrNO3'
              MW_g          = 142.0_fp
@@ -845,6 +853,9 @@ CONTAINS
              Is_Photolysis = T
              DD_F0         = 0.0_fp
              DD_Hstar_Old  = 1.00e+20_fp
+             !Henry_K0      = 1.00e+20_fp
+             !HENRY_CR      = 0.0_fp
+             !WD_RetFactor  = 1.0_fp
 
           CASE( 'BRO' )
              FullName      = 'Bromine monoxide'
@@ -891,9 +902,10 @@ CONTAINS
 #endif
 
           CASE( 'CCL4' )
+
              FullName      = 'Carbon tetrachloride'
              Formula       = 'CCl4'
-             MW_g          = 152.0_fp
+             MW_g          = 153.6_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -987,9 +999,10 @@ CONTAINS
              Henry_CR      = 2800.0_f8
 
           CASE( 'CHCL3' )
+
              FullName      = 'Chloroform'
              Formula       = 'CHCl3'
-             MW_g          = 119.0_fp
+             MW_g          = 119.35_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -998,7 +1011,7 @@ CONTAINS
           CASE( 'CH2CL2' )
              FullName      = 'Dichloromethane'
              Formula       = 'CH2Cl2'
-             MW_g          = 85.0_fp
+             MW_g          = 84.9_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1007,7 +1020,7 @@ CONTAINS
           CASE( 'CH3CL' )
              FullName      = 'Chloromethane'
              Formula       = 'CH3Cl'
-             MW_g          = 50.0_fp
+             MW_g          = 50.45_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1016,7 +1029,7 @@ CONTAINS
           CASE( 'CH3CCL3' )
              FullName      = 'Methyl chloroform'
              Formula       = 'CH3CCl3'
-             MW_g          = 133.0_fp
+             MW_g          = 133.35_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1086,9 +1099,10 @@ CONTAINS
              Henry_CR      = 5200.0_f8
 
           CASE( 'CL' )
+
              FullName      = 'Atomic chlorine'
              Formula       = 'Cl'
-             MW_g          = 35.0_fp
+             MW_g          = 35.45_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1096,16 +1110,20 @@ CONTAINS
           CASE( 'CL2' )
              FullName      = 'Molecular chlorine'
              Formula       = 'Cl2'
-             MW_g          = 71.0_fp
+             MW_g          = 70.9_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 9.2e-2_fp
+             Henry_K0      = 9.2e-2_f8
+             Henry_CR      = 2000.0_f8
 
           CASE( 'CL2O2' )
              FullName      = 'Dichlorine dioxide'
              Formula       = 'Cl2O2'
-             MW_g          = 103.0_fp
+             MW_g          = 102.9_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -1114,40 +1132,51 @@ CONTAINS
           CASE( 'CLNO2' )
              FullName      = 'Nitryl chloride'
              Formula       = 'ClNO2'
-             MW_g          = 81.0_fp
+             MW_g          = 81.45_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 4.5e-2_fp
 
           CASE( 'CLNO3' )
              FullName      = 'Chlorine nitrate'
              Formula       = 'ClNO3'
-             MW_g          = 97.0_fp
+             MW_g          = 97.45_fp
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
              DD_F0         = 0.0_fp
              DD_Hstar_old  = 1.00e+20_fp
+             Henry_K0      = 1.00e+20_fp
+             Henry_CR      = 0.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'CLO' )
              FullName      = 'Chlorine monoxide'
              Formula       = 'ClO'
-             MW_g          = 51.0_fp
+             MW_g          = 51.45_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 7.0e-1_fp
 
           CASE( 'CLOO' )
              FullName      = 'Chlorine dioxide'
              Formula       = 'ClOO'
-             MW_g          = 67.0_fp
+             MW_g          = 67.45_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
              Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 1.0e0_fp
+             Henry_K0      = 1.0e0_f8
+             Henry_CR      = 3500.0_f8
 
           CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',  &
                 'COBBAM', 'COBBAF',  'COBBAS', 'COBBOC', 'COBBEU', &
@@ -1601,16 +1630,22 @@ CONTAINS
              Is_Photolysis = T
 
           CASE( 'HCL' )
+
              FullName      = 'Hydrochloric acid'
              Formula       = 'HCl'
-             MW_g          = 36.0_fp
+             MW_g          = 36.45_fp
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T
              DD_F0         = 0.0_fp
-             DD_Hstar_old  = 2.05e+13_fp
-             Henry_K0      = 7.00e+10_f8
-             Henry_CR      = 11000.0_f8
+#if defined( MODEL_GEOS )
+             DD_Hstar_old  = 2.05e+6_fp
+             Henry_K0      = 7.10e+15_f8
+#else
+             DD_Hstar_old  = 2.0e+13_fp
+             Henry_K0      = 6.30e+10_f8
+#endif
+             Henry_CR      = 9000.0_f8
              WD_RetFactor  = 1.0_fp
 
           CASE( 'HCOOH' )
@@ -1697,10 +1732,11 @@ CONTAINS
 #ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.10e+3_f8 * To_M_atm
              Henry_CR      = 8700.0_f8
+             Henry_pKa     = -1.3e+0_fp
 #else
              DD_Hstar_old  = 1.0e+14_fp
-             Henry_K0      = 8.3e+4_f8
-             Henry_CR      = 7400.0_f8
+             Henry_K0      = 1.3e+11_f8
+             Henry_CR      = 8700.0_f8
 #endif
              WD_AerScavEff = 1.0_fp
              WD_KcScaleFac = KcScale
@@ -1730,20 +1766,21 @@ CONTAINS
              Is_Wetdep     = T
              Is_Photolysis = T
              DD_F0         = 0.0_fp
-#ifdef NEW_HENRY_CONSTANTS
-             Henry_K0      = 1.30e+0_f8 * To_M_atm
+#if defined( NEW_HENRY_CONSTANTS )
+             Henry_K0      = 1.30e+1_f8 * To_M_atm
              Henry_CR      = 4000.0_f8
 #else
-             DD_Hstar_old  = 6.10e+3_fp
-             Henry_K0      = 6.10e+3_f8
-             Henry_CR      = 6014.0_f8
+             DD_Hstar_old  = 1.30e+3_fp
+             Henry_K0      = 1.30e+3_f8
+             Henry_CR      = 4000.0_f8
 #endif
              WD_RetFactor  = 0.0_fp
 
           CASE( 'HOCL' )
+
              FullName      = 'Hypochlorous acid'
              Formula       = 'HOCl'
-             MW_g          = 52.0_fp
+             MW_g          = 52.45_fp
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T
@@ -2751,6 +2788,7 @@ CONTAINS
              ! N2O5 uses the same DD_F0 and DD_Hstar_old values as HNO3,
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
+
              FullName      = 'Dinitrogen pentoxide'
              Formula       = 'N2O5'
              MW_g          = 108.0_fp
@@ -2762,7 +2800,8 @@ CONTAINS
              DD_F0         = 0.0_fp
 #ifdef NEW_HENRY_CONSTANTS
              Henry_K0      = 2.10e-2_f8 * To_M_atm
-             Henry_CR      = 3400.0_f8
+             Henry_CR      = 8700.0_f8
+             Henry_pKa     = -1.3e+0_f8
 #else
              DD_Hstar_old  = 1.0e+14_fp
 #endif
@@ -2836,6 +2875,42 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
+!          CASE( 'NH4S' )
+!             Fullname = 'Ammonium on surface of seasalt aerosol'
+!             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+!                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+!
+!             ! Halve the Kc (cloud condensate -> precip) rate
+!             ! for the temperature range 237 K <= T < 258 K.
+!             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+!
+!             ! Turn off rainout only when 237 K <= T < 258K.
+!             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+!
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppSpcId      = KppSpcId(N),                  &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = 'NH4s',                       &
+!                              FullName      = Fullname,                     &
+!                              MW_g          = 31.4_fp,                      &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = F,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_Wetdep     = T,                            &
+!                              Density       = 2200.0_fp,                    &
+!                              Radius        = Radius,                       &
+!                              DD_AeroDryDep = T,                            &
+!                              DD_F0         = 0.0_fp,                       &
+!                              DD_Hstar_Old  = 0.0_fp,                       &
+!                              WD_AerScavEff = 1.0_fp,                       &
+!                              WD_CoarseAer  = T,                            &
+!                              WD_KcScaleFac = KcScale,                      &
+!                              WD_RainoutEff = RainEff,                      &
+!                              RC            = RC )
+
           CASE( 'NIT' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -2902,6 +2977,7 @@ CONTAINS
              KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
+
              RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              Formula       = ''
@@ -2910,12 +2986,14 @@ CONTAINS
              Is_Drydep     = T
              Is_Wetdep     = T
              Is_Photolysis = T
+             Is_HygroGrowth= F !wbd temporary
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T
              DD_F0         = 0.0_fp
              DD_Hstar_Old  = 0.0_fp
              WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
@@ -3039,11 +3117,12 @@ CONTAINS
           CASE( 'OCLO' )
              FullName      = 'Chlorine dioxide'
              Formula       = 'OClO'
-             MW_g          = 67.0_fp
+             MW_g          = 67.45_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
              Is_Photolysis = T
+
 
           CASE( 'OCPI' )
              FullName      = 'Hydrophilic organic carbon aerosol'
@@ -3525,21 +3604,17 @@ CONTAINS
              Henry_K0      = 2.94e+2_f8
              Henry_CR      = 5200.0_f8
              WD_RetFactor  = 2.0e-2_fp
+          CASE( 'SALA', 'SALAAL' )
 
-          CASE( 'SALA' )
-             FullName = 'Fine (0.01-0.05 microns) sea salt aerosol'
-             IF ( Present(oRadius) ) THEN
-                IF ( .NOT. Present(Input_Opt) ) THEN
-                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
-                   WRITE( 6, * ) 'Input_Opt is missing!'
-                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
-                   RC = -1
-                   RETURN
-                ENDIF
-                Radius     = ( Input_Opt%SALA_REDGE_um(1) +                  &
-                               Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
-             ENDIF
+             SELECT CASE( NameAllCaps )
+                CASE( 'SALA' )
+                   FullName = 'Accumulation mode sea salt aerosol'
+                CASE( 'SALAAL' )
+                   FullName = 'Accumulation mode sea salt alkalinity'
+             ENDSELECT
+
+             Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
+                          Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -3563,20 +3638,73 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
-          CASE( 'SALC' )
-             FullName = 'Coarse (0.5-8 microns) sea salt aerosol'
-             IF ( Present(oRadius) ) THEN
-                IF ( .NOT. Present(Input_Opt) ) THEN
-                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
-                   WRITE( 6, * ) 'Input_Opt is missing!'
-                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
-                   RC = -1
-                   RETURN
-                ENDIF
-                Radius     = ( Input_Opt%SALC_REDGE_um(1) +                  &
-                               Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
-             ENDIF
+          CASE( 'SALACL' )
+             FullName = 'Chloride in Accumulation mode sea salt aerosol'
+             Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
+                          Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+
+             Name          = NameAllCaps
+             FullName      = Fullname
+             MW_g          = 35.45_fp
+             Is_Advected   = Is_Advected
+             Is_Gas        = F                            
+             Is_Drydep     = T                           
+             Is_HygroGrowth= T !wbd temporary
+             Is_Wetdep     = T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+             
+
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppSpcId      = KppSpcId(N),                  &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = NameAllCaps,                  &
+!                              FullName      = Fullname,                     &
+!                              MW_g          = 35.45_fp,                     &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = F,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_HygroGrowth= T,                            &
+!                              Is_Wetdep     = T,                            &
+!                              Density       = 2200.0_fp,                    &
+!                              Radius        = Radius,                       &
+!                              DD_AeroDryDep = T,                            &
+!                              DD_F0         = 0.0_fp,                       &
+!                              DD_Hstar_old  = 0.0_fp,                       &
+!                              WD_AerScavEff = 1.0_fp,                       &
+!                              WD_KcScaleFac = KcScale,                      &
+!                              WD_RainoutEff = RainEff,                      &
+!                              RC            = RC )
+
+          CASE( 'SALC', 'SALCAL' )
+
+             SELECT CASE( NameAllCaps )
+                CASE( 'SALC' )
+                   FullName = 'Coarse mode sea salt aerosol'
+                CASE( 'SALCAL' )
+                   FullName = 'Coarse mode sea salt alkalinity'
+             ENDSELECT
+
+             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+ 
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -3601,6 +3729,62 @@ CONTAINS
              WD_CoarseAer  = T
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
+
+          CASE( 'SALCCL' )
+             FullName = 'Chloride in Coarse mode sea salt aerosol'
+             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+
+             Name          = NameAllCaps
+             FullName      = Fullname
+             MW_g          = 35.45_fp
+             Is_Advected   = Is_Advected
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T !wbd temporary
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppSpcId      = KppSpcId(N),                  &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = NameAllCaps,                  &
+!                              FullName      = Fullname,                     &
+!                              MW_g          = 35.45_fp,                      &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = F,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_Wetdep     = T,                            &
+!                              Is_HygroGrowth= T,                            &
+!                              Density       = 2200.0_fp,                    &
+!                              Radius        = Radius,                       &
+!                              DD_AeroDryDep = T,                            &
+!                              DD_F0         = 0.0_fp,                       &
+!                              DD_Hstar_old  = 0.0_fp,                       &
+!                              WD_AerScavEff = 1.0_fp,                       &
+!                              WD_CoarseAer  = T,                            &
+!                              WD_KcScaleFac = KcScale,                      &
+!                              WD_RainoutEff = RainEff,                      &
+!                              RC            = RC )
 
           CASE( 'SO2' )
 
@@ -3708,6 +3892,7 @@ CONTAINS
              KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
+
              RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              Formula       = ''
@@ -3715,6 +3900,7 @@ CONTAINS
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
+             Is_HygroGrowth= F !wbd Temporary
              Density       = 2200.0_fp
              Radius        = Radius
              DD_AeroDryDep = T
@@ -3890,9 +4076,10 @@ CONTAINS
              Is_Photolysis = T
 
           CASE( 'CH2ICL' )
+
              FullName      = 'Chloroiodomethane'
              Formula       = 'CH2ICl'
-             MW_g          = 167.0_fp
+             MW_g          = 167.45_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
@@ -3965,9 +4152,10 @@ CONTAINS
              WD_RetFactor  = 0.0_fp
 
           CASE( 'ICL' )
+
              FullName      = 'Iodine monochloride'
              Formula       = 'ICl'
-             MW_g          = 162.0_fp
+             MW_g          = 162.45_fp
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T

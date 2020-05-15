@@ -13,8 +13,13 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
+<<<<<<< HEAD
 ! Time                 : Fri Mar 13 14:32:03 2020
 ! Working directory    : /n/home05/msulprizio/GC/Code.GCHP/KPP/Tropchem
+=======
+! Time                 : Thu Nov 21 15:34:25 2019
+! Working directory    : /n/home06/wdowns/GC/GCCcode/Halogen.12.5.0/KPP/Tropchem
+>>>>>>> Halogen_Chem_12.5.0
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,7 +44,11 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
+<<<<<<< HEAD
 !      EQUIVALENCE( C(237),FIX(1) )
+=======
+!      EQUIVALENCE( C(356),FIX(1) )
+>>>>>>> Halogen_Chem_12.5.0
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -69,7 +78,7 @@ MODULE gckpp_Global
 
 ! INLINED global variable declarations
 
-      REAL(kind=dp) :: HET(NSPEC,7), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,8), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !-----------------------------------------------------------------------

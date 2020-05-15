@@ -101,7 +101,9 @@ MODULE HCOX_GFED_MOD
 !  23 Mar 2017 - M. Sulprizio - Increase N_SPEC to 29 (+EOH+MTPA)
 !  29 Mar 2018 - K. Travis    - Update GFED4 emission factors, increase to 34 species
 !  29 Mar 2018 - K. Travis    - Remove GFED3
+
 !  12 Sep 2018 - C. Keller    - Added instance wrapper
+
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -293,6 +295,7 @@ CONTAINS
     ! Get pointers to data arrays
     !-----------------------------------------------------------------
     !IF ( FIRST ) THEN
+
 
     IF ( Inst%IsGFED4 ) THEN
           CALL HCO_EvalFld ( HcoState, 'GFED_SAVA', Inst%GFED_SAVA, RC )
@@ -609,6 +612,7 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_GFED_Init (hcox_gfed_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+
     ! Create local instance for this simulation
     Inst => NULL()
     CALL InstCreate ( ExtNr, ExtState%GFED, Inst, RC )
@@ -625,6 +629,7 @@ CONTAINS
     ENDIF
 
     ! Error checks
+
     IF ( .NOT. Inst%IsGFED4  ) THEN
        MSG = 'GFED is enabled but no GFED version is selected. ' // &
              'Please set GFED4 in HEMCO configuration file.'
@@ -722,6 +727,7 @@ CONTAINS
        CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate GFED_EMFAC', RC )
        RETURN
     ENDIF
+
     Inst%GFED4_EMFAC = 0.0_hp
 
     ALLOCATE( Inst%GFED_SAVA(HcoState%NX,HcoState%NY) )
@@ -741,6 +747,7 @@ CONTAINS
 #include "hcox_gfed_include_gfed4.H"
 
     ! Set working pointers
+
     IF ( Inst%IsGFED4 ) THEN
        Inst%GFED_EMFAC => Inst%GFED4_EMFAC
        GFED_SPEC_NAME  => GFED4_SPEC_NAME
@@ -948,6 +955,7 @@ CONTAINS
     !=================================================================
     ! HCOX_GFED_Final begins here!
     !=================================================================
+
 
     CALL InstRemove ( ExtState%GFED )
 

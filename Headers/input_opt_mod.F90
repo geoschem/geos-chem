@@ -146,7 +146,9 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LCH4EMIS
      LOGICAL                     :: LCH4SBC
      LOGICAL                     :: LSETH2O
-
+     INTEGER                     :: CFCYEAR
+     LOGICAL                     :: LHCodedOrgHal
+     LOGICAL                     :: LCMIP6OrgHal
      !----------------------------------------
      ! CO MENU fields
      !----------------------------------------
@@ -629,7 +631,9 @@ CONTAINS
     Input_Opt%LCH4EMIS               = .FALSE.
     Input_Opt%LCH4SBC                = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
-
+    Input_Opt%CFCYEAR                = 0
+    Input_Opt%LHCodedOrgHal          = .FALSE.
+    Input_Opt%LCMIP6OrgHal           = .FALSE.
     !----------------------------------------
     ! CO MENU fields
     !----------------------------------------

@@ -66,6 +66,10 @@ MODULE HCOX_SeaSalt_Mod
    INTEGER             :: IDTBrSALC         ! Br- in coarse sea salt aerosol
    LOGICAL             :: CalcBr2           ! Calculate Br2 SSA emissions?
    LOGICAL             :: CalcBrSalt        ! Calculate Br- content?
+   INTEGER             :: IDTSALACL         ! Fine aerosol Chloride species ID
+   INTEGER             :: IDTSALCCL         ! Coarse aerosol Chloride species ID
+   INTEGER             :: IDTSALAAL         ! Fine SSA Alkalinity species ID
+   INTEGER             :: IDTSALCAL         ! Coarse SSA Alkalinity species ID
 
    ! Scale factors
    REAL*8              :: Br2Scale          ! Br2 scale factor
@@ -199,6 +203,10 @@ CONTAINS
     REAL(hp), TARGET       :: FLUXBrSalC(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXMOPO  (HcoState%NX,HcoState%NY)
     REAL(hp), TARGET       :: FLUXMOPI  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALACL(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALCCL(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALAAL(HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET       :: FLUXSALCAL(HcoState%NX,HcoState%NY)
 
     ! New variables (jaegle 5/11/11)
     REAL*8                 :: SST, SCALE
@@ -242,6 +250,10 @@ CONTAINS
     FLUXBrSalC = 0.0_hp
     FLUXMOPO   = 0.0_hp
     FLUXMOPI   = 0.0_hp
+    FLUXSALACL = 0.0_hp
+    FLUXSALCCL = 0.0_hp
+    FLUXSALAAL = 0.0_hp
+    FLUXSALCAL = 0.0_hp
 
     ! If the marine POA option is on, get the HEMCO pointer to MODIS CHLR
     IF ( HcoState%MarinePOA ) THEN
@@ -476,6 +488,54 @@ CONTAINS
 
     ENDIF
 
+    ! SALA Chloride, xnw 10/13/17
+    IF ( Inst%IDTSALACL > 0 ) THEN
+       FLUXSALACL = FLUXSALA * 0.5504d0
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( HcoState, FLUXSALACL, Inst%IDTSALACL, &
+                         RC,        ExtNr=Inst%ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALACL', RC)
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! SALC Chloride, xnw 11/17/17
+    IF ( Inst%IDTSALCCL > 0 ) THEN
+        FLUXSALCCL = FLUXSALC * 0.5504d0
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( HcoState, FLUXSALCCL, Inst%IDTSALCCL, &
+                         RC,        ExtNr=Inst%ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALCCL', RC)
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! SALA Alkalinity, xnw 11/30/17
+    IF ( Inst%IDTSALAAL > 0 ) THEN
+       FLUXSALAAL = FLUXSALA
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( HcoState, FLUXSALAAL, Inst%IDTSALAAL, &
+                         RC,        ExtNr=Inst%ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALAAL', RC)
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! SALC Alkalinity, xnw 11/30/17
+    IF ( Inst%IDTSALCAL > 0 ) THEN
+        FLUXSALCAL = FLUXSALC
+       ! Add flux to emission array
+       CALL HCO_EmisAdd( HcoState, FLUXSALCAL, Inst%IDTSALCAL, &
+                         RC,        ExtNr=Inst%ExtNrSS )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALCAL', RC)
+          RETURN
+       ENDIF
+    ENDIF
+
     ! BR2
     IF ( Inst%CalcBr2 ) THEN
 
@@ -675,12 +735,16 @@ CONTAINS
     ENDIF
     Inst%IDTSALA = HcoIDsSS(1)
     Inst%IDTSALC = HcoIDsSS(2)
-    IF ( Inst%CalcBr2 ) Inst%IDTBR2 = HcoIDsSS(3)
-    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALA = HcoIDsSS(4)
-    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALC = HcoIDsSS(5)
+    Inst%IDTSALACL = HcoIDsSS(3)
+    Inst%IDTSALCCL = HcoIDsSS(4)
+    Inst%IDTSALAAL = HcoIDsSS(5)
+    Inst%IDTSALCAL = HcoIDsSS(6)
+    IF ( Inst%CalcBr2 ) Inst%IDTBR2 = HcoIDsSS(7)
+    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALA = HcoIDsSS(8)
+    IF ( Inst%CalcBrSalt ) Inst%IDTBrSALC = HcoIDsSS(9)
     IF ( HcoState%MarinePOA ) THEN
-       Inst%IDTMOPO = HcoIDsSS(6)
-       Inst%IDTMOPI = HcoIDsSS(7)
+       Inst%IDTMOPO = HcoIDsSS(10)
+       Inst%IDTMOPI = HcoIDsSS(11)
     ENDIF
 
     ! Get aerosol radius'
@@ -741,17 +805,30 @@ CONTAINS
        WRITE(MSG,*) ' - wind scale factor: ', Inst%WindScale
        CALL HCO_MSG(HcoState%Config%Err,MSG)
 
+       WRITE(MSG,*) 'Accumulation Chloride: ', TRIM(SpcNamesSS(3)),  &
+                    ':', Inst%IDTSALACL
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) 'Coarse Chloride: ', TRIM(SpcNamesSS(4)),  &
+                    ':', Inst%IDTSALCCL
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) 'Accumulation Alkalinity: ', TRIM(SpcNamesSS(5)),  &
+                    ':', Inst%IDTSALAAL
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) 'Coarse Alkalinity: ', TRIM(SpcNamesSS(6)),  &
+                    ':', Inst%IDTSALCAL
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+
        IF ( Inst%CalcBr2 ) THEN
-          WRITE(MSG,*) 'Br2: ', TRIM(SpcNamesSS(3)), Inst%IDTBr2
+          WRITE(MSG,*) 'Br2: ', TRIM(SpcNamesSS(7)), Inst%IDTBr2
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br2 scale factor: ', Inst%Br2Scale
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        IF ( Inst%CalcBrSalt ) THEN
-          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(4)), Inst%IDTBrSALA
+          WRITE(MSG,*) 'BrSALA: ', TRIM(SpcNamesSS(8)), Inst%IDTBrSALA
           CALL HCO_MSG(HcoState%Config%Err,MSG)
-          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(5)), Inst%IDTBrSALC
+          WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(9)), Inst%IDTBrSALC
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br- mass content: ', Inst%BrContent
           CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -759,11 +836,11 @@ CONTAINS
 
        IF ( HcoState%MarinePOA ) THEN
           WRITE(MSG,*) 'Hydrophobic marine organic aerosol: ',        &
-                       TRIM(SpcNamesSS(6)), ':', Inst%IDTMOPO
+                       TRIM(SpcNamesSS(10)), ':', Inst%IDTMOPO
           CALL HCO_MSG(HcoState%Config%Err,MSG)
 
           WRITE(MSG,*) 'Hydrophilic marine organic aerosol: ',        &
-                       TRIM(SpcNamesSS(7)), ':', Inst%IDTMOPI
+                       TRIM(SpcNamesSS(11)), ':', Inst%IDTMOPI
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ENDIF

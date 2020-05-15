@@ -141,7 +141,10 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: SO2AfterChem (:,:,:) !  after sulfate chem
      REAL(fp),          POINTER :: OMOC_POA       (:,:) ! OM:OC Ratio (OCFPOA) [unitless]
      REAL(fp),          POINTER :: OMOC_OPOA      (:,:) ! OM:OC Ratio (OCFOPOA) [unitless]
-
+     REAL(fp),          POINTER :: ACLArea      (:,:,:) ! Fine Cl- Area [cm2/cm3]
+     REAL(fp),          POINTER :: ACLRadi      (:,:,:) ! Fine Cl- Radius [cm]
+     REAL(fp),          POINTER :: QLxpHCloud   (:,:,:) !
+     
      !----------------------------------------------------------------------
      ! Fields for nitrogen deposition
      !----------------------------------------------------------------------
@@ -170,11 +173,12 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! For isoprene SOA via ISORROPIA
      !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: pHSav      (:,:,:  ) ! ISORROPIA aerosol pH
-     REAL(fp),          POINTER :: HplusSav   (:,:,:  ) ! H+ concentration [M]
-     REAL(fp),          POINTER :: WaterSav   (:,:,:  ) ! ISORROPIA aerosol H2O
+     REAL(fp),          POINTER :: pHSav      (:,:,:,:) ! ISORROPIA aerosol pH
+     REAL(fp),          POINTER :: HplusSav   (:,:,:,:) ! H+ concentration [M]
+     REAL(fp),          POINTER :: WaterSav   (:,:,:,:) ! ISORROPIA aerosol H2O
      REAL(fp),          POINTER :: SulRatSav  (:,:,:  ) ! Sulfate conc [M]
-     REAL(fp),          POINTER :: NaRatSav   (:,:,:  ) ! Nitrate conc [M]
+     REAL(fp),          POINTER :: NaRatSav   (:,:,:,:) ! Nitrate conc [M]
+     REAL(fp),          POINTER :: ClRatSav   (:,:,:,:) ! Nitrate conc [M]
      REAL(fp),          POINTER :: AcidPurSav (:,:,:  ) !
      REAL(fp),          POINTER :: BiSulSav   (:,:,:  ) ! Bisulfate conc [M]
 
@@ -207,7 +211,9 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: fupdateHOBr(:,:,:  ) ! Correction factor for
                                                         ! HOBr removal by SO2
                                                         ! [unitless]
-
+     REAL(fp),          POINTER :: fupdateHOCl(:,:,:  ) ! Correction factor for 
+                                                        ! HOCl removal by SO2
+                                                        ! [unitless]
      !----------------------------------------------------------------------
      ! Fields for dry deposition
      !----------------------------------------------------------------------
@@ -394,7 +400,9 @@ CONTAINS
     State_Chm%GammaN2O5         => NULL()
     State_Chm%OMOC_POA          => NULL()
     State_Chm%OMOC_OPOA         => NULL()
-
+    State_Chm%ACLArea       => NULL()
+    State_Chm%ACLRadi       => NULL()
+   
     ! Isoprene SOA
     State_Chm%pHSav             => NULL()
     State_Chm%HplusSav          => NULL()
@@ -412,9 +420,10 @@ CONTAINS
     State_Chm%KHETI_SLA         => NULL()
 
     ! pH/alkalinity
-    State_Chm%pHCloud           => NULL()
-    State_Chm%isCloud           => NULL()
-    State_Chm%SSAlk             => NULL()
+    State_Chm%pHCloud       => NULL()
+    State_Chm%isCloud       => NULL()
+    State_Chm%SSAlk         => NULL()
+    State_Chm%QLxpHCloud    => NULL()
 
     ! Fields for sulfate chemistry
     State_Chm%H2O2AfterChem     => NULL()
@@ -444,7 +453,8 @@ CONTAINS
     ! For HOBr + S(IV) chemistry
     State_Chm%HSO3_AQ           => NULL()
     State_Chm%SO3_AQ            => NULL()
-    State_Chm%fupdateHOBr       => NULL()
+    State_Chm%fupdateHOBr   => NULL()
+    State_Chm%fupdateHOCl   => NULL()    
 
     ! For Luo et al wetdep
     State_Chm%PSO4s             => NULL()
@@ -904,7 +914,9 @@ CONTAINS
     ! the various fullchem simulations or the aerosol-only simulation
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-
+       
+       write(*,*) "nAerosol"
+       write(*,*) nAerosol
        ! Save nAerosol to State_Chm
        State_Chm%nAeroType = nAerosol
 
@@ -917,8 +929,7 @@ CONTAINS
        State_Chm%AeroArea = 0.0_fp
 
        ! Loop over all entries to register each category individually
-       DO N = 1, State_Chm%nAeroType
-
+       DO N = 1, State_Chm%nAeroType         
           ! Define identifying string
           SELECT CASE( N )
              CASE( 1  )
@@ -945,6 +956,19 @@ CONTAINS
                 chmID = 'AeroAreaSSA'
              CASE( 12 )
                 chmID = 'AeroAreaSSC'
+!             CASE( 13 )
+!                chmID = 'AeroAreaNITS'
+!             CASE( 14 )
+!                chmID = 'AeroAreaSALACL'
+!             CASE( 15 )
+!                chmID = 'AeroAreaSALCCL'
+!             CASE( 16 )
+!                chmID = 'AeroAreaSO4S'
+!             CASE( 17 )
+!                chmID = 'AeroAreaBGSULF'
+!             CASE( 18 )
+!                chmID = 'AeroAreaICEI'             
+!wbd
              CASE( 13 )
                 chmID = 'AeroAreaBGSULF'
              CASE( 14 )
@@ -961,6 +985,8 @@ CONTAINS
           CALL GC_CheckVar( 'State_Chm%AeroArea', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
+
+
 
        !--------------------------------------------------------------------
        ! AeroRadi
@@ -1053,6 +1079,19 @@ CONTAINS
                 chmID = 'WetAeroAreaSSA'
              CASE( 12 )
                 chmID = 'WetAeroAreaSSC'
+!             CASE( 13 )
+!                chmID = 'AeroAreaNITS'
+!             CASE( 14 )
+!                chmID = 'AeroAreaSALACL'
+!             CASE( 15 )
+!                chmID = 'AeroAreaSALCCL'
+!             CASE( 16 )
+!                chmID = 'AeroAreaSO4S'
+!             CASE( 17 )
+!                chmID = 'AeroAreaBGSULF'
+!             CASE( 18 )
+!                chmID = 'AeroAreaICEI'             
+!wbd
              CASE( 13 )
                 chmID = 'WetAeroAreaBGSULF'
              CASE( 14 )
@@ -1069,6 +1108,34 @@ CONTAINS
           CALL GC_CheckVar( 'State_Chm%WetAeroArea', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
+
+
+       !--------------------------------------------------------------------
+       ! AClArea, xnw 1/20/18
+       !--------------------------------------------------------------------
+       chmID  = 'AClArea'
+       ALLOCATE( State_Chm%AClArea( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AClArea', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AClArea = 0.0_fp
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%AClArea,        &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%AClArea', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+
+       !--------------------------------------------------------------------
+       ! AClRadi, xnw 1/20/18
+       !--------------------------------------------------------------------
+       chmID  = 'AClRadi'
+       ALLOCATE( State_Chm%AClRadi( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AClRadi', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AClRadi = 0.0_fp
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%AClArea,        &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%AClRadi', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! WetAeroRadi
@@ -1239,40 +1306,42 @@ CONTAINS
        ! phSav
        !--------------------------------------------------------------------
        chmId = 'phSav'
-       ALLOCATE( State_Chm%phSav( IM, JM, LM ), STAT=RC )
+       ALLOCATE( State_Chm%phSav( IM, JM, LM, 2 ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%phSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%phSav = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%phSav,            &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%phSav', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       DO N = 1, 2
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%phSav,            &
+               State_Chm, RC, Ncat=N )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
 
        !--------------------------------------------------------------------
        ! HplusSav
        !--------------------------------------------------------------------
-       chmID  = 'HplusSav'
-       ALLOCATE( State_Chm%HplusSav( IM, JM, LM ), STAT=RC )
+       chmId = 'HplusSav'
+       ALLOCATE( State_Chm%HplusSav( IM, JM, LM, 2 ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%HplusSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%HplusSav = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%HplusSav,         &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%HplusSav', 1, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       DO N = 1, 2
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%HplusSav,            &
+               State_Chm, RC, Ncat=N )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
 
        !--------------------------------------------------------------------
        ! WaterSav
        !--------------------------------------------------------------------
        chmID  = 'WaterSav'
-       ALLOCATE( State_Chm%WaterSav( IM, JM, LM ), STAT=RC )
+       ALLOCATE( State_Chm%WaterSav( IM, JM, LM, 2 ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WaterSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%WaterSav = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%WaterSav,         &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%WaterSav', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       DO N = 1, 2
+          CALL Register_ChmField(  Input_Opt, chmID, State_Chm%WaterSav,      &
+               State_Chm, RC, Ncat = N )
+       ENDDO
 
        !--------------------------------------------------------------------
        ! SulRatSav
@@ -1290,15 +1359,30 @@ CONTAINS
        !--------------------------------------------------------------------
        ! NaRatSav
        !--------------------------------------------------------------------
-       chmID  = 'NaRatSav'
-       ALLOCATE( State_Chm%NaRatSav( IM, JM, LM ), STAT=RC )
+       chmId = 'NaRatSav'
+       ALLOCATE( State_Chm%NaRatSav( IM, JM, LM, 2 ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%NaRatSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%NaRatSav = 0.0_fp
-       CALL Register_ChmField( Input_Opt, chmID, State_Chm%NaRatSav,         &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%NaRatSav', 1, RC )
+       DO N = 1, 2
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%NaRatSav,            &
+               State_Chm, RC, Ncat=N )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
+
+       !--------------------------------------------------------------------
+       ! ClRatSav
+       !--------------------------------------------------------------------
+       chmId = 'ClRatSav'
+       ALLOCATE( State_Chm%ClRatSav( IM, JM, LM, 2 ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ClRatSav', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%ClRatSav = 0.0_fp
+       DO N = 1, 2
+          CALL Register_ChmField( Input_Opt, chmID, State_Chm%ClRatSav,            &
+               State_Chm, RC, Ncat=N )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
 
        !--------------------------------------------------------------------
        ! AcidPurSav
@@ -1338,6 +1422,20 @@ CONTAINS
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%pHCloud', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! QLxphCloud
+       !--------------------------------------------------------------------
+       chmId = 'QLxpHCloud'
+       ALLOCATE( State_Chm%QLxpHCloud( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%QLxpHCloud = 0.0_fp
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%QLxpHCloud,          &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
 
        !--------------------------------------------------------------------
        ! isCloud
@@ -1413,6 +1511,21 @@ CONTAINS
                                State_Chm, RC                               )
        CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! fupdateHOCl
+       !------------------------------------------------------------------
+       chmID = 'fupdateHOCl'
+       ALLOCATE( State_Chm%fupdateHOCl( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%fupdateHOCl = 0.0_fp
+       CALL Register_ChmField( Input_Opt, chmID, State_Chm%fupdateHOCl,     &
+                               State_Chm, RC                               )
+       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 1, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+      
+
 
        !------------------------------------------------------------------
        ! DryDepNitrogen
@@ -2059,6 +2172,20 @@ CONTAINS
        State_Chm%AeroRadi => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%AClArea) ) THEN
+       DEALLOCATE( State_Chm%AClArea, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AClArea', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AClArea => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%AClRadi) ) THEN
+       DEALLOCATE( State_Chm%AClRadi, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AClRadi', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AClRadi => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%WetAeroArea ) ) THEN
        DEALLOCATE( State_Chm%WetAeroArea, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroArea', 2, RC )
@@ -2136,6 +2263,13 @@ CONTAINS
        State_Chm%NaRatSav => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%ClRatSav ) ) THEN
+       DEALLOCATE( State_Chm%ClRatSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ClRatSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%ClRatSav => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%AcidPurSav ) ) THEN
        DEALLOCATE( State_Chm%AcidPurSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AcidPurSav', 2, RC )
@@ -2156,6 +2290,14 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%pHCloud => NULL()
     ENDIF
+
+    IF ( ASSOCIATED( State_Chm%QLxpHCloud ) ) THEN
+       DEALLOCATE( State_Chm%QLxpHCloud, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%QLxpHCloud => NULL()
+    ENDIF
+
 
     IF ( ASSOCIATED( State_Chm%isCloud ) ) THEN
        DEALLOCATE( State_Chm%isCloud, STAT=RC )
@@ -2235,6 +2377,14 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%fupdateHOBr => NULL()
     ENDIF
+
+    IF ( ASSOCIATED( State_Chm%fupdateHOCl ) ) THEN
+       DEALLOCATE( State_Chm%fupdateHOCl, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%fupdateHOCl => NULL()
+    ENDIF
+
 
     IF ( ASSOCIATED( State_Chm%OceanHg0 ) ) THEN
        DEALLOCATE( State_Chm%OceanHg0, STAT=RC )
@@ -2534,6 +2684,30 @@ CONTAINS
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
+!       CASE ( 'AEROAREANITS' )
+!          IF ( isDesc  ) Desc  = 'Dry aerosol area for inorganic nitrates on' &
+!                                  // 'surface of seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm2/cm3'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'AEROAREASALACL' )
+!          IF ( isDesc  ) Desc  = 'Dry aerosol area for chloride in Accumulation' &
+!                                  // 'mode seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm2/cm3'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'AEROAREASALCCL' )
+!          IF ( isDesc  ) Desc  = 'Dry aerosol area for chloride in coarse' &
+!                                  // 'mode seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm2/cm3'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'AEROAREASO4S' )
+!          IF ( isDesc  ) Desc  = 'Dry aerosol area for sulfate  on' &
+!                                  // 'surface of seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm2/cm3'
+!          IF ( isRank  ) Rank  = 3
+!wbd
        CASE ( 'AEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for background' &
                                  // ' stratospheric sulfate'
@@ -2607,6 +2781,30 @@ CONTAINS
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
+!       CASE ( 'AERORADINITS' )
+!          IF ( isDesc  ) Desc  = 'Dry aerosol radius for inorganic nitrates on' &
+!                                  // 'surface of seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'AERORADISALACL' )
+!          IF ( isDesc  ) Desc  = 'Dry aerosol radius for chloride in Accumulation' &
+!                                  // 'mode seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'AERORADISALCCL' )
+!          IF ( isDesc  ) Desc  = 'Dry aerosol radius for chloride in coarse' &
+!                                  // 'mode seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'AERORADISO4S' )
+!          IF ( isDesc  ) Desc  = 'Dry aerosol radius for sulfate  on' &
+!                                  // 'surface of seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm'
+!          IF ( isRank  ) Rank  = 3
+!wbd
        CASE ( 'AERORADIBGSULF' )
           IF ( isDesc  ) Desc  = 'Dry aerosol radius for background' &
                                  // ' stratospheric sulfate'
@@ -2680,6 +2878,30 @@ CONTAINS
           IF ( isUnits ) Units = 'cm2 cm-3'
           IF ( isRank  ) Rank  = 3
 
+!       CASE ( 'WETAEROAREANITS' )
+!          IF ( isDesc  ) Desc  = 'Wet aerosol area for inorganic nitrates on' &
+!                                  // 'surface of seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm2/cm3'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'WETAEROAREASALACL' )
+!          IF ( isDesc  ) Desc  = 'Wet aerosol area for chloride in Accumulation' &
+!                                  // 'mode seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm2/cm3'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'WETAEROAREASALCCL' )
+!          IF ( isDesc  ) Desc  = 'Wet aerosol area for chloride in coarse' &
+!                                  // 'mode seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm2/cm3'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'WETAEROAREASO4S' )
+!          IF ( isDesc  ) Desc  = 'Wet aerosol area for sulfate  on' &
+!                                  // 'surface of seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm2/cm3'
+!          IF ( isRank  ) Rank  = 3
+!wbd
        CASE ( 'WETAEROAREABGSULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol area for background' &
                                  // ' stratospheric sulfate'
@@ -2752,6 +2974,30 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for sea salt, coarse mode'
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
+
+!       CASE ( 'WETAERORADINITS' )
+!          IF ( isDesc  ) Desc  = 'Wet aerosol radius for inorganic nitrates on' &
+!                                  // 'surface of seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'WETAERORADISALACL' )
+!          IF ( isDesc  ) Desc  = 'Wet aerosol radius for chloride in Accumulation' &
+!                                  // 'mode seasalt aerosol'
+!          IF ( isUnits ) Units = 'cm'
+!          IF ( isRank  ) Rank  = 3
+!
+!       CASE ( 'WETAERORADISALCCL' )
+ !         IF ( isDesc  ) Desc  = 'Wet aerosol radius for chloride in coarse' &
+  !                                // 'mode seasalt aerosol'
+   !       IF ( isUnits ) Units = 'cm'
+    !      IF ( isRank  ) Rank  = 3
+
+     !  CASE ( 'WETAERORADISO4S' )
+     !     IF ( isDesc  ) Desc  = 'Wet aerosol radius for sulfate  on' &
+      !                            // 'surface of seasalt aerosol'
+       !   IF ( isUnits ) Units = 'cm'
+        !  IF ( isRank  ) Rank  = 3
 
        CASE ( 'WETAERORADIBGSULF' )
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for background' &
@@ -2961,6 +3207,11 @@ CONTAINS
           IF ( isUnits ) Units = 'mol L-1'
           IF ( isRank  ) Rank  = 3
 
+       CASE( 'CLRATSAV' )
+          IF ( isDesc  ) Desc  = 'ISORROPIA chloride concentration'
+          IF ( isUnits ) Units = 'mol/L'
+          IF ( isRank  ) Rank  = 3
+
        CASE( 'ACIDPURSAV' )
           IF ( isDesc  ) Desc  = 'ISORROPIA ACIDPUR'
           IF ( isUnits ) Units = 'mol L-1'
@@ -2974,6 +3225,11 @@ CONTAINS
 
        CASE( 'PHCLOUD' )
           IF ( isDesc  ) Desc  = 'Cloud pH'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE( 'QLXPHCLOUD' )
+          IF ( isDesc  ) Desc  = 'Cloud pH * Met_QL'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 
@@ -3005,6 +3261,21 @@ CONTAINS
        CASE ( 'FUPDATEHOBR' )
           IF ( isDesc  ) Desc  = 'Correction factor for HOBr removal by SO2'
           IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'FUPDATEHOCL' )
+          IF ( isDesc  ) Desc  = 'Correction factor for HOCl removal by SO2'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'ACLAREA' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol area for fine mode Cl-'
+          IF ( isUnits ) Units = 'cm2 cm-3'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'ACLRADI' )
+          IF ( isDesc  ) Desc  = 'Dry aerosol radius for fine mode Cl-'
+          IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  =  3
 
        CASE ( 'H2O2AFTERCHEM' )
